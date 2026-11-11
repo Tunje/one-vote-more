@@ -121,6 +121,11 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"POL_DISTRICTING_VOTE": s = "Parliament %s a new district map (%d districts%s)" % ["passed" if d.get("passed", false) else "rejected", int(d.get("districts", 0)), ", to fix an unbalanced map" if d.get("why", "") == "REMEDY" else ""]
 		"POP_AREA_FOUNDED": s = "A new settlement was founded: %s" % d.get("name", "")
 		"POP_AREA_SPLIT": s = "%s has grown apart: a new area split off (%s)" % [String(w.peek("area").get(d.get("area", ""), {}).get("name", "An area")), "a wealthy enclave" if d.get("reason", "") == "ENCLAVE" else "too big"]
+		"LAND_SOLD": s = "State land in %s was sold to %s%s" % [String(w.peek("area").get(d.get("area", ""), {}).get("name", "the colony")), org(w, d.get("to", "")) if d.get("to_kind", "") == "COMPANY" else "local households", (" at a %d%% discount" % int(d.get("discount_pct", 0))) if int(d.get("discount_pct", 0)) > 0 else ""]
+		"LAND_LEASED": s = "State land was leased out"
+		"LAND_EXPROPRIATED": s = "The government expropriated land for %s" % _kind(d.get("purpose", "public use"))
+		"LAND_EVICTION_ORDERED": s = "[color=#ff8a65]Court-ordered eviction[/color] of %d residents in %s" % [int(d.get("residents", 0)), String(w.peek("area").get(d.get("area", ""), {}).get("name", "an area"))]
+		"LAND_UNLAWFUL_CLEARANCE": s = "[color=#ff5252]Unlawful clearance:[/color] residents were driven out without rehousing"
 		"POL_ELECTION_HELD": s = "[b]Election held[/b]"
 		"POL_GOVERNMENT_FORMED": s = "[b]New government[/b]: %s" % ", ".join(d.get("members", []).map(func(p): return party(w, p)))
 		"POL_BILL_PASSED": s = "Parliament passed a bill (%d–%d)" % [int(d.get("yes", 0)), int(d.get("no", 0))]

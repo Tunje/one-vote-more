@@ -183,6 +183,8 @@ static func land_rules() -> Array:
 		out.append(_r("PROHIBIT", a, priv, [], {"source": "LAND_LAW", "right": "HOUSING",
 			"unless": [{"field": "p.rehoused", "op": "EQ", "value": true}, {"field": "p.eviction_order", "op": "EQ", "value": true}]}))
 	out.append(_r("PROHIBIT", "BUILD_WITHOUT_TITLE", priv, [], src))
+	for a in ["ZONE_LAND", "SELL_LAND", "LEASE_LAND", "EXPROPRIATE"]:   # state powers: private actors never hold them
+		out.append(_r("PROHIBIT", a, priv, [], src))
 	return out
 
 

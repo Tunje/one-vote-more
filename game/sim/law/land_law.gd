@@ -26,13 +26,21 @@ static var land_value_fn: Callable = Callable()
 static var on_land_taken_fn: Callable = Callable()
 
 
+const RULES_VERSION := 2
+
+
+## Land rules, (re)installed when missing or older than RULES_VERSION (old LAND_LAW rules are retired).
 static func ensure_rules(world: WorldState) -> void:
 	var s := LawOps.state(world)
-	if s.get("land_rules", false):
+	if int(s.get("land_rules_v", 0)) >= RULES_VERSION:
 		return
-	s["land_rules"] = true
+	s["land_rules_v"] = RULES_VERSION
 	for k in ["land_title", "land_eviction"]:
 		world.table(k)
+	var rules := world.table("legal_rule")
+	for rid in Det.ordered(rules):
+		if rules[rid].get("source", "") == "LAND_LAW" and rules[rid]["status"] == "ACTIVE":
+			rules[rid]["status"] = "REPEALED"
 	for r in L.land_rules():
 		r["effective_month"] = world.month
 		LawOps.add_rule(world, r)

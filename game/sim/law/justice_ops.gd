@@ -280,7 +280,7 @@ static func detect_p(ctx: Dictionary, v: Dictionary) -> Dictionary:
 	var ch: String = v.get("channel", "SAFETY")
 	var p_insp := 0.0
 	if ch == "HOUSING":
-		p_insp = minf(1.0, P_TENANT_COMPLAINT * ev)     # evicted tenants complain: no inspectorate needed
+		p_insp = P_TENANT_COMPLAINT     # evicted tenants complain: no inspectorate or evidence trail needed
 	else:
 		p_insp = minf(1.0, float(ctx.get(ch, 0.0)) / float(ctx["n_reg"]) * risk) * float(ctx["p_find"]) * ev
 	var lp := P_LENIENCY if ctx["leniency"] and v.get("kind", "") == "CARTEL" else 0.0
