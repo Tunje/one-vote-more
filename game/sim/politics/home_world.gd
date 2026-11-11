@@ -59,7 +59,7 @@ static func burden(world: WorldState) -> int:
 static func colony_mood(world: WorldState) -> float:
 	var s := 0.0
 	var n := 0.0
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		s += float(c["ideology"].get("SOVEREIGNTY", 0)) * c["pop"]
 		n += c["pop"]
 	return s / maxf(1.0, n) / 1000.0
@@ -278,7 +278,7 @@ static func _colony_politics(world: WorldState, st: Dictionary, h: Dictionary, r
 static func _burden_sat(world: WorldState) -> float:
 	var s := 0.0
 	var n := 0.0
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		s += float(c["sat"].get("COLONIAL_BURDEN", 50000)) * c["pop"]
 		n += c["pop"]
 	return s / maxf(1.0, n) / 1000.0
@@ -317,7 +317,7 @@ static func _referendum(world: WorldState, st: Dictionary, h: Dictionary) -> voi
 	var yes := 0.0
 	var no := 0.0
 	var parties: Array = PartyLife.active(world)
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		if c["pop"] <= 0:
 			continue
 		var t := VoteModel.turnout(c, parties)
@@ -327,7 +327,7 @@ static func _referendum(world: WorldState, st: Dictionary, h: Dictionary) -> voi
 		no += c["pop"] * t * (1.0 - p_yes)
 	var eligible: int = LQ.eligible_total(world, {}, world.month)
 	if eligible <= 0:
-		for c in world.table("cell").values():
+		for c in PolVoters.all(world):
 			eligible += int(c["pop"])
 	var res: Dictionary = CO.declare_independence(world, int(round(yes)), int(round(no)), eligible)
 	world.add_fact({"type": "POL_INDEPENDENCE_REFERENDUM", "owner": "pol", "subjects": [], "responsible": [],

@@ -98,7 +98,7 @@ func _snap_party(p: Dictionary, m: int, kind: String, why: Dictionary) -> void:
 	var base: Array = []
 	var base_pop := 0
 	var all_pop := 0
-	for c in w.table("cell").values():
+	for c in PolVoters.all(w):
 		if c["pop"] <= 0:
 			continue
 		all_pop += c["pop"]
@@ -117,7 +117,7 @@ func _snap_party(p: Dictionary, m: int, kind: String, why: Dictionary) -> void:
 	for cn in PolDefs.CONCERNS:
 		var s := 0.0
 		var n := 0.0
-		for c in w.table("cell").values():
+		for c in PolVoters.all(w):
 			s += float(c["sat"][cn]) * c["pop"]
 			n += c["pop"]
 		sats[cn] = int(s / maxf(1.0, n) / 1000.0)
@@ -133,10 +133,7 @@ func _snap_election(m: int, eid: String) -> void:
 	ran.sort()
 	var pdicts: Array = ran.map(func(pid): return w.table("party")[pid])
 	var rows: Array = []
-	var keys: Array = w.table("cell").keys()
-	keys.sort()
-	for k in keys:
-		var c: Dictionary = w.table("cell")[k]
+	for c in PolVoters.all(w):
 		if c["pop"] <= 0:
 			continue
 		var worst := ""
@@ -160,7 +157,7 @@ func _snap_year(y: int) -> void:
 		if w.indicators.values.has(spec[0]):
 			ind[spec[1]] = _colony_value(spec[0]) / spec[2]
 	var pop := 0
-	for c in w.table("cell").values():
+	for c in PolVoters.all(w):
 		pop += c["pop"]
 	var seats := {}
 	for p in PartyLife.active(w):
@@ -180,7 +177,7 @@ func _colony_value(id: String) -> float:
 	if vals.has("COLONY"):
 		return float(vals["COLONY"])
 	var wsum := {}
-	for c in w.table("cell").values():
+	for c in PolVoters.all(w):
 		for k in [c["district"], c.get("census_key", "")]:
 			if vals.has(k):
 				wsum[k] = float(wsum.get(k, 0.0)) + float(c["pop"])

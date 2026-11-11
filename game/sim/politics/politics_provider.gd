@@ -78,7 +78,11 @@ func run_phase(phase: int, world: WorldState) -> void:
 	if phase == TickPhase.DECISIONS:
 		_decisions(world, st)
 		return
-	_sync_cells(world)
+	Philosophy.assign(world)       # M10 S3a: new people get philosophies (archetypes) and beliefs
+	if PolVoters.leaves_mode(world):
+		PolVoters.refresh(world)   # M10 S3: the people are the voters
+	else:
+		_sync_cells(world)
 	_update_opinion(world, st)
 	if st["era"] == "FOUNDING" and world.month < PolDefs.PARTY_FORMATION_MONTH:
 		_track_movements(world, st)
@@ -111,7 +115,6 @@ func run_phase(phase: int, world: WorldState) -> void:
 		GovCrisis.no_confidence_ai(world, st)
 		EmergencyPolitics.monthly(world, st)
 		DistrictPolitics.monthly(world, st)
-	Philosophy.assign(world)       # M10 S3a: new people get philosophies (archetypes) and beliefs
 	AreaStore.yearly(world)        # January: oversized areas and private enclaves split (moves to SOCIAL with Bob's A2)
 	GovBuilder.monthly(world, st)  # the state's capital programme, decided by whoever governs (not when the player does)
 	if have_parties and world.month > PolDefs.PARTY_FORMATION_MONTH:
@@ -171,7 +174,7 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 	var honeymoon := 0.0
 	if not g0.is_empty() and g0.has("formed_month"):
 		honeymoon = HONEYMOON * maxf(0.0, 1.0 - float(world.month - int(g0["formed_month"])) / 12.0)
-	for cell in world.table("cell").values():
+	for cell in PolVoters.all(world):
 		if cell["pop"] <= 0:
 			continue
 		# 1. satisfaction per concern from indicators
@@ -193,7 +196,7 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 		for c in PolDefs.CONCERNS:
 			cell["sat"][c] = int(round(num[c] / den[c])) if den.get(c, 0.0) > 0.0 else 50000
 		# 2. salience: occupation base x (1 + 2 x unmet), renormalised to 1000
-		var occ_sal: Array = PolDefs.OCC_SALIENCE[cell["occ"]]
+		var occ_sal: Array = PolDefs.OCC_SALIENCE[PolVoters.vocc(cell)]
 		var raw := {}
 		var tot := 0.0
 		for i in PolDefs.CONCERNS.size():
@@ -276,7 +279,7 @@ func _affects(f: Dictionary, cell: Dictionary) -> bool:
 func colony_approval(world: WorldState) -> int:
 	var s := 0.0
 	var p := 0.0
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		s += float(c["approval"]) * c["pop"]
 		p += c["pop"]
 	return int(round(s / p)) if p > 0.0 else 50000
@@ -290,7 +293,7 @@ func colony_concerns(world: WorldState) -> Array:
 	for c in PolDefs.CONCERNS:
 		sat[c] = 0.0
 		sal[c] = 0.0
-	for cell in world.table("cell").values():
+	for cell in PolVoters.all(world):
 		p += cell["pop"]
 		for c in PolDefs.CONCERNS:
 			sat[c] += float(cell["sat"][c]) * cell["pop"]
@@ -330,7 +333,7 @@ func _track_movements(world: WorldState, st: Dictionary) -> void:
 
 func _form_parties(world: WorldState, st: Dictionary) -> void:
 	var cells: Array = []
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		if c["pop"] > 0:
 			cells.append(c)
 	var mean := PolDefs.zero_axes()
@@ -491,7 +494,7 @@ func vote_shares(world: WorldState, shock: Dictionary, per_cell_out: Dictionary 
 	var votes := {}
 	for p in parties:
 		votes[p["id"]] = 0.0
-	for cell in world.table("cell").values():
+	for cell in PolVoters.all(world):
 		if cell["pop"] <= 0:
 			continue
 		var ctx := {"gov_share": gov_share, "prev_share": cell["prev_share"], "shock": shock, "tenure": st.get("tenure", {}), "campaign": campaign, "endorse": PartyLife.endorsement_bonus(cell, endorse)}
@@ -563,7 +566,7 @@ func run_election(world: WorldState, st: Dictionary, extra: bool = false) -> voi
 		var ps := {}
 		for pid in per_cell[key]:
 			ps[pid] = int(round(per_cell[key][pid] * 100000.0))  # ints in state (README rule 3)
-		world.table("cell")[key]["prev_share"] = ps
+		PolVoters.by_key(world, key)["prev_share"] = ps
 	var eid := world.new_id("election")
 	world.table("election")[eid] = {"id": eid, "month": world.month, "votes": votes, "seats": seats, "total": total}
 	st["elections"].append(eid)
@@ -609,10 +612,9 @@ func _score_promises(world: WorldState, st: Dictionary) -> void:
 ## Yearly: AI parties move 10% toward their own voters' mean, kept as distinct from the colony mean as at
 ## formation (PartyGen.exaggerate), so adaptation does not collapse everyone into the centre.
 func _adapt_parties(world: WorldState) -> void:
-	var cells := world.table("cell")
 	var cmean := PolDefs.zero_axes()
 	var cpop := 0.0
-	for c in cells.values():
+	for c in PolVoters.all(world):
 		cpop += c["pop"]
 		for ax in PolDefs.AXES:
 			cmean[ax] += float(c["ideology"][ax]) * c["pop"]
@@ -624,7 +626,7 @@ func _adapt_parties(world: WorldState) -> void:
 			continue  # a human player sets their own platform (UI, M5)
 		var acc := PolDefs.zero_axes()
 		var w := 0.0
-		for c in cells.values():
+		for c in PolVoters.all(world):
 			var s: float = float(c["prev_share"].get(p["id"], 0)) / 100000.0 * c["pop"]
 			w += s
 			for ax in PolDefs.AXES:
@@ -657,6 +659,8 @@ func _party_life_monthly(world: WorldState, st: Dictionary) -> void:
 func _zeitgeist(world: WorldState, st: Dictionary) -> void:
 	var r := world.rng.stream("pol.zeitgeist")
 	var cohorts: Dictionary = st["culture"]["cohorts"]
+	if PolVoters.leaves_mode(world):
+		cohorts = Philosophy.ensure(world)  # the people's philosophies drift instead of the legacy cohorts
 	var names: Array = cohorts.keys()
 	names.sort()
 	var delta := {}
@@ -669,7 +673,7 @@ func _zeitgeist(world: WorldState, st: Dictionary) -> void:
 			cohorts[cname]["offset"][ax] = off + d
 			delta[cname][ax] = d
 	var gen := int(round(PolDefs.SOV_GENERATIONAL_DRIFT * S)) if HomeWorld.colonial(world) else 0
-	for cell in world.table("cell").values():
+	for cell in PolVoters.all(world):
 		cell["base"]["SOVEREIGNTY"] = clampi(cell["base"]["SOVEREIGNTY"] + gen, -100 * S, 100 * S)
 		var dc: Dictionary = delta.get(cell["cohort"], {})
 		for ax in dc:
@@ -697,7 +701,7 @@ func _agenda_monthly(world: WorldState, st: Dictionary) -> Dictionary:
 func _district_means(world: WorldState) -> Dictionary:
 	var acc := {}
 	var pop := {}
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		var d: String = c["district"]
 		if not acc.has(d):
 			acc[d] = PolDefs.zero_axes()

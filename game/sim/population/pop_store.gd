@@ -19,7 +19,8 @@ const SKILLS := ["G", "S", "Sp"]
 ## Composition fields: int counts that split with the people who move. "age" and "skill" sum to n.
 const COMP_FIELDS := ["age", "skill"]
 ## Fields that are NOT beliefs (never mixed on transfer).
-const NON_STATE := ["key", "n", "age", "skill", "recent", "hb", "inc", "occ", "status", "arch", "eff", "exposure"]
+const NON_STATE := ["key", "n", "age", "skill", "recent", "hb", "inc", "occ", "status", "arch", "eff", "exposure",
+	"district", "area", "vocc", "band", "cohort", "census_key", "pop"]  # last row: voter fields derived monthly (PolVoters)
 const FLOW_KEEP_MONTHS := 24
 
 

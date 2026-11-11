@@ -147,7 +147,7 @@ static func _colony_sd(world: WorldState) -> Dictionary:
 		var w := 0.0
 		var m := 0.0
 		var m2 := 0.0
-		for c in world.table("cell").values():
+		for c in PolVoters.all(world):
 			var n := float(c["pop"])
 			if n <= 0.0:
 				continue
@@ -173,7 +173,7 @@ static func update_factions(world: WorldState, p: Dictionary) -> void:
 	var col_sd := _colony_sd(world)
 	var aw := {}
 	var aw_w := 0.0
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		var s := float(c["prev_share"].get(pid, 0)) / 100000.0 * float(c["pop"])
 		if s <= 0.0:
 			continue
@@ -185,7 +185,7 @@ static func update_factions(world: WorldState, p: Dictionary) -> void:
 		var w := 0.0
 		var m := 0.0
 		var m2 := 0.0
-		for c in world.table("cell").values():
+		for c in PolVoters.all(world):
 			var s := float(c["prev_share"].get(pid, 0)) / 100000.0 * float(c["pop"])
 			if s <= 0.0:
 				continue
@@ -216,7 +216,7 @@ static func update_factions(world: WorldState, p: Dictionary) -> void:
 	# strength: voter weight on each side of the platform
 	var lo := 0.0
 	var hi := 0.0
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		var s := float(c["prev_share"].get(pid, 0)) / 100000.0 * float(c["pop"])
 		if s > 0.0:
 			if float(c["ideology"][best_ax]) / 1000.0 < pos:
@@ -317,7 +317,7 @@ static func open_account(world: WorldState, pid: String) -> void:
 
 ## Moves voters' habit (prev_share) from one party to another in every cell (fraction 0..1; side filter optional).
 static func _move_loyalty(world: WorldState, from_pid: String, to_pid: String, frac: float, axis: String = "", side: int = 0, pivot: int = 0) -> void:
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		var ps: Dictionary = c["prev_share"]
 		var v: int = int(ps.get(from_pid, 0))
 		if v <= 0:
@@ -373,7 +373,7 @@ static func _found_unrepresented(world: WorldState, st: Dictionary, parties: Arr
 	var far: Array = []
 	var fp := 0.0
 	var tp := 0.0
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		tp += c["pop"]
 		var best := INF
 		for p in parties:
@@ -407,7 +407,7 @@ static func _found_populist(world: WorldState, st: Dictionary, parties: Array) -
 	if gov_sat >= POPULIST_GOV_SAT or avg >= POPULIST_APPROVAL:
 		return false
 	# the disaffected: cells with the lowest approval (bottom quarter by population)
-	var cells: Array = world.table("cell").values().filter(func(c): return c["pop"] > 0)
+	var cells: Array = PolVoters.all(world).filter(func(c): return c["pop"] > 0)
 	cells.sort_custom(func(a, b): return a["approval"] < b["approval"] or (a["approval"] == b["approval"] and a["key"] < b["key"]))
 	var tp := 0.0
 	for c in cells:
@@ -446,7 +446,7 @@ static func _found_single_issue(world: WorldState, st: Dictionary, parties: Arra
 		# the people who care most: salience-weighted mean ideology
 		var pos := PolDefs.zero_axes()
 		var w := 0.0
-		for cell in world.table("cell").values():
+		for cell in PolVoters.all(world):
 			var s := float(cell["pop"]) * pow(float(cell["salience"][c]) / 111.0, 2.0)
 			w += s
 			for ax in PolDefs.AXES:
@@ -480,7 +480,7 @@ static func _fact_founded(world: WorldState, np: Dictionary, kind: String, data:
 static func _colony_sat(world: WorldState, concern: String) -> int:
 	var s := 0.0
 	var p := 0.0
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		s += float(c["sat"][concern]) * c["pop"]
 		p += c["pop"]
 	return int(round(s / p)) if p > 0.0 else 50000

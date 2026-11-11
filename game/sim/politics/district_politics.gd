@@ -151,7 +151,7 @@ static func _name_plan(world: WorldState, groups: Dictionary, cur: Dictionary) -
 static func area_share(world: WorldState, area_id: String, parties: Array) -> float:
 	var v := 0.0
 	var n := 0.0
-	for c in world.table("cell").values():
+	for c in PolVoters.all(world):
 		if c["district"] != area_id or c["pop"] <= 0:
 			continue
 		var s := 0.0

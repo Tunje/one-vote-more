@@ -77,7 +77,7 @@ func next_election_month() -> int:
 ## Population-weighted per-district aggregates from voter cells: approval and economic lean (+ = left).
 func district_politics() -> Dictionary:
 	var out := {}
-	for c in sim.world.peek("cell").values():
+	for c in PolVoters.all(sim.world):
 		var d: String = c["district"]
 		if not out.has(d):
 			out[d] = {"pop": 0.0, "approval": 0.0, "lean": 0.0}
