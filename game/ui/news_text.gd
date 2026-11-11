@@ -137,7 +137,12 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 			var kind_txt: String = {"PLANET_CYCLONE": "A cyclone", "PLANET_RAIN_FRONT": "A heavy rain front", "PLANET_BLIZZARD": "A blizzard",
 				"PLANET_DUST": "A dust storm", "PLANET_SOLAR_FLARE": "A solar flare", "PLANET_SPORE_BLOOM": "A spore bloom",
 				"PLANET_MOON_SURGE": "A moon surge", "PLANET_DROUGHT": "Drought"}[t]
-			s = "%s%s%s" % [kind_txt, (" (%s)" % d.get("name", "")) if String(d.get("name", "")) != "" else "", " is sweeping the region" if t != "PLANET_DROUGHT" else " grips the region"]
+			var nm := String(d.get("name", ""))
+			s = "%s%s%s" % [kind_txt, (" (%s)" % nm) if nm != "" and nm.to_lower() != kind_txt.to_lower().trim_prefix("a ").trim_prefix("an ") else "", " is sweeping the region" if t != "PLANET_DROUGHT" else " grips the region"]
+		"LAW_CHARTER_AMENDED": s = "The home world amended the colony's charter (%s: %s → %s)" % [_kind(String(d.get("lever", "")).trim_prefix("LAW_CHARTER_")), str(d.get("from", "?")), str(d.get("to", "?"))]
+		"HOME_PETITION_ANSWERED", "LAW_PETITION_ANSWERED": s = "The home world %s the colony's petition" % ("granted" if d.get("accepted", false) else "rejected")
+		"HOME_INSPECTION_REPORT": s = "The home world's inspector %s" % (("found %d cases of quota evasion or smuggling" % int(d.get("found", 0))) if int(d.get("found", 0)) > 0 else "found nothing amiss")
+		"LAW_PETITION_SENT": s = "Parliament sent a petition to the home world asking for better terms"
 		"POL_ELECTION_HELD": s = "[b]Election held[/b]"
 		"POL_GOVERNMENT_FORMED": s = "[b]New government[/b]: %s" % ", ".join(d.get("members", []).map(func(p): return party(w, p)))
 		"POL_BILL_PASSED": s = "Parliament passed a bill (%d–%d)" % [int(d.get("yes", 0)), int(d.get("no", 0))]

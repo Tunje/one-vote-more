@@ -140,7 +140,16 @@ static func _producer_target(world: WorldState, f: Dictionary, o: Dictionary, go
 	# Q = expected (next) + buffer − (stock − expected)
 	var target_inv := expected * (0.5 if good == "FOOD" else 1.0)
 	var q := 2.0 * expected + target_inv - stock
-	return clampf(q / cap, 0.2, 1.0)  # producers keep a 20% floor (core crew), spec §9.1 mothball rule handles real collapse
+	var t := clampf(q / cap, 0.2, 1.0)
+	# E108: profit-seeking supply. When the price is well above unit cost and stock is not piling up, produce more —
+	# buyers' orders shrink at high prices, so following sales alone trapped the colony at high price / low volume
+	# (io_feasibility: the plants exist, they ran at 20–30% while prices sat at the cap).
+	if not EconUtil.off(world, "E108") and stock < 2.0 * cap:
+		var price := float(EconUtil.st(world)["prices"].get(good, 0))
+		var margin := price / maxf(1.0, unit_cost(world, f["type"]))
+		if margin >= 1.25:
+			t = maxf(t, clampf(0.5 + 0.5 * (margin - 1.25) / 0.75, 0.5, 1.0))
+	return t  # producers keep a 20% floor (core crew), spec §9.1 mothball rule handles real collapse
 
 
 static func _budget_ratio(world: WorldState, f: Dictionary) -> float:
