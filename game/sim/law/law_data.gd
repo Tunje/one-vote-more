@@ -16,7 +16,9 @@ const ACTIONS := ["ZONE_DISTRICT", "BUILD_FACILITY", "DEMOLISH_FACILITY", "OPERA
 	"CUT_CONTRACT_CORNERS", "DECLARE_EMERGENCY", "REQUISITION",
 	# M12 (spec-colony-v1): colonial charter, home-world sanctions, breaking away
 	"SELL_COLONIAL_GOOD", "WITHHOLD_QUOTA", "OBSTRUCT_QUOTA", "REFUSE_QUOTA", "PETITION_HOME", "DECLARE_INDEPENDENCE",
-	"HOME_FINE", "HOME_WITHHOLD", "HOME_REVOKE_PRIVILEGE", "HOME_APPOINT_GOVERNOR", "HOME_EXPEDITION"]
+	"HOME_FINE", "HOME_WITHHOLD", "HOME_REVOKE_PRIVILEGE", "HOME_APPOINT_GOVERNOR", "HOME_EXPEDITION",
+	# M13 land law (spec-areas-v1 9.4, A37)
+	"SELL_LAND", "LEASE_LAND", "ZONE_LAND", "CLEAR_HOUSING", "EVICT", "BUILD_WITHOUT_TITLE"]
 
 ## M11 greed conduct (88 reports it with LawOps.record_greed). action = the rules-engine action that decides legality;
 ## channel = who can detect it (SAFETY inspectorate, ENV inspectorate, MARKET competition/consumer authority);
@@ -33,6 +35,9 @@ const GREED_KINDS := {
 	# M12: charter evasion, detected by the home-world inspector at ship arrival (channel HOME)
 	"QUOTA_EVASION": {"action": "WITHHOLD_QUOTA", "channel": "HOME", "class": "SERIOUS"},
 	"SMUGGLING": {"action": "SELL_COLONIAL_GOOD", "channel": "HOME", "class": "SERIOUS"},
+	# M13 land: building on land without a title; evicting or clearing without rehousing or a court order
+	"SQUATTING_BUILD": {"action": "BUILD_WITHOUT_TITLE", "channel": "SAFETY", "class": "MINOR"},
+	"ILLEGAL_EVICTION": {"action": "EVICT", "channel": "HOUSING", "class": "SERIOUS"},
 }
 ## Emergency levers: settable only while a state of emergency is in force; revert to default when it ends.
 const EMERGENCY_LEVERS := ["LAW_RATIONING", "LAW_PRICE_CONTROL", "LAW_FOOD_EXPORT_BAN", "LAW_REQUISITION"]
@@ -152,6 +157,32 @@ static func m12_rules() -> Array:
 	# Rights of the colony: petition is always lawful.
 	out.append(_r("AUTHORIZE", "PETITION_HOME", [{"field": "actor.kind", "op": "IN", "value": ["PARLIAMENT", "GOVERNMENT", "COMMANDER"]}],
 		[], {"source": "COLONIAL_CHARTER"}))
+	return out
+
+
+## M13 land law (spec-areas-v1 9.4). Added once by LandLaw.ensure_rules.
+static func land_rules() -> Array:
+	var out: Array = []
+	var src := {"source": "LAND_LAW"}
+	var exec := [{"field": "actor.kind", "op": "IN", "value": ["GOVERNMENT", "COMMANDER"]}]
+	var gov := [{"field": "actor.kind", "op": "EQ", "value": "GOVERNMENT"}]
+	var priv := [{"field": "actor.kind", "op": "IN", "value": ["COMPANY", "HOUSEHOLD"]}]
+	var caretaker := [{"field": "world.caretaker", "op": "EQ", "value": true}]
+	out.append(_r("AUTHORIZE", "SELL_LAND", exec, [{"field": "lever.LAW_LAND_DISPOSAL", "op": "EQ", "value": "SELL"},
+		{"field": "p.price_ok", "op": "EQ", "value": true}], src))
+	out.append(_r("AUTHORIZE", "LEASE_LAND", exec, [{"field": "lever.LAW_LAND_DISPOSAL", "op": "IN", "value": ["LEASE", "SELL"]}], src))
+	out.append(_r("AUTHORIZE", "ZONE_LAND", exec, [], src))
+	out.append(_r("AUTHORIZE", "EXPROPRIATE", exec, [{"field": "p.public_purpose", "op": "EQ", "value": true}], src))
+	for a in ["SELL_LAND", "ZONE_LAND", "EXPROPRIATE"]:
+		out.append(_r("PROHIBIT", a, gov, caretaker + [{"field": "actor.kind", "op": "EQ", "value": "GOVERNMENT"}],
+			{"source": "LAND_LAW", "right": "CARETAKER_LIMITS"}))
+	# Clearance and eviction: never without lawful rehousing or a court order (people are never deleted).
+	out.append(_r("AUTHORIZE", "CLEAR_HOUSING", exec, [{"field": "p.rehoused", "op": "EQ", "value": true}], src))
+	out.append(_r("AUTHORIZE", "CLEAR_HOUSING", exec, [{"field": "p.eviction_order", "op": "EQ", "value": true}], src))
+	for a in ["CLEAR_HOUSING", "EVICT"]:
+		out.append(_r("PROHIBIT", a, priv, [], {"source": "LAND_LAW", "right": "HOUSING",
+			"unless": [{"field": "p.rehoused", "op": "EQ", "value": true}, {"field": "p.eviction_order", "op": "EQ", "value": true}]}))
+	out.append(_r("PROHIBIT", "BUILD_WITHOUT_TITLE", priv, [], src))
 	return out
 
 
@@ -357,6 +388,19 @@ const LEVERS := [
 	{"id": "LAW_MILITIA", "owner": "law", "type": "NUMBER", "range": [0, 100], "default": 0,
 		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"SOVEREIGNTY": 1.0},
 		"fiscal": "est_militia_cost", "implementation": "STAFF_T_IMPL_INSTITUTION", "lag": 6, "scope": "COLONY", "domain": "LAW"},
+	# ---- M13 land (spec-areas-v1 9.4, A37). The government owns all land at founding.
+	{"id": "LAW_LAND_DISPOSAL", "owner": "law", "type": "ENUM", "values": ["KEEP", "LEASE", "SELL"], "default": "LEASE",
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": -12},
+		"fiscal": "est_land_revenue", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	{"id": "LAW_LAND_PRICE_FLOOR_PCT", "owner": "law", "type": "NUMBER", "range": [0, 100], "default": 90,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"REDISTRIBUTION": -0.15, "ECON_ROLE": -0.05},
+		"fiscal": "est_land_revenue", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	{"id": "LAW_RENT_CONTROL", "owner": "law", "type": "ENUM", "values": ["NONE", "CAP", "FREEZE"], "default": "NONE",
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"REDISTRIBUTION": 10, "ECON_ROLE": 6},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	{"id": "LAW_EVICTION_NOTICE_MONTHS", "owner": "law", "type": "NUMBER", "range": [1, 12], "default": 3,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": 1.0, "REDISTRIBUTION": 1.0},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
 	# ---- M10 electoral eligibility (spec-population-v1 §4.2, PD §9.6). Read through LQ.eligibility(world).
 	# Slopes use today's 7 axes; remap to STABILITY/LIBERTY when S3 adds them (planning/a9-population-note.md).
 	{"id": "LAW_VOTING_AGE", "owner": "law", "type": "ENUM", "values": ["16", "18", "21"], "default": "18",

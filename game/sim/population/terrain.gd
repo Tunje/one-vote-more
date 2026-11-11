@@ -43,9 +43,32 @@ static func generate(world: WorldState) -> void:
 		var rad := r.randi_range(3, 6)
 		for y in range(maxi(0, cy - rad), mini(H, cy + rad + 1)):
 			for xx in range(maxi(0, cx - rad), mini(W, cx + rad + 1)):
-				var dd := Vector2(xx - cx, y - cy).length()
+				var dd := Vector2(xx - cx, y - cy).length() * (0.75 + 0.5 * r.randf())  # ragged edges
 				if dd <= rad and g[y][xx] in [".", "f"]:
 					g[y][xx] = "k" if dd <= rad * 0.4 else "h"
+	# a tributary stream from a random edge point toward the river, with fertile banks
+	var ty := r.randi_range(4, H - 5)
+	var tx := 0 if r.randf() < 0.5 else W - 1
+	for _s in W:
+		if g[ty][tx] == "r":
+			break
+		if g[ty][tx] in [".", "f"]:
+			g[ty][tx] = "r"
+			for d2 in [-1, 1]:
+				if ty + d2 >= 0 and ty + d2 < H and g[ty + d2][tx] == ".":
+					g[ty + d2][tx] = "f"
+		tx += 1 if tx < W / 2 else -1
+		if r.randf() < 0.3:
+			ty = clampi(ty + r.randi_range(-1, 1), 1, H - 2)
+	# scattered fertile meadows
+	for _i in 7:
+		var mx := r.randi_range(2, W - 3)
+		var my := r.randi_range(2, H - 3)
+		for _j in r.randi_range(4, 12):
+			var px := clampi(mx + r.randi_range(-2, 2), 0, W - 1)
+			var py := clampi(my + r.randi_range(-2, 2), 0, H - 1)
+			if g[py][px] == ".":
+				g[py][px] = "f"
 	# deposits: ore in hills, rare minerals in rock, native-crop land on far plains
 	_scatter(g, r, "o", ["h", "k"], 5)
 	_scatter(g, r, "x", ["k"], 2)

@@ -16,7 +16,7 @@ func _initialize() -> void:
 		await process_frame
 		print("window %s: %d nodes" % [t, _count(main.windows[t])])
 		main.windows[t].hide()
-	for o in ["UNEMPLOYMENT", "APPROVAL", "LEAN", "DISTRICTS"]:
+	for o in ["TERRAIN", "UNEMPLOYMENT", "APPROVAL", "LEAN", "DISTRICTS"]:
 		main.map.overlay = o
 		main.map.refresh()
 	main._on_save()

@@ -36,3 +36,40 @@ Spec: `spec-areas-v1.md` (A35). Migration plan approved by Wilma, 2026-11-11:
   - It is a static var and is not saved, so register it in the provider constructor.
   - Bob moves pool money pro rata on each move.
 - **Indicators:** granularity "AREA", keyed by area id. Politics and UI aggregate to districts.
+
+## A37 §9: housing life-cycle and land (Bob's part, in A3)
+
+Bob builds:
+- condition and age on the S-curve decay;
+- owner choices: renovate, sell, cut rent;
+- quality tiers BASIC / STANDARD / UPSCALE, and their rents;
+- affordability and sorting;
+- land purchase and lease economics.
+
+**Land-title interface AGREED with Anni (2026-11-11).** Module LandLaw = `res://sim/law/land_law.gd`; reads go through LQ.
+
+- **Levers (Anni's):**
+  - LAW_LAND_DISPOSAL: KEEP / LEASE / SELL, default LEASE;
+  - LAW_LAND_PRICE_FLOOR_PCT: default 90, for households and the Housing Office (companies always ≥ 90%);
+  - LAW_RENT_CONTROL: NONE / CAP / FREEZE. **Bob applies it:** CAP = at most +3% a year, FREEZE = no increase;
+  - LAW_EVICTION_NOTICE_MONTHS: default 3.
+- **Registry:** table `land_title`, sparse, keyed "x,y"; absent = government freehold. Fields: `{owner, tenure: OWNED | LEASED, lessee, lease_rent, lease_until, zoning, acquired_month, price_paid, arrears_months, history}`.
+- **Asking:** `LQ.land_offer(world, tile, buyer_ref, use)` → `{allowed, mode, price, lease_rent, reason}`.
+  - SELL: price = land_value (floors as above).
+  - LEASE: lease_rent = land_value × 0.6% a month.
+- **Bob registers hooks at startup:**
+  - `LandLaw.land_value_fn = func(w, t): return EconGeo.land_value(w, t)`. Until then Anni uses 12 W_ref per tile × terrain.
+  - `LandLaw.on_land_taken_fn = func(w, t, owner): EconGeo.on_land_taken(...)`.
+- **Doing:**
+  - `LandLaw.grant_land(world, tile, buyer_ref, mode, price, lease_months = 1188)` → `{ok, reason}`, after Bob books the money.
+  - Private resale: `LandLaw.transfer_title(world, tile, seller, buyer, price)`.
+- **Lease rent:** Bob pays it in SETTLEMENT from the title row.
+  - A lessee who can't pay: `LandLaw.report_arrears(world, tile, months_unpaid)`.
+  - At 3 months unpaid: LAND_LEASE_TERMINATED.
+  - If the land is occupied: an EVICTION case, then LAND_EVICTION_ORDERED `{tiles, area, residents}` after the notice period.
+- **Expropriation:** `LandLaw.expropriate(world, tiles, by, purpose, compensation)` needs a public purpose and compensation ≥ 100% of land_value (plus the remaining lease value). It then calls Bob's hook: Bob pays, mothballs and rehouses.
+- **Clearance:**
+  - `LQ.may_clear(world, area_or_tiles, actor)` → `{allowed, needs_rehousing, residents, reason}`. Pass `{rehousing_units}`.
+  - Lawful only with rehousing capacity ≥ residents, or a court eviction order.
+  - An unlawful clearance by a private landlord is reported as greed kind ILLEGAL_EVICTION.
+- **Before placing anything:** `LandLaw.can_build(world, actor, tile, use)` → `{ok, reasons}`. Building on government land without a title is refused unless the builder is the state.

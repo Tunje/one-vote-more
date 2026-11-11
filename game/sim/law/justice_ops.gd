@@ -25,6 +25,7 @@ const ENV_INSPECTION_COST_WREF := 1500     # milli-W_ref per environmental inspe
 const MARKET_CASE_COST_WREF := 2500        # milli-W_ref per market investigation
 const P_WHISTLE_PROTECTED := 0.03          # with LAW_WHISTLEBLOWER_PROTECTION
 const P_LENIENCY := 0.05                   # per month a cartel member confesses under LAW_LENIENCY
+const P_TENANT_COMPLAINT := 0.3            # M13: an illegal eviction is reported by its victims
 const INQUIRY_MIN_MAGNITUDE := 50
 const VICTIM_FUND := "law:victim_fund"
 const PARTY_FINE_MULT := 2.0      # party-finance fine = 2 x the amount over the cap (min 1 W_ref) x LAW_FINE_SCALE
@@ -277,8 +278,11 @@ static func detect_p(ctx: Dictionary, v: Dictionary) -> Dictionary:
 	var ev := 0.5 + float(v.get("evidence", 500)) / 1000.0
 	var risk := 2.0 if ctx["priors"].has(v["company"]) else 1.0
 	var ch: String = v.get("channel", "SAFETY")
-	var cap: float = ctx[ch]
-	var p_insp := minf(1.0, cap / float(ctx["n_reg"]) * risk) * float(ctx["p_find"]) * ev
+	var p_insp := 0.0
+	if ch == "HOUSING":
+		p_insp = minf(1.0, P_TENANT_COMPLAINT * ev)     # evicted tenants complain: no inspectorate needed
+	else:
+		p_insp = minf(1.0, float(ctx.get(ch, 0.0)) / float(ctx["n_reg"]) * risk) * float(ctx["p_find"]) * ev
 	var lp := P_LENIENCY if ctx["leniency"] and v.get("kind", "") == "CARTEL" else 0.0
 	return {"inspect": minf(1.0, p_insp), "whistle": minf(1.0, float(ctx["p_whistle"]) * ev), "leniency": lp}
 

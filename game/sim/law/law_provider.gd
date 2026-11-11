@@ -8,6 +8,7 @@ const Vis := preload("res://sim/law/visibility.gd")
 const PF := preload("res://sim/law/party_finance.gd")
 const CO := preload("res://sim/law/charter_ops.gd")
 const DL := preload("res://sim/law/districting.gd")
+const Land := preload("res://sim/law/land_law.gd")
 
 
 func _init() -> void:
@@ -59,6 +60,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 		TickPhase.DECISIONS:
 			Ops.ensure_m11_rules(world)
 			CO.ensure_m12(world)
+			Land.ensure_rules(world)
 			DL.ensure_founding_district(world)
 			DL.tick(world)
 			Ops.emergency_tick(world)
@@ -71,6 +73,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			Ops.decay_greed_evidence(world)
 			Ops.Justice.run(world)
 			PF.run(world)
+			Land.tick(world)
 			Ops.write_indicators(world)
 		TickPhase.EVENTS:
 			# Politics forms governments in POLITICS (after DECISIONS): adopt the constitution the same month,

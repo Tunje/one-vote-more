@@ -21,7 +21,9 @@ const BASE_COLORS := {"d:1": Color("#7fa6c9"), "d:2": Color("#8cc59a"), "d:3": C
 const WILD := Color("#3b4a3f")
 const MAX_REACH := 13.0
 
-var overlay := "DISTRICTS"   # DISTRICTS | UNEMPLOYMENT | APPROVAL | LEAN
+var overlay := "DISTRICTS"   # DISTRICTS | UNEMPLOYMENT | APPROVAL | LEAN | TERRAIN
+const TERRAIN_COLORS := {".": Color("#6f8f5a"), "f": Color("#8fbf5f"), "r": Color("#3f78b5"), "h": Color("#8a7a5a"),
+	"k": Color("#6d6a66"), "o": Color("#b07a3a"), "x": Color("#b048b0"), "n": Color("#4fb08f"), "L": Color("#f2e6a0")}
 var session: GameSession
 var selected := ""
 var _owner: Array = []       # [y][x] -> district id or ""
@@ -87,7 +89,41 @@ func _color_for(d: String) -> Color:
 	return BASE_COLORS.get(d, Color.GRAY)
 
 
+func _terrain_on() -> bool:
+	return overlay == "TERRAIN" and session != null and Terrain.ready(session.world())
+
+
+func _terrain_tile() -> float:
+	return minf(size.x / Terrain.W, size.y / Terrain.H)
+
+
+## M13: the real terrain map with areas (housing blocks) drawn on it.
+func _draw_terrain() -> void:
+	var w := session.world()
+	var t := _terrain_tile()
+	for y in Terrain.H:
+		var row: String = w.peek("map")["grid"]["rows"][y]
+		for x in Terrain.W:
+			var c: Color = TERRAIN_COLORS.get(row.substr(x, 1), Color.GRAY)
+			var use := Terrain.use_at(w, x, y)
+			if use.has("area"):
+				c = Color.from_hsv(float(hash(String(use["area"])) % 360) / 360.0, 0.45, 0.95)
+			elif use.has("facility"):
+				c = Color("#d0d0d0")
+			draw_rect(Rect2(x * t, y * t, t - 1, t - 1), c.darkened(float((x * 31 + y * 17) % 5) * 0.02))
+	var font := get_theme_default_font()
+	for a in AreaStore.areas(w):
+		var cpos := AreaStore.centroid(w, a["id"]) * t + Vector2(-t, -t * 0.4)
+		draw_string(font, cpos + Vector2(1, 1), a["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.BLACK)
+		draw_string(font, cpos, a["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+	var l := Terrain.landing(w)
+	draw_string(font, Vector2(l) * t + Vector2(t, t), "⚑ Landing site", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#fff3b0"))
+
+
 func _draw() -> void:
+	if _terrain_on():
+		_draw_terrain()
+		return
 	var t := _tile_size()
 	for y in H:
 		for x in W:
@@ -116,6 +152,17 @@ func _draw() -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
+	if _terrain_on():
+		if event is InputEventMouseMotion:
+			var tt := _terrain_tile()
+			var tx := int(event.position.x / tt)
+			var ty := int(event.position.y / tt)
+			var w := session.world()
+			var code := Terrain.at(w, tx, ty)
+			if code != "":
+				var area := AreaStore.area_of(w, Vector2i(tx, ty))
+				tooltip_text = "%s%s" % [Terrain.NAMES.get(code, code), ("  ·  " + String(AreaStore.get_area(w, area).get("name", ""))) if area != "" else ""]
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var t := _tile_size()
 		var x := int(event.position.x / t)

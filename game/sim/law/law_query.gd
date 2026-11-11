@@ -14,6 +14,7 @@ const Vis := preload("res://sim/law/visibility.gd")
 const PF := preload("res://sim/law/party_finance.gd")
 const CO := preload("res://sim/law/charter_ops.gd")
 const DL := preload("res://sim/law/districting.gd")
+const Land := preload("res://sim/law/land_law.gd")
 
 const DECREE_WARNING := "This decree is UNLAWFUL: %s. If you proceed it will be implemented like any decision, " \
 	+ "but it is recorded as a secret unlawful act. It can leak from the civil service (about 3%% a month), be " \
@@ -582,3 +583,31 @@ static func districting_acts(world: WorldState) -> Array:
 	for id in Det.ordered(t):
 		out.push_front(t[id].duplicate(true))
 	return out
+
+
+# =====================================================================================  M13 land law
+
+## What the state offers for a tile under current land policy: {allowed, mode SELL|LEASE|NONE, price, lease_rent, reason}
+static func land_offer(world: WorldState, tile, buyer, use: String = "") -> Dictionary:
+	return Land.land_offer(world, tile, buyer, use)
+
+
+## {allowed, needs_rehousing, residents, reason} for clearing housing on tiles or a whole area.
+static func may_clear(world: WorldState, where, actor = {"kind": "GOVERNMENT", "id": "government"}, params: Dictionary = {}) -> Dictionary:
+	return Land.may_clear(world, where, actor, params)
+
+
+static func land_title(world: WorldState, tile) -> Dictionary:
+	return Land.title(world, tile).duplicate(true)
+
+
+## Titles of an area's tiles plus the land policy in plain terms (UI).
+static func land_register(world: WorldState, area_id: String = "") -> Dictionary:
+	var rows: Array = []
+	var tiles: Array = AreaStore.get_area(world, area_id).get("tiles", []) if area_id != "" else Det.ordered(world.peek("land_title"))
+	for k in tiles:
+		rows.append(Land.title(world, k).duplicate(true))
+	return {"policy": String(world.levers.get("LAW_LAND_DISPOSAL", "LEASE")),
+		"household_floor_pct": int(world.levers.get("LAW_LAND_PRICE_FLOOR_PCT", 90)),
+		"rent_control": String(world.levers.get("LAW_RENT_CONTROL", "NONE")),
+		"eviction_notice_months": int(world.levers.get("LAW_EVICTION_NOTICE_MONTHS", 3)), "titles": rows}

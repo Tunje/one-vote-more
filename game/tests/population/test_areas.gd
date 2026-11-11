@@ -10,6 +10,14 @@ func _world(seed_v: int = 11) -> WorldState:
 	return w
 
 
+## Make tiles plain ground (tests control their own terrain).
+func _flatten(w: WorldState, tiles: Array) -> void:
+	var rows: Array = w.table("map")["grid"]["rows"]
+	for t in tiles:
+		var row: String = rows[t.y]
+		rows[t.y] = row.substr(0, t.x) + "." + row.substr(t.x + 1)
+
+
 func _leaf(w: WorldState, hb: String, inc: String, n: int) -> void:
 	PopStore.seed_leaf(w, {"hb": hb, "inc": inc, "occ": "SERVICES", "status": "EMPLOYED", "arch": "PRAG"}, n)
 
@@ -50,6 +58,7 @@ func test_size_split_conserves_people_and_records_history() -> void:
 	var w := _world()
 	var l := Terrain.landing(w)
 	var a := AreaStore.place_housing(w, l, 300, "GOV")
+	_flatten(w, [l + Vector2i(1, 0), l + Vector2i(2, 0), l + Vector2i(3, 0)])
 	for d in [Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0)]:
 		var t: Vector2i = l + d
 		if Terrain.at(w, t.x, t.y) in Terrain.BUILDABLE_HOUSING:
@@ -76,18 +85,9 @@ func test_private_enclave_breaks_away_with_the_rich() -> void:
 	var w := _world()
 	var l := Terrain.landing(w)
 	var a := AreaStore.place_housing(w, l, 200, "GOV")
-	# build along open ground to the east: one more public block, then two private homes in a row
-	var row: Array = []
-	var x := l.x + 1
-	while row.size() < 3 and x < Terrain.W:
-		if Terrain.at(w, x, l.y) in Terrain.BUILDABLE_HOUSING:
-			row.append(Vector2i(x, l.y))
-		else:
-			break
-		x += 1
-	check_eq(row.size(), 3, "room east of the landing site (seed 11)")
-	if row.size() < 3:
-		return
+	# one more public block east of the landing site, then two private homes in a row
+	var row: Array = [l + Vector2i(1, 0), l + Vector2i(2, 0), l + Vector2i(3, 0)]
+	_flatten(w, row)
 	check_eq(AreaStore.place_housing(w, row[0], 100, "GOV"), a, "public block extends Landing")
 	check_eq(AreaStore.place_housing(w, row[1], 5, "PRIVATE", "I5"), a, "private home extends Landing")
 	check_eq(AreaStore.place_housing(w, row[2], 5, "PRIVATE", "I5"), a, "second private home")

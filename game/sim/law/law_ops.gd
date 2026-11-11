@@ -67,7 +67,8 @@ static func init_world(world: WorldState) -> void:
 	state(world)
 	for k in ["legal_rule", "licence", "permit_application", "enactment", "unlawful_track", "violation_track", "revealed_fact",
 			"case", "court", "judge", "liability", "gov_term", "access_grant", "donation_track", "investigation", "inquiry",
-			"victim_award", "law_district", "districting_act"]:
+			"victim_award", "law_district", "districting_act",
+			"land_title", "land_eviction"]:
 		world.table(k)   # owned/shared tables exist from the start, so read-only queries never create them
 	for r in L.charter_rules():
 		r["effective_month"] = 0

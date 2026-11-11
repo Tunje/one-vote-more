@@ -66,7 +66,7 @@ func _build_ui() -> void:
 	split.add_child(left)
 	var overlays := HBoxContainer.new()
 	left.add_child(overlays)
-	for o in ["DISTRICTS", "UNEMPLOYMENT", "APPROVAL", "LEAN"]:
+	for o in ["TERRAIN", "DISTRICTS", "UNEMPLOYMENT", "APPROVAL", "LEAN"]:
 		_button(overlays, o.capitalize(), func(): map.overlay = o; map.refresh())
 	map = MapView.new()
 	map.session = session

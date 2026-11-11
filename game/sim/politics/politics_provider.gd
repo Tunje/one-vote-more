@@ -36,6 +36,8 @@ func indicator_defs() -> Array:
 
 
 func init_world(world: WorldState) -> void:
+	if not Terrain.ready(world):
+		Terrain.generate(world)  # M13 terrain map (Bob's A2 generates it in EconSetup; this covers earlier setups)
 	var persona: Dictionary = world.meta.get("persona", {})
 	var p := PolDefs.zero_axes()
 	for ax in persona:
