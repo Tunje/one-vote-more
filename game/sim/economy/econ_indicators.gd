@@ -6,7 +6,12 @@ extends RefCounted
 const S := EconUtil.S
 
 
-## Income classes of every group: [{gid, district, tier, occ, adults (float persons), own_pa, inc_pa}]
+## M10: census occupations are still the politics set (PolDefs.OCCUPATIONS) until politics S3 moves to the
+## 10 PopStore occupations: MANUFACTURING / CONSTRUCTION / LOGISTICS are reported as INDUSTRY.
+const CENSUS_OCC := {"MANUFACTURING": "INDUSTRY", "CONSTRUCTION": "INDUSTRY", "LOGISTICS": "INDUSTRY"}
+
+
+## Income classes of every household pool: [{gid, district, occ, adults (float persons), own_pa, inc_pa}]
 static func classes(world: WorldState) -> Array:
 	var out: Array = []
 	for gid in EconUtil.sorted_keys(world.table("hh")):
@@ -28,10 +33,10 @@ static func classes(world: WorldState) -> Array:
 		var div_pa := float(g["div_ema"]) / S / maxf(owners, 0.001)
 		var rows: Array = []
 		for occ in EconUtil.sorted_keys(g["emp"]):
-			if occ == "SELF_EMPLOYED":
+			if occ == "BUSINESS_OWNER":  # self-employed proprietors
 				rows.append(["BUSINESS_OWNER", float(g["emp"][occ]) / S, self_pa])
 			else:
-				rows.append([occ, float(g["emp"][occ]) / S, wage_pa])
+				rows.append([CENSUS_OCC.get(occ, occ), float(g["emp"][occ]) / S, wage_pa])
 		rows.append(["UNEMPLOYED", unemp, ben_pa])
 		rows.append(["RETIRED", float(g["retired"]) / S, pen_pa])
 		if owners > 0.0:
@@ -41,14 +46,13 @@ static func classes(world: WorldState) -> Array:
 		if np > 0.0:
 			if emp > 0.0:
 				for occ in EconUtil.sorted_keys(g["emp"]):
-					var occ2: String = "BUSINESS_OWNER" if occ == "SELF_EMPLOYED" else occ
-					rows.append([occ2, np * float(g["emp"][occ]) / S / emp, 0.0])
+					rows.append([CENSUS_OCC.get(occ, occ), np * float(g["emp"][occ]) / S / emp, 0.0])
 			else:
 				rows.append(["UNEMPLOYED", np, 0.0])
 		for r in rows:
 			if r[1] <= 0.0:
 				continue
-			out.append({"gid": gid, "district": g["district"], "tier": g["tier"], "occ": r[0], "adults": r[1],
+			out.append({"gid": gid, "district": g["district"], "occ": r[0], "adults": r[1],
 				"own_pa": r[2], "inc_pa": 0.6 * r[2] + 0.4 * avg_pa})
 	return out
 
@@ -120,14 +124,13 @@ static func publish(world: WorldState) -> void:
 		var emp := float(EconLabor.employed(g)) / S
 		gv[gid] = {"ess_pa": ess / adults, "rent_pa": rent / adults, "tax_rate": (float(inc.get("tax", 0)) / S / gross) if gross > 0.0 else 0.0,
 			"security": savings / maxf(1.0, ess), "unemp": (lf - emp) / maxf(lf, 0.001) if lf > 0.0 else 0.0}
-	# district unemployment by tier (for job risk)
+	# unemployment by district × income band (for job risk; M10: pools replace district × tier groups)
 	var dt_lf := {}
 	var dt_emp := {}
 	for gid in world.table("hh"):
 		var g: Dictionary = world.table("hh")[gid]
-		var k: String = g["district"] + "|" + g["tier"]
-		dt_lf[k] = dt_lf.get(k, 0) + g["lf"]
-		dt_emp[k] = dt_emp.get(k, 0) + EconLabor.employed(g)
+		dt_lf[gid] = g["lf"]
+		dt_emp[gid] = EconLabor.employed(g)
 	if not s.has("cell_base_inc"):
 		s["cell_base_inc"] = {}
 	var cpi := float(s["cpi"]) / (100.0 * S)
@@ -140,7 +143,7 @@ static func publish(world: WorldState) -> void:
 			var c: Dictionary = r[0]
 			var w: float = r[1]
 			var v: Dictionary = gv[c["gid"]]
-			var dk: String = c["district"] + "|" + c["tier"]
+			var dk: String = c["gid"]
 			var u := 1.0 - float(dt_emp.get(dk, 0)) / maxf(1.0, float(dt_lf.get(dk, 0)))
 			acc["risk"] += w * u
 			acc["inc"] += w * c["inc_pa"]
@@ -148,7 +151,7 @@ static func publish(world: WorldState) -> void:
 			acc["rent"] += w * v["rent_pa"]
 			acc["tax"] += w * (v["tax_rate"] if c["occ"] != "UNEMPLOYED" and c["occ"] != "RETIRED" else 0.0)
 			acc["sec"] += w * v["security"]
-			acc["wg"] += w * wage_g.get(c["tier"], 0.0)
+			acc["wg"] += w * _pool_wage_growth(world.table("hh")[c["gid"]], wage_g)
 			wsum += w
 		for k in acc:
 			acc[k] /= maxf(wsum, 0.0001)
@@ -169,6 +172,17 @@ static func publish(world: WorldState) -> void:
 
 static func _w(world: WorldState, id: String, key: String, v: float) -> void:
 	world.set_indicator("econ", id, key, int(round(v * 1000.0)))
+
+
+## Real wage growth of a pool: tier growth weighted by its labour force's skill mix.
+static func _pool_wage_growth(g: Dictionary, wage_g: Dictionary) -> float:
+	var tot := 0.0
+	var acc := 0.0
+	for t in ["G", "S", "Sp"]:
+		var n := float(g.get("skill", {}).get(t, 0))
+		tot += n
+		acc += n * float(wage_g.get(t, 0.0))
+	return acc / tot if tot > 0.0 else float(wage_g.get("G", 0.0))
 
 
 static func _real_wage_growth(world: WorldState) -> Dictionary:

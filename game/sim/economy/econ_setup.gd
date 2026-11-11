@@ -67,8 +67,8 @@ static func init_world(world: WorldState) -> void:
 		for _i in spec[3]:
 			EconSetup.add_facility(world, spec[0], org_by_key[spec[1]], spec[2], true)
 
-	# households
-	_init_households(world, org_by_key)
+	# households: population leaves + household pools (M10)
+	EconPop.seed_founding(world)
 
 	# starting stocks: 1 month of output + 1 month of market inputs for each producer
 	for fid in world.table("facility"):
@@ -103,8 +103,11 @@ static func init_world(world: WorldState) -> void:
 	# founding sole proprietors (small traders, craftspeople): scenario data; afterwards entry/exit is emergent (E67)
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
-		if g["tier"] != "Sp":
-			g["self_emp"] = int(float(g["lf"]) * EconData.SELF_EMP_FOUNDING)
+		for t in ["G", "S"]:
+			var n := int(float(g["skill"].get(t, 0)) * EconData.SELF_EMP_FOUNDING) / S
+			PopStore.move_group(world, {"hb": g["hb"], "inc": g["band"], "status": "UNEMPLOYED"}, n,
+				{"occ": "BUSINESS_OWNER", "status": "EMPLOYED"}, "SELF_EMP_ENTRY", "skill:" + t)
+	EconPop.sync(world)
 	# initial staffing: fill all slots without hiring limits
 	EconLabor.post_vacancies(world)
 	EconLabor.match(world, true)
@@ -134,46 +137,3 @@ static func add_facility(world: WorldState, ftype: String, org_id: String, distr
 		"book": book, "licensed": true, "unsafe_m": 0, "util": 1000, "svc_cap": 0, "out_last": 0, "opened": world.month}
 	return id
 
-
-static func _init_households(world: WorldState, org_by_key: Dictionary) -> void:
-	var dists: Array = []
-	var dweights: Array = []
-	for d in EconData.DISTRICTS:
-		if EconData.DISTRICTS[d]["pop"] > 0:
-			dists.append(d)
-			dweights.append(float(EconData.DISTRICTS[d]["pop"]))
-	var lf_total := 0
-	for t in EconData.LABOR_FORCE:
-		lf_total += EconData.LABOR_FORCE[t]
-	var nonpart_total: int = EconData.WORKING_AGE - lf_total
-	var groups := {}  # "d|t" -> id
-	for t in ["G", "S", "Sp"]:
-		var tshare := float(EconData.LABOR_FORCE[t]) / float(lf_total)
-		var lf := EconUtil.split_lr(EconData.LABOR_FORCE[t], dweights)
-		var np := EconUtil.split_lr(int(round(nonpart_total * tshare)), dweights)
-		var ret := EconUtil.split_lr(int(round(EconData.RETIRED * tshare)), dweights)
-		var ch := EconUtil.split_lr(int(round(EconData.CHILDREN * tshare)), dweights)
-		for i in dists.size():
-			var gid := world.new_id("hh")
-			groups["%s|%s" % [dists[i], t]] = gid
-			var g := {"id": gid, "district": dists[i], "tier": t, "lf": lf[i] * S, "nonpart": np[i] * S, "retired": ret[i] * S,
-				"children": ch[i] * S, "owners": 0, "unemp_long": 0, "unemp_months": 0, "bought": {}, "unmet": {},
-				"income": {}, "income_last": {}, "disposable": 0, "ess_cost": 0, "rent_due": 0, "util_due": 0,
-				"emp": {}, "base_income_pa": 0}
-			world.table("hh")[gid] = g
-			world.ledger.open_account(EconUtil.hh_acct(gid))
-			var persons: float = float(lf[i] + np[i] + ret[i] + ch[i])
-			world.ledger.transfer(Ledger.EXTERNAL, EconUtil.hh_acct(gid), int(persons * EconData.SAVINGS_PC[t]) * S, "GRANT", world.month)
-	# business owners: one per PRIVATE org, a Specialist adult (from non-participants) in the HQ district
-	for oid in world.table("org"):
-		var o: Dictionary = world.table("org")[oid]
-		if o["type"] != "PRIVATE":
-			continue
-		var gid: String = groups.get("%s|Sp" % o["hq"], "")
-		if gid == "":
-			continue
-		var g: Dictionary = world.table("hh")[gid]
-		g["owners"] += S
-		g["nonpart"] = maxi(0, g["nonpart"] - S)
-		o["owner_group"] = gid
-		world.ledger.transfer(Ledger.EXTERNAL, EconUtil.hh_acct(gid), EconData.OWNER_SAVINGS * S, "GRANT", world.month)

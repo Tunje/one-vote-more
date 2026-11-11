@@ -433,7 +433,7 @@ static func _small_business(world: WorldState) -> void:
 	var best_u := 0
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
-		if g["tier"] == "Sp":
+		if g["band"] in ["I4", "I5"]:
 			continue
 		var u := maxi(0, g["lf"] - EconLabor.employed(g))
 		if u > best_u and world.ledger.balance(EconUtil.hh_acct(gid)) >= 20000 * S:
@@ -493,12 +493,12 @@ static func _entry(world: WorldState) -> void:
 		if world.table("org")[oid]["status"] == "FORMING":
 			return  # E77: one entrant at a time (each needs a builder and a market)
 	var est := EconConstruction.estimate(candidate)
-	# founder capital from the richest Specialist group
+	# founder capital from the richest high-income household pool with an adult outside the labour force
 	var best := ""
 	var best_cash := 0
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
-		if g["tier"] == "Sp" and g["nonpart"] >= S:
+		if g["band"] in ["I4", "I5"] and g["nonpart"] >= S:
 			var c := world.ledger.balance(EconUtil.hh_acct(gid))
 			if c > best_cash:
 				best_cash = c
@@ -521,8 +521,8 @@ static func _entry(world: WorldState) -> void:
 		"missed_this_month": false, "owner_group": best, "sales_ema": {}, "contracts": [], "dividends_ytd": 0, "sold": {}}
 	world.ledger.open_account(EconUtil.acct(id))
 	world.ledger.transfer(EconUtil.hh_acct(best), EconUtil.acct(id), est * 4 / 10, "EQUITY", world.month)
-	g["owners"] += S
-	g["nonpart"] -= S
+	EconPop.make_owner(world, g["hb"], g["band"])
+	EconPop.sync(world)
 	if not EconFinance.new_loan(world, id, est * 6 / 10, 0, true):
 		pass  # builds with equity only; may stall on payments
 	EconConstruction.create(world, candidate, district, id, id, "")

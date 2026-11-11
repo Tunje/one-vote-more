@@ -134,7 +134,8 @@ static func _plan(world: WorldState, f: Dictionary) -> Dictionary:
 	for tier in r["labor"]:
 		var req := float(r["labor"][tier]) * S * t
 		if req > 0.0:
-			lab = minf(lab, float(EconLabor.tier_total(f["staff"], tier)) / req)
+			# M10: staff are whole persons; a tier short by less than half a person counts as fully staffed
+			lab = minf(lab, minf(1.0, float(EconLabor.tier_total(f["staff"], tier)) / maxf(req - 0.5 * S, 0.5 * req)))
 	lab *= EconUnions.work_factor(world, f)  # M9: strike / lockout
 	var mi := 1.0
 	var soft_f := 1.0

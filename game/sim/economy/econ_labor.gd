@@ -13,7 +13,7 @@ static func occupation_of(world: WorldState, org_id: String, ftype: String) -> S
 	if o["type"] in EconData.PUBLIC_TYPES:
 		return "PUBLIC_SECTOR"
 	if ftype == "CREW":
-		return "INDUSTRY"
+		return "CONSTRUCTION"
 	return EconData.RECIPES[ftype]["occ"]
 
 
@@ -80,7 +80,7 @@ static func post_vacancies(world: WorldState) -> void:
 				need = maxi(need, int(EconData.RECIPES[f["type"]]["labor"].get(t, 0) * S * 7 / 10))
 			if cur > need * 11 / 10:
 				var cap := cur if f["mothball"] else int(cur * EconData.LAYOFF_RATE)
-				var cut := remove(f["staff"], t, mini(cur - need, maxi(cap, S)))
+				var cut := _cut(world, f["org"], f["type"], f["staff"], t, mini(cur - need, maxi(cap, S)))
 				_note_layoff(world, f["org"], f["district"], cut)
 			elif need > cur:
 				vacs.append({"emp": fid, "kind": "fac", "tier": t, "qty": need - cur, "district": f["district"],
@@ -98,12 +98,27 @@ static func post_vacancies(world: WorldState) -> void:
 				need = 0
 			if cur > need:
 				var cap := cur if need == 0 and o["status"] in ["LIQUIDATION", "DISSOLVED"] else maxi(int(cur * EconData.LAYOFF_RATE), S)
-				var cut := remove(o["crew"], t, mini(cur - need, cap))
+				var cut := _cut(world, oid, "CREW", o["crew"], t, mini(cur - need, cap))
 				_note_layoff(world, oid, o["hq"], cut)
 			elif need > cur:
 				vacs.append({"emp": oid, "kind": "crew", "tier": t, "qty": need - cur, "district": o["hq"], "org": oid,
 					"wage": offer(world, oid, t), "target": staff_total(o["crew"]) + need - cur})
 	s["vacancies"] = vacs
+	EconPop.sync(world)
+
+
+## Lays off whole persons (rounded up, at most what is there) from a staff tier: the people become UNEMPLOYED
+## in their leaves (M10). Returns milli-persons removed.
+static func _cut(world: WorldState, org_id: String, ftype: String, staff: Dictionary, t: String, qty_mu: int) -> int:
+	var persons := mini((qty_mu + S / 2) / S, tier_total(staff, t) / S)
+	var cut := EconPop.remove_staff(staff, t, persons)
+	var occ := EconPop.person_occ(world, org_id, ftype, t)
+	var n := 0
+	for k in EconUtil.sorted_keys(cut):
+		var p := EconPop.lab_parts(k)
+		EconPop.layoff(world, p[0], p[1], occ, cut[k])
+		n += cut[k]
+	return n * S
 
 
 static func _note_layoff(world: WorldState, org_id: String, district: String, qty: int) -> void:
@@ -130,48 +145,9 @@ static func offer(world: WorldState, org_id: String, t: String) -> int:
 	return int(maxf(w, floor_w))
 
 
-## Employed mu per group (all slots) and per (group, occupation). Stored on each group as g["emp"].
+## Pool head counts from the population leaves (M10: the leaves are the only source of truth).
 static func recount(world: WorldState) -> void:
-	var hh := world.table("hh")
-	for gid in hh:
-		hh[gid]["emp"] = {}
-	# E67: Specialist-tier jobs → PROFESSIONAL; agricultural co-op member-farmers and micro co-op worker-owners → BUSINESS_OWNER
-	for fid in EconUtil.sorted_keys(world.table("facility")):
-		var f: Dictionary = world.table("facility")[fid]
-		var occ := occupation_of(world, f["org"], f["type"])
-		var o: Dictionary = world.table("org").get(f["org"], {})
-		var owner_share := 0.0
-		if o.get("type", "") == "COOPERATIVE":
-			if f["type"] == "FARM":
-				owner_share = EconData.COOP_FARM_OWNER_SHARE
-			elif str(o.get("key", "")).begins_with("MICRO"):
-				owner_share = 1.0
-		for t in f["staff"]:
-			for gid in f["staff"][t]:
-				var e: Dictionary = hh[gid]["emp"]
-				var n: int = f["staff"][t][gid]
-				if t == "Sp":
-					e["PROFESSIONAL"] = e.get("PROFESSIONAL", 0) + n
-					continue
-				var owners := int(float(n) * owner_share)
-				if owners > 0:
-					e["BUSINESS_OWNER"] = e.get("BUSINESS_OWNER", 0) + owners
-				e[occ] = e.get(occ, 0) + n - owners
-	for oid in EconUtil.sorted_keys(world.table("org")):
-		var o: Dictionary = world.table("org")[oid]
-		if not o["is_contractor"]:
-			continue
-		var occ := occupation_of(world, oid, "CREW")
-		for t in o["crew"]:
-			for gid in o["crew"][t]:
-				var e: Dictionary = hh[gid]["emp"]
-				var k := "PROFESSIONAL" if t == "Sp" else occ
-				e[k] = e.get(k, 0) + o["crew"][t][gid]
-	# sole proprietors (E67): self-employed adults count as employed, occupation BUSINESS_OWNER
-	for gid in hh:
-		var se: int = hh[gid].get("self_emp", 0)
-		if se > 0:
-			hh[gid]["emp"]["SELF_EMPLOYED"] = se
+	EconPop.sync(world)
 
 
 static func employed(g: Dictionary) -> int:
@@ -181,19 +157,24 @@ static func employed(g: Dictionary) -> int:
 	return n
 
 
-## Effective labor available in a group (health reduces availability, spec §7.5).
-static func available(world: WorldState, g: Dictionary) -> int:
-	var health: float = float(EconUtil.st(world).get("health_access", {}).get(g["district"], 1000)) / 1000.0
-	var lf := int(float(g["lf"]) * (1.0 - 0.08 * (1.0 - health)))
-	return maxi(0, lf - employed(g))
-
-
-## Match vacancies to unemployed workers (PRODUCTION; also at setup with no_limits = true).
+## Match vacancies to unemployed people (PRODUCTION; also at setup with no_limits = true). Supply is the
+## UNEMPLOYED people per (housing block, skill) in the leaves, less those kept out by poor health (spec §7.5).
+## Hires are PopStore transfers UNEMPLOYED → EMPLOYED; allocations are staff[slot tier]["hb|skill"] (whole persons).
 static func match(world: WorldState, no_limits: bool = false) -> void:
 	var s := EconUtil.st(world)
-	recount(world)
-	var hh := world.table("hh")
-	var gids := EconUtil.sorted_keys(hh)
+	EconPop.realign(world)
+	var unemp := EconPop.people_by_lab(world, "UNEMPLOYED")
+	var empl := EconPop.people_by_lab(world, "EMPLOYED")
+	var health: Dictionary = s.get("health_access", {})
+	var avail := {}
+	for k in unemp:
+		var p := EconPop.lab_parts(k)
+		var h := float(health.get(EconPop.district_of(p[0]), 1000)) / 1000.0
+		var lf: int = int(unemp[k]) + int(empl.get(k, 0))
+		avail[k] = maxi(0, int(unemp[k]) - int(float(lf) * 0.08 * (1.0 - h)))
+	var hbs: Array = []
+	for d in EconUtil.sorted_keys(EconData.DISTRICTS):
+		hbs.append(EconPop.hb_of(d))
 	var hired_by_emp := {}
 	var unfilled := {"G": 0, "S": 0, "Sp": 0}
 	var vacs: Array = s.get("vacancies", [])
@@ -201,36 +182,37 @@ static func match(world: WorldState, no_limits: bool = false) -> void:
 		var tv: Array = vacs.filter(func(v): return v["tier"] == t)
 		tv.sort_custom(func(a, b): return a["wage"] > b["wage"] or (a["wage"] == b["wage"] and a["emp"] < b["emp"]))
 		for v in tv:
-			var cap: int = v["qty"]
+			var cap: int = (int(v["qty"]) + S / 2) / S  # whole persons, rounded (M10)
 			if not no_limits:
-				var lim: int = maxi(EconData.HIRE_MIN * S, int(v["target"] * EconData.HIRE_RATE))
+				var lim: int = (maxi(EconData.HIRE_MIN * S, int(v["target"] * EconData.HIRE_RATE)) + S / 2) / S
 				cap = mini(cap, lim - hired_by_emp.get(v["emp"], 0))
 			var left := maxi(cap, 0)
+			var home := EconPop.hb_of(v["district"])
+			var order: Array = [home] + hbs.filter(func(x): return x != home)
+			var ftype: String = world.table("facility")[v["emp"]]["type"] if v["kind"] == "fac" else "CREW"
+			var occ := EconPop.person_occ(world, v["org"], ftype, t)
 			for src_t in LOWER_TIERS[t]:
 				if left <= 0:
 					break
-				var cands: Array = gids.filter(func(gid): return hh[gid]["tier"] == src_t)
-				cands.sort_custom(func(a, b):
-					var da: int = 0 if hh[a]["district"] == v["district"] else 1
-					var db: int = 0 if hh[b]["district"] == v["district"] else 1
-					return da < db or (da == db and a < b))
-				for gid in cands:
+				for hb in order:
 					if left <= 0:
 						break
-					var g: Dictionary = hh[gid]
-					var take := mini(left, available(world, g))
+					var k := EconPop.lab_key(hb, src_t)
+					var take := mini(left, int(avail.get(k, 0)))
 					if take <= 0:
+						continue
+					var moved := EconPop.hire(world, hb, src_t, occ, take)
+					if moved <= 0:
 						continue
 					var rec: Dictionary = world.table("facility")[v["emp"]]["staff"] if v["kind"] == "fac" else world.table("org")[v["emp"]]["crew"]
 					if not rec.has(t):
 						rec[t] = {}
-					rec[t][gid] = rec[t].get(gid, 0) + take
-					var occ := occupation_of(world, v["org"], world.table("facility")[v["emp"]]["type"] if v["kind"] == "fac" else "CREW")
-					g["emp"][occ] = g["emp"].get(occ, 0) + take
-					left -= take
-					hired_by_emp[v["emp"]] = hired_by_emp.get(v["emp"], 0) + take
+					rec[t][k] = int(rec[t].get(k, 0)) + moved * S
+					avail[k] = int(avail[k]) - moved
+					left -= moved
+					hired_by_emp[v["emp"]] = hired_by_emp.get(v["emp"], 0) + moved
 			var hired := maxi(cap, 0) - left
-			unfilled[t] += maxi(0, v["qty"] - hired)
+			unfilled[t] += maxi(0, int(v["qty"]) - hired * S)
 			# vacancy premium memory for wage offers
 			var o: Dictionary = world.table("org")[v["org"]]
 			if left > 0:  # workers were not available (not merely the hiring-speed cap)
@@ -239,7 +221,7 @@ static func match(world: WorldState, no_limits: bool = false) -> void:
 				o["premium_m"][t] = 0
 	s["vac_unfilled"] = unfilled
 	s["vacancies"] = []
-	recount(world)
+	EconPop.sync(world)
 
 
 ## Wage index update (COMPANY_AI, spec §6.5) + unemployment rates.
@@ -247,10 +229,13 @@ static func update_wage_index(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var lf := {"G": 0, "S": 0, "Sp": 0}
 	var emp := {"G": 0, "S": 0, "Sp": 0}
-	for gid in world.table("hh"):
-		var g: Dictionary = world.table("hh")[gid]
-		lf[g["tier"]] += g["lf"]
-		emp[g["tier"]] += employed(g)
+	for st_name in ["EMPLOYED", "UNEMPLOYED"]:
+		var by := EconPop.people_by_lab(world, st_name)
+		for k in by:
+			var sk: String = EconPop.lab_parts(k)[1]
+			lf[sk] += int(by[k]) * S
+			if st_name == "EMPLOYED":
+				emp[sk] += int(by[k]) * S
 	for t in lf:
 		var u := 0.0 if lf[t] == 0 else float(lf[t] - emp[t]) / float(lf[t])
 		var v := float(s["vac_unfilled"].get(t, 0)) / maxf(1.0, float(emp[t] + s["vac_unfilled"].get(t, 0)))

@@ -127,6 +127,7 @@ static func settle(world: WorldState) -> void:
 	for gid in world.table("hh"):
 		var g: Dictionary = world.table("hh")[gid]
 		g["income"] = {"wages": 0, "gross": 0, "tax": 0, "benefit": 0, "pension": 0, "dividend": 0}
+	s["leaf_inc"] = {}  # per-leaf income of this month (M10: income bands)
 	_fund_institutions(world)
 	_payroll(world)
 	_utility_bills(world)
@@ -197,34 +198,38 @@ static func wage_for(world: WorldState, org_id: String, t: String) -> int:
 	return int(w * mult)
 
 
+## Wages (spec §6.5). M10: each allocation "hb|skill" is paid into the household pools of the people who
+## hold those jobs (EMPLOYED leaves of that housing block, occupation and skill), and booked as their income.
 static func _payroll(world: WorldState) -> void:
 	var hh := world.table("hh")
 	var rate := float(EconUtil.lever(world, "ECON_INCOME_TAX_RATE", 24)) / 100.0
 	var allowance := int(EconUtil.lever(world, "ECON_TAX_ALLOWANCE", 300)) * S
+	var idx := EconPop.worker_index(world)
 	var skilled_bill := 0
 	var skilled_n := 0
-	var payers: Array = []  # [org_id, staff dict]
+	var payers: Array = []  # [org_id, staff dict, facility type or "CREW"]
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		if world.table("org").has(f["org"]):
-			payers.append([f["org"], f["staff"]])
+			payers.append([f["org"], f["staff"], f["type"]])
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		var o: Dictionary = world.table("org")[oid]
 		if o["is_contractor"]:
-			payers.append([oid, o["crew"]])
+			payers.append([oid, o["crew"], "CREW"])
 	for p in payers:
 		var oid: String = p[0]
 		var staff: Dictionary = p[1]
-		var lines: Array = []  # [gid, gross, tax]
+		var lines: Array = []  # [bucket "hb|occ|skill", gross, tax]
 		var bill := 0
-		for t in staff:
+		for t in EconUtil.sorted_keys(staff):
 			var w := wage_for(world, oid, t)
 			var tax_pw := int(rate * maxi(0, w - allowance))
-			for gid in staff[t]:
-				var n: int = staff[t][gid]
+			var occ := EconPop.person_occ(world, oid, p[2], t)
+			for k in EconUtil.sorted_keys(staff[t]):
+				var n: int = staff[t][k]
 				var gross := int(n * w / S)
-				var tax := int(n * tax_pw / S)
-				lines.append([gid, gross, tax])
+				var lp := EconPop.lab_parts(k)
+				lines.append(["%s|%s|%s" % [lp[0], occ, lp[1]], gross, int(n * tax_pw / S)])
 				bill += gross
 				if t == "S":
 					skilled_bill += gross
@@ -242,15 +247,23 @@ static func _payroll(world: WorldState) -> void:
 			var gross := int(ln[1] * frac)
 			var tax := int(ln[2] * frac)
 			var net := gross - tax
-			if net > 0:
-				world.ledger.transfer(acc, EconUtil.hh_acct(ln[0]), net, "WAGE", world.month)
+			var rows: Array = idx.get(ln[0], [])
+			if rows.is_empty():
+				EconPop._mismatch(world, "payroll: nobody employed in " + ln[0])
+				continue
 			if tax > 0:
 				world.ledger.transfer(acc, EconUtil.TREASURY, tax, "INCOME_TAX", world.month)
 				_gov_rev(world, tax)
-			var inc: Dictionary = hh[ln[0]]["income"]
-			inc["wages"] += net
-			inc["gross"] += gross
-			inc["tax"] += tax
+			var gparts := EconPop.split_to_pools(world, rows, gross, "gross")
+			var nparts := EconPop.split_to_pools(world, rows, net, "wages")
+			for gid in EconUtil.sorted_keys(gparts):
+				var pn: int = nparts.get(gid, 0)
+				if pn > 0:
+					world.ledger.transfer(acc, EconUtil.hh_acct(gid), pn, "WAGE", world.month)
+				var inc: Dictionary = hh[gid]["income"]
+				inc["wages"] += pn
+				inc["gross"] += gparts[gid]
+				inc["tax"] += gparts[gid] - pn
 			paid_total += gross
 		pl_add(world, oid, "wages", paid_total)
 	if skilled_n > 0:
@@ -373,6 +386,7 @@ static func _benefits(world: WorldState) -> void:
 		if gap > 0:
 			var paid := gov_pay(world, EconUtil.hh_acct(gid), gap, "FOOD_ASSISTANCE")
 			g["income"]["benefit"] += paid
+			EconPop.credit_status(world, gid, "", paid, "benefit")
 			s["gov_spend_m"] = s.get("gov_spend_m", 0) + paid
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
@@ -392,10 +406,12 @@ static func _benefits(world: WorldState) -> void:
 			if paid < ben:
 				s["treasury_short"] = true
 			g["income"]["benefit"] += paid
+			EconPop.credit_status(world, gid, "UNEMPLOYED", paid, "benefit")
 			s["gov_spend_m"] = s.get("gov_spend_m", 0) + paid
 		if pen > 0:
 			var paidp := gov_pay(world, EconUtil.hh_acct(gid), pen, "PENSION")
 			g["income"]["pension"] += paidp
+			EconPop.credit_status(world, gid, "RETIRED", paidp, "pension")
 			s["gov_spend_m"] = s.get("gov_spend_m", 0) + paidp
 
 
@@ -503,30 +519,41 @@ static func _profit_tax_and_dividends(world: WorldState) -> void:
 				var d := int(after * 0.5)
 				world.ledger.transfer(acc, EconUtil.hh_acct(o["owner_group"]), d, "DIVIDEND", world.month)
 				world.table("hh")[o["owner_group"]]["income"]["dividend"] += d
+				EconPop.credit_status(world, o["owner_group"], "NOT_IN_LF", d, "dividend", "BUSINESS_OWNER")
 		elif o["type"] == "COOPERATIVE":
 			if world.ledger.balance(acc) >= 3 * monthly_costs:
 				var d := int(after * 0.3)
-				var members := _member_groups(world, oid)
+				var members := _member_groups(world, oid)  # "hb|occ|skill" -> persons
 				var keys := EconUtil.sorted_keys(members)
 				var parts := EconUtil.split_lr(d, keys.map(func(k): return float(members[k])))
+				var idx := EconPop.worker_index(world)
 				for i in keys.size():
-					if parts[i] > 0:
-						world.ledger.transfer(acc, EconUtil.hh_acct(keys[i]), parts[i], "DIVIDEND", world.month)
-						world.table("hh")[keys[i]]["income"]["dividend"] += parts[i]
+					if parts[i] <= 0 or not idx.has(keys[i]):
+						continue
+					var pp := EconPop.split_to_pools(world, idx[keys[i]], parts[i], "dividend")
+					for gid in EconUtil.sorted_keys(pp):
+						world.ledger.transfer(acc, EconUtil.hh_acct(gid), pp[gid], "DIVIDEND", world.month)
+						world.table("hh")[gid]["income"]["dividend"] += pp[gid]
 
 
+## Co-op members: persons per "hb|occ|skill" working in the co-op's facilities and crew.
 static func _member_groups(world: WorldState, oid: String) -> Dictionary:
 	var m := {}
-	for fid in world.table("facility"):
+	var o: Dictionary = world.table("org")[oid]
+	var lists: Array = []
+	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		if f["org"] == oid:
-			for t in f["staff"]:
-				for gid in f["staff"][t]:
-					m[gid] = m.get(gid, 0) + f["staff"][t][gid]
-	var o: Dictionary = world.table("org")[oid]
-	for t in o["crew"]:
-		for gid in o["crew"][t]:
-			m[gid] = m.get(gid, 0) + o["crew"][t][gid]
+			lists.append([f["staff"], f["type"]])
+	if o["is_contractor"]:
+		lists.append([o["crew"], "CREW"])
+	for x in lists:
+		for t in x[0]:
+			var occ := EconPop.person_occ(world, oid, x[1], t)
+			for k in x[0][t]:
+				var lp := EconPop.lab_parts(k)
+				var bk: String = "%s|%s|%s" % [lp[0], occ, lp[1]]
+				m[bk] = int(m.get(bk, 0)) + int(x[0][t][k]) / S
 	return m
 
 

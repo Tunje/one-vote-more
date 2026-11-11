@@ -10,7 +10,8 @@ extends RefCounted
 const S := EconUtil.S
 
 ## Unionised occupations and their base density (% of employed) at union rights 50.
-const BASE_DENSITY := {"INDUSTRY": 34.0, "MINING": 45.0, "AGRICULTURE": 14.0, "SERVICES": 12.0, "PROFESSIONAL": 10.0, "PUBLIC_SECTOR": 48.0}
+const BASE_DENSITY := {"MANUFACTURING": 34.0, "CONSTRUCTION": 30.0, "LOGISTICS": 30.0, "MINING": 45.0, "AGRICULTURE": 14.0,
+	"SERVICES": 12.0, "PROFESSIONAL": 10.0, "PUBLIC_SECTOR": 48.0}
 const DENSITY_ADJUST := 1.0 / 12.0       # monthly move toward the target density
 const STRIKE_RATE := 0.035               # P(strike) per org-month = density × grievance × this
 const MAX_NEW_STOPPAGES := 2             # per month, colony-wide

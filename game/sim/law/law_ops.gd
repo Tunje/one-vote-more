@@ -315,6 +315,7 @@ static func _defect_multiplier(world: WorldState, bill: String) -> float:
 static func _make_effective(world: WorldState, eid: String, e: Dictionary) -> void:
 	var old = world.levers.get(e["lever"])
 	world.levers[e["lever"]] = e["value"]
+	e["prev_value"] = old   # J22: electoral law in force before this change (LQ.eligibility_for_election)
 	e["status"] = "EFFECTIVE"
 	e["effective_month"] = world.month
 	var owner: String = String(world.lever_defs[e["lever"]]["owner"]).to_upper()

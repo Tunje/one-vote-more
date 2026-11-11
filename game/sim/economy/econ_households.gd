@@ -56,6 +56,7 @@ static func social(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	_consume(world)
 	_buy_services(world)
+	EconPop.reclassify(world)  # M10: income bands (after this month's incomes are known)
 	_self_employment_flow(world)
 	EconLabor.recount(world)
 	_post_orders(world)
@@ -273,27 +274,41 @@ static func _self_employed_sales(world: WorldState, demand_d: Dictionary) -> voi
 		EconFinance._gov_rev(world, paid)
 		g["income"]["self"] = g["self_rev"] - paid
 		g["income"]["tax"] = g["income"].get("tax", 0) + paid
+		EconPop.credit_status(world, gid, "EMPLOYED", g["self_rev"] - paid, "self", "BUSINESS_OWNER")
 
 
 ## E67 entry/exit of sole proprietors (emerges from unemployment, savings and local service prices).
+## M10: proprietors are BUSINESS_OWNER|EMPLOYED people; entry and exit are PopStore transfers within the pool.
+## Flows are computed in milli-persons and paid out in whole persons, the remainder carried per pool.
 static func _self_employment_flow(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var benefit := float(s["wage"]["G"]) * float(EconUtil.lever(world, "ECON_UNEMPLOYMENT_BENEFIT_RATE", 40)) / 100.0
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
-		var se: int = g.get("self_emp", 0)  # all tiers: Specialists set up private practice (consulting, clinics)
+		var se: int = g.get("self_emp", 0)
+		var delta := 0  # milli-persons
 		# exit: earnings per proprietor below benefit level
 		if se > 0:
 			var per := float(g["income"].get("self", 0)) / (float(se) / S)
 			if per < benefit:
-				se -= maxi(int(float(se) * EconData.SELF_EMP_EXIT), mini(se, S / 2))
+				delta -= maxi(int(float(se) * EconData.SELF_EMP_EXIT), mini(se, S / 2))
 		# entry: unemployed adults with a savings cushion, while local services fetch at least 90% of base price
-		var unemp := maxi(0, g["lf"] - EconLabor.employed(g))
+		var unemp: int = g.get("unemployed", 0)
 		var cushion := world.ledger.balance(EconUtil.hh_acct(gid)) >= 3 * EconHouseholds.essentials_cost(world, g)
 		var price_ok: bool = s["svc_price"].get(g["district"], 0) >= EconData.BASE_SERVICES_PRICE * S * 9 / 10
 		if unemp > 0 and cushion and price_ok:
-			se += int(float(unemp) * EconData.SELF_EMP_ENTRY)
-		g["self_emp"] = clampi(se, 0, mini(int(float(g["lf"]) * EconData.SELF_EMP_MAX_SHARE), se + unemp))
+			delta += int(float(unemp) * EconData.SELF_EMP_ENTRY)
+		var target := clampi(se + delta, 0, mini(int(float(g["lf"]) * EconData.SELF_EMP_MAX_SHARE), se + unemp))
+		var rem: int = g.get("se_rem", 0) + target - se
+		var persons := rem / S
+		g["se_rem"] = rem - persons * S
+		if persons > 0:
+			PopStore.move_group(world, {"hb": g["hb"], "inc": g["band"], "status": "UNEMPLOYED"}, persons,
+				{"occ": "BUSINESS_OWNER", "status": "EMPLOYED"}, "SELF_EMP_ENTRY")
+		elif persons < 0:
+			PopStore.move_group(world, {"hb": g["hb"], "inc": g["band"], "status": "EMPLOYED", "occ": "BUSINESS_OWNER"}, -persons,
+				{"status": "UNEMPLOYED"}, "SELF_EMP_EXIT")
+	EconPop.sync(world)
 
 
 ## Orders for next month's TRADE: essentials first (rent + utilities reserved), then discretionary goods.
@@ -370,64 +385,105 @@ static func _housing(world: WorldState) -> void:
 					{"HOUSING": -6, "COST_OF_LIVING": -3}, 12, "PUBLIC", {"pct": int(100.0 * (float(r) / float(old) - 1.0))}, {"districts": [d]})
 
 
-static func _group(world: WorldState, d: String, t: String) -> Dictionary:
-	for gid in EconUtil.sorted_keys(world.table("hh")):
-		var g: Dictionary = world.table("hh")[gid]
-		if g["district"] == d and g["tier"] == t:
-			return g
-	var gid := world.new_id("hh")
-	var g := {"id": gid, "district": d, "tier": t, "lf": 0, "nonpart": 0, "retired": 0, "children": 0, "owners": 0, "unemp_long": 0,
-		"unemp_months": 0, "bought": {}, "unmet": {}, "income": {}, "income_last": {}, "disposable": 0, "ess_cost": 0, "rent_due": 0,
-		"util_due": 0, "emp": {}, "base_income_pa": 0, "short": {}, "spent_goods": 0}
-	world.table("hh")[gid] = g
-	world.ledger.open_account(EconUtil.hh_acct(gid))
-	return g
-
-
+## Demography (spec §7, re-expressed on the population leaves; the full age model is M10 S5).
+## Rates as before; flows are computed per pool in milli-persons and applied in whole persons with the
+## remainder carried in the pool ("demo_rem"), so small pools still have births and deaths over time.
 static func _demography(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var edu: Dictionary = s.get("edu_access", {})
 	var health: Dictionary = s.get("health_access", {})
 	var famine := float(s.get("food_shortfall", 0)) / 1000.0 > 0.30
-	var newcomers := []  # [district, tier, adults_mu]
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
 		var p := persons(g)
+		if p <= 0:
+			continue
+		var rem: Dictionary = g.get("demo_rem", {})
+		g["demo_rem"] = rem
 		var h := float(health.get(g["district"], 1000)) / 1000.0
-		var births := int(p * 0.0015)
+		var f := {"hb": g["hb"], "inc": g["band"]}
+		# births: into the pool's children (parents' housing block and income band, PD §9.3)
+		var births := _whole(rem, "birth", int(p * 0.0015))
+		if births > 0:
+			var ck := PopStore.key_of({"hb": g["hb"], "inc": g["band"], "occ": "NONE", "status": "CHILD", "arch": EconPop.ARCH, "eff": "e0"})
+			PopStore.birth(world, ck, births)
+		# deaths: 70% among the retired, 10% children, the rest non-participating adults
 		var death_rate := 0.0005 + 0.0002 * (1.0 - h) + (0.005 if famine else 0.0)
-		var deaths := int(p * death_rate)
-		g["children"] += births
-		var d_ret := mini(g["retired"], deaths * 7 / 10)
-		var d_ch := mini(g["children"], deaths / 10)
-		var d_np := mini(g["nonpart"], deaths - d_ret - d_ch)
-		g["retired"] -= d_ret
-		g["children"] -= d_ch
-		g["nonpart"] -= d_np
-		# aging: children -> adults (1/216 per month), split by education access
-		var grown := int(g["children"] / 216)
-		g["children"] -= grown
+		var deaths := _whole(rem, "death", int(p * death_rate))
+		if deaths > 0:
+			var d_ret := mini(g["retired"] / S, deaths * 7 / 10)
+			var d_ch := mini(g["children"] / S, deaths / 10)
+			var d_np := mini(g["nonpart"] / S, deaths - d_ret - d_ch)
+			_die(world, f, "RETIRED", d_ret)
+			_die(world, f, "CHILD", d_ch)
+			_die(world, f, "NOT_IN_LF", d_np)
+		# growing up: 1/216 of children per month become adults; skill by education access; 82% join the labour force
+		var grown := _whole(rem, "grow", g["children"] / 216)
 		if grown > 0:
 			var a := float(edu.get(g["district"], 1000)) / 1000.0
-			var split := [a * 0.45 + (1.0 - a) * 0.85, a * 0.40 + (1.0 - a) * 0.15, a * 0.15]
-			var parts := EconUtil.split_lr(grown, split)
+			var split := EconUtil.split_lr(grown, [a * 0.45 + (1.0 - a) * 0.85, a * 0.40 + (1.0 - a) * 0.15, a * 0.15])
+			var tiers := ["G", "S", "Sp"]
 			for i in 3:
-				newcomers.append([g["district"], ["G", "S", "Sp"][i], parts[i]])
-		# retirement: 0.2% of working-age, from non-employed adults first
-		var ret := int((g["lf"] + g["nonpart"]) * 0.002)
-		var from_np := mini(ret, g["nonpart"])
-		g["nonpart"] -= from_np
-		var unemployed := maxi(0, g["lf"] - EconLabor.employed(g))
-		var from_lf := mini(ret - from_np, unemployed)
-		g["lf"] -= from_lf
-		g["retired"] += from_np + from_lf
-	for nc in newcomers:
-		var g := _group(world, nc[0], nc[1])
-		var lf := int(nc[2] * 0.82)
-		g["lf"] += lf
-		g["nonpart"] += nc[2] - lf
+				var n_t: int = split[i]
+				var to_lf := n_t * 82 / 100
+				_grow_up(world, g, tiers[i], "UNEMPLOYED", to_lf)
+				_grow_up(world, g, tiers[i], "NOT_IN_LF", n_t - to_lf)
+		# retirement: 0.2% of working-age, from non-participants first, then the unemployed
+		var ret := _whole(rem, "retire", int((g["lf"] + g["nonpart"]) * 0.002))
+		if ret > 0:
+			var from_np := mini(ret, g["nonpart"] / S)
+			var m1 := PopStore.move_group(world, {"hb": g["hb"], "inc": g["band"], "status": ["NOT_IN_LF", "STUDENT"]}, from_np, {"status": "RETIRED"}, "RETIRE")
+			var m2 := PopStore.move_group(world, {"hb": g["hb"], "inc": g["band"], "status": "UNEMPLOYED"}, ret - m1, {"status": "RETIRED"}, "RETIRE")
+			_reage(world, g, "RETIRED", m1 + m2, "O")
+	EconPop.sync(world)
 
 
+## Whole persons from a milli-person flow, carrying the remainder under `key`.
+static func _whole(rem: Dictionary, key: String, flow_mu: int) -> int:
+	var v: int = int(rem.get(key, 0)) + flow_mu
+	var n := v / S
+	rem[key] = v - n * S
+	return n
+
+
+static func _die(world: WorldState, f: Dictionary, status: String, n: int) -> void:
+	if n <= 0:
+		return
+	var filt := f.duplicate()
+	filt["status"] = status
+	var keys := PopStore.select(world, filt)
+	var parts := PopStore.split_over(n, keys, keys.map(func(k): return float(world.peek("pop")[k]["n"])))
+	for k in EconUtil.sorted_keys(parts):
+		PopStore.death(world, k, parts[k])
+
+
+## Children of a pool become adults: CHILD → status (occupation NONE), age C → Y, skill set to the tier.
+static func _grow_up(world: WorldState, g: Dictionary, tier: String, status: String, n: int) -> void:
+	if n <= 0:
+		return
+	var keys := PopStore.select(world, {"hb": g["hb"], "inc": g["band"], "status": "CHILD"})
+	var parts := PopStore.split_over(n, keys, keys.map(func(k): return float(world.peek("pop")[k]["n"])))
+	for k in EconUtil.sorted_keys(parts):
+		var dst := PopStore.relabel(k, {"status": status, "occ": "NONE"})
+		PopStore.transfer(world, k, dst, parts[k], "GROW_UP", {"age": "C"})
+		EconPop.recompose(world, dst, "age", "C", "Y", parts[k])
+		EconPop.recompose(world, dst, "skill", "G", tier, parts[k])
+
+
+## After a status move, set the age of the moved people (e.g. retirees → O), taking from the youngest-first other bands.
+static func _reage(world: WorldState, g: Dictionary, status: String, n: int, band: String) -> void:
+	if n <= 0:
+		return
+	var left := n
+	for k in PopStore.select(world, {"hb": g["hb"], "inc": g["band"], "status": status}):
+		for b in ["M", "A", "Y"]:
+			if left <= 0:
+				return
+			left -= EconPop.recompose(world, k, "age", b, band, left)
+
+
+## Ship migrants every 3 months (spec §7.6): arrivals are UNEMPLOYED / NOT_IN_LF adults and children, banded by
+## skill like the founders, into the district with the most vacant housing. They bring savings from the origin.
 static func _ship_migrants(world: WorldState) -> void:
 	var units := units_by_district(world)
 	var hhs := {}
@@ -456,22 +512,35 @@ static func _ship_migrants(world: WorldState) -> void:
 		emp_t += EconLabor.employed(world.table("hh")[gid])
 	if lf_t > 0 and float(lf_t - emp_t) / float(lf_t) >= 0.10:
 		return
-	var n := mini(quota * S, mini(int(vacant * 2.5), EconData.SHIP_MIGRANTS * S))
+	var n := mini(quota, mini(int(vacant * 2.5) / S, EconData.SHIP_MIGRANTS))  # persons
 	if n <= 0 or best == "":
 		return
+	var hb := EconPop.hb_of(best)
 	var adults_n := n * 7 / 10
 	var tiers := EconUtil.split_lr(adults_n, [0.5, 0.35, 0.15])
 	var names := ["G", "S", "Sp"]
+	var band_of := {"G": "I2", "S": "I3", "Sp": "I4"}
 	for i in 3:
-		var g := _group(world, best, names[i])
+		var t: String = names[i]
+		var band: String = band_of[t]
 		var lf: int = tiers[i] * 85 / 100
-		g["lf"] += lf
-		g["nonpart"] += tiers[i] - lf
+		var parts := {"hb": hb, "inc": band, "occ": "NONE", "arch": EconPop.ARCH, "eff": "e0"}
+		parts["status"] = "UNEMPLOYED"
+		PopStore.arrive(world, PopStore.key_of(parts), lf, {"age": _adult_ages(lf), "skill": {t: lf}})
+		parts["status"] = "NOT_IN_LF"
+		PopStore.arrive(world, PopStore.key_of(parts), tiers[i] - lf, {"age": _adult_ages(tiers[i] - lf), "skill": {t: tiers[i] - lf}})
 		if i == 0:
-			g["children"] += n - adults_n
-		world.ledger.transfer(Ledger.EXTERNAL, EconUtil.hh_acct(g["id"]), int(float(tiers[i]) / S * EconData.MIGRANT_FUNDS) * S, "MIGRANT_FUNDS", world.month)
+			parts["status"] = "CHILD"
+			PopStore.arrive(world, PopStore.key_of(parts), n - adults_n, {"age": {"C": n - adults_n}, "skill": {"G": n - adults_n}})
+		world.ledger.transfer(Ledger.EXTERNAL, EconUtil.hh_acct(EconPop.pool_id(hb, band)), int(tiers[i] * EconData.MIGRANT_FUNDS) * S, "MIGRANT_FUNDS", world.month)
+	EconPop.sync(world)
 	EconFacts.emit(world, "ECON_MIGRANTS_ARRIVED", best, [], [["GOVERNMENT", "government", 0.5], ["EXTERNAL", "origin", 0.5]], {}, 10,
-		"PUBLIC", {"persons": n / S}, {"districts": [best]})
+		"PUBLIC", {"persons": n}, {"districts": [best]})
+
+
+static func _adult_ages(n: int) -> Dictionary:
+	var p := EconUtil.split_lr(n, [30, 45, 25])
+	return {"Y": p[0], "A": p[1], "M": p[2]}
 
 
 static func _pollution(world: WorldState) -> void:

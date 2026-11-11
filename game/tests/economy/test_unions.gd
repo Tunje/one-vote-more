@@ -28,22 +28,22 @@ func test_union_density_published_and_driven_by_rights() -> void:
 	for occ in EconUnions.BASE_DENSITY:
 		total += emp.get(occ, 0)
 	w.levers["ECON_UNION_RIGHTS"] = 10
-	var lo := EconUnions.target_density(w, "INDUSTRY", emp, total)
+	var lo := EconUnions.target_density(w, "MANUFACTURING", emp, total)
 	w.levers["ECON_UNION_RIGHTS"] = 90
-	var hi := EconUnions.target_density(w, "INDUSTRY", emp, total)
+	var hi := EconUnions.target_density(w, "MANUFACTURING", emp, total)
 	check(hi > lo * 2, "union rights drive density (%d vs %d)" % [hi, lo])
 
 
 func test_labor_law_cut_is_a_grievance_blamed_on_government() -> void:
 	var sim := _sim(2)
 	var w := sim.world
-	check_eq(EconUnions.law_grievance(w, "INDUSTRY"), 0.0, "no grievance at start")
+	check_eq(EconUnions.law_grievance(w, "MANUFACTURING"), 0.0, "no grievance at start")
 	w.levers["ECON_MIN_WAGE"] = 40
 	w.levers["ECON_UNION_RIGHTS"] = 50
 	EconUnions._track_levers(w)
 	w.levers["ECON_UNION_RIGHTS"] = 20  # enacted cut
 	EconUnions._track_levers(w)
-	check(EconUnions.law_grievance(w, "INDUSTRY") >= 0.5, "cut of union rights is a grievance: %f" % EconUnions.law_grievance(w, "INDUSTRY"))
+	check(EconUnions.law_grievance(w, "MANUFACTURING") >= 0.5, "cut of union rights is a grievance: %f" % EconUnions.law_grievance(w, "MANUFACTURING"))
 	w.levers["ECON_UNION_RIGHTS"] = 60  # pro-worker change adds nothing
 	EconUnions._track_levers(w)
 	check_eq(EconUnions._u(w)["law_hits"].size(), 1, "only the adverse change is recorded")
@@ -54,7 +54,7 @@ func test_labor_law_cut_is_a_grievance_blamed_on_government() -> void:
 	var wf := EconUnions._org_workforce(w, oid)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1
-	EconUnions._strike(w, oid, wf, "INDUSTRY", 20 * EconUtil.S, "LABOR_LAW", rng)
+	EconUnions._strike(w, oid, wf, "MANUFACTURING", 20 * EconUtil.S, "LABOR_LAW", rng)
 	var f: Dictionary = w.facts.query("ECON_STRIKE")[-1]
 	check_eq(f["visibility"], "PUBLIC", "strike is public")
 	check_eq(f["responsible"][0]["actor"]["id"], "government", "government responsible for a labor-law strike")
@@ -85,7 +85,7 @@ func test_lockout_and_mass_layoffs() -> void:
 			sd = k
 			break
 	rng.seed = sd
-	EconUnions._strike(w, oid, wf, "INDUSTRY", 20 * EconUtil.S, "REAL_WAGES", rng)
+	EconUnions._strike(w, oid, wf, "MANUFACTURING", 20 * EconUtil.S, "REAL_WAGES", rng)
 	var lo: Array = w.facts.query("ECON_LOCKOUT")
 	check_eq(lo.size(), 1, "hard-line employer locks out")
 	if not lo.is_empty():

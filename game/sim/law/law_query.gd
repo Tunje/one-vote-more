@@ -429,11 +429,33 @@ static func may_hold_office(world: WorldState, leader: String) -> bool:
 
 # =====================================================================================  electoral eligibility (M10)
 
+const ELIGIBILITY_LEVERS := ["LAW_VOTING_AGE", "LAW_RESIDENCY_FOR_VOTE", "LAW_NONCITIZEN_VOTE"]
+const ELIGIBILITY_LEAD_MONTHS := 6     # J22
+
+
+## Lever value that governs an election in `month`: changes that took effect less than 6 months before it do not
+## count yet (the earliest such change's previous value applies). month < 0 = the law in force now.
+static func _electoral_value(world: WorldState, lid: String, month: int):
+	var v = world.levers.get(lid)
+	if month < 0:
+		return v
+	var best: Dictionary = {}
+	var rows := world.peek("enactment")
+	for eid in Det.ordered(rows):
+		var e: Dictionary = rows[eid]
+		if e.get("lever", "") != lid or e.get("status", "") != "EFFECTIVE" or not e.has("prev_value"):
+			continue
+		if int(e["effective_month"]) > month - ELIGIBILITY_LEAD_MONTHS and (best.is_empty() or int(e["effective_month"]) < int(best["effective_month"])):
+			best = e
+	return v if best.is_empty() else best["prev_value"]
+
+
 ## Electoral law in force: {voting_age, residency_months, noncitizen_vote, text}.
-static func eligibility(world: WorldState) -> Dictionary:
-	var age := int(String(world.levers.get("LAW_VOTING_AGE", "18")))
-	var res := int(world.levers.get("LAW_RESIDENCY_FOR_VOTE", 0))
-	var nc := bool(world.levers.get("LAW_NONCITIZEN_VOTE", true))
+## election_month >= 0: the law that governs an election in that month (J22: 6-month lead).
+static func eligibility(world: WorldState, election_month: int = -1) -> Dictionary:
+	var age := int(String(_electoral_value(world, "LAW_VOTING_AGE", election_month)))
+	var res := int(_electoral_value(world, "LAW_RESIDENCY_FOR_VOTE", election_month))
+	var nc := bool(_electoral_value(world, "LAW_NONCITIZEN_VOTE", election_month))
 	var t := "Residents aged %d or over may vote" % age
 	if not nc:
 		t += "; newcomers (under 24 months in the colony) may not"
@@ -446,8 +468,12 @@ static func eligibility(world: WorldState) -> Dictionary:
 ## Ages are uniform within a band: voting at 16 adds 2/18 of C, at 21 removes 3/12 of Y. Newcomers are spread like
 ## the leaf; arrivals are uniform over their 24 recent months, so a residency rule of R months bars R/24 of them, and
 ## without the non-citizen vote all of them are barred (citizenship after 24 months).
-static func eligible_voters(world: WorldState, leaf: Dictionary) -> int:
-	var e := eligibility(world)
+static func eligible_voters(world: WorldState, leaf: Dictionary, election_month: int = -1) -> int:
+	return eligible_with(eligibility(world, election_month), leaf)
+
+
+## Same, with the law already resolved (call LQ.eligibility once per election, then this per leaf).
+static func eligible_with(e: Dictionary, leaf: Dictionary) -> int:
 	var a: Dictionary = leaf.get("age", {})
 	var base := float(int(a.get("Y", 0)) + int(a.get("A", 0)) + int(a.get("M", 0)) + int(a.get("O", 0)))
 	if e["voting_age"] == 16:
@@ -460,3 +486,12 @@ static func eligible_voters(world: WorldState, leaf: Dictionary) -> int:
 		var barred := 1.0 if not e["noncitizen_vote"] else minf(1.0, float(e["residency_months"]) / 24.0)
 		base -= base * float(recent) / float(n) * barred
 	return maxi(0, int(round(base)))
+
+
+## Eligible voters over all population leaves matching a PopStore filter (e.g. {"hb": "hb:d:1"}).
+static func eligible_total(world: WorldState, filter: Dictionary = {}, election_month: int = -1) -> int:
+	var e := eligibility(world, election_month)
+	var t := 0
+	for k in PopStore.select(world, filter):
+		t += eligible_with(e, world.peek("pop")[k])
+	return t
