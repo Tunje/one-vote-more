@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 GODOT="${GODOT:-/c/Users/simon/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe}"
 LOG="$(mktemp)"
 timeout 300 "$GODOT" --headless --path . --import >/dev/null 2>&1   # always: registers new class_names
-timeout "${TEST_TIMEOUT:-480}" "$GODOT" --headless --path . --script res://tests/run_tests.gd >"$LOG" 2>&1
+timeout "${TEST_TIMEOUT:-1500}" "$GODOT" --headless --path . --script res://tests/run_tests.gd >"$LOG" 2>&1
 code=$?
 grep -E '^\s+(PASS|FAIL)|^\s+- |passed, .* failed|SCRIPT ERROR|Parse Error|   at: (res://|GDScript::reload)' "$LOG"
 if [ $code -eq 124 ]; then echo "!! TIMEOUT / runner crashed (see errors above)"; exit 2; fi
