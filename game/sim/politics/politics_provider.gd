@@ -36,6 +36,7 @@ func indicator_defs() -> Array:
 
 
 func init_world(world: WorldState) -> void:
+	Planet.generate(world)  # Terra: the globe (idempotent); the colony grid lives inside its landing region
 	if not Terrain.ready(world):
 		Terrain.generate(world)  # M13 terrain map (Bob's A2 generates it in EconSetup; this covers earlier setups)
 	var persona: Dictionary = world.meta.get("persona", {})
@@ -76,6 +77,8 @@ func _make_culture(world: WorldState) -> Dictionary:
 func run_phase(phase: int, world: WorldState) -> void:
 	var st: Dictionary = world.table("pol")["state"]
 	if phase == TickPhase.DECISIONS:
+		if PolVoters.leaves_mode(world):
+			PolVoters.refresh(world)  # new people since last month get voter fields before decisions read them
 		_decisions(world, st)
 		return
 	Philosophy.assign(world)       # M10 S3a: new people get philosophies (archetypes) and beliefs

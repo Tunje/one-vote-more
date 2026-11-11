@@ -268,6 +268,17 @@ static func _scandal(world: WorldState, fid: String, by: Dictionary, channel: St
 			"leader": leader, "leader_charged": charged}, [800])
 
 
+## Opposition research (Ella, spec-election-year-v1): a rival party's dig exposes an unrevealed tracked violation of
+## the target party. Same consequences as any reveal; POL_SCANDAL_REVEALED.data.channel = "OPPO_RESEARCH".
+## Returns true when it fired (the entry exists and was still hidden).
+static func reveal_by_rival(world: WorldState, fid: String, by_party: String) -> bool:
+	var t: Dictionary = world.peek("donation_track").get(fid, {})
+	if t.is_empty() or t.get("revealed", true):
+		return false
+	_scandal(world, fid, {"kind": "PARTY", "id": by_party}, "OPPO_RESEARCH")
+	return true
+
+
 ## After a conviction: may the convicted leader stay? (LAW_CONVICTED_CAN_HOLD_OFFICE)
 static func convicted_can_hold_office(world: WorldState) -> bool:
 	return bool(world.levers.get("LAW_CONVICTED_CAN_HOLD_OFFICE", true))

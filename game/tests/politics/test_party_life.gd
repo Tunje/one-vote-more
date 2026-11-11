@@ -26,7 +26,7 @@ func test_every_party_has_a_leader_and_factions() -> void:
 
 func test_leader_popularity_moves_votes() -> void:
 	var w := _sim().world
-	var cell: Dictionary = w.table("cell").values().filter(func(c): return c["pop"] > 0)[0]
+	var cell: Dictionary = PolVoters.all(w).filter(func(c): return c["pop"] > 0)[0]
 	var p: Dictionary = PartyLife.active(w)[1]
 	p["leader"]["popularity"] = 20
 	var lo := VoteModel.utility(cell, p, {})
@@ -62,7 +62,7 @@ func test_merger_combines_parties() -> void:
 	PartyLife.merge(w, st, big, small)
 	check_eq(small["status"], "MERGED", "absorbed")
 	check_eq(int(big["seats"]), seats, "seats combined")
-	for c in w.table("cell").values():
+	for c in PolVoters.all(w):
 		check_eq(int(c["prev_share"].get(small["id"], 0)), 0, "loyalty moved")
 		break
 

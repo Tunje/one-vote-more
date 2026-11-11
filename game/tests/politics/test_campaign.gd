@@ -1,0 +1,246 @@
+extends TestCase
+## Election year (planning/spec-election-year-v1.md): calendar, themes, ads, attacks and backfire, debates,
+## opposition research, smears, ground game, tactical support votes, determinism and save/load.
+## Works before and after the provider hook: Campaign.monthly is idempotent within a month.
+
+const FIRST_ELECTION := 44
+
+
+func _sim(seed_value: int = 3) -> Simulation:
+	return PoliticalSim.make(seed_value, "BALANCED", {})
+
+
+func _st(w: WorldState) -> Dictionary:
+	return w.table("pol")["state"]
+
+
+## One month: the campaign for month m runs at the start of m (before the provider's vote in m).
+func _tick(sim: Simulation) -> void:
+	if not sim.world.table("party").is_empty() and sim.world.month > PolDefs.PARTY_FORMATION_MONTH:
+		Campaign.monthly(sim.world, _st(sim.world))
+	sim.run(1)
+
+
+func _run_to(sim: Simulation, month: int) -> void:
+	while sim.world.month < month:
+		_tick(sim)
+
+
+func _campaign_for(w: WorldState, election_month: int) -> Dictionary:
+	for cid in w.table("campaign"):
+		if int(w.table("campaign")[cid]["election_month"]) == election_month:
+			return w.table("campaign")[cid]
+	return {}
+
+
+func test_campaign_opens_twelve_months_out_with_themes_and_targets() -> void:
+	var sim := _sim()
+	_run_to(sim, FIRST_ELECTION - 12)
+	check(_campaign_for(sim.world, FIRST_ELECTION).is_empty(), "not open 13 months out")
+	_tick(sim)
+	var c := _campaign_for(sim.world, FIRST_ELECTION)
+	check(not c.is_empty(), "election year opened at T-12")
+	check_eq(int(c["opened"]), FIRST_ELECTION - 12, "opened month")
+	check_eq(sim.world.facts.query("POL_CAMPAIGN_OPENED").size(), 1, "opening fact")
+	for pid in c["parties"]:
+		var e: Dictionary = c["parties"][pid]
+		check_eq(e["themes"].size(), 2, "two themes for " + pid)
+		for cn in e["themes"]:
+			check(PolDefs.CONCERNS.has(cn), "theme is a concern")
+		check(int(e["quality"]) >= 500 and int(e["quality"]) <= 1000, "quality in range")
+
+
+func test_full_campaign_spends_debates_and_finalises() -> void:
+	var sim := _sim()
+	_run_to(sim, FIRST_ELECTION - 6)
+	var w := sim.world
+	for p in PartyLife.active(w):   # the stub world has no households paying dues
+		PartyLife.open_account(w, p["id"])
+		w.ledger.transfer(Ledger.EXTERNAL, "party:" + p["id"], 1000000, "TEST_FUNDS", w.month)
+	_run_to(sim, FIRST_ELECTION + 2)
+	var c := _campaign_for(w, FIRST_ELECTION)
+	check_eq(c["status"], "DONE", "closed after the vote")
+	check_eq(c["debates"].size(), 2, "leaders' debate + final debate")
+	check(bool(c["debates"][1]["final"]), "final debate last")
+	check_eq(int(c["debates"][1]["month"]), FIRST_ELECTION, "final debate in the election month")
+	var spent := 0
+	for pid in c["parties"]:
+		spent += int(c["parties"][pid]["spent"])
+	check(spent > 0, "parties spent money")
+	check(not c["result"]["shares"].is_empty(), "result recorded")
+	check(w.facts.query("POL_DEBATE_HELD").size() == 2, "debate facts")
+	check(w.facts.query("POL_POLITICS_WEEK").size() == 1, "politics week in July")
+	for f in w.facts.query("POL_DEBATE_HELD"):
+		check(f["data"].has("channel"), "facts carry a media channel")
+	check(not _st(w).has("campaign_id"), "no open campaign after the vote")
+
+
+func _open_campaign(sim: Simulation) -> Dictionary:
+	_run_to(sim, FIRST_ELECTION - 3)
+	return Campaign.current(sim.world)
+
+
+func test_attack_ads_hurt_the_target_and_backfire_among_civil_voters() -> void:
+	var sim := _sim()
+	var w := sim.world
+	var c := _open_campaign(sim)
+	var ids: Array = Det_ordered(c["parties"])
+	var a: String = ids[0]
+	var b: String = ids[1]
+	for pid in ids:
+		c["parties"][pid]["persuasion"] = {}
+		c["parties"][pid]["backfire"] = {}
+		c["parties"][pid]["tone"] = "POSITIVE"
+	c["parties"][a]["tone"] = "NEGATIVE"
+	c["parties"][a]["target"] = b
+	var spend := {}
+	for pid in ids:
+		spend[pid] = {"ad": 1000000, "ground": 0, "oppo": 0}
+	var seg := Campaign.segments(w)
+	Campaign._ads(w, c, seg, spend)
+	var bsum := 0
+	for k in c["parties"][b]["persuasion"]:
+		bsum += int(c["parties"][b]["persuasion"][k])
+	var base: Dictionary = c["parties"][ids[2]]["persuasion"] if ids.size() > 2 else {}
+	var csum := 0
+	for k in base:
+		csum += int(base[k])
+	check(bsum < csum, "attacked party gains less than an unattacked one (%d vs %d)" % [bsum, csum])
+	var bf: Dictionary = c["parties"][a]["backfire"]
+	check(int(bf.get("INSTITUTION", 0)) < int(bf.get("*", 0)), "civility voters punish harder (%s)" % str(bf))
+	check(int(bf.get("*", 0)) < 0, "everyone punishes a little")
+	check_eq(w.facts.query("POL_ATTACK_AD").size(), 1, "attack fact once")
+
+
+func test_voter_utility_combines_segment_momentum_and_backfire_with_cap() -> void:
+	var cache := {"parties": {"p1": {"persuasion": {"d1|INDUSTRY": 300}, "momentum": 200, "backfire": {"STABILITY": -100, "*": -20}, "mob": 0},
+		"p2": {"persuasion": {"d1|INDUSTRY": 2000}, "momentum": 0, "backfire": {}, "mob": 0}}}
+	var v := {"district": "d1", "vocc": "INDUSTRY", "cohort": "STABILITY"}
+	var u := Campaign.voter_utility(cache, v)
+	check(absf(float(u["p1"]) - 0.4) < 0.0001, "300+200-100 = 0.4 (%s)" % str(u))
+	check(absf(float(u["p2"]) - float(Campaign.CAMPAIGN_U_CAP) / 1000.0) < 0.0001, "capped")
+	var v2 := {"district": "d1", "vocc": "INDUSTRY", "cohort": "LABOR"}
+	check(absf(float(Campaign.voter_utility(cache, v2)["p1"]) - 0.48) < 0.0001, "default backfire for other cohorts")
+	check(Campaign.voter_utility({}, v).is_empty(), "no campaign, no effect")
+
+
+func test_opposition_research_finds_secret_donations_first() -> void:
+	var sim := _sim()
+	var w := sim.world
+	var c := _open_campaign(sim)
+	var ids: Array = Det_ordered(c["parties"])
+	var a: String = ids[0]
+	var b: String = ids[1]
+	w.table("donation_track")["f999999"] = {"id": "f999999", "party": b, "donor": "x", "amount": 5000, "excess": 5000,
+		"cap": 1000, "undisclosed": true, "month": w.month, "revealed": false}
+	c["parties"][a]["dirt"] = []
+	check(Campaign._find_dirt(w, c, a, b, w.rng.stream("test")), "found")
+	var d: Dictionary = c["parties"][a]["dirt"][0]
+	check_eq(d["kind"], "DONATION", "real secret first")
+	check_eq(d["fid"], "f999999", "the tracked violation")
+	# the same secret is not found twice
+	c["parties"][ids[2] if ids.size() > 2 else a]["dirt"] = c["parties"][ids[2] if ids.size() > 2 else a]["dirt"]
+	check(Campaign._taken(c, "f999999"), "taken")
+
+
+func test_released_dirt_hurts_the_target() -> void:
+	var sim := _sim()
+	var w := sim.world
+	var c := _open_campaign(sim)
+	var ids: Array = Det_ordered(c["parties"])
+	var a: String = ids[0]
+	var b: String = ids[1]
+	var tp: Dictionary = w.table("party")[b]
+	var pop0 := PartyLife.leader_popularity(tp)
+	var m0 := int(c["parties"][b]["momentum"])
+	var d := {"kind": "PERSONAL", "target": b, "fid": "", "sev": 30, "found": w.month, "released": -1, "exposed": false}
+	c["parties"][a]["dirt"].append(d)
+	Campaign.release(w, c, a, d, false)
+	check(PartyLife.leader_popularity(tp) < pop0, "leader popularity down")
+	check(int(c["parties"][b]["momentum"]) < m0, "momentum down")
+	check_eq(int(d["released"]), w.month, "marked released")
+	check_eq(w.facts.query("POL_DIRT_RELEASED").size(), 1, "news")
+
+
+func test_exposed_smear_backfires_on_the_smearer() -> void:
+	var sim := _sim()
+	var w := sim.world
+	var c := _open_campaign(sim)
+	var ids: Array = Det_ordered(c["parties"])
+	var a: String = ids[0]
+	var b: String = ids[1]
+	var p: Dictionary = w.table("party")[a]
+	var cred0 := int(p["credibility"])
+	var d := {"kind": "SMEAR", "target": b, "fid": "", "sev": 30, "found": w.month, "released": w.month, "exposed": false}
+	var mb := int(c["parties"][b]["momentum"])
+	Campaign._expose_smear(w, c, a, d)
+	check(int(p["credibility"]) < cred0, "smearer loses credibility")
+	check(int(c["parties"][a]["momentum"]) < 0, "smearer loses momentum")
+	check(int(c["parties"][b]["momentum"]) > mb, "victim gains sympathy")
+	check_eq(w.facts.query("POL_SMEAR_EXPOSED").size(), 1, "news")
+
+
+func test_ground_game_mobilises_and_is_capped() -> void:
+	var sim := _sim()
+	var w := sim.world
+	var c := _open_campaign(sim)
+	var ids: Array = Det_ordered(c["parties"])
+	var spend := {}
+	for pid in ids:
+		c["parties"][pid]["ground"] = 1000
+		spend[pid] = {"ad": 0, "ground": 1000, "oppo": 0}
+	c["parties"][ids[0]]["ground"] = 1000000
+	Campaign._ground(w, c, spend)
+	var mob := Campaign.mobilisation(c)
+	for pid in ids:
+		check(float(mob[pid]) >= 1.0 and float(mob[pid]) <= 1.0 + float(Campaign.MOB_MAX) / 1000.0, "mobilisation in range")
+	check(float(mob[ids[0]]) > float(mob[ids[1]]), "big spender mobilises more")
+
+
+func test_support_votes_lift_a_small_ally_over_the_threshold() -> void:
+	var sim := _sim()
+	var w := sim.world
+	_run_to(sim, FIRST_ELECTION + 3)
+	var st := _st(w)
+	var ids: Array = Det_ordered(w.table("party"))
+	st["government"] = {"members": [ids[0], ids[1]], "pm_party": ids[0], "support": []}
+	var votes := {ids[0]: 400000.0, ids[1]: 33000.0, ids[2]: 567000.0}
+	var moved := Campaign.tactical(w, votes)
+	check(moved.has(ids[1]), "ally received support votes")
+	check(float(votes[ids[1]]) / 1000000.0 >= 0.04, "ally over 4%% (%.4f)" % (float(votes[ids[1]]) / 1000000.0))
+	check(absf(float(votes[ids[0]]) + float(votes[ids[1]]) - 433000.0) < 0.5, "votes conserved")
+	var none := {ids[0]: 400000.0, ids[1]: 10000.0, ids[2]: 590000.0}
+	check(Campaign.tactical(w, none).is_empty(), "a hopeless ally gets nothing")
+
+
+func test_extra_election_gets_a_compressed_campaign() -> void:
+	var sim := _sim()
+	var w := sim.world
+	_run_to(sim, FIRST_ELECTION + 12)
+	var st := _st(w)
+	st["extra_election_month"] = w.month + 3
+	_tick(sim)
+	var c := Campaign.current(w)
+	check(not c.is_empty(), "opened")
+	check(bool(c["extra"]), "extra")
+	check_eq(int(c["election_month"]), w.month + 2, "for the extra election")
+
+
+func test_deterministic_and_save_load_mid_campaign() -> void:
+	var ref := _sim(7)
+	_run_to(ref, FIRST_ELECTION - 5)
+	check_eq(SaveIO.save(ref, save_path("campaign.sav")), OK, "save")
+	_run_to(ref, FIRST_ELECTION + 2)
+	var loaded := PoliticalSim.for_load()
+	check_eq(SaveIO.load_into(loaded, save_path("campaign.sav")), OK, "load")
+	_run_to(loaded, FIRST_ELECTION + 2)
+	check_eq(loaded.world.state_hash(), ref.world.state_hash(), "save/load/continue identical")
+	var again := _sim(7)
+	_run_to(again, FIRST_ELECTION + 2)
+	check_eq(again.world.state_hash(), ref.world.state_hash(), "deterministic")
+
+
+static func Det_ordered(d: Dictionary) -> Array:
+	var ks: Array = d.keys()
+	ks.sort()
+	return ks

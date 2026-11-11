@@ -76,7 +76,7 @@ func test_failing_government_loses_issue_credibility() -> void:
 	var p: Dictionary = w.table("party")[g["pm_party"]]
 	p["ownership"]["PUBLIC_SERVICES"] = 80
 	PartyLife.lifecycle(st)["issue_months"]["PUBLIC_SERVICES"] = 24
-	for c in w.table("cell").values():
+	for c in PolVoters.all(w):
 		c["sat"]["PUBLIC_SERVICES"] = 5000  # services in ruins
 	while w.month_of_year() != 12:
 		w.month += 1

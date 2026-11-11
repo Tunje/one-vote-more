@@ -22,9 +22,15 @@ func _world() -> WorldState:
 	for a in ids:
 		PopStore.seed_leaf(w, {"hb": a, "inc": "I3", "occ": "SERVICES", "status": "EMPLOYED", "arch": "PRAG"}, 100 + 40 * i)
 		i += 1
-	var cells: Array = w.table("cell").values()
-	for j in cells.size():
-		cells[j]["district"] = ids[j % ids.size()]
+	# give each new area's people a party preference like the colony's established voters
+	var pids: Array = PartyLife.active(w).map(func(p): return p["id"])
+	var j := 0
+	for c in PolVoters.all(w):
+		if String(c.get("hb", "")) in ids:
+			var ps := {}
+			ps[pids[j % pids.size()]] = 100000
+			c["prev_share"] = ps
+			j += 1
 	DL.ensure_founding_district(w)
 	DL.tick(w)
 	return w

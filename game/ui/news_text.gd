@@ -144,6 +144,19 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"HOME_DEMAND_RAISED": s = "[color=#ff8a65]The home world raised its demands[/color]"
 		"HOME_SANCTION": s = "The home world imposed a sanction: %s" % _kind(d.get("kind", ""))
 		"HOME_EXPEDITION_SENT": s = "[color=#ff5252][b]The home world has sent a punitive expedition[/b][/color]"
+		# ---- election year (Ella, sim/politics/campaign.gd) ----
+		"POL_CAMPAIGN_OPENED": s = "[b]%s[/b]: the parties launch their campaigns" % ("A snap election campaign begins" if d.get("extra", false) else "Election year")
+		"POL_CAMPAIGN_GOES_NEGATIVE": s = "%s goes negative: its ads now target %s" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
+		"POL_ATTACK_AD": s = "%s runs attack ads against %s" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
+		"POL_POLITICS_WEEK": s = "Politics week: %s gave the speech of the summer; %s fell flat" % [party(w, d.get("best", "")), party(w, d.get("worst", ""))]
+		"POL_DEBATE_HELD":
+			var killer := (", landing a blow on %s" % party(w, d.get("killer_on", ""))) if String(d.get("killer_on", "")) != "" else ""
+			s = "[b]%s[/b]: %s won%s; %s struggled" % ["Final debate" if d.get("final", false) else "Leaders' debate", party(w, d.get("winner", "")), killer, party(w, d.get("loser", ""))]
+		"POL_DEBATE_GAFFE": s = "[color=#ff8a65]Gaffe[/color]: %s (%s) blundered in the %s" % [d.get("leader", ""), party(w, d.get("party", "")), "final debate" if d.get("final", false) else "debate"]
+		"POL_DIRT_RELEASED":
+			var what: String = {"DONATION": "hidden donations", "PERSONAL": "the private conduct of %s" % d.get("leader", "its leader"), "SMEAR": "allegations against %s" % d.get("leader", "its leader")}.get(String(d.get("kind", "")), "damaging claims")
+			s = "%s publishes dirt on %s: %s%s" % [party(w, d.get("party", "")), party(w, d.get("target", "")), what, " [color=#ff8a65](it leaked that they sat on it)[/color]" if d.get("leaked", false) else ""]
+		"POL_SMEAR_EXPOSED": s = "[color=#ff5252]Smear exposed[/color]: %s's claims about %s were false" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
 		_:
 			s = cap1(t.replace("_", " ").to_lower())
 	return s + _gov(f)

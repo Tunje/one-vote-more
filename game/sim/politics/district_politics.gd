@@ -152,7 +152,7 @@ static func area_share(world: WorldState, area_id: String, parties: Array) -> fl
 	var v := 0.0
 	var n := 0.0
 	for c in PolVoters.all(world):
-		if c["district"] != area_id or c["pop"] <= 0:
+		if String(c.get("area", c["district"])) != area_id or c["pop"] <= 0:
 			continue
 		var s := 0.0
 		for pid in parties:

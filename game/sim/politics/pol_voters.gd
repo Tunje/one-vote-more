@@ -22,9 +22,7 @@ static func leaves_mode(world: WorldState) -> bool:
 static func all(world: WorldState) -> Array:
 	if not leaves_mode(world):
 		return world.table("cell").values()
-	if int(world.values.get("pol_voters_month", -1)) != world.month:
-		refresh(world)  # first read this month (e.g. the DECISIONS phase runs before POLITICS)
-	return _leaves(world)
+	return _leaves(world)  # reads never refresh (reads must not change state); refresh runs at phase starts
 
 
 static func _leaves(world: WorldState) -> Array:
@@ -58,7 +56,6 @@ static func district_of_hb(world: WorldState, hb: String) -> String:
 static func refresh(world: WorldState) -> void:
 	if not leaves_mode(world):
 		return
-	world.values["pol_voters_month"] = world.month
 	var e: Dictionary = LQ.eligibility(world, world.month)
 	for l in _leaves(world):
 		var occ: String = l["occ"]

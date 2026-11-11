@@ -35,6 +35,12 @@ static func trade(world: WorldState) -> void:
 			ul[g2] = maxi(0, int(m2["wanted"]) - int(m2.get("filled", 0)))
 	s["fill_last"] = fr
 	s["unmet_last"] = ul
+	# E105: slow demand memory per good (what buyers wanted, filled or not) for capacity planning
+	var we: Dictionary = s.get("wanted_ema", {})
+	for g3 in s.get("market_stats", {}):
+		var wanted3 := float(s["market_stats"][g3].get("wanted", 0))
+		we[g3] = int(0.9 * float(we.get(g3, wanted3)) + 0.1 * wanted3)
+	s["wanted_ema"] = we
 	s["market_stats"] = {}
 	var tariff := int(EconUtil.lever(world, "ECON_FREIGHT_TARIFF", 5)) * S
 	for good in CLEAR_ORDER:

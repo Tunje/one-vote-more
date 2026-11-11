@@ -21,8 +21,12 @@ static func occupation_of(world: WorldState, org_id: String, ftype: String) -> S
 static func required(f: Dictionary) -> Dictionary:
 	var out := {}
 	var r: Dictionary = EconData.RECIPES[f["type"]]
+	var repair_crew: bool = f["mothball"] and f.get("closed_unsafe", false)  # E104: closed plants keep a repair crew
 	for t in r["labor"]:
-		out[t] = 0 if f["mothball"] else int(float(r["labor"][t]) * S * float(f["T"]) / 1000.0 * EconUtil.fscale(f))
+		if repair_crew:
+			out[t] = int(float(r["labor"][t]) * S * EconData.REPAIR_CREW_SHARE * EconUtil.fscale(f))
+		else:
+			out[t] = 0 if f["mothball"] else int(float(r["labor"][t]) * S * float(f["T"]) / 1000.0 * EconUtil.fscale(f))
 	if out.has("Sp"):
 		out["Sp"] = maxi(0, out["Sp"] - int(f.get("named_sp", 0)) * S)  # J26 / PD §11.5: posts held by named senior staff
 	return out
@@ -78,6 +82,7 @@ static func remove(staff: Dictionary, t: String, qty: int) -> int:
 ## Build this month's vacancy list and apply layoffs (COMPANY_AI; also at setup).
 static func post_vacancies(world: WorldState) -> void:
 	var s := EconUtil.st(world)
+	EconPop.realign(world)  # ownership may have changed this month (rescues in SETTLEMENT): fix occupations before layoffs
 	assign_named_staff(world)
 	var vacs: Array = []
 	for fid in EconUtil.sorted_keys(world.table("facility")):

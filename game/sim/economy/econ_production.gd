@@ -326,6 +326,15 @@ static func _upkeep(world: WorldState, f: Dictionary, running: bool) -> void:
 		cond += EconData.REPAIR_PER_MONTH
 	elif repairing:
 		cond += int(float(EconData.OVERHAUL_PER_MONTH) * frac)
+		# E104: the repair crew restores condition by labour alone (salvage, local craft) — slower without parts, but
+		# a colony with no materials can still restart its essential plants from cold
+		if not EconUtil.off(world, "E104"):
+			var core := 0.0
+			var have := 0.0
+			for t in r["labor"]:
+				core += float(r["labor"][t]) * EconData.REPAIR_CREW_SHARE * EconUtil.fscale(f)
+				have += float(EconLabor.tier_total(f["staff"], t)) / S
+			cond += int(float(EconData.LABOUR_REPAIR_PER_MONTH) * clampf(have / maxf(core, 1.0), 0.0, 1.0))
 		f["overhaul_frac"] = int(frac * 1000.0)  # E84b (a9): a cash-starved owner overhauls more slowly
 	f["condition"] = clampi(cond, 0, 100 * S)
 	var hazardous: bool = r["hazard"] == "HIGH" or f["type"] == "MINE"

@@ -8,6 +8,7 @@ const GOV := {"kind": "GOVERNMENT", "id": "government"}
 
 var session := GameSession.new()
 var map: MapView
+var planet: PlanetView   # Terra: the 3D globe; the colony map (MapView) is the landing region up close
 var lbl_date: Label
 var lbl_gov: Label
 var lbl_stats: Label
@@ -66,14 +67,22 @@ func _build_ui() -> void:
 	split.add_child(left)
 	var overlays := HBoxContainer.new()
 	left.add_child(overlays)
+	_button(overlays, "🌍 Planet", func(): _show_planet(true))
 	for o in ["TERRAIN", "DISTRICTS", "UNEMPLOYMENT", "APPROVAL", "LEAN"]:
-		_button(overlays, o.capitalize(), func(): map.overlay = o; map.refresh())
+		_button(overlays, o.capitalize(), func(): _show_planet(false); map.overlay = o; map.refresh())
 	map = MapView.new()
 	map.session = session
 	map.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map.district_selected.connect(func(d): selected_district = d; tabs.current_tab = 1; _refresh_panels())
 	left.add_child(map)
+	planet = PlanetView.new()
+	planet.session = session
+	planet.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	planet.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	planet.colony_requested.connect(func(): _show_planet(false); map.overlay = "TERRAIN"; map.refresh())
+	left.add_child(planet)
+	_show_planet(true)
 
 	tabs = TabContainer.new()
 	tabs.custom_minimum_size = Vector2(520, 0)
@@ -235,6 +244,7 @@ func _on_save() -> void:
 func _on_load() -> void:
 	var err := session.load_game()
 	map.session = session
+	planet.session = session
 	chk_auto.set_pressed_no_signal(session.autoplay())
 	_refresh()
 	if err != OK:
@@ -252,7 +262,16 @@ func _refresh() -> void:
 	lbl_stats.text = "Treasury %s  |  Approval %.0f%%  |  Unemployment %.1f%%  |  Next election in %d months" % [
 		_money(b["treasury"]), w.indicators.read("POL_GOV_APPROVAL") / 1000.0, _colony_unemployment(w), months_to_el]
 	map.refresh()
+	planet.refresh()
 	_refresh_panels()
+
+
+## Terra: swap between the globe and the colony map (same screen space).
+func _show_planet(on: bool) -> void:
+	planet.visible = on
+	map.visible = not on
+	if on:
+		planet.refresh()
 
 
 func _refresh_panels() -> void:

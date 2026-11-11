@@ -57,14 +57,14 @@ func test_independence_path_referendum_and_home_response() -> void:
 	var st := _st(w)
 	var h := HomeWorld.state(w)
 	# an independence-minded colony and parliament
-	for c in w.table("cell").values():
+	for c in PolVoters.all(w):
 		c["ideology"]["SOVEREIGNTY"] = 60 * 1000
 	for p in PartyLife.active(w):
 		p["positions"]["SOVEREIGNTY"] = 70 * 1000
 	st["government"]["center"]["SOVEREIGNTY"] = 70 * 1000
 	h["rejected_petitions"] = 2
 	h["last_petition"] = w.month
-	for c in w.table("cell").values():
+	for c in PolVoters.all(w):
 		c["sat"]["COLONIAL_BURDEN"] = 60000  # not petitioning now
 	HomeWorld.monthly(w, st)
 	check(int(h["referendum_month"]) > w.month, "parliament voted for independence; referendum scheduled")

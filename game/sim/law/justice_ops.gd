@@ -19,7 +19,8 @@ const JUDGE_COST_WREF := 3000       # milli-W_ref per judge per month (budget ad
 const INSPECTOR_COST_WREF := 2000
 const INSPECTIONS_PER_INSPECTOR := 3
 const CASE_CP := {"ADMIN_APPEAL": 3, "UNLAWFUL_GOV": 6, "CONTRACT": 5, "ENFORCEMENT": 4, "APPEAL": 4, "PARTY_FINANCE": 4,
-	"TORT": 5}
+	"TORT": 5, "DEFAMATION": 3}
+const DEFAMATION_DAMAGES_WREF := 0.3       # damages per severity point (severity 0..100 -> up to 30 W_ref)
 # M11 detection channels (spec-events 3): environment inspectorate and competition/consumer authority.
 const ENV_INSPECTION_COST_WREF := 1500     # milli-W_ref per environmental inspection
 const MARKET_CASE_COST_WREF := 2500        # milli-W_ref per market investigation
@@ -546,12 +547,23 @@ static func _final(world: WorldState, c: Dictionary, claimant_wins: bool) -> voi
 				data["remedy"] = "COMPENSATION"
 				data["amount"] = claim
 				data["gov_paid"] = by_gov
+			"DEFAMATION":
+				var dmg := int(round(float(c["data"].get("severity", 0)) * DEFAMATION_DAMAGES_WREF * float(w_ref(world))))
+				_pay(world, c["respondent"], c["claimant"], dmg, "DAMAGES")
+				data["remedy"] = "DAMAGES"
+				data["amount"] = dmg
 			"PARTY_FINANCE":
 				data["remedy"] = "FINE"
 				data["fine"] = _party_fine(world, c)
 				data["party"] = c["data"].get("party", "")
 				data["leader"] = c["data"].get("leader", "")
 				data["leader_convicted"] = c["data"].get("leader_charged", false)
+	if c["type"] == "DEFAMATION":
+		var smearer: Dictionary = c["respondent"]
+		fact(world, "LAW_DEFAMATION_RULED", "PUBLIC", [c["claimant"], smearer],
+			[{"actor": smearer if claimant_wins else c["claimant"], "share": 1.0}], {}, 35 + int(c["data"].get("severity", 0)) / 4,
+			{"victim": c["claimant"]["id"], "smearer": smearer["id"], "guilty": claimant_wins,
+			"damages": int(data.get("amount", 0)), "severity": int(c["data"].get("severity", 0)), "case": c["id"]})
 	var mag := 40 if c["type"] == "UNLAWFUL_GOV" else (25 if against_gov else 15)
 	var impact := {"FAIRNESS": 3}
 	var resp := [{"actor": loser, "share": 1.0}]
@@ -683,6 +695,15 @@ static func _pay_victims(_world: WorldState) -> void:
 	pass
 
 
+## Defamation (Ella, spec-election-year-v1): an exposed smear (a dirt attack with no real fact behind it). The victim
+## party sues; a true smear claim is strong (the smear was exposed). Verdict: LAW_DEFAMATION_RULED {victim, smearer,
+## guilty, damages, severity, case}; damages = severity x 0.3 W_ref, party:smearer -> party:victim. -> case id
+static func file_defamation(world: WorldState, victim_party: String, smearer_party: String, severity: int) -> String:
+	init_courts(world)
+	return file_case(world, "DEFAMATION", {"kind": "PARTY", "id": victim_party}, {"kind": "PARTY", "id": smearer_party}, true,
+		{"severity": clampi(severity, 0, 100)}, [800])
+
+
 static func _root_filed(world: WorldState, c: Dictionary) -> int:
 	if c["appeal_of"] != "":
 		return int(world.table("case")[c["appeal_of"]]["filed_month"])
@@ -741,6 +762,8 @@ static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, am
 	if amount <= 0:
 		return
 	var from := "gov:treasury" if from_ref["kind"] in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"] else company_acct(String(from_ref["id"]))
+	if from_ref["kind"] == "PARTY":
+		from = "party:" + String(from_ref["id"])
 	var to := "gov:treasury" if to_ref["kind"] in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"] else company_acct(String(to_ref["id"]))
 	if to_ref["kind"] == "PARTY":
 		to = "party:" + String(to_ref["id"])

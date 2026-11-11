@@ -33,6 +33,7 @@ static func make(seed_value: int, scenario: String = "BALANCED", persona: Dictio
 	sim.world.meta["scenario"] = scenario
 	sim.world.meta["persona"] = persona
 	sim.world.meta["autoplay_player"] = autoplay
+	sim.world.meta["voters"] = "LEAVES"  # M10 S3c: the population blocks are the voters (old saves keep CELLS)
 	_register(sim)
 	sim.new_game()
 	return sim

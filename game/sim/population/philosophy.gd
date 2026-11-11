@@ -89,7 +89,7 @@ static func beliefs(world: WorldState, occ: String, status: String, inc: String,
 	for i in PolDefs.AXES.size():
 		var ax: String = PolDefs.AXES[i]
 		var v := int(base[i]) * S if i < base.size() else 0
-		v += int(arch[arch_name]["offset"].get(ax, 0))
+		v += int(arch.get(arch_name, {}).get("offset", {}).get(ax, 0))
 		ideo[ax] = v
 	ideo["ECON_ROLE"] += int(bs[0]) * S
 	ideo["REDISTRIBUTION"] += int(bs[1]) * S

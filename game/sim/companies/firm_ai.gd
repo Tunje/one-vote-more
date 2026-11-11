@@ -28,6 +28,7 @@ static func run(world: WorldState) -> void:
 		_entry(world)
 		_builder_entry(world)
 		_new_plants(world)
+		_essentials_planner(world)
 	_expansion(world)
 	_small_business(world)
 	EconLabor.update_wage_index(world)
@@ -113,7 +114,7 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 			EconFacts.emit(world, "ECON_FACILITY_MOTHBALLED", f["district"], [["COMPANY", f["org"]]],
 				EconFacts.company_blame(world, f["org"], 0.7), {"JOBS": -10}, 35, "PUBLIC", {"facility": f["id"]},
 				{"districts": [f["district"]]})
-		elif f["mothball"] and f["T"] >= 500 and o["status"] in ["ACTIVE", "DISTRESSED", "ADMINISTRATION"]:
+		elif f["mothball"] and f["T"] >= 500 and o["status"] in ["ACTIVE", "DISTRESSED", "ADMINISTRATION"] 				and not f.get("closed_unsafe", false) and not f.get("law_closed", false):  # E104: only repair/relicensing reopens those
 			f["mothball"] = false
 			f["low_util_m"] = 0
 
@@ -561,6 +562,60 @@ static func _new_plants(world: WorldState) -> void:
 		sig[good] = 0
 		EconFacts.emit(world, "COMP_INVESTMENT", district, [["COMPANY", best]], [["COMPANY", best, 1.0]], {"JOBS": 3}, 20, "PUBLIC",
 			{"type": ftype, "project": pid2, "reason": "scarcity", "good": good})
+
+
+## E105 (Wilma-approved): the public utility (CPW) is planner of last resort for the essentials chain. Each quarter it
+## compares capacity with demand for power, water, materials and components; if spare capacity is below
+## ESSENTIAL_SPARE it commissions a new plant AHEAD of the price signal, financed from its cash, a bank loan or the
+## treasury (public utility). One plant per type per ESSENTIAL_GAP months; nothing if one is already being built.
+static func _essentials_planner(world: WorldState) -> void:
+	if EconUtil.off(world, "E105"):
+		return
+	var s := EconUtil.st(world)
+	var cpw := EconFinance.org_by_key(world, "CPW")
+	if cpw == "" or world.table("org")[cpw]["status"] in ["LIQUIDATION", "DISSOLVED"]:
+		return
+	var last: Dictionary = s.get("essential_last", {})
+	s["essential_last"] = last
+	for ftype in ["POWER", "WATERWORKS", "PROCESSING", "COMPONENTS"]:
+		if world.month - int(last.get(ftype, -999)) < EconData.ESSENTIAL_GAP:
+			continue
+		var r: Dictionary = EconData.RECIPES[ftype]
+		var good: String = r["out"][0]
+		var cap := 0.0
+		var district := ""
+		for fid in EconUtil.sorted_keys(world.table("facility")):
+			var f: Dictionary = world.table("facility")[fid]
+			if f["type"] != ftype:
+				continue
+			if district == "":
+				district = f["district"]
+			if not f["mothball"]:
+				cap += float(r["out"][1]) * S * EconUtil.fscale(f) * EconProduction._eff(world, f)
+		var demand := 0.0
+		match ftype:
+			"POWER": demand = float(s.get("util_demand", {}).get("E", 0))
+			"WATERWORKS": demand = float(s.get("util_demand", {}).get("W", 0))
+			_: demand = float(s.get("wanted_ema", {}).get(good, 0))
+		if demand <= 0.0 or cap >= demand * (1.0 + EconData.ESSENTIAL_SPARE):
+			continue
+		var pending := false
+		for pid in world.table("project"):
+			var p: Dictionary = world.table("project")[pid]
+			if p["type"] == ftype and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+				pending = true
+		if pending:
+			continue
+		var est := EconConstruction.estimate(ftype)
+		var need := maxi(0, est - world.ledger.balance(EconUtil.acct(cpw)))
+		if need > 0 and not EconFinance.new_loan(world, cpw, mini(need, est * 7 / 10), 0, true):
+			var paid := EconFinance.gov_pay(world, EconUtil.acct(cpw), need, "PE_INVESTMENT")
+			EconFinance._spend_line(world, "ECON_BUDGET_INFRASTRUCTURE", paid)
+		var pid2 := EconConstruction.create(world, ftype, district if district != "" else "d:4", cpw, cpw, "")
+		last[ftype] = world.month
+		EconFacts.emit(world, "COMP_INVESTMENT", district, [["COMPANY", cpw]], [["COMPANY", cpw, 0.5], ["GOVERNMENT", "government", 0.5]],
+			{"JOBS": 3, "INFRASTRUCTURE": 5}, 25, "PUBLIC", {"type": ftype, "project": pid2, "reason": "spare_capacity", "good": good,
+			"capacity_pct": int(100.0 * cap / maxf(1.0, demand))})
 
 
 ## E87 (O-1): construction firm entry. When projects queue without bids and no private builder is alive, a new

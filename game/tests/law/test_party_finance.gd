@@ -174,3 +174,37 @@ func test_judged_at_booking_time() -> void:
 	check(track.has(hid) and track[hid]["undisclosed"] and int(track[hid]["excess"]) == 0, "secrecy breach")
 	check(w.facts.query("POL_SCANDAL_REVEALED").filter(func(f): return f["data"]["channel"] == "PUBLIC_RECORD").is_empty(),
 		"no PUBLIC_RECORD scandal from drift")
+
+
+## Election year (Ella): a rival's opposition research exposes a hidden violation.
+func test_reveal_by_rival() -> void:
+	var s := _world()
+	var w := s.world
+	var fid := _donate(w, "org:1", "P2", 100 * _wref(w), "SECRET")
+	s.step()
+	check(w.table("donation_track").has(fid), "tracked")
+	check(PF.reveal_by_rival(w, fid, "P1"), "fired")
+	check(not PF.reveal_by_rival(w, fid, "P3"), "only once")
+	check(not PF.reveal_by_rival(w, "F999999", "P1"), "unknown entry")
+	var sc := w.facts.query("POL_SCANDAL_REVEALED")
+	check(sc.size() == 1 and sc[0]["data"]["channel"] == "OPPO_RESEARCH" and sc[0]["data"]["party"] == "P2", "channel OPPO_RESEARCH")
+
+
+## Election year (Ella): an exposed smear is defamation; the smearer pays damages.
+func test_defamation() -> void:
+	var s := _world()
+	var w := s.world
+	for p in ["P1", "P2"]:
+		w.ledger.open_account("party:" + p)
+	w.ledger.transfer(Ledger.EXTERNAL, "party:P2", 100 * _wref(w), "seed", w.month)
+	var cid := J.file_defamation(w, "P1", "P2", 50)
+	check(w.table("case").has(cid) and w.table("case")[cid]["type"] == "DEFAMATION", "case filed")
+	var before := w.ledger.balance("party:P1")
+	J._final(w, w.table("case")[cid], true)
+	var f := w.facts.query("LAW_DEFAMATION_RULED")
+	check(f.size() == 1 and f[0]["data"]["guilty"] and f[0]["data"]["smearer"] == "P2", "verdict fact: %s" % [f])
+	check_eq(w.ledger.balance("party:P1") - before, int(round(50 * 0.3 * _wref(w))), "damages smearer -> victim")
+	check_eq(f[0]["responsible"][0]["actor"]["id"], "P2", "the smearer is responsible")
+	var cid2 := J.file_defamation(w, "P1", "P2", 20)
+	J._final(w, w.table("case")[cid2], false)
+	check(not w.facts.query("LAW_DEFAMATION_RULED")[1]["data"]["guilty"], "an acquittal is ruled too")
