@@ -110,3 +110,48 @@ A district is a named administrative grouping of areas. It matters for:
 | A5 | Wilma | map UI: tiles, areas, placement, area panel, district drawing | smoke test; playtest |
 
 Order: A1 first (the store the others write to), then A2 and A4 in parallel, then A3 and A5.
+
+---
+
+## 9. Housing life-cycle and land (user decision A37, 2026-11-11)
+
+**9.1 Housing ages: an S-curve.** Every housing block (a HOUSING facility or the units on an area tile) has a `condition` and an `age`.
+- Decay is barely noticeable for the first years, then accelerates (S-shaped in age).
+- Maintenance slows it; neglect speeds it up.
+- Condition drives attractiveness, rent, health and the HOUSING concern.
+
+**9.2 Owners decide.** The owners of housing (companies, the Housing Office, private landlords) choose for ageing stock:
+- **renovate:** cost; condition restored;
+- **sell:** to another owner, or to the tenants;
+- **cut the rent** and let it slide.
+
+The cheap path turns blocks into low-income housing and, with neglect, **slums** (condition below a threshold, overcrowding). Households sort by income as they move.
+
+**9.3 Quality at build: BASIC / STANDARD / UPSCALE.**
+- Upscale costs more to build and earns more rent and profit, but fewer households can afford it, so it fills more slowly.
+- It concentrates the wealthy and widens income divides between areas.
+
+**9.4 Land.**
+- At founding the government owns **all** land.
+- Companies and private households can **buy** plots. The government may also **lease** them (default: lease is allowed).
+- Land policy (sell at market, sell cheap, lease, keep) is political.
+- Selling cheap to ordinary people raises an area's attractiveness, but it also splits income levels: who buys where differs.
+
+**9.5 Divergence splits.** Slums and enclaves both split off as areas (§4 divergence), with history kept.
+
+**9.6 People are never deleted.**
+- Slum clearance and demolition require lawful rehousing, or an eviction process under law.
+- Overcrowding never removes residents (population.md §3.5–3.6). The unhoused go to SHELTER areas.
+
+**Ownership:**
+- **Bob:** condition and the decay curve; owner choices; quality tiers and rents; affordability and sorting; land purchase and lease economics. Part of A3.
+- **Anni:**
+  - land titles and registry;
+  - the government's power to sell, lease, price, zone and expropriate (with compensation, as the constitution says);
+  - eviction and slum-clearance rules;
+  - land-policy levers.
+- **Wilma:**
+  - slum and enclave splits;
+  - land policy as a party issue (positions, AI governments' land policy);
+  - housing decay into grievances;
+  - chronicle and news.
