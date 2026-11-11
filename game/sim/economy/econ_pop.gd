@@ -230,10 +230,8 @@ static func credit_status(world: WorldState, gid: String, status: String, amount
 	var rows: Array = []
 	var all: Array = []
 	var pop := world.peek("pop")
-	for k in EconUtil.sorted_keys(pop):
+	for k in PopStore.select(world, {"hb": g["hb"], "inc": g["band"]}):  # indexed: this pool's leaves only
 		var l: Dictionary = pop[k]
-		if l["hb"] != g["hb"] or l["inc"] != g["band"]:
-			continue
 		all.append([k, gid, int(l["n"])])
 		if (status == "" or l["status"] == status) and (occ == "" or l["occ"] == occ):
 			rows.append([k, gid, int(l["n"])])

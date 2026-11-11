@@ -61,9 +61,19 @@ static func total(world: WorldState) -> int:
 ## Leaf keys matching a filter on key parts, e.g. {"hb": "hb:d:1", "status": "EMPLOYED"}. Values may be
 ## a String or an Array of allowed values. Sorted (deterministic).
 static func select(world: WorldState, filter: Dictionary) -> Array:
+	var pop: Dictionary = world.peek("pop")
+	var cand = pop  # keys to scan: the whole table, or an index bucket when the filter pins hb (and inc)
+	if filter.has("hb") and typeof(filter["hb"]) == TYPE_STRING:
+		var ix := _index(world)
+		if filter.has("inc") and typeof(filter["inc"]) == TYPE_STRING:
+			cand = ix["hbinc"].get(filter["hb"] + "|" + filter["inc"], {})
+		else:
+			cand = ix["hb"].get(filter["hb"], {})
 	var out: Array = []
-	for k in world.peek("pop"):
-		var l: Dictionary = world.peek("pop")[k]
+	for k in cand:
+		var l: Dictionary = pop.get(k, {})
+		if l.is_empty():
+			continue
 		var ok := true
 		for f in filter:
 			var want = filter[f]
@@ -78,6 +88,54 @@ static func select(world: WorldState, filter: Dictionary) -> Array:
 			out.append(k)
 	out.sort()
 	return out
+
+
+# ======================================================================= index (not saved; self-healing)
+## Leaf keys by hb and by hb|inc, rebuilt whenever the pop table object changed (load) or its size disagrees.
+## Kept current by _add_people / _take; other writers are caught by the size check.
+static var _ix := {}
+
+
+static func _index(world: WorldState) -> Dictionary:
+	var pop: Dictionary = world.peek("pop")
+	var id := world.get_instance_id()
+	var e: Dictionary = _ix.get(id, {})
+	if e.is_empty() or not is_same(e["table"], pop) or int(e["n"]) != pop.size():
+		e = {"table": pop, "n": 0, "hb": {}, "hbinc": {}}
+		for k in pop:
+			_ix_add(e, k, pop[k])
+		_ix[id] = e
+	return e
+
+
+static func _ix_add(e: Dictionary, k: String, l: Dictionary) -> void:
+	var hb: String = l["hb"]
+	var hi: String = hb + "|" + String(l["inc"])
+	if not e["hb"].has(hb):
+		e["hb"][hb] = {}
+	if not e["hbinc"].has(hi):
+		e["hbinc"][hi] = {}
+	if not e["hb"][hb].has(k):
+		e["n"] = int(e["n"]) + 1
+	e["hb"][hb][k] = true
+	e["hbinc"][hi][k] = true
+
+
+static func _ix_created(world: WorldState, k: String) -> void:
+	var e: Dictionary = _ix.get(world.get_instance_id(), {})
+	if not e.is_empty() and is_same(e["table"], world.peek("pop")):
+		_ix_add(e, k, world.peek("pop")[k])
+
+
+static func _ix_deleted(world: WorldState, k: String, l: Dictionary) -> void:
+	var e: Dictionary = _ix.get(world.get_instance_id(), {})
+	if e.is_empty() or not is_same(e["table"], world.peek("pop")):
+		return
+	var hb: String = l["hb"]
+	if e["hb"].get(hb, {}).has(k):
+		e["hb"][hb].erase(k)
+		e["n"] = int(e["n"]) - 1
+	e["hbinc"].get(hb + "|" + String(l["inc"]), {}).erase(k)
 
 
 ## Count of people matching a filter; bucket "skill:S" / "age:O" counts only that composition bucket.
@@ -143,6 +201,7 @@ static func _add_people(world: WorldState, key: String, n: int, comp: Dictionary
 			if not (f in NON_STATE):
 				l[f] = _copy(state[f])
 		pop[key] = l
+		_ix_created(world, key)
 	else:
 		var l: Dictionary = pop[key]
 		var n0: int = l["n"]
@@ -227,6 +286,7 @@ static func _take(world: WorldState, src: String, k: int, only: Dictionary = {})
 	l["n"] = int(l["n"]) - k
 	if int(l["n"]) == 0:
 		pop.erase(src)
+		_ix_deleted(world, src, l)
 	return {"n": k, "comp": comp, "recent": rec, "state": state}
 
 

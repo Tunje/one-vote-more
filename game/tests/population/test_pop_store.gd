@@ -144,3 +144,31 @@ func test_determinism_and_save_round_trip() -> void:
 	c.load_dict(a.to_dict())
 	check_eq(c.state_hash(), a.state_hash(), "save/load round trip")
 	_ok(c)
+
+
+## The (hb, hb|inc) index must agree with a full scan after any sequence of moves, deaths and a save/load.
+func test_index_matches_full_scan() -> void:
+	var w := _world()
+	for hb in ["hb:A", "hb:B"]:
+		for inc in ["I1", "I3", "I5"]:
+			PopStore.seed_leaf(w, _p(hb, inc, "MINING", "EMPLOYED", "LABOR"), 50)
+	PopStore.move_group(w, {"hb": "hb:A", "inc": "I1"}, 20, {"status": "UNEMPLOYED"}, "LAYOFF")
+	PopStore.move_group(w, {"hb": "hb:A"}, 40, {"hb": "hb:C"}, "MOVE")
+	PopStore.move_group(w, {"hb": "hb:B", "inc": "I5"}, 50, {"inc": "I4"}, "BAND")
+	PopStore.death(w, PopStore.select(w, {"hb": "hb:C"})[0], 1)
+	var c := _world()
+	c.load_dict(w.to_dict())
+	for world in [w, c]:
+		for f in [{"hb": "hb:A"}, {"hb": "hb:C"}, {"hb": "hb:B", "inc": "I4"}, {"hb": "hb:B", "inc": "I5"}, {"hb": "hb:A", "status": "UNEMPLOYED"}]:
+			var brute: Array = []
+			for k in world.peek("pop"):
+				var l: Dictionary = world.peek("pop")[k]
+				var ok := true
+				for fk in f:
+					if l[fk] != f[fk]:
+						ok = false
+				if ok:
+					brute.append(k)
+			brute.sort()
+			check_eq(PopStore.select(world, f), brute, "index agrees for %s" % str(f))
+
