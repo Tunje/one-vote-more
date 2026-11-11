@@ -1,0 +1,21 @@
+; Engine configuration file.
+; Political Colony Simulator. The simulation core lives in res://sim and has no scene-tree dependencies.
+
+config_version=5
+
+[application]
+
+config/name="Political Colony Simulator"
+config/features=PackedStringArray("4.7")
+run/main_scene="res://ui/main.tscn"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
