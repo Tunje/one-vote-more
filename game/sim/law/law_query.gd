@@ -12,6 +12,7 @@ const SD := preload("res://sim/staff/staff_data.gd")
 const Det := preload("res://sim/staff/det.gd")
 const Vis := preload("res://sim/law/visibility.gd")
 const PF := preload("res://sim/law/party_finance.gd")
+const CO := preload("res://sim/law/charter_ops.gd")
 
 const DECREE_WARNING := "This decree is UNLAWFUL: %s. If you proceed it will be implemented like any decision, " \
 	+ "but it is recorded as a secret unlawful act. It can leak from the civil service (about 3%% a month), be " \
@@ -531,3 +532,22 @@ static func emergency(world: WorldState) -> Dictionary:
 	e["may_declare"] = not e["active"] and e["crisis_active"]
 	e["levers"] = L.EMERGENCY_LEVERS.duplicate()
 	return e
+
+
+# =====================================================================================  M12 colonial charter
+
+## {status COLONY|INDEPENDENCE_DECLARED|AUTONOMY|INDEPENDENT, since, refusal, governor, quota_share, price_pct,
+##  militia, militia_cap (-1 = none), petitions, independence_vote}
+static func sovereignty(world: WorldState) -> Dictionary:
+	var st: Dictionary = world.peek("law_state").get("s", {}).get("sovereignty", {})
+	var colonial := CO.is_colonial(world) or CO.status(world) == "COLONY"
+	return {"status": CO.status(world), "since": int(st.get("since", 0)), "refusal": bool(st.get("refusal", false)),
+		"governor": bool(st.get("governor", false)), "quota_share": int(world.levers.get("LAW_CHARTER_QUOTA_SHARE", 40)),
+		"price_pct": int(world.levers.get("LAW_CHARTER_PRICE_PCT", 35)), "militia": int(world.levers.get("LAW_MILITIA", 0)),
+		"militia_cap": int(L.LEVER_BOUNDS["LAW_MILITIA"]["max"]) if colonial else -1,
+		"petitions": st.get("petitions", {}).duplicate(true), "independence_vote": st.get("independence_vote", {}).duplicate()}
+
+
+## For 88's ship: {due, share_pct, price_pct, reason}
+static func quota_due(world: WorldState) -> Dictionary:
+	return CO.quota_due(world)

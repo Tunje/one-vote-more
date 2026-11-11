@@ -22,35 +22,38 @@ Spec: `spec-events-v1.md` (A33). Decisions from Wilma, 2026-11-11:
   2. then M11 steps 1 → 4: hazard engine, greed, preparation, facts.
   - The tree is frozen until Wilma releases it.
 
-## a9 interface (approved)
+## a9 interface (final, from a9 2026-11-11; supersedes the earlier record_violation draft)
 
-1. **Recording a greedy choice:** `LawOps.record_violation(world, company_actor, ACTION, params)`, called at the moment of the choice. It creates a SECRET `LAW_VIOLATION` plus a `violation_track` row.
-
-   | ACTION | params |
-   |---|---|
-   | `DEFER_SAFETY_UPKEEP` | `{facility, months}` |
-   | `DISCHARGE_WASTE` | `{facility, district, amount}` |
-   | `PRICE_GOUGE` | `{good, price, ref_price}` |
-   | `EXPORT_IN_SHORTAGE` | `{good, qty}` |
-   | `CARTEL` | `{members, good}` |
-   | `CUT_CONTRACT_CORNERS` | `{project}` |
-
-2. **Crisis facts** carry:
-   - `data.cause_violations` = [LAW_VIOLATION ids];
-   - `data.damages` {deaths, injuries, cleanup, lost property} in milli;
-   - the `exposure` block.
-
-   What follows:
-   - Magnitude ≥ 50 opens a post-crisis inquiry.
-   - A revealed cause emits `LAW_CRISIS_CAUSE_REVEALED` and leads to prosecution and a TORT case.
-   - Compensation goes to the exposed pools; a9 will ask for a helper.
-3. **Deterrence:** `LQ.expected_sanction(world, action, org)` returns `{p_detect_month, expected_fine, horizon}`. Greed decisions use the same odds the law uses.
-4. **Emergency levers (88 implements the market effects):**
-   - `LAW_RATIONING`: NONE / FOOD / FOOD_FUEL;
-   - `LAW_PRICE_CONTROL`: ESSENTIALS, cap = pre-crisis price + X%;
-   - `LAW_FOOD_EXPORT_BAN`;
-   - `LAW_REQUISITION`.
-
-   On `LAW_MANAGER_CONVICTED`: replace the CEO (`COMP_CEO_REPLACED`) and reroll greed.
-
-a9's decision rows are J27 onward.
+1. **Record greedy conduct:** `LawOps.record_greed(world, org_id, rec) -> fid`.
+   - Call it every month the conduct continues. It is an upsert keyed by org + kind + facility + good.
+   - `rec` fields:
+     - `kind`: DEFERRED_UPKEEP, SAFETY_CORNERS, CONTRACT_CORNERS, DUMPING, HOARDING, GOUGING, EXPORT_IN_SHORTAGE or CARTEL;
+     - `since_month`;
+     - `saving`: milli-credits, added each call (`cumulative: true` sets the total instead);
+     - `hazard_ids`: merged across calls;
+     - `evidence`: 0..1000, latest value wins;
+     - optional: `facility`, `good`, `food` (bool), `members`, `project`, `district`.
+   - Legality comes from the rules engine:
+     - upkeep, safety corners, contract corners and dumping are always unlawful;
+     - gouging and hoarding are unlawful per LAW_PRICE_GOUGING (ALWAYS, or IN_EMERGENCY by default);
+     - export in a shortage is unlawful only if LAW_FOOD_EXPORT_BAN is on and `food` is true;
+     - cartels are unlawful unless LAW_COMPETITION is NONE;
+     - lawful conduct is recorded as SECRET LAW_HARMFUL_CONDUCT (an inquiry can reveal it; it is never prosecuted).
+   - When the firm stops, call `LawOps.greed_stop(world, fid)`. Evidence then decays 3%/month and can't be detected below 50.
+2. **Detection** (a9, in JUSTICE):
+   - inspections by channel (SAFETY, ENV, MARKET), whistleblowers, leniency (cartels) and accidents;
+   - a revealed violation leads to an ENFORCEMENT case;
+   - a won SEVERE case emits **LAW_MANAGER_CONVICTED {org, ceo, violation, case}**. 88 replaces the CEO (COMP_CEO_REPLACED) and rerolls greed.
+3. **Crisis facts:**
+   - `data` carries `{crisis: true, hazard, facility?, cause_records: [fid], damages (milli-credits), scope}` plus the `exposure` block;
+   - magnitude ≥ 50 opens an inquiry, which reports in 3–6 months; a found cause emits LAW_CRISIS_CAUSE_REVEALED (PUBLIC);
+   - damages lead to a TORT case, paid into ledger account "law:victim_fund" plus a row in table victim_award `{id, crisis, scope, amount, paid_out, status}`;
+   - **88 needs a monthly payout:** move OPEN awards from law:victim_fund to the hh pools in the award's scope, then set paid_out and status PAID.
+4. **Deterrence:** `LQ.expected_sanction(world, kind, org, params = {}, horizon = 24)` returns `{lawful, class, p_detect_month, p_detect_horizon, expected_fine, horizon}`. Compare it with the saving.
+5. **Emergency levers (88 implements the market effects):**
+   - LAW_RATIONING (NONE / FOOD / FOOD_FUEL);
+   - LAW_PRICE_CONTROL (NONE / ESSENTIALS);
+   - LAW_FOOD_EXPORT_BAN;
+   - LAW_REQUISITION: validate `{kind: GOVERNMENT}`, "REQUISITION", `{compensation_pct}`; lawful only in an emergency and at ≥ 100%;
+   - `LQ.emergency(world)` gives the current state.
+6. **Closed economy:** staff costs go to hh pools; fines go to gov:fines_revenue.

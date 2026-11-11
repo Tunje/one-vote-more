@@ -66,6 +66,8 @@ static func gov_revenue_12m(world: WorldState) -> int:
 		t += v
 	if h.size() < 12 and h.size() > 0:
 		t = t * 12 / h.size()
+	if world.peek("econ").is_empty() or not EconUtil.support(world):
+		return t  # M12: no grant floor
 	return maxi(t, EconData.ORIGIN_GRANT * S * 12)
 
 
@@ -141,11 +143,11 @@ static func settle(world: WorldState) -> void:
 	if world.month_of_year() % 3 == 0:
 		_profit_tax_and_dividends(world)
 		_surplus_sweep(world)
-	var grant := origin_grant(world.month)
+	var grant := origin_grant(world.month) if EconUtil.support(world) else 0  # M12: no grant
 	if grant > 0:
 		world.ledger.transfer(Ledger.EXTERNAL, EconUtil.TREASURY, grant, "GRANT", world.month)
 		_gov_rev(world, grant)
-	if world.month == EconData.ORIGIN_GRANT_TAPER_END:
+	if world.month == EconData.ORIGIN_GRANT_TAPER_END and EconUtil.support(world):
 		EconFacts.emit(world, "ECON_GRANT_ENDED", null, [["EXTERNAL", "origin"]], [["EXTERNAL", "origin", 1.0]], {}, 40, "PUBLIC")
 	var fines := world.ledger.balance(EconUtil.FINES)
 	if fines > 0:

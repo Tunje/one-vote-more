@@ -103,6 +103,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 	elif have_parties and st["era"] == "PARLIAMENTARY":
 		GovCrisis.cohesion_step(world, st)
 		GovCrisis.no_confidence_ai(world, st)
+		EmergencyPolitics.monthly(world, st)
 	world.set_indicator("pol", "POL_GOV_APPROVAL", "COLONY", colony_approval(world))
 
 

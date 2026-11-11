@@ -36,6 +36,8 @@ static func check(world: WorldState, id: String, params: Dictionary) -> Dictiona
 
 ## Why would this action fail right now? "" = looks valid. Pure read.
 static func validate(world: WorldState, id: String, p: Dictionary) -> String:
+	if id == "ECON_ORDER_IMPORTS" and not EconUtil.support(world):
+		return "No ship is due: imports arrive only with the home-world ships, rarely and at great cost"
 	match id:
 		"ECON_COMMISSION_PROJECT":
 			var ftype: String = p.get("type", "")

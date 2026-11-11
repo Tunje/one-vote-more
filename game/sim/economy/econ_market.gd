@@ -67,7 +67,7 @@ static func _import_arrivals(world: WorldState) -> void:
 static func _clear(world: WorldState, good: String, tariff: int) -> void:
 	var s := EconUtil.st(world)
 	var offers: Array = s["offers"].filter(func(o): return o["good"] == good and o["qty"] > 0)
-	if EconData.ORIGIN_BACKSTOP.has(good):
+	if EconData.ORIGIN_BACKSTOP.has(good) and EconUtil.support(world):  # M12: no import backstop
 		var bk: Array = EconData.ORIGIN_BACKSTOP[good]
 		var hot: bool = float(s["prices"][good]) >= float(bk[0]) * float(s["base"][good]) 			or int(s.get("fill_last", {}).get(good, 1000)) < 800   # E75: or buyers got < 80% of what they wanted
 		var key := "mat_hot_m" if good == "MATERIAL" else good.to_lower() + "_hot_m"   # keep the E65 key (saves)

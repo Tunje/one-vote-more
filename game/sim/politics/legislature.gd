@@ -336,9 +336,10 @@ static func submit_bill(world: WorldState, clauses: Array, gov: Dictionary, sat:
 	return bill
 
 
-static func _queue(world: WorldState, clause: Dictionary, level: String, bill_id: String) -> void:
+static func _queue(world: WorldState, clause: Dictionary, level: String, bill_id: String) -> String:
 	var id := world.new_id("enact")
 	world.table("enactment")[id] = {"id": id, "lever": clause["lever"], "value": clause["to"], "legal_level": level,
 		"source_bill": bill_id, "decided_month": world.month,
 		"earliest_effective_month": world.month + IMPLEMENTATION_MONTHS_STUB + int(world.lever_defs[clause["lever"]].get("lag", 0)),
 		"status": "PENDING"}
+	return id

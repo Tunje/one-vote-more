@@ -6,6 +6,7 @@ const Ops := preload("res://sim/law/law_ops.gd")
 const L := preload("res://sim/law/law_data.gd")
 const Vis := preload("res://sim/law/visibility.gd")
 const PF := preload("res://sim/law/party_finance.gd")
+const CO := preload("res://sim/law/charter_ops.gd")
 
 
 func owner_id() -> String:
@@ -51,6 +52,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 	match phase:
 		TickPhase.DECISIONS:
 			Ops.ensure_m11_rules(world)
+			CO.ensure_m12(world)
 			Ops.emergency_tick(world)
 			Vis.note_government(world)
 			Ops.maybe_adopt_constitution(world)

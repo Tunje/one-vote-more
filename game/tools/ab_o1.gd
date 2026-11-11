@@ -21,6 +21,8 @@ func _init() -> void:
 		sim.world.meta["persona"] = {}
 		sim.world.meta["autoplay_player"] = true
 		sim.world.meta["off"] = off
+		if off.has("SUPPORT_ON"):
+			sim.world.meta["support"] = true  # M12 A/B: old home-world support model
 		EconSim._register(sim)
 		sim.new_game()
 		var inb := 0

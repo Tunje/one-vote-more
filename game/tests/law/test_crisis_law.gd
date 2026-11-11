@@ -159,6 +159,7 @@ func test_inquiry_reveals_cause_and_tort() -> void:
 
 func test_severe_conviction_names_manager() -> void:
 	var s := F.sim(25, true)
+	s.step()   # courts exist after the first JUSTICE phase
 	var w := s.world
 	w.table("org")["org:7"] = {"id": "org:7", "ceo": {"name": "R. Greed"}, "pl_last": {}}
 	var fid := LawOps.record_greed(w, "org:7", {"kind": "DUMPING", "facility": "fac:7"})

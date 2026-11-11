@@ -187,6 +187,17 @@ const GOV_RESERVE := {"FOOD": 4000, "MEDICAL": 300, "MATERIAL": 1000, "COMPONENT
 const TREASURY := 15000000
 const BANK_CASH := 12000000
 
+## M12 §1–§2 (user decision A34): the home world does not support the colony. No grant, no food aid, no import
+## backstop, imports and migrants only by ship. Instead a one-off FOUNDING ENDOWMENT. world.meta["support"] = true
+## restores the old support model (A/B and old tests only).
+const HOME_SUPPORT := false
+const ENDOW_TREASURY := 6000000        # extra treasury at landing (~30 months of the old grant; the old support was ~16.8M)
+const ENDOW_RESERVE := {"FOOD": 13000, "MEDICAL": 600, "MATERIAL": 3000, "COMPONENT": 400}  # ~6 months of food
+const ENDOW_SPARES_MONTHS := 36        # each operator lands with 3 years of upkeep parts (MATERIAL, COMPONENT)
+## extra founding capacity so materials, components, power and water balance locally without imports
+const ENDOW_FACILITIES := [["PROCESSING", "BASALT", "d:4", 1], ["COMPONENTS", "VECTOR", "d:4", 1], ["POWER", "CPW", "d:4", 1],
+	["WATERWORKS", "CPW", "d:2", 1]]
+
 # Institution -> budget lever that funds it
 const INSTITUTION_BUDGET := {"HEALTH": "ECON_BUDGET_HEALTH", "SCHOOLS": "ECON_BUDGET_EDUCATION", "ADMINISTRATION": "ECON_BUDGET_ADMIN"}
 

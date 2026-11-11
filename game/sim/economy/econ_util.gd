@@ -52,6 +52,11 @@ static func fscale(f: Dictionary) -> float:
 	return float(f.get("scale", 1000)) / 1000.0
 
 
+## M12: is the old home-world support model active? (default: no — A34)
+static func support(world: WorldState) -> bool:
+	return bool(world.meta.get("support", EconData.HOME_SUPPORT))
+
+
 ## A/B switch for tools only: world.meta["off"] lists mechanisms to disable (e.g. "E80"). Never set in play.
 static func off(world: WorldState, key: String) -> bool:
 	return world.meta.has("off") and (world.meta["off"] as Array).has(key)

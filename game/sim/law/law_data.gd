@@ -2,7 +2,7 @@ extends RefCounted
 ## Thin-law v1 definitions (planning/spec-law-v1.md §2–§4, §7, §10). Data-as-code constants.
 
 const LEVEL_RANK := {"CHARTER": 5, "CONSTITUTIONAL": 5, "LAW": 3, "ORDINANCE": 3, "REGULATION": 2, "ADMIN": 1}
-const PUBLIC_KINDS := ["COMMANDER", "GOVERNMENT", "AUTHORITY", "PARLIAMENT"]
+const PUBLIC_KINDS := ["COMMANDER", "GOVERNMENT", "AUTHORITY", "PARLIAMENT", "HOME_WORLD"]
 
 ## LegalActionType (spec §3) + INTERNAL (A7) + SELL_ASSET (88 ask).
 const ACTIONS := ["ZONE_DISTRICT", "BUILD_FACILITY", "DEMOLISH_FACILITY", "OPERATE_FACILITY", "EXTRACT_RESOURCE",
@@ -13,7 +13,10 @@ const ACTIONS := ["ZONE_DISTRICT", "BUILD_FACILITY", "DEMOLISH_FACILITY", "OPERA
 	"INSTRUCT_AUTHORITY_DECISION", "REGISTER_PARTY", "CAMPAIGN", "INTERNAL",
 	# M11 (spec-events-v1): company greed conduct, emergency powers
 	"DEFER_SAFETY_UPKEEP", "SAFETY_CORNERS", "DISCHARGE_WASTE", "HOARD", "PRICE_GOUGE", "EXPORT_GOODS", "CARTEL",
-	"CUT_CONTRACT_CORNERS", "DECLARE_EMERGENCY", "REQUISITION"]
+	"CUT_CONTRACT_CORNERS", "DECLARE_EMERGENCY", "REQUISITION",
+	# M12 (spec-colony-v1): colonial charter, home-world sanctions, breaking away
+	"SELL_COLONIAL_GOOD", "WITHHOLD_QUOTA", "OBSTRUCT_QUOTA", "REFUSE_QUOTA", "PETITION_HOME", "DECLARE_INDEPENDENCE",
+	"HOME_FINE", "HOME_WITHHOLD", "HOME_REVOKE_PRIVILEGE", "HOME_APPOINT_GOVERNOR", "HOME_EXPEDITION"]
 
 ## M11 greed conduct (88 reports it with LawOps.record_greed). action = the rules-engine action that decides legality;
 ## channel = who can detect it (SAFETY inspectorate, ENV inspectorate, MARKET competition/consumer authority);
@@ -27,6 +30,9 @@ const GREED_KINDS := {
 	"GOUGING": {"action": "PRICE_GOUGE", "channel": "MARKET", "class": "MINOR"},
 	"EXPORT_IN_SHORTAGE": {"action": "EXPORT_GOODS", "channel": "MARKET", "class": "SERIOUS"},
 	"CARTEL": {"action": "CARTEL", "channel": "MARKET", "class": "SERIOUS"},
+	# M12: charter evasion, detected by the home-world inspector at ship arrival (channel HOME)
+	"QUOTA_EVASION": {"action": "WITHHOLD_QUOTA", "channel": "HOME", "class": "SERIOUS"},
+	"SMUGGLING": {"action": "SELL_COLONIAL_GOOD", "channel": "HOME", "class": "SERIOUS"},
 }
 ## Emergency levers: settable only while a state of emergency is in force; revert to default when it ends.
 const EMERGENCY_LEVERS := ["LAW_RATIONING", "LAW_PRICE_CONTROL", "LAW_FOOD_EXPORT_BAN", "LAW_REQUISITION"]
@@ -120,6 +126,33 @@ static func m11_rules() -> Array:
 	return out
 
 
+## M12 colonial charter (spec-colony-v1 5-7). Entrenched: CHARTER level, source COLONIAL_CHARTER; suspended by a
+## declaration of independence, repealed on recognition, reactivated by autonomy or a restored charter (CharterOps).
+static func m12_rules() -> Array:
+	var out: Array = []
+	var cc := {"source": "COLONIAL_CHARTER", "colonial": true}
+	var anyone := [{"field": "actor.kind", "op": "IN", "value": ["COMPANY", "HOUSEHOLD", "GOVERNMENT", "COMMANDER", "AUTHORITY"]}]
+	var pub := [{"field": "actor.kind", "op": "IN", "value": ["GOVERNMENT", "COMMANDER", "PARLIAMENT", "AUTHORITY"]}]
+	# Exclusive trade and the quota.
+	out.append(_r("PROHIBIT", "SELL_COLONIAL_GOOD", anyone, [{"field": "p.buyer", "op": "NEQ", "value": "HOME_WORLD"}], cc))
+	out.append(_r("PROHIBIT", "WITHHOLD_QUOTA", anyone, [], cc))
+	out.append(_r("PROHIBIT", "OBSTRUCT_QUOTA", pub, [], cc))
+	out.append(_r("PROHIBIT", "REFUSE_QUOTA", pub, [], cc))
+	out.append(_r("PROHIBIT", "LEVY_TAX", pub, [{"field": "p.base", "op": "IN", "value": ["QUOTA", "COLONIAL_EXPORT"]}], cc))
+	# The home world's lawful sanctions under the charter (anything else it does is unlawful: default-deny).
+	var home := [{"field": "actor.kind", "op": "EQ", "value": "HOME_WORLD"}]
+	out.append(_r("AUTHORIZE", "HOME_WITHHOLD", home, [], cc))
+	out.append(_r("AUTHORIZE", "HOME_REVOKE_PRIVILEGE", home, [], cc))
+	out.append(_r("AUTHORIZE", "HOME_FINE", home, [{"field": "p.evasion_proven", "op": "EQ", "value": true}], cc))
+	out.append(_r("AUTHORIZE", "HOME_APPOINT_GOVERNOR", home, [{"field": "p.evasion_proven", "op": "EQ", "value": true}], cc))
+	out.append(_r("AUTHORIZE", "HOME_APPOINT_GOVERNOR", home, [{"field": "p.refusal", "op": "EQ", "value": true}], cc))
+	out.append(_r("AUTHORIZE", "HOME_EXPEDITION", home, [{"field": "p.colony_defiant", "op": "EQ", "value": true}], cc))
+	# Rights of the colony: petition is always lawful.
+	out.append(_r("AUTHORIZE", "PETITION_HOME", [{"field": "actor.kind", "op": "IN", "value": ["PARLIAMENT", "GOVERNMENT", "COMMANDER"]}],
+		[], {"source": "COLONIAL_CHARTER"}))
+	return out
+
+
 ## Constitutional procedures for government crises (M7; Swedish-inspired, RF ch. 6 and 3:11). Data, read via LQ.
 const PROCEDURES := {
 	"parliament_seats": 151,
@@ -186,6 +219,8 @@ const LEVER_BOUNDS := {
 	"ECON_MIN_WAGE": {"min": 40},                  # % of W_ref, same unit as the lever (was 400: unit bug, every change rejected)
 	"STAFF_CIVIL_RETIREMENT_AGE": {"min": 60, "max": 72},
 	"LAW_SAFETY_STANDARD": {"min_enum": "BASIC"},
+	# Colonial charter: a small militia only. "colonial": lifted once the colony declares or wins independence.
+	"LAW_MILITIA": {"max": 5, "colonial": true},
 }
 
 ## Indicator concern weights and normalization (milli). Tuned against tools/measure_law_indicators.gd so
@@ -304,6 +339,20 @@ const LEVERS := [
 	{"id": "LAW_REQUISITION", "owner": "law", "type": "BOOL", "default": false,
 		"legalLevel": "REGULATION", "foundingEra": "COMMANDER", "ideology": {}, "emergency": true,
 		"fiscal": "", "implementation": "STAFF_T_IMPL_ADMIN", "lag": 0, "scope": "COLONY", "domain": "ADMIN"},
+	# ---- M12 colonial charter (CHARTER level: only the home world changes them, via CharterOps.home_world_amend)
+	{"id": "LAW_CHARTER_QUOTA_SHARE", "owner": "law", "type": "NUMBER", "range": [0, 100], "default": 40,
+		"legalLevel": "CHARTER", "foundingEra": "LOCKED", "ideology": {},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 0, "scope": "COLONY", "domain": "ECON"},
+	{"id": "LAW_CHARTER_PRICE_PCT", "owner": "law", "type": "NUMBER", "range": [0, 100], "default": 35,
+		"legalLevel": "CHARTER", "foundingEra": "LOCKED", "ideology": {},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 0, "scope": "COLONY", "domain": "ECON"},
+	# Colony law: whether colony customs also chase charter evasion (false = passive defiance), and the militia.
+	{"id": "LAW_ENFORCE_CHARTER", "owner": "law", "type": "BOOL", "default": true,
+		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_MILITIA", "owner": "law", "type": "NUMBER", "range": [0, 100], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {},
+		"fiscal": "est_militia_cost", "implementation": "STAFF_T_IMPL_INSTITUTION", "lag": 6, "scope": "COLONY", "domain": "LAW"},
 	# ---- M10 electoral eligibility (spec-population-v1 §4.2, PD §9.6). Read through LQ.eligibility(world).
 	# Slopes use today's 7 axes; remap to STABILITY/LIBERTY when S3 adds them (planning/a9-population-note.md).
 	{"id": "LAW_VOTING_AGE", "owner": "law", "type": "ENUM", "values": ["16", "18", "21"], "default": "18",

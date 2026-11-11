@@ -64,8 +64,8 @@ static func social(world: WorldState) -> void:
 	_post_orders(world)
 	_housing(world)
 	_demography(world)
-	if (world.month + 1) % 3 == 0:
-		_ship_migrants(world)
+	if (world.month + 1) % 3 == 0 and EconUtil.support(world):
+		_ship_migrants(world)  # M12: migrants come only with a ship (ships: M12 §4)
 	_pollution(world)
 	_famine_check(world)
 	for gid in EconUtil.sorted_keys(world.table("hh")):
@@ -79,6 +79,8 @@ static func social(world: WorldState) -> void:
 ## E61: origin humanitarian backstop. After 2 months of colony food shortfall > 10%, the origin ships emergency
 ## rations covering up to 30% of each group's food need (free). Famine stays possible in deep collapse.
 static func _food_aid(world: WorldState) -> void:
+	if not EconUtil.support(world):
+		return  # M12: no food transports from the home world
 	var s := EconUtil.st(world)
 	s["aid_streak"] = s.get("aid_streak", 0) + 1 if s.get("food_shortfall", 0) > 100 else 0
 	if s["aid_streak"] < 2:

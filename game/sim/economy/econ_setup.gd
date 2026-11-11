@@ -31,6 +31,8 @@ static func init_world(world: WorldState) -> void:
 	world.ledger.open_account(EconUtil.FINES)
 	world.ledger.open_account(EconUtil.BANK)
 	world.ledger.transfer(Ledger.EXTERNAL, EconUtil.TREASURY, EconData.TREASURY * S, "GRANT", world.month)
+	if not EconUtil.support(world):
+		world.ledger.transfer(Ledger.EXTERNAL, EconUtil.TREASURY, EconData.ENDOW_TREASURY * S, "ENDOWMENT", world.month)
 	world.ledger.transfer(Ledger.EXTERNAL, EconUtil.BANK, EconData.BANK_CASH * S, "GRANT", world.month)
 
 	# districts
@@ -63,7 +65,10 @@ static func init_world(world: WorldState) -> void:
 			rec["crew"][t] = {}
 
 	# facilities
-	for spec in EconData.FACILITIES:
+	var fac_list: Array = EconData.FACILITIES.duplicate()
+	if not EconUtil.support(world):
+		fac_list += EconData.ENDOW_FACILITIES
+	for spec in fac_list:
 		for _i in spec[3]:
 			EconSetup.add_facility(world, spec[0], org_by_key[spec[1]], spec[2], true)
 
@@ -80,12 +85,14 @@ static func init_world(world: WorldState) -> void:
 		for g in r["in"]:
 			if g in EconData.MARKET_GOODS:
 				EconUtil.inv_add(world, f["org"], g, f["district"], int(r["in"][g]) * S / 2, s["prices"][g])
+		var spare_m: int = 1 if EconUtil.support(world) else EconData.ENDOW_SPARES_MONTHS
 		if r["upkeep"] > 0:
-			EconUtil.inv_add(world, f["org"], "MATERIAL", f["district"], int(r["upkeep"]) * S, s["prices"]["MATERIAL"])
+			EconUtil.inv_add(world, f["org"], "MATERIAL", f["district"], int(r["upkeep"]) * S * spare_m, s["prices"]["MATERIAL"])
 		if EconData.UPKEEP_COMPONENT.get(f["type"], 0) > 0:
-			EconUtil.inv_add(world, f["org"], "COMPONENT", f["district"], EconData.UPKEEP_COMPONENT[f["type"]] * S, s["prices"]["COMPONENT"])
-	for g in EconData.GOV_RESERVE:
-		EconUtil.inv_add(world, "gov", g, "d:1", EconData.GOV_RESERVE[g] * S, s["prices"][g])
+			EconUtil.inv_add(world, f["org"], "COMPONENT", f["district"], EconData.UPKEEP_COMPONENT[f["type"]] * S * spare_m, s["prices"]["COMPONENT"])
+	var reserve: Dictionary = EconData.GOV_RESERVE if EconUtil.support(world) else EconData.ENDOW_RESERVE
+	for g in reserve:
+		EconUtil.inv_add(world, "gov", g, "d:1", reserve[g] * S, s["prices"][g])
 	for g in EconData.MARKET_GOODS:
 		EconUtil.qflow(world, g, "initial", EconUtil.inv_sum(world, g))
 

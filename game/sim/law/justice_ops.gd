@@ -260,6 +260,10 @@ static func detect_ctx(world: WorldState) -> Dictionary:
 	return {"SAFETY": float(inspectors * INSPECTIONS_PER_INSPECTOR) * (minf(1.0, budget / need) if need > 0.0 else 0.0),
 		"ENV": float(world.levers.get("LAW_ENV_INSPECTORATE_BUDGET", 4000)) / float(ENV_INSPECTION_COST_WREF),
 		"MARKET": float(world.levers.get("LAW_COMPETITION_BUDGET", 4000)) / float(MARKET_CASE_COST_WREF),
+		# M12: colony customs chase charter evasion only while the colony enforces the charter (home inspector: CharterOps)
+		"HOME": float(world.levers.get("LAW_COMPETITION_BUDGET", 4000)) / float(MARKET_CASE_COST_WREF) \
+			if bool(world.levers.get("LAW_ENFORCE_CHARTER", true)) and String(world.peek("law_state").get("s", {}) \
+			.get("sovereignty", {}).get("status", "COLONY")) in ["COLONY", "AUTONOMY"] else 0.0,
 		"n_reg": maxi(10, regulated.size()), "p_find": 0.6 + 0.3 * q / 100.0,
 		"p_whistle": P_WHISTLE_PROTECTED if bool(world.levers.get("LAW_WHISTLEBLOWER_PROTECTION", false)) else P_WHISTLE,
 		"leniency": bool(world.levers.get("LAW_LENIENCY", false)), "priors": js(world)["sanctioned"]}

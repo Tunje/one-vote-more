@@ -119,11 +119,32 @@ static func w_ref_milli(world: WorldState) -> int:
 
 
 ## Charge a W_ref-denominated cost to the owner's account if it exists (econ/pol create the accounts).
+## Closed economy (A34): training, hiring and task costs are paid to colony households (trainers, recruiters,
+## suppliers), pro rata to population. Only a world without households (staff-only tests) pays EXTERNAL.
 static func charge(world: WorldState, owner: Dictionary, cost_wref: float, memo: String) -> void:
 	var acct: String = "gov:treasury" if owner["kind"] == "GOVERNMENT" else "party:" + String(owner["id"])
 	if cost_wref <= 0.0 or not world.ledger.has_account(acct):
 		return
-	world.ledger.transfer(acct, Ledger.EXTERNAL, int(round(cost_wref * float(w_ref_milli(world)))), memo, world.month)
+	var amount := int(round(cost_wref * float(w_ref_milli(world))))
+	if not world.ledger.allow_negative.get(acct, false):
+		amount = mini(amount, maxi(0, world.ledger.balance(acct)))
+	if amount <= 0:
+		return
+	var accts: Array = []
+	var weights: Array = []
+	var hh := world.peek("hh")
+	for gid in Det.ordered(hh):
+		var a := EconUtil.hh_acct(String(gid))
+		if world.ledger.has_account(a):
+			accts.append(a)
+			weights.append(EconHouseholds.persons(hh[gid]))
+	if accts.is_empty():
+		world.ledger.transfer(acct, Ledger.EXTERNAL, amount, memo, world.month)
+		return
+	var parts := EconUtil.split_lr(amount, weights)
+	for i in accts.size():
+		if int(parts[i]) > 0:
+			world.ledger.transfer(acct, accts[i], int(parts[i]), memo, world.month)
 
 
 # =====================================================================================  people & pools

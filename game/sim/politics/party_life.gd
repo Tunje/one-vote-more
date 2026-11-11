@@ -680,8 +680,42 @@ static func funds_monthly(world: WorldState, st: Dictionary) -> void:
 		var acc: String = "party:" + p["id"]
 		var dues := int(round(float(p["support"]) / 1000.0 * float(DUES_PER_SUPPORT_POINT)))
 		if dues > 0:
-			world.ledger.transfer(Ledger.EXTERNAL, acc, dues, "PARTY_DUES", world.month)
+			_household_pay(world, acc, dues, "PARTY_DUES")
 	_book_donations(world)
+
+
+## Closed economy (A34): party money stays in the colony. Dues are paid by households (pro rata to their
+## savings, never below zero); campaign spending is income for households (canvassers, printers, venues),
+## pro rata to population. Before, dues came from and campaigns went to EXTERNAL (money created/destroyed).
+static func _hh_accounts(world: WorldState) -> Array:
+	var out: Array = []
+	for gid in EconUtil.sorted_keys(world.peek("hh")):
+		var a := EconUtil.hh_acct(gid)
+		if world.ledger.has_account(a):
+			out.append([a, world.peek("hh")[gid]])
+	return out
+
+
+static func _household_pay(world: WorldState, to_acc: String, amount: int, memo: String) -> void:
+	var rows := _hh_accounts(world)
+	var w: Array = rows.map(func(r): return maxi(0, world.ledger.balance(r[0])))
+	var parts := EconUtil.split_lr(amount, w)
+	for i in rows.size():
+		var take := mini(int(parts[i]), maxi(0, world.ledger.balance(rows[i][0])))
+		if take > 0:
+			world.ledger.transfer(rows[i][0], to_acc, take, memo, world.month)
+
+
+static func _household_receive(world: WorldState, from_acc: String, amount: int, memo: String) -> void:
+	var rows := _hh_accounts(world)
+	if rows.is_empty():
+		world.ledger.transfer(from_acc, Ledger.EXTERNAL, amount, memo, world.month)
+		return
+	var w: Array = rows.map(func(r): return EconHouseholds.persons(r[1]))
+	var parts := EconUtil.split_lr(amount, w)
+	for i in rows.size():
+		if int(parts[i]) > 0:
+			world.ledger.transfer(from_acc, rows[i][0], int(parts[i]), memo, world.month)
 
 
 const LQ := preload("res://sim/law/law_query.gd")
@@ -798,7 +832,7 @@ static func campaign_monthly(world: WorldState, st: Dictionary) -> void:
 			continue
 		var amt := world.ledger.balance(acc) * 3 / 10
 		if amt > 0:
-			world.ledger.transfer(acc, Ledger.EXTERNAL, amt, "CAMPAIGN", world.month)
+			_household_receive(world, acc, amt, "CAMPAIGN")
 			spent[p["id"]] = int(spent.get(p["id"], 0)) + amt
 	st["campaign_spent"] = spent
 

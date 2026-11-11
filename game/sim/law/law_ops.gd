@@ -121,6 +121,7 @@ static func record_greed(world: WorldState, org: String, rec: Dictionary) -> Str
 	var spec: Dictionary = L.GREED_KINDS[kind]
 	var actor := {"kind": "COMPANY", "id": org}
 	var params := {"facility": rec.get("facility", ""), "good": rec.get("good", ""), "food": rec.get("food", false),
+		"buyer": rec.get("buyer", "OTHER"),
 		"district": rec.get("district", ""), "project": rec.get("project", ""), "members": rec.get("members", [])}
 	var unlawful: bool = validate(world, actor, spec["action"], params)["result"] == "PROHIBITED"
 	var track := world.table("violation_track")
@@ -375,6 +376,9 @@ static func _delegated(world: WorldState, lever: String, value, level: String) -
 static func _charter_bounds(_world: WorldState, def: Dictionary, value) -> Array:
 	var errs: Array = []
 	var b: Dictionary = L.LEVER_BOUNDS.get(def["id"], {})
+	if b.get("colonial", false) and String(_world.peek("law_state").get("s", {}).get("sovereignty", {}).get("status", "COLONY")) \
+			in ["INDEPENDENCE_DECLARED", "INDEPENDENT"]:
+		b = {}   # colonial charter bounds no longer bind
 	if def.get("is_tax", false) and float(value) > float(L.TAX_MAX_PCT):
 		errs.append("charter: tax rate above 50%")
 	if b.has("min") and float(value) < float(b["min"]):
