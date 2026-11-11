@@ -298,6 +298,25 @@ static func commission_options(world: WorldState) -> Array:
 
 ## Goods and utilities that were short last month, worst first, each with its producing facilities and their causes.
 ## `filled_pct` = share of wanted quantity (market goods) or of demand (ENERGY/WATER) that was supplied.
+## E106: kits the state may upgrade (UI and AI government). Pure read.
+static func upgrade_options(world: WorldState) -> Array:
+	var out: Array = []
+	for fid in EconUtil.sorted_keys(world.peek("facility")):
+		var f: Dictionary = world.peek("facility")[fid]
+		if not (f["type"] in EconData.KIT_TYPES):
+			continue
+		var tier := int(f.get("tier", 2))
+		if tier >= 3:
+			continue
+		var chk := EconActions.check(world, "ECON_UPGRADE_FACILITY", {"facility": fid})
+		out.append({"facility": fid, "type": f["type"], "tier": tier, "next_tier": tier + 1,
+			"est_cost": float(EconConstruction.upgrade_estimate(tier + 1)) / S,
+			"output_gain_pct": int(round(100.0 * (EconData.TIER_OUT[tier + 1] / EconData.TIER_OUT[tier] - 1.0))),
+			"waste_cut_pct": int(round(100.0 * (1.0 - EconData.TIER_IN[tier + 1] / EconData.TIER_IN[tier]))),
+			"enabled": chk["ok"], "reason": chk["error"]})
+	return out
+
+
 static func shortages(world: WorldState, threshold_pct: float = 97.0) -> Array:
 	var s := EconUtil.peek_st(world)
 	var out: Array = []

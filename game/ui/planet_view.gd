@@ -32,6 +32,12 @@ var _dragging := false
 var _drag_moved := 0.0
 var _hover := -1
 var _corner_h := PackedFloat32Array()   # display height per corner (geometry triangle)
+var _weather_mesh: MeshInstance3D
+var _weather_for := ""                  # month|planet the weather layer was built for
+const CLOUD_R := 1.0 + RELIEF * 100.0   # storms drift above the highest peaks
+const WEATHER_COLORS := {"CYCLONE": Color(1, 1, 1, 0.55), "RAIN_FRONT": Color(0.82, 0.86, 0.95, 0.45),
+	"BLIZZARD": Color(0.85, 0.93, 1.0, 0.6), "DUST": Color(0.85, 0.68, 0.42, 0.5),
+	"SPORE_BLOOM": Color(0.55, 0.95, 0.45, 0.45), "MOON_SURGE": Color(0.4, 0.75, 1.0, 0.55)}
 
 
 func _ready() -> void:
@@ -70,6 +76,8 @@ func _ready() -> void:
 	_vp.add_child(_globe)
 	_hover_mesh = MeshInstance3D.new()
 	_vp.add_child(_hover_mesh)
+	_weather_mesh = MeshInstance3D.new()
+	_vp.add_child(_weather_mesh)
 	_vp.add_child(_stars())
 	_vp.add_child(_atmosphere())
 	_info = Label.new()
@@ -97,6 +105,9 @@ func refresh() -> void:
 		_built_for = sig
 		_build_globe(w)
 		focus_landing()
+	if "%d|%s" % [w.month, sig] != _weather_for:
+		_weather_for = "%d|%s" % [w.month, sig]
+		_build_weather(w)
 	_update_info()
 
 
@@ -277,6 +288,57 @@ func _build_marker(w: WorldState) -> void:
 	_marker.add_child(ring)
 
 
+## This month's storms and phenomena as translucent cloud bands over their tracks, and the colony's smoke as a
+## brown haze drifting downwind (PlanetClimate, drawn in NATURE).
+func _build_weather(w: WorldState) -> void:
+	var geo := Planet.geometry(Planet.freq(w))
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var any := false
+	var pl := w.peek("planet")
+	for k in pl.get("air", {}):
+		var v := float(pl["air"][k]) / 1000.0
+		if v >= 1.0:
+			_blob(st, geo, int(k), 1.0 + RELIEF * 60.0, Color(0.45, 0.33, 0.2, clampf(v / 90.0, 0.08, 0.55)), 1.1)
+			any = true
+	for s in pl.get("storms", []) + pl.get("phenomena", []):
+		if s.get("global", false):
+			continue
+		var col: Color = WEATHER_COLORS.get(String(s["kind"]), Color(1, 1, 1, 0.4))
+		col.a = clampf(col.a * (0.6 + 0.15 * float(s["strength"])), 0.1, 0.85)
+		var grow := 1.25 + 0.12 * float(s["strength"])
+		for c in s["cells"]:
+			_blob(st, geo, int(c), CLOUD_R, col, grow)
+			any = true
+	if not any:
+		_weather_mesh.mesh = null
+		return
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.vertex_color_use_as_albedo = true
+	mat.vertex_color_is_srgb = true
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	st.set_material(mat)
+	_weather_mesh.mesh = st.commit()
+
+
+## A soft hex-shaped blob over a cell (opaque centre fading to clear at the rim), `grow` times the cell's size.
+func _blob(st: SurfaceTool, geo: Dictionary, i: int, radius: float, col: Color, grow: float) -> void:
+	var c: Vector3 = geo["centers"][i]
+	var poly: PackedVector3Array = geo["corners"][i]
+	var m := poly.size()
+	var clear := Color(col.r, col.g, col.b, 0.0)
+	for k in m:
+		var a := (c + (poly[k] - c) * grow).normalized() * radius
+		var b := (c + (poly[(k + 1) % m] - c) * grow).normalized() * radius
+		for pv in [[c * radius, col], [b, clear], [a, clear]]:
+			st.set_color(pv[1])
+			st.set_normal(c)
+			st.add_vertex(pv[0])
+
+
 func _set_hover(i: int) -> void:
 	_hover = i
 	if i < 0 or session == null:
@@ -416,10 +478,28 @@ func _click(i: int) -> void:
 func _update_info() -> void:
 	var w := session.world()
 	var head := "Planet · %d regions · drag to turn, wheel to zoom" % Planet.cell_count(w)
+	var pl := w.peek("planet")
+	var n_storms: int = pl.get("storms", []).size()
+	var notes: Array = ["%d storm%s this month" % [n_storms, "" if n_storms == 1 else "s"]]
+	for p in pl.get("phenomena", []):
+		if p["kind"] in ["SOLAR_FLARE", "MOON_SURGE"]:
+			notes.append("%s (strength %d)" % [String(PlanetClimate.NAMES[p["kind"]]).capitalize(), int(p["strength"])])
+	var warm := PlanetClimate.warming_c(w)
+	if warm >= 0.01:
+		notes.append("warming +%.2f °C" % warm)
+	head += "\n" + " · ".join(notes)
 	if _hover < 0:
 		_info.text = head
 		return
 	var s := Planet.describe(w, _hover)
+	var wx := PlanetClimate.weather(w, _hover)
+	s += "\n%s: %.0f °C, rain %d%% of normal%s" % [String(wx["season"]).capitalize(), float(wx["temp_c"]), int(wx["rain_pct"]),
+		(" · dry for %d months" % int(wx["drought_months"])) if int(wx["drought_months"]) > 0 else ""]
+	for h in PlanetClimate.storms_at(w, _hover) + PlanetClimate.phenomena_at(w, _hover):
+		s += " · %s (%d)" % [PlanetClimate.NAMES.get(h["kind"], h["kind"]), int(h["strength"])]
+	var air := PlanetClimate.air_pollution(w, _hover)
+	if air >= 1.0:
+		s += " · smoke %.0f" % air
 	if _hover == Planet.landing(w):
 		s = "★ Landing site: the colony · " + s + "\nClick to open the colony map"
 	_info.text = head + "\n" + s

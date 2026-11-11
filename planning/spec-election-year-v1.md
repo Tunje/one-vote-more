@@ -1,6 +1,6 @@
 # Election Year: Spec v1 (DRAFT, awaiting Wilma's sign-off)
 
-**Owner:** Ella (election year & campaigns), under Wilma (politics/admin) · **Status:** draft, no code yet · **Date:** 2026-11-11
+**Owner:** Ella (election year & campaigns), under Wilma (politics/admin) · **Status:** approved by Wilma; v1 implemented 2026-11-11 (`sim/politics/campaign.gd`, 12 tests, gates pass). Not yet built: §2.6 pork (touches Legislature), campaign-season polls, the bandwagon/underdog term beyond poll momentum · **Date:** 2026-11-11
 
 ## 0. Why
 
@@ -75,3 +75,11 @@ Choose themes, set the budget split, approve attack ads, order opposition resear
 - ≥1 debate gaffe and ≥1 oppo-research scandal per seed; ≥1 backfired attack per 3 seeds.
 - The player can change the outcome by campaign choices (scripted test: same seed, a good campaign vs no campaign, ≥2 pp difference).
 - Determinism and save/load round-trip still pass; the campaign doesn't break the party-system gates (`measure_party_system.gd`) or turnover (`measure_turnover.gd`).
+
+## 7. As built (v1, 2026-11-11)
+- Calendar: opens at T−12 (T−3 for extra elections); short campaign at T≤2; politics week in July; leaders' debate at T−1, final debate in the election month before the vote.
+- Spending: 8%/month of party funds in the long campaign, 30% in the short one, split across ads, ground game and opposition research by tone (POSITIVE/MIXED/NEGATIVE presets, or the player's choice). All of it goes to households.
+- Effects reach the vote as a per-voter utility term `campaign_u` (segment persuasion + momentum + civility backfire by archetype, capped at ±0.8) and as a per-party turnout multiplier (≤ +6%, +1.5% for the union-endorsed party).
+- Dirt: real hidden donations are revealed through `PartyFinance.reveal_by_rival` (Anni). Personal dirt is one story per leader per campaign. Smears come only from campaigns that are negative and low-integrity (leader integrity ≤35); if exposed, the victim sues via `JusticeOps.file_defamation`, and a guilty verdict costs −8 credibility.
+- Support votes: a governing ally between 2.5% and 4% borrows up to 8% of its largest partner's voters (to 4.3%).
+- Measurement (`tools/measure_campaigns.gd`, counterfactual on the eve of the vote; 3 seeds × 25 years): campaign effect ≥3 pp in 12/18 elections, median 4.0 pp, max 6.2 pp; turnout 78.6–85.1%.

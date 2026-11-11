@@ -201,9 +201,12 @@ static func _pe_support(world: WorldState, oid: String) -> void:
 	var lifeline := 0
 	for fid in world.table("facility"):
 		var f: Dictionary = world.table("facility")[fid]
-		if f["org"] == oid and f["type"] in ["POWER", "WATERWORKS", "DEPOT", "HOUSING"]:
+		if f["org"] == oid and (f["type"] in ["POWER", "WATERWORKS", "DEPOT", "HOUSING"] or f["type"] in EconData.STRATEGIC):
 			for t in f["staff"]:
 				lifeline += EconLabor.tier_total(f["staff"], t) / EconUtil.S * EconFinance.wage_for(world, oid, t)
+	if o["is_contractor"]:  # E107b: the public builder of last resort (CWD) keeps its crew paid too
+		for t in o["crew"]:
+			lifeline += EconLabor.tier_total(o["crew"], t) / EconUtil.S * EconFinance.wage_for(world, oid, t)
 	var cap := maxi(lifeline, EconActions.headroom(world, "ECON_BUDGET_SUBSIDIES"))
 	var paid := EconFinance.gov_pay(world, EconUtil.acct(oid), mini(costs - cash, cap), "SUBSIDY")
 	EconFinance._spend_line(world, "ECON_BUDGET_SUBSIDIES", paid)

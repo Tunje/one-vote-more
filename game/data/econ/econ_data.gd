@@ -209,8 +209,15 @@ const ENDOW_RESERVE := {"FOOD": 13000, "MEDICAL": 600, "MATERIAL": 3000, "COMPON
 const RESERVE_AUTO_RELEASE := ["MATERIAL", "COMPONENT"]  # E98: strategic reserve sells into a scarce market
 const ENDOW_SPARES_MONTHS := 36        # each operator lands with 3 years of upkeep parts (MATERIAL, COMPONENT)
 ## extra founding capacity so materials, components, power and water balance locally without imports
-const ENDOW_FACILITIES := [["PROCESSING", "BASALT", "d:4", 1], ["COMPONENTS", "VECTOR", "d:4", 1], ["POWER", "CPW", "d:4", 1],
-	["WATERWORKS", "CPW", "d:2", 1]]
+const ENDOW_FACILITIES := [["POWER", "CPW", "d:4", 1], ["WATERWORKS", "CPW", "d:2", 1]]
+## E106 (user decision A38): the colony lands with FABRICATION KITS — a crude smelter (MATERIAL from MINERAL) and a
+## crude component workshop, run by the public utility. Kits have tiers Mk I..III; an upgrade is a local project that
+## consumes the previous tier's materials and components. Each tier raises output per worker and cuts input waste.
+const ENDOW_KITS := [["PROCESSING", "CPW", "d:4", 1], ["COMPONENTS", "CPW", "d:4", 1]]  # founded at tier 1
+const KIT_TYPES := ["PROCESSING", "COMPONENTS"]
+const TIER_OUT := [0.0, 0.6, 1.0, 1.4]   # output multiplier by tier (index = tier); founding firms' plants are tier 2
+const TIER_IN := [0.0, 1.4, 1.0, 0.8]    # input use per unit of activity by tier (waste)
+const UPGRADE_BUILD := {2: [1500, 120, 15, 8], 3: [2500, 200, 40, 10]}  # to tier: [work units, material, components, min months]
 
 # Institution -> budget lever that funds it
 const INSTITUTION_BUDGET := {"HEALTH": "ECON_BUDGET_HEALTH", "SCHOOLS": "ECON_BUDGET_EDUCATION", "ADMINISTRATION": "ECON_BUDGET_ADMIN"}

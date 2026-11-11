@@ -133,6 +133,11 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"LAND_EXPROPRIATED": s = "The government expropriated land for %s" % _kind(d.get("purpose", "public use"))
 		"LAND_EVICTION_ORDERED": s = "[color=#ff8a65]Court-ordered eviction[/color] of %d residents in %s" % [int(d.get("residents", 0)), String(w.peek("area").get(d.get("area", ""), {}).get("name", "an area"))]
 		"LAND_UNLAWFUL_CLEARANCE": s = "[color=#ff5252]Unlawful clearance:[/color] residents were driven out without rehousing"
+		"PLANET_CYCLONE", "PLANET_RAIN_FRONT", "PLANET_BLIZZARD", "PLANET_DUST", "PLANET_SOLAR_FLARE", "PLANET_SPORE_BLOOM", "PLANET_MOON_SURGE", "PLANET_DROUGHT":
+			var kind_txt: String = {"PLANET_CYCLONE": "A cyclone", "PLANET_RAIN_FRONT": "A heavy rain front", "PLANET_BLIZZARD": "A blizzard",
+				"PLANET_DUST": "A dust storm", "PLANET_SOLAR_FLARE": "A solar flare", "PLANET_SPORE_BLOOM": "A spore bloom",
+				"PLANET_MOON_SURGE": "A moon surge", "PLANET_DROUGHT": "Drought"}[t]
+			s = "%s%s%s" % [kind_txt, (" (%s)" % d.get("name", "")) if String(d.get("name", "")) != "" else "", " is sweeping the region" if t != "PLANET_DROUGHT" else " grips the region"]
 		"POL_ELECTION_HELD": s = "[b]Election held[/b]"
 		"POL_GOVERNMENT_FORMED": s = "[b]New government[/b]: %s" % ", ".join(d.get("members", []).map(func(p): return party(w, p)))
 		"POL_BILL_PASSED": s = "Parliament passed a bill (%d–%d)" % [int(d.get("yes", 0)), int(d.get("no", 0))]

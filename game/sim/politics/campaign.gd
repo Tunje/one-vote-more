@@ -50,6 +50,10 @@ const SMEAR_P := 300                 # a desperate low-integrity campaign fabric
 const SMEAR_MAX_INTEGRITY := 35
 const SMEAR_EXPOSE_P := 350
 const SAT_ON_IT := -150
+# ---- pork (valfläsk) ----
+const PORK_FROM := 4                 # bills tabled later than T−4 can't be passed in time
+const PORK_BETA := 600               # momentum (milli) per unit of colony relief, at full credibility
+const PORK_CRED_PIVOT := 35          # below this credibility voters see through it and punish it
 # ---- tactical votes ----
 const TACTICAL_LOW := 2500           # per-100000 share: allies between 2.5% and the threshold get support votes
 const TACTICAL_TARGET := 4300
@@ -89,6 +93,27 @@ static func current(world: WorldState) -> Dictionary:
 	var st: Dictionary = world.peek("pol").get("state", {})
 	var cid := String(st.get("campaign_id", ""))
 	return world.peek("campaign").get(cid, {}) if cid != "" else {}
+
+
+## Election-year pork pressure for AI governments' bills (Legislature.propose): 1 from T−12 to T−4, else 0.
+## world.meta["pork"] = false switches it off (A/B measurement).
+static func pork_pressure(world: WorldState, st: Dictionary) -> float:
+	if not bool(world.meta.get("pork", true)):
+		return 0.0
+	var c := current(world)
+	if c.is_empty():
+		return 0.0
+	var to_go := int(c["election_month"]) - world.month
+	return 1.0 if to_go >= PORK_FROM and to_go <= WINDOW_ORDINARY else 0.0
+
+
+## Pollsters swarm the short campaign: a poll every month from T−2 to T−1 (not on election day).
+static func wants_poll(world: WorldState, st: Dictionary) -> bool:
+	var c := current(world)
+	if c.is_empty():
+		return false
+	var to_go := int(c["election_month"]) - world.month
+	return to_go >= 1 and to_go <= SHORT_CAMPAIGN
 
 
 static func is_open(world: WorldState) -> bool:
@@ -134,6 +159,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 		_debate(world, st, c, to_go == 0)
 	_oppo(world, c, spend, to_go)
 	_dirt(world, st, c, to_go)
+	_pork(world, st, c)
 	# legacy hook: the old spend counter (UI/chronicle readers)
 	var spent := {}
 	for pid in c["parties"]:
@@ -750,6 +776,67 @@ static func _expose_smear(world: WorldState, c: Dictionary, pid: String, d: Dict
 	var case_id := String(_law_call("file_defamation", [world, String(d["target"]), pid, int(d["sev"])], "", JUSTICE_PATH))
 	_event(world, c, "POL_SMEAR_EXPOSED", "OPPO", [pid, d["target"]], 65,
 		{"party": pid, "target": d["target"], "leader": PartyLife.leader_name(p), "case": case_id})
+
+
+# ======================================================================= pork
+
+## Voters' reaction to crowd-pleasing laws passed in election year. Credible governments get the credit;
+## parties with a record of broken promises are seen through and lose. Read-only on the bills.
+static func _pork(world: WorldState, st: Dictionary, c: Dictionary) -> void:
+	var batches: Array = []
+	for f in world.facts.query("POL_BILL_PASSED", world.month, world.month):
+		var b: Dictionary = world.peek("bill").get(String(f["data"].get("bill", "")), {})
+		if not b.is_empty():
+			batches.append(b.get("clauses", []))
+	for f in world.facts.query("POL_ORDINANCE_ISSUED", world.month, world.month):
+		batches.append(f["data"].get("clauses", []))
+	if batches.is_empty():
+		return
+	var gov: Dictionary = st.get("government", {})
+	var members: Array = gov.get("members", [])
+	if members.is_empty() and st.get("player_party", "") != "":
+		members = [st["player_party"]]   # founding era: the commander's record is the founders' party's
+	var cs := colony_concerns(world)
+	for clauses in batches:
+		var value := 0.0
+		for cl in clauses:
+			var def: Dictionary = world.lever_defs.get(String(cl.get("lever", "")), {})
+			if def.is_empty() or def.get("type", "") != "NUMBER":
+				continue
+			value += maxf(0.0, Legislature.relief(def, Legislature.clause_delta(def, cl), cs[0], cs[1]))
+		if value <= 0.01:
+			continue
+		for pid in members:
+			if not c["parties"].has(pid) or not world.table("party").has(pid):
+				continue
+			var cred := float(world.table("party")[pid].get("credibility", 50))
+			var k := (cred - float(PORK_CRED_PIVOT)) / (100.0 - float(PORK_CRED_PIVOT))
+			var d := int(round(float(PORK_BETA) * minf(value, 1.0) * k))
+			_momentum(c, pid, d)
+			_event(world, c, "POL_ELECTION_PORK", "CAMPAIGN", [pid], 40,
+				{"party": pid, "value": int(round(value * 1000.0)), "believed": d >= 0, "momentum": d})
+
+
+## Colony-wide [sat, sal] (same shape as PoliticsProvider.colony_concerns), read-only.
+static func colony_concerns(world: WorldState) -> Array:
+	var sat := {}
+	var sal := {}
+	var p := 0.0
+	for cn in PolDefs.CONCERNS:
+		sat[cn] = 0.0
+		sal[cn] = 0.0
+	for v in PolVoters.all(world):
+		var pop := float(v["pop"])
+		if pop <= 0.0:
+			continue
+		p += pop
+		for cn in PolDefs.CONCERNS:
+			sat[cn] += float(v["sat"][cn]) * pop
+			sal[cn] += float(v["salience"][cn]) * pop
+	for cn in PolDefs.CONCERNS:
+		sat[cn] = int(round(sat[cn] / maxf(1.0, p)))
+		sal[cn] = int(round(sal[cn] / maxf(1.0, p)))
+	return [sat, sal]
 
 
 # ======================================================================= player actions (Campaign panel)

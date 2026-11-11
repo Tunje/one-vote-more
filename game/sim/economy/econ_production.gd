@@ -103,7 +103,7 @@ static func produce(world: WorldState) -> void:
 		f["util"] = int(act * 1000)
 		_consume_inputs(world, f, act)
 		_upkeep(world, f, t > 0.0)
-		var out_qty := int(float(r["out"][1]) * S * act * _eff(world, f) * EconUtil.fscale(f))
+		var out_qty := int(float(r["out"][1]) * S * act * _eff(world, f) * EconUtil.fscale(f) * EconUtil.tier_out(f))  # E106 tier
 		f["out_last"] = out_qty
 		var good: String = r["out"][0]
 		if good in EconData.MARKET_GOODS:
@@ -183,7 +183,7 @@ static func _pool_inputs(world: WorldState, facs: Array) -> void:
 		for g in EconUtil.sorted_keys(r["in"]):
 			if not (g in EconData.MARKET_GOODS):
 				continue
-			var req := int(float(r["in"][g]) * S * t * EconUtil.fscale(f))
+			var req := int(float(r["in"][g]) * S * t * EconUtil.fscale(f) * EconUtil.tier_in(f))
 			var have := EconUtil.inv_get(world, f["org"], g, f["district"])
 			if have >= req:
 				continue
@@ -214,7 +214,7 @@ static func _plan(world: WorldState, f: Dictionary) -> Dictionary:
 	var soft: Array = EconData.SOFT_INPUTS.get(f["type"], [])
 	for g in r["in"]:
 		if g in EconData.MARKET_GOODS:
-			var req := float(r["in"][g]) * S * t * EconUtil.fscale(f)
+			var req := float(r["in"][g]) * S * t * EconUtil.fscale(f) * EconUtil.tier_in(f)
 			if req > 0.0:
 				var ratio := float(EconUtil.inv_get(world, f["org"], g, f["district"])) / req
 				if g in soft:
@@ -279,7 +279,7 @@ static func _consume_inputs(world: WorldState, f: Dictionary, act: float) -> voi
 	var cost := 0
 	for g in r["in"]:
 		if g in EconData.MARKET_GOODS:
-			var q := int(float(r["in"][g]) * S * act * EconUtil.fscale(f))
+			var q := int(float(r["in"][g]) * S * act * EconUtil.fscale(f) * EconUtil.tier_in(f))
 			var wac := EconUtil.inv_wac(world, f["org"], g, f["district"])
 			var took := EconUtil.inv_take(world, f["org"], g, f["district"], q)
 			EconUtil.qflow(world, g, "burned", took)

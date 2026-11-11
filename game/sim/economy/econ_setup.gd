@@ -71,6 +71,11 @@ static func init_world(world: WorldState) -> void:
 	for spec in fac_list:
 		for _i in spec[3]:
 			EconSetup.add_facility(world, spec[0], org_by_key[spec[1]], spec[2], true)
+	if not EconUtil.support(world):
+		for spec in EconData.ENDOW_KITS:  # E106: crude fabrication kits, Mk I
+			for _i in spec[3]:
+				var kid := EconSetup.add_facility(world, spec[0], org_by_key[spec[1]], spec[2], true)
+				world.table("facility")[kid]["tier"] = 1
 
 	# households: population leaves + household pools (M10)
 	EconPop.seed_founding(world)

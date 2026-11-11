@@ -169,7 +169,8 @@ static func generate(world: WorldState, freq: int = FREQ) -> void:
 	tb["uses"] = {str(d["landing"]): {"colony": true}}
 
 
-## Generated planet for this world: {"h": PackedInt32Array, "bio": String, "landing": int}. A pure function of
+## Generated planet for this world: {"h": PackedInt32Array, "bio": String, "landing": int,
+## "moist": PackedFloat32Array (0..1.2), "coast": PackedByteArray (1 = touches the other of land/sea)}. A pure function of
 ## the master seed, frequency and generator version, so it is cached (bounded) and never saved.
 static func _data(world: WorldState) -> Dictionary:
 	var fq := freq(world)
@@ -266,6 +267,8 @@ static func _compute(sd: int, freq: int) -> Dictionary:
 	# climate → biome
 	var bio := PackedStringArray()
 	bio.resize(n)
+	var moist_a := PackedFloat32Array()
+	moist_a.resize(n)
 	for i in n:
 		var c: Vector3 = cs[i]
 		var lat_f := absf(rad_to_deg(asin(clampf(c.y, -1.0, 1.0)))) / 90.0
@@ -275,8 +278,9 @@ static func _compute(sd: int, freq: int) -> Dictionary:
 		# wet equator, dry belts around 25° (subtropical highs)
 		moist += 0.15 * maxf(0.0, 1.0 - lat_f / 0.12) - 0.3 * maxf(0.0, 1.0 - absf(lat_f - 0.3) / 0.12)
 		bio[i] = _biome(h[i], temp, moist)
+		moist_a[i] = clampf(moist, 0.0, 1.2)
 	var landing := _choose_landing(cs, nb, h, bio, r)
-	return {"h": h, "bio": "".join(bio), "landing": landing}
+	return {"h": h, "bio": "".join(bio), "landing": landing, "moist": moist_a, "coast": coast}
 
 
 static func _noise(sd: int, fq: float, fractal: int, octaves: int) -> FastNoiseLite:
@@ -399,6 +403,30 @@ static func landing(world: WorldState) -> int:
 
 static func neighbors(world: WorldState, i: int) -> PackedInt32Array:
 	return geometry(freq(world))["nbrs"][i]
+
+
+## Moisture index of a cell (0 dry .. ~1.2 very wet); climate uses it for rainfall.
+static func moisture(world: WorldState, i: int) -> float:
+	return _data(world)["moist"][i]
+
+
+static func is_coast(world: WorldState, i: int) -> bool:
+	return _data(world)["coast"][i] == 1
+
+
+## Hex that holds a tile of the 64×40 colony grid (Terrain). The whole grid lies inside the landing hex today;
+## when settlements spread to other hexes, each gets its own grid and this maps grid → hex (agreed with Bob).
+static func hex_of_tile(world: WorldState, _tile: Vector2i) -> int:
+	return landing(world)
+
+
+## Hexes with something on them (the colony, later outposts): weather facts are reported for these.
+static func settled(world: WorldState) -> Array:
+	var out: Array = []
+	for k in world.peek("planet").get("uses", {}):
+		out.append(int(k))
+	out.sort()
+	return out
 
 
 static func use_at(world: WorldState, i: int) -> Dictionary:

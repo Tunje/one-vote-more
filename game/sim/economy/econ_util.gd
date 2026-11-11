@@ -74,6 +74,19 @@ static func firm_name(world: WorldState, district: String, sector: String, suffi
 	return "%s %d" % [base, n]
 
 
+## E106: tier multipliers of a facility (1.0 for non-kit types). Founding/standard plants are tier 2.
+static func tier_out(f: Dictionary) -> float:
+	if not (f["type"] in EconData.KIT_TYPES):
+		return 1.0
+	return float(EconData.TIER_OUT[clampi(int(f.get("tier", 2)), 1, 3)])
+
+
+static func tier_in(f: Dictionary) -> float:
+	if not (f["type"] in EconData.KIT_TYPES):
+		return 1.0
+	return float(EconData.TIER_IN[clampi(int(f.get("tier", 2)), 1, 3)])
+
+
 ## M12: is the old home-world support model active? (default: no — A34)
 static func support(world: WorldState) -> bool:
 	return bool(world.meta.get("support", EconData.HOME_SUPPORT))

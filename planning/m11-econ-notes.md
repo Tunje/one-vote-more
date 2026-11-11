@@ -57,3 +57,27 @@ Spec: `spec-events-v1.md` (A33). Decisions from Wilma, 2026-11-11:
    - LAW_REQUISITION: validate `{kind: GOVERNMENT}`, "REQUISITION", `{compensation_pct}`; lawful only in an emergency and at ≥ 100%;
    - `LQ.emergency(world)` gives the current state.
 6. **Closed economy:** staff costs go to hh pools; fines go to gov:fines_revenue.
+
+## Planet climate interface (Terra, in the tree, 2026-11-11)
+Module: PlanetClimate. Pure functions of the seed, valid for any hex.
+
+| Query | Returns |
+|---|---|
+| `climate(world, cell, month)` | `{temp_c, rain_mm, season, growing 0..1}` |
+| `weather(world, cell, month = current)` | `{rain_pct, rain_mm, temp_c, temp_anom_c, drought_months, season, growing}` |
+| `storms_at(world, cell)` | `[{kind: CYCLONE \| RAIN_FRONT \| BLIZZARD \| DUST, strength 1..5}]`, strongest first |
+| `phenomena_at(world, cell)` | `[{kind, strength}]`, alien phenomena (below) |
+| `air_pollution(world, cell)` | 0..100, the downwind plume of econ emissions |
+| `warming_c(world)` | global warming offset |
+| `Planet.hex_of_tile(world, tile)` | the hex cell; today always the landing hex |
+
+Alien phenomena:
+- SOLAR_FLARE: global, ~0.5 a year, strength 1–5. Proposed effect: power and electronics.
+- SPORE_BLOOM: drifts from jungle and wetland. Proposed effect: crop blight or health.
+- MOON_SURGE: coastal, about every 2 years, predictable. Proposed effect: coastal flooding.
+
+Calibration: the colony at 38°N should see about one strong rain front a decade, 1–2 cyclones a century, a flare every couple of years and a moon surge every 2 years. Per-band strike rates are in spec-planet-v1.md.
+
+Facts PLANET_<KIND> are emitted for weather over settled hexes. Cite them as `causes` in damage facts.
+
+Terra reads emissions via the peek_st stopgap. Ping her when `EconGeo.emissions` exists.

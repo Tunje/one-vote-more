@@ -152,7 +152,9 @@ static func fiscal_room(world: WorldState) -> float:
 
 ## Pick the clauses an actor with position `pos` would propose.
 ## allowed: "COMMANDER" (founding-era ordinances) or "PARLIAMENT".
-static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Dictionary, agreement: Array, allowed: String, stress: float = 0.0, crisis: bool = false, exclude: Dictionary = {}) -> Array:
+## pork (0..1, election year; Ella/Campaign.pork_pressure): crowd-pleasing relief counts more, ideology less.
+## stats (optional, written by the caller's state): {"guard_blocked": n} clauses the fiscal guard kept out.
+static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Dictionary, agreement: Array, allowed: String, stress: float = 0.0, crisis: bool = false, exclude: Dictionary = {}, pork: float = 0.0, stats: Dictionary = {}) -> Array:
 	var scored: Array = []
 	var guarded := fiscal_guard(world)
 	var room := fiscal_room(world)
@@ -179,7 +181,8 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			if delta == 0.0:
 				continue
 			if guarded and float(def.get("concerns", {}).get("GOVERNANCE", 0)) * delta < 0.0:
-				continue  # fiscal guard: no new spending / tax cuts while the books are weak
+				stats["guard_blocked"] = int(stats.get("guard_blocked", 0)) + 1
+				continue  # fiscal guard: no new spending / tax cuts while the books are weak (pork never overrides it)
 			if _recently_rejected(world, lid, signf(delta)):
 				continue  # learned: legal review threw this out recently
 			var level: String = "ORDINANCE" if allowed == "COMMANDER" else String(def["legalLevel"])
@@ -190,7 +193,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 				continue  # parliament threw this out and its make-up hasn't changed: don't table it again
 			if mem["moved"].has("%s|%d" % [lid, -int(signf(delta))]):
 				continue  # this government moved it the other way recently: no flip-flopping
-			var sc := ideo_alignment(def, delta, pos) + 3.0 * relief(def, delta, sat, sal, stress, room, cur)
+			var sc := (1.0 - 0.3 * pork) * ideo_alignment(def, delta, pos) + 3.0 * (1.0 + 0.5 * pork) * relief(def, delta, sat, sal, stress, room, cur)
 			for a in agreement:
 				if a["lever"] == lid:
 					sc += 6.0 if signf(delta) == a["dir"] else -6.0

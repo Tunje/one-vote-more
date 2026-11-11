@@ -190,7 +190,7 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 		for g in r["in"]:
 			if g in EconData.MARKET_GOODS:
 				var k := "%s|%s|%s" % [f["org"], g, f["district"]]
-				needs[k] = needs.get(k, 0) + int(float(r["in"][g]) * S * t * EconUtil.fscale(f))
+				needs[k] = needs.get(k, 0) + int(float(r["in"][g]) * S * t * EconUtil.fscale(f) * EconUtil.tier_in(f))
 		if r["upkeep"] > 0:
 			var k2 := "%s|MATERIAL|%s" % [f["org"], f["district"]]
 			needs[k2] = needs.get(k2, 0) + int(float(r["upkeep"]) * S * EconUtil.fscale(f))
@@ -602,16 +602,27 @@ static func _essentials_planner(world: WorldState) -> void:
 		var pending := false
 		for pid in world.table("project"):
 			var p: Dictionary = world.table("project")[pid]
-			if p["type"] == ftype and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+			if (p["type"] == ftype or (p["type"] == "UPGRADE" and world.table("facility").has(p.get("target", "")) \
+					and world.table("facility")[p["target"]]["type"] == ftype)) and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
 				pending = true
 		if pending:
 			continue
-		var est := EconConstruction.estimate(ftype)
+		# E106: for fabrication kits, upgrading CPW's lowest-tier kit comes before building a new one
+		var up_fid := ""
+		if ftype in EconData.KIT_TYPES and not EconUtil.off(world, "E106"):
+			var low := 3
+			for fid in EconUtil.sorted_keys(world.table("facility")):
+				var kf: Dictionary = world.table("facility")[fid]
+				if kf["type"] == ftype and kf["org"] == cpw and not kf["mothball"] and int(kf.get("tier", 2)) < low \
+						and not EconConstruction.upgrade_pending(world, fid):
+					low = int(kf.get("tier", 2))
+					up_fid = fid
+		var est := EconConstruction.upgrade_estimate(int(world.table("facility")[up_fid].get("tier", 2)) + 1) if up_fid != "" else EconConstruction.estimate(ftype)
 		var need := maxi(0, est - world.ledger.balance(EconUtil.acct(cpw)))
 		if need > 0 and not EconFinance.new_loan(world, cpw, mini(need, est * 7 / 10), 0, true):
 			var paid := EconFinance.gov_pay(world, EconUtil.acct(cpw), need, "PE_INVESTMENT")
 			EconFinance._spend_line(world, "ECON_BUDGET_INFRASTRUCTURE", paid)
-		var pid2 := EconConstruction.create(world, ftype, district if district != "" else "d:4", cpw, cpw, "")
+		var pid2 := EconConstruction.create_upgrade(world, up_fid, cpw, "") if up_fid != "" else EconConstruction.create(world, ftype, district if district != "" else "d:4", cpw, cpw, "")
 		last[ftype] = world.month
 		EconFacts.emit(world, "COMP_INVESTMENT", district, [["COMPANY", cpw]], [["COMPANY", cpw, 0.5], ["GOVERNMENT", "government", 0.5]],
 			{"JOBS": 3, "INFRASTRUCTURE": 5}, 25, "PUBLIC", {"type": ftype, "project": pid2, "reason": "spare_capacity", "good": good,

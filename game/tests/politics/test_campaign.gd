@@ -73,6 +73,11 @@ func test_full_campaign_spends_debates_and_finalises() -> void:
 	for f in w.facts.query("POL_DEBATE_HELD"):
 		check(f["data"].has("channel"), "facts carry a media channel")
 	check(not _st(w).has("campaign_id"), "no open campaign after the vote")
+	var months := {}
+	for pid in w.table("poll"):
+		months[int(w.table("poll")[pid]["month"])] = true
+	for m in [FIRST_ELECTION - 2, FIRST_ELECTION - 1]:
+		check(months.has(m), "a poll every month of the short campaign (m%d)" % m)
 
 
 func _open_campaign(sim: Simulation) -> Dictionary:
@@ -256,6 +261,59 @@ func test_player_runs_their_own_campaign() -> void:
 	check_eq(int(e["dirt"][0]["released"]), -1, "the player's dirt is held until they release it")
 	check(Campaign.player_release_dirt(w, 0)["ok"], "release")
 	check(not Campaign.player_release_dirt(w, 0)["ok"], "only once")
+
+
+func test_pork_pressure_only_early_in_election_year() -> void:
+	var sim := _sim()
+	var w := sim.world
+	_run_to(sim, FIRST_ELECTION - 8)
+	check_eq(Campaign.pork_pressure(w, _st(w)), 1.0, "T-8: pork")
+	w.meta["pork"] = false
+	check_eq(Campaign.pork_pressure(w, _st(w)), 0.0, "switch for A/B runs")
+	w.meta["pork"] = true
+	_run_to(sim, FIRST_ELECTION - 2)
+	check_eq(Campaign.pork_pressure(w, _st(w)), 0.0, "T-2: too late to pass anything")
+
+
+func test_pork_is_credited_to_credible_governments_and_punished_otherwise() -> void:
+	var sim := _sim()
+	var w := sim.world
+	var c := _open_campaign(sim)
+	var st := _st(w)
+	var ids: Array = Det_ordered(c["parties"])
+	var a: String = ids[0]
+	st["government"] = {"members": [a], "pm_party": a, "support": []}
+	# a clause that relieves something the colony cares about
+	var cs := Campaign.colony_concerns(w)
+	var clause := {}
+	for lid in Det_ordered(w.lever_defs):
+		var def: Dictionary = w.lever_defs[lid]
+		if def.get("type", "") != "NUMBER" or def.get("concerns", {}).is_empty():
+			continue
+		var cur := int(w.levers[lid])
+		for dir in [1, -1]:
+			var cl := {"lever": lid, "from": cur, "to": cur + dir * 10}
+			if Legislature.relief(def, Legislature.clause_delta(def, cl), cs[0], cs[1]) > 0.05:
+				clause = cl
+				break
+		if not clause.is_empty():
+			break
+	check(not clause.is_empty(), "found a popular clause")
+	var fact := {"type": "POL_ORDINANCE_ISSUED", "owner": "pol", "subjects": [], "responsible": [], "impact": {},
+		"magnitude": 30, "visibility": "PUBLIC", "data": {"clauses": [clause]}}
+	w.table("party")[a]["credibility"] = 90
+	c["parties"][a]["momentum"] = 0
+	w.add_fact(fact.duplicate(true))
+	Campaign._pork(w, st, c)
+	var m_hi := int(c["parties"][a]["momentum"])
+	check(m_hi > 0, "credible government gains (%d)" % m_hi)
+	w.month += 1
+	w.table("party")[a]["credibility"] = 10
+	c["parties"][a]["momentum"] = 0
+	w.add_fact(fact.duplicate(true))
+	Campaign._pork(w, st, c)
+	check(int(c["parties"][a]["momentum"]) < 0, "transparent pork is punished")
+	check_eq(w.facts.query("POL_ELECTION_PORK").size(), 2, "news")
 
 
 func test_deterministic_and_save_load_mid_campaign() -> void:

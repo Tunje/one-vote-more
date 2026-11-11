@@ -39,6 +39,35 @@ static func create_expansion(world: WorldState, fid: String, owner: String) -> S
 	return id
 
 
+## E106: upgrade a fabrication kit (PROCESSING / COMPONENTS) to the next tier. Paid by `owner` ("gov" with a budget
+## line, or the operating company); the work consumes materials and components like any project.
+static func create_upgrade(world: WorldState, fid: String, owner: String, line: String) -> String:
+	var f: Dictionary = world.table("facility")[fid]
+	var to_tier := int(f.get("tier", 2)) + 1
+	var b: Array = EconData.UPGRADE_BUILD[to_tier]
+	var id := world.new_id("project")
+	world.table("project")[id] = {"id": id, "type": "UPGRADE", "target": fid, "to_tier": to_tier, "district": f["district"], "owner": owner,
+		"operator": f["org"], "line": line, "wu_total": b[0] * S, "wu_done": 0, "mat_total": b[1] * S, "comp_total": b[2] * S,
+		"min_months": b[3], "status": "TENDER", "tender_month": world.month, "bids": [], "contractor": "", "price": 0,
+		"paid": 0, "bid_duration": 0, "start_month": -1, "size_class": size_class(b[0]), "prog_m": 0, "unpaid_m": 0,
+		"late_noted": false, "supervision": 1000, "staff_task": "", "est_cost": upgrade_estimate(to_tier)}
+	return id
+
+
+static func upgrade_estimate(to_tier: int) -> int:
+	var b: Array = EconData.UPGRADE_BUILD[to_tier]
+	return int((b[0] * EconData.WU_COST_EST + b[1] * EconData.BASE_PRICE["MATERIAL"] + b[2] * EconData.BASE_PRICE["COMPONENT"]) * 1.15) * S
+
+
+## An upgrade project already open for this facility?
+static func upgrade_pending(world: WorldState, fid: String) -> bool:
+	for pid in world.peek("project"):
+		var p: Dictionary = world.peek("project")[pid]
+		if p["type"] == "UPGRADE" and p.get("target", "") == fid and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+			return true
+	return false
+
+
 static func estimate(ftype: String) -> int:
 	var b: Array = EconData.BUILD[ftype]
 	return int((b[0] * EconData.WU_COST_EST + b[1] * EconData.BASE_PRICE["MATERIAL"] + b[2] * EconData.BASE_PRICE["COMPONENT"]) * 1.15) * S
@@ -126,7 +155,7 @@ static func _strategic_expansion(world: WorldState, p: Dictionary) -> bool:
 		types = types + ["COMPONENTS", "FARM", "POWER", "WATERWORKS"]  # E95b: food and utilities capacity too (no imports to fall back on)
 	if p["type"] in types:
 		return true
-	if p["type"] == "EXPAND" and world.table("facility").has(p.get("target", "")):
+	if p["type"] in ["EXPAND", "UPGRADE"] and world.table("facility").has(p.get("target", "")):
 		return world.table("facility")[p["target"]]["type"] in types
 	return false
 
@@ -295,6 +324,12 @@ static func _complete(world: WorldState, p: Dictionary) -> void:
 			var tf: Dictionary = world.table("facility")[fid]
 			tf["scale"] = mini(3000, tf.get("scale", 1000) + 250)
 			tf["book"] += p["price"]
+	elif p["type"] == "UPGRADE":
+		fid = p["target"]
+		if world.table("facility").has(fid):
+			var uf: Dictionary = world.table("facility")[fid]
+			uf["tier"] = mini(3, int(p.get("to_tier", int(uf.get("tier", 2)) + 1)))
+			uf["book"] += p["price"]
 	else:
 		fid = EconSetup.add_facility(world, p["type"], p["operator"], p["district"], false)
 		world.table("facility")[fid]["book"] = p["price"]
@@ -372,6 +407,7 @@ static func fail_contracts(world: WorldState, oid: String) -> void:
 		p["mat_total"] = int(p["mat_total"] * rem)
 		p["comp_total"] = int(p["comp_total"] * rem)
 		p["wu_done"] = 0
+		p["min_months"] = maxi(1, int(ceil(float(p["min_months"]) * rem)))  # E107a: the pace cap follows the remaining work
 		EconFacts.emit(world, "ECON_CONTRACT_FAILED", p["district"], [["COMPANY", oid]],
 			[["COMPANY", oid, 0.6], ["GOVERNMENT", "government", 0.4]], {"GOVERNANCE": -10, "INFRASTRUCTURE": -5}, 50, "PUBLIC", {"project": pid})
 	o["contracts"] = []

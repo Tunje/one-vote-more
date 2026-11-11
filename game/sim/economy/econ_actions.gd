@@ -39,6 +39,27 @@ static func validate(world: WorldState, id: String, p: Dictionary) -> String:
 	if id == "ECON_ORDER_IMPORTS" and not EconUtil.support(world):
 		return "No ship is due: imports arrive only with the home-world ships, rarely and at great cost"
 	match id:
+		"ECON_UPGRADE_FACILITY":
+			var fid: String = p.get("facility", "")
+			if not world.peek("facility").has(fid):
+				return "Unknown facility %s" % fid
+			var f: Dictionary = world.peek("facility")[fid]
+			if not (f["type"] in EconData.KIT_TYPES):
+				return "Only fabrication kits (smelters, component workshops) can be upgraded"
+			if int(f.get("tier", 2)) >= 3:
+				return "Already at the highest tier (Mk III)"
+			var o: Dictionary = world.peek("org").get(f["org"], {})
+			if not (o.get("type", "") in EconData.PUBLIC_TYPES):
+				return "The state can only upgrade plants it owns (offer an incentive to private owners instead)"
+			if EconConstruction.upgrade_pending(world, fid):
+				return "An upgrade of this plant is already under way"
+			var uline: String = p.get("line", "ECON_BUDGET_INFRASTRUCTURE")
+			if not uline in ["ECON_BUDGET_INFRASTRUCTURE", PUBLIC_WORKS]:
+				return "Upgrades are paid from Infrastructure or Public works"
+			var ucost := EconConstruction.upgrade_estimate(int(f.get("tier", 2)) + 1) * 11 / 10
+			if headroom(world, uline) < ucost:
+				return "Not enough budget: %s has %dk uncommitted this year, the upgrade needs %dk" % [uline, headroom(world, uline) / 1000 / S, ucost / 1000 / S]
+			return ""
 		"ECON_COMMISSION_PROJECT":
 			var ftype: String = p.get("type", "")
 			if not OPERATOR.has(ftype) or not EconData.BUILD.has(ftype):
@@ -128,6 +149,9 @@ static func headroom(world: WorldState, line: String) -> int:  # pure read (used
 
 static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 	match id:
+		"ECON_UPGRADE_FACILITY":
+			EconConstruction.create_upgrade(world, p["facility"], "gov", p.get("line", "ECON_BUDGET_INFRASTRUCTURE"))
+			return true
 		"ECON_COMMISSION_PROJECT":
 			var ftype: String = p["type"]
 			if not OPERATOR.has(ftype) or not EconData.BUILD.has(ftype):

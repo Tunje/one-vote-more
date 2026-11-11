@@ -95,6 +95,8 @@ func run_phase(phase: int, world: WorldState) -> void:
 	var have_parties := not world.table("party").is_empty()
 	if have_parties and world.month > PolDefs.PARTY_FORMATION_MONTH:
 		_party_life_monthly(world, st)
+	if have_parties and world.month % 3 != 0 and Campaign.wants_poll(world, st):
+		run_poll(world, PolDefs.POLL_MOE_DEFAULT, "pol.campaign")   # election year: monthly polls in the short campaign
 	if have_parties and world.month % 3 == 0 and world.month != st["next_election"]:
 		run_poll(world, PolDefs.POLL_MOE_DEFAULT, "pol.auto")
 		PartyLife.check_mergers(world, st)
@@ -409,14 +411,14 @@ func _decisions(world: WorldState, st: Dictionary) -> void:
 	if st["era"] == "FOUNDING":
 		if not st["autoplay_player"]:
 			return
-		clauses = Legislature.propose(world, st["persona"], cs[0], cs[1], [], "COMMANDER", stress, crisis, busy)
+		clauses = Legislature.propose(world, st["persona"], cs[0], cs[1], [], "COMMANDER", stress, crisis, busy, Campaign.pork_pressure(world, st), _leg_stats(st))
 	else:
 		var gov: Dictionary = st["government"]
 		if gov.is_empty():
 			return
 		if st.get("player_party", "") in gov["members"] and not st["autoplay_player"]:
 			return  # the human government acts through the UI
-		clauses = Legislature.propose(world, gov["center"], cs[0], cs[1], gov.get("agreement", []), "PARLIAMENT", stress, crisis, busy)
+		clauses = Legislature.propose(world, gov["center"], cs[0], cs[1], gov.get("agreement", []), "PARLIAMENT", stress, crisis, busy, Campaign.pork_pressure(world, st), _leg_stats(st))
 	if clauses.is_empty():
 		return
 	if not staffed:
@@ -427,6 +429,13 @@ func _decisions(world: WorldState, st: Dictionary) -> void:
 	if r.get("ok", false):
 		_drafts(st).append({"bill": bill_id, "clauses": clauses, "month": world.month, "era": st["era"]})
 		st["last_bill_month"] = world.month
+
+
+## Running counters from Legislature.propose (fiscal-guard blocks), kept in state for the measurement tools.
+func _leg_stats(st: Dictionary) -> Dictionary:
+	if not st.has("leg_stats"):
+		st["leg_stats"] = {"guard_blocked": 0}
+	return st["leg_stats"]
 
 
 func _drafts(st: Dictionary) -> Array:
