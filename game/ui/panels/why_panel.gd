@@ -70,15 +70,11 @@ func _producers(list: Array) -> void:
 
 
 func _open_company(oid: String) -> void:
-	var tabs := get_parent()
-	if tabs == null:
+	var c := EK.find_panel(self, "", "open_company")
+	if c == null:
 		return
-	for c in tabs.get_children():
-		if c.has_method("open_company"):
-			c.open_company(oid)
-			if tabs is TabContainer:
-				(tabs as TabContainer).current_tab = c.get_index()
-			return
+	c.open_company(oid)
+	EK.show_panel(self, c.panel_title())
 
 
 func _markets(w: WorldState) -> void:

@@ -56,15 +56,33 @@ static func lever_info(world: WorldState, lever: String) -> Dictionary:
 	return {}
 
 
+## Panels live in modal windows (main.gd `windows`: title -> Window). Find a panel by title, or "" = any panel with `method`.
+static func find_panel(node: Node, title: String, method: String = "") -> Node:
+	for m in node.get_tree().get_nodes_in_group("pcs_refresh"):
+		if not ("windows" in m):
+			continue
+		for t in m.windows:
+			var p: Node = m.windows[t].get_child(1).get_child(0)
+			if (title != "" and t == title) or (method != "" and p.has_method(method)):
+				return p
+	return null
+
+
+## Close the caller's window and open the window titled `title` (modal windows cannot stack).
+static func show_panel(node: Node, title: String) -> void:
+	for m in node.get_tree().get_nodes_in_group("pcs_refresh"):
+		if m.has_method("open_window"):
+			var own := node.get_window()
+			if own != null and own != node.get_tree().root:
+				own.hide()
+			m.open_window(title)
+			return
+
+
 ## Pre-fill the Legislate panel with a clause and switch to it. Changing a budget line or tax is a law (A8):
 ## the player still drafts and submits it there. Returns an error text, or "" on success.
 static func propose(node: Node, lever: String, value: int) -> String:
-	var tabs := node.get_parent()
-	var leg: Node = null
-	if tabs != null:
-		for c in tabs.get_children():
-			if c.has_method("panel_title") and c.panel_title() == "Legislate":
-				leg = c
+	var leg: Node = find_panel(node, "Legislate")
 	if leg == null:
 		return "Legislate panel not found"
 	if leg.has_method("prefill"):
@@ -75,9 +93,8 @@ static func propose(node: Node, lever: String, value: int) -> String:
 			return "The draft already has 4 clauses"
 		cl.append({"lever": lever, "to": value})
 		leg.clauses = cl
-	if tabs is TabContainer:
-		(tabs as TabContainer).current_tab = leg.get_index()
 	node.get_tree().call_group("pcs_refresh", "refresh_all")
+	show_panel(node, "Legislate")
 	return ""
 
 

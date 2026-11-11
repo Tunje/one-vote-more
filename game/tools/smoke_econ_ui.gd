@@ -62,7 +62,7 @@ func _initialize() -> void:
 	_ok(err == "", "propose() pre-fills Legislate (%s)" % err)
 	var cl: Array = leg.clauses.filter(func(c): return c["lever"] == "ECON_INCOME_TAX_RATE")
 	_ok(cl.size() == 1 and cl[0]["to"] == 27, "Legislate has clause income tax → 27")
-	_ok(main.tabs.get_child(main.tabs.current_tab) == leg, "tab switched to Legislate")
+	_ok(main.windows.has("Legislate") and main.windows["Legislate"].visible, "Legislate window opened")
 
 	# commission → tender → manual award
 	var bad: Dictionary = EconActions.enqueue(w, "ECON_COMMISSION_PROJECT", {"type": "CASTLE", "district": "d:1"})

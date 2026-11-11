@@ -124,9 +124,9 @@ func _load_extra_panels() -> void:
 
 ## Which window group each tool belongs to (by panel title). Unlisted panels go under "More".
 const WINDOW_GROUPS := [
-	["Govern", ["Legislate", "Budget", "Projects", "Personnel", "Staff briefing"]],
+	["Govern", ["Legislate", "Personnel", "Staff briefing"]],
 	["Politics", ["Parliament", "Parties", "My Party", "Opposition"]],
-	["Economy", ["Companies"]],
+	["Economy", ["Budget", "Projects", "Companies"]],
 	["Help", ["Why?"]],
 ]
 var toolbar: HBoxContainer

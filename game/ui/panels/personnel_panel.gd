@@ -88,7 +88,7 @@ func _tasks(parent: VBoxContainer, w: WorldState, c: Dictionary, owner: Dictiona
 			line = "%s — coverage %d%%, effectiveness %d%%" % [t["name"], t["coverage_pct"], t["effectiveness_pct"]]
 		Kit.label(parent, line, 15, Color(1, 0.6, 0.6) if t["paused"] else Color.WHITE)
 		var modes := Kit.hbox(parent)
-		Kit.label(modes, "   mode:", 12)
+		_compact(Kit.label(modes, "   mode:", 12))
 		for m in ["RUSH", "NORMAL", "CAREFUL"]:
 			Kit.button(modes, m.capitalize(), func(): _do({"id": "STAFF_SET_TASK_MODE", "actor": _actor(c),
 				"args": {"task_id": t["id"], "mode": m}}), t["mode"] == m)
@@ -96,13 +96,21 @@ func _tasks(parent: VBoxContainer, w: WorldState, c: Dictionary, owner: Dictiona
 			var row := Kit.hbox(parent)
 			Kit.label(row, "   %s%s (%s): " % [p["role"], " *" if p["mandatory"] else "", p["requirements"]], 13)
 			if p["assigned"] != "":
-				Kit.label(row, p["assigned_name"], 13, Color(0.7, 1, 0.7))
+				_compact(Kit.label(row, p["assigned_name"], 13, Color(0.7, 1, 0.7)))
 				Kit.button(row, "Unassign", func(): _do({"id": "STAFF_UNASSIGN", "actor": _actor(c), "args": {"person_id": p["assigned"]}}))
 				Kit.button(row, "Replace…", func(): selected = {"task_id": t["id"], "pos": p["idx"]}; refresh())
 			else:
-				Kit.label(row, "vacant", 13, Color(1, 0.6, 0.6) if p["mandatory"] else Color(0.7, 0.7, 0.7))
+				_compact(Kit.label(row, "vacant", 13, Color(1, 0.6, 0.6) if p["mandatory"] else Color(0.7, 0.7, 0.7)))
 				Kit.button(row, "Assign…", func(): selected = {"task_id": t["id"], "pos": p["idx"]}; refresh())
 	Kit.label(parent, "* mandatory position: the task pauses while it is vacant.", 11, Color(0.7, 0.7, 0.7))
+
+
+## Short labels in a row keep their natural width, so the long label (and the buttons) get the space.
+## Kit.label expands with a 160 px minimum to stop long wrapping labels collapsing; that's wrong for one word.
+static func _compact(l: Label) -> void:
+	l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	l.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	l.custom_minimum_size = Vector2.ZERO
 
 
 func _candidates(parent: VBoxContainer, w: WorldState, c: Dictionary) -> void:
