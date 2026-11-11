@@ -10,6 +10,7 @@ const AXIS_TEXT := {
 	"AUTONOMY": ["central control", "district autonomy"],
 	"FISCAL": ["balanced budget", "spend and borrow for growth"],
 	"INSTITUTIONS": ["strong executive, order", "checks and civil liberties"],
+	"SOVEREIGNTY": ["loyal to the home world", "independence"],
 }
 
 var session

@@ -223,10 +223,11 @@ func _panel_briefing() -> String:
 			t += "\n[color=#ffcc66][b]%d decision(s) waiting for you[/b][/color]\n" % dec.size()
 	t += "\n[b]What happened last month[/b]\n"
 	var facts := w.facts.query("", w.month - 1, w.month - 1, "PUBLIC")
-	facts.sort_custom(func(a, b): return a["magnitude"] > b["magnitude"])
-	for f in facts.slice(0, 12):
-		if f["magnitude"] >= 30:
-			t += "• %s\n" % _fact_text(f)
+	var lines := NewsText.digest(w, facts, 12, 30)
+	if lines.is_empty():
+		t += "[i]A quiet month.[/i]\n"
+	for line in lines:
+		t += "• %s\n" % line
 	return t
 
 
@@ -318,13 +319,7 @@ func _panel_news() -> String:
 
 
 func _fact_text(f: Dictionary) -> String:
-	var ty: String = f["type"]
-	var nice := ty.replace("_", " ").to_lower().capitalize()
-	var blame := ""
-	for r in f["responsible"]:
-		if r["actor"]["kind"] in ["GOVERNMENT", "COMMANDER"] and float(r["share"]) >= 0.5:
-			blame = " [color=#ff8a65](government responsible)[/color]"
-	return nice + blame
+	return NewsText.sentence(session.world(), f)
 
 
 static func _lean_text(v: float) -> String:
