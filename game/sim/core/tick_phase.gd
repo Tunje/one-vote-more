@@ -14,14 +14,15 @@ enum {
 	POLITICS,       # pol: perception, opinion, parties, polls, parliament, AI gov
 	EVENTS,         # pol/all: condition-triggered events
 	RECORD,         # kernel: history, compaction, briefing
+	NATURE,         # planet: climate, weather, storms, pollution drift (conditions only; damage is econ hazards). Runs after STAFF.
 }
 
-const ORDER: Array[int] = [DECISIONS, STAFF, TRADE, PRODUCTION, SETTLEMENT, COMPANY_AI, JUSTICE, SOCIAL, POLITICS, EVENTS, RECORD]
+const ORDER: Array[int] = [DECISIONS, STAFF, NATURE, TRADE, PRODUCTION, SETTLEMENT, COMPANY_AI, JUSTICE, SOCIAL, POLITICS, EVENTS, RECORD]
 
 const NAMES := {
 	DECISIONS: "DECISIONS", STAFF: "STAFF", TRADE: "TRADE", PRODUCTION: "PRODUCTION",
 	SETTLEMENT: "SETTLEMENT", COMPANY_AI: "COMPANY_AI", JUSTICE: "JUSTICE", SOCIAL: "SOCIAL",
-	POLITICS: "POLITICS", EVENTS: "EVENTS", RECORD: "RECORD",
+	POLITICS: "POLITICS", EVENTS: "EVENTS", RECORD: "RECORD", NATURE: "NATURE",
 }
 
 ## The last phase in which indicators may be finalized. Politics only reads after this.
