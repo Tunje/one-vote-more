@@ -9,11 +9,13 @@ func _initialize() -> void:
 		main.tabs.current_tab = i
 		main._refresh_panels()
 		var tab: Node = main.tabs.get_child(i)
-		if tab in main.extra_panels:   # auto-discovered interactive panels (ui/panels/*_panel.gd)
-			await process_frame
-			print("tab %s: %d nodes" % [tab.name, _count(tab)])
-		else:
-			print("tab %s: %d chars" % [tab.name, main.panels[tab.name].get_parsed_text().length()])
+		print("tab %s: %d chars" % [tab.name, main.panels[tab.name].get_parsed_text().length()])
+	# auto-discovered interactive panels (ui/panels/*_panel.gd) open as windows from the toolbar
+	for t in main.windows:
+		main.open_window(t)
+		await process_frame
+		print("window %s: %d nodes" % [t, _count(main.windows[t])])
+		main.windows[t].hide()
 	for o in ["UNEMPLOYMENT", "APPROVAL", "LEAN", "DISTRICTS"]:
 		main.map.overlay = o
 		main.map.refresh()

@@ -52,6 +52,11 @@ func _build_ui() -> void:
 	_button(bar, "+12 months", func(): _advance(12))
 	_button(bar, "End Month ▶", func(): _advance(1))
 
+	# Tools open as windows (playtest: 17 side tabs were too many). Grouped by what you are doing.
+	toolbar = HBoxContainer.new()
+	toolbar.add_theme_constant_override("separation", 6)
+	root.add_child(toolbar)
+
 	var split := HSplitContainer.new()
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(split)
@@ -112,12 +117,90 @@ func _load_extra_panels() -> void:
 		var p = script.new()
 		p.name = p.panel_title()
 		p.setup(session)
-		tabs.add_child(p)
 		extra_panels.append(p)
+		_make_window(p)
+	_build_toolbar()
+
+
+## Which window group each tool belongs to (by panel title). Unlisted panels go under "More".
+const WINDOW_GROUPS := [
+	["Govern", ["Legislate", "Budget", "Projects", "Personnel", "Staff briefing"]],
+	["Politics", ["Parliament", "Parties", "My Party", "Opposition"]],
+	["Economy", ["Companies"]],
+	["Help", ["Why?"]],
+]
+var toolbar: HBoxContainer
+var windows := {}   # panel title -> Window
+
+
+func _make_window(p: Control) -> void:
+	var win := Window.new()
+	win.title = p.name
+	win.size = Vector2i(1000, 760)
+	win.min_size = Vector2i(600, 400)
+	win.transient = true
+	win.exclusive = true          # modal: finish here, then close
+	win.visible = false
+	win.close_requested.connect(func(): win.hide(); _refresh())
+	var bg := ColorRect.new()
+	bg.color = Color("#23282e")
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	win.add_child(bg)
+	var m := MarginContainer.new()
+	m.set_anchors_preset(Control.PRESET_FULL_RECT)
+	for side in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 12)
+	win.add_child(m)
+	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	p.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	m.add_child(p)
+	add_child(win)
+	windows[String(p.name)] = win
+
+
+func _build_toolbar() -> void:
+	var placed := {}
+	var groups: Array = WINDOW_GROUPS.duplicate(true)
+	var more: Array = []
+	for t in windows:
+		var known := false
+		for g in groups:
+			if t in g[1]:
+				known = true
+		if not known:
+			more.append(t)
+	if not more.is_empty():
+		groups.append(["More", more])
+	for g in groups:
+		var any := false
+		for t in g[1]:
+			if windows.has(t):
+				any = true
+		if not any:
+			continue
+		var lab := _label(toolbar, "  " + String(g[0]) + ":", 13)
+		lab.modulate = Color("#9aa4ad")
+		for t in g[1]:
+			if windows.has(t) and not placed.has(t):
+				placed[t] = true
+				_button(toolbar, t, func(): open_window(t))
+
+
+func open_window(title: String) -> void:
+	var win: Window = windows.get(title)
+	if win == null:
+		return
+	var p: Control = win.get_child(1).get_child(0)
+	p.refresh()
+	win.popup_centered()
 
 
 func refresh_all() -> void:
 	_refresh()
+	for t in windows:
+		var win: Window = windows[t]
+		if win.visible:
+			win.get_child(1).get_child(0).refresh()
 
 
 func _label(parent: Node, text: String, size_px: int) -> Label:
@@ -174,9 +257,6 @@ func _refresh() -> void:
 
 func _refresh_panels() -> void:
 	var cur := tabs.get_child(tabs.current_tab)
-	if cur in extra_panels:
-		cur.refresh()
-		return
 	var name: String = cur.name
 	var r: RichTextLabel = panels[name]
 	r.clear()

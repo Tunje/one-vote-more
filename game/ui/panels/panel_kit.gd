@@ -41,6 +41,10 @@ static func label(parent: Node, text: String, size_px: int = 14, color: Color = 
 	l.add_theme_font_size_override("font_size", size_px)
 	l.modulate = color
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# A wrapping label has no natural width: inside a row (HBoxContainer) it would be squeezed to zero and
+	# print one letter per line. Give it room to grow and a sensible minimum.
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.custom_minimum_size = Vector2(160, 0)
 	parent.add_child(l)
 	return l
 
