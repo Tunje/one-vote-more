@@ -4,12 +4,15 @@ extends RefCounted
 ## each with an elevation level and a biome. The 64×40 colony grid (Terrain) lives INSIDE one region, the landing
 ## region. Generated per seed from its own RNG seed ("planet.terrain"), so it never moves other streams.
 ##
-## World table "planet": {"freq": int, "elev": String, "biome": String, "landing": int, "uses": {"<cell>": {...}}}
-##   elev:  one char per cell, '0'..'7' = level -2..5  (-2 deep ocean, -1 shallow sea, 0 lowland … 5 peaks)
-##   biome: one char per cell, see NAMES
-## Geometry (centres, corner polygons, neighbours) is pure maths of `freq` and is cached, not stored.
+## World table "planet" is small: {"freq": int, "gen": int, "landing": int, "uses": {"<cell>": {...}}}.
+## Heights and biomes are a pure function of (master seed, freq, gen), regenerated into a cache on first use
+## (also after a load) and never saved (Wilma: keep state_hash and saves small).
+##   height: per cell, in steps; sea level 0, land 0..~95, sea floor down to -40. Terrain is smooth: a cell's height
+##           is its centre; each corner is the mean of the 3 cells meeting there.
+## Geometry (centres, corner polygons, neighbours) is pure maths of `freq` and is cached too.
 
-const FREQ := 7                 # 10·f²+2 cells: 7 → 492 regions (big hexes)
+const FREQ := 32                # 10·f²+2 cells: 32 → 10 242 regions (user: "the 10 000 range")
+const METERS_PER_STEP := 80     # one height step in metres (tooltips)
 const SEA_FRACTION := 0.56
 const NAMES := {
 	"D": "deep ocean", "S": "shallow sea", "I": "ice", "T": "tundra", "d": "desert", "s": "steppe",
@@ -17,10 +20,13 @@ const NAMES := {
 	"h": "hills", "H": "highlands", "M": "mountains", "P": "peaks",
 }
 const WATER := ["D", "S"]
-const MIN_LEVEL := -2
-const MAX_LEVEL := 5
+const GEN_VERSION := 1          # bump when the generator changes (old saves keep their own planet version)
+## Coarse levels from height (for rules and text): -2 deep sea, -1 shallow, 0 lowland, 1 upland, 2 hills,
+## 3 highlands, 4 mountains, 5 peaks.
+const LEVEL_CUTS := [10, 20, 35, 50, 70]
 
-static var _geo := {}           # freq -> {"centers", "corners", "nbrs", "edge_nbr"}
+static var _geo := {}           # freq -> {"centers", "corners", "corner_tri", "tris", "nbrs", "edge_nbr"}
+static var _cache := {}         # "seed|freq|gen" -> {"h", "bio", "landing"}
 
 
 # ================================================================== geometry
@@ -74,6 +80,7 @@ static func geometry(freq: int = FREQ) -> Dictionary:
 		for v in tr:
 			inc[v].append(t)
 	var corners: Array = []
+	var corner_tri: Array = []  # cell -> PackedInt32Array of triangle ids, matching corners
 	var edge_nbr: Array = []
 	var nbrs: Array = []
 	for v in n:
@@ -90,6 +97,7 @@ static func geometry(freq: int = FREQ) -> Dictionary:
 			poly.reverse()
 			ts.reverse()
 		corners.append(poly)
+		corner_tri.append(PackedInt32Array(ts))
 		# the neighbour across edge k shares both triangles ts[k] and ts[k+1]
 		var en := PackedInt32Array()
 		for k in ts.size():
@@ -102,7 +110,11 @@ static func geometry(freq: int = FREQ) -> Dictionary:
 			en.append(other)
 		edge_nbr.append(en)
 		nbrs.append(en.duplicate())
-	_geo[freq] = {"centers": centers, "corners": corners, "edge_nbr": edge_nbr, "nbrs": nbrs}
+	var flat := PackedInt32Array()
+	for tr in tris:
+		flat.append_array(PackedInt32Array(tr))
+	_geo[freq] = {"centers": centers, "corners": corners, "corner_tri": corner_tri, "tris": flat,
+		"edge_nbr": edge_nbr, "nbrs": nbrs}
 	return _geo[freq]
 
 
@@ -114,18 +126,26 @@ static func cell_count_for(freq: int) -> int:
 	return 10 * freq * freq + 2
 
 
-## Cell whose centre is nearest to direction `dir` (any length).
-static func cell_at(dir: Vector3, freq: int = FREQ) -> int:
+## Cell whose centre is nearest to direction `dir` (any length). Greedy walk over neighbours from `start`
+## (exact on a sphere's Voronoi cells; fast when `start` is close, e.g. the last hovered cell).
+static func cell_at(dir: Vector3, freq: int = FREQ, start: int = 0) -> int:
 	var d := dir.normalized()
-	var cs: PackedVector3Array = geometry(freq)["centers"]
-	var best := 0
-	var bd := -2.0
-	for i in cs.size():
-		var dd := cs[i].dot(d)
-		if dd > bd:
-			bd = dd
-			best = i
-	return best
+	var geo := geometry(freq)
+	var cs: PackedVector3Array = geo["centers"]
+	var nb: Array = geo["nbrs"]
+	var cur := clampi(start, 0, cs.size() - 1)
+	var cd := cs[cur].dot(d)
+	while true:
+		var best := cur
+		for j in nb[cur]:
+			var dd := cs[j].dot(d)
+			if dd > cd:
+				cd = dd
+				best = j
+		if best == cur:
+			return cur
+		cur = best
+	return cur
 
 
 ## Latitude and longitude of a cell centre, in degrees (y is the rotation axis).
@@ -137,31 +157,41 @@ static func lat_lon(i: int, freq: int = FREQ) -> Vector2:
 # ================================================================== generation
 
 ## Idempotent: does nothing if the world already has a planet (several setups call it).
+## Stores only the small "planet" table; heights and biomes are regenerated from the seed into a cache.
 static func generate(world: WorldState, freq: int = FREQ) -> void:
 	if ready(world):
 		return
+	var tb := world.table("planet")
+	tb["freq"] = freq
+	tb["gen"] = GEN_VERSION
+	var d := _data(world)
+	tb["landing"] = d["landing"]
+	tb["uses"] = {str(d["landing"]): {"colony": true}}
+
+
+## Generated planet for this world: {"h": PackedInt32Array, "bio": String, "landing": int}. A pure function of
+## the master seed, frequency and generator version, so it is cached (bounded) and never saved.
+static func _data(world: WorldState) -> Dictionary:
+	var fq := freq(world)
+	var sd := world.rng.derive_seed("planet.terrain")   # own generator: never advances shared streams
+	var key := "%d|%d|%d" % [sd, fq, int(world.peek("planet").get("gen", GEN_VERSION))]
+	if not _cache.has(key):
+		if _cache.size() >= 6:
+			_cache.clear()
+		_cache[key] = _compute(sd, fq)
+	return _cache[key]
+
+
+static func _compute(sd: int, freq: int) -> Dictionary:
 	var r := RandomNumberGenerator.new()
-	r.seed = world.rng.derive_seed("planet.terrain")   # own generator: never advances shared streams
+	r.seed = sd
 	var geo := geometry(freq)
 	var cs: PackedVector3Array = geo["centers"]
 	var nb: Array = geo["nbrs"]
 	var n := cs.size()
-	var base := FastNoiseLite.new()
-	base.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	base.seed = r.randi() & 0x7fffffff
-	base.frequency = 0.9
-	base.fractal_type = FastNoiseLite.FRACTAL_FBM
-	base.fractal_octaves = 4
-	var ridge := FastNoiseLite.new()
-	ridge.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	ridge.seed = r.randi() & 0x7fffffff
-	ridge.frequency = 1.3
-	ridge.fractal_type = FastNoiseLite.FRACTAL_RIDGED
-	ridge.fractal_octaves = 3
-	var wet := FastNoiseLite.new()
-	wet.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	wet.seed = r.randi() & 0x7fffffff
-	wet.frequency = 1.1
+	var base := _noise(r.randi(), 0.9, FastNoiseLite.FRACTAL_FBM, 6)
+	var ridge := _noise(r.randi(), 1.1, FastNoiseLite.FRACTAL_RIDGED, 5)
+	var wet := _noise(r.randi(), 1.1, FastNoiseLite.FRACTAL_FBM, 4)
 	# a few continental shields so land comes in continents, not speckle
 	var shields: Array = []
 	for _k in r.randi_range(3, 5):
@@ -176,91 +206,105 @@ static func generate(world: WorldState, freq: int = FREQ) -> void:
 			var ang := acos(clampf(cs[i].dot(s[0]), -1.0, 1.0))
 			v += float(s[2]) * maxf(0.0, 1.0 - ang / float(s[1]))
 		e[i] = v
-	# rank-normalise: a fixed share of ocean, then land levels by quantile
 	var order: Array = range(n)
 	order.sort_custom(func(a, b): return e[a] < e[b] or (e[a] == e[b] and a < b))
-	var lvl := PackedInt32Array()
-	lvl.resize(n)
 	var n_sea := int(round(n * SEA_FRACTION))
+	var sea_e: float = e[order[n_sea]]
+	var land := PackedByteArray()
+	land.resize(n)
 	for rank in n:
-		var i: int = order[rank]
-		if rank < int(n_sea * 0.55):
-			lvl[i] = -2
-		elif rank < n_sea:
-			lvl[i] = -1
-		else:
-			lvl[i] = 0
-	# tidy coastlines: lone islets sink, enclosed puddles fill (two passes, in index order)
+		land[order[rank]] = 0 if rank < n_sea else 1
+	# tidy coastlines: lone islets sink, enclosed puddles fill
 	for _pass in 2:
 		for i in n:
 			var land_n := 0
 			for j in nb[i]:
-				if lvl[j] >= 0:
-					land_n += 1
-			if lvl[i] >= 0 and land_n == 0 and r.randf() < 0.75:
-				lvl[i] = -1
-			elif lvl[i] < 0 and land_n >= nb[i].size() - 1:
-				lvl[i] = 0
-	# land relief: lowland base plus ridged mountain belts, again by quantile among land
-	var land: Array = []
-	var relief := {}
+				land_n += land[j]
+			if land[i] == 1 and land_n == 0 and r.randf() < 0.75:
+				land[i] = 0
+			elif land[i] == 0 and land_n >= nb[i].size() - 1:
+				land[i] = 1
+	var coast := PackedByteArray()
+	coast.resize(n)
 	for i in n:
-		if lvl[i] >= 0:
-			var p2: Vector3 = cs[i] * 2.0
+		for j in nb[i]:
+			if land[j] != land[i]:
+				coast[i] = 1
+	# heights by quantile: land relief = continental height + ridged mountain belts; sea floor by depth rank
+	var land_ids: Array = []
+	var sea_ids: Array = []
+	var relief := PackedFloat32Array()
+	relief.resize(n)
+	for i in n:
+		if land[i] == 1:
+			var p2: Vector3 = cs[i] * 1.6
 			var rg := ridge.get_noise_3d(p2.x, p2.y, p2.z)
-			relief[i] = (e[i] - e[order[n_sea]]) * 1.2 + rg * 0.8 + r.randf() * 0.05
-			land.append(i)
-	land.sort_custom(func(a, b): return relief[a] < relief[b] or (relief[a] == relief[b] and a < b))
-	var cuts := [0.38, 0.66, 0.82, 0.92, 0.975]   # → 0 lowland, 1 upland, 2 hills, 3 highlands, 4 mountains, 5 peaks
-	for rank in land.size():
-		var q := float(rank) / float(maxi(1, land.size()))
-		var L := 0
-		for c in cuts:
-			if q >= c:
-				L += 1
-		lvl[land[rank]] = L
-	# coast: land touching the sea is never above highlands
+			relief[i] = (e[i] - sea_e) * 1.1 + maxf(0.0, rg) * 0.9 + r.randf() * 0.01
+			land_ids.append(i)
+		else:
+			relief[i] = e[i]
+			sea_ids.append(i)
+	land_ids.sort_custom(func(a, b): return relief[a] < relief[b] or (relief[a] == relief[b] and a < b))
+	sea_ids.sort_custom(func(a, b): return relief[a] < relief[b] or (relief[a] == relief[b] and a < b))
+	var h := PackedInt32Array()
+	h.resize(n)
+	var qs := [0.0, 0.38, 0.66, 0.82, 0.92, 0.975, 1.0]
+	var hs := [0.0, 10.0, 20.0, 35.0, 50.0, 70.0, 95.0]
+	for rank in land_ids.size():
+		var q := float(rank) / float(maxi(1, land_ids.size() - 1))
+		var k := 1
+		while k < qs.size() - 1 and q > qs[k]:
+			k += 1
+		var t: float = (q - qs[k - 1]) / (qs[k] - qs[k - 1])
+		h[land_ids[rank]] = roundi(lerpf(hs[k - 1], hs[k], t))
+	for rank in sea_ids.size():
+		var q2 := float(rank) / float(maxi(1, sea_ids.size() - 1))
+		h[sea_ids[rank]] = -1 - roundi(39.0 * pow(1.0 - q2, 1.6))
 	for i in n:
-		if lvl[i] > 3:
-			for j in nb[i]:
-				if lvl[j] < 0:
-					lvl[i] = 3
-					break
+		if coast[i] == 1:
+			h[i] = mini(h[i], 30) if land[i] == 1 else maxi(h[i], -4)
 	# climate → biome
 	var bio := PackedStringArray()
 	bio.resize(n)
 	for i in n:
 		var c: Vector3 = cs[i]
 		var lat_f := absf(rad_to_deg(asin(clampf(c.y, -1.0, 1.0)))) / 90.0
-		var temp := 1.0 - pow(lat_f, 1.5) - maxf(0, lvl[i]) * 0.06
-		var near_sea := false
-		for j in nb[i]:
-			if lvl[j] < 0:
-				near_sea = true
+		var temp := 1.0 - pow(lat_f, 1.5) - maxf(0, h[i]) * 0.0065
 		var p3: Vector3 = c * 2.0
-		var moist := 0.5 + wet.get_noise_3d(p3.x, p3.y, p3.z) * 0.7 + (0.18 if near_sea else 0.0)
-		# dry belts around ±25° (subtropical highs), wet equator
+		var moist := 0.5 + wet.get_noise_3d(p3.x, p3.y, p3.z) * 0.7 + (0.18 if coast[i] == 1 else 0.0)
 		# wet equator, dry belts around 25° (subtropical highs)
 		moist += 0.15 * maxf(0.0, 1.0 - lat_f / 0.12) - 0.3 * maxf(0.0, 1.0 - absf(lat_f - 0.3) / 0.12)
-		bio[i] = _biome(lvl[i], temp, moist)
-	var landing := _choose_landing(cs, nb, lvl, bio, r)
-	var elev := ""
-	for i in n:
-		elev += String.chr(48 + lvl[i] - MIN_LEVEL)
-	var t := world.table("planet")
-	t["freq"] = freq
-	t["elev"] = elev
-	t["biome"] = "".join(bio)
-	t["landing"] = landing
-	t["uses"] = {str(landing): {"colony": true}}
+		bio[i] = _biome(h[i], temp, moist)
+	var landing := _choose_landing(cs, nb, h, bio, r)
+	return {"h": h, "bio": "".join(bio), "landing": landing}
 
 
-static func _biome(level: int, temp: float, moist: float) -> String:
-	if level < 0:
-		return "I" if temp < 0.05 else ("D" if level == -2 else "S")
+static func _noise(sd: int, fq: float, fractal: int, octaves: int) -> FastNoiseLite:
+	var nz := FastNoiseLite.new()
+	nz.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	nz.seed = sd & 0x7fffffff
+	nz.frequency = fq
+	nz.fractal_type = fractal
+	nz.fractal_octaves = octaves
+	return nz
+
+
+static func level_of(height_v: int) -> int:
+	if height_v < 0:
+		return -2 if height_v < -8 else -1
+	var lv := 0
+	for c in LEVEL_CUTS:
+		if height_v >= c:
+			lv += 1
+	return lv
+
+
+static func _biome(height_v: int, temp: float, moist: float) -> String:
+	if height_v < 0:
+		return "I" if temp < 0.05 else ("D" if height_v < -8 else "S")
 	if temp < 0.12:
 		return "I"
-	match level:
+	match level_of(height_v):
 		5: return "P"
 		4: return "M"
 		3: return "H"
@@ -271,28 +315,29 @@ static func _biome(level: int, temp: float, moist: float) -> String:
 		return "d" if temp > 0.6 else "s"
 	if moist > 0.78 and temp > 0.68:
 		return "j"
-	if moist > 0.82 and level == 0:
+	if moist > 0.82 and height_v < 6:
 		return "w"
-	if level == 0 and moist > 0.45 and temp > 0.4:
+	if height_v < 10 and moist > 0.45 and temp > 0.4:
 		return "f"
 	if moist > 0.6:
 		return "F"
 	return "g"
 
 
-## Landing: temperate lowland or upland near the sea, preferring fertile ground with hills in sight
+## Landing: temperate lowland or upland near the sea, preferring fertile ground with hills nearby
 ## (the colony grid inside it has a river, hills and deposits).
-static func _choose_landing(cs: PackedVector3Array, nb: Array, lvl: PackedInt32Array, bio: PackedStringArray, r: RandomNumberGenerator) -> int:
+static func _choose_landing(cs: PackedVector3Array, nb: Array, h: PackedInt32Array, bio: PackedStringArray, r: RandomNumberGenerator) -> int:
 	var best := -1
 	var best_s := INF
 	for i in cs.size():
-		if not (bio[i] in ["g", "f", "F"]) or lvl[i] > 1:
+		if not (bio[i] in ["g", "f", "F"]) or h[i] >= 20:
 			continue
 		var sea := false
 		var hills := false
 		for j in nb[i]:
-			sea = sea or lvl[j] < 0
-			hills = hills or lvl[j] >= 2
+			sea = sea or h[j] < 0
+			for k in nb[j]:
+				hills = hills or h[k] >= 20
 		var s := absf(absf(cs[i].y) - 0.6) * 2.0 + r.randf() * 0.3
 		s += 0.0 if sea else 0.6
 		s -= 0.25 if hills else 0.0
@@ -302,7 +347,7 @@ static func _choose_landing(cs: PackedVector3Array, nb: Array, lvl: PackedInt32A
 			best = i
 	if best < 0:   # no temperate lowland at all: the lowest land cell
 		for i in cs.size():
-			if lvl[i] >= 0 and (best < 0 or lvl[i] < lvl[best]):
+			if h[i] >= 0 and (best < 0 or h[i] < h[best]):
 				best = i
 	return best
 
@@ -310,7 +355,7 @@ static func _choose_landing(cs: PackedVector3Array, nb: Array, lvl: PackedInt32A
 # ================================================================== reads
 
 static func ready(world: WorldState) -> bool:
-	return world.peek("planet").has("elev")
+	return world.peek("planet").has("landing")
 
 
 static func freq(world: WorldState) -> int:
@@ -318,19 +363,34 @@ static func freq(world: WorldState) -> int:
 
 
 static func cell_count(world: WorldState) -> int:
-	return String(world.peek("planet").get("elev", "")).length()
+	return cell_count_for(freq(world))
+
+
+## Height of a cell centre in steps (sea level 0; one step = METERS_PER_STEP m).
+static func height(world: WorldState, i: int) -> int:
+	return _data(world)["h"][i]
+
+
+## All heights at once (rendering). Shared, do not modify.
+static func heights(world: WorldState) -> PackedInt32Array:
+	return _data(world)["h"]
+
+
+## All biome codes, one char per cell.
+static func biomes(world: WorldState) -> String:
+	return _data(world)["bio"]
 
 
 static func level(world: WorldState, i: int) -> int:
-	return String(world.peek("planet")["elev"]).unicode_at(i) - 48 + MIN_LEVEL
+	return level_of(height(world, i))
 
 
 static func biome(world: WorldState, i: int) -> String:
-	return String(world.peek("planet")["biome"]).substr(i, 1)
+	return String(_data(world)["bio"]).substr(i, 1)
 
 
 static func is_water(world: WorldState, i: int) -> bool:
-	return level(world, i) < 0
+	return height(world, i) < 0
 
 
 static func landing(world: WorldState) -> int:
@@ -348,5 +408,7 @@ static func use_at(world: WorldState, i: int) -> Dictionary:
 ## One-line description of a cell for tooltips and news.
 static func describe(world: WorldState, i: int) -> String:
 	var ll := lat_lon(i, freq(world))
-	return "%s · elevation %d · %d°%s %d°%s" % [String(NAMES.get(biome(world, i), "?")).capitalize(), level(world, i),
+	var hh := height(world, i)
+	var alt := ("%d m" % (hh * METERS_PER_STEP)) if hh >= 0 else ("%d m deep" % (-hh * METERS_PER_STEP))
+	return "%s · %s · %d°%s %d°%s" % [String(NAMES.get(biome(world, i), "?")).capitalize(), alt,
 		absi(roundi(ll.x)), "N" if ll.x >= 0 else "S", absi(roundi(ll.y)), "E" if ll.y >= 0 else "W"]

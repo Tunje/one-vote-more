@@ -73,3 +73,9 @@ Bob builds:
   - Lawful only with rehousing capacity ≥ residents, or a court eviction order.
   - An unlawful clearance by a private landlord is reported as greed kind ILLEGAL_EVICTION.
 - **Before placing anything:** `LandLaw.can_build(world, actor, tile, use)` → `{ok, reasons}`. Building on government land without a title is refused unless the builder is the state.
+
+## Planet (Terra, 2026-11-11)
+- In A2, wherever EconSetup calls `Terrain.generate(world)`, call `Planet.generate(world)` (sim/planet/planet.gd) just before it.
+- It is idempotent, uses its own RNG, and stores only a small "planet" table.
+- The 64×40 colony grid lives inside the landing hex region of a 10,242-region globe (`spec-planet-v1.md`).
+- Freight between globe regions may matter later.

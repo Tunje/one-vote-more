@@ -178,6 +178,7 @@ func test_exposed_smear_backfires_on_the_smearer() -> void:
 	check(int(c["parties"][a]["momentum"]) < 0, "smearer loses momentum")
 	check(int(c["parties"][b]["momentum"]) > mb, "victim gains sympathy")
 	check_eq(w.facts.query("POL_SMEAR_EXPOSED").size(), 1, "news")
+	check(String(w.facts.query("POL_SMEAR_EXPOSED")[0]["data"].get("case", "")) != "", "the victim sues for defamation (Anni's court)")
 
 
 func test_ground_game_mobilises_and_is_capped() -> void:
@@ -224,6 +225,37 @@ func test_extra_election_gets_a_compressed_campaign() -> void:
 	check(not c.is_empty(), "opened")
 	check(bool(c["extra"]), "extra")
 	check_eq(int(c["election_month"]), w.month + 2, "for the extra election")
+
+
+func test_player_runs_their_own_campaign() -> void:
+	var sim := PoliticalSim.make(3, "BALANCED", {}, false)   # a human player: no autoplay
+	_run_to(sim, FIRST_ELECTION - 4)
+	var w := sim.world
+	var pp := String(_st(w).get("player_party", ""))
+	var c := Campaign.current(w)
+	check(pp != "" and c["parties"].has(pp), "player party campaigns")
+	var e: Dictionary = c["parties"][pp]
+	check(bool(e["manual"]), "a human's campaign is not replanned by the AI")
+	check_eq(e["themes"].size(), 2, "starts from the AI's suggestion")
+	check(not Campaign.player_set_themes(w, ["JOBS", "HOUSING", "SAFETY"])["ok"], "at most two themes")
+	check(Campaign.player_set_themes(w, ["JOBS"])["ok"], "set themes")
+	check_eq(e["themes"], ["JOBS"], "themes stored")
+	check(not Campaign.player_set_split(w, 500, 500, 100)["ok"], "split must sum to 100%")
+	check(Campaign.player_set_split(w, 400, 400, 200)["ok"], "split")
+	var rival := ""
+	for pid in Det_ordered(c["parties"]):
+		if pid != pp:
+			rival = pid
+			break
+	check(not Campaign.player_set_tone(w, "NEGATIVE", "")["ok"], "negative needs a target")
+	check(Campaign.player_set_tone(w, "NEGATIVE", rival)["ok"], "go negative")
+	check_eq(e["target"], rival, "target stored")
+	check_eq(w.facts.query("POL_CAMPAIGN_GOES_NEGATIVE").filter(func(f): return f["data"]["party"] == pp).size(), 1, "news")
+	e["dirt"].append({"kind": "PERSONAL", "target": rival, "fid": "", "sev": 20, "found": w.month, "released": -1, "exposed": false})
+	_tick(sim)
+	check_eq(int(e["dirt"][0]["released"]), -1, "the player's dirt is held until they release it")
+	check(Campaign.player_release_dirt(w, 0)["ok"], "release")
+	check(not Campaign.player_release_dirt(w, 0)["ok"], "only once")
 
 
 func test_deterministic_and_save_load_mid_campaign() -> void:

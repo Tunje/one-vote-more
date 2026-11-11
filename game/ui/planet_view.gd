@@ -1,16 +1,15 @@
 class_name PlanetView
 extends Control
-## Terra: the 3D globe. Big hex regions extruded by elevation level (oceans flat, mountains tall), coloured by
-## biome, with the landing region marked. Drag to turn the globe, wheel to zoom, hover for info,
+## Terra: the 3D globe. About 10 000 hex regions on smooth terrain (each centre and corner has its own height;
+## oceans flat, mountain ranges rising continuously), coloured by biome, with the landing region marked. Drag to turn the globe, wheel to zoom, hover for info,
 ## click the landing region to open the colony map (signal colony_requested).
 ## Presentation only: reads Planet (world table "planet"); never writes the world.
 
 signal colony_requested
 signal cell_selected(cell: int)
 
-const STEP := 0.02            # radius per elevation level
-const LAND_BASE := 0.008       # lowland sits this far above sea level
-const INSET := 0.9             # hex top inset: the rim between INSET and 1.0 is drawn darker (crisp hex edges)
+const RELIEF := 0.0008         # radius per height step (heights reach ~95: peaks stand ~7% above the sea; exaggerated)
+const EDGE_DARK := 0.1         # corner vertices this much darker: a faint hex grid
 const BIOME_COLORS := {
 	"D": Color("#173b6b"), "S": Color("#2d6aa3"), "I": Color("#e8f0f4"), "T": Color("#8c9a86"),
 	"d": Color("#d8c07a"), "s": Color("#b5b06a"), "g": Color("#7fae55"), "f": Color("#5fa140"),
@@ -28,10 +27,11 @@ var _info: Label
 var _built_for := ""           # planet signature the mesh was built for
 var _yaw := 0.0
 var _pitch := 0.3
-var _dist := 3.2
+var _dist := 3.0
 var _dragging := false
 var _drag_moved := 0.0
 var _hover := -1
+var _corner_h := PackedFloat32Array()   # display height per corner (geometry triangle)
 
 
 func _ready() -> void:
@@ -64,7 +64,7 @@ func _ready() -> void:
 	# the sun rides with the camera (from upper left), so the side you look at is always lit
 	var sun := DirectionalLight3D.new()
 	sun.light_energy = 1.3
-	sun.rotation = Vector3(deg_to_rad(-30), deg_to_rad(-35), 0)
+	sun.rotation = Vector3(deg_to_rad(-25), deg_to_rad(-62), 0)
 	_cam.add_child(sun)
 	_globe = MeshInstance3D.new()
 	_vp.add_child(_globe)
@@ -83,7 +83,6 @@ func _ready() -> void:
 	_place_camera()
 	refresh()
 
-
 ## Rebuild the globe if the world's planet changed (new game / load); otherwise just update the label.
 func refresh() -> void:
 	if _vp == null:
@@ -93,7 +92,7 @@ func refresh() -> void:
 		_info.text = "No planet yet."
 		return
 	var w := session.world()
-	var sig := "%d|%s|%s" % [Planet.landing(w), String(w.peek("planet")["elev"]).md5_text(), String(w.peek("planet")["biome"]).md5_text()]
+	var sig := "%d|%d|%d" % [Planet.landing(w), Planet.freq(w), w.rng.derive_seed("planet.terrain")]
 	if sig != _built_for:
 		_built_for = sig
 		_build_globe(w)
@@ -114,56 +113,83 @@ func _place_camera() -> void:
 	if _cam == null:
 		return
 	_pitch = clampf(_pitch, -1.45, 1.45)
-	_dist = clampf(_dist, 1.6, 6.0)
+	_dist = clampf(_dist, 1.15, 6.0)
 	var dir := Vector3(cos(_pitch) * sin(_yaw), sin(_pitch), cos(_pitch) * cos(_yaw))
 	_cam.transform = Transform3D(Basis.looking_at(-dir, Vector3.UP if absf(_pitch) < 1.4 else Vector3.FORWARD), dir * _dist)
 
 
 # ------------------------------------------------------------------ mesh
 
-func _radius(level: int) -> float:
-	return 1.0 if level < 0 else 1.0 + LAND_BASE + STEP * float(level)
+## Display radius of a (display) height: the sea is flat at radius 1, land rises above it.
+func _r(h: float) -> float:
+	return 1.0 + RELIEF * maxf(h, 0.0)
 
 
+func _cell_color(code: String, h: int, i: int) -> Color:
+	if h < 0 and code != "I":
+		return BIOME_COLORS["S"].lerp(BIOME_COLORS["D"], clampf(-float(h) / 30.0, 0.0, 1.0))
+	var col: Color = BIOME_COLORS.get(code, Color.MAGENTA)
+	# small per-cell variation so neighbouring cells of one biome stay distinguishable
+	return col.darkened(float(posmod(i * 7919, 7)) * 0.012)
+
+
+## Smooth terrain: each cell is a fan from its centre (its own height) to its corners; a corner's height is the
+## mean of the three cells meeting there, so slopes run continuously across cells. The corner vertices are a
+## little darker, which draws the hex grid faintly.
 func _build_globe(w: WorldState) -> void:
-	var fq := Planet.freq(w)
-	var geo := Planet.geometry(fq)
+	var geo := Planet.geometry(Planet.freq(w))
 	var cs: PackedVector3Array = geo["centers"]
-	var land := SurfaceTool.new()
-	var water := SurfaceTool.new()
-	land.begin(Mesh.PRIMITIVE_TRIANGLES)
-	water.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var tris: PackedInt32Array = geo["tris"]
+	var hts := Planet.heights(w)
+	var bio := Planet.biomes(w)
+	var nt := tris.size() / 3
+	_corner_h = PackedFloat32Array()
+	_corner_h.resize(nt)
+	var tn := PackedVector3Array()
+	tn.resize(nt)
+	for t in nt:
+		var a := tris[3 * t]
+		var b := tris[3 * t + 1]
+		var c := tris[3 * t + 2]
+		var ha := maxf(hts[a], 0.0)
+		var hb := maxf(hts[b], 0.0)
+		var hc := maxf(hts[c], 0.0)
+		_corner_h[t] = (ha + hb + hc) / 3.0
+		var pa := cs[a] * _r(ha)
+		var nn := (cs[b] * _r(hb) - pa).cross(cs[c] * _r(hc) - pa).normalized()
+		tn[t] = nn if nn.dot(pa) > 0.0 else -nn
+	var surf := [_arrays(), _arrays()]   # 0 land, 1 water
 	for i in cs.size():
-		var lv := Planet.level(w, i)
-		var st := water if lv < 0 else land
-		var col: Color = BIOME_COLORS.get(Planet.biome(w, i), Color.MAGENTA)
-		# small per-cell variation so neighbouring cells of one biome stay distinguishable
-		col = col.darkened(float(posmod(i * 7919, 9)) * 0.012)
-		var r := _radius(lv)
+		var s: Array = surf[1 if hts[i] < 0 else 0]
+		var v: PackedVector3Array = s[Mesh.ARRAY_VERTEX]
+		var nr: PackedVector3Array = s[Mesh.ARRAY_NORMAL]
+		var co: PackedColorArray = s[Mesh.ARRAY_COLOR]
+		var ix: PackedInt32Array = s[Mesh.ARRAY_INDEX]
+		var col := _cell_color(bio.substr(i, 1), hts[i], i)
+		var edge := col.darkened(EDGE_DARK)
 		var poly: PackedVector3Array = geo["corners"][i]
-		var c: Vector3 = cs[i]
-		var top := c * r
-		var rim := col.darkened(0.22) if lv >= 0 else col.darkened(0.08)
+		var ct: PackedInt32Array = geo["corner_tri"][i]
 		var m := poly.size()
+		var base := v.size()
+		var cn := Vector3.ZERO
 		for k in m:
-			var a: Vector3 = poly[k] * r
-			var b: Vector3 = poly[(k + 1) % m] * r
-			var ai := top.lerp(a, INSET)
-			var bi := top.lerp(b, INSET)
-			_tri(st, top, ai, bi, c, col)
-			_quad(st, ai, a, b, bi, c, rim)
-		# walls down to each lower neighbour
-		var en: PackedInt32Array = geo["edge_nbr"][i]
+			cn += tn[ct[k]]
+		v.append(cs[i] * _r(hts[i]))
+		nr.append(cn.normalized())
+		co.append(col)
 		for k in m:
-			var j := en[k]
-			var rn := _radius(Planet.level(w, j)) if j >= 0 else 1.0
-			if rn >= r:
-				continue
-			var a2: Vector3 = poly[k]
-			var b2: Vector3 = poly[(k + 1) % m]
-			var nrm := ((a2 + b2) * 0.5 - c).normalized()
-			var wall := col.darkened(0.38)
-			_quad(st, a2 * r, a2 * rn, b2 * rn, b2 * r, nrm, wall)
+			v.append(poly[k] * _r(_corner_h[ct[k]]))
+			nr.append(tn[ct[k]])
+			co.append(edge)
+		for k in m:
+			# corners run counter-clockwise seen from outside; Godot's front faces are clockwise
+			ix.append(base)
+			ix.append(base + 1 + (k + 1) % m)
+			ix.append(base + 1 + k)
+		s[Mesh.ARRAY_VERTEX] = v
+		s[Mesh.ARRAY_NORMAL] = nr
+		s[Mesh.ARRAY_COLOR] = co
+		s[Mesh.ARRAY_INDEX] = ix
 	var mesh := ArrayMesh.new()
 	var lm := StandardMaterial3D.new()
 	lm.vertex_color_use_as_albedo = true
@@ -172,15 +198,24 @@ func _build_globe(w: WorldState) -> void:
 	var wm := StandardMaterial3D.new()
 	wm.vertex_color_use_as_albedo = true
 	wm.vertex_color_is_srgb = true
-	wm.roughness = 0.4
-	wm.metallic_specular = 0.45
-	land.set_material(lm)
-	water.set_material(wm)
-	land.commit(mesh)
-	water.commit(mesh)
+	wm.roughness = 0.6
+	wm.metallic_specular = 0.3
+	for k in 2:
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surf[k])
+		mesh.surface_set_material(k, lm if k == 0 else wm)
 	_globe.mesh = mesh
 	_build_marker(w)
 	_set_hover(-1)
+
+
+func _arrays() -> Array:
+	var a := []
+	a.resize(Mesh.ARRAY_MAX)
+	a[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+	a[Mesh.ARRAY_NORMAL] = PackedVector3Array()
+	a[Mesh.ARRAY_COLOR] = PackedColorArray()
+	a[Mesh.ARRAY_INDEX] = PackedInt32Array()
+	return a
 
 
 func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, n: Vector3, col: Color) -> void:
@@ -204,8 +239,7 @@ func _build_marker(w: WorldState) -> void:
 	var c: Vector3 = Planet.geometry(Planet.freq(w))["centers"][li]
 	_marker = Node3D.new()
 	_vp.add_child(_marker)
-	var base := c * _radius(Planet.level(w, li))
-	_marker.transform = Transform3D(Basis(Quaternion(Vector3.UP, c)), base)
+	_marker.transform = Transform3D(Basis(Quaternion(Vector3.UP, c)), c * _r(Planet.height(w, li)))
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color("#ffd75e")
 	mat.emission_enabled = true
@@ -213,31 +247,32 @@ func _build_marker(w: WorldState) -> void:
 	mat.emission_energy_multiplier = 1.6
 	var pole := MeshInstance3D.new()
 	var cy := CylinderMesh.new()
-	cy.top_radius = 0.0035
-	cy.bottom_radius = 0.0035
-	cy.height = 0.14
+	cy.top_radius = 0.0025
+	cy.bottom_radius = 0.0025
+	cy.height = 0.08
 	pole.mesh = cy
-	pole.position = Vector3(0, 0.07, 0)
+	pole.position = Vector3(0, 0.04, 0)
 	pole.material_override = mat
 	_marker.add_child(pole)
 	var flag := MeshInstance3D.new()
 	var bx := BoxMesh.new()
-	bx.size = Vector3(0.05, 0.03, 0.004)
+	bx.size = Vector3(0.03, 0.018, 0.003)
 	flag.mesh = bx
-	flag.position = Vector3(0.027, 0.124, 0)
+	flag.position = Vector3(0.016, 0.071, 0)
 	flag.material_override = mat
 	_marker.add_child(flag)
 	var lbl := Label3D.new()
 	lbl.text = "Landing"
 	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	lbl.pixel_size = 0.0006
-	lbl.font_size = 40
-	lbl.outline_size = 10
-	lbl.position = Vector3(0, 0.19, 0)
+	lbl.pixel_size = 0.0012
+	lbl.fixed_size = true
+	lbl.font_size = 22
+	lbl.outline_size = 6
+	lbl.position = Vector3(0, 0.1, 0)
 	lbl.no_depth_test = true
 	_marker.add_child(lbl)
 	var ring := MeshInstance3D.new()   # permanent gold outline (in globe space, so not under the marker's basis)
-	ring.mesh = _ring(w, li, Color("#ffcc33"), 0.8, 0.001)
+	ring.mesh = _ring(w, li, Color("#ffcc33"), 0.6, 0.0015)
 	ring.transform = _marker.transform.affine_inverse()
 	_marker.add_child(ring)
 
@@ -247,22 +282,24 @@ func _set_hover(i: int) -> void:
 	if i < 0 or session == null:
 		_hover_mesh.mesh = null
 		return
-	_hover_mesh.mesh = _ring(session.world(), i, Color.WHITE, 0.84, 0.002)
+	_hover_mesh.mesh = _ring(session.world(), i, Color.WHITE, 0.75, 0.0015)
 
 
-## An outline ring on a cell's top (inner edge at `inner` of the way to the corners).
+## An outline ring following a cell's surface (inner edge at `inner` of the way from centre to corners).
 func _ring(w: WorldState, i: int, col: Color, inner: float, lift: float) -> ArrayMesh:
 	var geo := Planet.geometry(Planet.freq(w))
 	var poly: PackedVector3Array = geo["corners"][i]
+	var ct: PackedInt32Array = geo["corner_tri"][i]
 	var c: Vector3 = geo["centers"][i]
-	var r := _radius(Planet.level(w, i)) + lift
+	var cp := c * (_r(Planet.height(w, i)) + lift)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var m := poly.size()
 	for k in m:
-		var a: Vector3 = poly[k] * r
-		var b: Vector3 = poly[(k + 1) % m] * r
-		_quad(st, (c * r).lerp(a, inner), a, b, (c * r).lerp(b, inner), c, col)
+		var k2 := (k + 1) % m
+		var a: Vector3 = poly[k] * (_r(_corner_h[ct[k]]) + lift)
+		var b: Vector3 = poly[k2] * (_r(_corner_h[ct[k2]]) + lift)
+		_quad(st, cp.lerp(a, inner), a, b, cp.lerp(b, inner), c, col)
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.vertex_color_use_as_albedo = true
@@ -341,7 +378,7 @@ func _gui_input(event: InputEvent) -> void:
 		var mm := event as InputEventMouseMotion
 		if _dragging:
 			_drag_moved += mm.relative.length()
-			var k := 0.006 * (_dist - 0.9) / 2.3   # slower when zoomed in
+			var k := 0.006 * (_dist - 1.0) / 2.0   # slower when zoomed in
 			_yaw -= mm.relative.x * k
 			_pitch += mm.relative.y * k
 			_place_camera()
@@ -359,13 +396,13 @@ func _pick(pos: Vector2) -> int:
 	var p := pos * Vector2(_vp.size) / size if size.x > 0 and size.y > 0 else pos
 	var o := _cam.project_ray_origin(p)
 	var d := _cam.project_ray_normal(p)
-	var R := 1.0 + LAND_BASE + STEP
+	var R := 1.0 + RELIEF * 5.0
 	var b := o.dot(d)
 	var disc := b * b - (o.dot(o) - R * R)
 	if disc < 0.0:
 		return -1
 	var hit := o + d * (-b - sqrt(disc))
-	return Planet.cell_at(hit, Planet.freq(session.world()))
+	return Planet.cell_at(hit, Planet.freq(session.world()), maxi(_hover, 0))
 
 
 func _click(i: int) -> void:

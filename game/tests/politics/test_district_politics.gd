@@ -33,6 +33,7 @@ func _world() -> WorldState:
 			j += 1
 	DL.ensure_founding_district(w)
 	DL.tick(w)
+	PolVoters.refresh(w)  # the new areas' people get their voter fields (area, district, pop)
 	return w
 
 

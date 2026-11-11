@@ -492,7 +492,8 @@ func vote_shares(world: WorldState, shock: Dictionary, per_cell_out: Dictionary 
 	var st: Dictionary = world.table("pol")["state"]
 	var parties := _active_parties(world)
 	var gov_share := _gov_share(world, st)
-	var campaign := PartyLife.campaign_ctx(world, st)
+	var campaign := Campaign.vote_cache(world)        # election year (Ella): read-only
+	var mob := Campaign.mobilisation(campaign)
 	var endorse := PartyLife.endorsements(world)
 	var votes := {}
 	for p in parties:
@@ -500,12 +501,14 @@ func vote_shares(world: WorldState, shock: Dictionary, per_cell_out: Dictionary 
 	for cell in PolVoters.all(world):
 		if cell["pop"] <= 0:
 			continue
-		var ctx := {"gov_share": gov_share, "prev_share": cell["prev_share"], "shock": shock, "tenure": st.get("tenure", {}), "campaign": campaign, "endorse": PartyLife.endorsement_bonus(cell, endorse)}
+		var ctx := {"gov_share": gov_share, "prev_share": cell["prev_share"], "shock": shock, "tenure": st.get("tenure", {}), "campaign_u": Campaign.voter_utility(campaign, cell), "endorse": PartyLife.endorsement_bonus(cell, endorse)}
 		var probs := VoteModel.probabilities(cell, parties, ctx)
 		var t := VoteModel.turnout(cell, parties)
 		per_cell_out[cell["key"]] = probs
 		for pid in probs:
-			votes[pid] += float(cell["pop"]) * t * probs[pid]
+			votes[pid] += float(cell["pop"]) * VoteModel.party_turnout(t, float(mob.get(pid, 1.0))) * probs[pid]
+	if not campaign.is_empty():
+		Campaign.tactical(world, votes)   # support votes for a governing ally under 4% (local dict only)
 	return votes
 
 
@@ -654,7 +657,7 @@ func _party_life_monthly(world: WorldState, st: Dictionary) -> void:
 	PartyLife.factions_monthly(world, st)
 	PartyLife.check_splits(world, st)
 	PartyLife.funds_monthly(world, st)
-	PartyLife.campaign_monthly(world, st)
+	Campaign.monthly(world, st)   # election year (Ella): themes, ads, ground game, debates, dirt
 
 
 ## Generational replacement / changing times: each value cohort drifts slowly (random walk), and so do

@@ -56,12 +56,18 @@ static func utility(cell: Dictionary, party: Dictionary, ctx: Dictionary) -> flo
 		u += PolDefs.BETA_LOYALTY * log(0.15 + prev)
 	# promise-keeping record (0..100, 50 neutral)
 	u += 0.5 * (float(party.get("credibility", 50)) - 50.0) / 50.0
-	u += 0.6 * float(ctx.get("campaign", {}).get(pid, 0.0))
+	u += 0.6 * float(ctx.get("campaign", {}).get(pid, 0.0))   # legacy colony-wide spend term (unused since election year)
+	u += float(ctx.get("campaign_u", {}).get(pid, 0.0))       # election year (Campaign.voter_utility): ads, momentum, backfire
 	u += float(ctx.get("endorse", {}).get(pid, 0.0))  # interest-group endorsement (M9)
 	# leader appeal (M9)
 	u += PolDefs.BETA_LEADER * (float(PartyLife.leader_popularity(party)) - 50.0) / 50.0
 	u += float(ctx.get("shock", {}).get(pid, 0.0))
 	return u
+
+
+## Turnout among a party's own voters: the cell's turnout lifted by the party's ground game (Campaign.mobilisation).
+static func party_turnout(t: float, mob: float) -> float:
+	return minf(0.97, t * mob)
 
 
 ## Softmax over parties. Returns {party_id: probability}.

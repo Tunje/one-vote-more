@@ -57,11 +57,13 @@ const TACTICAL_MAX_FRAC := 0.08      # at most 8% of the largest partner's voter
 
 const Det := preload("res://sim/staff/det.gd")
 const PF_PATH := "res://sim/law/party_finance.gd"
+const JUSTICE_PATH := "res://sim/law/justice_ops.gd"
+const DEFAMATION_CREDIBILITY := 8     # a smearer convicted of defamation (on top of the exposure hit)
 
 
 ## Optional law hooks (Anni): call a static function on PartyFinance if it exists; else return `fallback`.
-static func _law_call(fn: String, args: Array, fallback: Variant) -> Variant:
-	var s: Script = load(PF_PATH)
+static func _law_call(fn: String, args: Array, fallback: Variant, path: String = PF_PATH) -> Variant:
+	var s: Script = load(path)
 	if s == null:
 		return fallback
 	for m in s.get_script_method_list():
@@ -97,6 +99,7 @@ static func is_open(world: WorldState) -> bool:
 
 ## Called from PoliticsProvider._party_life_monthly (before the election in the same month).
 static func monthly(world: WorldState, st: Dictionary) -> void:
+	_defamation_verdicts(world, st)
 	_finalize_past(world, st)
 	var ne := next_election(st, world.month)
 	if ne.is_empty():
@@ -223,7 +226,8 @@ static func _ensure_parties(world: WorldState, st: Dictionary, c: Dictionary, se
 			c["parties"][pid] = {"themes": [], "tone": "POSITIVE", "target": "", "split": {"ad": 550, "ground": 350, "oppo": 100},
 				"spent": 0, "ad": 0, "ground": 0, "oppo": 0, "quality": 0, "momentum": 0, "mob": 0,
 				"persuasion": {}, "backfire": {}, "dirt": [], "attacks": 0, "manual": false}
-			_plan(world, st, c, p, seg)
+			_plan(world, st, c, p, seg)   # a human player starts from the AI's suggestion, then owns the plan
+			c["parties"][pid]["manual"] = bool(p.get("is_player", false)) and not bool(st.get("autoplay_player", true))
 		var e: Dictionary = c["parties"][pid]
 		e["quality"] = quality(world, st, p)
 
@@ -293,8 +297,7 @@ static func _set_tone(world: WorldState, st: Dictionary, c: Dictionary, p: Dicti
 	if e["target"] == "":
 		tone = "POSITIVE"
 	e["tone"] = tone
-	e["split"] = {"POSITIVE": {"ad": 600, "ground": 350, "oppo": 50}, "MIXED": {"ad": 550, "ground": 330, "oppo": 120},
-		"NEGATIVE": {"ad": 500, "ground": 300, "oppo": 200}}[tone]
+	e["split"] = SPLITS[tone].duplicate()
 
 
 static func _replan_tone(world: WorldState, st: Dictionary, c: Dictionary) -> void:
@@ -652,9 +655,10 @@ static func _find_dirt(world: WorldState, c: Dictionary, pid: String, tgt: Strin
 			return true
 	var tl := _leader(world.table("party")[tgt])
 	var n_personal := 0
-	for d in e["dirt"]:
-		if d["kind"] == "PERSONAL" and d["target"] == tgt:
-			n_personal += 1
+	for q in c["parties"]:   # one leader's private life is one story per campaign, whoever digs it up first
+		for d in c["parties"][q]["dirt"]:
+			if d["kind"] == "PERSONAL" and d["target"] == tgt:
+				n_personal += 1
 	if n_personal == 0 and r.randf() < (100.0 - float(tl["integrity"])) / 100.0:
 		var sev := clampi(int(round(15.0 + (100.0 - float(tl["integrity"])) / 4.0 + r.randfn(0.0, 5.0))), 10, 45)
 		e["dirt"].append({"kind": "PERSONAL", "target": tgt, "fid": "", "sev": sev, "found": world.month, "released": -1, "exposed": false})
@@ -718,6 +722,21 @@ static func _total_pop(seg: Dictionary) -> float:
 	return t
 
 
+## Anni's courts rule on exposed smears (JUSTICE runs before POLITICS): a guilty smearer loses credibility.
+## Verdicts can come after the campaign closed, so this runs every month; handled verdicts are remembered.
+static func _defamation_verdicts(world: WorldState, st: Dictionary) -> void:
+	for f in world.facts.query("LAW_DEFAMATION_RULED", world.month, world.month):
+		var done: Dictionary = st.get("defamation_done", {})
+		if done.has(f["id"]):
+			continue
+		done[f["id"]] = 1
+		st["defamation_done"] = done
+		var sm := String(f["data"].get("smearer", ""))
+		if bool(f["data"].get("guilty", false)) and world.table("party").has(sm):
+			var p: Dictionary = world.table("party")[sm]
+			p["credibility"] = clampi(int(p["credibility"]) - DEFAMATION_CREDIBILITY, 0, 100)
+
+
 static func _expose_smear(world: WorldState, c: Dictionary, pid: String, d: Dictionary) -> void:
 	d["exposed"] = true
 	var p: Dictionary = world.table("party")[pid]
@@ -728,9 +747,88 @@ static func _expose_smear(world: WorldState, c: Dictionary, pid: String, d: Dict
 	_momentum(c, pid, -300)
 	if c["parties"].has(d["target"]):
 		_momentum(c, d["target"], 150)
-	var case_id := String(_law_call("file_defamation", [world, String(d["target"]), pid, int(d["sev"])], ""))
+	var case_id := String(_law_call("file_defamation", [world, String(d["target"]), pid, int(d["sev"])], "", JUSTICE_PATH))
 	_event(world, c, "POL_SMEAR_EXPOSED", "OPPO", [pid, d["target"]], 65,
 		{"party": pid, "target": d["target"], "leader": PartyLife.leader_name(p), "case": case_id})
+
+
+# ======================================================================= player actions (Campaign panel)
+
+const TONES := ["POSITIVE", "MIXED", "NEGATIVE"]
+const SPLITS := {"POSITIVE": {"ad": 600, "ground": 350, "oppo": 50}, "MIXED": {"ad": 550, "ground": 330, "oppo": 120},
+	"NEGATIVE": {"ad": 500, "ground": 300, "oppo": 200}}
+
+
+static func _player_entry(world: WorldState) -> Dictionary:
+	var st: Dictionary = world.table("pol")["state"]
+	var c := _row(world, st)
+	var pp := String(st.get("player_party", ""))
+	if c.is_empty():
+		return {"ok": false, "error": "No campaign is running. Election year opens 12 months before the election."}
+	if pp == "" or not c["parties"].has(pp):
+		return {"ok": false, "error": "Your party is not in this campaign."}
+	return {"ok": true, "c": c, "e": c["parties"][pp], "pid": pp}
+
+
+## Up to two concerns to campaign on.
+static func player_set_themes(world: WorldState, themes: Array) -> Dictionary:
+	var r := _player_entry(world)
+	if not r["ok"]:
+		return r
+	if themes.is_empty() or themes.size() > 2:
+		return {"ok": false, "error": "Pick one or two themes."}
+	for cn in themes:
+		if not PolDefs.CONCERNS.has(cn):
+			return {"ok": false, "error": "Unknown concern " + str(cn)}
+	r["e"]["themes"] = themes.duplicate()
+	r["e"]["manual"] = true
+	return {"ok": true}
+
+
+## Tone (POSITIVE / MIXED / NEGATIVE) and who the attacks and opposition research go after.
+static func player_set_tone(world: WorldState, tone: String, target: String = "") -> Dictionary:
+	var r := _player_entry(world)
+	if not r["ok"]:
+		return r
+	if not TONES.has(tone):
+		return {"ok": false, "error": "Unknown tone."}
+	if tone != "POSITIVE" and (target == "" or target == r["pid"] or not r["c"]["parties"].has(target)):
+		return {"ok": false, "error": "Choose a rival to target."}
+	var e: Dictionary = r["e"]
+	if tone == "NEGATIVE" and e["tone"] != "NEGATIVE":
+		_event(world, r["c"], "POL_CAMPAIGN_GOES_NEGATIVE", "AD", [r["pid"], target], 45, {"party": r["pid"], "target": target})
+	e["tone"] = tone
+	e["target"] = target if tone != "POSITIVE" else String(e["target"])
+	e["split"] = SPLITS[tone].duplicate()
+	e["manual"] = true
+	return {"ok": true}
+
+
+## Budget split in per-mille (ad + ground + oppo = 1000).
+static func player_set_split(world: WorldState, ad: int, ground: int, oppo: int) -> Dictionary:
+	var r := _player_entry(world)
+	if not r["ok"]:
+		return r
+	if ad < 0 or ground < 0 or oppo < 0 or ad + ground + oppo != 1000:
+		return {"ok": false, "error": "The split must add up to 100%."}
+	r["e"]["split"] = {"ad": ad, "ground": ground, "oppo": oppo}
+	r["e"]["manual"] = true
+	return {"ok": true}
+
+
+## Publish a piece of held dirt now (index into the party's dirt list).
+static func player_release_dirt(world: WorldState, index: int) -> Dictionary:
+	var r := _player_entry(world)
+	if not r["ok"]:
+		return r
+	var dirt: Array = r["e"]["dirt"]
+	if index < 0 or index >= dirt.size() or int(dirt[index]["released"]) >= 0:
+		return {"ok": false, "error": "Nothing to release."}
+	var tgt := String(dirt[index]["target"])
+	if not world.table("party").has(tgt) or world.table("party")[tgt]["status"] != "ACTIVE":
+		return {"ok": false, "error": "That party is gone."}
+	release(world, r["c"], r["pid"], dirt[index], false)
+	return {"ok": true}
 
 
 # ======================================================================= vote model hooks

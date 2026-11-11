@@ -848,40 +848,10 @@ static func endorsement_bonus(cell: Dictionary, e: Dictionary) -> Dictionary:
 	return out
 
 
-## Campaign strength per party for the vote model (ctx.campaign): relative spending in the campaign window.
-## Spending happens monthly in the window: each party spends 30% of its funds.
+## Legacy wrappers: campaigns moved to Campaign (sim/politics/campaign.gd, election year). Kept until nothing calls them.
 static func campaign_monthly(world: WorldState, st: Dictionary) -> void:
-	var to_go := int(st["next_election"]) - world.month
-	var spent: Dictionary = st.get("campaign_spent", {})
-	if to_go > CAMPAIGN_MONTHS or to_go < 0:
-		if not spent.is_empty() and to_go > CAMPAIGN_MONTHS:
-			st["campaign_spent"] = {}
-		return
-	for p in active(world):
-		var acc: String = "party:" + p["id"]
-		if not world.ledger.has_account(acc):
-			continue
-		var amt := world.ledger.balance(acc) * 3 / 10
-		if amt > 0:
-			_household_receive(world, acc, amt, "CAMPAIGN")
-			spent[p["id"]] = int(spent.get(p["id"], 0)) + amt
-	st["campaign_spent"] = spent
+	Campaign.monthly(world, st)
 
 
-## {party_id: 0..1} campaign effect: spending relative to the average party, capped.
-static func campaign_ctx(world: WorldState, st: Dictionary) -> Dictionary:
-	var spent: Dictionary = st.get("campaign_spent", {})
-	if spent.is_empty():
-		return {}
-	var tot := 0.0
-	var n := 0
-	for p in active(world):
-		tot += float(spent.get(p["id"], 0))
-		n += 1
-	var avg := tot / maxf(1.0, float(n))
-	var out := {}
-	if avg <= 0.0:
-		return out
-	for p in active(world):
-		out[p["id"]] = clampf(float(spent.get(p["id"], 0)) / avg, 0.0, 2.0) * 0.5 - 0.5
-	return out
+static func campaign_ctx(_world: WorldState, _st: Dictionary) -> Dictionary:
+	return {}

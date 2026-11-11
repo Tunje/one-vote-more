@@ -33,7 +33,7 @@ func test_generation_is_deterministic_idempotent_and_saves() -> void:
 	var h := a.state_hash()
 	Planet.generate(a)
 	check_eq(a.state_hash(), h, "generating twice changes nothing")
-	check(_world(8).peek("planet")["elev"] != a.peek("planet")["elev"], "another seed, another planet")
+	check(Planet.heights(_world(8)) != Planet.heights(a), "another seed, another planet")
 	var t: Dictionary = a.peek("planet")
 	var back = SaveIO.decode_ordered(str_to_var(var_to_str(SaveIO.encode_ordered(t))))
 	check_eq(var_to_str(back), var_to_str(t), "the planet table survives the save format")

@@ -17,6 +17,7 @@ func _initialize() -> void:
 		seeds = [1, 2, 3, 4, 5, 6]
 	var n_elections := 0
 	var n_moved3 := 0
+	var effects: Array = []   # per election: largest campaign effect (pp), counterfactual
 	var turnout_lo := 1.0
 	var turnout_hi := 0.0
 	var seeds_with_gaffe := 0
@@ -25,8 +26,10 @@ func _initialize() -> void:
 	for seed_v in seeds:
 		var sim: Simulation = EconSim.make(seed_v, "BALANCED", {}, true)
 		var seen := 0
+		var cf := {}
 		print("=== seed %d ===" % seed_v)
 		for _m in months:
+			cf = _counterfactual(sim, cf)
 			sim.step()
 			var w := sim.world
 			var st: Dictionary = w.peek("pol").get("state", {})
@@ -54,14 +57,26 @@ func _initialize() -> void:
 					best = maxi(best, absi(mv))
 					var ce: Dictionary = c["parties"][pid]
 					parts.append("%s %+.1f [%s %s→%s]" % [_short(w, pid), mv / 1000.0, ce["tone"].substr(0, 3), "/".join(ce["themes"].map(func(x): return String(x).substr(0, 6))), _short(w, ce["target"])])
-				if best >= 3000:
+				var eff: Dictionary = cf.get(int(e["month"]), {})
+				var top := 0.0
+				var top_pid := ""
+				for pid in eff:
+					if absf(float(eff[pid])) > absf(top):
+						top = float(eff[pid])
+						top_pid = pid
+				effects.append(absf(top))
+				if absf(top) >= 3.0:
 					n_moved3 += 1
-				print(line + " | max move %.1f pp%s" % [best / 1000.0, " (extra)" if c["extra"] else ""])
+				print(line + " | campaign effect: biggest %s %+.1f pp (vs no campaign) | drift since T-12: max %.1f pp%s" % [_short(w, top_pid), top, best / 1000.0, " (extra)" if c["extra"] else ""])
+				var effs: Array = []
+				for pid in Det.ordered(eff):
+					effs.append("%s %+.1f" % [_short(w, pid), float(eff[pid])])
+				print("      effect: " + ", ".join(effs))
 				print("      " + "; ".join(parts))
 				for fid in c["events"]:
 					var f: Dictionary = w.facts.get_fact(fid)
 					if f["type"] in ["POL_DEBATE_HELD", "POL_DEBATE_GAFFE", "POL_DIRT_RELEASED", "POL_SMEAR_EXPOSED", "POL_POLITICS_WEEK"]:
-						print("      m%3d %s" % [f["month"], NewsText.sentence(w, f).replace("[b]", "").replace("[/b]", "")])
+						print("      m%3d %s" % [f["month"], _plain(NewsText.sentence(w, f))])
 		var w2 := sim.world
 		var counts := {}
 		for k in KINDS:
@@ -82,7 +97,9 @@ func _initialize() -> void:
 			seeds_with_backfire += 1
 		print("  totals: %s | oppo scandals via law %d | backfires %d" % [counts, oppo, backfire])
 	print("\nGATES over %d seeds x %d months, %d elections:" % [seeds.size(), months, n_elections])
-	print("  campaign moved a party >=3 pp: %d/%d elections (want >=50%%)" % [n_moved3, n_elections])
+	effects.sort()
+	print("  campaign effect >=3 pp for some party: %d/%d elections (want >=50%%); median %.1f pp, max %.1f pp" % [n_moved3, n_elections,
+		effects[effects.size() / 2] if not effects.is_empty() else 0.0, effects.back() if not effects.is_empty() else 0.0])
 	print("  seeds with a gaffe: %d/%d (want all)" % [seeds_with_gaffe, seeds.size()])
 	print("  seeds with released dirt: %d/%d (want all)" % [seeds_with_oppo, seeds.size()])
 	print("  seeds with a backfire: %d/%d (want >= 1 per 3)" % [seeds_with_backfire, seeds.size()])
@@ -91,6 +108,35 @@ func _initialize() -> void:
 
 
 const Det := preload("res://sim/staff/det.gd")
+
+
+## On the eve of an election month: vote shares with the campaign as it stands, minus shares with no campaign
+## (same voters, same day, no shock). {election_month: {pid: pp}} kept in `acc`. Restores the campaign pointer.
+func _counterfactual(sim: Simulation, acc: Dictionary) -> Dictionary:
+	var w := sim.world
+	var st: Dictionary = w.peek("pol").get("state", {})
+	var ne := Campaign.next_election(st, w.month)
+	if ne.is_empty() or int(ne["month"]) != w.month or not st.has("campaign_id"):
+		return acc
+	var prov = null
+	for p in sim.providers:
+		if p is PoliticsProvider:
+			prov = p
+	var with_c: Dictionary = prov.vote_shares(w, {})
+	var cid: String = st["campaign_id"]
+	st.erase("campaign_id")
+	var without: Dictionary = prov.vote_shares(w, {})
+	st["campaign_id"] = cid
+	var a := 0.0
+	var b := 0.0
+	for pid in with_c:
+		a += float(with_c[pid])
+		b += float(without.get(pid, 0.0))
+	var out := {}
+	for pid in with_c:
+		out[pid] = 100.0 * (float(with_c[pid]) / maxf(1.0, a) - float(without.get(pid, 0.0)) / maxf(1.0, b))
+	acc[w.month] = out
+	return acc
 
 
 func _campaign_for(w: WorldState, month: int) -> Dictionary:
@@ -105,3 +151,9 @@ func _short(w: WorldState, pid) -> String:
 	if String(pid) == "":
 		return "-"
 	return String(w.peek("party").get(String(pid), {}).get("name", "?")).get_slice(" ", 0)
+
+
+func _plain(t: String) -> String:
+	var re := RegEx.new()
+	re.compile(r"\[/?[a-z]+(=[^\]]*)?\]")
+	return re.sub(t, "", true)

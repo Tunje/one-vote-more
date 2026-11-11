@@ -134,7 +134,7 @@ func _load_extra_panels() -> void:
 ## Which window group each tool belongs to (by panel title). Unlisted panels go under "More".
 const WINDOW_GROUPS := [
 	["Govern", ["Legislate", "Personnel", "Staff briefing"]],
-	["Politics", ["Parliament", "Parties", "My Party", "Opposition"]],
+	["Politics", ["Parliament", "Parties", "My Party", "Campaign", "Opposition"]],
 	["Economy", ["Budget", "Projects", "Companies"]],
 	["Help", ["Why?"]],
 ]

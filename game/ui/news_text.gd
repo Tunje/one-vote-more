@@ -156,6 +156,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"POL_DIRT_RELEASED":
 			var what: String = {"DONATION": "hidden donations", "PERSONAL": "the private conduct of %s" % d.get("leader", "its leader"), "SMEAR": "allegations against %s" % d.get("leader", "its leader")}.get(String(d.get("kind", "")), "damaging claims")
 			s = "%s publishes dirt on %s: %s%s" % [party(w, d.get("party", "")), party(w, d.get("target", "")), what, " [color=#ff8a65](it leaked that they sat on it)[/color]" if d.get("leaked", false) else ""]
+		"LAW_DEFAMATION_RULED": s = "Court: %s %s of defaming %s%s" % [party(w, d.get("smearer", "")), "found guilty" if d.get("guilty", false) else "cleared", party(w, d.get("victim", "")), (" (damages paid)" if int(d.get("damages", 0)) > 0 else "") if d.get("guilty", false) else ""]
 		"POL_SMEAR_EXPOSED": s = "[color=#ff5252]Smear exposed[/color]: %s's claims about %s were false" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
 		_:
 			s = cap1(t.replace("_", " ").to_lower())
