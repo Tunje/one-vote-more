@@ -71,7 +71,24 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	needs.sort_custom(func(a, b): return a[0] < b[0] or (a[0] == b[0] and a[2] < b[2]))
 	for n in needs.slice(0, 2):
 		orders += _order(world, st, busy, who, n[1], n[2], "")
-	# 4. counter-cyclical public works: interventionist and spending governments fight unemployment by building
+	# 4. fabrication kits (A38): development- and spending-minded governments upgrade the colony's own
+	#    workshop and smelter sooner; austere governments wait until the gain is large
+	var dev := -float(pos.get("ENVIRONMENT", 0)) / 100000.0   # development-first = negative environment axis
+	var eagerness := 0.5 + 0.4 * spend + 0.3 * dev + 0.2 * state
+	var running := false
+	for pid2 in world.table("project"):
+		var pr: Dictionary = world.table("project")[pid2]
+		if pr.get("type", "") == "UPGRADE" and pr["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
+			running = true
+	if not running:
+		var opts: Array = EconQuery.upgrade_options(world).filter(func(o): return o.get("enabled", false))
+		opts.sort_custom(func(a, b): return float(a["output_gain_pct"]) > float(b["output_gain_pct"]) or (a["output_gain_pct"] == b["output_gain_pct"] and String(a["facility"]) < String(b["facility"])))
+		if not opts.is_empty() and float(opts[0]["output_gain_pct"]) / 100.0 * eagerness >= 0.2:
+			var r: Dictionary = EconActions.enqueue(world, "ECON_UPGRADE_FACILITY", {"facility": opts[0]["facility"], "line": "ECON_BUDGET_INFRASTRUCTURE"})
+			if r.get("ok", false):
+				world.add_fact({"type": "POL_PROJECT_ORDERED", "owner": "pol", "subjects": [], "responsible": [{"actor": {"kind": "GOVERNMENT" if who["by"] != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}],
+					"impact": {}, "magnitude": 35, "visibility": "PUBLIC", "data": {"type": "UPGRADE", "facility": opts[0]["facility"], "to_tier": opts[0]["next_tier"], "by": who["by"]}})
+	# 5. counter-cyclical public works: interventionist and spending governments fight unemployment by building
 	if state + spend > -0.2 and FirmAI.colony_unemployment(world) > 0.12 - 0.04 * maxf(0.0, state):
 		var pw := "ECON_BUDGET_PUBLIC_WORKS"
 		for d in EconUtil.sorted_keys(world.table("district")):

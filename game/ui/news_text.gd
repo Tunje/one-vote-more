@@ -40,6 +40,8 @@ static func project(w: WorldState, id) -> String:
 	var p: Dictionary = w.peek("project").get(str(id), {})
 	if p.is_empty():
 		return "a project"
+	if p.get("type", "") == "UPGRADE":
+		return "the upgrade of %s to Mk %s" % [facility(w, p.get("target", "")), ["I", "II", "III"][clampi(int(p.get("to_tier", 2)) - 1, 0, 2)]]
 	if p.get("type", "") == "EXPAND":
 		var f: Dictionary = w.peek("facility").get(String(p.get("target", "")), {})
 		return "the %s expansion in %s" % [_kind(f.get("type", "plant")), district(w, p.get("district", ""))]
@@ -117,7 +119,12 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"ECON_GOV_BORROWED": s = "The government borrowed money (debt now %d%% of the economy)" % int(d.get("debt_ratio_pct", 0))
 		"ECON_SHIP_ARRIVED": s = "A ship from the home world arrived with %d migrants" % int(d.get("migrants", 0))
 		"ECON_IMPORT_ARRIVED": s = "Imports arrived: %d %s" % [int(d.get("qty", 0)) / 1000, _kind(d.get("good", "goods"))]
-		"POL_PROJECT_ORDERED": s = "The %s ordered a new %s in %s" % ["commander" if d.get("by", "") == "commander" else "government", _kind(d.get("type", "")), district(w, d.get("district", ""))]
+		"POL_PROJECT_ORDERED":
+			var who_s := "commander" if d.get("by", "") == "commander" else "government"
+			if d.get("type", "") == "UPGRADE":
+				s = "The %s ordered an upgrade of %s to Mk %s" % [who_s, facility(w, d.get("facility", "")), ["I", "II", "III"][clampi(int(d.get("to_tier", 2)) - 1, 0, 2)]]
+			else:
+				s = "The %s ordered a new %s in %s" % [who_s, _kind(d.get("type", "")), district(w, d.get("district", ""))]
 		"POL_DISTRICTING_VOTE": s = "Parliament %s a new district map (%d districts%s)" % ["passed" if d.get("passed", false) else "rejected", int(d.get("districts", 0)), ", to fix an unbalanced map" if d.get("why", "") == "REMEDY" else ""]
 		"POP_AREA_FOUNDED": s = "A new settlement was founded: %s" % d.get("name", "")
 		"POP_AREA_SPLIT": s = "%s has grown apart: a new area split off (%s)" % [String(w.peek("area").get(d.get("area", ""), {}).get("name", "An area")), "a wealthy enclave" if d.get("reason", "") == "ENCLAVE" else "too big"]
@@ -157,6 +164,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 			var what: String = {"DONATION": "hidden donations", "PERSONAL": "the private conduct of %s" % d.get("leader", "its leader"), "SMEAR": "allegations against %s" % d.get("leader", "its leader")}.get(String(d.get("kind", "")), "damaging claims")
 			s = "%s publishes dirt on %s: %s%s" % [party(w, d.get("party", "")), party(w, d.get("target", "")), what, " [color=#ff8a65](it leaked that they sat on it)[/color]" if d.get("leaked", false) else ""]
 		"LAW_DEFAMATION_RULED": s = "Court: %s %s of defaming %s%s" % [party(w, d.get("smearer", "")), "found guilty" if d.get("guilty", false) else "cleared", party(w, d.get("victim", "")), (" (damages paid)" if int(d.get("damages", 0)) > 0 else "") if d.get("guilty", false) else ""]
+		"POL_ELECTION_PORK": s = ("%s hands out election-year goodies" if d.get("believed", true) else "%s's election-year goodies fool nobody") % party(w, d.get("party", ""))
 		"POL_SMEAR_EXPOSED": s = "[color=#ff5252]Smear exposed[/color]: %s's claims about %s were false" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
 		_:
 			s = cap1(t.replace("_", " ").to_lower())
