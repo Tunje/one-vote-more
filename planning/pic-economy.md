@@ -200,6 +200,33 @@ Note on adverse labor-law changes: these are cuts to `ECON_UNION_RIGHTS`, `ECON_
 - Amount = profit × 6% × summed exposure weight (capped at 1.5), and never more than the cash left after keeping 4 months of costs. Offers under 2000 cr are not made.
 - **Politics books the match**: `ledger.transfer(EconUtil.acct(from), "party:<id>", amount_milli, ...)` in POLITICS. If the transfer returns false, the offer lapses. The offer itself moves no money.
 
+### 2c. Facts that get an `exposure` block in M10 S4 (spec-population-v1 §6.1). PLANNED, not built yet
+
+Until S7, housing block = district (`hb:d:N`), so a district-wide scope covers the whole parent block. That makes it a **shared** effect, which creates no split.
+
+**Proposed additions to the `exposure` schema:**
+- `scope.inc`: a list of income bands (I1–I5).
+- `scope.moved`: the id of the fact whose transfers are targeted. It selects exactly the people moved by `PopStore.transfer` calls that carry that fact id as context this month.
+
+Decay is in per-mille per month. "Persistent" exposures are recomputed from their source indicator each month instead of decaying.
+
+| Fact | `kind` | Scope | `share` | `intensity` | Decay / persistent | Notes |
+|---|---|---|---|---|---|---|
+| `ECON_POLLUTION_THRESHOLD` | POLLUTION | housing of the district | 1000 (shared) | from `ECON_POLLUTION_INDEX` (bad = 70 → 1000) | persistent | After S7, only the blocks near the emitting facilities. HEALTH and ENVIRONMENT_QUALITY conditions |
+| `COMP_WORKPLACE_ACCIDENT` | UNSAFE_WORK | `employer` = org, `occ` of the facility, status EMPLOYED | 1000 of that employer's workers (from the employment allocations) | 300–800 by casualties | 150 | WORK_CONDITIONS, SAFETY |
+| `ECON_FACILITY_CLOSED_UNSAFE` | UNSAFE_WORK | as above | 1000 | 600 | 100 | |
+| (new, monthly) `ECON_HAZARD_CONDITIONS` | UNSAFE_WORK | workers of HIGH-hazard facilities while `LAW_SAFETY_STANDARD` = BASIC | 1000 | 300 | persistent | Only if Wilma wants a standing condition, not just accidents |
+| `ECON_LAYOFFS_MASS` | JOB_LOSS | `moved` = the layoff transfers of that org this month, plus (optionally) a 100-share community exposure on the org's district | 1000 | 400–900 by size | 80 | The laid-off people carry it into UNEMPLOYED. JOBS, grievance against the perceived cause |
+| `COMP_LIQUIDATED`, `COMP_INSOLVENCY` (when the closure lays people off) | JOB_LOSS | as above | 1000 | 700 | 80 | |
+| `ECON_STRIKE` | STRIKE | `employer` = org | 1000 | from magnitude | 300 | WORK_CONDITIONS. The lockout is the same with a higher intensity |
+| `ECON_LOCKOUT` | STRIKE | `employer` = org | 1000 | magnitude + 200 | 300 | |
+| `ECON_RENT_INCREASE` | RENT_RISE | housing of the district, `inc` I1–I3 (the renters under burden) | 1000 within scope | from the rent change % | 100 | HOUSING, COST_OF_LIVING |
+| `ECON_SHORTAGE` | SHORTAGE | housing of the district, `inc` = bands with unmet essentials | 1000 within scope | from shortfall ‰ | 300 | Data gains `cause` (PD §12.5): `NO_SUPPLY` / `UNAFFORDABLE` / `INACCESSIBLE`. Consumption runs per (housing block × income band) from S2, so the cause is known per band |
+| `ECON_UTILITY_OUTAGE` | OUTAGE | districts not fully served | 1000 | from the unserved share | 400 | INFRASTRUCTURE, HEALTH |
+| `ECON_FAMINE` | SHORTAGE | colony | 1000 (shared) | 1000 | 150 | |
+
+All of these facts are already emitted today. S4 adds only the `exposure` field and, for the shortage cause, a `data.cause`.
+
 ## 3. Policy levers
 
 **Conventions:**

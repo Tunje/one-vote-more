@@ -341,3 +341,42 @@ Every step keeps the game playable and the full suite green.
 - Housing blocks below the district need residential zones on the map (S7). This depends on the 2D/3D decision.
 - Media ownership split (S8) to confirm when we get there.
 - PD §11.5: the 20 named senior staff must be subtracted from PUBLIC_SECTOR employment counts (a9 + 88, S2).
+
+---
+
+## 13. Amendments from 88's review (2026-11-11, accepted; these override §2–§4 where they differ)
+
+- **A. Income bands per household pool.** The band belongs to the (housing block × band) household pool, which implements PD §4.2's household income.
+  - Dependents (CHILD, STUDENT, NOT_IN_LF) never reclassify on their own income. They move with the adults at the pool's dependents-per-adult ratio (largest remainder).
+  - An adult leaf's equivalized income = 0.5 × own per adult-equivalent + 0.5 × pool mean, using OECD-style equivalence (1 + 0.5 per extra adult + 0.3 per child).
+  - The > 25% immediate-move trigger applies to the blended value.
+- **B. Employment allocations** are keyed by (hb, occ, person skill, workplace facility or crew, slot tier), never by leaf key.
+  - EMPLOYED leaves carry no employer.
+  - Reconcile: Σ EMPLOYED leaves at (hb, occ, skill) = Σ allocations at (hb, occ, skill). This replaces "Σ allocations of a leaf ≤ EMPLOYED n" in §3.1.
+  - Layoffs pick leaves pro rata within (hb, occ, skill).
+  - Every demographic exit from EMPLOYED (death, retirement, emigration) goes through an EconLabor call that frees the slot (88, S2/S5).
+- **C. Units.** PopStore counts int persons; the economy converts from milli-persons at the boundary.
+  - Small flows are computed per block or colony and distributed by largest remainder, with remainders kept in state.
+  - PopStore provides `split_over(n, leaf_keys, weights)`.
+- **D. Occupations.** 10 occupations (9 + NONE) plus 6 statuses = PD's 13 rows.
+  - INDUSTRY → MANUFACTURING; crews → CONSTRUCTION; DEPOT → LOGISTICS.
+  - Public employers' staff stay PUBLIC_SECTOR. Specialist-tier jobs stay PROFESSIONAL (E67). Self-employed and owners are BUSINESS_OWNER.
+  - ECON_UNION_DENSITY keys follow this mapping; politics must not hard-code them.
+- **E. Money.** 30 persistent accounts, one per (hb × band). Money moves only when hb or band changes.
+  - Deaths: savings stay in the pool.
+  - Arrivals: MIGRANT_FUNDS from EXTERNAL.
+  - Emigrants take n / n_pool of the balance to EXTERNAL.
+  - 88 remaps owner_group, co-op members, staff/crew dicts and hh accounts, including in the old-save migration.
+- **F. Consumption** happens per (hb × band) pool.
+  - Leaves inherit purchases and shortages pro rata; effects may override.
+  - Wages go by allocation into the pool account.
+  - Per-leaf income is attributed from allocations, status and ownership.
+  - The habit EMA moves to the pool.
+- **G. S2 economy gate.**
+  - Re-baseline on the exact code just before S2 merges.
+  - Pass: Σ in-band months over seeds 1–6 ≥ 90% of baseline; famine and default counts no worse; ledger and population conservation pass.
+  - Per-seed pass/fail is informative only.
+- **H. Smaller points.**
+  - Retirement is by age band O; employed people ageing into O vacate their slots.
+  - The 20 named senior staff are subtracted from ADMIN Specialist/Skilled demand; a9 confirms the tier split.
+  - The S4 exposure scope gains `inc` and `moved` (people moved by transfers carrying that fact id). See pic-economy.md §2c.

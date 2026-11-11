@@ -425,3 +425,38 @@ static func may_hold_office(world: WorldState, leader: String) -> bool:
 		if c["leader"] == leader:
 			return PF.convicted_can_hold_office(world)
 	return true
+
+
+# =====================================================================================  electoral eligibility (M10)
+
+## Electoral law in force: {voting_age, residency_months, noncitizen_vote, text}.
+static func eligibility(world: WorldState) -> Dictionary:
+	var age := int(String(world.levers.get("LAW_VOTING_AGE", "18")))
+	var res := int(world.levers.get("LAW_RESIDENCY_FOR_VOTE", 0))
+	var nc := bool(world.levers.get("LAW_NONCITIZEN_VOTE", true))
+	var t := "Residents aged %d or over may vote" % age
+	if not nc:
+		t += "; newcomers (under 24 months in the colony) may not"
+	elif res > 0:
+		t += " after %d months' residence" % res
+	return {"voting_age": age, "residency_months": res, "noncitizen_vote": nc, "text": t + "."}
+
+
+## Eligible voters in a population leaf {n, age:{C,Y,A,M,O}, recent} (spec-population-v1 §4.2).
+## Ages are uniform within a band: voting at 16 adds 2/18 of C, at 21 removes 3/12 of Y. Newcomers are spread like
+## the leaf; arrivals are uniform over their 24 recent months, so a residency rule of R months bars R/24 of them, and
+## without the non-citizen vote all of them are barred (citizenship after 24 months).
+static func eligible_voters(world: WorldState, leaf: Dictionary) -> int:
+	var e := eligibility(world)
+	var a: Dictionary = leaf.get("age", {})
+	var base := float(int(a.get("Y", 0)) + int(a.get("A", 0)) + int(a.get("M", 0)) + int(a.get("O", 0)))
+	if e["voting_age"] == 16:
+		base += float(a.get("C", 0)) * 2.0 / 18.0
+	elif e["voting_age"] == 21:
+		base -= float(a.get("Y", 0)) * 3.0 / 12.0
+	var n := int(leaf.get("n", 0))
+	var recent := int(leaf.get("recent", 0))
+	if n > 0 and recent > 0:
+		var barred := 1.0 if not e["noncitizen_vote"] else minf(1.0, float(e["residency_months"]) / 24.0)
+		base -= base * float(recent) / float(n) * barred
+	return maxi(0, int(round(base)))

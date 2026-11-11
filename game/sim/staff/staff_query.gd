@@ -293,3 +293,28 @@ static func failed_actions(world: WorldState, month: int, viewer: Dictionary = {
 			out.append({"month": f["month"], "action": String(f["data"].get("action", "")), "error": String(f["data"].get("error", "")),
 				"params": f["data"].get("params", {}).duplicate(true), "district": f.get("location", null)})
 	return out
+
+
+## Named persons employed now, for population/labour reconciliation (spec-population-v1 §12, PD §11.5).
+## public = government officials + civil servants + judges (subtract from PUBLIC_SECTOR employment);
+## party = opposition party staff (private employers: subtract from PROFESSIONAL). Bench/departed people are not employed.
+static func named_headcount(world: WorldState) -> Dictionary:
+	var out := {"political": 0, "civil": 0, "judges": 0, "party": 0, "public": 0}
+	var people := world.peek("person")
+	for pid in Det.ordered(people):
+		var p: Dictionary = people[pid]
+		if not (p["status"] == "ACTIVE" or p["status"] == "UNAVAILABLE"):
+			continue
+		if p["pool"] == "GOV":
+			if p["roles"].has("GOV_POLITICAL"):
+				out["political"] += 1
+			else:
+				out["civil"] += 1
+		elif String(p["pool"]).begins_with("PARTY:"):
+			out["party"] += 1
+	var judges := world.peek("judge")
+	for jid in Det.ordered(judges):
+		if judges[jid]["status"] == "ACTIVE":
+			out["judges"] += 1
+	out["public"] = out["political"] + out["civil"] + out["judges"]
+	return out

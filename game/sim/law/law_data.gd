@@ -208,4 +208,15 @@ const LEVERS := [
 	{"id": "LAW_CONVICTED_CAN_HOLD_OFFICE", "owner": "law", "type": "BOOL", "default": true,
 		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": -12},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 0, "scope": "COLONY", "domain": "LAW"},
+	# ---- M10 electoral eligibility (spec-population-v1 §4.2, PD §9.6). Read through LQ.eligibility(world).
+	# Slopes use today's 7 axes; remap to STABILITY/LIBERTY when S3 adds them (planning/a9-population-note.md).
+	{"id": "LAW_VOTING_AGE", "owner": "law", "type": "ENUM", "values": ["16", "18", "21"], "default": "18",
+		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": -8, "REDISTRIBUTION": -4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_RESIDENCY_FOR_VOTE", "owner": "law", "type": "NUMBER", "range": [0, 24], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": -3, "REDISTRIBUTION": -2},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_NONCITIZEN_VOTE", "owner": "law", "type": "BOOL", "default": true,
+		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": 8, "REDISTRIBUTION": 6},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
 ]
