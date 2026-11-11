@@ -495,3 +495,39 @@ static func eligible_total(world: WorldState, filter: Dictionary = {}, election_
 	for k in PopStore.select(world, filter):
 		t += eligible_with(e, world.peek("pop")[k])
 	return t
+
+
+# =====================================================================================  M11 crises
+
+## What a greedy choice risks under current law (88's greed decision uses the same odds law applies).
+## -> {lawful, class, p_detect_month, p_detect_horizon, expected_fine (milli-credits), horizon}
+static func expected_sanction(world: WorldState, kind: String, org: String, params: Dictionary = {}, horizon: int = 24) -> Dictionary:
+	var spec: Dictionary = L.GREED_KINDS.get(kind, {})
+	if spec.is_empty():
+		return {"lawful": true, "class": "", "p_detect_month": 0.0, "p_detect_horizon": 0.0, "expected_fine": 0, "horizon": horizon}
+	var lawful: bool = RE.validate(world, {"kind": "COMPANY", "id": org}, spec["action"], params)["result"] != "PROHIBITED"
+	var out := {"lawful": lawful, "class": spec["class"], "p_detect_month": 0.0, "p_detect_horizon": 0.0, "expected_fine": 0,
+		"horizon": horizon}
+	if lawful:
+		return out
+	var p := J.detect_p(J.detect_ctx(world), {"company": org, "channel": spec["channel"], "unlawful": true, "evidence": 500,
+		"kind": kind, "active": true})
+	var pm := 1.0 - (1.0 - float(p["inspect"])) * (1.0 - float(p["whistle"])) * (1.0 - float(p["leniency"]))
+	var ph := 1.0 - pow(1.0 - pm, float(horizon))
+	var f: Array = J.FINE.get(spec["class"], J.FINE["SERIOUS"])
+	var annual := float(world.peek("org").get(org, {}).get("pl_last", {}).get("rev", 0)) * 12.0
+	var fine := maxf(float(f[0]) * annual, float(f[1]) * float(J.w_ref(world))) * float(world.levers.get("LAW_FINE_SCALE", 1000)) / 1000.0
+	out["p_detect_month"] = pm
+	out["p_detect_horizon"] = ph
+	out["expected_fine"] = int(round(ph * fine))
+	return out
+
+
+## State of emergency for the UI and politics: {active, kind, approved, approval_due, until_month, crisis_active, may_declare, levers}
+static func emergency(world: WorldState) -> Dictionary:
+	var e: Dictionary = LawOps.emergency(world).duplicate(true)
+	e["active"] = bool(e.get("active", false))
+	e["crisis_active"] = LawOps.crisis_active(world)
+	e["may_declare"] = not e["active"] and e["crisis_active"]
+	e["levers"] = L.EMERGENCY_LEVERS.duplicate()
+	return e

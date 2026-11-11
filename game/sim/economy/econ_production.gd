@@ -11,6 +11,7 @@ static func produce(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	EconLabor.match(world)
 	var facs := EconUtil.sorted_keys(world.table("facility"))
+	_pool_inputs(world, facs)
 	var plan := {}  # fid -> {lab, mi, act}
 	for fid in facs:
 		var f: Dictionary = world.table("facility")[fid]
@@ -126,6 +127,35 @@ static func produce(world: WorldState) -> void:
 	EconConstruction.progress(world)
 
 
+## E93: an owner moves its own market inputs between its districts (internal transfer at book value) before
+## production. Generalises E75 (upkeep pooling): a vertically integrated owner (e.g. the public operator holding
+## both mines and processing after a takeover) cannot buy from itself on the market.
+static func _pool_inputs(world: WorldState, facs: Array) -> void:
+	if EconUtil.off(world, "E93"):
+		return
+	for fid in facs:
+		var f: Dictionary = world.table("facility")[fid]
+		if f["mothball"]:
+			continue
+		var r: Dictionary = EconData.RECIPES[f["type"]]
+		var t := float(f["T"]) / 1000.0
+		for g in EconUtil.sorted_keys(r["in"]):
+			if not (g in EconData.MARKET_GOODS):
+				continue
+			var req := int(float(r["in"][g]) * S * t * EconUtil.fscale(f))
+			var have := EconUtil.inv_get(world, f["org"], g, f["district"])
+			if have >= req:
+				continue
+			for d2 in EconUtil.sorted_keys(EconData.DISTRICTS):
+				if d2 == f["district"] or have >= req:
+					continue
+				var w2 := EconUtil.inv_wac(world, f["org"], g, d2)
+				var t2 := EconUtil.inv_take(world, f["org"], g, d2, req - have)
+				if t2 > 0:
+					EconUtil.inv_add(world, f["org"], g, f["district"], t2, w2)
+					have += t2
+
+
 ## Labor and market-input ratios before utilities. act = T × min(lab, inputs).
 static func _plan(world: WorldState, f: Dictionary) -> Dictionary:
 	var r: Dictionary = EconData.RECIPES[f["type"]]
@@ -135,7 +165,8 @@ static func _plan(world: WorldState, f: Dictionary) -> Dictionary:
 		var req := float(r["labor"][tier]) * S * t
 		if req > 0.0:
 			# M10: staff are whole persons; a tier short by less than half a person counts as fully staffed
-			lab = minf(lab, minf(1.0, float(EconLabor.tier_total(f["staff"], tier)) / maxf(req - 0.5 * S, 0.5 * req)))
+			var have := float(EconLabor.tier_total(f["staff"], tier)) + (float(f.get("named_sp", 0)) * S if tier == "Sp" else 0.0)
+			lab = minf(lab, minf(1.0, have / maxf(req - 0.5 * S, 0.5 * req)))
 	lab *= EconUnions.work_factor(world, f)  # M9: strike / lockout
 	var mi := 1.0
 	var soft_f := 1.0

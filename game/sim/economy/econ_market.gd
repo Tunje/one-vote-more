@@ -27,11 +27,14 @@ static func trade(world: WorldState) -> void:
 	s["freight_deferred"] = {}
 	# fill ratio of last month per good (permille), read by the origin backstop (E75)
 	var fr := {}
+	var ul := {}
 	for g2 in s.get("market_stats", {}):
 		var m2: Dictionary = s["market_stats"][g2]
 		if m2.get("wanted", 0) > 0:
 			fr[g2] = int(1000.0 * float(m2.get("filled", 0)) / float(m2["wanted"]))
+			ul[g2] = maxi(0, int(m2["wanted"]) - int(m2.get("filled", 0)))
 	s["fill_last"] = fr
+	s["unmet_last"] = ul
 	s["market_stats"] = {}
 	var tariff := int(EconUtil.lever(world, "ECON_FREIGHT_TARIFF", 5)) * S
 	for good in CLEAR_ORDER:
@@ -78,8 +81,13 @@ static func _clear(world: WorldState, good: String, tariff: int) -> void:
 		elif s.get(on_key, false) and s[calm_key] >= 6:
 			s[on_key] = false
 		if s.get(on_key, false):
+			# E94: the cargo scales with last month's unmet demand (half the gap, base..cap); still at bk[1] × base price,
+			# so scarcity is felt (price signal) but a shortage cannot become a permanent deadlock
+			var qty := int(bk[2]) * S
+			if not EconUtil.off(world, "E94"):
+				qty = clampi(int(s.get("unmet_last", {}).get(good, 0)) / 2, int(bk[2]) * S, int(bk[3]) * S)
 			offers.append({"seller": "origin", "acct": Ledger.EXTERNAL, "district": "d:1", "good": good,
-				"qty": int(bk[2]) * S, "ask": int(float(bk[1]) * float(s["base"][good]))})
+				"qty": qty, "ask": int(float(bk[1]) * float(s["base"][good]))})
 	var bids: Array = s["orders"].filter(func(b): return b["good"] == good and b["qty"] > 0)
 	var price: int = s["prices"][good]
 	var supply := 0

@@ -66,7 +66,8 @@ static func law_fact(world: WorldState, type: String, visibility: String, subjec
 static func init_world(world: WorldState) -> void:
 	state(world)
 	for k in ["legal_rule", "licence", "permit_application", "enactment", "unlawful_track", "violation_track", "revealed_fact",
-			"case", "court", "judge", "liability", "gov_term", "access_grant", "donation_track", "investigation"]:
+			"case", "court", "judge", "liability", "gov_term", "access_grant", "donation_track", "investigation", "inquiry",
+			"victim_award"]:
 		world.table(k)   # owned/shared tables exist from the start, so read-only queries never create them
 	for r in L.charter_rules():
 		r["effective_month"] = 0
@@ -83,7 +84,203 @@ static func init_world(world: WorldState) -> void:
 			{"field": "lever.LAW_LICENCE_REGIME_HAZARD", "op": "EQ", "value": "REQUIRED"}], "unless": [],
 		"requirement": {"licence_type": "HAZARD"}, "delegation": {}, "supersedes": [], "defect": false,
 		"provisional": false, "source": "CHARTER_ANNEX", "effective_month": 0})
+	ensure_m11_rules(world)
 	bump_rules_version(world)
+
+
+## M11 crisis rules (L.m11_rules), added once; older saves get them on their next DECISIONS phase.
+static func ensure_m11_rules(world: WorldState) -> void:
+	var s := state(world)
+	if s.get("m11_rules", false):
+		return
+	s["m11_rules"] = true
+	for r in L.m11_rules():
+		r["effective_month"] = world.month
+		add_rule(world, r)
+	for k in ["inquiry", "victim_award"]:
+		world.table(k)
+	bump_rules_version(world)
+
+
+# =====================================================================================  M11 greed conduct (spec-events §3)
+
+const GREED_SEVERE_MONTHS := 6
+const GREED_SEVERE_SAVING_WREF := 20.0
+const GREED_EVIDENCE_DECAY := 0.97      # per month once the conduct has stopped
+const GREED_STALE_EVIDENCE := 50        # below this an old, stopped conduct can no longer be detected
+
+
+## 88 reports greedy conduct here, every month it continues (an upsert). Returns the record's fact id (stable while
+## the same conduct continues). rec: {kind (L.GREED_KINDS), since_month, saving (milli-credits, this month or
+## cumulative: pass cumulative=true), hazard_ids: [..], evidence 0..1000, facility?, good?, food?, members?,
+## project?, district?}. Legality is decided by the rules engine NOW; lawful conduct (e.g. gouging with no gouging law)
+## is still recorded (a crisis inquiry can reveal it as a cause) but is never inspected or prosecuted.
+static func record_greed(world: WorldState, org: String, rec: Dictionary) -> String:
+	var kind: String = rec["kind"]
+	assert(L.GREED_KINDS.has(kind), "unknown greed kind " + kind)
+	var spec: Dictionary = L.GREED_KINDS[kind]
+	var actor := {"kind": "COMPANY", "id": org}
+	var params := {"facility": rec.get("facility", ""), "good": rec.get("good", ""), "food": rec.get("food", false),
+		"district": rec.get("district", ""), "project": rec.get("project", ""), "members": rec.get("members", [])}
+	var unlawful: bool = validate(world, actor, spec["action"], params)["result"] == "PROHIBITED"
+	var track := world.table("violation_track")
+	var fid := _active_greed(world, org, kind, rec)
+	if fid != "" and bool(track[fid]["unlawful"]) != unlawful:
+		greed_stop(world, fid)      # the law changed under the conduct: a new record from now on
+		fid = ""
+	if fid == "":
+		var typ := "LAW_VIOLATION" if unlawful else "LAW_HARMFUL_CONDUCT"
+		fid = law_fact(world, typ, "SECRET", [actor], [{"actor": actor, "share": 1.0}],
+			{"SAFETY": -5, "FAIRNESS": -3}, 30, {"action": spec["action"], "kind": kind, "params": params, "class": spec["class"],
+			"unlawful": unlawful})
+		track[fid] = {"fact": fid, "company": org, "month": world.month, "class": spec["class"], "revealed": false,
+			"revealed_month": -1, "kind": kind, "channel": spec["channel"], "unlawful": unlawful, "active": true,
+			"since_month": int(rec.get("since_month", world.month)), "saving": 0, "hazard_ids": [], "evidence": 0,
+			"facility": String(rec.get("facility", "")), "good": String(rec.get("good", "")), "members": rec.get("members", []).duplicate()}
+	var v: Dictionary = track[fid]
+	v["active"] = true
+	v["last_month"] = world.month
+	v["saving"] = int(rec.get("saving", 0)) if rec.get("cumulative", false) else int(v["saving"]) + int(rec.get("saving", 0))
+	v["evidence"] = clampi(int(rec.get("evidence", v["evidence"])), 0, 1000)
+	for h in rec.get("hazard_ids", []):
+		if not v["hazard_ids"].has(h):
+			v["hazard_ids"].append(h)
+	if v["class"] != "SEVERE" and ((spec["channel"] in ["SAFETY", "ENV"] and world.month - int(v["since_month"]) >= GREED_SEVERE_MONTHS)
+			or float(v["saving"]) >= GREED_SEVERE_SAVING_WREF * float(Staff.w_ref_milli(world))):
+		v["class"] = "SEVERE"
+	return fid
+
+
+## The firm stopped (upkeep paid again, dumping ended, cartel dissolved). Evidence then decays; still detectable for a while.
+static func greed_stop(world: WorldState, fid: String) -> void:
+	var v: Dictionary = world.table("violation_track").get(fid, {})
+	if not v.is_empty():
+		v["active"] = false
+		v["stopped_month"] = world.month
+
+
+static func _active_greed(world: WorldState, org: String, kind: String, rec: Dictionary) -> String:
+	var track := world.table("violation_track")
+	for fid in Det.ordered(track):
+		var v: Dictionary = track[fid]
+		if v.get("kind", "") == kind and v["company"] == org and v.get("active", false) and not v["revealed"] \
+				and v.get("facility", "") == String(rec.get("facility", "")) and v.get("good", "") == String(rec.get("good", "")):
+			return fid
+	return ""
+
+
+## Monthly: stopped conduct loses evidence (records decay, witnesses forget).
+static func decay_greed_evidence(world: WorldState) -> void:
+	var track := world.table("violation_track")
+	for fid in Det.ordered(track):
+		var v: Dictionary = track[fid]
+		if v.has("kind") and not v["active"] and not v["revealed"]:
+			v["evidence"] = int(float(v["evidence"]) * GREED_EVIDENCE_DECAY)
+
+
+# =====================================================================================  M11 state of emergency (spec-events §4)
+
+const EMERGENCY_MAX_MONTHS := 6
+const EMERGENCY_APPROVAL_MONTHS := 1
+const CRISIS_LOOKBACK := 2
+const CRISIS_MIN_MAGNITUDE := 40
+const EMERGENCY_KINDS := ["FOOD", "HEALTH", "POWER", "GENERAL"]
+
+
+static func emergency(world: WorldState) -> Dictionary:
+	return world.peek("law_state").get("s", {}).get("emergency", {})
+
+
+## A crisis condition: a crisis fact (data.crisis = true, magnitude >= 40) or ECON_FAMINE in the last 2 months.
+static func crisis_active(world: WorldState) -> bool:
+	for f in world.facts.query("", world.month - CRISIS_LOOKBACK, world.month):
+		if f["type"] == "ECON_FAMINE" or (bool(f["data"].get("crisis", false)) and int(f["magnitude"]) >= CRISIS_MIN_MAGNITUDE):
+			return true
+	return false
+
+
+## Declare a state of emergency. by = GOVERNMENT (needs parliament's approval within 1 month: approve_emergency) or
+## COMMANDER (founding era: in force at once). -> {ok, reason, needs_approval, until_month}
+static func declare_emergency(world: WorldState, kind: String = "GENERAL", by: Dictionary = GOVERNMENT) -> Dictionary:
+	if bool(emergency(world).get("active", false)):
+		return {"ok": false, "reason": "A state of emergency is already in force.", "needs_approval": false, "until_month": -1}
+	if not (kind in EMERGENCY_KINDS):
+		kind = "GENERAL"
+	var active := crisis_active(world)
+	var res := validate(world, by, "DECLARE_EMERGENCY", {"crisis_active": active, "kind": kind})
+	if not (res["result"] in ["AUTHORIZED", "REQUIRES_APPROVAL"]):
+		return {"ok": false, "reason": "No crisis condition: an emergency may only be declared during a crisis." if not active \
+			else "Not authorized: %s" % res["reason"], "needs_approval": false, "until_month": -1}
+	var needs: bool = res["result"] == "REQUIRES_APPROVAL"
+	var e := {"active": true, "kind": kind, "by": by.duplicate(), "declared_month": world.month, "approved": not needs,
+		"approval_due": world.month + EMERGENCY_APPROVAL_MONTHS, "until_month": world.month + EMERGENCY_MAX_MONTHS, "renewals": 0}
+	state(world)["emergency"] = e
+	bump_rules_version(world)
+	law_fact(world, "LAW_EMERGENCY_DECLARED", "PUBLIC", [by], [{"actor": by, "share": 1.0}], {}, 60,
+		{"kind": kind, "needs_approval": needs, "until_month": e["until_month"], "approval_due": e["approval_due"]})
+	return {"ok": true, "reason": "", "needs_approval": needs, "until_month": e["until_month"]}
+
+
+## Parliament's vote on a declared emergency (politics calls this; without approval it lapses after 1 month).
+static func approve_emergency(world: WorldState, approved: bool) -> void:
+	var e := emergency(world)
+	if not e.get("active", false):
+		return
+	if approved:
+		e["approved"] = true
+		law_fact(world, "LAW_EMERGENCY_APPROVED", "PUBLIC", [{"kind": "INSTITUTION", "id": "parliament"}], [], {}, 30,
+			{"kind": e["kind"], "until_month": e["until_month"]})
+	else:
+		end_emergency(world, "REJECTED")
+
+
+## Renewal for another 6 months: needs a parliament vote (politics), only while in force and approved.
+static func renew_emergency(world: WorldState) -> Dictionary:
+	var e := emergency(world)
+	if not e.get("active", false) or not e.get("approved", false):
+		return {"ok": false, "reason": "No approved state of emergency to renew."}
+	e["until_month"] = world.month + EMERGENCY_MAX_MONTHS
+	e["renewals"] = int(e["renewals"]) + 1
+	law_fact(world, "LAW_EMERGENCY_RENEWED", "PUBLIC", [{"kind": "INSTITUTION", "id": "parliament"}], [], {}, 30,
+		{"kind": e["kind"], "until_month": e["until_month"], "renewals": e["renewals"]})
+	return {"ok": true, "reason": "", "until_month": e["until_month"]}
+
+
+## End the emergency: every emergency lever reverts to its default and pending emergency enactments are cancelled.
+static func end_emergency(world: WorldState, reason: String = "ENDED") -> void:
+	var e := emergency(world)
+	if not e.get("active", false):
+		return
+	e["active"] = false
+	e["ended_month"] = world.month
+	e["end_reason"] = reason
+	var reverted: Array = []
+	for lid in L.EMERGENCY_LEVERS:
+		if not world.lever_defs.has(lid):
+			continue
+		var d = world.lever_defs[lid]["default"]
+		if world.levers.get(lid) != d:
+			world.levers[lid] = d
+			reverted.append(lid)
+		state(world)["legal_values"].erase(lid)
+	var rows := world.table("enactment")
+	for eid in Det.ordered(rows):
+		if rows[eid].get("lever", "") in L.EMERGENCY_LEVERS and rows[eid]["status"] in ["PENDING", "LEGAL", "SCHEDULED"]:
+			rows[eid]["status"] = "CANCELLED"
+	bump_rules_version(world)
+	law_fact(world, "LAW_EMERGENCY_ENDED", "PUBLIC", [e["by"]], [], {}, 40,
+		{"kind": e["kind"], "reason": reason, "reverted": reverted, "months": world.month - int(e["declared_month"])})
+
+
+## DECISIONS phase: unapproved emergencies lapse after 1 month; approved ones expire at until_month.
+static func emergency_tick(world: WorldState) -> void:
+	var e := emergency(world)
+	if not e.get("active", false):
+		return
+	if not e["approved"] and world.month > int(e["approval_due"]):
+		end_emergency(world, "LAPSED")
+	elif world.month >= int(e["until_month"]):
+		end_emergency(world, "EXPIRED")
 
 
 # =====================================================================================  licences (permit office queue is M6)

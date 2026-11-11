@@ -395,8 +395,11 @@ static func contractor_plans(world: WorldState) -> void:
 		var need_wu := 0.0
 		var mat := 0
 		var comp := 0
+		var strategic := false
 		for pid in o["contracts"]:
 			var p: Dictionary = world.table("project")[pid]
+			if p["status"] == "ACTIVE" and _strategic_expansion(world, p) and not EconUtil.off(world, "E95"):
+				strategic = true
 			if p["status"] != "ACTIVE" or p["unpaid_m"] >= 1:
 				continue  # E76: no material purchases for work the owner is not paying for
 			var months_left := maxi(1, p["start_month"] + p["bid_duration"] - world.month)
@@ -414,8 +417,8 @@ static func contractor_plans(world: WorldState) -> void:
 		# growth limits: ≤ +25%/month, ≤ 2× founding crew, no growth while material-blocked last month
 		var max_mult := 3.0 if o["type"] == "PUBLIC_ENTERPRISE" and not _private_builder_alive(world) else 2.0  # E86: sole builder
 		var cap_n := minf(maxf(cur * 1.25, cur + 5.0), max_mult * float(base_n))
-		if o.get("blocked_last", false):
-			cap_n = cur * 0.85  # blocked crews shrink
+		if o.get("blocked_last", false) and not strategic:
+			cap_n = cur * 0.85  # blocked crews shrink (E95: not while building strategic input capacity)
 		target_n = minf(target_n, cap_n)
 		if not o["contracts"].is_empty():
 			target_n = maxf(target_n, 0.6 * cur)
@@ -435,5 +438,5 @@ static func contractor_plans(world: WorldState) -> void:
 			want = mini(want, int(float(budget) * S / float(lim)))
 			if want > 0:
 				s["orders"].append({"buyer": oid, "acct": EconUtil.acct(oid), "district": hq, "good": pair[0], "qty": want,
-					"limit": lim, "class": EconMarket.C_CONSTRUCTION, "kind": "org"})  # E56: construction yields to production
+					"limit": lim, "class": EconMarket.C_FIRM if strategic else EconMarket.C_CONSTRUCTION, "kind": "org"})  # E56; E95: strategic input capacity buys with producers
 				budget -= EconUtil.val(want, lim)

@@ -23,7 +23,24 @@ static func required(f: Dictionary) -> Dictionary:
 	var r: Dictionary = EconData.RECIPES[f["type"]]
 	for t in r["labor"]:
 		out[t] = 0 if f["mothball"] else int(float(r["labor"][t]) * S * float(f["T"]) / 1000.0 * EconUtil.fscale(f))
+	if out.has("Sp"):
+		out["Sp"] = maxi(0, out["Sp"] - int(f.get("named_sp", 0)) * S)  # J26 / PD §11.5: posts held by named senior staff
 	return out
+
+
+## J26 (a9) / PD §11.5: the named political staff, civil servants and judges hold senior public posts. They fill
+## Specialist slots of the government administration (first ADMIN facility) so they are not counted twice.
+static func assign_named_staff(world: WorldState) -> void:
+	var named := 0
+	if world.peek("person").size() > 0 or world.peek("judge").size() > 0:
+		named = int(preload("res://sim/staff/staff_query.gd").named_headcount(world).get("public", 0))
+	var first := true
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] != "ADMIN":
+			continue
+		f["named_sp"] = named if first else 0
+		first = false
 
 
 static func staff_total(staff: Dictionary) -> int:
@@ -61,6 +78,7 @@ static func remove(staff: Dictionary, t: String, qty: int) -> int:
 ## Build this month's vacancy list and apply layoffs (COMPANY_AI; also at setup).
 static func post_vacancies(world: WorldState) -> void:
 	var s := EconUtil.st(world)
+	assign_named_staff(world)
 	var vacs: Array = []
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]

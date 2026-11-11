@@ -31,6 +31,8 @@ const ACTION_DEFS := [
 	{"id": "OPP_START_OVERSIGHT", "owner": "staff", "actors": ["PARTY", "OPPOSITION"], "cost": {"staffTask": "STAFF_T_OVERSIGHT"}, "legalAction": "INTERNAL", "args": ["domain"]},
 	{"id": "OPP_FILE_CHALLENGE", "owner": "law", "actors": ["PARTY", "OPPOSITION"], "cost": {"staffTask": "STAFF_T_LEGAL_CHALLENGE"}, "legalAction": "INTERNAL", "args": ["option (from opposition options)"]},
 	{"id": "LAW_RESTART_IMPLEMENTATION", "owner": "law", "actors": ["PLAYER_GOV", "AI_GOV", "COMMANDER"], "cost": {}, "legalAction": "INTERNAL", "args": ["source_bill"]},
+	{"id": "LAW_DECLARE_EMERGENCY", "owner": "law", "actors": ["PLAYER_GOV", "AI_GOV", "COMMANDER"], "cost": {}, "legalAction": "DECLARE_EMERGENCY", "args": ["kind (FOOD|HEALTH|POWER|GENERAL)"]},
+	{"id": "LAW_END_EMERGENCY", "owner": "law", "actors": ["PLAYER_GOV", "AI_GOV", "COMMANDER"], "cost": {}, "legalAction": "INTERNAL", "args": []},
 ]
 
 
@@ -149,6 +151,13 @@ static func _apply(world: WorldState, action: Dictionary) -> Dictionary:
 			return r
 		"LAW_DECREE":
 			return _decree(world, actor, a)
+		"LAW_DECLARE_EMERGENCY", "LAW_END_EMERGENCY":
+			if not (actor.get("kind", "") in ["GOVERNMENT", "COMMANDER"]):
+				return _err("only the government (or the commander) declares or ends a state of emergency")
+			if action["id"] == "LAW_END_EMERGENCY":
+				LawOps.end_emergency(world, "ENDED_BY_GOVERNMENT")
+				return {"ok": true}
+			return _wrap(LawOps.declare_emergency(world, String(a.get("kind", "GENERAL")), actor))
 		"LAW_RESTART_IMPLEMENTATION":
 			LawOps.restart_implementation(world, a["source_bill"])
 			return {"ok": true}

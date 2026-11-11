@@ -50,12 +50,15 @@ func init_world(world: WorldState) -> void:
 func run_phase(phase: int, world: WorldState) -> void:
 	match phase:
 		TickPhase.DECISIONS:
+			Ops.ensure_m11_rules(world)
+			Ops.emergency_tick(world)
 			Vis.note_government(world)
 			Ops.maybe_adopt_constitution(world)
 			Ops.run_pipeline(world)
 		TickPhase.JUSTICE:
 			Ops.process_permits(world)
 			Ops.discover(world)
+			Ops.decay_greed_evidence(world)
 			Ops.Justice.run(world)
 			PF.run(world)
 			Ops.write_indicators(world)

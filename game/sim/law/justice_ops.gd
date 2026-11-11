@@ -18,7 +18,15 @@ const CP_PER_JUDGE_LAW := 4.0
 const JUDGE_COST_WREF := 3000       # milli-W_ref per judge per month (budget adequacy)
 const INSPECTOR_COST_WREF := 2000
 const INSPECTIONS_PER_INSPECTOR := 3
-const CASE_CP := {"ADMIN_APPEAL": 3, "UNLAWFUL_GOV": 6, "CONTRACT": 5, "ENFORCEMENT": 4, "APPEAL": 4, "PARTY_FINANCE": 4}
+const CASE_CP := {"ADMIN_APPEAL": 3, "UNLAWFUL_GOV": 6, "CONTRACT": 5, "ENFORCEMENT": 4, "APPEAL": 4, "PARTY_FINANCE": 4,
+	"TORT": 5}
+# M11 detection channels (spec-events 3): environment inspectorate and competition/consumer authority.
+const ENV_INSPECTION_COST_WREF := 1500     # milli-W_ref per environmental inspection
+const MARKET_CASE_COST_WREF := 2500        # milli-W_ref per market investigation
+const P_WHISTLE_PROTECTED := 0.03          # with LAW_WHISTLEBLOWER_PROTECTION
+const P_LENIENCY := 0.05                   # per month a cartel member confesses under LAW_LENIENCY
+const INQUIRY_MIN_MAGNITUDE := 50
+const VICTIM_FUND := "law:victim_fund"
 const PARTY_FINE_MULT := 2.0      # party-finance fine = 2 x the amount over the cap (min 1 W_ref) x LAW_FINE_SCALE
 const THETA := 0.5
 const SETTLE_GAP := 0.15
@@ -223,8 +231,10 @@ static func run(world: WorldState) -> void:
 	_inspect(world)
 	_accident_reveals(world)
 	_file_new_cases(world)
+	_crisis_inquiries(world)
 	_settlements(world)
 	_process_courts(world)
+	_pay_victims(world)
 
 
 static func _reactivate_licences(world: WorldState) -> void:
@@ -235,33 +245,58 @@ static func _reactivate_licences(world: WorldState) -> void:
 			l["status"] = "ACTIVE"
 
 
-## Inspectorate: each open violation is inspected with p = inspections/regulated x risk, found with 0.6 + 0.3 Q/100.
-static func _inspect(world: WorldState) -> void:
+## Shared detection context (monthly): inspections per channel, regulated population, find probability.
+static func detect_ctx(world: WorldState) -> Dictionary:
 	var track := world.table("violation_track")
 	var inspectors := int(world.levers.get("LAW_INSPECTORS", 4))
 	var budget := float(world.levers.get("LAW_INSPECTORATE_BUDGET", 8000))
 	var need := float(inspectors * INSPECTOR_COST_WREF)
-	var inspections := float(inspectors * INSPECTIONS_PER_INSPECTOR) * (minf(1.0, budget / need) if need > 0.0 else 0.0)
 	var regulated := {}
 	for l in world.table("licence").values():
 		regulated[l["holder_id"]] = true
 	for v in track.values():
 		regulated[v["company"]] = true
-	var n_reg := maxi(10, regulated.size())
 	var q := float(Staff.duty_quality(world, "STAFF_SD_LEGAL", int(AGENCY_Q_DEFAULT * 1000.0))) / 1000.0
-	var p_find := 0.6 + 0.3 * q / 100.0
+	return {"SAFETY": float(inspectors * INSPECTIONS_PER_INSPECTOR) * (minf(1.0, budget / need) if need > 0.0 else 0.0),
+		"ENV": float(world.levers.get("LAW_ENV_INSPECTORATE_BUDGET", 4000)) / float(ENV_INSPECTION_COST_WREF),
+		"MARKET": float(world.levers.get("LAW_COMPETITION_BUDGET", 4000)) / float(MARKET_CASE_COST_WREF),
+		"n_reg": maxi(10, regulated.size()), "p_find": 0.6 + 0.3 * q / 100.0,
+		"p_whistle": P_WHISTLE_PROTECTED if bool(world.levers.get("LAW_WHISTLEBLOWER_PROTECTION", false)) else P_WHISTLE,
+		"leniency": bool(world.levers.get("LAW_LENIENCY", false)), "priors": js(world)["sanctioned"]}
+
+
+## Monthly detection probabilities of one tracked violation: {inspect, whistle, leniency}. Evidence 0..1000 scales
+## them (x0.5..x1.5; pre-M11 rows count as 500 = x1.0). Lawful or stale conduct is not detectable this way.
+static func detect_p(ctx: Dictionary, v: Dictionary) -> Dictionary:
+	if not v.get("unlawful", true) or (v.has("kind") and not v.get("active", true) and int(v.get("evidence", 0)) < 50):
+		return {"inspect": 0.0, "whistle": 0.0, "leniency": 0.0}
+	var ev := 0.5 + float(v.get("evidence", 500)) / 1000.0
+	var risk := 2.0 if ctx["priors"].has(v["company"]) else 1.0
+	var ch: String = v.get("channel", "SAFETY")
+	var cap: float = ctx[ch]
+	var p_insp := minf(1.0, cap / float(ctx["n_reg"]) * risk) * float(ctx["p_find"]) * ev
+	var lp := P_LENIENCY if ctx["leniency"] and v.get("kind", "") == "CARTEL" else 0.0
+	return {"inspect": minf(1.0, p_insp), "whistle": minf(1.0, float(ctx["p_whistle"]) * ev), "leniency": lp}
+
+
+## Inspectorates: each open violation is inspected by its channel with p = inspections/regulated x risk x find x evidence.
+static func _inspect(world: WorldState) -> void:
+	var track := world.table("violation_track")
+	var ctx := detect_ctx(world)
 	var rng := world.rng.stream("law.inspect")
-	var priors: Dictionary = js(world)["sanctioned"]
 	for fid in Det.ordered(track):
 		var v: Dictionary = track[fid]
 		if v["revealed"]:
 			continue
-		var risk := 2.0 if priors.has(v["company"]) else 1.0
-		var p_insp := minf(1.0, inspections / float(n_reg) * risk)
-		if rng.randf() < p_insp * p_find:
+		var p := detect_p(ctx, v)
+		if p["inspect"] <= 0.0 and p["whistle"] <= 0.0:
+			continue
+		if rng.randf() < p["inspect"]:
 			_reveal_violation(world, fid, STATE, "INSPECTION")
-		elif rng.randf() < P_WHISTLE:
+		elif rng.randf() < p["whistle"]:
 			_reveal_violation(world, fid, {"kind": "OFFICIAL", "id": "whistleblower"}, "WHISTLEBLOWER")
+		elif p["leniency"] > 0.0 and rng.randf() < p["leniency"]:
+			_reveal_violation(world, fid, {"kind": "COMPANY", "id": "cartel_member"}, "LENIENCY")
 
 
 ## Accidents at a facility operated in violation reveal that operator's open violations and wrongly granted licences.
@@ -289,6 +324,9 @@ static func _reveal_violation(world: WorldState, fid: String, by: Dictionary, ch
 	v["channel"] = channel
 	world.table("revealed_fact")[fid] = true
 	var rid := world.facts.reveal(world.month, fid, [by])
+	v["revealed_fact"] = rid
+	if not v.get("unlawful", true):
+		return   # harmful but lawful conduct: public, nothing to prosecute
 	if channel != "INSPECTION":
 		# Weak oversight shares the blame when it took an accident or a whistleblower (pic-staff-law §2).
 		fact(world, "LAW_OVERSIGHT_FAILURE", "PUBLIC", [GOVERNMENT], [{"actor": GOVERNMENT, "share": 1.0}],
@@ -483,6 +521,23 @@ static func _final(world: WorldState, c: Dictionary, claimant_wins: bool) -> voi
 				if not v.is_empty():
 					v["sanctioned_month"] = world.month
 					js(world)["sanctioned"][v["company"]] = world.month
+				if String(c["data"].get("class", "")) == "SEVERE":
+					var org: Dictionary = world.table("org").get(c["respondent"]["id"], {})
+					var ceo = org.get("ceo", {})
+					var cref := {"kind": "COMPANY", "id": c["respondent"]["id"]}
+					fact(world, "LAW_MANAGER_CONVICTED", "PUBLIC", [cref], [{"actor": cref, "share": 1.0}], {"FAIRNESS": 3}, 40,
+						{"org": c["respondent"]["id"], "ceo": ceo.get("name", "") if ceo is Dictionary else str(ceo),
+						"violation": c["data"]["violation"], "case": c["id"]})
+			"TORT":
+				var claim := int(c["data"].get("claim", 0))
+				var gov_share := float(c["data"].get("gov_share", 0.0))
+				var by_gov := int(round(float(claim) * gov_share))
+				_pay(world, c["respondent"], c["claimant"], claim - by_gov, "COMPENSATION")
+				if by_gov > 0:
+					_pay(world, GOVERNMENT, c["claimant"], by_gov, "COMPENSATION")
+				data["remedy"] = "COMPENSATION"
+				data["amount"] = claim
+				data["gov_paid"] = by_gov
 			"PARTY_FINANCE":
 				data["remedy"] = "FINE"
 				data["fine"] = _party_fine(world, c)
@@ -522,6 +577,102 @@ static func _party_fine(world: WorldState, c: Dictionary) -> int:
 		fact(world, "LAW_LEADER_CONVICTED", "PUBLIC", [pref], [{"actor": pref, "share": 1.0}], {"GOVERNANCE": -3}, 60,
 			{"party": pid, "leader": leader, "case": c["id"], "can_hold_office": can, "must_step_down": not can})
 	return amount
+
+
+# =====================================================================================  M11 crises: inquiry, liability
+
+## A serious crisis (fact with data.crisis = true, magnitude >= 50) opens a public inquiry with p = 0.5 + 0.4 Q/100.
+## It reports after 3-6 months: linked conduct (data.cause_records, or records whose hazard_ids include data.hazard,
+## or at the same facility) is found with the inspection find odds x evidence. A found greed cause emits
+## LAW_CRISIS_CAUSE_REVEALED (company + government blame) and, with damages, a TORT case for the victims.
+static func _crisis_inquiries(world: WorldState) -> void:
+	var inq := world.table("inquiry")
+	var rng := world.rng.stream("law.inquiry")
+	var q := float(Staff.duty_quality(world, "STAFF_SD_LEGAL", int(AGENCY_Q_DEFAULT * 1000.0))) / 1000.0
+	for f in world.facts.query("", world.month, world.month):
+		if not bool(f["data"].get("crisis", false)) or int(f["magnitude"]) < INQUIRY_MIN_MAGNITUDE:
+			continue
+		if rng.randf() >= 0.5 + 0.4 * q / 100.0:
+			continue
+		var id := world.new_id("inquiry")
+		inq[id] = {"id": id, "crisis": f["id"], "opened_month": world.month, "due_month": world.month + 3 + rng.randi_range(0, 3),
+			"status": "OPEN", "found": []}
+		fact(world, "LAW_INQUIRY_OPENED", "PUBLIC", [GOVERNMENT], [], {}, 25, {"inquiry": id, "crisis": f["id"], "crisis_type": f["type"]})
+	var ctx := detect_ctx(world)
+	for id in Det.ordered(inq):
+		var i: Dictionary = inq[id]
+		if i["status"] != "OPEN" or world.month < int(i["due_month"]):
+			continue
+		var crisis := world.facts.get_fact(i["crisis"])
+		for fid in _linked_conduct(world, crisis):
+			var v: Dictionary = world.table("violation_track")[fid]
+			if not v["revealed"]:
+				var ev := 0.5 + float(v.get("evidence", 500)) / 1000.0
+				if rng.randf() >= minf(1.0, float(ctx["p_find"]) * ev):
+					continue
+				_reveal_violation(world, fid, {"kind": "INSTITUTION", "id": "inquiry"}, "INQUIRY")
+			i["found"].append(fid)
+			cause_revealed(world, crisis, fid)
+		i["status"] = "CLOSED"
+		fact(world, "LAW_INQUIRY_CLOSED", "PUBLIC", [GOVERNMENT], [], {}, 25 if i["found"].is_empty() else 40,
+			{"inquiry": id, "crisis": i["crisis"], "outcome": "CAUSE_FOUND" if not i["found"].is_empty() else "NO_FINDINGS",
+			"found": i["found"].size()})
+
+
+static func _linked_conduct(world: WorldState, crisis: Dictionary) -> Array:
+	var d: Dictionary = crisis.get("data", {})
+	var out: Array = []
+	var track := world.table("violation_track")
+	for fid in d.get("cause_records", []):
+		if track.has(fid) and not out.has(fid):
+			out.append(fid)
+	var hz := String(d.get("hazard", ""))
+	var fac := String(d.get("facility", ""))
+	for fid in Det.ordered(track):
+		var v: Dictionary = track[fid]
+		if out.has(fid) or not v.has("kind") or int(v.get("since_month", 0)) > int(crisis.get("month", world.month)):
+			continue
+		if (hz != "" and v.get("hazard_ids", []).has(hz)) or (fac != "" and v.get("facility", "") == fac):
+			out.append(fid)
+	return out
+
+
+## The actual cause of a crisis becomes public: a scandal for the company and for the government that let it happen
+## (larger share when the conduct ran 12+ months undetected). Damages -> TORT case for the victims (once per crisis+org).
+static func cause_revealed(world: WorldState, crisis: Dictionary, fid: String) -> void:
+	var v: Dictionary = world.table("violation_track")[fid]
+	var org := String(v["company"])
+	var cref := {"kind": "COMPANY", "id": org}
+	var hidden := int(crisis.get("month", world.month)) - int(v.get("since_month", v["month"]))
+	var gov_share := 0.3 if hidden >= 12 else 0.1
+	var mag := maxi(50, int(crisis.get("magnitude", 50)))
+	fact(world, "LAW_CRISIS_CAUSE_REVEALED", "PUBLIC", [cref, GOVERNMENT],
+		[{"actor": cref, "share": 1.0 - gov_share}, {"actor": GOVERNMENT, "share": gov_share}],
+		{"SAFETY": -5, "FAIRNESS": -8, "GOVERNANCE": -int(round(gov_share * 20.0))}, mini(95, mag + 10),
+		{"crisis": crisis.get("id", ""), "crisis_type": crisis.get("type", ""), "org": org, "kind": v.get("kind", ""),
+		"cause": "%s by %s for %d months" % [String(v.get("kind", "violation")).to_lower().replace("_", " "), org, maxi(1, hidden)],
+		"months_hidden": hidden, "unlawful": v.get("unlawful", true), "saving": int(v.get("saving", 0)), "record": fid,
+		"gov_share": gov_share}, [crisis.get("id", ""), fid] if crisis.has("id") else [fid])
+	var damages := int(crisis.get("data", {}).get("damages", 0))
+	var key := "%s|%s" % [crisis.get("id", ""), org]
+	if damages > 0 and not js(world)["filed"].has(key):
+		js(world)["filed"][key] = true
+		file_case(world, "TORT", {"kind": "VICTIMS", "id": crisis.get("id", ""), "scope": crisis.get("data", {}).get("scope", {})},
+			cref, true, {"crisis": crisis.get("id", ""), "fact": fid, "claim": damages, "gov_share": gov_share,
+			"scope": crisis.get("data", {}).get("scope", {})}, [900])
+
+
+## Compensation paid into the victim fund is recorded as an award; 88's helper pays awards out to the victims'
+## (housing block x income band) pools by the crisis exposure scope and marks them PAID.
+static func _award(world: WorldState, victims: Dictionary, amount: int) -> void:
+	var id := world.new_id("award")
+	world.table("victim_award")[id] = {"id": id, "crisis": String(victims.get("id", "")), "scope": victims.get("scope", {}),
+		"amount": amount, "paid_out": 0, "status": "OPEN", "month": world.month}
+
+
+## Placeholder until 88's pool payout exists: nothing to do here (awards wait in law:victim_fund).
+static func _pay_victims(_world: WorldState) -> void:
+	pass
 
 
 static func _root_filed(world: WorldState, c: Dictionary) -> int:
@@ -585,11 +736,17 @@ static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, am
 	var to := "gov:treasury" if to_ref["kind"] in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"] else company_acct(String(to_ref["id"]))
 	if to_ref["kind"] == "PARTY":
 		to = "party:" + String(to_ref["id"])
+	if to_ref["kind"] == "VICTIMS":
+		to = VICTIM_FUND
+		if world.ledger.has_account("gov:treasury") and not world.ledger.has_account(VICTIM_FUND):
+			world.ledger.open_account(VICTIM_FUND)
 	if not world.ledger.has_account(from) or not world.ledger.has_account(to):
 		return   # no economy loaded (politics-only configurations)
 	var paid := mini(amount, maxi(0, world.ledger.balance(from))) if not world.ledger.allow_negative.get(from, false) else amount
 	if paid > 0:
 		world.ledger.transfer(from, to, paid, memo, world.month)
+		if to_ref["kind"] == "VICTIMS":
+			_award(world, to_ref, paid)
 	if amount - paid > 0 and from.begins_with("co:"):
 		var lid := world.new_id("liability")
 		world.table("liability")[lid] = {"id": lid, "debtor": String(from_ref["id"]),

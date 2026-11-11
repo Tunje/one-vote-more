@@ -474,6 +474,7 @@ static func reclassify(world: WorldState, move: bool = true) -> void:
 	var pop := world.table("pop")
 	var adults: Array = []   # [key, value, n]
 	var values: Array = []   # [value, n] incl. dependents at pool level (for Gini)
+	var values_d := {}       # district -> [[value, n]]
 	var cur := {}            # key -> value used for banding
 	for k in EconUtil.sorted_keys(pop):
 		var l: Dictionary = pop[k]
@@ -498,8 +499,15 @@ static func reclassify(world: WorldState, move: bool = true) -> void:
 			values.append([ema, int(l["n"])])
 		else:
 			values.append([float(pool_eq[gid]), int(l["n"])])
+		var dd := district_of(l["hb"])
+		if not values_d.has(dd):
+			values_d[dd] = []
+		values_d[dd].append(values[-1])
 	var cuts := _quantiles(adults.map(func(a): return [a[1], a[2]]), [0.2, 0.4, 0.6, 0.8])
-	s["bands"] = {"cuts": cuts.map(func(c): return int(round(c))), "gini": int(round(1000.0 * _gini(values)))}
+	var gd := {}
+	for dd in EconUtil.sorted_keys(values_d):
+		gd[dd] = int(round(1000.0 * _gini(values_d[dd])))
+	s["bands"] = {"cuts": cuts.map(func(c): return int(round(c))), "gini": int(round(1000.0 * _gini(values))), "gini_d": gd}
 	if cuts.is_empty() or not move:
 		return
 	# 2. band moves for adults (whole leaves), with hysteresis

@@ -23,6 +23,8 @@ static func _field(world: WorldState, ctx: Dictionary, field: String):
 		return era(world)
 	if field == "world.month":
 		return world.month
+	if field == "world.emergency":
+		return bool(world.peek("law_state").get("s", {}).get("emergency", {}).get("active", false))
 	if field == "world.caretaker":
 		return bool(world.peek("pol").get("state", {}).get("caretaker", false))
 	if field.begins_with("lever."):

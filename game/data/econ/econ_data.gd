@@ -71,7 +71,9 @@ const BUILDER_CREW := {"G": 20, "S": 8, "Sp": 1}
 const DISC_CAP_BAND := {"I1": 1.0, "I2": 1.0, "I3": 1.5, "I4": 2.5, "I5": 4.0}  # E88: × MAX_DISC_CONSUMER_PC by income band
 const FORCED_SALE_MONTHS := 6         # E91: months a closed plant may stay unrepaired before it must be sold
 const RENT_ARREARS_CUT := 0.10         # landlords cut rent 3%/quarter while arrears exceed 10% of rent due
-const ORIGIN_BACKSTOP := {"MATERIAL": [2.0, 3.0, 200], "COMPONENT": [2.0, 3.0, 40]}
+## [trigger×base, ask×base, min qty, max qty]. E94 (scaling cargo) is ON HOLD (user, 2026-11-11: no home-world supply model);
+## max = min keeps the old fixed cargo until the self-sufficiency spec replaces the backstop altogether.
+const ORIGIN_BACKSTOP := {"MATERIAL": [2.0, 3.0, 200, 200], "COMPONENT": [2.0, 3.0, 40, 40]}
 const STRATEGIC := ["POWER", "WATERWORKS", "MINE", "PROCESSING", "FARM", "DEPOT", "COMPONENTS", "MEDWORKS", "CONSUMERF"]
 const GOV_FIRST_PURCHASE := 0.40
 const RESTRUCTURE_HAIRCUT := 0.30

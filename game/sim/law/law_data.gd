@@ -10,7 +10,26 @@ const ACTIONS := ["ZONE_DISTRICT", "BUILD_FACILITY", "DEMOLISH_FACILITY", "OPERA
 	"AWARD_CONTRACT", "TERMINATE_CONTRACT", "ISSUE_PERMIT", "DENY_PERMIT", "ISSUE_LICENCE", "REVOKE_LICENCE",
 	"EXPROPRIATE", "SELL_ASSET", "SET_LEVER", "APPOINT_OFFICIAL", "DISMISS_OFFICIAL", "HOLD_ELECTION",
 	"POSTPONE_ELECTION", "RESTRICT_ASSOCIATION", "RESTRICT_ASSEMBLY", "RESTRICT_EXPRESSION",
-	"INSTRUCT_AUTHORITY_DECISION", "REGISTER_PARTY", "CAMPAIGN", "INTERNAL"]
+	"INSTRUCT_AUTHORITY_DECISION", "REGISTER_PARTY", "CAMPAIGN", "INTERNAL",
+	# M11 (spec-events-v1): company greed conduct, emergency powers
+	"DEFER_SAFETY_UPKEEP", "SAFETY_CORNERS", "DISCHARGE_WASTE", "HOARD", "PRICE_GOUGE", "EXPORT_GOODS", "CARTEL",
+	"CUT_CONTRACT_CORNERS", "DECLARE_EMERGENCY", "REQUISITION"]
+
+## M11 greed conduct (88 reports it with LawOps.record_greed). action = the rules-engine action that decides legality;
+## channel = who can detect it (SAFETY inspectorate, ENV inspectorate, MARKET competition/consumer authority);
+## class = penalty class (escalates to SEVERE after 6 active months for SAFETY/ENV kinds, or saving >= 20 W_ref).
+const GREED_KINDS := {
+	"DEFERRED_UPKEEP": {"action": "DEFER_SAFETY_UPKEEP", "channel": "SAFETY", "class": "SERIOUS"},
+	"SAFETY_CORNERS": {"action": "SAFETY_CORNERS", "channel": "SAFETY", "class": "SERIOUS"},
+	"CONTRACT_CORNERS": {"action": "CUT_CONTRACT_CORNERS", "channel": "SAFETY", "class": "SERIOUS"},
+	"DUMPING": {"action": "DISCHARGE_WASTE", "channel": "ENV", "class": "SERIOUS"},
+	"HOARDING": {"action": "HOARD", "channel": "MARKET", "class": "MINOR"},
+	"GOUGING": {"action": "PRICE_GOUGE", "channel": "MARKET", "class": "MINOR"},
+	"EXPORT_IN_SHORTAGE": {"action": "EXPORT_GOODS", "channel": "MARKET", "class": "SERIOUS"},
+	"CARTEL": {"action": "CARTEL", "channel": "MARKET", "class": "SERIOUS"},
+}
+## Emergency levers: settable only while a state of emergency is in force; revert to default when it ends.
+const EMERGENCY_LEVERS := ["LAW_RATIONING", "LAW_PRICE_CONTROL", "LAW_FOOD_EXPORT_BAN", "LAW_REQUISITION"]
 
 ## Executive actions the commander (founding) and later the government may take without a specific law.
 const EXECUTIVE_ACTIONS := ["ZONE_DISTRICT", "BUILD_FACILITY", "DEMOLISH_FACILITY", "AWARD_CONTRACT",
@@ -55,6 +74,49 @@ static func charter_rules() -> Array:
 	# The automatic liquidity draw in SETTLEMENT is charter-pre-authorized (88, E-spec).
 	out.append(_r("AUTHORIZE", "BORROW", [{"field": "actor.kind", "op": "IN", "value": ["GOVERNMENT", "COMMANDER"]}],
 		[{"field": "p.automatic_liquidity", "op": "EQ", "value": true}]))
+	return out
+
+
+## M11 rules (spec-events-v1 3-4). Added once by LawOps.ensure_m11_rules (new games and older saves alike).
+static func m11_rules() -> Array:
+	var out: Array = []
+	var co := [{"field": "actor.kind", "op": "EQ", "value": "COMPANY"}]
+	var law := {"level": "LAW", "source": "M11_CRISIS"}
+	# Duty of care, environment and contract law: always unlawful.
+	for a in ["DEFER_SAFETY_UPKEEP", "SAFETY_CORNERS", "DISCHARGE_WASTE", "CUT_CONTRACT_CORNERS"]:
+		out.append(_r("PROHIBIT", a, co, [], law))
+	# Market conduct: unlawful only where the law says so.
+	for a in ["PRICE_GOUGE", "HOARD"]:
+		out.append(_r("PROHIBIT", a, co, [{"field": "lever.LAW_PRICE_GOUGING", "op": "EQ", "value": "ALWAYS"}], law))
+		out.append(_r("PROHIBIT", a, co, [{"field": "lever.LAW_PRICE_GOUGING", "op": "EQ", "value": "IN_EMERGENCY"},
+			{"field": "world.emergency", "op": "EQ", "value": true}], law))
+	out.append(_r("PROHIBIT", "EXPORT_GOODS", co, [{"field": "lever.LAW_FOOD_EXPORT_BAN", "op": "EQ", "value": true},
+		{"field": "p.food", "op": "EQ", "value": true}], law))
+	out.append(_r("PROHIBIT", "CARTEL", co, [{"field": "lever.LAW_COMPETITION", "op": "NEQ", "value": "NONE"}], law))
+	# Emergency powers (constitutional limits). Declaring needs an active crisis; parliament must approve it.
+	var exec := [{"field": "actor.kind", "op": "IN", "value": ["GOVERNMENT", "COMMANDER"]}]
+	out.append(_r("AUTHORIZE", "DECLARE_EMERGENCY", exec, [{"field": "p.crisis_active", "op": "EQ", "value": true}],
+		{"source": "M11_CRISIS"}))
+	out.append(_r("REQUIRE", "DECLARE_EMERGENCY", [{"field": "actor.kind", "op": "EQ", "value": "GOVERNMENT"}], [],
+		{"source": "M11_CRISIS", "requirement": {"approval_by": "PARLIAMENT"}}))
+	out.append(_r("AUTHORIZE", "REQUISITION", exec, [{"field": "world.emergency", "op": "EQ", "value": true}],
+		{"source": "M11_CRISIS"}))
+	out.append(_r("REQUIRE", "REQUISITION", exec, [], {"source": "M11_CRISIS", "requirement": {"compensation_pct_min": 100},
+		"right": "PROPERTY"}))
+	# Emergency levers: no one may set them outside an emergency (more specific than every SET_LEVER authorization).
+	var pub := ["COMMANDER", "GOVERNMENT", "PARLIAMENT", "AUTHORITY"]
+	out.append(_r("PROHIBIT", "SET_LEVER", [{"field": "actor.kind", "op": "IN", "value": pub}], [
+		{"field": "p.lever_id", "op": "IN", "value": EMERGENCY_LEVERS},
+		{"field": "world.emergency", "op": "EQ", "value": false},
+		{"field": "p.instrument_level", "op": "IN", "value": ["ORDINANCE", "LAW", "REGULATION", "ADMIN"]},
+		{"field": "actor.kind", "op": "IN", "value": pub}],
+		{"source": "M11_CRISIS", "right": "EMERGENCY_ONLY"}))
+	# During an emergency even a caretaker may use the emergency levers by regulation (beats the caretaker limit).
+	out.append(_r("AUTHORIZE", "SET_LEVER", [{"field": "actor.kind", "op": "EQ", "value": "GOVERNMENT"}], [
+		{"field": "p.lever_id", "op": "IN", "value": EMERGENCY_LEVERS},
+		{"field": "world.emergency", "op": "EQ", "value": true},
+		{"field": "p.instrument_level", "op": "IN", "value": ["REGULATION", "ADMIN"]},
+		{"field": "world.caretaker", "op": "EQ", "value": true}], {"source": "M11_CRISIS"}))
 	return out
 
 
@@ -209,6 +271,39 @@ const LEVERS := [
 	{"id": "LAW_CONVICTED_CAN_HOLD_OFFICE", "owner": "law", "type": "BOOL", "default": true,
 		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": -12},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 0, "scope": "COLONY", "domain": "LAW"},
+	# ---- M11 crises (spec-events-v1 3-4): market conduct law, enforcement budgets (milli-W_ref per month).
+	{"id": "LAW_PRICE_GOUGING", "owner": "law", "type": "ENUM", "values": ["NONE", "IN_EMERGENCY", "ALWAYS"],
+		"default": "IN_EMERGENCY", "legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 10, "REDISTRIBUTION": 6},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_COMPETITION", "owner": "law", "type": "ENUM", "values": ["NONE", "CARTEL_BAN", "CARTEL_BAN_MERGER_REVIEW"],
+		"default": "CARTEL_BAN", "legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"REDISTRIBUTION": 5, "ECON_ROLE": 3},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_COMPETITION_BUDGET", "owner": "law", "type": "NUMBER", "range": [0, 50000], "default": 4000,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 0.0003, "INSTITUTIONS": 0.0002},
+		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	{"id": "LAW_ENV_INSPECTORATE_BUDGET", "owner": "law", "type": "NUMBER", "range": [0, 100000], "default": 4000,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ENVIRONMENT": 0.0005, "ECON_ROLE": 0.0002},
+		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	{"id": "LAW_WHISTLEBLOWER_PROTECTION", "owner": "law", "type": "BOOL", "default": false,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 8, "LABOR": 6},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_LENIENCY", "owner": "law", "type": "BOOL", "default": false,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 4, "ECON_ROLE": 2},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	# Emergency levers: REGULATION, immediate (ADMIN implementation, lag 0), only during a state of emergency
+	# (EMERGENCY_LEVERS rule); no ideology slope, so they never become standing party commitments.
+	{"id": "LAW_RATIONING", "owner": "law", "type": "ENUM", "values": ["NONE", "FOOD", "FOOD_FUEL"], "default": "NONE",
+		"legalLevel": "REGULATION", "foundingEra": "COMMANDER", "ideology": {}, "emergency": true,
+		"fiscal": "", "implementation": "STAFF_T_IMPL_ADMIN", "lag": 0, "scope": "COLONY", "domain": "ADMIN"},
+	{"id": "LAW_PRICE_CONTROL", "owner": "law", "type": "ENUM", "values": ["NONE", "ESSENTIALS"], "default": "NONE",
+		"legalLevel": "REGULATION", "foundingEra": "COMMANDER", "ideology": {}, "emergency": true,
+		"fiscal": "", "implementation": "STAFF_T_IMPL_ADMIN", "lag": 0, "scope": "COLONY", "domain": "ADMIN"},
+	{"id": "LAW_FOOD_EXPORT_BAN", "owner": "law", "type": "BOOL", "default": false,
+		"legalLevel": "REGULATION", "foundingEra": "COMMANDER", "ideology": {}, "emergency": true,
+		"fiscal": "", "implementation": "STAFF_T_IMPL_ADMIN", "lag": 0, "scope": "COLONY", "domain": "ADMIN"},
+	{"id": "LAW_REQUISITION", "owner": "law", "type": "BOOL", "default": false,
+		"legalLevel": "REGULATION", "foundingEra": "COMMANDER", "ideology": {}, "emergency": true,
+		"fiscal": "", "implementation": "STAFF_T_IMPL_ADMIN", "lag": 0, "scope": "COLONY", "domain": "ADMIN"},
 	# ---- M10 electoral eligibility (spec-population-v1 §4.2, PD §9.6). Read through LQ.eligibility(world).
 	# Slopes use today's 7 axes; remap to STABILITY/LIBERTY when S3 adds them (planning/a9-population-note.md).
 	{"id": "LAW_VOTING_AGE", "owner": "law", "type": "ENUM", "values": ["16", "18", "21"], "default": "18",

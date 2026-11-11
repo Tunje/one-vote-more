@@ -231,6 +231,9 @@ static func _district_indicators(world: WorldState, cls: Array) -> void:
 		col_lo[0] += lo[d][0]; col_lo[1] += lo[d][1]
 	var col_ratio: float = (col_hi[0] / maxf(col_hi[1], 0.001)) / maxf(1.0, col_lo[0] / maxf(col_lo[1], 0.001))
 	var price_col := _local_price(world, "")
+	var dep := EconPop.deprivation(world)
+	var bs0: Dictionary = s.get("bands", {}) if s.get("bands", {}) is Dictionary else {}
+	_w(world, "ECON_GINI", "COLONY", float(bs0.get("gini", 0)) / 10.0)
 	for d in EconUtil.sorted_keys(pop):
 		if pop[d] <= 0:
 			continue
@@ -250,6 +253,10 @@ static func _district_indicators(world: WorldState, cls: Array) -> void:
 		if hi.has(d) and hi[d][1] > 0.5 and lo[d][1] > 0.5:
 			r = (hi[d][0] / hi[d][1]) / maxf(1.0, lo[d][0] / lo[d][1])
 		_w(world, "ECON_INCOME_RATIO", d, clampf(r, 1.0, 20.0))
+		# M10 S2: inequality and absolute deprivation (from EconPop.reclassify / deprivation)
+		var bs: Dictionary = s.get("bands", {}) if s.get("bands", {}) is Dictionary else {}
+		_w(world, "ECON_GINI", d, float(bs.get("gini_d", {}).get(d, bs.get("gini", 0))) / 10.0)
+		_w(world, "ECON_DEPRIVATION", d, float(dep.get(d, 0)) / 10.0)
 
 
 ## Delivered essentials price in a district ("" = colony average): food + consumer at reference + freight from producers.

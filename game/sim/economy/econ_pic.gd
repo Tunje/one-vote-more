@@ -36,6 +36,10 @@ static func indicators() -> Array:
 		["ECON_MARKET_CONCENTRATION", "HHI", [0, 10000], "COLONY", -1, {"FAIRNESS": 0.1}, 1500, 6000, "OFFICIAL", 6],
 		# M9 (spec-politics-v2 §5): keyed by occupation (INDUSTRY, MINING, ...); no direct concern, politics reads it as union strength
 		["ECON_UNION_DENSITY", "%", [0, 100], "OCCUPATION", 1, {}, 50, 10, "PUBLIC", 0],
+		# M10 S2 (spec-population-v1 §3.2, PD §4.4, §4.7): no concern weights yet; politics S3 decides how voters weigh them.
+		# Gini is keyed by district and also "COLONY"; deprivation = % of residents who cannot afford essentials.
+		["ECON_GINI", "index", [0, 100], "DISTRICT", -1, {}, 30, 50, "PUBLIC", 0],
+		["ECON_DEPRIVATION", "%", [0, 100], "DISTRICT", -1, {}, 0, 20, "PUBLIC", 0],
 	]
 	# E74 non-linear harm (pic-core v1.4). Same sign convention as `concerns` (effect of RAISING the lever, per full range),
 	# applied only to the part of a change above `from` (concernsHigh) or below `from` (concernsLow, proposed v1.4b).

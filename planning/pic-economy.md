@@ -200,6 +200,21 @@ Note on adverse labor-law changes: these are cuts to `ECON_UNION_RIGHTS`, `ECON_
 - Amount = profit × 6% × summed exposure weight (capped at 1.5), and never more than the cash left after keeping 4 months of costs. Offers under 2000 cr are not made.
 - **Politics books the match**: `ledger.transfer(EconUtil.acct(from), "party:<id>", amount_milli, ...)` in POLITICS. If the transfer returns false, the offer lapses. The offer itself moves no money.
 
+### 2b2. Recovery facts (O-1, E80–E92; DECISIONS.md has the full rows)
+
+| Fact | Phase | Visibility | Responsible | Impact | Magnitude | Data |
+|---|---|---|---|---|---|---|
+| `ECON_DEBT_RESTRUCTURED` (E82) | SETTLEMENT | PUBLIC | GOVERNMENT 0.6 / bank 0.4 | GOVERNANCE +10 | 60 | `{written_off, debt_left}` (credits) |
+| `ECON_FACILITY_REOPENED` (E84 overhaul, E90 relicensed) | PRODUCTION / COMPANY_AI | PUBLIC | company blame 0.7 | JOBS +10 (SAFETY +5 after an overhaul) | 30 | `{facility, reason?}` |
+| `ECON_FACILITY_SOLD` with `reason: "UNREPAIRABLE"` (E91, user decision) | COMPANY_AI | PUBLIC | seller (company blame 0.7) | JOBS +3 | 35 | `{facility, price, reason, buyer_kind: FIRM / WORKERS_COOP / STATE, whole_company}` |
+
+Mechanisms without their own fact:
+- E80: the surplus sweep shows in the ledger as `PE_SURPLUS` (treasury revenue) or `DIVIDEND`.
+- E83: rent cuts appear in `rent_hist`.
+- E85, E86, E89: no fact.
+- E87: builder entry emits `COMP_COMPANY_FOUNDED` with `type: CONTRACTOR`.
+- E92: income bands move in January; `econ.s.bands` holds the colony cuts and the Gini (‰).
+
 ### 2c. Facts that get an `exposure` block in M10 S4 (spec-population-v1 §6.1). PLANNED, not built yet
 
 Until S7, housing block = district (`hb:d:N`), so a district-wide scope covers the whole parent block. That makes it a **shared** effect, which creates no split.
