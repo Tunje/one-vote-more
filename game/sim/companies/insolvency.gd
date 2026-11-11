@@ -366,7 +366,7 @@ static func _worker_buyout(world: WorldState, seller: String, f: Dictionary) -> 
 	for t in f["staff"]:
 		wages += EconLabor.tier_total(f["staff"], t) / EconUtil.S * EconFinance.wage_for(world, seller, t)
 	var id := world.new_id("org")
-	world.table("org")[id] = {"id": id, "key": "COOP_" + id, "name": "%s Workers' Co-op %s" % [EconData.DISTRICTS[d]["name"], id.split(":")[1]],
+	world.table("org")[id] = {"id": id, "key": "COOP_" + id, "name": EconUtil.firm_name(world, d, "WORKERS", "Co-op"),
 		"type": "COOPERATIVE", "hq": d, "status": "ACTIVE", "ceo": {"mgmt": 50, "risk": 30, "age_m": 40 * 12}, "reliability": 0,
 		"is_contractor": false, "crew": {}, "crew_target": {}, "premium_m": {"G": 0, "S": 0, "Sp": 0}, "tax_loss_cf": 0, "profit_q": 0,
 		"pl": EconFinance.empty_pl(), "pl_last": {}, "missed_streak": 0, "ok_streak": 0, "low_cash_streak": 0, "distress_months": 0,

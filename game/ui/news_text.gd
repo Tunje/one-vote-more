@@ -102,7 +102,10 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"ECON_FACILITY_CLOSED_UNSAFE": s = cap1("%s was shut down as unsafe" % facility(w, d.get("facility", "")))
 		"ECON_FACILITY_REOPENED": s = cap1("%s reopened" % facility(w, d.get("facility", "")))
 		"ECON_FACILITY_MOTHBALLED": s = cap1("%s was mothballed" % facility(w, d.get("facility", "")))
-		"ECON_FACILITY_SOLD": s = cap1("%s was sold%s" % [facility(w, d.get("facility", "")), " to the state" if d.get("nationalized", false) else ""])
+		"ECON_FACILITY_SOLD":
+			var to: String = {"FIRM": " to another company", "WORKERS_COOP": " to its workers as a co-op", "STATE": " to the state"}.get(String(d.get("buyer_kind", "")), " to the state" if d.get("nationalized", false) else "")
+			var why := " because its owner could not afford repairs" if d.get("reason", "") == "UNREPAIRABLE" else ""
+			s = cap1("%s was sold%s%s%s" % [facility(w, d.get("facility", "")), why, to, " (the whole company)" if d.get("whole_company", false) else ""])
 		"ECON_SHORTAGE": s = "Shortage%s: %d%% of demand could not be met" % [(" of " + _kind(d.get("good", ""))) if d.has("good") else "", int(d.get("shortfall_permille", 0)) / 10]
 		"ECON_UTILITY_OUTAGE": s = "Power or water outages%s" % where
 		"ECON_FOOD_AID": s = "Food aid handed out (%d rations)" % int(d.get("qty", 0))

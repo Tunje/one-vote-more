@@ -52,6 +52,28 @@ static func fscale(f: Dictionary) -> float:
 	return float(f.get("scale", 1000)) / 1000.0
 
 
+## Player-facing name for a new firm: "<District> <sector> <suffix>", made unique with a qualifier
+## ("Foundry Consumer Goods Ltd", "New Foundry Consumer Goods Ltd", ...). Deterministic.
+const SECTOR_WORDS := {"FARM": "Farms", "CONSUMERF": "Consumer Goods", "SERVICEHUB": "Services", "PROCESSING": "Materials",
+	"MINE": "Mining", "COMPONENTS": "Components", "MEDWORKS": "Medical Works", "CONTRACTOR": "Builders", "TRADERS": "Traders",
+	"WORKERS": "Workers'"}
+const NAME_QUALIFIERS := ["", "New ", "United ", "Frontier ", "Allied ", "Pioneer ", "Northern ", "Southern ", "Colonial ", "Free "]
+
+
+static func firm_name(world: WorldState, district: String, sector: String, suffix: String) -> String:
+	var base := "%s %s %s" % [EconData.DISTRICTS.get(district, {}).get("name", district), SECTOR_WORDS.get(sector, sector.capitalize()), suffix]
+	var taken := {}
+	for oid in world.peek("org"):
+		taken[world.peek("org")[oid].get("name", "")] = true
+	for q in NAME_QUALIFIERS:
+		if not taken.has(q + base):
+			return q + base
+	var n := 2
+	while taken.has("%s %d" % [base, n]):
+		n += 1
+	return "%s %d" % [base, n]
+
+
 ## M12: is the old home-world support model active? (default: no — A34)
 static func support(world: WorldState) -> bool:
 	return bool(world.meta.get("support", EconData.HOME_SUPPORT))

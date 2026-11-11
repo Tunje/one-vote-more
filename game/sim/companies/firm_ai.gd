@@ -465,7 +465,7 @@ static func _small_business(world: WorldState) -> void:
 	if n_micro >= 2:
 		return
 	var id := world.new_id("org")
-	world.table("org")[id] = {"id": id, "key": "MICRO_" + id, "name": "%s Traders Co-op %s" % [EconData.DISTRICTS[d]["name"], id.split(":")[1]],
+	world.table("org")[id] = {"id": id, "key": "MICRO_" + id, "name": EconUtil.firm_name(world, d, "TRADERS", "Co-op"),
 		"type": "COOPERATIVE", "hq": d, "status": "ACTIVE", "ceo": {"mgmt": 45, "risk": 30, "age_m": 35 * 12}, "reliability": 0,
 		"is_contractor": false, "crew": {}, "crew_target": {}, "premium_m": {"G": 0, "S": 0, "Sp": 0}, "tax_loss_cf": 0, "profit_q": 0,
 		"pl": EconFinance.empty_pl(), "pl_last": {}, "missed_streak": 0, "ok_streak": 0, "low_cash_streak": 0, "distress_months": 0,
@@ -516,7 +516,7 @@ static func _builder_entry(world: WorldState) -> void:
 	var id := world.new_id("org")
 	var mgmt := int(clampf(50.0 + EconUtil.normal(world, "comp.entry", 15.0), 10.0, 95.0))
 	var risk := world.rng.stream("comp.entry").randi_range(20, 70)
-	world.table("org")[id] = {"id": id, "key": "BUILD_" + id, "name": "%s Builders %s" % [EconData.DISTRICTS[d]["name"], id.split(":")[1]],
+	world.table("org")[id] = {"id": id, "key": "BUILD_" + id, "name": EconUtil.firm_name(world, d, "CONTRACTOR", "Ltd"),
 		"type": "PRIVATE", "hq": d, "status": "ACTIVE", "ceo": {"mgmt": mgmt, "risk": risk, "age_m": 40 * 12}, "reliability": 50,
 		"is_contractor": true, "crew": {"G": {}, "S": {}, "Sp": {}}, "crew_target": EconData.BUILDER_CREW.duplicate(),
 		"premium_m": {"G": 0, "S": 0, "Sp": 0}, "tax_loss_cf": 0, "profit_q": 0, "pl": EconFinance.empty_pl(), "pl_last": {},
@@ -571,7 +571,7 @@ static func _entry(world: WorldState) -> void:
 	var id := world.new_id("org")
 	var mgmt := int(clampf(50.0 + EconUtil.normal(world, "comp.entry", 15.0), 10.0, 95.0))
 	var risk := world.rng.stream("comp.entry").randi_range(20, 80)
-	world.table("org")[id] = {"id": id, "key": "NEW_" + id, "name": "New %s firm %s" % [candidate.capitalize(), id], "type": "PRIVATE",
+	world.table("org")[id] = {"id": id, "key": "NEW_" + id, "name": EconUtil.firm_name(world, district, candidate, "Ltd"), "type": "PRIVATE",
 		"hq": district, "status": "FORMING", "ceo": {"mgmt": mgmt, "risk": risk, "age_m": 40 * 12}, "reliability": 0, "is_contractor": false,
 		"crew": {}, "crew_target": {}, "premium_m": {"G": 0, "S": 0, "Sp": 0}, "tax_loss_cf": 0, "profit_q": 0, "pl": EconFinance.empty_pl(),
 		"pl_last": {}, "missed_streak": 0, "ok_streak": 0, "low_cash_streak": 0, "distress_months": 0, "admin_months": 0, "liq_months": 0,
