@@ -89,11 +89,18 @@ static func post_vacancies(world: WorldState) -> void:
 		# labor hoarding (E49): keep ≥ 70% of a full crew unless under-used (< 70%) for 3 months
 		f["under_m"] = f.get("under_m", 0) + 1 if f["T"] < 700 else 0
 		var hoard: bool = not f["mothball"] and f["under_m"] < 3 and org["status"] == "ACTIVE"
+		# E103: a plant without power/water for 3+ months keeps only a core crew (30%) instead of a full idle payroll;
+		# the core crew restarts it when supply returns, and it rehires as output recovers
+		var dark: bool = int(f.get("dark_m", 0)) >= 3 and not EconUtil.off(world, "E103")
+		if dark:
+			hoard = false
 		for t in ["G", "S", "Sp"]:
 			if not f["staff"].has(t):
 				f["staff"][t] = {}
 			var cur := tier_total(f["staff"], t)
 			var need: int = req.get(t, 0)
+			if dark:
+				need = mini(need, int(EconData.RECIPES[f["type"]]["labor"].get(t, 0) * S * 3 / 10))
 			if hoard:
 				need = maxi(need, int(EconData.RECIPES[f["type"]]["labor"].get(t, 0) * S * 7 / 10))
 			if cur > need * 11 / 10:

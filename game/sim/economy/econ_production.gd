@@ -96,6 +96,9 @@ static func produce(world: WorldState) -> void:
 		if f["mothball"]: t = 0.0
 		f["e_served"] = int(1000.0 * float(e_served.get(fid, 1.0)))
 		f["w_served"] = int(1000.0 * float(w_served.get(fid, 1.0)))
+		# E103: months without the power or water this plant needs (staffing drops to a core crew, see post_vacancies)
+		var cut_off: bool = (r["in"].has("ENERGY") and f["e_served"] < 100) or (r["in"].has("WATER") and f["w_served"] < 100)
+		f["dark_m"] = int(f.get("dark_m", 0)) + 1 if cut_off and not f["mothball"] else 0
 		var act := t * u
 		f["util"] = int(act * 1000)
 		_consume_inputs(world, f, act)
