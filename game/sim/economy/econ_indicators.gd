@@ -162,7 +162,15 @@ static func publish(world: WorldState) -> void:
 			s["cell_base_inc"][key] = int(maxf(acc["inc"], 0.25 * _colony_mean_inc(cls)) * 1000.0)
 			base = float(s["cell_base_inc"][key]) / 1000.0
 		_w(world, "ECON_JOB_RISK", key, 100.0 * acc["risk"])
-		_w(world, "ECON_REAL_INCOME_INDEX", key, 100.0 * acc["inc"] / maxf(1.0, base) / maxf(0.01, cpi))
+		# sanity: clamp to the declared range [0, 300] and log 10x jumps (Wilma: v3 chronicle values in the millions)
+		var rii: float = 100.0 * acc["inc"] / maxf(1.0, base) / maxf(0.25, cpi)
+		var prev_rii := float(world.indicators.read("ECON_REAL_INCOME_INDEX", key, -1)) / 1000.0
+		if prev_rii > 0.0 and (rii > 10.0 * prev_rii or rii * 10.0 < prev_rii):
+			var lg: Array = s.get("rii_jumps", [])
+			if lg.size() < 50:
+				lg.append("m%d %s %.1f -> %.1f (inc %.0f base %.0f cpi %.3f)" % [world.month, key, prev_rii, rii, acc["inc"], base, cpi])
+			s["rii_jumps"] = lg
+		_w(world, "ECON_REAL_INCOME_INDEX", key, clampf(rii, 0.0, 300.0))
 		_w(world, "ECON_ESSENTIALS_SHARE", key, 100.0 * acc["ess"] / maxf(1.0, acc["inc"]))
 		_w(world, "ECON_RENT_BURDEN", key, 100.0 * acc["rent"] / maxf(1.0, acc["inc"]))
 		_w(world, "ECON_TAX_BURDEN", key, 100.0 * acc["tax"])
