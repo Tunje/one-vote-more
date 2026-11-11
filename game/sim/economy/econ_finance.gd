@@ -543,6 +543,8 @@ static func _profit_tax_and_dividends(world: WorldState) -> void:
 ## Buffer = max(SURPLUS_BUFFER_MONTHS × monthly costs, SURPLUS_BUFFER_MIN); a share SURPLUS_SHARE of the excess per
 ## quarter. Money hoarded in landlords and farms otherwise starved households and the treasury (seed-1 money trace).
 static func _surplus_sweep(world: WorldState) -> void:
+	if EconUtil.off(world, "E80"):
+		return
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		var o: Dictionary = world.table("org")[oid]
 		if o["type"] == "PUBLIC_INSTITUTION" or o["status"] != "ACTIVE":
@@ -634,7 +636,7 @@ static func _sovereign_check(world: WorldState) -> void:
 	if s["sovereign_default"]:
 		# E82: after RESTRUCTURE_AFTER months in default the creditors restructure: a haircut on the government's
 		# debt, the default ends, and the colony can borrow again (a frozen default was a permanent dead end).
-		if world.month - int(s.get("default_month", world.month)) >= EconData.SOVEREIGN_RESTRUCTURE_AFTER:
+		if not EconUtil.off(world, "E82") and world.month - int(s.get("default_month", world.month)) >= EconData.SOVEREIGN_RESTRUCTURE_AFTER:
 			var cut := 0
 			for lid in EconUtil.sorted_keys(world.table("loan")):
 				var l: Dictionary = world.table("loan")[lid]

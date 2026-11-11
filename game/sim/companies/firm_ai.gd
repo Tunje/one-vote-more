@@ -20,11 +20,13 @@ static func run(world: WorldState) -> void:
 	EconConstruction.bid_round(world)
 	_auto_award(world)
 	EconInsolvency.liquidation_round(world)
+	EconInsolvency.forced_sale_round(world)
 	if world.month % 6 == 0:
 		EconInsolvency.reprivatize(world)
 	if world.month_of_year() % 3 == 0:
 		_investment(world)
 		_entry(world)
+		_builder_entry(world)
 	_expansion(world)
 	_small_business(world)
 	EconLabor.update_wage_index(world)
@@ -480,6 +482,53 @@ static func _small_business(world: WorldState) -> void:
 	s["micro_last"] = ml
 	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", d, [["COMPANY", id]], [["COMPANY", id, 0.8], ["GOVERNMENT", "government", 0.2]],
 		{"JOBS": 2}, 10, "PUBLIC", {"type": "SERVICEHUB", "micro": true}, {"districts": [d]})
+
+
+## E87 (O-1): construction firm entry. When projects queue without bids and no private builder is alive, a new
+## builder is founded with capital from the richest household pool (the construction sector otherwise died for good
+## after the founding boom and every expansion stalled).
+static func _builder_entry(world: WorldState) -> void:
+	if EconUtil.off(world, "E87"):
+		return
+	var s := EconUtil.st(world)
+	if world.month - int(s.get("builder_entry_last", -100)) < 12 or EconConstruction._private_builder_alive(world):
+		return
+	var waiting := 0
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["status"] == "TENDERABLE" or (p["status"] == "TENDER" and p["bids"].is_empty()):
+			waiting += 1
+	if waiting < EconData.BUILDER_ENTRY_BACKLOG:
+		return
+	var best := ""
+	var best_cash := 0
+	for gid in EconUtil.sorted_keys(world.table("hh")):
+		var g: Dictionary = world.table("hh")[gid]
+		var c := world.ledger.balance(EconUtil.hh_acct(gid))
+		if g["nonpart"] >= S and c > best_cash:
+			best_cash = c
+			best = gid
+	var equity := EconData.BUILDER_EQUITY * S
+	if best == "" or best_cash < equity * 2:
+		return
+	var g: Dictionary = world.table("hh")[best]
+	var d: String = g["district"]
+	var id := world.new_id("org")
+	var mgmt := int(clampf(50.0 + EconUtil.normal(world, "comp.entry", 15.0), 10.0, 95.0))
+	var risk := world.rng.stream("comp.entry").randi_range(20, 70)
+	world.table("org")[id] = {"id": id, "key": "BUILD_" + id, "name": "%s Builders %s" % [EconData.DISTRICTS[d]["name"], id.split(":")[1]],
+		"type": "PRIVATE", "hq": d, "status": "ACTIVE", "ceo": {"mgmt": mgmt, "risk": risk, "age_m": 40 * 12}, "reliability": 50,
+		"is_contractor": true, "crew": {"G": {}, "S": {}, "Sp": {}}, "crew_target": EconData.BUILDER_CREW.duplicate(),
+		"premium_m": {"G": 0, "S": 0, "Sp": 0}, "tax_loss_cf": 0, "profit_q": 0, "pl": EconFinance.empty_pl(), "pl_last": {},
+		"missed_streak": 0, "ok_streak": 0, "low_cash_streak": 0, "distress_months": 0, "admin_months": 0, "liq_months": 0,
+		"missed_this_month": false, "owner_group": best, "sales_ema": {}, "contracts": [], "dividends_ytd": 0, "sold": {}}
+	world.ledger.open_account(EconUtil.acct(id))
+	world.ledger.transfer(EconUtil.hh_acct(best), EconUtil.acct(id), equity, "EQUITY", world.month)
+	EconPop.make_owner(world, g["hb"], g["band"])
+	EconPop.sync(world)
+	s["builder_entry_last"] = world.month
+	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", d, [["COMPANY", id]], [["COMPANY", id, 0.8], ["GOVERNMENT", "government", 0.2]],
+		{"JOBS": 3, "INFRASTRUCTURE": 2}, 20, "PUBLIC", {"type": "CONTRACTOR", "waiting_projects": waiting}, {"districts": [d]})
 
 
 ## Firm entry (spec §9.4): at most one per quarter, when a good is scarce and pricey.

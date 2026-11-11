@@ -135,7 +135,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 		var h := EconUtil.hops(o["district"], bid["district"])
 		if h < 0:
 			continue
-		if o["seller"] == "origin":
+		if o["seller"] == "origin" and not EconUtil.off(world, "E85"):
 			h = 0  # E85: origin backstop cargo comes on the origin's own shuttle, to the buyer's district (no colony freight)
 		var unit: int = o["ask"] + h * tariff
 		if unit > bid["limit"]:

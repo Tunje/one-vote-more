@@ -120,3 +120,19 @@ func test_trust_and_safety_indicators() -> void:
 	# 1 accident / 1000 workers (INDUSTRY+BUSINESS_OWNER in D1) annualized over months elapsed
 	check(w.indicators.read("LAW_WORKPLACE_SAFETY", "D1") > 0, "fact-based rate")
 	check_eq(w.indicators.read("LAW_WORKPLACE_SAFETY", "D2"), 0, "no accidents in D2")
+
+
+## Licences are renewed through the permit queue before expiry and stay valid while the renewal is decided.
+func test_licence_renewal() -> void:
+	var s := F.sim(9, true)
+	var w := s.world
+	var RE := preload("res://sim/law/rules_engine.gd")
+	var lid := LawOps.grant_licence(w, "org:77", "licence", "HAZARD", 6)
+	var exp0 := int(w.table("licence")[lid]["expiry_month"])
+	for _i in 10:
+		s.step()
+		check(RE.has_licence(w, "org:77", "licence", "HAZARD"), "valid at month %d" % w.month)
+	var l: Dictionary = w.table("licence")[lid]
+	check(int(l["expiry_month"]) > exp0, "renewed: expiry %d > %d" % [l["expiry_month"], exp0])
+	var renewals := w.table("permit_application").values().filter(func(a): return a.get("renews", "") == lid)
+	check(renewals.size() >= 1, "renewed through the queue (%d applications)" % renewals.size())

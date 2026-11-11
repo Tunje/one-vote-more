@@ -7,7 +7,7 @@ const LawOps := preload("res://sim/law/law_ops.gd")
 
 
 func test_bounds_match_lever_units() -> void:
-	var w := F.sim(3, true).world
+	var w := EconSim.make(3, "BALANCED", {}, true).world   # full world: econ levers registered
 	for lid in L.LEVER_BOUNDS:
 		check(w.lever_defs.has(lid), lid + " exists")
 		if not w.lever_defs.has(lid):

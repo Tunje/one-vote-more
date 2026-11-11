@@ -56,7 +56,9 @@ static func social(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	_consume(world)
 	_buy_services(world)
-	EconPop.reclassify(world)  # M10: income bands (after this month's incomes are known)
+	if not EconUtil.off(world, "BANDS"):
+		# M10 / E92: income EMAs update monthly; people change band (and pool) once a year, in January
+		EconPop.reclassify(world, world.month_of_year() == 1 or EconUtil.off(world, "BANDS_YEARLY"))
 	_self_employment_flow(world)
 	EconLabor.recount(world)
 	_post_orders(world)
@@ -347,7 +349,8 @@ static func _post_orders(world: WorldState) -> void:
 				"limit": pc * 3, "class": EconMarket.C_HH_ESS, "kind": "hh"})
 		var disc := int(EconData.DISC_CONSUMER_SHARE * discretionary_budget(world, g))
 		disc = mini(disc, maxi(0, budget - rent_res))
-		var extra := mini(int(float(disc) * S / float(maxi(1, pc_eff))), int(p * EconData.MAX_DISC_CONSUMER_PC))
+		var cap_mult: float = 1.0 if EconUtil.off(world, "E88") else float(EconData.DISC_CAP_BAND.get(g.get("band", "I2"), 1.0))
+		var extra := mini(int(float(disc) * S / float(maxi(1, pc_eff))), int(p * EconData.MAX_DISC_CONSUMER_PC * cap_mult))
 		if extra > 0:
 			s["orders"].append({"buyer": gid + "~d", "acct": EconUtil.hh_acct(gid), "district": g["district"], "good": "CONSUMER",
 				"qty": extra, "limit": pc * 11 / 10 + 3 * int(EconUtil.lever(world, "ECON_FREIGHT_TARIFF", 5)) * S, "class": EconMarket.C_HH_DISC, "kind": "hh", "group": gid})
@@ -375,7 +378,7 @@ static func _housing(world: WorldState) -> void:
 				if world.table("hh")[gid2]["district"] == d:
 					due_d += int(world.table("hh")[gid2].get("rent_due", 0))
 			var arrears := float(EconUtil.st(world).get("rent_arrears", {}).get(d, 0)) / maxf(1.0, float(due_d))
-			if arrears > EconData.RENT_ARREARS_CUT:
+			if arrears > EconData.RENT_ARREARS_CUT and not EconUtil.off(world, "E83"):
 				r = int(old * 0.97)  # E83: tenants cannot pay — rents fall whatever the occupancy
 			elif occ >= 0.97:
 				r = int(old * 1.03)

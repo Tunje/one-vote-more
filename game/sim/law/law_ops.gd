@@ -396,7 +396,30 @@ static func permit_capacity(world: WorldState) -> int:
 	return int(floor((2.0 + 10.0 * e) * minf(1.0, budget / float(BASE_BUDGET))))
 
 
+const RENEW_LEAD_MONTHS := 3   # renewal is filed this long before expiry; the licence stays valid while it is decided
+
+
+## Licence renewal: an ACTIVE licence of a still-trading holder is renewed through the permit queue before it
+## expires (criteria as at the original grant). Without this, starting licences (60/120 months) lapse silently.
+static func _queue_renewals(world: WorldState) -> void:
+	var lic := world.table("licence")
+	var orgs := world.peek("org")
+	for id in Det.ordered(lic):
+		var l: Dictionary = lic[id]
+		var exp := int(l.get("expiry_month", -1))
+		if l["status"] != "ACTIVE" or exp < 0 or exp - world.month > RENEW_LEAD_MONTHS or String(l.get("renewal_app", "")) != "":
+			continue
+		var o: Dictionary = orgs.get(l["holder_id"], {})
+		if not orgs.is_empty() and String(o.get("status", "DISSOLVED")) in ["DISSOLVED", "LIQUIDATION"]:
+			continue
+		var months := exp - int(l.get("issued_month", 0))
+		var aid := apply_licence(world, l["holder_id"], l["kind"], l["type"], String(l.get("district", "")), true, months)
+		world.table("permit_application")[aid]["renews"] = id
+		l["renewal_app"] = aid
+
+
 static func process_permits(world: WorldState) -> void:
+	_queue_renewals(world)
 	var apps := world.table("permit_application")
 	var cap := permit_capacity(world)
 	var q := float(Staff.duty_quality(world, "STAFF_SD_PERMITS", UNMANAGED_Q)) / 1000.0
@@ -416,7 +439,15 @@ static func process_permits(world: WorldState) -> void:
 		a["decided_month"] = world.month
 		var holder := {"kind": "COMPANY", "id": a["holder_id"]}
 		var resp := [{"actor": PERMIT_OFFICE, "share": 0.5}, {"actor": GOVERNMENT, "share": 0.5}]
-		if grant:
+		var old: Dictionary = world.table("licence").get(String(a.get("renews", "")), {})
+		if not old.is_empty():
+			old["renewal_app"] = ""
+		if grant and not old.is_empty():
+			a["status"] = "GRANTED"
+			a["licence_id"] = old["id"]
+			old["expiry_month"] = maxi(int(old["expiry_month"]), world.month) + int(a["months"])
+			old["issued_month"] = world.month
+		elif grant:
 			a["status"] = "GRANTED"
 			a["licence_id"] = grant_licence(world, a["holder_id"], a["kind"], a["type"], int(a["months"]))
 			if a["wrong"]:

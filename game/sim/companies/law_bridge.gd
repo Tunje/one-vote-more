@@ -75,10 +75,37 @@ static func _misconduct(world: WorldState, org_id: String) -> bool:
 	return profitable and (risk >= 70 or o["status"] == "DISTRESSED" or (risk >= 45 and inspectors <= 4))
 
 
+## E90 (a9): a plant closed by law (e.g. missing licence) reopens once it may operate again (licence renewed or
+## rule changed). Checked monthly for law-closed plants only; owners that are being wound up stay closed.
+static func _reopen_law_closed(world: WorldState) -> void:
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if not (f["mothball"] and f.get("law_closed", false)):
+			continue
+		var o: Dictionary = world.table("org").get(f["org"], {})
+		if not (o.get("status", "") in ["ACTIVE", "DISTRESSED", "ADMINISTRATION"]):
+			continue
+		var r: Dictionary = EconData.RECIPES[f["type"]]
+		var out := {}
+		var ok := true
+		if f["type"] == "MINE":
+			ok = allowed(world, f["org"], "EXTRACT_RESOURCE", {"resource": "MINERAL", "site_district": f["district"]}, out)
+		if ok:
+			ok = allowed(world, f["org"], "OPERATE_FACILITY", {"facility_type": f["type"], "district": f["district"], "hazard_class": r["hazard"]}, out)
+		if ok:
+			f["mothball"] = false
+			f["law_closed"] = false
+			f["low_util_m"] = 0
+			f["licensed"] = not out.get("unlawful", false)
+			EconFacts.emit(world, "ECON_FACILITY_REOPENED", f["district"], [["COMPANY", f["org"]]],
+				EconFacts.company_blame(world, f["org"], 0.7), {"JOBS": 10}, 30, "PUBLIC", {"facility": fid, "reason": "licensed"})
+
+
 ## Re-validate operating facilities when law's rules version changes (and at month 0: starting licences, free).
 static func revalidate(world: WorldState) -> void:
 	if not law_loaded(world):
 		return
+	_reopen_law_closed(world)
 	var s := EconUtil.st(world)
 	var ver: int = world.values.get("LAW_RULES_VERSION", world.meta.get("LAW_RULES_VERSION", 0))
 	if s.get("rules_version_seen", -1) == ver:
@@ -102,3 +129,4 @@ static func revalidate(world: WorldState) -> void:
 		f["licensed"] = not out.get("unlawful", false)
 		if not ok:
 			f["mothball"] = true
+			f["law_closed"] = true

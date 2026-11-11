@@ -39,7 +39,8 @@ static func has_licence(world: WorldState, holder: String, kind: String, typ: St
 	for id in Det.ordered(lic):
 		var l: Dictionary = lic[id]
 		if l["holder_id"] == holder and l["kind"] == kind and l["type"] == typ and l["status"] == "ACTIVE" \
-				and (int(l.get("expiry_month", -1)) < 0 or int(l["expiry_month"]) > world.month):
+				and (int(l.get("expiry_month", -1)) < 0 or int(l["expiry_month"]) > world.month \
+				or String(l.get("renewal_app", "")) != ""):   # valid while a timely renewal is decided
 			return true
 	return false
 

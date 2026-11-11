@@ -166,7 +166,10 @@ static func _eff(world: WorldState, f: Dictionary) -> float:
 static func _prio(ftype: String, hh_first: bool) -> int:
 	if ftype == "CLINIC":
 		return 0
-	if ftype in ["SCHOOL", "ADMIN", "DEPOT", "FARM"]:  # E66: food production is a lifeline (after households)
+	if ftype in ["FARM", "DEPOT"]:
+		return 1  # E89: farms and freight share the household tier pro rata — strictly after households, a 20% shortage
+		          # meant no food grown (farms) or none delivered (depot), i.e. famine with full warehouses
+	if ftype in ["SCHOOL", "ADMIN"]:  # E66
 		return 2
 	if ftype == "WATERWORKS":
 		return 0  # E81: water is everyone's input (households, farms, clinics); a power shortage must not cut it first
@@ -221,7 +224,8 @@ static func _upkeep(world: WorldState, f: Dictionary, running: bool) -> void:
 	var r: Dictionary = EconData.RECIPES[f["type"]]
 	var cond: int = f["condition"]
 	var frac := 1.0
-	var repairing: bool = f["mothball"] and f.get("closed_unsafe", false)
+	var e84 := not EconUtil.off(world, "E84")
+	var repairing: bool = e84 and f["mothball"] and f.get("closed_unsafe", false)
 	for pair in [["MATERIAL", float(r["upkeep"])], ["COMPONENT", float(EconData.UPKEEP_COMPONENT.get(f["type"], 0))]]:
 		var need: float = pair[1] * S * (1.0 if running or repairing else 0.25) * EconUtil.fscale(f)
 		if need <= 0.0:
@@ -242,11 +246,15 @@ static func _upkeep(world: WorldState, f: Dictionary, running: bool) -> void:
 		EconUtil.qflow(world, pair[0], "burned", got)
 		EconFinance.pl_add(world, f["org"], "cogs", EconUtil.val(got, wac))
 		frac = minf(frac, clampf(float(got) / need, 0.0, 1.0))
-	cond -= int(1.0 * S * (1.0 - frac))
+	if not repairing:
+		cond -= int(1.0 * S * (1.0 - frac))
 	# E84: maintenance restores. Fully supplied upkeep slowly repairs a running plant; a plant closed as unsafe
 	# is overhauled with full upkeep and reopens at REOPEN_CONDITION (before, condition could only fall).
-	if frac >= 0.999 and (running or repairing):
-		cond += EconData.REPAIR_PER_MONTH if running else EconData.OVERHAUL_PER_MONTH
+	if e84 and running and frac >= 0.999:
+		cond += EconData.REPAIR_PER_MONTH
+	elif repairing:
+		cond += int(float(EconData.OVERHAUL_PER_MONTH) * frac)
+		f["overhaul_frac"] = int(frac * 1000.0)  # E84b (a9): a cash-starved owner overhauls more slowly
 	f["condition"] = clampi(cond, 0, 100 * S)
 	var hazardous: bool = r["hazard"] == "HIGH" or f["type"] == "MINE"
 	if repairing and f["condition"] >= EconData.REOPEN_CONDITION * S:

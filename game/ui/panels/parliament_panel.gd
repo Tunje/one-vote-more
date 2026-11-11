@@ -142,9 +142,12 @@ func _data_text(d: Dictionary) -> String:
 	for k in ["yes", "no", "party", "mover", "against", "members", "remaining", "seats", "round", "by", "mandatory", "reason", "month"]:
 		if d.has(k):
 			var v = d[k]
-			if v is Array:
-				v = ", ".join(v.map(func(x): return session.party_name(x) if String(x).begins_with("party:") else str(x)))
-			elif String(v).begins_with("party:"):
+			if v is Array or v is PackedStringArray:
+				var names: Array = []
+				for x in v:
+					names.append(session.party_name(x) if str(x).begins_with("party:") else str(x))
+				v = ", ".join(names)
+			elif str(v).begins_with("party:"):
 				v = session.party_name(v)
 			parts.append("%s %s" % [k, str(v)])
 	return ("(" + "; ".join(parts) + ")") if not parts.is_empty() else ""

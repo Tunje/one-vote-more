@@ -438,7 +438,7 @@ static func _alloc_add(world: WorldState, alloc: Dictionary, org_id: String, fty
 
 const EMA_ALPHA := 2.0 / 7.0         # 6-month EMA
 const BAND_MARGIN := 0.05            # hysteresis: past a quintile cut by more than 5%
-const JUMP := 0.25                   # a > 25% change in monthly income moves at once (job loss, PD §4.6)
+const JUMP := 0.25                   # a > 25% change in monthly income resets the EMA at once (job loss, PD §4.6); the move follows in January (E92)
 const DEPENDENTS := ["CHILD", "STUDENT", "NOT_IN_LF"]
 const ADULT_EARNERS := ["EMPLOYED", "UNEMPLOYED", "RETIRED"]
 
@@ -458,7 +458,7 @@ static func adult_equivalents(g: Dictionary) -> float:
 ## Monthly income classification (SOCIAL). Updates every earning adult leaf's inc_ema (milli-credits per
 ## adult-equivalent, blended 50/50 with its pool), moves leaves whose band changed (with their share of the
 ## pool's savings), and moves dependents along with their adults. Publishes colony cuts and stats in s["bands"].
-static func reclassify(world: WorldState) -> void:
+static func reclassify(world: WorldState, move: bool = true) -> void:
 	var s := EconUtil.st(world)
 	sync(world)
 	var hh := world.table("hh")
@@ -500,7 +500,7 @@ static func reclassify(world: WorldState) -> void:
 			values.append([float(pool_eq[gid]), int(l["n"])])
 	var cuts := _quantiles(adults.map(func(a): return [a[1], a[2]]), [0.2, 0.4, 0.6, 0.8])
 	s["bands"] = {"cuts": cuts.map(func(c): return int(round(c))), "gini": int(round(1000.0 * _gini(values)))}
-	if cuts.is_empty():
+	if cuts.is_empty() or not move:
 		return
 	# 2. band moves for adults (whole leaves), with hysteresis
 	var moves := {}  # src pool -> {dst band: adults moved}
@@ -566,7 +566,7 @@ static func reclassify(world: WorldState) -> void:
 		for d in dsts:
 			var amt := int(float(bal0[src]) * float(moved_by_dst[d]) / float(maxi(1, size0[src])))
 			amt = mini(amt, world.ledger.balance(EconUtil.hh_acct(src)))
-			if amt > 0:
+			if amt > 0 and not EconUtil.off(world, "BANDS_MONEY"):
 				world.ledger.transfer(EconUtil.hh_acct(src), EconUtil.hh_acct(pool_id(g["hb"], d)), amt, "MOVE", world.month)
 	sync(world)
 

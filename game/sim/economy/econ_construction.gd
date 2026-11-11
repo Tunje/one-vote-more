@@ -84,8 +84,9 @@ static func bid_round(world: WorldState) -> void:
 			if not o["is_contractor"] or not (o["status"] in ["ACTIVE", "DISTRESSED"]):
 				continue
 			var public_builder: bool = o["type"] == "PUBLIC_ENTERPRISE"
-			if public_builder and (p["owner"] != "gov" or (p.get("tenders", 0) < 1 and _private_builder_alive(world))):
-				continue  # E76: last resort only
+			var e86 := not EconUtil.off(world, "E86")
+			if public_builder and (p["owner"] != "gov" and (not e86 or _private_builder_alive(world)) or (p["owner"] == "gov" and p.get("tenders", 0) < 1 and _private_builder_alive(world))):
+				continue  # E76: last resort only; E86: with no private builder left it also builds for private owners
 			# potential capacity: firms can re-hire to their founding crew, so idle crews still bid (E51)
 			var base_crew := 0
 			for t in EconData.ORGS.get(o["key"], ["", "", 0, 0, 0, 0, 0, 0, {"G": 30}])[8]:
@@ -105,7 +106,7 @@ static func bid_round(world: WorldState) -> void:
 				+ float(EconUtil.val(p["comp_total"], s["prices"]["COMPONENT"])) * 1.03
 			var margin := 0.12 - 0.08 * float(o["ceo"]["risk"]) / 100.0
 			if public_builder:
-				margin = 0.0
+				margin = 0.0 if p["owner"] == "gov" else 0.08
 			var dur := maxi(p["min_months"], int(ceil(est_wu / (0.6 * float(k)))))
 			p["bids"].append({"org": oid, "price": int(cost * (1.0 + margin)), "duration": dur, "reliability": o["reliability"]})
 			tentative[oid] = tentative.get(oid, 0) + p["wu_total"]
@@ -411,7 +412,8 @@ static func contractor_plans(world: WorldState) -> void:
 		var cur := float(EconLabor.staff_total(o["crew"])) / S
 		var target_n := need_wu / S / (0.9 + 0.002 * float(o["ceo"]["mgmt"]))
 		# growth limits: ≤ +25%/month, ≤ 2× founding crew, no growth while material-blocked last month
-		var cap_n := minf(maxf(cur * 1.25, cur + 5.0), 2.0 * float(base_n))
+		var max_mult := 3.0 if o["type"] == "PUBLIC_ENTERPRISE" and not _private_builder_alive(world) else 2.0  # E86: sole builder
+		var cap_n := minf(maxf(cur * 1.25, cur + 5.0), max_mult * float(base_n))
 		if o.get("blocked_last", false):
 			cap_n = cur * 0.85  # blocked crews shrink
 		target_n = minf(target_n, cap_n)

@@ -52,6 +52,11 @@ static func fscale(f: Dictionary) -> float:
 	return float(f.get("scale", 1000)) / 1000.0
 
 
+## A/B switch for tools only: world.meta["off"] lists mechanisms to disable (e.g. "E80"). Never set in play.
+static func off(world: WorldState, key: String) -> bool:
+	return world.meta.has("off") and (world.meta["off"] as Array).has(key)
+
+
 static func lever(world: WorldState, id: String, default_value = 0):
 	return world.levers.get(id, default_value)
 

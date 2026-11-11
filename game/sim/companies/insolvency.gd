@@ -230,6 +230,83 @@ static func reprivatize(world: WorldState) -> void:
 			[["GOVERNMENT", "government", 1.0]], {}, 30, "PUBLIC", {"facility": fid, "price": reserve, "privatized": true})
 
 
+## E91 (user decision 2026-11-11): a plant closed as unsafe or by law that its owner cannot afford to put right is
+## sold after FORCED_SALE_MONTHS. Price = book − overhaul cost (− the debts if the whole company goes). Buyers in order:
+## a firm of the same sector (or any firm with the cash, not for strategic plants), a workers' co-op of the district,
+## the state (strategic plants). If it was the owner's only productive asset the whole company is sold: its debts
+## move to the buyer and the empty shell is wound up. The buyer finishes the overhaul (E84) or re-licenses (E90).
+static func forced_sale_round(world: WorldState) -> void:
+	if EconUtil.off(world, "E91"):
+		return
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		var closed: bool = f["mothball"] and (f.get("closed_unsafe", false) or f.get("law_closed", false))
+		if not closed:
+			f["closed_m"] = 0
+			continue
+		f["closed_m"] = int(f.get("closed_m", 0)) + 1
+		if f["closed_m"] < EconData.FORCED_SALE_MONTHS:
+			continue
+		var oid: String = f["org"]
+		var o: Dictionary = world.table("org").get(oid, {})
+		if o.is_empty() or o["type"] in EconData.PUBLIC_TYPES or not (o["status"] in ["ACTIVE", "DISTRESSED", "ADMINISTRATION"]):
+			continue
+		var unfunded := false
+		if f.get("closed_unsafe", false):
+			unfunded = int(f.get("overhaul_frac", 0)) < 500
+		if f.get("law_closed", false):
+			unfunded = unfunded or world.ledger.balance(EconUtil.acct(oid)) < 3 * EconFinance._monthly_costs(o)
+		if not unfunded:
+			continue
+		_forced_sale(world, f)
+
+
+static func _forced_sale(world: WorldState, f: Dictionary) -> void:
+	var seller: String = f["org"]
+	var whole := true  # only productive asset → the whole company is sold
+	for fid2 in world.table("facility"):
+		var f2: Dictionary = world.table("facility")[fid2]
+		if fid2 != f["id"] and f2["org"] == seller and not f2["mothball"]:
+			whole = false
+			break
+	var overhaul := EconConstruction.estimate(f["type"]) / 4
+	var debt := EconFinance.debt_of(world, seller) if whole else 0
+	var price := maxi(0, f["book"] - overhaul - debt)
+	var buyer := _find_buyer(world, seller, f, price)
+	var kind := "FIRM"
+	if buyer != "":
+		if price > 0:
+			world.ledger.transfer(EconUtil.acct(buyer), EconUtil.acct(seller), price, "ASSET_SALE", world.month)
+		f["org"] = buyer
+	elif not (f["type"] in ["HOUSING", "SERVICEHUB"]) and _worker_buyout(world, seller, f):
+		buyer = f["org"]
+		kind = "WORKERS_COOP"
+		price = 0
+		f["mothball"] = true  # still needs its overhaul / licence before it reopens
+	elif f["type"] in EconData.STRATEGIC:
+		buyer = EconFinance.org_by_key(world, "CPW")
+		kind = "STATE"
+		price = EconFinance.gov_pay(world, EconUtil.acct(seller), price, "ASSET_SALE")
+		EconFinance._spend_line(world, "ECON_BUDGET_INFRASTRUCTURE", price)
+		f["org"] = buyer
+		f["nationalized_month"] = world.month
+	else:
+		return
+	f["book"] = price
+	f["closed_m"] = 0
+	if whole:
+		for lid in EconUtil.sorted_keys(world.table("loan")):
+			var l: Dictionary = world.table("loan")[lid]
+			if l["borrower"] == seller and l["principal"] > 0:
+				l["borrower"] = buyer
+		var so: Dictionary = world.table("org")[seller]
+		so["status"] = "LIQUIDATION"
+		so["liq_months"] = 0
+	EconFacts.emit(world, "ECON_FACILITY_SOLD", f["district"], [["COMPANY", seller], ["COMPANY", buyer]],
+		EconFacts.company_blame(world, seller, 0.7), {"JOBS": 3}, 35, "PUBLIC",
+		{"facility": f["id"], "price": price, "reason": "UNREPAIRABLE", "buyer_kind": kind, "whole_company": whole})
+
+
 ## COMPANY_AI: liquidation auctions and dissolution (spec §11 LIQUIDATION).
 static func liquidation_round(world: WorldState) -> void:
 	for oid in EconUtil.sorted_keys(world.table("org")):
