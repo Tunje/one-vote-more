@@ -108,6 +108,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 		GovCrisis.cohesion_step(world, st)
 		GovCrisis.no_confidence_ai(world, st)
 		EmergencyPolitics.monthly(world, st)
+		DistrictPolitics.monthly(world, st)
 	AreaStore.yearly(world)        # January: oversized areas and private enclaves split (moves to SOCIAL with Bob's A2)
 	GovBuilder.monthly(world, st)  # the state's capital programme, decided by whoever governs (not when the player does)
 	if have_parties and world.month > PolDefs.PARTY_FORMATION_MONTH:

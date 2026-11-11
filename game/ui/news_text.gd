@@ -118,6 +118,9 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"ECON_SHIP_ARRIVED": s = "A ship from the home world arrived with %d migrants" % int(d.get("migrants", 0))
 		"ECON_IMPORT_ARRIVED": s = "Imports arrived: %d %s" % [int(d.get("qty", 0)) / 1000, _kind(d.get("good", "goods"))]
 		"POL_PROJECT_ORDERED": s = "The %s ordered a new %s in %s" % ["commander" if d.get("by", "") == "commander" else "government", _kind(d.get("type", "")), district(w, d.get("district", ""))]
+		"POL_DISTRICTING_VOTE": s = "Parliament %s a new district map (%d districts%s)" % ["passed" if d.get("passed", false) else "rejected", int(d.get("districts", 0)), ", to fix an unbalanced map" if d.get("why", "") == "REMEDY" else ""]
+		"POP_AREA_FOUNDED": s = "A new settlement was founded: %s" % d.get("name", "")
+		"POP_AREA_SPLIT": s = "%s has grown apart: a new area split off (%s)" % [String(w.peek("area").get(d.get("area", ""), {}).get("name", "An area")), "a wealthy enclave" if d.get("reason", "") == "ENCLAVE" else "too big"]
 		"POL_ELECTION_HELD": s = "[b]Election held[/b]"
 		"POL_GOVERNMENT_FORMED": s = "[b]New government[/b]: %s" % ", ".join(d.get("members", []).map(func(p): return party(w, p)))
 		"POL_BILL_PASSED": s = "Parliament passed a bill (%d–%d)" % [int(d.get("yes", 0)), int(d.get("no", 0))]
