@@ -24,7 +24,14 @@ func _init() -> void:
 		sim.world.meta["off"] = off
 		if off.has("SUPPORT_ON"):
 			sim.world.meta["support"] = true  # M12 A/B: old home-world support model
-		EconSim._register(sim)
+		if off.has("AUTOPILOT_ON"):  # A/B: the pre-GovBuilder setup (econ caretaker autopilot instead of GovBuilder)
+			sim.register(preload("res://sim/law/law_provider.gd").new())
+			sim.register(preload("res://sim/staff/staff_provider.gd").new())
+			sim.register(EconAutopilot.new())
+			sim.register(EconProvider.new())
+			sim.register(PoliticsProvider.new())
+		else:
+			EconSim._register(sim)
 		sim.new_game()
 		var inb := 0
 		var usum := 0.0

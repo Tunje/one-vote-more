@@ -67,7 +67,7 @@ static func init_world(world: WorldState) -> void:
 	state(world)
 	for k in ["legal_rule", "licence", "permit_application", "enactment", "unlawful_track", "violation_track", "revealed_fact",
 			"case", "court", "judge", "liability", "gov_term", "access_grant", "donation_track", "investigation", "inquiry",
-			"victim_award"]:
+			"victim_award", "law_district", "districting_act"]:
 		world.table(k)   # owned/shared tables exist from the start, so read-only queries never create them
 	for r in L.charter_rules():
 		r["effective_month"] = 0
@@ -194,7 +194,7 @@ static func emergency(world: WorldState) -> Dictionary:
 
 ## A crisis condition: a crisis fact (data.crisis = true, magnitude >= 40) or ECON_FAMINE in the last 2 months.
 static func crisis_active(world: WorldState) -> bool:
-	for f in world.facts.query("", world.month - CRISIS_LOOKBACK, world.month):
+	for f in Det.recent_facts(world, "", world.month - CRISIS_LOOKBACK):
 		if f["type"] == "ECON_FAMINE" or (bool(f["data"].get("crisis", false)) and int(f["magnitude"]) >= CRISIS_MIN_MAGNITUDE):
 			return true
 	return false
@@ -776,11 +776,11 @@ const STUB_ACCIDENT_RATE := {"BASIC": 3750, "STANDARD": 2600, "STRICT": 1700}
 
 static func rule_of_law(world: WorldState) -> float:
 	var v := 100.0
-	for f in world.facts.query("LAW_UNLAWFUL_GOV_ACTION_REVEALED", world.month - 120, world.month, "PUBLIC"):
+	for f in Det.recent_facts(world, "LAW_UNLAWFUL_GOV_ACTION_REVEALED", world.month - 120, "PUBLIC"):
 		var age := float(world.month - int(f["month"]))
 		v -= RULE_OF_LAW_PER_ACT * (float(f["magnitude"]) / 50.0) * pow(0.5, age / RULE_OF_LAW_HALF_LIFE)
 	# Court rulings against the government (M6) count half: the act itself was already counted when revealed.
-	for f in world.facts.query("LAW_RULING", world.month - 120, world.month, "PUBLIC"):
+	for f in Det.recent_facts(world, "LAW_RULING", world.month - 120, "PUBLIC"):
 		if f["data"].get("against_government", false):
 			var age := float(world.month - int(f["month"]))
 			v -= 0.5 * RULE_OF_LAW_PER_ACT * (float(f["magnitude"]) / 50.0) * pow(0.5, age / RULE_OF_LAW_HALF_LIFE)
@@ -842,7 +842,7 @@ static func write_indicators(world: WorldState) -> void:
 	if Staff.world_value(world, "ECON_W_REF", null) == null:
 		return
 	var accidents := {}
-	for f in world.facts.query("COMP_WORKPLACE_ACCIDENT", world.month - 11, world.month):
+	for f in Det.recent_facts(world, "COMP_WORKPLACE_ACCIDENT", world.month - 11):
 		s["accident_facts_seen"] = true
 		var d: String = String(f["data"].get("district", f.get("location", "")))
 		accidents[d] = int(accidents.get(d, 0)) + 1

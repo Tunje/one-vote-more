@@ -133,7 +133,7 @@ static func home_inspection(world: WorldState, quality: int = 60, intensity: flo
 
 
 static func evasion_proven(world: WorldState) -> bool:
-	return not world.facts.query("HOME_EVASION_FOUND", world.month - EVASION_MEMORY, world.month).is_empty()
+	return not Det.recent_facts(world, "HOME_EVASION_FOUND", world.month - EVASION_MEMORY).is_empty()
 
 
 ## Legality of a home-world sanction under the charter: kind = FINE | WITHHOLD | REVOKE_PRIVILEGE | APPOINT_GOVERNOR |

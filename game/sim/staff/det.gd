@@ -27,3 +27,20 @@ static func _less(a, b) -> bool:
 			return na.to_int() < nb.to_int()
 		return na < nb
 	return sa < sb
+
+
+## Facts from `from_month` on, in insertion order: same result as world.facts.query(prefix, from_month, now, vis)
+## but O(recent facts) instead of O(all facts). Facts are appended in month order, so walk back from the end.
+static func recent_facts(world: WorldState, type_prefix: String, from_month: int, visibility: String = "") -> Array:
+	var arr: Array = world.facts.facts
+	var out: Array = []
+	var i := arr.size() - 1
+	while i >= 0:
+		var f: Dictionary = arr[i]
+		if int(f["month"]) < from_month:
+			break
+		if String(f["type"]).begins_with(type_prefix) and (visibility == "" or f["visibility"] == visibility):
+			out.append(f)
+		i -= 1
+	out.reverse()
+	return out

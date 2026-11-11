@@ -63,7 +63,7 @@ static func _amount_of(f: Dictionary) -> int:
 
 
 static func _donations(world: WorldState, from_month: int, to_month: int) -> Array:
-	return world.facts.query("POL_DONATION", from_month, to_month).filter(func(f): return f["type"] == "POL_DONATION")
+	return Det.recent_facts(world, "POL_DONATION", from_month).filter(func(f): return f["type"] == "POL_DONATION" and int(f["month"]) <= to_month)
 
 
 ## Sum of a donor's booked donations in the 12 months ending at `month` (all parties), optionally only facts before `before_id`.

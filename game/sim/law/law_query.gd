@@ -13,6 +13,7 @@ const Det := preload("res://sim/staff/det.gd")
 const Vis := preload("res://sim/law/visibility.gd")
 const PF := preload("res://sim/law/party_finance.gd")
 const CO := preload("res://sim/law/charter_ops.gd")
+const DL := preload("res://sim/law/districting.gd")
 
 const DECREE_WARNING := "This decree is UNLAWFUL: %s. If you proceed it will be implemented like any decision, " \
 	+ "but it is recorded as a secret unlawful act. It can leak from the civil service (about 3%% a month), be " \
@@ -551,3 +552,33 @@ static func sovereignty(world: WorldState) -> Dictionary:
 ## For 88's ship: {due, share_pct, price_pct, reason}
 static func quota_due(world: WorldState) -> Dictionary:
 	return CO.quota_due(world)
+
+
+# =====================================================================================  M13 districts by law
+
+## Active districts: [{id, name, areas, since_month, act}]
+static func districts(world: WorldState) -> Array:
+	var out: Array = []
+	var dt := world.peek("law_district")
+	for d in Det.ordered(dt):
+		if dt[d]["status"] == "ACTIVE":
+			out.append(dt[d].duplicate(true))
+	return out
+
+
+static func district_of(world: WorldState, area_id: String) -> String:
+	return String(AreaStore.get_area(world, area_id).get("district", ""))
+
+
+## Check a proposed map before proposing it (AI scoring, drawing UI): see DL.preview.
+static func districting_preview(world: WorldState, plan: Dictionary, level: String = "LAW") -> Dictionary:
+	return DL.preview(world, plan, level)
+
+
+## [{id, month, due_month, level, bill, map, previous_map, status}] newest first
+static func districting_acts(world: WorldState) -> Array:
+	var out: Array = []
+	var t := world.peek("districting_act")
+	for id in Det.ordered(t):
+		out.push_front(t[id].duplicate(true))
+	return out

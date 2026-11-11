@@ -305,7 +305,7 @@ static func _inspect(world: WorldState) -> void:
 
 ## Accidents at a facility operated in violation reveal that operator's open violations and wrongly granted licences.
 static func _accident_reveals(world: WorldState) -> void:
-	for f in world.facts.query("COMP_WORKPLACE_ACCIDENT", world.month, world.month):
+	for f in Det.recent_facts(world, "COMP_WORKPLACE_ACCIDENT", world.month):
 		var op: String = String(f["data"].get("operator", ""))
 		if op == "":
 			continue
@@ -398,7 +398,7 @@ static func _file_new_cases(world: WorldState) -> void:
 			file_case(world, "ADMIN_APPEAL", {"kind": "COMPANY", "id": a["holder_id"]},
 				{"kind": "AUTHORITY", "id": "permit_office"}, bool(a["wrong"]), {"application": aid})
 	# 4. Contract disputes from econ facts (severe delay: owner sues contractor; missed payment: contractor sues owner).
-	for f in world.facts.query("ECON_CONTRACT_", world.month, world.month):
+	for f in Det.recent_facts(world, "ECON_CONTRACT_", world.month):
 		var typ: String = f["type"]
 		if typ != "ECON_CONTRACT_SEVERELY_DELAYED" and typ != "ECON_CONTRACT_PAYMENT_MISSED":
 			continue
@@ -593,7 +593,7 @@ static func _crisis_inquiries(world: WorldState) -> void:
 	var inq := world.table("inquiry")
 	var rng := world.rng.stream("law.inquiry")
 	var q := float(Staff.duty_quality(world, "STAFF_SD_LEGAL", int(AGENCY_Q_DEFAULT * 1000.0))) / 1000.0
-	for f in world.facts.query("", world.month, world.month):
+	for f in Det.recent_facts(world, "", world.month):
 		if not bool(f["data"].get("crisis", false)) or int(f["magnitude"]) < INQUIRY_MIN_MAGNITUDE:
 			continue
 		if rng.randf() >= 0.5 + 0.4 * q / 100.0:

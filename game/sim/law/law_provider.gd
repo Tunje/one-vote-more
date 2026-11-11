@@ -7,6 +7,12 @@ const L := preload("res://sim/law/law_data.gd")
 const Vis := preload("res://sim/law/visibility.gd")
 const PF := preload("res://sim/law/party_finance.gd")
 const CO := preload("res://sim/law/charter_ops.gd")
+const DL := preload("res://sim/law/districting.gd")
+
+
+func _init() -> void:
+	# M13: law decides which district a newly founded area joins (single writer of membership).
+	AreaStore.district_resolver = func(world, area_id): return DL.district_for_new_area(world, area_id)
 
 
 func owner_id() -> String:
@@ -53,6 +59,8 @@ func run_phase(phase: int, world: WorldState) -> void:
 		TickPhase.DECISIONS:
 			Ops.ensure_m11_rules(world)
 			CO.ensure_m12(world)
+			DL.ensure_founding_district(world)
+			DL.tick(world)
 			Ops.emergency_tick(world)
 			Vis.note_government(world)
 			Ops.maybe_adopt_constitution(world)

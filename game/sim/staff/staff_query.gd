@@ -288,7 +288,7 @@ static func _sees_person(world: WorldState, viewer: Dictionary, p: Dictionary) -
 ## [{month, action, error, params, district}]
 static func failed_actions(world: WorldState, month: int, viewer: Dictionary = {}) -> Array:
 	var out: Array = []
-	for f in world.facts.query("ECON_ACTION_FAILED", month, month):
+	for f in Det.recent_facts(world, "ECON_ACTION_FAILED", month).filter(func(f): return int(f["month"]) == month):
 		if Vis.can_see_fact(world, viewer, f):
 			out.append({"month": f["month"], "action": String(f["data"].get("action", "")), "error": String(f["data"].get("error", "")),
 				"params": f["data"].get("params", {}).duplicate(true), "district": f.get("location", null)})
