@@ -116,6 +116,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"ECON_GOV_BORROWED": s = "The government borrowed money (debt now %d%% of the economy)" % int(d.get("debt_ratio_pct", 0))
 		"ECON_SHIP_ARRIVED": s = "A ship from the home world arrived with %d migrants" % int(d.get("migrants", 0))
 		"ECON_IMPORT_ARRIVED": s = "Imports arrived: %d %s" % [int(d.get("qty", 0)) / 1000, _kind(d.get("good", "goods"))]
+		"POL_PROJECT_ORDERED": s = "The %s ordered a new %s in %s" % ["commander" if d.get("by", "") == "commander" else "government", _kind(d.get("type", "")), district(w, d.get("district", ""))]
 		"POL_ELECTION_HELD": s = "[b]Election held[/b]"
 		"POL_GOVERNMENT_FORMED": s = "[b]New government[/b]: %s" % ", ".join(d.get("members", []).map(func(p): return party(w, p)))
 		"POL_BILL_PASSED": s = "Parliament passed a bill (%d–%d)" % [int(d.get("yes", 0)), int(d.get("no", 0))]

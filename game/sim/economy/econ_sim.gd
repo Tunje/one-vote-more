@@ -42,7 +42,8 @@ static func make(seed_value: int, scenario: String = "BALANCED", persona: Dictio
 static func _register(sim: Simulation) -> void:
 	sim.register(LawProvider.new())
 	sim.register(StaffProvider.new())
-	sim.register(EconAutopilot.new())
+	# No EconAutopilot in the integrated game: the AI government (GovBuilder) and the companies decide what is
+	# built; when the human player governs, nothing is ordered behind their back (user decision 2026-11-11).
 	sim.register(EconProvider.new())
 	sim.register(PoliticsProvider.new())
 
