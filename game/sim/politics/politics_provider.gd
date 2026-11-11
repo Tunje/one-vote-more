@@ -28,6 +28,10 @@ func phases() -> Array:
 func indicator_defs() -> Array:
 	return [{"id": "POL_GOV_APPROVAL", "owner": "pol", "unit": "% (milli)", "range": [0, 100000], "granularity": "COLONY",
 		"polarity": 1, "concerns": {}, "normalize": {"good": 100000, "bad": 0}, "phase": TickPhase.POLITICS,
+		"visibility": "PUBLIC", "perceptionLag": 0},
+		# M12: what the charter costs the colony (quota x price gap, governor, recent sanctions); 0 when independent
+		{"id": "POL_COLONIAL_BURDEN", "owner": "pol", "unit": "index (milli)", "range": [0, 100000], "granularity": "COLONY",
+		"polarity": -1, "concerns": {"COLONIAL_BURDEN": 1.0}, "normalize": {"good": 0, "bad": 40000}, "phase": TickPhase.POLITICS,
 		"visibility": "PUBLIC", "perceptionLag": 0}]
 
 
@@ -104,7 +108,10 @@ func run_phase(phase: int, world: WorldState) -> void:
 		GovCrisis.cohesion_step(world, st)
 		GovCrisis.no_confidence_ai(world, st)
 		EmergencyPolitics.monthly(world, st)
+	if have_parties and world.month > PolDefs.PARTY_FORMATION_MONTH:
+		HomeWorld.monthly(world, st)
 	world.set_indicator("pol", "POL_GOV_APPROVAL", "COLONY", colony_approval(world))
+	world.set_indicator("pol", "POL_COLONIAL_BURDEN", "COLONY", HomeWorld.burden(world))
 
 
 # ======================= opinion =======================
@@ -196,6 +203,8 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 			if unmet > 0.5:
 				for ax in PolDefs.CONCERN_PULL[c]:
 					var sign := -1.0 if cell["base"][ax] < -20 * S else 1.0
+					if c == "COLONIAL_BURDEN":
+						sign = 1.0  # the charter's burden always pushes toward independence
 					cell["ideology"][ax] += int(round(sign * PolDefs.CONCERN_PULL[c][ax] * (unmet - 0.5) * 2.0 * 0.5 * S))
 		for ax in PolDefs.AXES:
 			cell["ideology"][ax] += int(round(float(cell["base"][ax] - cell["ideology"][ax]) * 0.01))
@@ -653,7 +662,9 @@ func _zeitgeist(world: WorldState, st: Dictionary) -> void:
 			d -= int(round(float(off) * 0.02))  # weak mean reversion keeps cohorts within bounds
 			cohorts[cname]["offset"][ax] = off + d
 			delta[cname][ax] = d
+	var gen := int(round(PolDefs.SOV_GENERATIONAL_DRIFT * S)) if HomeWorld.colonial(world) else 0
 	for cell in world.table("cell").values():
+		cell["base"]["SOVEREIGNTY"] = clampi(cell["base"]["SOVEREIGNTY"] + gen, -100 * S, 100 * S)
 		var dc: Dictionary = delta.get(cell["cohort"], {})
 		for ax in dc:
 			cell["base"][ax] = clampi(cell["base"][ax] + int(dc[ax]), -100 * S, 100 * S)

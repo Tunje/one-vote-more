@@ -156,6 +156,8 @@ static func offer(world: WorldState, org_id: String, t: String) -> int:
 	var w := float(s["wage"][t])
 	if o["type"] in EconData.PUBLIC_TYPES:
 		w *= float(EconUtil.lever(world, "ECON_PUBLIC_PAY_INDEX", 100)) / 100.0
+		if o["type"] == "PUBLIC_ENTERPRISE" and not EconUtil.off(world, "E99"):
+			w *= 1.0 + 0.05 * minf(3.0, float(o["premium_m"].get(t, 0)))  # E99b: public enterprises compete for scarce workers too
 	else:
 		w *= 1.0 + 0.05 * minf(3.0, float(o["premium_m"].get(t, 0)))
 	w *= 1.0 + float(o.get("union_pm", 0)) / 1000.0  # M9: wage gains won by a strike (decay in EconUnions)
@@ -198,7 +200,14 @@ static func match(world: WorldState, no_limits: bool = false) -> void:
 	var vacs: Array = s.get("vacancies", [])
 	for t in EconData.TIERS:  # Sp, S, G
 		var tv: Array = vacs.filter(func(v): return v["tier"] == t)
-		tv.sort_custom(func(a, b): return a["wage"] > b["wage"] or (a["wage"] == b["wage"] and a["emp"] < b["emp"]))
+		# E99: essential workers first — vacancies at strategic plants (power, water, food, materials, components,
+		# freight) are matched before others; within a class, the higher wage first. Without ships the labour force
+		# grows only by births, and the materials chain lost every hiring contest and decayed.
+		var e99 := not EconUtil.off(world, "E99")
+		tv.sort_custom(func(a, b):
+			var sa: int = 1 if e99 and _strategic_vac(world, a) else 0
+			var sb: int = 1 if e99 and _strategic_vac(world, b) else 0
+			return sa > sb or (sa == sb and (a["wage"] > b["wage"] or (a["wage"] == b["wage"] and a["emp"] < b["emp"]))))
 		for v in tv:
 			var cap: int = (int(v["qty"]) + S / 2) / S  # whole persons, rounded (M10)
 			if not no_limits:
@@ -240,6 +249,10 @@ static func match(world: WorldState, no_limits: bool = false) -> void:
 	s["vac_unfilled"] = unfilled
 	s["vacancies"] = []
 	EconPop.sync(world)
+
+
+static func _strategic_vac(world: WorldState, v: Dictionary) -> bool:
+	return v["kind"] == "fac" and world.table("facility")[v["emp"]]["type"] in EconData.STRATEGIC
 
 
 ## Wage index update (COMPANY_AI, spec §6.5) + unemployment rates.

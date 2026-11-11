@@ -88,6 +88,14 @@ static func _clear(world: WorldState, good: String, tariff: int) -> void:
 				qty = clampi(int(s.get("unmet_last", {}).get(good, 0)) / 2, int(bk[2]) * S, int(bk[3]) * S)
 			offers.append({"seller": "origin", "acct": Ledger.EXTERNAL, "district": "d:1", "good": good,
 				"qty": qty, "ask": int(float(bk[1]) * float(s["base"][good]))})
+	# E98: the strategic reserve (endowment) sells MATERIAL / COMPONENT into a scarce market at the market price,
+	# up to half of last month's unmet demand. Before, the reserve sat untouched while power plants decayed.
+	if good in EconData.RESERVE_AUTO_RELEASE and not EconUtil.off(world, "E98"):
+		var stock := EconUtil.inv_get(world, "gov", good, "d:1")
+		var scarce: bool = float(s["prices"][good]) >= 2.0 * float(s["base"][good]) or int(s.get("fill_last", {}).get(good, 1000)) < 800
+		if stock > 0 and scarce:
+			var q := mini(stock, maxi(int(s.get("unmet_last", {}).get(good, 0)) / 2, 10 * S))
+			offers.append({"seller": "gov", "acct": EconUtil.TREASURY, "district": "d:1", "good": good, "qty": q, "ask": int(s["prices"][good])})
 	var bids: Array = s["orders"].filter(func(b): return b["good"] == good and b["qty"] > 0)
 	var price: int = s["prices"][good]
 	var supply := 0
@@ -138,10 +146,26 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 	for o in ranked:
 		if left <= 0:
 			break
-		if o["qty"] <= 0 or o["seller"] == bid["buyer"]:
+		if o["qty"] <= 0:
 			continue
 		var h := EconUtil.hops(o["district"], bid["district"])
 		if h < 0:
+			continue
+		if o["seller"] == bid["buyer"]:
+			# E97: a firm's own order is filled from its own offer as an internal transfer (no payment, at book cost).
+			# Vertically integrated owners — in every long run the public operator ends up holding mines, processing,
+			# component works and power — otherwise starved their own plants while their stock sat unsold.
+			if EconUtil.off(world, "E97") or bid["kind"] != "org":
+				continue
+			var own := mini(left, o["qty"])
+			var wac0 := EconUtil.inv_wac(world, o["seller"], good, o["district"])
+			own = EconUtil.inv_take(world, o["seller"], good, o["district"], own)
+			if own <= 0:
+				continue
+			EconUtil.inv_add(world, bid["buyer"], good, bid["district"], own, wac0)
+			o["qty"] -= own
+			got += own
+			left -= own
 			continue
 		if o["seller"] == "origin" and not EconUtil.off(world, "E85"):
 			h = 0  # E85: origin backstop cargo comes on the origin's own shuttle, to the buyer's district (no colony freight)
@@ -179,7 +203,9 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 		o["qty"] -= take
 		if o["seller"] == "origin":
 			pass
-		elif o["seller"] != "gov":
+		elif o["seller"] == "gov":
+			EconFinance._gov_rev(world, goods_cost)  # reserve sales are public revenue
+		else:
 			EconFinance.pl_add(world, o["seller"], "rev", goods_cost)
 			EconFinance.pl_add(world, o["seller"], "cogs", EconUtil.val(take, wac))
 			var sold: Dictionary = world.table("org")[o["seller"]]["sold"]
@@ -248,7 +274,15 @@ static func _update_prices(world: WorldState) -> void:
 		var x := shortage if shortage > 0.05 else -excess
 		var p2 := p * (1.0 + EconData.ALPHA * clampf(x, -1.0, 1.0))
 		var base := float(s["base"][good])
-		s["prices"][good] = int(clampf(p2, base * EconData.PRICE_MIN_MULT, base * EconData.PRICE_MAX_MULT))
+		s["prices"][good] = int(clampf(p2, base * EconData.PRICE_MIN_MULT, base * EconData.PRICE_MAX_MULT * wage_level(world)))
+
+
+## E100: price caps move with the wage level (skilled wage index vs founding), never below 1. Fixed caps let decades
+## of wage growth push producers' costs above the most they may charge, freezing output at the cap.
+static func wage_level(world: WorldState) -> float:
+	if EconUtil.off(world, "E100"):
+		return 1.0
+	return maxf(1.0, float(EconUtil.st(world)["wage"]["S"]) / float(EconData.WAGE["S"] * S))
 
 
 static func _cpi(world: WorldState) -> void:

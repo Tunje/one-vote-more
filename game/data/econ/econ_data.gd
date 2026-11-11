@@ -41,6 +41,11 @@ const MAX_DISC_CONSUMER_PC := 0.4
 const FREIGHT_FLEET_CAP := 8000      # unit-links / month per depot
 const SHIP_CARGO := 2000
 const SHIP_MIGRANTS := 120
+## M12 §4: home-world ships every SHIP_INTERVAL months (seeded, irregular). Migrants per ship: the immigration quota
+## (persons per quarter) × interval / 3 × SHIP_QUOTA_SHARE, capped by SHIP_CAPACITY and by housing (as before).
+const SHIP_INTERVAL := [18, 30]
+const SHIP_QUOTA_SHARE := 0.5
+const SHIP_CAPACITY := 300
 const MIGRANT_FUNDS := 2000          # credits per adult migrant
 const DEPRECIATION_MONTHS := 240
 const LIQUIDATION_RESERVE := 0.60
@@ -193,6 +198,7 @@ const BANK_CASH := 12000000
 const HOME_SUPPORT := false
 const ENDOW_TREASURY := 6000000        # extra treasury at landing (~30 months of the old grant; the old support was ~16.8M)
 const ENDOW_RESERVE := {"FOOD": 13000, "MEDICAL": 600, "MATERIAL": 3000, "COMPONENT": 400}  # ~6 months of food
+const RESERVE_AUTO_RELEASE := ["MATERIAL", "COMPONENT"]  # E98: strategic reserve sells into a scarce market
 const ENDOW_SPARES_MONTHS := 36        # each operator lands with 3 years of upkeep parts (MATERIAL, COMPONENT)
 ## extra founding capacity so materials, components, power and water balance locally without imports
 const ENDOW_FACILITIES := [["PROCESSING", "BASALT", "d:4", 1], ["COMPONENTS", "VECTOR", "d:4", 1], ["POWER", "CPW", "d:4", 1],

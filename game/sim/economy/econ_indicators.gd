@@ -157,8 +157,10 @@ static func publish(world: WorldState) -> void:
 			acc[k] /= maxf(wsum, 0.0001)
 		var base: float = float(s["cell_base_inc"].get(key, 0)) / 1000.0
 		if base <= 0.0:
-			s["cell_base_inc"][key] = int(acc["inc"] * 1000.0)
-			base = acc["inc"]
+			# a cell's base is its income when first seen; floored at 1/4 of the colony mean so cells first seen in a
+			# slump (or with ~0 income) do not produce absurd index values decades later (Wilma's chronicle: 240M)
+			s["cell_base_inc"][key] = int(maxf(acc["inc"], 0.25 * _colony_mean_inc(cls)) * 1000.0)
+			base = float(s["cell_base_inc"][key]) / 1000.0
 		_w(world, "ECON_JOB_RISK", key, 100.0 * acc["risk"])
 		_w(world, "ECON_REAL_INCOME_INDEX", key, 100.0 * acc["inc"] / maxf(1.0, base) / maxf(0.01, cpi))
 		_w(world, "ECON_ESSENTIALS_SHARE", key, 100.0 * acc["ess"] / maxf(1.0, acc["inc"]))
@@ -168,6 +170,15 @@ static func publish(world: WorldState) -> void:
 		_w(world, "ECON_REAL_WAGE_GROWTH", key, acc["wg"])
 	_district_indicators(world, cls)
 	_colony_indicators(world)
+
+
+static func _colony_mean_inc(cls: Array) -> float:
+	var a := 0.0
+	var t := 0.0
+	for c in cls:
+		a += c["adults"] * c["inc_pa"]
+		t += c["adults"]
+	return a / maxf(t, 0.001)
 
 
 static func _w(world: WorldState, id: String, key: String, v: float) -> void:

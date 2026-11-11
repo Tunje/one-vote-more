@@ -64,8 +64,11 @@ static func social(world: WorldState) -> void:
 	_post_orders(world)
 	_housing(world)
 	_demography(world)
-	if (world.month + 1) % 3 == 0 and EconUtil.support(world):
-		_ship_migrants(world)  # M12: migrants come only with a ship (ships: M12 §4)
+	if EconUtil.support(world):
+		if (world.month + 1) % 3 == 0:
+			_ship_migrants(world, EconData.SHIP_MIGRANTS, true)  # old model: a migrant shuttle every quarter
+	else:
+		_ships(world)  # M12 §4: rare home-world ships
 	_pollution(world)
 	_famine_check(world)
 	for gid in EconUtil.sorted_keys(world.table("hh")):
@@ -222,7 +225,7 @@ static func _buy_services(world: WorldState) -> void:
 		var p := float(s["svc_price"][d])
 		var base := float(EconData.BASE_SERVICES_PRICE * S)
 		p *= 1.0 + EconData.ALPHA * (dd - ss) / maxf(maxf(dd, ss), float(S))
-		s["svc_price"][d] = int(clampf(p, base * EconData.PRICE_MIN_MULT, base * EconData.PRICE_MAX_MULT))
+		s["svc_price"][d] = int(clampf(p, base * EconData.PRICE_MIN_MULT, base * EconData.PRICE_MAX_MULT * EconMarket.wage_level(world)))
 
 
 ## E67 sole proprietors: unmet local service demand (after hubs) is served by self-employed residents of the district,
@@ -496,7 +499,29 @@ static func _reage(world: WorldState, g: Dictionary, status: String, n: int, ban
 
 ## Ship migrants every 3 months (spec §7.6): arrivals are UNEMPLOYED / NOT_IN_LF adults and children, banded by
 ## skill like the founders, into the district with the most vacant housing. They bring savings from the origin.
-static func _ship_migrants(world: WorldState) -> void:
+## M12 §4: a home-world ship arrives every 18–30 months (seeded draw on "econ.ship"; M11 hazards may delay or
+## lose it later). It brings a migrant batch; cargo and the quota return trip follow in M12 (2).
+## Emits ECON_SHIP_ARRIVED {interval, migrants, cargo, quota_delivered}; the home-world actor reacts the same month.
+static func _ships(world: WorldState) -> void:
+	var s := EconUtil.st(world)
+	var rng := world.rng.stream("econ.ship")
+	if not s.has("ship_next"):
+		s["ship_next"] = world.month + rng.randi_range(EconData.SHIP_INTERVAL[0], EconData.SHIP_INTERVAL[1])
+		s["ship_last"] = 0
+	if world.month < int(s["ship_next"]):
+		return
+	var interval: int = world.month - int(s.get("ship_last", 0))
+	var quota := int(EconUtil.lever(world, "ECON_IMMIGRATION_QUOTA", 60))
+	var cap := mini(EconData.SHIP_CAPACITY, int(float(quota) * float(interval) / 3.0 * EconData.SHIP_QUOTA_SHARE))
+	var migrants := _ship_migrants(world, cap, false)
+	EconFacts.emit(world, "ECON_SHIP_ARRIVED", "d:1", [["EXTERNAL", "home_world"]], [["EXTERNAL", "home_world", 1.0]], {}, 40, "PUBLIC",
+		{"interval": interval, "migrants": migrants, "cargo": {}, "quota_delivered": {}})
+	s["ship_last"] = world.month
+	s["ship_next"] = world.month + rng.randi_range(EconData.SHIP_INTERVAL[0], EconData.SHIP_INTERVAL[1])
+
+
+## Migrants into the district with the most vacant housing; returns persons landed.
+static func _ship_migrants(world: WorldState, cap: int, emit_fact: bool) -> int:
 	var units := units_by_district(world)
 	var hhs := {}
 	for gid in world.table("hh"):
@@ -523,10 +548,12 @@ static func _ship_migrants(world: WorldState) -> void:
 		lf_t += world.table("hh")[gid]["lf"]
 		emp_t += EconLabor.employed(world.table("hh")[gid])
 	if lf_t > 0 and float(lf_t - emp_t) / float(lf_t) >= 0.10:
-		return
-	var n := mini(quota, mini(int(vacant * 2.5) / S, EconData.SHIP_MIGRANTS))  # persons
+		return 0
+	var n := mini(int(vacant * 2.5) / S, cap)  # persons
+	if emit_fact:
+		n = mini(n, quota)  # old model: per-quarter quota
 	if n <= 0 or best == "":
-		return
+		return 0
 	var hb := EconPop.hb_of(best)
 	var adults_n := n * 7 / 10
 	var tiers := EconUtil.split_lr(adults_n, [0.5, 0.35, 0.15])
@@ -546,8 +573,10 @@ static func _ship_migrants(world: WorldState) -> void:
 			PopStore.arrive(world, PopStore.key_of(parts), n - adults_n, {"age": {"C": n - adults_n}, "skill": {"G": n - adults_n}})
 		world.ledger.transfer(Ledger.EXTERNAL, EconUtil.hh_acct(EconPop.pool_id(hb, band)), int(tiers[i] * EconData.MIGRANT_FUNDS) * S, "MIGRANT_FUNDS", world.month)
 	EconPop.sync(world)
-	EconFacts.emit(world, "ECON_MIGRANTS_ARRIVED", best, [], [["GOVERNMENT", "government", 0.5], ["EXTERNAL", "origin", 0.5]], {}, 10,
-		"PUBLIC", {"persons": n}, {"districts": [best]})
+	if emit_fact:
+		EconFacts.emit(world, "ECON_MIGRANTS_ARRIVED", best, [], [["GOVERNMENT", "government", 0.5], ["EXTERNAL", "origin", 0.5]], {}, 10,
+			"PUBLIC", {"persons": n}, {"districts": [best]})
+	return n
 
 
 static func _adult_ages(n: int) -> Dictionary:

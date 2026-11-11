@@ -84,7 +84,7 @@ func _month(m: int, prev_levers: Dictionary) -> void:
 				_snap_election(m, f["data"]["election"])
 		if t in SKIP or f.get("visibility", "") != "PUBLIC" and not t.begins_with("POL_"):
 			continue
-		if t.begins_with("POL_") or t.begins_with("LAW_") or t.begins_with("STAFF_OFFICIAL") or t == "STAFF_OVERSIGHT_REPORT" or t in NOTABLE_ECON:
+		if t.begins_with("POL_") or t.begins_with("LAW_") or t.begins_with("HOME_") or t == "ECON_SHIP_ARRIVED" or t.begins_with("STAFF_OFFICIAL") or t == "STAFF_OVERSIGHT_REPORT" or t in NOTABLE_ECON:
 			events[y].append("m%d (%s) **%s** %s" % [m, _date(m), t, _describe(f)])
 	if (m + 1) % 12 == 0:
 		_snap_year(y)
@@ -166,7 +166,11 @@ func _snap_year(y: int) -> void:
 	for p in PartyLife.active(w):
 		if int(p["seats"]) > 0:
 			seats[p["id"]] = int(p["seats"])
-	years_tbl.append({"year": y, "adults": pop, "gov": g.get("members", []).duplicate(), "pm": g.get("pm_party", ""),
+	var sv: Dictionary = preload("res://sim/law/law_query.gd").sovereignty(w)
+	var hm: Dictionary = st.get("home", {})
+	years_tbl.append({"sov": "%s q%d%% p%d%%%s" % [String(sv.get("status", "")).to_lower(), int(sv.get("quota_share", 0)), int(sv.get("price_pct", 0)),
+		" gov" if sv.get("governor", false) else ""], "home": "need %d pat %d" % [int(hm.get("need", 0)), int(hm.get("patience", 0))],
+		"year": y, "adults": pop, "gov": g.get("members", []).duplicate(), "pm": g.get("pm_party", ""),
 		"ind": ind, "seats": seats, "active": PartyLife.active(w).size()})
 
 
@@ -378,8 +382,10 @@ func _years(L: PackedStringArray) -> void:
 	L.append("## 7. Year by year")
 	L.append("")
 	var names: Array = YEAR_INDICATORS.map(func(s): return s[1])
-	L.append("| Year | Adults | Parties | Government (PM first) | " + " | ".join(names) + " | Seats |")
-	L.append("|" + "---|".repeat(names.size() + 5))
+	L.append("Colony = sovereignty status, charter quota share and charter price (% of value), gov = a home-world governor. Home = the home world's need and patience.")
+	L.append("")
+	L.append("| Year | Adults | Parties | Government (PM first) | " + " | ".join(names) + " | Colony | Home | Seats |")
+	L.append("|" + "---|".repeat(names.size() + 7))
 	for r in years_tbl:
 		var gov: Array = [_code(r["pm"])] if r["pm"] != "" else []
 		for pid in r["gov"]:
@@ -388,7 +394,7 @@ func _years(L: PackedStringArray) -> void:
 		var vals: Array = names.map(func(n): return ("%.1f" % r["ind"][n]) if r["ind"].has(n) else "")
 		var sk: Array = r["seats"].keys()
 		sk.sort_custom(func(a, b): return r["seats"][a] > r["seats"][b])
-		L.append("| %d | %d | %d | %s | %s | %s |" % [r["year"], r["adults"], r["active"], " ".join(gov), " | ".join(vals),
+		L.append("| %d | %d | %d | %s | %s | %s | %s | %s |" % [r["year"], r["adults"], r["active"], " ".join(gov), " | ".join(vals), r.get("sov", ""), r.get("home", ""),
 			" ".join(sk.map(func(pid): return "%s %d" % [_code(pid), r["seats"][pid]]))])
 	L.append("")
 

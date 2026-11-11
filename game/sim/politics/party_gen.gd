@@ -20,6 +20,8 @@ const NAMES := {
 		["Fiscal Prudence Party", "Balanced Budget League", "Debt-Free Colony", "Sound Finance Party"]],
 	"INSTITUTIONS": [["Civic Liberty Party", "Reform & Rights League", "Open Government Party", "Citizens' Movement"],
 		["Order & Stability", "Law & Order League", "Strong Institutions Party", "Colonial Tradition Party"]],
+	"SOVEREIGNTY": [["Independence Party", "Free Colony Movement", "Sovereign Colony League", "Self-Determination Party"],
+		["Loyalist Party", "Charter Loyalty League", "Homeworld Union", "Crown & Colony Party"]],
 }
 const SPARE_NAMES := ["Reform Party", "Colony First", "Progress Party", "Centre Alliance", "Pioneer Party", "Renewal", "New Democrats", "People's Alliance", "Common Ground", "Frontier League"]
 const FIRST := ["Ana", "Bo", "Cyrus", "Dela", "Eskil", "Farah", "Gunn", "Hiro", "Ines", "Jarl", "Kaia", "Lev", "Mina", "Nils", "Oona", "Pavel", "Rune", "Sana", "Tove", "Ulf", "Vera", "Yusuf"]

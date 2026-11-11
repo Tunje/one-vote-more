@@ -139,8 +139,10 @@ static func m12_rules() -> Array:
 	out.append(_r("PROHIBIT", "OBSTRUCT_QUOTA", pub, [], cc))
 	out.append(_r("PROHIBIT", "REFUSE_QUOTA", pub, [], cc))
 	out.append(_r("PROHIBIT", "LEVY_TAX", pub, [{"field": "p.base", "op": "IN", "value": ["QUOTA", "COLONIAL_EXPORT"]}], cc))
-	# The home world's lawful sanctions under the charter (anything else it does is unlawful: default-deny).
+	# The home world's lawful sanctions under the charter (anything else it does is unlawful: default-deny). From the
+	# home world's side the charter still applies after a declaration, so these are not suspended with the obligations.
 	var home := [{"field": "actor.kind", "op": "EQ", "value": "HOME_WORLD"}]
+	cc = {"source": "COLONIAL_CHARTER"}
 	out.append(_r("AUTHORIZE", "HOME_WITHHOLD", home, [], cc))
 	out.append(_r("AUTHORIZE", "HOME_REVOKE_PRIVILEGE", home, [], cc))
 	out.append(_r("AUTHORIZE", "HOME_FINE", home, [{"field": "p.evasion_proven", "op": "EQ", "value": true}], cc))
@@ -347,11 +349,13 @@ const LEVERS := [
 		"legalLevel": "CHARTER", "foundingEra": "LOCKED", "ideology": {},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 0, "scope": "COLONY", "domain": "ECON"},
 	# Colony law: whether colony customs also chase charter evasion (false = passive defiance), and the militia.
+	# SOVEREIGNTY slopes (+ = independence). The charter terms above have none: only the home world sets them.
+	# Eligibility: newcomers lean loyal, so independence parties favour residency rules over the non-citizen vote.
 	{"id": "LAW_ENFORCE_CHARTER", "owner": "law", "type": "BOOL", "default": true,
-		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {},
+		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"SOVEREIGNTY": -12},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
 	{"id": "LAW_MILITIA", "owner": "law", "type": "NUMBER", "range": [0, 100], "default": 0,
-		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {},
+		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"SOVEREIGNTY": 1.0},
 		"fiscal": "est_militia_cost", "implementation": "STAFF_T_IMPL_INSTITUTION", "lag": 6, "scope": "COLONY", "domain": "LAW"},
 	# ---- M10 electoral eligibility (spec-population-v1 §4.2, PD §9.6). Read through LQ.eligibility(world).
 	# Slopes use today's 7 axes; remap to STABILITY/LIBERTY when S3 adds them (planning/a9-population-note.md).
@@ -359,9 +363,9 @@ const LEVERS := [
 		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": -8, "REDISTRIBUTION": -4},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
 	{"id": "LAW_RESIDENCY_FOR_VOTE", "owner": "law", "type": "NUMBER", "range": [0, 24], "default": 0,
-		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": -3, "REDISTRIBUTION": -2},
+		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": -3, "REDISTRIBUTION": -2, "SOVEREIGNTY": 1},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
 	{"id": "LAW_NONCITIZEN_VOTE", "owner": "law", "type": "BOOL", "default": true,
-		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": 8, "REDISTRIBUTION": 6},
+		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": 8, "REDISTRIBUTION": 6, "SOVEREIGNTY": -5},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
 ]

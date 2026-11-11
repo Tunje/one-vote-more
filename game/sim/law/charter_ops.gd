@@ -142,8 +142,9 @@ static func evasion_proven(world: WorldState) -> bool:
 static func home_sanction(world: WorldState, kind: String, params: Dictionary = {}) -> Dictionary:
 	var st := sov(world)
 	var p := params.duplicate()
-	p["evasion_proven"] = evasion_proven(world)
-	p["refusal"] = bool(st["refusal"])
+	var bound: bool = st["status"] != "INDEPENDENT"     # after recognition no charter grievance justifies sanctions
+	p["evasion_proven"] = bound and evasion_proven(world)
+	p["refusal"] = bound and bool(st["refusal"])
 	p["colony_defiant"] = bool(st["refusal"]) or st["status"] == "INDEPENDENCE_DECLARED"
 	var res := LawOps.validate(world, HOME, "HOME_" + kind, p)
 	var lawful: bool = res["result"] == "AUTHORIZED"

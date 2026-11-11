@@ -51,7 +51,7 @@ func test_census_and_indicators_published() -> void:
 		for c in d["concerns"]:
 			covered[c] = true
 	for c in PolDefs.CONCERNS:
-		if c != "GOVERNANCE":
+		if not (c in ["GOVERNANCE", "COLONIAL_BURDEN"]):  # political concerns, fed by pol/law indicators
 			check(covered.has(c), "concern %s covered" % c)
 
 

@@ -26,9 +26,9 @@ func test_failed_formation_forces_extra_election_without_resetting_calendar() ->
 	# Make every party irreconcilable: alternating corners, so every cabinet is voted down.
 	# [7,3,4] simplex code: every pair of platforms differs on exactly 4 of 7 axes (= 114 points), beyond
 	# the most tolerant round (75), and two-party centres sit > 50 from each member, so every cabinet fails.
-	var g1 := [0, 0, 0, 1, 1, 1, 1]
-	var g2 := [0, 1, 1, 0, 0, 1, 1]
-	var g3 := [1, 0, 1, 0, 1, 0, 1]
+	var g1 := [0, 0, 0, 1, 1, 1, 1, 0]
+	var g2 := [0, 1, 1, 0, 0, 1, 1, 0]
+	var g3 := [1, 0, 1, 0, 1, 0, 1, 0]
 	var active: Array = w.table("party").values().filter(func(p): return p["status"] == "ACTIVE")
 	var i := 0
 	for p in active:

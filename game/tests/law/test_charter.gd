@@ -104,3 +104,25 @@ func test_independence_procedure() -> void:
 	check_eq(LQ.sovereignty(w)["status"], "INDEPENDENT", "recognised")
 	check_eq(LQ.sovereignty(w)["militia_cap"], -1, "no cap")
 	check_eq(RE.validate(w, GOV, "LEVY_TAX", {"base": "COLONIAL_EXPORT"})["result"], "AUTHORIZED", "may tax its own exports")
+
+
+## SOVEREIGNTY slopes: independence parties want a militia and lax charter enforcement; loyalists the reverse.
+func test_sovereignty_slopes() -> void:
+	var w := _world().world
+	var PartyGen := preload("res://sim/politics/party_gen.gd")
+	var base := {}
+	for ax in PolDefs.AXES:
+		base[ax] = 0
+	var indep := base.duplicate()
+	indep["SOVEREIGNTY"] = 70000
+	var loyal := base.duplicate()
+	loyal["SOVEREIGNTY"] = -70000
+	var wi := {}
+	var wl := {}
+	for c in PartyGen.commitments(indep, w.lever_defs):
+		wi[c["lever"]] = c["dir"]
+	for c in PartyGen.commitments(loyal, w.lever_defs):
+		wl[c["lever"]] = c["dir"]
+	check(wi.get("LAW_MILITIA", 0) == 1 and wl.get("LAW_MILITIA", 0) == -1, "militia splits the axis")
+	check(wi.get("LAW_ENFORCE_CHARTER", 0) == -1 and wl.get("LAW_ENFORCE_CHARTER", 0) == 1, "charter enforcement splits the axis")
+	check(not wi.has("LAW_CHARTER_QUOTA_SHARE"), "no commitments on charter terms the colony cannot change")
