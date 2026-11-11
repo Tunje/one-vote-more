@@ -52,6 +52,7 @@ func refresh() -> void:
 	var phase := "final week: the last debate" if to_go == 0 else ("short campaign: election huts, posters, debates" if to_go <= Campaign.SHORT_CAMPAIGN else "long campaign")
 	Kit.header(body, "%s · %d month(s) to go · %s" % ["Snap election" if c["extra"] else "Election year", to_go, phase])
 	if pp != "" and c["parties"].has(pp):
+		_debate_night(w, c, pp)
 		_my_campaign(w, c, pp)
 	Kit.sep(body)
 	_race(w, c)
@@ -124,6 +125,41 @@ func _my_campaign(w: WorldState, c: Dictionary, pp: String) -> void:
 				var idx: int = i
 				Kit.button(drow, "Release now", func(): _do(Campaign.player_release_dirt(session.world(), idx)))
 		Kit.label(body, "Held dirt hits harder late, but it may leak that you sat on it. Anything still held comes out on election day.", 11, Color(0.75, 0.75, 0.75))
+
+
+## Debate night: next debate's questions, the facts that matter for each, and a stance per question.
+func _debate_night(w: WorldState, c: Dictionary, pp: String) -> void:
+	var st: Dictionary = session.pol_state()
+	var prep: Dictionary = c.get("debate_prep", {})
+	if not prep.is_empty():
+		Kit.header(body, "Debate night: %s, %s" % ["the final debate" if prep["final"] else "the leaders' debate", "next month" if int(prep["month"]) > w.month else "tonight"])
+		Kit.label(body, "Choose how your leader answers each question. Attack goes after %s; defend stands on the record; pivot turns to your themes (%s)." % [
+			_pname(w, c["parties"][pp]["target"]) if String(c["parties"][pp]["target"]) != "" else "nobody (no target set)", ", ".join(c["parties"][pp]["themes"])], 12, Color(0.75, 0.75, 0.75))
+		var cs := Campaign.colony_concerns(w)
+		var own: Dictionary = w.peek("party")[pp].get("ownership", {})
+		var members: Array = st.get("government", {}).get("members", [])
+		for i in prep["questions"].size():
+			var q: Dictionary = prep["questions"][i]
+			var topic: String = q["topic"]
+			var chosen := String(prep["answers"].get(str(i), ""))
+			Kit.label(body, "%d. %s asks about %s. Colony satisfaction %d%%, how much people care %s, your ownership %d%s." % [i + 1,
+				"The moderator" if q["asker"] == "MODERATOR" else "Someone in the audience", topic.capitalize(),
+				int(cs[0][topic]) / 1000, "high" if int(cs[1][topic]) > 130 else ("low" if int(cs[1][topic]) < 90 else "average"),
+				int(own.get(topic, 0)), " · you govern: it's your record" if members.has(pp) else ""], 13)
+			var row := Kit.hbox(body)
+			for stance in Campaign.STANCES:
+				var sname: String = stance
+				var idx: int = i
+				Kit.button(row, ("✓ " if chosen == sname else "") + sname.capitalize(), func(): _do(Campaign.player_debate_answer(session.world(), idx, sname)))
+			if chosen == "":
+				Kit.label(row, "(unanswered: staff will choose)", 11, Color(0.7, 0.7, 0.7))
+	# feedback on the last debate
+	if not c["debates"].is_empty():
+		var d: Dictionary = c["debates"].back()
+		if d.has("answers") and d["answers"].has(pp):
+			Kit.label(body, "Last debate (m%d): %s" % [int(d["month"]), "; ".join(d["answers"][pp].map(func(a):
+				var verdict := "landed" if int(a["fit"]) >= 250 else ("fell flat" if int(a["fit"]) < 0 else "was fine")
+				return "%s on %s %s" % [String(a["stance"]).to_lower(), String(a["topic"]).capitalize(), verdict]))], 13, Color(0.85, 0.9, 1.0))
 
 
 func _toggle_theme(concern: String) -> void:

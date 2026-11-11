@@ -51,9 +51,12 @@ static func utility(cell: Dictionary, party: Dictionary, ctx: Dictionary) -> flo
 		o += float(sal.get(c, 0)) / 1000.0 * float(own[c]) / 100.0 * unmet
 	u += PolDefs.BETA_OWNERSHIP * o * 3.0
 	# party loyalty / habit
+	# Applied to EVERY party: a party nobody here voted for last time carries the full "no habit" penalty.
+	# (Before, the term was skipped when prev = 0, so new parties started ~0.5 utility ahead of every established
+	# party and snowballed into 70–94% landslides: v3 chronicle, decompose_votes.gd.) With no voting history at
+	# all (the first election) every party gets the same value, so nothing changes there.
 	var prev: float = float(ctx.get("prev_share", {}).get(pid, 0)) / 100000.0  # stored as int per-100000
-	if prev > 0.0:
-		u += PolDefs.BETA_LOYALTY * log(0.15 + prev)
+	u += PolDefs.BETA_LOYALTY * log(0.15 + prev)
 	# promise-keeping record (0..100, 50 neutral)
 	u += 0.5 * (float(party.get("credibility", 50)) - 50.0) / 50.0
 	u += 0.6 * float(ctx.get("campaign", {}).get(pid, 0.0))   # legacy colony-wide spend term (unused since election year)

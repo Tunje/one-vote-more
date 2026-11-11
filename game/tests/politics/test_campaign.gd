@@ -316,6 +316,65 @@ func test_pork_is_credited_to_credible_governments_and_punished_otherwise() -> v
 	check_eq(w.facts.query("POL_ELECTION_PORK").size(), 2, "news")
 
 
+func test_debate_night_questions_are_known_a_month_ahead() -> void:
+	var sim := _sim()
+	var w := sim.world
+	_run_to(sim, FIRST_ELECTION - 2)
+	_tick(sim)   # campaign month T-2 runs: the leaders' debate (T-1) is prepared
+	var c := Campaign.current(w)
+	var prep: Dictionary = c.get("debate_prep", {})
+	check(not prep.is_empty(), "prepared")
+	check_eq(int(prep["month"]), FIRST_ELECTION - 1, "for next month's debate")
+	check_eq(prep["questions"].size(), 3, "three questions")
+	var topics := {}
+	for q in prep["questions"]:
+		topics[q["topic"]] = true
+		check(PolDefs.CONCERNS.has(q["topic"]), "topic is a concern")
+	check_eq(topics.size(), 3, "distinct topics")
+
+
+func test_player_answers_shape_the_debate() -> void:
+	var sim := PoliticalSim.make(3, "BALANCED", {}, false)
+	var w := sim.world
+	_run_to(sim, FIRST_ELECTION - 1)   # prep exists for the debate at T-1
+	var st := _st(w)
+	var pp := String(st["player_party"])
+	check(not Campaign.player_debate_answer(w, 5, "ATTACK")["ok"], "bad index")
+	check(not Campaign.player_debate_answer(w, 0, "SHOUT")["ok"], "bad stance")
+	for i in 3:
+		check(Campaign.player_debate_answer(w, i, "PIVOT")["ok"], "answer %d" % i)
+	_tick(sim)
+	var c := _campaign_for(w, FIRST_ELECTION)
+	var d: Dictionary = c["debates"][0]
+	check(d["answers"].has(pp), "player was on stage")
+	for a in d["answers"][pp]:
+		check_eq(a["stance"], "PIVOT", "the player's own stance was used")
+	check(not c.has("debate_prep") or int(c["debate_prep"]["month"]) == FIRST_ELECTION, "next prep is the final")
+
+
+func test_stance_fit_rewards_defending_a_good_record() -> void:
+	var sim := _sim()
+	var w := sim.world
+	var c := _open_campaign(sim)
+	var st := _st(w)
+	var ids: Array = Det_ordered(c["parties"])
+	var a: String = ids[0]
+	st["government"] = {"members": [a], "pm_party": a, "support": []}
+	var cs := Campaign.colony_concerns(w)
+	var best := ""
+	var worst := ""
+	for cn in PolDefs.CONCERNS:
+		if best == "" or int(cs[0][cn]) > int(cs[0][best]):
+			best = cn
+		if worst == "" or int(cs[0][cn]) < int(cs[0][worst]):
+			worst = cn
+	var p: Dictionary = w.table("party")[a]
+	check(Campaign.stance_fit(w, st, c, p, best, "DEFEND") > Campaign.stance_fit(w, st, c, p, worst, "DEFEND"),
+		"defending the best record beats defending the worst")
+	var f := Campaign.stance_fit(w, st, c, p, worst, "ATTACK")
+	check(f >= -0.6 and f <= 0.8, "fit in range")
+
+
 func test_deterministic_and_save_load_mid_campaign() -> void:
 	var ref := _sim(7)
 	_run_to(ref, FIRST_ELECTION - 5)

@@ -70,7 +70,7 @@ func _terms(cell: Dictionary, party: Dictionary, ctx: Dictionary) -> Dictionary:
 		o += float(sal.get(c, 0)) / 1000.0 * float(party["ownership"][c]) / 100.0 * (1.0 - float(cell["sat"].get(c, 50000)) / 100000.0)
 	t["own"] = PolDefs.BETA_OWNERSHIP * o * 3.0
 	var prev: float = float(ctx["prev_share"].get(pid, 0)) / 100000.0
-	t["loyal"] = PolDefs.BETA_LOYALTY * log(0.15 + prev) if prev > 0.0 else 0.0
+	t["loyal"] = PolDefs.BETA_LOYALTY * log(0.15 + prev)
 	t["cred"] = 0.5 * (float(party.get("credibility", 50)) - 50.0) / 50.0
 	t["camp"] = float(ctx["campaign_u"].get(pid, 0.0))
 	t["endorse"] = float(ctx["endorse"].get(pid, 0.0))

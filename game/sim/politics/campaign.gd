@@ -157,6 +157,8 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 		_politics_week(world, c)
 	if to_go <= 1:
 		_debate(world, st, c, to_go == 0)
+	if to_go == 2 or to_go == 1:
+		prepare_debate(world, c, to_go - 1)   # next debate's questions are known a month ahead (debate night prep)
 	_oppo(world, c, spend, to_go)
 	_dirt(world, st, c, to_go)
 	_pork(world, st, c)
@@ -595,11 +597,27 @@ static func _debate(world: WorldState, st: Dictionary, c: Dictionary, final: boo
 	var ps := _stage_parties(world, c)
 	if ps.size() < 2:
 		return
+	var prep: Dictionary = c.get("debate_prep", {})
+	if prep.is_empty() or int(prep["month"]) != world.month:
+		prep = prepare_debate(world, c, 0)
+	c.erase("debate_prep")
+	var qs: Array = prep["questions"]
+	var answers := {}
 	var perf := {}
 	var gaffes: Array = []
 	for p in ps:
 		var pid: String = p["id"]
 		perf[pid] = performance(c, p, r, 15.0)
+		var row: Array = []
+		var sum_fit := 0.0
+		for i in qs.size():
+			var topic: String = qs[i]["topic"]
+			var stance := _chosen_stance(world, st, c, p, topic, prep.get("answers", {}).get(str(i), ""), r)
+			var f := stance_fit(world, st, c, p, topic, stance)
+			sum_fit += f
+			row.append({"topic": topic, "stance": stance, "fit": int(round(f * 1000.0))})
+		perf[pid] += DEBATE_FIT_WEIGHT * sum_fit
+		answers[pid] = row
 		var l := _leader(p)
 		var pg := clampf(0.04 + (60.0 - float(l["competence"])) / 600.0, 0.01, 0.12)
 		if r.randf() < pg:
@@ -624,10 +642,116 @@ static func _debate(world: WorldState, st: Dictionary, c: Dictionary, final: boo
 			l["popularity"] = clampi(int(l["popularity"]) - GAFFE_POPULARITY, 0, 100)
 		_event(world, c, "POL_DEBATE_GAFFE", "DEBATE", [pid], 60,
 			{"party": pid, "leader": PartyLife.leader_name(world.table("party")[pid]), "final": final})
-	var d := {"month": world.month, "final": final, "winner": winner, "loser": loser, "killer_on": killer, "gaffes": gaffes}
+	var d := {"month": world.month, "final": final, "winner": winner, "loser": loser, "killer_on": killer, "gaffes": gaffes,
+		"answers": answers, "topics": qs.map(func(q): return q["topic"])}
 	c["debates"].append(d)
 	var data := d.duplicate()
+	data.erase("answers")
 	_event(world, c, "POL_DEBATE_HELD", "DEBATE", [winner, loser], 70 if final else 55, data)
+
+
+# ======================================================================= debate night
+
+const STANCES := ["ATTACK", "DEFEND", "PIVOT"]
+const DEBATE_FIT_WEIGHT := 15.0       # performance points per unit of stance fit
+
+## The questions for the debate `at_to_go` months before the election (0 = the final). Topics: the colony's
+## most pressing concerns (salience × unmet), three drawn from the top five. Answers start empty.
+static func prepare_debate(world: WorldState, c: Dictionary, at_to_go: int) -> Dictionary:
+	var month := int(c["election_month"]) - at_to_go
+	var cur: Dictionary = c.get("debate_prep", {})
+	if not cur.is_empty() and int(cur["month"]) == month:
+		return cur
+	var cs := colony_concerns(world)
+	var scored: Array = []
+	for cn in PolDefs.CONCERNS:
+		var unmet := 1.0 - float(cs[0][cn]) / 100000.0
+		scored.append([float(cs[1][cn]) * unmet, cn])
+	scored.sort_custom(func(a, b): return a[0] > b[0] or (a[0] == b[0] and a[1] < b[1]))
+	var pool: Array = scored.slice(0, 5)
+	var r := world.rng.stream("pol.campaign.questions")
+	var qs: Array = []
+	var askers := ["MODERATOR", "MODERATOR", "AUDIENCE"]
+	for i in 3:
+		var tot := 0.0
+		for x in pool:
+			tot += maxf(0.001, float(x[0]))
+		var pick := r.randf() * tot
+		var idx := 0
+		for j in pool.size():
+			pick -= maxf(0.001, float(pool[j][0]))
+			idx = j
+			if pick <= 0.0:
+				break
+		qs.append({"topic": pool[idx][1], "asker": askers[i]})
+		pool.remove_at(idx)
+	var prep := {"month": month, "final": at_to_go == 0, "questions": qs, "answers": {}}
+	c["debate_prep"] = prep
+	return prep
+
+
+## How well a stance on `topic` suits this audience (≈ −0.6..0.8). See spec §8.
+static func stance_fit(world: WorldState, st: Dictionary, c: Dictionary, p: Dictionary, topic: String, stance: String) -> float:
+	var cs := colony_concerns(world)
+	var sat := float(cs[0].get(topic, 50000)) / 100000.0
+	var unmet := 1.0 - sat
+	var salr := float(cs[1].get(topic, 111)) / 111.0
+	var e: Dictionary = c["parties"][p["id"]]
+	var members: Array = st.get("government", {}).get("members", [])
+	if members.is_empty() and st.get("player_party", "") != "":
+		members = [st["player_party"]]   # founding era: the commander's record is the founders' party's
+	var in_gov := members.has(p["id"])
+	var own := float(p.get("ownership", {}).get(topic, 0)) / 100.0
+	var f := 0.0
+	match stance:
+		"ATTACK":
+			var tgt := String(e["target"])
+			if tgt == "" or not world.table("party").has(tgt):
+				f = -0.3
+			else:
+				var tgt_gov := 1.0 if members.has(tgt) else 0.5
+				f = unmet * vulnerability(world.table("party")[tgt]) * tgt_gov * 1.2 - 0.15
+		"DEFEND":
+			f = (sat - 0.45) * 2.0 if in_gov else own * 0.8 - 0.1
+		"PIVOT":
+			var best := 0.0
+			for cn in e["themes"]:
+				best = maxf(best, float(p.get("ownership", {}).get(cn, 0)) / 100.0)
+			f = best * 0.8 - 0.25 * salr
+	return clampf(f, -0.6, 0.8)
+
+
+## The stance a leader takes: the human player's answer if given, else the best fit, misjudged more often by
+## less competent leaders.
+static func _chosen_stance(world: WorldState, st: Dictionary, c: Dictionary, p: Dictionary, topic: String, given: String, r: RandomNumberGenerator) -> String:
+	if given != "" and STANCES.has(given):
+		return given
+	var best := "DEFEND"
+	var bf := -INF
+	for s in STANCES:
+		var f := stance_fit(world, st, c, p, topic, s)
+		if f > bf:
+			bf = f
+			best = s
+	var miss := (100.0 - float(_leader(p)["competence"])) / 200.0
+	if r.randf() < miss:
+		var others: Array = STANCES.filter(func(x): return x != best)
+		return others[r.randi() % others.size()]
+	return best
+
+
+## Player action: answer question `index` of the coming debate with a stance.
+static func player_debate_answer(world: WorldState, index: int, stance: String) -> Dictionary:
+	var r := _player_entry(world)
+	if not r["ok"]:
+		return r
+	var prep: Dictionary = r["c"].get("debate_prep", {})
+	if prep.is_empty():
+		return {"ok": false, "error": "No debate is coming up."}
+	if index < 0 or index >= prep["questions"].size() or not STANCES.has(stance):
+		return {"ok": false, "error": "Invalid answer."}
+	prep["answers"][str(index)] = stance
+	return {"ok": true}
 
 
 # ======================================================================= dirt

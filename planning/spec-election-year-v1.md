@@ -1,6 +1,6 @@
 # Election Year: Spec v1 (DRAFT, awaiting Wilma's sign-off)
 
-**Owner:** Ella (election year & campaigns), under Wilma (politics/admin) · **Status:** approved by Wilma; v1 implemented 2026-11-11 (`sim/politics/campaign.gd`, 12 tests, gates pass). Not yet built: §2.6 pork (touches Legislature), campaign-season polls, the bandwagon/underdog term beyond poll momentum · **Date:** 2026-11-11
+**Owner:** Ella (election year & campaigns), under Wilma (politics/admin) · **Status:** approved by Wilma; v1 implemented 2026-11-11 (`sim/politics/campaign.gd`, 12 tests, gates pass). Pork (§2.6) and monthly short-campaign polls landed later the same day. Not yet built: the bandwagon/underdog term beyond poll momentum · **Date:** 2026-11-11
 
 ## 0. Why
 
@@ -83,3 +83,30 @@ Choose themes, set the budget split, approve attack ads, order opposition resear
 - Dirt: real hidden donations are revealed through `PartyFinance.reveal_by_rival` (Anni). Personal dirt is one story per leader per campaign. Smears come only from campaigns that are negative and low-integrity (leader integrity ≤35); if exposed, the victim sues via `JusticeOps.file_defamation`, and a guilty verdict costs −8 credibility.
 - Support votes: a governing ally between 2.5% and 4% borrows up to 8% of its largest partner's voters (to 4.3%).
 - Measurement (`tools/measure_campaigns.gd`, counterfactual on the eve of the vote; 3 seeds × 25 years): campaign effect ≥3 pp in 12/18 elections, median 4.0 pp, max 6.2 pp; turnout 78.6–85.1%.
+- Pork (valfläsk): `Legislature.propose(..., pork)` weights relief ×1.5 and ideology ×0.7 from T−12 to T−4. The fiscal guard always applies first. Voters credit passed popular clauses to governing parties by credibility (below 35, they punish them). Gate (agreed with Wilma), measured with `tools/measure_pork.gd` (A/B in one process): bills passed within ±20%; spending/tax-cut levers moved while guarded don't rise; guarded months within ±10%. Result: passed +2%, spend-while-guarded 57→45, guarded months +5%.
+- Measurement at 6 seeds × 40 years: campaign effect ≥3 pp in 43/60 elections, median 4.0 pp, max 12.8 pp (a 3-party race); turnout 78.5–85.4%. Tools exit with 139 (a known engine shutdown segfault); read the summary lines, not the exit code.
+
+## 8. Debate night for a human player (v1.1; approved by Wilma 2026-11-12)
+- **Prep:** a month before each debate (T−2 for the leaders' debate, T−1 for the final), the moderators' **3 questions** are known. Topics are the colony's most pressing concerns: salience × unmet, with a seeded draw among the top 5. Each question has an asker: the moderator, or the rival campaigning against you, who aims at your weakest concern.
+- **Stances per question:** ATTACK (go after your campaign target on this topic), DEFEND (defend your record), PIVOT (turn to one of your themes).
+- **Fit** (≈ −0.5..+0.8) = how well the stance suits this audience:
+  - ATTACK: unmet × target vulnerability, minus a civility cost; better if the target is in government.
+  - DEFEND: in government, good when the concern is satisfied and bad when it isn't; in opposition, good on concerns you own.
+  - PIVOT: your best theme's ownership, minus a dodging penalty that grows with the topic's salience.
+- **Outcome:** performance = traits (charisma, competence, staff prep) + 15 × Σ fit + noise. AI leaders answer too: they pick the best-fitting stance, and less competent leaders misjudge it more often. Gaffe and killer-line rules are unchanged. Unanswered questions get the AI's choice for you.
+- **UI:** the Campaign panel shows "Debate night" with the questions, a stance hint, and per-answer feedback afterwards ("your attack on housing landed").
+- Facts and channels are unchanged (`POL_DEBATE_HELD` gains `answers`).
+
+## 9. Party congresses and leadership races (PROPOSAL: touches party_life.gd, needs Wilma's OK)
+- **Congress:** every party holds one per term, at T−18 (spring of the year before the election), plus an extra congress when a leadership race is called.
+  - Motions: the platform moves 5% toward the member-weighted faction mean on the faction axis.
+  - The congress picks the manifesto themes that the campaign starts from at T−12.
+- **Leadership race:** instead of today's instant contest:
+  - `leadership_contest` opens a race (one candidate per faction, plus an outsider when the party is polling badly), runs 2 months of race news, and is decided by the members' vote at a congress.
+  - Member vote = faction strength + candidate charisma/competence + discontent of the challenging faction + noise.
+  - The winner pulls the platform toward their faction pole (today's 15%). The losers' discontent rises more after a narrow, bitter defeat.
+  - Forced contests (scandal, retirement, conviction) still always replace the leader. Within 4 months of an election the race is a snap vote with no campaign.
+  - It emits the existing `POL_LEADER_CHANGED` / `POL_LEADER_SURVIVED` facts, so chronicles and gates keep working, plus `POL_LEADERSHIP_RACE_OPENED` and `POL_CONGRESS_HELD`.
+- **Human player's party:** the leader is not challenged (post-v1), but congress motions can go against the leadership when a faction is unhappy. The player chooses *accept* (the platform shifts, discontent falls) or *fight* (popularity risk, discontent rises).
+- Code: new `sim/politics/congress.gd` (Ella). party_life.gd only delegates (`leadership_contest` → `Congress.open_race` for non-forced reasons; `Congress.monthly` from `_party_life_monthly`).
+- Gates: ≥2 leadership changes per 40-year run (spec v2 §7) still hold; the party-system gates are unchanged.
