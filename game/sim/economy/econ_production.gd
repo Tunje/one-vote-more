@@ -125,6 +125,44 @@ static func produce(world: WorldState) -> void:
 		s["emissions"][d] = int(emissions[d] * 1000)
 	_service_access(world, health, edu, pop_d)
 	EconConstruction.progress(world)
+	_cold_start(world)
+
+
+## E101 (M12, no imports): after BLACKOUT_MONTHS with no power at all, the public operator cannibalises parts from its
+## other dead plants to overhaul one power plant (+COLD_START_STEP condition a month, taken from the donors), so a
+## total blackout is not a permanent dead end. Without donors the blackout stays.
+static func _cold_start(world: WorldState) -> void:
+	if EconUtil.off(world, "E101"):
+		return
+	var s := EconUtil.st(world)
+	s["blackout_m"] = int(s.get("blackout_m", 0)) + 1 if int(s.get("util_supply", {}).get("E", 1)) <= 0 else 0
+	if int(s["blackout_m"]) < EconData.BLACKOUT_MONTHS:
+		return
+	var plants: Array = []
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] == "POWER" and f["mothball"]:
+			plants.append(f)
+	if plants.size() < 2:
+		return
+	plants.sort_custom(func(a, b): return a["condition"] > b["condition"] or (a["condition"] == b["condition"] and a["id"] < b["id"]))
+	var target: Dictionary = plants[0]
+	var need := EconData.COLD_START_STEP * S
+	for i in range(plants.size() - 1, 0, -1):
+		var donor: Dictionary = plants[i]
+		var take := mini(need, int(donor["condition"]))
+		donor["condition"] -= take
+		target["condition"] += take
+		need -= take
+		if need <= 0:
+			break
+	target["closed_unsafe"] = true  # the overhaul path (E84) reopens it at REOPEN_CONDITION
+	if target["condition"] >= EconData.REOPEN_CONDITION * S:
+		target["mothball"] = false
+		target["closed_unsafe"] = false
+		target["unsafe_m"] = 0
+		EconFacts.emit(world, "ECON_FACILITY_REOPENED", target["district"], [["COMPANY", target["org"]]],
+			[["GOVERNMENT", "government", 1.0]], {"INFRASTRUCTURE": 20, "JOBS": 10}, 50, "PUBLIC", {"facility": target["id"], "reason": "cold_start"})
 
 
 ## E93: an owner moves its own market inputs between its districts (internal transfer at book value) before

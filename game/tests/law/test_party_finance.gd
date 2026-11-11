@@ -42,7 +42,7 @@ func test_levers_registered_with_slopes() -> void:
 	check_eq(w.levers["LAW_DONATION_DISCLOSURE"], "ABOVE_THRESHOLD", "default disclosure")
 	check_eq(w.levers["LAW_CONVICTED_CAN_HOLD_OFFICE"], true, "default: no ban")
 	# A clean-institutions, redistributive party wants a lower cap, more disclosure and a ban on convicted leaders.
-	var pos := {"ECON_ROLE": 30000, "REDISTRIBUTION": 60000, "LABOR": 0, "ENVIRONMENT": 0, "AUTONOMY": 0, "FISCAL": 20000, "INSTITUTIONS": 70000}
+	var pos := {"ECON_ROLE": 30000, "REDISTRIBUTION": 60000, "LABOR": 0, "ENVIRONMENT": 0, "AUTONOMY": 0, "FISCAL": 20000, "INSTITUTIONS": 70000, "SOVEREIGNTY": 0}
 	var want := {}
 	for c in PartyGen.commitments(pos, w.lever_defs):
 		want[c["lever"]] = c["dir"]

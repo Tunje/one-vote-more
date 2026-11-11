@@ -74,6 +74,7 @@ func test_independence_path_referendum_and_home_response() -> void:
 	check_eq(w.facts.query("POL_INDEPENDENCE_REFERENDUM").size(), 1, "referendum fact")
 	# the next ship brings the home world's answer
 	h["next_ship"] = w.month + 1
+	h["own_clock"] = true  # 88's real ships switch the clock off; simulate an arrival here
 	w.month += 1
 	HomeWorld.monthly(w, st)
 	var status := String(LQ.sovereignty(w)["status"])

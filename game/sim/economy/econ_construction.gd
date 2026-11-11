@@ -121,10 +121,13 @@ static func _private_builder_alive(world: WorldState) -> bool:
 
 
 static func _strategic_expansion(world: WorldState, p: Dictionary) -> bool:
-	if p["type"] in EconData.STRATEGIC_INPUT_TYPES:
+	var types: Array = EconData.STRATEGIC_INPUT_TYPES
+	if not EconUtil.off(world, "E95b"):
+		types = types + ["COMPONENTS", "FARM", "POWER", "WATERWORKS"]  # E95b: food and utilities capacity too (no imports to fall back on)
+	if p["type"] in types:
 		return true
 	if p["type"] == "EXPAND" and world.table("facility").has(p.get("target", "")):
-		return world.table("facility")[p["target"]]["type"] in EconData.STRATEGIC_INPUT_TYPES
+		return world.table("facility")[p["target"]]["type"] in types
 	return false
 
 

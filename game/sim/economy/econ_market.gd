@@ -163,6 +163,9 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 			if own <= 0:
 				continue
 			EconUtil.inv_add(world, bid["buyer"], good, bid["district"], own, wac0)
+			# E97b: internal deliveries are demand too — production planning (sales EMA) must see them
+			var sold0: Dictionary = world.table("org")[o["seller"]]["sold"]
+			sold0[good] = sold0.get(good, 0) + own
 			o["qty"] -= own
 			got += own
 			left -= own

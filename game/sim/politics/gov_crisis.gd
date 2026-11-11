@@ -62,6 +62,7 @@ static func formation_step(world: WorldState, st: Dictionary) -> void:
 	best["formed_month"] = world.month
 	best["rounds"] = int(f["round"]) + 1
 	best["levers_at_formation"] = world.levers.duplicate()
+	best["deals"] = Coalition.deals(best, parties, world)
 	for d in best.get("deals", []):
 		best["agreement"].append({"lever": d["lever"], "dir": d["dir"], "deal_for": d["party"]})
 	best["withdrawn"] = []
@@ -180,6 +181,7 @@ static func partner_exit(world: WorldState, st: Dictionary, pid: String) -> void
 ## Opposition AI: move a motion when a hostile majority exists, the government is unpopular and an alternative exists.
 static func no_confidence_ai(world: WorldState, st: Dictionary) -> void:
 	var g: Dictionary = st["government"]
+	g.erase("nc_alternative")
 	if g.is_empty() or st.get("caretaker", false) or st.has("formation"):
 		return
 	if world.month - int(g["formed_month"]) < NC_MIN_MONTHS_IN_OFFICE or int(st["next_election"]) - world.month <= QUIET_BEFORE_ELECTION:
@@ -200,12 +202,30 @@ static func no_confidence_ai(world: WorldState, st: Dictionary) -> void:
 		if VoteModel.distance(p["positions"], g["center"]) > NC_HOSTILITY or pid in g.get("withdrawn", []):
 			hostile.append(pid)
 			seats += int(p["seats"])
+	# A real motion: the government lacks a majority with its partners and the rest of parliament could form
+	# another government (100-year chronicles: a 32-seat cabinet survived 1.5 years untested).
+	var gov_seats := 0
+	for pid in g["members"] + g.get("support", []):
+		gov_seats += int(parties.get(pid, {}).get("seats", 0))
+	if gov_seats < PolDefs.MAJORITY:
+		var others := {}
+		for pid in parties:
+			if not (pid in g["members"]):
+				others[pid] = parties[pid]
+		var alt := Coalition.form_round(others, 1)
+		if not alt.is_empty() and int(alt.get("with_support", alt["yes"])) >= PolDefs.MAJORITY - 10:
+			g["nc_alternative"] = alt["members"]
+			for pid in alt["members"] + alt.get("support", []):
+				if not (pid in hostile):
+					hostile.append(pid)
+					seats += int(parties[pid]["seats"])
 	if seats < NC_SYMBOLIC_SEATS:
 		return
 	if seats >= PolDefs.MAJORITY:
-		var alt := Coalition.form_round(parties, 0)
-		if alt.is_empty() or alt["members"] == g["members"]:
-			return  # a real motion needs a credible alternative government
+		if not g.has("nc_alternative"):
+			var alt2 := Coalition.form_round(parties, 0)
+			if alt2.is_empty() or alt2["members"] == g["members"]:
+				return  # a real motion needs a credible alternative government
 	elif world.rng.stream("pol.vote").randf() > 0.15:
 		return  # symbolic motions are occasional
 	hostile.sort_custom(func(a, b): return parties[a]["seats"] > parties[b]["seats"])
@@ -228,7 +248,8 @@ static func vote_no_confidence(world: WorldState, st: Dictionary, mover: String)
 			continue
 		var d := VoteModel.distance(p["positions"], g["center"]) + rng.randfn(0.0, 5.0)
 		var supporter: bool = pid in g.get("support", [])
-		if pid == mover or pid in g.get("withdrawn", []) or (not supporter and d > Coalition.BASE_TOLERANCE):
+		var alternative: bool = pid in g.get("nc_alternative", [])
+		if pid == mover or alternative or pid in g.get("withdrawn", []) or (not supporter and d > Coalition.BASE_TOLERANCE):
 			against += int(p["seats"])
 	st["last_no_confidence"] = world.month
 	var passed := against >= PolDefs.MAJORITY

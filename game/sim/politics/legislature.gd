@@ -157,6 +157,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	var guarded := fiscal_guard(world)
 	var room := fiscal_room(world)
 	var step_fraction := CRISIS_STEP_FRACTION if crisis else STEP_FRACTION
+	var mem := _bill_memory(world) if allowed == "PARLIAMENT" else {"defeated": {}, "moved": {}}
 	var ids := world.lever_defs.keys()
 	ids.sort()
 	for lid in ids:
@@ -184,6 +185,11 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			var level: String = "ORDINANCE" if allowed == "COMMANDER" else String(def["legalLevel"])
 			if not LawOps.check_change(world, lid, int(to), level).is_empty():
 				continue  # the government's lawyers screen proposals before drafting
+			var dk := "%s|%d" % [lid, int(signf(delta))]
+			if mem["defeated"].has(dk):
+				continue  # parliament threw this out and its make-up hasn't changed: don't table it again
+			if mem["moved"].has("%s|%d" % [lid, -int(signf(delta))]):
+				continue  # this government moved it the other way recently: no flip-flopping
 			var sc := ideo_alignment(def, delta, pos) + 3.0 * relief(def, delta, sat, sal, stress, room, cur)
 			for a in agreement:
 				if a["lever"] == lid:
@@ -193,9 +199,12 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	scored.sort_custom(func(a, b): return a["score"] > b["score"] or (a["score"] == b["score"] and a["lever"] < b["lever"]))
 	var out: Array = []
 	var used := {}
+	var gov: Dictionary = world.table("pol")["state"].get("government", {}) if allowed == "PARLIAMENT" else {}
 	for c in scored:
 		if used.has(c["lever"]):
 			continue
+		if not gov.is_empty() and not _members_back(world, gov, c, sat, sal):
+			continue  # every governing party must be willing to vote for its own government's bill
 		used[c["lever"]] = true
 		out.append(c)
 		if out.size() >= MAX_CLAUSES:
@@ -204,6 +213,44 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 
 
 const IN_FLIGHT := ["PENDING", "LEGAL", "SCHEDULED"]
+const DEFEAT_MEMORY_MONTHS := 24     # a defeated change waits this long, or until parliament is re-elected
+const REVERSAL_MEMORY_MONTHS := 36   # a government doesn't reverse its own change within this
+
+
+## Memory of recent parliamentary outcomes for the current government:
+##   defeated: "lever|dir" defeated since the last election (and within DEFEAT_MEMORY_MONTHS)
+##   moved:    "lever|dir" passed by THIS government within REVERSAL_MEMORY_MONTHS
+static func _bill_memory(world: WorldState) -> Dictionary:
+	var st: Dictionary = world.table("pol")["state"]
+	var g: Dictionary = st.get("government", {})
+	var formed := int(g.get("formed_month", -1))
+	var last_election := -1
+	for eid in st.get("elections", []):
+		last_election = maxi(last_election, int(world.table("election")[eid]["month"]))
+	var out := {"defeated": {}, "moved": {}}
+	for b in world.table("bill").values():
+		var m := int(b["month"])
+		for c in b.get("clauses", []):
+			if not world.lever_defs.has(c["lever"]):
+				continue
+			var d := int(signf(clause_delta(world.lever_defs[c["lever"]], c)))
+			var k := "%s|%d" % [c["lever"], d]
+			if b.get("status", "") == "DEFEATED" and m >= last_election and world.month - m <= DEFEAT_MEMORY_MONTHS:
+				out["defeated"][k] = m
+			elif b.get("status", "") == "PASSED" and formed >= 0 and m >= formed and world.month - m <= REVERSAL_MEMORY_MONTHS:
+				out["moved"][k] = m
+	return out
+
+
+## True if every governing party would vote YES on a bill containing just this clause.
+static func _members_back(world: WorldState, gov: Dictionary, clause: Dictionary, sat: Dictionary, sal: Dictionary) -> bool:
+	for pid in gov.get("members", []):
+		var p: Dictionary = world.table("party").get(pid, {})
+		if p.is_empty() or p.get("status", "") != "ACTIVE":
+			continue
+		if party_vote(p, [clause], world, gov, sat, sal) != "YES":
+			return false
+	return true
 
 
 ## True if legal review rejected a change of this lever in direction `dir` within REJECTED_MEMORY_MONTHS.

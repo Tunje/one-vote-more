@@ -115,7 +115,7 @@ static func form_round(parties: Dictionary, round_i: int) -> Dictionary:
 
 ## Each confidence-and-supply party's price: its strongest commitment that the agreement doesn't contradict.
 ## The government is expected to deliver it within GovCrisis.DEAL_MONTHS or lose that party's support.
-static func deals(gov: Dictionary, parties: Dictionary) -> Array:
+static func deals(gov: Dictionary, parties: Dictionary, world: WorldState = null) -> Array:
 	var out: Array = []
 	var agreed := {}
 	for a in gov.get("agreement", []):
@@ -126,6 +126,8 @@ static func deals(gov: Dictionary, parties: Dictionary) -> Array:
 		for cm in cms:
 			if agreed.has(cm["lever"]) and agreed[cm["lever"]] != cm["dir"]:
 				continue
+			if world != null and not feasible(world, cm["lever"], int(cm["dir"])):
+				continue  # never demand (or promise) what can't be done: lever at its limit, or unlawful
 			out.append({"party": pid, "lever": cm["lever"], "dir": cm["dir"]})
 			break
 	return out
@@ -155,3 +157,19 @@ static func agreement(members: Array, parties: Dictionary) -> Array:
 		if absf(sums[lid]) >= 1500.0:
 			out.append({"lever": lid, "dir": 1 if sums[lid] > 0 else -1})
 	return out
+
+
+## Can this lever still move one step in direction dir? (not at its range limit, and the step is lawful)
+static func feasible(world: WorldState, lever: String, dir: int) -> bool:
+	if not world.lever_defs.has(lever):
+		return false
+	var def: Dictionary = world.lever_defs[lever]
+	if def["type"] != "NUMBER":
+		return true
+	var r: Array = Legislature._range(def)
+	var cur := float(world.levers.get(lever, def["default"]))
+	if (dir > 0 and cur >= float(r[1])) or (dir < 0 and cur <= float(r[0])):
+		return false
+	var step := maxf(1.0, round(float(r[1] - r[0]) * Legislature.STEP_FRACTION))
+	var to := int(clampf(cur + dir * step, float(r[0]), float(r[1])))
+	return Legislature.LawOps.check_change(world, lever, to, String(def["legalLevel"])).is_empty()

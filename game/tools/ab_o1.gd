@@ -15,7 +15,8 @@ func _init() -> void:
 	var tot := 0
 	var fam := 0
 	var dfl := 0
-	for sd in range(1, seeds + 1):
+	var first := int(a[4]) if a.size() > 4 else 1
+	for sd in range(first, first + seeds):
 		var sim := Simulation.new(sd)
 		sim.world.meta["scenario"] = "BALANCED"
 		sim.world.meta["persona"] = {}
@@ -27,12 +28,19 @@ func _init() -> void:
 		sim.new_game()
 		var inb := 0
 		var usum := 0.0
+		var fam_m := -1
 		for m in months:
 			sim.step()
 			var u := FirmAI.colony_unemployment(sim.world)
 			usum += u
 			if u >= 0.03 and u <= 0.25:
 				inb += 1
+			if fam_m < 0 and EconUtil.st(sim.world)["famine"]:
+				fam_m = sim.world.month
+			if months > 240 and (m + 1) % 120 == 0:
+				var s0 := EconUtil.st(sim.world)
+				print("%s seed %d y%d pop %d u %.1f%% food_short %d E %d/%d famine_m %d" % [label, sd, (m + 1) / 12, PopStore.total(sim.world), 100.0 * u, s0["food_shortfall"],
+					s0["util_supply"]["E"] / 1000, s0["util_demand"]["E"] / 1000, fam_m])
 		var s := EconUtil.st(sim.world)
 		tot += inb
 		fam += 1 if s["famine"] else 0

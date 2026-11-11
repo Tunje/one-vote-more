@@ -30,6 +30,7 @@ const UNION_ENDORSE_BETA := 0.8       # utility bonus x union density for the en
 const BUSINESS_ENDORSE_BETA := 0.3    # business owners and the federation's party
 const SPLINTER_SEAT_SHARE := 0.6     # share of the faction's MPs who actually leave
 # mergers
+const OWNERSHIP_FAILURE_LOSS := 12     # issue credibility lost per year of failure in government
 const NEW_PARTY_GRACE := 48            # months before a new party can be merged away
 const MERGE_DISTANCE := 15.0
 # leaders
@@ -490,6 +491,22 @@ static func track_grievances(world: WorldState, st: Dictionary) -> void:
 	var im: Dictionary = lifecycle(st)["issue_months"]
 	for c in PolDefs.CONCERNS:
 		im[c] = int(im.get(c, 0)) + 1 if _colony_sat(world, c) < ISSUE_SAT else 0
+	# Issue credibility must be defended: each December, a governing party that owns a concern which stayed
+	# badly unmet all year loses credibility on it; opposition owners slowly regain theirs (100-year chronicles:
+	# a party owning PUBLIC_SERVICES led 22 of 25 governments while services stayed at zero).
+	if world.month_of_year() == 12:
+		var members: Array = st.get("government", {}).get("members", [])
+		for p in active(world):
+			for c in p["ownership"].keys():
+				var own := int(p["ownership"][c])
+				if p["id"] in members and int(im.get(c, 0)) >= 12:
+					p["ownership"][c] = maxi(0, own - OWNERSHIP_FAILURE_LOSS)
+				elif not (p["id"] in members) and own < int(p.get("ownership_peak", {}).get(c, own)):
+					p["ownership"][c] = own + 2
+			var peak: Dictionary = p.get("ownership_peak", {})
+			for c in p["ownership"]:
+				peak[c] = maxi(int(peak.get(c, 0)), int(p["ownership"][c]))
+			p["ownership_peak"] = peak
 	if world.month_of_year() == 12 and not st.get("government", {}).is_empty():
 		var h: Array = lifecycle(st)["approval_hist"]
 		h.append(world.indicators.read("POL_GOV_APPROVAL"))
@@ -739,15 +756,29 @@ static func _book_donations(world: WorldState) -> void:
 		var o: Dictionary = offers[oid]
 		if int(o.get("month", world.month)) != world.month:
 			continue
-		var best: Dictionary = {}
-		var best_fit := DONATION_MIN_FIT
+		# Donors spread their bets: any party within 70% of the best fit can get the gift (weighted by fit²),
+		# not always the single best match (100-year chronicles: 21 of 30 scandals hit one party).
+		var cands: Array = []
+		var top := DONATION_MIN_FIT
 		for q in parties:
 			var fit := 0.0
 			for ax in o.get("prefers", {}):
 				fit += float(o["prefers"][ax]) * float(q["positions"][ax]) / 1000.0
-			if fit > best_fit:
-				best_fit = fit
-				best = q
+			if fit >= DONATION_MIN_FIT:
+				cands.append([fit, q])
+				top = maxf(top, fit)
+		cands = cands.filter(func(x): return x[0] >= 0.7 * top)
+		var best: Dictionary = {}
+		if not cands.is_empty():
+			var tot := 0.0
+			for x in cands:
+				tot += x[0] * x[0]
+			var pick := r.randf() * tot
+			for x in cands:
+				pick -= x[0] * x[0]
+				best = x[1]
+				if pick <= 0.0:
+					break
 		if best.is_empty():
 			continue
 		var amount: int = int(o["amount_milli"])

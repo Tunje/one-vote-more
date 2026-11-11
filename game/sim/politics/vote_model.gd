@@ -90,7 +90,7 @@ static func turnout(cell: Dictionary, parties: Array) -> float:
 	# demobilises those who don't (PD §20.2). Habitual turnout differs by occupation and income.
 	var t := PolDefs.BASE_TURNOUT - 0.004 * maxf(0.0, best - 25.0)
 	var anger := clampf((40.0 - float(cell["approval"]) / 1000.0) / 40.0, 0.0, 1.0)
-	t += 0.06 * anger if best < 25.0 else -0.10 * anger
+	t += 0.04 * anger if best < 25.0 else -0.12 * anger
 	t += TURNOUT_OCC.get(cell.get("occ", ""), 0.0) + TURNOUT_BAND.get(cell.get("band", ""), 0.0)
 	return clampf(t, 0.35, 0.95)
 
