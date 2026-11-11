@@ -20,3 +20,8 @@
 6. **M11:** hazard engine, greed (a9 API in m11-econ-notes.md), emergency levers, the victim-fund payout.
 7. **M12 (2):** colonial goods, quotas, ship cargo, smuggling.
 8. **Wilma's chronicle findings:** answer #3, #4, #6 and #7 with century data (indicators for the chronicle table).
+9. **Media v1 M4** (Anni leads; spec-media-v1.md §9; answered 2026-11-12):
+   - `outlet` table with accounts `media:out:N`; quarterly settlement to the owner; deficits covered up to the subsidy, then `Media.on_insolvent`.
+   - Copies booked in `_buy_services` from `Media.demand`, with actuals reported back via `Media.record_sales`.
+   - Ad spend routed to outlets.
+   - Firm AI founds, sells or closes papers through Anni's `found_outlet` / `transfer_outlet` / `close_outlet`.

@@ -107,6 +107,9 @@ static func leaders_monthly(world: WorldState, st: Dictionary) -> void:
 static func leadership_contest(world: WorldState, st: Dictionary, p: Dictionary, reason: String) -> void:
 	if p["is_player"] and not st.get("autoplay_player", true):
 		return  # a human leads their own party (an internal challenge to the player is post-v1)
+	if not (reason in FORCED_CONTESTS):
+		Congress.open_race(world, st, p, reason)   # election year (Ella): a race decided by the members at a congress
+		return
 	ensure_factions(p)
 	var fs: Array = p["factions"]
 	var inc: int = int(p["leader"]["faction"])

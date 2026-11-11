@@ -234,7 +234,40 @@ func _button(parent: Node, text: String, cb: Callable) -> Button:
 func _advance(months: int) -> void:
 	for _i in months:
 		session.end_month()
+		var w := session.world()
+		var held := w.facts.query("POL_ELECTION_HELD", w.month - 1, w.month - 1)
+		if not held.is_empty() and DisplayServer.get_name() != "headless":
+			_refresh()
+			open_election_night(String(held[0]["data"]["election"]))
+			return  # time stops on election night
 	_refresh()
+
+
+var _night_win: Window
+
+
+## Election night: the count district by district, running bars and the 151-seat hemicycle.
+func open_election_night(eid: String) -> void:
+	if _night_win == null:
+		_night_win = Window.new()
+		_night_win.title = "Election Night"
+		_night_win.size = Vector2i(1280, 800)
+		_night_win.transient = true
+		_night_win.exclusive = true
+		_night_win.close_requested.connect(func(): _night_win.hide())
+		var night := ElectionNight.new()
+		night.name = "Night"
+		night.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_night_win.add_child(night)
+		var bar := HBoxContainer.new()
+		bar.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		bar.position = Vector2(1280 - 230, 800 - 48)
+		_night_win.add_child(bar)
+		_button(bar, "Skip to result", func(): night.skip())
+		_button(bar, "Close", func(): _night_win.hide())
+		add_child(_night_win)
+	(_night_win.get_node("Night") as ElectionNight).show_election(session.world(), eid)
+	_night_win.popup_centered()
 
 
 func _on_save() -> void:

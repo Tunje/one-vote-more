@@ -521,6 +521,34 @@ func vote_shares(world: WorldState, shock: Dictionary, per_cell_out: Dictionary 
 	return votes
 
 
+## The count per district (for Election Night and district politics): each voter group's turnout × vote split,
+## scaled so every party's district counts add up exactly to its national total. {district: {party: votes}}.
+func _votes_by_district(world: WorldState, parties: Array, per_cell: Dictionary, votes: Dictionary) -> Dictionary:
+	var raw := {}
+	for c in PolVoters.all(world):
+		var probs: Dictionary = per_cell.get(c["key"], {})
+		if probs.is_empty() or int(c.get("pop", 0)) <= 0:
+			continue
+		var d := String(c.get("district", ""))
+		var t := VoteModel.turnout(c, parties)
+		if not raw.has(d):
+			raw[d] = {}
+		for pid in probs:
+			raw[d][pid] = float(raw[d].get(pid, 0.0)) + float(c["pop"]) * t * float(probs[pid])
+	var out := {}
+	var ds: Array = raw.keys()
+	ds.sort()
+	for pid in votes:
+		var w: Array = ds.map(func(d): return float(raw[d].get(pid, 0.0)))
+		var parts := EconUtil.split_lr(int(votes[pid]), w)
+		for i in ds.size():
+			if not out.has(ds[i]):
+				out[ds[i]] = {}
+			if int(parts[i]) > 0:
+				out[ds[i]][pid] = int(parts[i])
+	return out
+
+
 func run_poll(world: WorldState, moe_pp: float, by: String) -> Dictionary:
 	var votes := vote_shares(world, {})
 	var tot := 0.0
@@ -583,7 +611,8 @@ func run_election(world: WorldState, st: Dictionary, extra: bool = false) -> voi
 			ps[pid] = int(round(per_cell[key][pid] * 100000.0))  # ints in state (README rule 3)
 		PolVoters.by_key(world, key)["prev_share"] = ps
 	var eid := world.new_id("election")
-	world.table("election")[eid] = {"id": eid, "month": world.month, "votes": votes, "seats": seats, "total": total}
+	world.table("election")[eid] = {"id": eid, "month": world.month, "votes": votes, "seats": seats, "total": total,
+		"by_district": _votes_by_district(world, parties, per_cell, votes), "extra": extra}
 	st["elections"].append(eid)
 	world.add_fact({"type": "POL_ELECTION_HELD", "owner": "pol", "subjects": [], "responsible": [],
 		"impact": {}, "magnitude": 90, "visibility": "PUBLIC", "data": {"election": eid}})
@@ -663,6 +692,7 @@ func _party_life_monthly(world: WorldState, st: Dictionary) -> void:
 	PartyLife.track_grievances(world, st)
 	PartyLife.leaders_monthly(world, st)
 	PartyLife.pending_contests(world, st)
+	Congress.monthly(world, st)   # election year (Ella): leadership races, per-term congresses, motions
 	PartyLife.factions_monthly(world, st)
 	PartyLife.check_splits(world, st)
 	PartyLife.funds_monthly(world, st)

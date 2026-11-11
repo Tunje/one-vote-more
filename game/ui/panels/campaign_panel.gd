@@ -37,6 +37,7 @@ func refresh() -> void:
 	var pp := String(st.get("player_party", ""))
 	if msg != "":
 		Kit.label(body, msg, 13, Color(1, 0.85, 0.5))
+	_congress(w, pp)
 	var ne := Campaign.next_election(st, w.month)
 	var c := Campaign.current(w)
 	if c.is_empty():
@@ -125,6 +126,25 @@ func _my_campaign(w: WorldState, c: Dictionary, pp: String) -> void:
 				var idx: int = i
 				Kit.button(drow, "Release now", func(): _do(Campaign.player_release_dirt(session.world(), idx)))
 		Kit.label(body, "Held dirt hits harder late, but it may leak that you sat on it. Anything still held comes out on election day.", 11, Color(0.75, 0.75, 0.75))
+
+
+## Party congress: a rebel motion waiting for the leader's answer.
+func _congress(w: WorldState, pp: String) -> void:
+	if pp == "":
+		return
+	var row := Congress.latest(w, pp)
+	var m: Dictionary = row.get("motion", {}) if not row.is_empty() else {}
+	if m.get("status", "") != "PENDING":
+		return
+	var p: Dictionary = w.peek("party")[pp]
+	Kit.header(body, "Party congress: a motion against the leadership")
+	Kit.label(body, "A discontented faction wants the platform moved %d points %s on %s. Accept it to calm them (it uses this year's platform-move allowance and costs some credibility), or fight it (your leader loses popularity and the faction gets angrier; angry factions can split the party). If you don't answer by m%d, the party staff accept it." % [
+		absi(int(m["points"])), "up" if int(m["points"]) > 0 else "down", String(m["axis"]).capitalize(), int(m["deadline"])], 13, Color(1, 0.85, 0.5))
+	Kit.label(body, "Faction discontent: %d · leader popularity %d" % [int(p["factions"][int(m["faction"])]["discontent"]), PartyLife.leader_popularity(p)], 12)
+	var row2 := Kit.hbox(body)
+	Kit.button(row2, "Accept the motion", func(): _do(Congress.player_answer_motion(session.world(), "ACCEPT")))
+	Kit.button(row2, "Fight it", func(): _do(Congress.player_answer_motion(session.world(), "FIGHT")))
+	Kit.sep(body)
 
 
 ## Debate night: next debate's questions, the facts that matter for each, and a stance per question.

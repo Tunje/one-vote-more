@@ -28,11 +28,17 @@ var session: GameSession
 var selected := ""
 var _owner: Array = []       # [y][x] -> district id or ""
 var _values := {}            # district -> overlay value
+var colony: ColonyMap        # A5 (Terra): the TERRAIN overlay is the interactive colony map
 
 
 func _ready() -> void:
 	_build_grid()
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	colony = ColonyMap.new()
+	colony.set_anchors_preset(Control.PRESET_FULL_RECT)
+	colony.visible = false
+	colony.district_selected.connect(func(d: String): selected = d; district_selected.emit(d))
+	add_child(colony)
 
 
 func _build_grid() -> void:
@@ -56,6 +62,11 @@ func _build_grid() -> void:
 
 func refresh() -> void:
 	_values.clear()
+	if colony != null:
+		colony.session = session
+		colony.visible = _terrain_on()
+		if colony.visible:
+			colony.refresh()
 	if session == null:
 		queue_redraw()
 		return
@@ -93,37 +104,9 @@ func _terrain_on() -> bool:
 	return overlay == "TERRAIN" and session != null and Terrain.ready(session.world())
 
 
-func _terrain_tile() -> float:
-	return minf(size.x / Terrain.W, size.y / Terrain.H)
-
-
-## M13: the real terrain map with areas (housing blocks) drawn on it.
-func _draw_terrain() -> void:
-	var w := session.world()
-	var t := _terrain_tile()
-	for y in Terrain.H:
-		var row: String = w.peek("map")["grid"]["rows"][y]
-		for x in Terrain.W:
-			var c: Color = TERRAIN_COLORS.get(row.substr(x, 1), Color.GRAY)
-			var use := Terrain.use_at(w, x, y)
-			if use.has("area"):
-				c = Color.from_hsv(float(hash(String(use["area"])) % 360) / 360.0, 0.45, 0.95)
-			elif use.has("facility"):
-				c = Color("#d0d0d0")
-			draw_rect(Rect2(x * t, y * t, t - 1, t - 1), c.darkened(float((x * 31 + y * 17) % 5) * 0.02))
-	var font := get_theme_default_font()
-	for a in AreaStore.areas(w):
-		var cpos := AreaStore.centroid(w, a["id"]) * t + Vector2(-t, -t * 0.4)
-		draw_string(font, cpos + Vector2(1, 1), a["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.BLACK)
-		draw_string(font, cpos, a["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
-	var l := Terrain.landing(w)
-	draw_string(font, Vector2(l) * t + Vector2(t, t), "⚑ Landing site", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#fff3b0"))
-
-
 func _draw() -> void:
 	if _terrain_on():
-		_draw_terrain()
-		return
+		return   # the ColonyMap child draws the colony
 	var t := _tile_size()
 	for y in H:
 		for x in W:
@@ -153,16 +136,7 @@ func _draw() -> void:
 
 func _gui_input(event: InputEvent) -> void:
 	if _terrain_on():
-		if event is InputEventMouseMotion:
-			var tt := _terrain_tile()
-			var tx := int(event.position.x / tt)
-			var ty := int(event.position.y / tt)
-			var w := session.world()
-			var code := Terrain.at(w, tx, ty)
-			if code != "":
-				var area := AreaStore.area_of(w, Vector2i(tx, ty))
-				tooltip_text = "%s%s" % [Terrain.NAMES.get(code, code), ("  ·  " + String(AreaStore.get_area(w, area).get("name", ""))) if area != "" else ""]
-		return
+		return   # handled by the ColonyMap child
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var t := _tile_size()
 		var x := int(event.position.x / t)

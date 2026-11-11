@@ -113,13 +113,18 @@ func test_leadership_contest_after_election_loss() -> void:
 	var w := _sim().world
 	var st := _st(w)
 	var changed := 0
+	var old := {}
 	for p in PartyLife.active(w):
 		var before := {p["id"]: int(p["support"]) + 6000}
 		p["factions"][1 - int(p["leader"]["faction"])]["strength"] = 800
 		p["factions"][1 - int(p["leader"]["faction"])]["discontent"] = 90
-		var old := PartyLife.leader_name(p)
+		old[p["id"]] = PartyLife.leader_name(p)
 		PartyLife.post_election_contests(w, st, before)
-		if PartyLife.leader_name(p) != old:
+	# election year (Ella): a lost election opens a leadership race; the members vote at a congress two months later
+	w.month += Congress.RACE_MONTHS
+	Congress.monthly(w, st)
+	for p in PartyLife.active(w):
+		if PartyLife.leader_name(p) != old[p["id"]]:
 			changed += 1
 	check(changed >= 1, "strong angry factions topple leaders (%d)" % changed)
 	check_eq(w.facts.query("POL_LEADER_CHANGED").size() + w.facts.query("POL_LEADER_SURVIVED").size() >= PartyLife.active(w).size(), true, "every contest is a fact")

@@ -265,7 +265,11 @@ static func _plan(world: WorldState, st: Dictionary, c: Dictionary, p: Dictionar
 	var e: Dictionary = c["parties"][p["id"]]
 	if bool(e["manual"]):
 		return
-	e["themes"] = pick_themes(world, st, p, seg)
+	var cg := Congress.latest(world, p["id"])
+	if not cg.is_empty() and world.month - int(cg["month"]) <= 12 and not cg["themes"].is_empty():
+		e["themes"] = cg["themes"].duplicate()   # the manifesto the party congress adopted
+	else:
+		e["themes"] = pick_themes(world, st, p, seg)
 	e["target"] = pick_target(world, st, p)
 	_set_tone(world, st, c, p, e)
 

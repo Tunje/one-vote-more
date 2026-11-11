@@ -74,6 +74,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			Ops.Justice.run(world)
 			PF.run(world)
 			Land.tick(world)
+			Media.run(world)
 			Ops.write_indicators(world)
 		TickPhase.EVENTS:
 			# Politics forms governments in POLITICS (after DECISIONS): adopt the constitution the same month,

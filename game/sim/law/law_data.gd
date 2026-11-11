@@ -40,7 +40,8 @@ const GREED_KINDS := {
 	"ILLEGAL_EVICTION": {"action": "EVICT", "channel": "HOUSING", "class": "SERIOUS"},
 }
 ## Emergency levers: settable only while a state of emergency is in force; revert to default when it ends.
-const EMERGENCY_LEVERS := ["LAW_RATIONING", "LAW_PRICE_CONTROL", "LAW_FOOD_EXPORT_BAN", "LAW_REQUISITION"]
+const EMERGENCY_LEVERS := ["LAW_RATIONING", "LAW_PRICE_CONTROL", "LAW_FOOD_EXPORT_BAN", "LAW_REQUISITION",
+	"LAW_EMERGENCY_PRESS_CONTROL"]
 
 ## Executive actions the commander (founding) and later the government may take without a specific law.
 const EXECUTIVE_ACTIONS := ["ZONE_DISTRICT", "BUILD_FACILITY", "DEMOLISH_FACILITY", "AWARD_CONTRACT",
@@ -414,4 +415,32 @@ const LEVERS := [
 	{"id": "LAW_NONCITIZEN_VOTE", "owner": "law", "type": "BOOL", "default": true,
 		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": 8, "REDISTRIBUTION": 6, "SOVEREIGNTY": -5},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	# ---- MEDIA v1 press law (planning/spec-media-v1.md section 8). Read by sim/media/media_ops.gd.
+	{"id": "LAW_PRESS_LICENSING", "owner": "law", "type": "ENUM", "values": ["NONE", "REGISTER", "LICENCE"], "default": "NONE",
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"AUTONOMY": -10, "INSTITUTIONS": 4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_DEFAMATION_STANDARD", "owner": "law", "type": "ENUM", "values": ["NONE", "ACTUAL_MALICE", "STRICT"],
+		"default": "ACTUAL_MALICE", "legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"AUTONOMY": -6, "INSTITUTIONS": 4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_CORRECTION_DUTY", "owner": "law", "type": "BOOL", "default": true,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_MEDIA_OWNERSHIP_CAP", "owner": "law", "type": "NUMBER", "range": [20, 100], "default": 100,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": -0.15, "REDISTRIBUTION": -0.1},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	{"id": "LAW_PARTY_PRESS", "owner": "law", "type": "BOOL", "default": true,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": -3},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_PUBLIC_MEDIA", "owner": "law", "type": "ENUM", "values": ["INDEPENDENT", "GOVERNMENT_RUN"], "default": "INDEPENDENT",
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": -10, "AUTONOMY": -8},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_FOI", "owner": "law", "type": "BOOL", "default": false,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 8, "AUTONOMY": 4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	{"id": "LAW_PRESS_SUBSIDY", "owner": "law", "type": "NUMBER", "range": [0, 3], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	{"id": "LAW_EMERGENCY_PRESS_CONTROL", "owner": "law", "type": "BOOL", "default": false,
+		"legalLevel": "REGULATION", "foundingEra": "COMMANDER", "ideology": {}, "emergency": true,
+		"fiscal": "", "implementation": "STAFF_T_IMPL_ADMIN", "lag": 0, "scope": "COLONY", "domain": "ADMIN"},
 ]

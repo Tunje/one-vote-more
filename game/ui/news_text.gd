@@ -174,6 +174,9 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 			var what: String = {"DONATION": "hidden donations", "PERSONAL": "the private conduct of %s" % d.get("leader", "its leader"), "SMEAR": "allegations against %s" % d.get("leader", "its leader")}.get(String(d.get("kind", "")), "damaging claims")
 			s = "%s publishes dirt on %s: %s%s" % [party(w, d.get("party", "")), party(w, d.get("target", "")), what, " [color=#ff8a65](it leaked that they sat on it)[/color]" if d.get("leaked", false) else ""]
 		"LAW_DEFAMATION_RULED": s = "Court: %s %s of defaming %s%s" % [party(w, d.get("smearer", "")), "found guilty" if d.get("guilty", false) else "cleared", party(w, d.get("victim", "")), (" (damages paid)" if int(d.get("damages", 0)) > 0 else "") if d.get("guilty", false) else ""]
+		"POL_LEADERSHIP_RACE_OPENED": s = "%s leadership race: %s%s" % [party(w, d.get("party", "")), ", ".join(d.get("candidates", [])), " (a snap vote)" if d.get("snap", false) else " (members vote in two months)"]
+		"POL_CONGRESS_HELD": s = "%s party congress adopts its manifesto: %s%s" % [party(w, d.get("party", "")), ", ".join(d.get("themes", []).map(func(x): return String(x).capitalize())), " (a rebel motion was tabled)" if String(d.get("motion", "")) != "" else ""]
+		"POL_CONGRESS_MOTION": s = "%s congress: the rebels' motion was %s" % [party(w, d.get("party", "")), "accepted by the leadership" if d.get("outcome", "") == "ACCEPTED" else "voted down by the leadership"]
 		"POL_ELECTION_PORK": s = ("%s hands out election-year goodies" if d.get("believed", true) else "%s's election-year goodies fool nobody") % party(w, d.get("party", ""))
 		"POL_SMEAR_EXPOSED": s = "[color=#ff5252]Smear exposed[/color]: %s's claims about %s were false" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
 		_:

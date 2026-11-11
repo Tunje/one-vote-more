@@ -20,7 +20,8 @@ const SKILLS := ["G", "S", "Sp"]
 const COMP_FIELDS := ["age", "skill"]
 ## Fields that are NOT beliefs (never mixed on transfer).
 const NON_STATE := ["key", "n", "age", "skill", "recent", "hb", "inc", "occ", "status", "arch", "eff", "exposure",
-	"district", "area", "vocc", "band", "cohort", "census_key", "pop"]  # last row: voter fields derived monthly (PolVoters)
+	"district", "area", "vocc", "band", "cohort", "census_key", "pop",  # voter fields derived monthly (PolVoters)
+	"diet", "news_blame", "news_agenda"]  # media (Anni, spec-media-v1 §7.6): derived monthly; trust and news_bias DO mix
 const FLOW_KEEP_MONTHS := 24
 
 
