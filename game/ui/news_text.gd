@@ -97,6 +97,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"COMP_DISTRESSED": s = "%s is in financial trouble" % _subject_org(w, f)
 		"COMP_RESTRUCTURED": s = "%s restructured its debts" % _subject_org(w, f)
 		"COMP_CEO_REPLACED": s = "%s replaced its management" % _subject_org(w, f)
+		"COMP_INVESTMENT": s = "%s is building a new %s (%s)" % [_subject_org(w, f), _kind(d.get("type", "plant")), _kind(d.get("reason", "demand"))]
 		"COMP_COMPANY_FOUNDED": s = "New company: %s" % _subject_org(w, f)
 		"COMP_WORKPLACE_ACCIDENT": s = "Accident at %s: %d workers hurt%s" % [facility(w, d.get("facility", "")), int(d.get("workers_affected", 0)), " (safety rules were being broken)" if d.get("in_violation", false) else ""]
 		"ECON_FACILITY_CLOSED_UNSAFE": s = cap1("%s was shut down as unsafe" % facility(w, d.get("facility", "")))

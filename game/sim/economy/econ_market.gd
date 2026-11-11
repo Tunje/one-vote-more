@@ -285,7 +285,7 @@ static func _update_prices(world: WorldState) -> void:
 static func wage_level(world: WorldState) -> float:
 	if EconUtil.off(world, "E100"):
 		return 1.0
-	return maxf(1.0, float(EconUtil.st(world)["wage"]["S"]) / float(EconData.WAGE["S"] * S))
+	return clampf(float(EconUtil.st(world)["wage"]["S"]) / float(EconData.WAGE["S"] * S), 1.0, 3.0)  # bounded (century runs ran away)
 
 
 static func _cpi(world: WorldState) -> void:

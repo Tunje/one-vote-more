@@ -27,6 +27,7 @@ static func run(world: WorldState) -> void:
 		_investment(world)
 		_entry(world)
 		_builder_entry(world)
+		_new_plants(world)
 	_expansion(world)
 	_small_business(world)
 	EconLabor.update_wage_index(world)
@@ -482,6 +483,84 @@ static func _small_business(world: WorldState) -> void:
 	s["micro_last"] = ml
 	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", d, [["COMPANY", id]], [["COMPANY", id, 0.8], ["GOVERNMENT", "government", 0.2]],
 		{"JOBS": 2}, 10, "PUBLIC", {"type": "SERVICEHUB", "micro": true}, {"districts": [d]})
+
+
+## E102 (user, 2026-11-11): firms decide their own investment in NEW plants — "a power company might want to build
+## another station". Each quarter a scarcity signal per product: market goods when the price is ≥ 1.3× unit cost and
+## buyers got < 90% of what they wanted, or < 75% at any price; power/water when demand exceeds 85% of supply. After
+## NEW_PLANT_QUARTERS quarters of scarcity the richest active owner of that plant type (public enterprises included)
+## commissions a new plant, financed from cash, a bank loan (70%), or for a public enterprise a treasury request.
+## At most one new plant per type every NEW_PLANT_GAP months.
+const PLANT_FOR := {"FOOD": "FARM", "MINERAL": "MINE", "MATERIAL": "PROCESSING", "COMPONENT": "COMPONENTS", "CONSUMER": "CONSUMERF",
+	"MEDICAL": "MEDWORKS", "ENERGY": "POWER", "WATER": "WATERWORKS"}
+
+
+static func _new_plants(world: WorldState) -> void:
+	if EconUtil.off(world, "E102"):
+		return
+	var s := EconUtil.st(world)
+	var sig: Dictionary = s.get("scarce_q", {})
+	s["scarce_q"] = sig
+	var last: Dictionary = s.get("new_plant_last", {})
+	s["new_plant_last"] = last
+	for good in EconUtil.sorted_keys(PLANT_FOR):
+		var ftype: String = PLANT_FOR[good]
+		var scarce := false
+		if good in ["ENERGY", "WATER"]:
+			var k := "E" if good == "ENERGY" else "W"
+			scarce = float(s.get("util_demand", {}).get(k, 0)) > 0.85 * float(maxi(1, s.get("util_supply", {}).get(k, 1)))
+		else:
+			var fill := int(s.get("fill_last", {}).get(good, 1000))
+			scarce = fill < 750 or (fill < 900 and float(s["prices"].get(good, 0)) >= 1.3 * unit_cost(world, ftype))
+		sig[good] = int(sig.get(good, 0)) + 1 if scarce else 0
+		if int(sig[good]) < EconData.NEW_PLANT_QUARTERS or world.month - int(last.get(ftype, -999)) < EconData.NEW_PLANT_GAP:
+			continue
+		var pending := false
+		for pid in world.table("project"):
+			var p: Dictionary = world.table("project")[pid]
+			if p["type"] == ftype and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+				pending = true
+		if pending:
+			continue
+		# investor: the richest active owner of this plant type
+		var best := ""
+		var best_cash := -1
+		var district := ""
+		for fid in EconUtil.sorted_keys(world.table("facility")):
+			var f: Dictionary = world.table("facility")[fid]
+			if f["type"] != ftype:
+				continue
+			var o: Dictionary = world.table("org").get(f["org"], {})
+			if o.is_empty() or o["status"] != "ACTIVE" or o["type"] == "PUBLIC_INSTITUTION":
+				continue
+			var c := world.ledger.balance(EconUtil.acct(f["org"]))
+			if c > best_cash:
+				best_cash = c
+				best = f["org"]
+				district = f["district"]
+		if best == "":
+			continue  # nobody runs this kind of plant: firm entry (_entry) covers new owners
+		var est := EconConstruction.estimate(ftype)
+		if not LawBridge.allowed(world, best, "BUILD_FACILITY", {"facility_type": ftype, "district": district, "owner_kind": "COMPANY",
+				"value_wref": est / maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))}):
+			continue
+		var o2: Dictionary = world.table("org")[best]
+		var need := maxi(0, est - world.ledger.balance(EconUtil.acct(best)))
+		if need > 0:
+			var loan := mini(need, est * 7 / 10)
+			if not EconFinance.new_loan(world, best, loan, 0, true):
+				if o2["type"] == "PUBLIC_ENTERPRISE":
+					var paid := EconFinance.gov_pay(world, EconUtil.acct(best), need, "PE_INVESTMENT")
+					EconFinance._spend_line(world, "ECON_BUDGET_INFRASTRUCTURE", paid)
+					if paid < need / 2:
+						continue
+				else:
+					continue
+		var pid2 := EconConstruction.create(world, ftype, district, best, best, "")
+		last[ftype] = world.month
+		sig[good] = 0
+		EconFacts.emit(world, "COMP_INVESTMENT", district, [["COMPANY", best]], [["COMPANY", best, 1.0]], {"JOBS": 3}, 20, "PUBLIC",
+			{"type": ftype, "project": pid2, "reason": "scarcity", "good": good})
 
 
 ## E87 (O-1): construction firm entry. When projects queue without bids and no private builder is alive, a new
