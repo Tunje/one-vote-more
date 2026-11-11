@@ -3,7 +3,7 @@ extends RefCounted
 ## Government formation under Swedish-style negative parliamentarism (project §10, DECISIONS A5/A7):
 ## a proposed PM is approved unless an absolute majority (76) votes AGAINST.
 
-const MAX_PARTIES := 3
+const MAX_PARTIES := 4
 const BASE_TOLERANCE := 45.0   # points: outside parties further than this from the government's centre vote NO
 const MEMBER_LIMIT := 50.0     # points: a member further than this from the centre refuses to join
 const SUPPORT_LIMIT := 30.0
@@ -49,8 +49,10 @@ static func evaluate(members: Array, parties: Dictionary, tolerance: float) -> D
 			spread = maxf(spread, VoteModel.distance(parties[a]["positions"], parties[b]["positions"]))
 	var yes := 0
 	var no := 0
-	var support: Array = []
-	for pid in parties:
+	var near: Array = []  # [distance, pid] of outside parties that could sign a confidence-and-supply deal
+	var ids: Array = parties.keys()
+	ids.sort()
+	for pid in ids:
 		var p: Dictionary = parties[pid]
 		if p["seats"] == 0:
 			continue
@@ -61,7 +63,17 @@ static func evaluate(members: Array, parties: Dictionary, tolerance: float) -> D
 			if d > tolerance:
 				no += p["seats"]
 			elif d <= SUPPORT_LIMIT:
-				support.append(pid)
+				near.append([d, pid])
+	# Confidence and supply: a minority cabinet signs up only the closest outside parties it NEEDS for a
+	# majority; a majority cabinet needs none. (Was: every nearby party listed as "support", owing nothing.)
+	near.sort_custom(func(a, b): return a[0] < b[0] or (a[0] == b[0] and a[1] < b[1]))
+	var support: Array = []
+	var with_support := yes
+	for x in near:
+		if with_support >= PolDefs.MAJORITY:
+			break
+		support.append(x[1])
+		with_support += int(parties[x[1]]["seats"])
 	var largest := ""
 	for pid in members:
 		if largest == "" or parties[pid]["seats"] > parties[largest]["seats"]:
@@ -74,7 +86,7 @@ static func evaluate(members: Array, parties: Dictionary, tolerance: float) -> D
 	# Seats matter (a minority cabinet loses votes and risks no-confidence), a majority is worth a clear bonus,
 	# surplus seats dilute ministries, ideological spread and each extra partner cost cohesion.
 	var score := float(mini(yes, PolDefs.MAJORITY)) * SEAT_VALUE + (MAJORITY_BONUS if yes >= PolDefs.MAJORITY else 0.0) 		- float(maxi(0, yes - PolDefs.MAJORITY)) * 0.35 - spread * 0.6 - PARTNER_COST * float(members.size() - 1) 		+ (10.0 if plurality in members else 0.0)
-	return {"members": members, "pm_party": largest, "center": center, "yes": yes, "no": no,
+	return {"members": members, "pm_party": largest, "center": center, "yes": yes, "no": no, "with_support": with_support,
 		"support": support, "spread": int(round(spread)), "score": int(round(score * 100.0)), "majority": yes >= PolDefs.MAJORITY}
 
 
@@ -97,7 +109,26 @@ static func form_round(parties: Dictionary, round_i: int) -> Dictionary:
 			best = e
 	if not best.is_empty():
 		best["agreement"] = agreement(best["members"], parties)
+		best["deals"] = deals(best, parties)
 	return best
+
+
+## Each confidence-and-supply party's price: its strongest commitment that the agreement doesn't contradict.
+## The government is expected to deliver it within GovCrisis.DEAL_MONTHS or lose that party's support.
+static func deals(gov: Dictionary, parties: Dictionary) -> Array:
+	var out: Array = []
+	var agreed := {}
+	for a in gov.get("agreement", []):
+		agreed[a["lever"]] = a["dir"]
+	for pid in gov.get("support", []):
+		var cms: Array = parties[pid]["commitments"].duplicate()
+		cms.sort_custom(func(a, b): return (a["kind"] == "CORE" and b["kind"] != "CORE") or (a["kind"] == b["kind"] and (a["weight"] > b["weight"] or (a["weight"] == b["weight"] and a["lever"] < b["lever"]))))
+		for cm in cms:
+			if agreed.has(cm["lever"]) and agreed[cm["lever"]] != cm["dir"]:
+				continue
+			out.append({"party": pid, "lever": cm["lever"], "dir": cm["dir"]})
+			break
+	return out
 
 
 ## All rounds at once (used by tools/tests). The game itself runs one round per month (GovCrisis).

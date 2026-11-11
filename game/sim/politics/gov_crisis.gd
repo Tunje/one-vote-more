@@ -21,6 +21,7 @@ const NC_COOLDOWN := 6
 const NC_HOSTILITY := 40.0          # points from the government centre that count as hostile
 const NC_SYMBOLIC_SEATS := 60        # oppositions also move motions they expect to lose, to embarrass the government
 const EXTRA_ELECTION_DELAY := 3
+const DEAL_MONTHS := 18              # a confidence-and-supply partner waits this long for its demand
 
 
 static func _active(world: WorldState) -> Dictionary:
@@ -61,6 +62,9 @@ static func formation_step(world: WorldState, st: Dictionary) -> void:
 	best["formed_month"] = world.month
 	best["rounds"] = int(f["round"]) + 1
 	best["levers_at_formation"] = world.levers.duplicate()
+	for d in best.get("deals", []):
+		best["agreement"].append({"lever": d["lever"], "dir": d["dir"], "deal_for": d["party"]})
+	best["withdrawn"] = []
 	st["government"] = best
 	st["caretaker"] = false
 	st["era"] = "PARLIAMENTARY"
@@ -75,13 +79,16 @@ static func formation_step(world: WorldState, st: Dictionary) -> void:
 		"subjects": best["members"].map(func(pid): return {"kind": "PARTY", "id": pid}), "responsible": [],
 		"impact": {}, "magnitude": 85, "visibility": "PUBLIC",
 		"data": {"members": best["members"], "pm_party": best["pm_party"], "support": best["support"],
-			"first_government": first, "reason": f["reason"]}})
+			"first_government": first, "reason": f["reason"], "deals": best.get("deals", []), "seats": best["yes"],
+			"seats_with_support": best.get("with_support", best["yes"])}})
 
 
 # ------------------------------------------------------------------ cohesion & partner exit
 
 static func cohesion_step(world: WorldState, st: Dictionary) -> void:
 	var g: Dictionary = st["government"]
+	if not g.is_empty() and not st.get("caretaker", false):
+		deals_step(world, st)
 	if g.is_empty() or st.get("caretaker", false) or g["members"].size() < 2:
 		return
 	if int(st["next_election"]) - world.month <= QUIET_BEFORE_ELECTION:
@@ -122,6 +129,30 @@ static func _agreement_delivery(world: WorldState, g: Dictionary) -> float:
 	return float(kept) / float(items.size())
 
 
+## Confidence-and-supply partners withdraw when their demand has not moved their way after DEAL_MONTHS.
+static func deals_step(world: WorldState, st: Dictionary) -> void:
+	var g: Dictionary = st["government"]
+	if world.month - int(g.get("formed_month", world.month)) < DEAL_MONTHS:
+		return
+	var start: Dictionary = g.get("levers_at_formation", {})
+	for d in g.get("deals", []):
+		var pid: String = d["party"]
+		if pid in g.get("withdrawn", []) or not (pid in g.get("support", [])):
+			continue
+		var def: Dictionary = world.lever_defs.get(d["lever"], {})
+		var moved := Legislature.ordinal(def, world.levers.get(d["lever"], 0)) - Legislature.ordinal(def, start.get(d["lever"], world.levers.get(d["lever"], 0)))
+		if signf(moved) == float(d["dir"]):
+			continue
+		g["support"].erase(pid)
+		if not g.has("withdrawn"):
+			g["withdrawn"] = []
+		g["withdrawn"].append(pid)
+		world.add_fact({"type": "POL_SUPPORT_WITHDRAWN", "owner": "pol", "subjects": [{"kind": "PARTY", "id": pid}],
+			"responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}],
+			"impact": {"GOVERNANCE": -4}, "magnitude": 55, "visibility": "PUBLIC",
+			"data": {"party": pid, "lever": d["lever"], "dir": d["dir"], "months": world.month - int(g["formed_month"])}})
+
+
 static func partner_exit(world: WorldState, st: Dictionary, pid: String) -> void:
 	var g: Dictionary = st["government"]
 	var old: Array = g["members"].duplicate()
@@ -134,11 +165,7 @@ static func partner_exit(world: WorldState, st: Dictionary, pid: String) -> void
 	for m in new_members:
 		yes += int(parties[m]["seats"])
 	g["yes"] = yes
-	var support: Array = []
-	for q in parties:
-		if not (q in new_members) and parties[q]["seats"] > 0 and VoteModel.distance(parties[q]["positions"], g["center"]) <= Coalition.SUPPORT_LIMIT:
-			support.append(q)
-	g["support"] = support
+	# existing confidence-and-supply partners stay (minus any that withdrew); the leaver joins the opposition
 	g["agreement"] = Coalition.agreement(new_members, parties)
 	st.get("cohesion", {}).erase(pid)
 	st.get("cohesion_low", {}).erase(pid)
@@ -170,7 +197,7 @@ static func no_confidence_ai(world: WorldState, st: Dictionary) -> void:
 			continue
 		if p["is_player"] and not st.get("autoplay_player", true):
 			continue  # a human opposition decides for itself (PolActions.player_move_no_confidence)
-		if VoteModel.distance(p["positions"], g["center"]) > NC_HOSTILITY:
+		if VoteModel.distance(p["positions"], g["center"]) > NC_HOSTILITY or pid in g.get("withdrawn", []):
 			hostile.append(pid)
 			seats += int(p["seats"])
 	if seats < NC_SYMBOLIC_SEATS:
@@ -200,7 +227,8 @@ static func vote_no_confidence(world: WorldState, st: Dictionary, mover: String)
 		if pid in g["members"] or p["seats"] == 0:
 			continue
 		var d := VoteModel.distance(p["positions"], g["center"]) + rng.randfn(0.0, 5.0)
-		if pid == mover or d > Coalition.BASE_TOLERANCE:
+		var supporter: bool = pid in g.get("support", [])
+		if pid == mover or pid in g.get("withdrawn", []) or (not supporter and d > Coalition.BASE_TOLERANCE):
 			against += int(p["seats"])
 	st["last_no_confidence"] = world.month
 	var passed := against >= PolDefs.MAJORITY

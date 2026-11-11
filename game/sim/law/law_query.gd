@@ -215,7 +215,7 @@ static func constitution_view(world: WorldState) -> Dictionary:
 	var bounds: Array = []
 	for lever in L.LEVER_BOUNDS:
 		bounds.append({"lever": lever, "bounds": L.LEVER_BOUNDS[lever]})
-	bounds.append({"lever": "any tax rate", "bounds": {"max": L.TAX_MAX_BP}})
+	bounds.append({"lever": "any tax rate", "bounds": {"max": L.TAX_MAX_PCT}})
 	return {"era": RE.era(world), "document": "CONSTITUTION" if s["constitution"] else "EXPEDITION CHARTER",
 		"adopted_month": s.get("constitution_month", -1), "rights": rights, "powers": powers, "charter_bounds": bounds,
 		"amendment": "Two identical decisions by simple majority, with an ordinary election in between " \

@@ -178,7 +178,7 @@ static func _delegated(world: WorldState, lever: String, value, level: String) -
 static func _charter_bounds(_world: WorldState, def: Dictionary, value) -> Array:
 	var errs: Array = []
 	var b: Dictionary = L.LEVER_BOUNDS.get(def["id"], {})
-	if def.get("is_tax", false) and float(value) > float(L.TAX_MAX_BP):
+	if def.get("is_tax", false) and float(value) > float(L.TAX_MAX_PCT):
 		errs.append("charter: tax rate above 50%")
 	if b.has("min") and float(value) < float(b["min"]):
 		errs.append("charter: below the charter minimum")

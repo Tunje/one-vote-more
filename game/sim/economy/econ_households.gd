@@ -370,7 +370,14 @@ static func _housing(world: WorldState) -> void:
 			var h: Array = dr["rent_hist"]
 			var old: int = dr["rent_private"]
 			var r := old
-			if occ >= 0.97:
+			var due_d := 0
+			for gid2 in world.table("hh"):
+				if world.table("hh")[gid2]["district"] == d:
+					due_d += int(world.table("hh")[gid2].get("rent_due", 0))
+			var arrears := float(EconUtil.st(world).get("rent_arrears", {}).get(d, 0)) / maxf(1.0, float(due_d))
+			if arrears > EconData.RENT_ARREARS_CUT:
+				r = int(old * 0.97)  # E83: tenants cannot pay — rents fall whatever the occupancy
+			elif occ >= 0.97:
 				r = int(old * 1.03)
 			elif occ < 0.85:
 				r = int(old * 0.98)

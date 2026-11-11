@@ -86,11 +86,18 @@ static func turnout(cell: Dictionary, parties: Array) -> float:
 	var best := INF
 	for p in parties:
 		best = minf(best, distance(cell["ideology"], p["positions"]))
+	# Alienation: nobody close to you. Anger at the government MOBILISES people who have an alternative and
+	# demobilises those who don't (PD §20.2). Habitual turnout differs by occupation and income.
 	var t := PolDefs.BASE_TURNOUT - 0.004 * maxf(0.0, best - 25.0)
-	var appr := float(cell["approval"]) / 1000.0
-	if appr < 30.0:
-		t -= (30.0 - appr) * 0.003
-	return clampf(t, 0.4, 0.95)
+	var anger := clampf((40.0 - float(cell["approval"]) / 1000.0) / 40.0, 0.0, 1.0)
+	t += 0.06 * anger if best < 25.0 else -0.10 * anger
+	t += TURNOUT_OCC.get(cell.get("occ", ""), 0.0) + TURNOUT_BAND.get(cell.get("band", ""), 0.0)
+	return clampf(t, 0.35, 0.95)
+
+
+const TURNOUT_OCC := {"RETIRED": 0.06, "PROFESSIONAL": 0.03, "BUSINESS_OWNER": 0.04, "PUBLIC_SECTOR": 0.03, "UNEMPLOYED": -0.08}
+const TURNOUT_BAND := {"LOW": -0.04, "HIGH": 0.03}
+
 
 
 ## Modified Sainte-Laguë (first divisor 1.2) with a vote threshold. votes: {party_id: int}.

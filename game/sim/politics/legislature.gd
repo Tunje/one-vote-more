@@ -8,6 +8,7 @@ extends RefCounted
 ##   earliest_effective_month, status: "PENDING" }
 ## Law owns everything after that: validation, implementation task, lag, operative write, *_LEVER_EFFECTIVE fact.
 
+const LawOps := preload("res://sim/law/law_ops.gd")
 const STEP_FRACTION := 0.10          # one clause moves a lever by 10% of its range
 const MAX_CLAUSES := 2
 const IMPLEMENTATION_MONTHS_STUB := 2  # placeholder until staff implementation tasks exist (M3)
@@ -16,6 +17,7 @@ const FISCAL_STRESS_GAIN := 6.0      # how hard fiscal stress amplifies the budg
 const FISCAL_ROOM_PULL := 0.5        # with fiscal room, spending/tax cuts gain this much budget value (tuning knob)
 const CRISIS_STEP_FRACTION := 0.20   # clause size when a concern is in crisis
 const HIGH_HARM_WEIGHT := 2.0        # weight of concernsHigh harm relative to ordinary hints (tuning knob)
+const REJECTED_MEMORY_MONTHS := 36   # a change rejected by legal review is not proposed again in that direction for 3 years
 const VOTE_NOISE_SD := 3.0           # how unpredictable non-government parties are on the floor (tuning knob)
 
 
@@ -177,6 +179,11 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 				continue
 			if guarded and float(def.get("concerns", {}).get("GOVERNANCE", 0)) * delta < 0.0:
 				continue  # fiscal guard: no new spending / tax cuts while the books are weak
+			if _recently_rejected(world, lid, signf(delta)):
+				continue  # learned: legal review threw this out recently
+			var level: String = "ORDINANCE" if allowed == "COMMANDER" else String(def["legalLevel"])
+			if not LawOps.check_change(world, lid, int(to), level).is_empty():
+				continue  # the government's lawyers screen proposals before drafting
 			var sc := ideo_alignment(def, delta, pos) + 3.0 * relief(def, delta, sat, sal, stress, room, cur)
 			for a in agreement:
 				if a["lever"] == lid:
@@ -197,6 +204,21 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 
 
 const IN_FLIGHT := ["PENDING", "LEGAL", "SCHEDULED"]
+
+
+## True if legal review rejected a change of this lever in direction `dir` within REJECTED_MEMORY_MONTHS.
+static func _recently_rejected(world: WorldState, lever_id: String, dir: float) -> bool:
+	for e in world.table("enactment").values():
+		if e["lever"] != lever_id or e["status"] != "REJECTED":
+			continue
+		if world.month - int(e.get("decided_month", -999)) > REJECTED_MEMORY_MONTHS:
+			continue
+		var prev = e.get("prev_value", world.levers.get(lever_id))
+		if typeof(prev) in [TYPE_INT, TYPE_FLOAT] and signf(float(e["value"]) - float(prev)) == dir:
+			return true
+		if not (typeof(prev) in [TYPE_INT, TYPE_FLOAT]):
+			return true
+	return false
 
 
 ## True if a change to this lever is already decided but not yet operative. Proposing again would supersede it.

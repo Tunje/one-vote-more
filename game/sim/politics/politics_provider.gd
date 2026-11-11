@@ -12,6 +12,7 @@ const StaffOps := preload("res://sim/staff/staff_ops.gd")
 const DRAFT_TIMEOUT_MONTHS := 12
 const LOSS_AVERSION := 0.8          # extra weight on shortfalls below 50% satisfaction (tuning knob)
 const EXPECTATION_MONTHS := 36.0
+const HONEYMOON := 8000.0            # approval bonus for a new government, fading over its first year
 const CRISIS_SATISFACTION := 35000
 const MAX_PARALLEL_DRAFTS := 3  # colony-wide concern satisfaction below this triggers crisis mode    # time constant of voter expectations (tuning knob)
 
@@ -152,6 +153,10 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 	var gov_facts := _blame_facts(world)
 	var agenda := _agenda_monthly(world, st)
 	var dmeans := _district_means(world)
+	var g0: Dictionary = st.get("government", {})
+	var honeymoon := 0.0
+	if not g0.is_empty() and g0.has("formed_month"):
+		honeymoon = HONEYMOON * maxf(0.0, 1.0 - float(world.month - int(g0["formed_month"])) / 12.0)
 	for cell in world.table("cell").values():
 		if cell["pop"] <= 0:
 			continue
@@ -210,7 +215,13 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 		hist.append(int(perf))
 		if hist.size() > 12:
 			hist.pop_front()
-		var target := 0.6 * perf + 0.4 * (50000.0 + 2.5 * trend)
+		# Living conditions vs government approval (analysis of the 100-year chronicle): voters judge the
+		# government against the conditions they have got used to (perf_expect adapts over EXPECTATION_MONTHS)
+		# and on the trend; absolute misery weighs in only a little. A permanent depression therefore does not
+		# pin every government at 0%, and a new government gets a short honeymoon.
+		var pe := float(cell.get("perf_expect", perf))
+		cell["perf_expect"] = int(round(pe + (perf - pe) / EXPECTATION_MONTHS))
+		var target := 50000.0 + 0.8 * (perf - pe) + 0.25 * (perf - 50000.0) + 2.5 * trend + honeymoon
 		for f in gov_facts:
 			if _affects(f, cell):
 				for c in f["impact"]:

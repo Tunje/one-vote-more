@@ -30,6 +30,7 @@ const UNION_ENDORSE_BETA := 0.8       # utility bonus x union density for the en
 const BUSINESS_ENDORSE_BETA := 0.3    # business owners and the federation's party
 const SPLINTER_SEAT_SHARE := 0.6     # share of the faction's MPs who actually leave
 # mergers
+const NEW_PARTY_GRACE := 48            # months before a new party can be merged away
 const MERGE_DISTANCE := 15.0
 # leaders
 const CONTEST_SUPPORT_DROP := 3000   # 3 pp lost at an election triggers a contest
@@ -47,7 +48,15 @@ static func make_leader(world: WorldState, faction: int, boost_charisma: int = 0
 	var ch := clampi(int(round(r.randfn(50.0, 15.0))) + boost_charisma, 5, 100)
 	var co := clampi(int(round(r.randfn(50.0, 15.0))), 5, 100)
 	var it := clampi(int(round(r.randfn(55.0, 18.0))), 5, 100)
-	return {"name": PartyGen.leader_name(world.rng.stream("pol.names")), "charisma": ch, "competence": co,
+	var used := {}
+	for q in world.table("party").values():
+		used[leader_name(q)] = true
+	var nm := PartyGen.leader_name(world.rng.stream("pol.names"))
+	for _i in 20:
+		if not used.has(nm):
+			break
+		nm = PartyGen.leader_name(world.rng.stream("pol.names"))
+	return {"name": nm, "charisma": ch, "competence": co,
 		"integrity": it, "faction": faction, "since": world.month, "popularity": int(round(0.6 * ch + 0.2 * co + 0.2 * it))}
 
 
@@ -130,11 +139,47 @@ static func leadership_contest(world: WorldState, st: Dictionary, p: Dictionary,
 # ======================================================================= factions
 
 ## Factions split the party on the axis where its own voters disagree most (prev_share-weighted SD).
+## Colony-wide (pop-weighted) standard deviation of voter ideology per axis, in points.
+static func _colony_sd(world: WorldState) -> Dictionary:
+	var out := {}
+	for ax in PolDefs.AXES:
+		var w := 0.0
+		var m := 0.0
+		var m2 := 0.0
+		for c in world.table("cell").values():
+			var n := float(c["pop"])
+			if n <= 0.0:
+				continue
+			var x := float(c["ideology"][ax]) / 1000.0
+			w += n
+			m += n * x
+			m2 += n * x * x
+		if w > 0.0:
+			out[ax] = sqrt(maxf(0.0, m2 / w - (m / w) * (m / w)))
+	return out
+
+
 static func update_factions(world: WorldState, p: Dictionary) -> void:
 	var pid: String = p["id"]
+	# The faction line runs where the party's voters are UNUSUALLY divided (their spread relative to the
+	# colony's spread on that axis) on issues they CARE about (salience-linked axis weight). Raw spread alone
+	# always picked REDISTRIBUTION, because income bands spread everyone on it (100-year chronicle: 13/13 splits).
 	var best_ax := ""
 	var best_sd := -1.0
-	var stats := {}
+	var best_score := -1.0
+	var scores := {}
+	var sds := {}
+	var col_sd := _colony_sd(world)
+	var aw := {}
+	var aw_w := 0.0
+	for c in world.table("cell").values():
+		var s := float(c["prev_share"].get(pid, 0)) / 100000.0 * float(c["pop"])
+		if s <= 0.0:
+			continue
+		var wts := VoteModel.axis_weights(c["salience"])
+		for ax in wts:
+			aw[ax] = float(aw.get(ax, 0.0)) + wts[ax] * s
+		aw_w += s
 	for ax in PolDefs.AXES:
 		var w := 0.0
 		var m := 0.0
@@ -151,10 +196,17 @@ static func update_factions(world: WorldState, p: Dictionary) -> void:
 			continue
 		var mean := m / w
 		var sd := sqrt(maxf(0.0, m2 / w - mean * mean))
-		stats[ax] = [mean, sd, w]
-		if sd > best_sd:
-			best_sd = sd
+		sds[ax] = sd
+		scores[ax] = sd / maxf(5.0, float(col_sd.get(ax, 20.0))) * float(aw.get(ax, aw_w)) / maxf(1.0, aw_w)
+		if scores[ax] > best_score:
+			best_score = scores[ax]
 			best_ax = ax
+	# sticky: keep the current conflict unless another is clearly (25%) more divisive
+	var cur: String = p.get("faction_axis", "")
+	if cur != "" and scores.has(cur) and best_ax != cur and scores[best_ax] < 1.25 * scores[cur]:
+		best_ax = cur
+	if best_ax != "":
+		best_sd = sds[best_ax]
 	if best_ax == "":
 		ensure_factions(p)
 		return
@@ -467,7 +519,8 @@ static func split_party(world: WorldState, st: Dictionary, p: Dictionary, fi: in
 	var ax: String = p["faction_axis"]
 	var pos: Dictionary = p["positions"].duplicate()
 	pos[ax] = clampi(int(f["pole"]) + (int(f["pole"]) - int(p["positions"][ax])) / 2, -100 * S, 100 * S)
-	var np := _new_party(world, st, pos, "SPLINTER")
+	var sgn := 1 if int(f["pole"]) >= int(p["positions"][ax]) else -1
+	var np := _new_party(world, st, pos, "SPLINTER", PartyGen.name_for(pos, _taken_names(world), ax, sgn))
 	np["leader"]["faction"] = 0
 	var mps := int(round(float(p["seats"]) * faction_strength(f) * SPLINTER_SEAT_SHARE))
 	p["seats"] = int(p["seats"]) - mps
@@ -500,8 +553,8 @@ static func check_mergers(world: WorldState, st: Dictionary) -> void:
 		return
 	var parties := active(world)
 	for small in parties:
-		if small["is_player"]:
-			continue
+		if small["is_player"] or world.month - int(small["founded_month"]) < NEW_PARTY_GRACE:
+			continue  # a new or breakaway party gets time to prove itself before it can be absorbed
 		var e0: int = int(polls[0]["estimates"].get(small["id"], 0))
 		var e1: int = int(polls[1]["estimates"].get(small["id"], 0))
 		if e0 >= THRESHOLD or e1 >= THRESHOLD:

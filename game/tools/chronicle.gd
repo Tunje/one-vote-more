@@ -223,6 +223,11 @@ func _summary(L: PackedStringArray) -> void:
 	L.append("- New parties: %d · splits: %d · mergers: %d · dissolutions: %d · leader changes: %d · scandals: %d" % [
 		tot.get("POL_PARTY_FOUNDED", 0), tot.get("POL_PARTY_SPLIT", 0), tot.get("POL_PARTIES_MERGED", 0), tot.get("POL_PARTY_DISSOLVED", 0),
 		tot.get("POL_LEADER_CHANGED", 0), tot.get("POL_SCANDAL_REVEALED", 0)])
+	var rej := 0
+	for e in w.table("enactment").values():
+		if e["status"] == "REJECTED":
+			rej += 1
+	L.append("- Enactments rejected by legal review: %d" % rej)
 	L.append("- Lever changes: %d · no-confidence votes passed: %d · extra elections: %d · strikes: %d · insolvencies: %d" % [lever_log.size(),
 		tot.get("POL_NO_CONFIDENCE_PASSED", 0), tot.get("POL_EXTRA_ELECTION_CALLED", 0), tot.get("ECON_STRIKE", 0), tot.get("COMP_INSOLVENCY", 0)])
 	L.append("")
@@ -275,15 +280,21 @@ func _parties(L: PackedStringArray) -> void:
 func _governments(L: PackedStringArray) -> void:
 	L.append("## 3. Governments")
 	L.append("")
-	L.append("| Formed | PM party | Coalition | Support parties | Reason |")
-	L.append("|---|---|---|---|---|")
+	L.append("Support = confidence-and-supply partners a minority cabinet needs for a majority; each states its price (a policy it must get within 18 months, or it withdraws).")
+	L.append("")
+	L.append("| Formed | PM party | Coalition | Cabinet seats | Confidence & supply (price) | With support | Reason |")
+	L.append("|---|---|---|---|---|---|---|")
 	for f in w.facts.query("POL_GOVERNMENT_FORMED"):
 		var d: Dictionary = f["data"]
-		L.append("| %s | %s | %s | %s | %s |" % [_date(int(f["month"])), _pname(d.get("pm_party", "")), ", ".join(d.get("members", []).map(_pname)),
-			", ".join(d.get("support", []).map(_pname)), d.get("reason", "")])
+		var price := {}
+		for x in d.get("deals", []):
+			price[x["party"]] = "%s %s" % [x["lever"], "up" if int(x["dir"]) > 0 else "down"]
+		L.append("| %s | %s | %s | %s | %s | %s | %s |" % [_date(int(f["month"])), _pname(d.get("pm_party", "")), ", ".join(d.get("members", []).map(_pname)),
+			str(d.get("seats", "")), ", ".join(d.get("support", []).map(func(pid): return "%s (%s)" % [_pname(pid), price.get(pid, "-")])),
+			str(d.get("seats_with_support", "")), d.get("reason", "")])
 	L.append("")
 	var others: Array = []
-	for t in ["POL_NO_CONFIDENCE_PASSED", "POL_PARTNER_LEFT", "POL_FORMATION_FAILED", "POL_PM_VOTE_FAILED", "POL_EXTRA_ELECTION_CALLED"]:
+	for t in ["POL_NO_CONFIDENCE_PASSED", "POL_NO_CONFIDENCE_FAILED", "POL_SUPPORT_WITHDRAWN", "POL_PARTNER_LEFT", "POL_FORMATION_FAILED", "POL_PM_VOTE_FAILED", "POL_EXTRA_ELECTION_CALLED"]:
 		for f in w.facts.query(t):
 			others.append([int(f["month"]), "%s %s" % [t.trim_prefix("POL_"), _describe(f)]])
 	others.sort_custom(func(a, b): return a[0] < b[0])
@@ -325,12 +336,19 @@ func _elections(L: PackedStringArray) -> void:
 func _bills(L: PackedStringArray) -> void:
 	L.append("## 5. Bills and decisions")
 	L.append("")
-	L.append("Every bill put to parliament: who proposed it, what it changed, how each party voted.")
+	L.append("Every bill put to parliament: who proposed it, what it changed, how each party voted, and in [brackets] what became of each clause after the vote (EFFECTIVE = in force; REJECTED = thrown out by legal review; CANCELLED = superseded).")
 	L.append("")
 	var bills: Array = w.table("bill").values()
 	bills.sort_custom(func(a, b): return a["month"] < b["month"] or (a["month"] == b["month"] and a["id"] < b["id"]))
+	var fate := {}  # "bill|lever" -> enactment status (+ errors)
+	for e in w.table("enactment").values():
+		var st := String(e["status"])
+		if st == "REJECTED":
+			st += " (" + "; ".join(e.get("errors", [])) + ")"
+		fate[String(e.get("source_bill", "")) + "|" + String(e["lever"])] = st
 	for b in bills:
-		var cl: Array = b.get("clauses", []).map(func(c): return "%s %s→%s" % [c["lever"], str(c.get("from", "?")), str(c["to"])])
+		var cl: Array = b.get("clauses", []).map(func(c): return "%s %s→%s [%s]" % [c["lever"], str(c.get("from", "?")), str(c["to"]),
+			fate.get(String(b["id"]) + "|" + String(c["lever"]), "not enacted") if b.get("status", "") == "PASSED" else "-"])
 		var vt: Array = []
 		var vk: Array = b.get("votes", {}).keys()
 		vk.sort()

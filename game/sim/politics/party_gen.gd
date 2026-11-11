@@ -3,14 +3,23 @@ extends RefCounted
 ## Party creation from the colony's actual voter distribution (project §8.3).
 ## Ideology vectors everywhere in politics are stored as int milli-points (−100000..100000).
 
+## Party names by defining axis: [names for the + pole], [names for the − pole]. The first free name is used,
+## so later parties on the same axis still carry a name that says what they stand for.
 const NAMES := {
-	"ECON_ROLE": ["Colonial Solidarity Party", "Free Enterprise Party"],
-	"REDISTRIBUTION": ["Equal Share Movement", "Low Tax Alliance"],
-	"LABOR": ["Workers' Union Party", "Enterprise & Growth"],
-	"ENVIRONMENT": ["Green Frontier", "Development First"],
-	"AUTONOMY": ["District Autonomy League", "Colony Unity Party"],
-	"FISCAL": ["Builders' Party", "Fiscal Prudence Party"],
-	"INSTITUTIONS": ["Civic Liberty Party", "Order & Stability"],
+	"ECON_ROLE": [["Colonial Solidarity Party", "Public Colony Movement", "Commonwealth League", "Planned Colony Party"],
+		["Free Enterprise Party", "Open Market League", "Private Initiative Party", "Free Colony Union"]],
+	"REDISTRIBUTION": [["Equal Share Movement", "Fair Share Party", "Social Equality League", "Common Wealth Party"],
+		["Low Tax Alliance", "Keep What You Earn", "Taxpayers' League", "Self-Reliance Party"]],
+	"LABOR": [["Workers' Union Party", "Labour Front", "Shift Workers' League", "Fair Work Movement"],
+		["Enterprise & Growth", "Flexible Work Party", "Employers' Alliance", "Jobs Through Growth"]],
+	"ENVIRONMENT": [["Green Frontier", "Clean Planet Party", "Ecology League", "Living Colony Movement"],
+		["Development First", "Build & Extract Party", "Industrial Progress League", "Frontier Expansion Party"]],
+	"AUTONOMY": [["District Autonomy League", "Local Power Party", "Free Districts Movement", "Self-Rule Alliance"],
+		["Colony Unity Party", "One Colony Party", "Central Authority League", "United Settlement Party"]],
+	"FISCAL": [["Builders' Party", "Invest Now Party", "Public Works League", "Growth Spending Alliance"],
+		["Fiscal Prudence Party", "Balanced Budget League", "Debt-Free Colony", "Sound Finance Party"]],
+	"INSTITUTIONS": [["Civic Liberty Party", "Reform & Rights League", "Open Government Party", "Citizens' Movement"],
+		["Order & Stability", "Law & Order League", "Strong Institutions Party", "Colonial Tradition Party"]],
 }
 const SPARE_NAMES := ["Reform Party", "Colony First", "Progress Party", "Centre Alliance", "Pioneer Party", "Renewal", "New Democrats", "People's Alliance", "Common Ground", "Frontier League"]
 const FIRST := ["Ana", "Bo", "Cyrus", "Dela", "Eskil", "Farah", "Gunn", "Hiro", "Ines", "Jarl", "Kaia", "Lev", "Mina", "Nils", "Oona", "Pavel", "Rune", "Sana", "Tove", "Ulf", "Vera", "Yusuf"]
@@ -94,11 +103,16 @@ static func dominant_axis(pos: Dictionary) -> Array:
 	return axes
 
 
-static func name_for(pos: Dictionary, taken: Dictionary) -> String:
-	for ax in dominant_axis(pos):
-		var n: String = NAMES[ax][0 if pos[ax] >= 0 else 1]
-		if not taken.has(n):
-			return n
+static func name_for(pos: Dictionary, taken: Dictionary, prefer_axis: String = "", prefer_sign: int = 0) -> String:
+	var order: Array = dominant_axis(pos)
+	if prefer_axis != "":
+		order.erase(prefer_axis)
+		order.push_front(prefer_axis)
+	for ax in order:
+		var sgn := prefer_sign if ax == prefer_axis and prefer_sign != 0 else (1 if pos[ax] >= 0 else -1)
+		for n in NAMES[ax][0 if sgn > 0 else 1]:
+			if not taken.has(n):
+				return n
 	for n in SPARE_NAMES:
 		if not taken.has(n):
 			return n

@@ -117,10 +117,11 @@ static func constitutional_rules() -> Array:
 
 
 ## Charter bounds on levers (spec §7.1): hard limits for every level below CHARTER.
-## Tax levers carry `is_tax: true` in their def (econ); their max is 5000 bp.
-const TAX_MAX_BP := 5000
+## Tax levers carry `is_tax: true` in their def (econ). Bounds are in each lever's OWN unit: econ tax and
+## minimum-wage levers are whole percent (tests/law/test_law_bounds.gd checks every bound against the lever range).
+const TAX_MAX_PCT := 50
 const LEVER_BOUNDS := {
-	"ECON_MIN_WAGE": {"min": 400},                 # fraction of W_ref in milli (0.40)
+	"ECON_MIN_WAGE": {"min": 40},                  # % of W_ref, same unit as the lever (was 400: unit bug, every change rejected)
 	"STAFF_CIVIL_RETIREMENT_AGE": {"min": 60, "max": 72},
 	"LAW_SAFETY_STANDARD": {"min_enum": "BASIC"},
 }

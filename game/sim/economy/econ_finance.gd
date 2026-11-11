@@ -140,6 +140,7 @@ static func settle(world: WorldState) -> void:
 	_depreciation(world)
 	if world.month_of_year() % 3 == 0:
 		_profit_tax_and_dividends(world)
+		_surplus_sweep(world)
 	var grant := origin_grant(world.month)
 	if grant > 0:
 		world.ledger.transfer(Ledger.EXTERNAL, EconUtil.TREASURY, grant, "GRANT", world.month)
@@ -537,6 +538,51 @@ static func _profit_tax_and_dividends(world: WorldState) -> void:
 
 
 ## Co-op members: persons per "hb|occ|skill" working in the co-op's facilities and crew.
+## E80 (O-1 money loop): cash a firm holds above its working-capital buffer flows back every quarter —
+## public enterprises to the treasury, private firms to their owner's household pool, co-ops to their members.
+## Buffer = max(SURPLUS_BUFFER_MONTHS × monthly costs, SURPLUS_BUFFER_MIN); a share SURPLUS_SHARE of the excess per
+## quarter. Money hoarded in landlords and farms otherwise starved households and the treasury (seed-1 money trace).
+static func _surplus_sweep(world: WorldState) -> void:
+	for oid in EconUtil.sorted_keys(world.table("org")):
+		var o: Dictionary = world.table("org")[oid]
+		if o["type"] == "PUBLIC_INSTITUTION" or o["status"] != "ACTIVE":
+			continue
+		var acc := EconUtil.acct(oid)
+		var buffer := maxi(EconData.SURPLUS_BUFFER_MONTHS * _monthly_costs(o), EconData.SURPLUS_BUFFER_MIN * S)
+		if debt_of(world, oid) > 0:
+			buffer += debt_of(world, oid) / 2  # indebted firms keep cash to repay
+		var excess := world.ledger.balance(acc) - buffer
+		if excess <= 0:
+			continue
+		var amt := int(float(excess) * EconData.SURPLUS_SHARE)
+		if amt <= 0:
+			continue
+		match o["type"]:
+			"PUBLIC_ENTERPRISE":
+				world.ledger.transfer(acc, EconUtil.TREASURY, amt, "PE_SURPLUS", world.month)
+				_gov_rev(world, amt)
+			"PRIVATE":
+				if o["owner_group"] == "" or not world.table("hh").has(o["owner_group"]):
+					continue
+				world.ledger.transfer(acc, EconUtil.hh_acct(o["owner_group"]), amt, "DIVIDEND", world.month)
+				world.table("hh")[o["owner_group"]]["income"]["dividend"] += amt
+				EconPop.credit_status(world, o["owner_group"], "NOT_IN_LF", amt, "dividend", "BUSINESS_OWNER")
+			"COOPERATIVE":
+				var members := _member_groups(world, oid)
+				var keys := EconUtil.sorted_keys(members)
+				if keys.is_empty():
+					continue
+				var parts := EconUtil.split_lr(amt, keys.map(func(k): return float(members[k])))
+				var idx := EconPop.worker_index(world)
+				for i in keys.size():
+					if parts[i] <= 0 or not idx.has(keys[i]):
+						continue
+					var pp := EconPop.split_to_pools(world, idx[keys[i]], parts[i], "dividend")
+					for gid in EconUtil.sorted_keys(pp):
+						world.ledger.transfer(acc, EconUtil.hh_acct(gid), pp[gid], "DIVIDEND", world.month)
+						world.table("hh")[gid]["income"]["dividend"] += pp[gid]
+
+
 static func _member_groups(world: WorldState, oid: String) -> Dictionary:
 	var m := {}
 	var o: Dictionary = world.table("org")[oid]
@@ -586,6 +632,22 @@ static func _bank_remit(world: WorldState) -> void:
 static func _sovereign_check(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	if s["sovereign_default"]:
+		# E82: after RESTRUCTURE_AFTER months in default the creditors restructure: a haircut on the government's
+		# debt, the default ends, and the colony can borrow again (a frozen default was a permanent dead end).
+		if world.month - int(s.get("default_month", world.month)) >= EconData.SOVEREIGN_RESTRUCTURE_AFTER:
+			var cut := 0
+			for lid in EconUtil.sorted_keys(world.table("loan")):
+				var l: Dictionary = world.table("loan")[lid]
+				if l["borrower"] == "gov" and l["principal"] > 0:
+					var c := int(float(l["principal"]) * EconData.SOVEREIGN_HAIRCUT)
+					l["principal"] -= c
+					cut += c
+			s["sovereign_default"] = false
+			s["gov_missed_debt"] = 0
+			s["gov_missed_wages"] = 0
+			s["bank_freeze_noted"] = false
+			EconFacts.emit(world, "ECON_DEBT_RESTRUCTURED", null, [["GOVERNMENT", "government"]], [["GOVERNMENT", "government", 0.6], ["EXTERNAL", "bank", 0.4]],
+				{"GOVERNANCE": 10}, 60, "PUBLIC", {"written_off": cut / S, "debt_left": debt_of(world, "gov") / S})
 		return
 	# only a treasury shortfall counts (an institution under-budgeted by its own line is not a sovereign default)
 	var short: bool = s.get("treasury_short", false)
@@ -593,5 +655,6 @@ static func _sovereign_check(world: WorldState) -> void:
 	s["gov_missed_wages"] = s.get("gov_missed_wages", 0) + 1 if short else 0
 	if s["gov_missed_debt"] >= 2 or s.get("gov_missed_wages", 0) >= 3:
 		s["sovereign_default"] = true
+		s["default_month"] = world.month
 		EconFacts.emit(world, "ECON_SOVEREIGN_DEFAULT", null, [["GOVERNMENT", "government"]], [["GOVERNMENT", "government", 1.0]],
 			{"GOVERNANCE": -60, "JOBS": -10, "COST_OF_LIVING": -10}, 100, "PUBLIC")

@@ -171,9 +171,17 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 	var needs := {}  # "org|good|district" -> qty
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
-		if f["mothball"]:
-			continue
 		var r: Dictionary = EconData.RECIPES[f["type"]]
+		if f["mothball"]:
+			if f.get("closed_unsafe", false):  # E84: overhaul of a plant closed as unsafe needs its full upkeep
+				if r["upkeep"] > 0:
+					var ko := "%s|MATERIAL|%s" % [f["org"], f["district"]]
+					needs[ko] = needs.get(ko, 0) + int(float(r["upkeep"]) * S * EconUtil.fscale(f))
+				var uco: int = EconData.UPKEEP_COMPONENT.get(f["type"], 0)
+				if uco > 0:
+					var kc := "%s|COMPONENT|%s" % [f["org"], f["district"]]
+					needs[kc] = needs.get(kc, 0) + int(float(uco) * S * EconUtil.fscale(f))
+			continue
 		var t := float(f["T"]) / 1000.0
 		for g in r["in"]:
 			if g in EconData.MARKET_GOODS:

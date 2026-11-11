@@ -56,6 +56,16 @@ const SELF_EMP_FOUNDING := 0.05       # founding small traders/craftspeople: sha
 const STRATEGIC_INPUT_TYPES := ["MINE", "PROCESSING"]
 ## E75: the origin backstop also covers COMPONENT (utility/facility upkeep must not hinge on one local factory).
 ## good -> [trigger × base (2 consecutive months), ask × base, cap units/month]
+## O-1 recovery (E80, E82, E83)
+const SURPLUS_BUFFER_MONTHS := 6       # firms keep 6 months of costs as working capital
+const SURPLUS_BUFFER_MIN := 20000      # credits
+const SURPLUS_SHARE := 0.5             # share of the excess paid out per quarter
+const SOVEREIGN_RESTRUCTURE_AFTER := 12          # months in sovereign default before creditors restructure
+const SOVEREIGN_HAIRCUT := 0.5         # share of government debt written off
+const REPAIR_PER_MONTH := 250         # E84: milli-condition points restored per month with full upkeep (running)
+const OVERHAUL_PER_MONTH := 2000       # E84: per month while a plant closed as unsafe is overhauled
+const REOPEN_CONDITION := 50           # E84: an overhauled plant reopens at this condition
+const RENT_ARREARS_CUT := 0.10         # landlords cut rent 3%/quarter while arrears exceed 10% of rent due
 const ORIGIN_BACKSTOP := {"MATERIAL": [2.0, 3.0, 200], "COMPONENT": [2.0, 3.0, 40]}
 const STRATEGIC := ["POWER", "WATERWORKS", "MINE", "PROCESSING", "FARM", "DEPOT", "COMPONENTS", "MEDWORKS", "CONSUMERF"]
 const GOV_FIRST_PURCHASE := 0.40

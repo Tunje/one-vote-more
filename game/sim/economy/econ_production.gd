@@ -169,7 +169,7 @@ static func _prio(ftype: String, hh_first: bool) -> int:
 	if ftype in ["SCHOOL", "ADMIN", "DEPOT", "FARM"]:  # E66: food production is a lifeline (after households)
 		return 2
 	if ftype == "WATERWORKS":
-		return 3
+		return 0  # E81: water is everyone's input (households, farms, clinics); a power shortage must not cut it first
 	return 4 if hh_first else 1
 
 
@@ -221,8 +221,9 @@ static func _upkeep(world: WorldState, f: Dictionary, running: bool) -> void:
 	var r: Dictionary = EconData.RECIPES[f["type"]]
 	var cond: int = f["condition"]
 	var frac := 1.0
+	var repairing: bool = f["mothball"] and f.get("closed_unsafe", false)
 	for pair in [["MATERIAL", float(r["upkeep"])], ["COMPONENT", float(EconData.UPKEEP_COMPONENT.get(f["type"], 0))]]:
-		var need: float = pair[1] * S * (1.0 if running else 0.25) * EconUtil.fscale(f)
+		var need: float = pair[1] * S * (1.0 if running or repairing else 0.25) * EconUtil.fscale(f)
 		if need <= 0.0:
 			continue
 		var wac := EconUtil.inv_wac(world, f["org"], pair[0], f["district"])
@@ -242,12 +243,27 @@ static func _upkeep(world: WorldState, f: Dictionary, running: bool) -> void:
 		EconFinance.pl_add(world, f["org"], "cogs", EconUtil.val(got, wac))
 		frac = minf(frac, clampf(float(got) / need, 0.0, 1.0))
 	cond -= int(1.0 * S * (1.0 - frac))
+	# E84: maintenance restores. Fully supplied upkeep slowly repairs a running plant; a plant closed as unsafe
+	# is overhauled with full upkeep and reopens at REOPEN_CONDITION (before, condition could only fall).
+	if frac >= 0.999 and (running or repairing):
+		cond += EconData.REPAIR_PER_MONTH if running else EconData.OVERHAUL_PER_MONTH
 	f["condition"] = clampi(cond, 0, 100 * S)
 	var hazardous: bool = r["hazard"] == "HIGH" or f["type"] == "MINE"
+	if repairing and f["condition"] >= EconData.REOPEN_CONDITION * S:
+		var o: Dictionary = world.table("org").get(f["org"], {})
+		if o.get("status", "") in ["ACTIVE", "DISTRESSED", "ADMINISTRATION"]:
+			f["mothball"] = false
+			f["closed_unsafe"] = false
+			f["unsafe_m"] = 0
+			f["low_util_m"] = 0
+			EconFacts.emit(world, "ECON_FACILITY_REOPENED", f["district"], [["COMPANY", f["org"]]],
+				EconFacts.company_blame(world, f["org"], 0.7), {"JOBS": 10, "SAFETY": 5}, 30, "PUBLIC", {"facility": f["id"]})
+		return
 	if f["condition"] < 25 * S and hazardous:  # E64: only hazardous plants close; others just lose efficiency
 		f["unsafe_m"] += 1
 		if f["unsafe_m"] >= 3 and not f["mothball"]:
 			f["mothball"] = true
+			f["closed_unsafe"] = true
 			EconFacts.emit(world, "ECON_FACILITY_CLOSED_UNSAFE", f["district"], [["COMPANY", f["org"]]],
 				EconFacts.company_blame(world, f["org"], 0.7), {"JOBS": -10, "SAFETY": -10}, 35, "PUBLIC", {"facility": f["id"]})
 	else:
