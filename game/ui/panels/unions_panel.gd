@@ -56,7 +56,7 @@ func _union(w: WorldState, u: Dictionary, endorse: Dictionary) -> void:
 		Kit.label(body, "%d affiliated unions · fund %d cr · founded Year %d" % [aff.size(), fund, int(u.get("founded", 0)) / 12 + 1], 12, Color("#aaaaaa"))
 	else:
 		var secs: Array = u.get("sectors", []).map(func(o): return String(o).to_lower().replace("_", " "))
-		Kit.label(body, "%s · %d members (%d%% of the sector) · fund %d cr (%s weeks of strike pay)%s" % [
+		Kit.label(body, "%s · %d members (%d%% of the sector) · fund %d cr (%s of strike pay)%s" % [
 			", ".join(secs), int(u.get("members", 0)) / 1000, int(u.get("density", 0)) / 10, fund, _weeks(w, u),
 			"" if String(u.get("affiliated_to", "")) != "" else " · not affiliated"], 12, Color("#aaaaaa"))
 	var l: Dictionary = u.get("leader", {})
@@ -72,7 +72,8 @@ func _union(w: WorldState, u: Dictionary, endorse: Dictionary) -> void:
 
 
 func _weeks(w: WorldState, u: Dictionary) -> String:
-	return str(int(Unions.strike_weeks(w, String(u["id"]))))
+	var n := int(Unions.strike_weeks(w, String(u["id"])))
+	return "%d week%s" % [n, "" if n == 1 else "s"]
 
 
 static func _temper(m: int) -> String:
@@ -147,5 +148,8 @@ func _history(w: WorldState) -> void:
 		Kit.label(body, "%s: %s" % [_month(int(f["month"])), Gazette.plain(NewsText.sentence(w, f))], 12)
 
 
+const MONTHS := ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
 static func _month(m: int) -> String:
-	return "Year %d" % (m / 12 + 1)
+	return "%s Year %d" % [MONTHS[m % 12], m / 12 + 1]
