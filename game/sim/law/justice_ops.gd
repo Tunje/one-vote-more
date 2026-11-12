@@ -5,6 +5,7 @@ extends RefCounted
 ## Reads: unlawful_track / revealed_fact / permit_application (law), org / liability (econ, 88), facts.
 
 const Det := preload("res://sim/staff/det.gd")
+const WasteLaw := preload("res://sim/law/waste_law.gd")
 const Staff := preload("res://sim/staff/staff_ops.gd")
 const RG := preload("res://sim/staff/roster_gen.gd")
 const Vis := preload("res://sim/law/visibility.gd")
@@ -266,7 +267,8 @@ static func detect_ctx(world: WorldState) -> Dictionary:
 		regulated[v["company"]] = true
 	var q := float(Staff.duty_quality(world, "STAFF_SD_LEGAL", int(AGENCY_Q_DEFAULT * 1000.0))) / 1000.0
 	return {"SAFETY": float(inspectors * INSPECTIONS_PER_INSPECTOR) * (minf(1.0, budget / need) if need > 0.0 else 0.0),
-		"ENV": float(world.levers.get("LAW_ENV_INSPECTORATE_BUDGET", 4000)) / float(ENV_INSPECTION_COST_WREF),
+		"ENV": float(world.levers.get("LAW_ENV_INSPECTORATE_BUDGET", 4000)) / float(ENV_INSPECTION_COST_WREF) \
+			* WasteLaw.inspection_factor(world),     # W6: LAW_WASTE_STANDARD (×1 at the default)
 		"MARKET": float(world.levers.get("LAW_COMPETITION_BUDGET", 4000)) / float(MARKET_CASE_COST_WREF),
 		# M12: colony customs chase charter evasion only while the colony enforces the charter (home inspector: CharterOps)
 		"HOME": float(world.levers.get("LAW_COMPETITION_BUDGET", 4000)) / float(MARKET_CASE_COST_WREF) \
@@ -758,6 +760,8 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 	var annual := float(pl.get("rev", 0)) * 12.0
 	var amount := int(round(maxf(float(spec[0]) * annual, float(spec[1]) * float(w_ref(world)))
 		* float(world.levers.get("LAW_FINE_SCALE", 1000)) / 1000.0))
+	if String(world.peek("violation_track").get(violation, {}).get("kind", "")) == "DUMPING":
+		amount = int(round(float(amount) * WasteLaw.dumping_fine_factor(world)))      # W6: LAW_WASTE_STANDARD
 	var acct := company_acct(org_id)
 	var paid := 0
 	if world.ledger.has_account(acct) and world.ledger.has_account("gov:fines_revenue"):

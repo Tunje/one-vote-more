@@ -516,6 +516,47 @@ const LEVERS := [
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": -0.12, "INSTITUTIONS": 0.05},
 		"concerns": {"INFRASTRUCTURE": 8, "JOBS": 4, "FAIRNESS": -10},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Expedition X4–X5 (charter_deal.gd): 1 = the backers' sector privileges and council seats stand, 0 = abolished
+	# (no first refusal, no licence surcharge for rivals, no council). Abolishing angers the investors and, if it
+	# backed them, the home world (fact LAW_INVESTOR_PRIVILEGES_REVOKED). Without a signed deal it does nothing.
+	{"id": "LAW_INVESTOR_PRIVILEGES", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 1], "default": 1,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"SOVEREIGNTY": -8, "REDISTRIBUTION": -4, "ECON_ROLE": -3},
+		"concerns": {"FAIRNESS": -6, "COLONIAL_BURDEN": -5, "JOBS": 3},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# ---- A45 W6 waste law (planning/spec-waste-v1.md W6). Read through sim/law/waste_law.gd. NUMBER, drafted by AI.
+	# Waste standard: disposal-rule strictness, 0 = anything goes (cheap, dirty) .. 100 = lined, sealed, monitored.
+	# Sets the environmental inspection rate and dumping fines (DISCHARGE_WASTE) and Bob's disposal cost/pollution.
+	{"id": "LAW_WASTE_STANDARD", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 30,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ENVIRONMENT": 0.08, "ECON_ROLE": 0.02},
+		"concerns": {"ENVIRONMENT_QUALITY": 15, "COST_OF_LIVING": -5, "JOBS": -4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Recycling target: % of municipal waste that must be recycled (Bob routes it to recycling works first).
+	{"id": "LAW_RECYCLING_TARGET", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 80], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ENVIRONMENT": 0.08, "ECON_ROLE": 0.03},
+		"concerns": {"ENVIRONMENT_QUALITY": 10, "COST_OF_LIVING": -6, "JOBS": 4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 3, "scope": "COLONY", "domain": "ECON"},
+	# Landfill tax: milli-W_ref per tonne landfilled, paid by whoever dumps it (the sanitation service, firms).
+	{"id": "LAW_LANDFILL_TAX", "owner": "law", "legislative": true, "is_tax": true, "type": "NUMBER", "range": [0, 20], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ENVIRONMENT": 0.3, "REDISTRIBUTION": 0.1},
+		"concerns": {"ENVIRONMENT_QUALITY": 8, "COST_OF_LIVING": -5, "GOVERNANCE": 4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Sewage standard: % of the pollution treatment plants must remove before discharge to the river.
+	{"id": "LAW_SEWAGE_STANDARD", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 30,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ENVIRONMENT": 0.07, "FISCAL": 0.02},
+		"concerns": {"ENVIRONMENT_QUALITY": 12, "PUBLIC_SERVICES": 4, "COST_OF_LIVING": -4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 3, "scope": "COLONY", "domain": "ECON"},
+	# Burial rules, by direction: −100 cremation required … 0 free choice … +100 burial only. Order and tradition
+	# lean to burial, market and development to cremation; a law far from 0 either way offends someone (W7).
+	{"id": "LAW_BURIAL_RULES", "owner": "law", "legislative": true, "type": "NUMBER", "range": [-100, 100], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": -0.03, "ECON_ROLE": 0.02, "ENVIRONMENT": 0.02},
+		"concerns": {"HOUSING": -4, "ENVIRONMENT_QUALITY": 3},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Sanitation fee: % of household waste collection cost paid as a fee by households (0 = all from the
+	# ECON_BUDGET_SANITATION line, 100 = user pays).
+	{"id": "LAW_SANITATION_FEE", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"REDISTRIBUTION": -0.06, "FISCAL": -0.04},
+		"concerns": {"COST_OF_LIVING": -8, "FAIRNESS": -3, "GOVERNANCE": 5},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
 	# Closed shop: 1 = closed-shop agreements are enforceable (membership a condition of the job), 0 = banned.
 	{"id": "LAW_CLOSED_SHOP", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 1], "default": 0,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": 8, "AUTONOMY": -6},
