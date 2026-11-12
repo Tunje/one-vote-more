@@ -549,7 +549,7 @@ static func _final(world: WorldState, c: Dictionary, claimant_wins: bool) -> voi
 				data["gov_paid"] = by_gov
 			"DEFAMATION":
 				var dmg := int(round(float(c["data"].get("severity", 0)) * DEFAMATION_DAMAGES_WREF * float(w_ref(world))))
-				_pay(world, c["respondent"], c["claimant"], dmg, "DAMAGES")
+				data["paid"] = _pay(world, c["respondent"], c["claimant"], dmg, "DAMAGES")
 				data["remedy"] = "DAMAGES"
 				data["amount"] = dmg
 			"PARTY_FINANCE":
@@ -565,7 +565,7 @@ static func _final(world: WorldState, c: Dictionary, claimant_wins: bool) -> voi
 		fact(world, "LAW_DEFAMATION_RULED", "PUBLIC", [c["claimant"], smearer],
 			[{"actor": smearer if claimant_wins else c["claimant"], "share": 1.0}], {}, 35 + int(c["data"].get("severity", 0)) / 4,
 			{"victim": c["claimant"]["id"], "smearer": smearer["id"], "guilty": claimant_wins,
-			"damages": int(data.get("amount", 0)), "severity": int(c["data"].get("severity", 0)), "case": c["id"]})
+			"damages": int(data.get("amount", 0)), "paid": int(data.get("paid", 0)), "severity": int(c["data"].get("severity", 0)), "case": c["id"]})
 	var mag := 40 if c["type"] == "UNLAWFUL_GOV" else (25 if against_gov else 15)
 	var impact := {"FAIRNESS": 3}
 	var resp := [{"actor": loser, "share": 1.0}]
@@ -768,9 +768,10 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 
 
 ## Money between case parties through the ledger; an unpayable company debt becomes a COMPENSATION liability.
-static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, amount: int, memo: String) -> void:
+## -> the amount actually paid (a party or outlet pays what its account holds; only companies carry a liability).
+static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, amount: int, memo: String) -> int:
 	if amount <= 0:
-		return
+		return 0
 	var from := "gov:treasury" if from_ref["kind"] in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"] else company_acct(String(from_ref["id"]))
 	if from_ref["kind"] == "PARTY":
 		from = "party:" + String(from_ref["id"])
@@ -784,7 +785,7 @@ static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, am
 		if world.ledger.has_account("gov:treasury") and not world.ledger.has_account(VICTIM_FUND):
 			world.ledger.open_account(VICTIM_FUND)
 	if not world.ledger.has_account(from) or not world.ledger.has_account(to):
-		return   # no economy loaded (politics-only configurations)
+		return 0   # no economy loaded (politics-only configurations)
 	var paid := mini(amount, maxi(0, world.ledger.balance(from))) if not world.ledger.allow_negative.get(from, false) else amount
 	if paid > 0:
 		world.ledger.transfer(from, to, paid, memo, world.month)
@@ -795,6 +796,7 @@ static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, am
 		world.table("liability")[lid] = {"id": lid, "debtor": String(from_ref["id"]),
 			"creditor": "gov" if to == "gov:treasury" else String(to_ref["id"]), "amount": amount - paid,
 			"due_month": world.month + 1, "kind": "COMPENSATION", "status": "OPEN"}
+	return paid
 
 
 # =====================================================================================  indicators (M6)

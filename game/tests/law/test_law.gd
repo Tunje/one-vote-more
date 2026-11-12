@@ -74,8 +74,11 @@ func test_lt3_transition() -> void:
 	F.set_pol(w, {"era": "PARLIAMENTARY", "player_party": "", "government": {"members": ["P1"], "pm_party": "P1",
 		"agreement": [], "formed_month": w.month}})
 	w.table("party")["P1"] = {"id": "P1", "seats": 80, "status": "ACTIVE", "commitments": []}
+	var late := _enact(w, "LAW_SAFETY_STANDARD", "STANDARD")     # issued in the commander's last month
 	s.step()
 	check(LawOps.state(w)["constitution"], "constitution adopted")
+	check(w.table("enactment")[late].get("deemed_statute", false), "a pending ordinance is deemed too")
+	check_eq(w.table("enactment")[late]["status"], "LEGAL", "and survives the handover (v4: rejected at Y4-10)")
 	check_eq(w.facts.query("LAW_CONSTITUTION_ADOPTED").size(), 1, "fact")
 	check(w.table("enactment")[eid].get("deemed_statute", false), "ordinance deemed statute")
 	check_eq(w.levers["LAW_EXTRACTION_ROYALTY"], 1000, "no lever cliff")

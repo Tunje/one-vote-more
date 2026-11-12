@@ -425,6 +425,15 @@ const LEVERS := [
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": -2.0, "REDISTRIBUTION": -1.5, "FISCAL": -1.5},
 		"concerns": {"GOVERNANCE": 30, "JOBS": 5, "COST_OF_LIVING": -20, "FAIRNESS": -10},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 6, "scope": "COLONY", "domain": "ECON"},
+	# ---- Strikes in essential services (Wilma, from Bob's seed-3 trace: a power strike blacked out the colony).
+	# Read by Bob's strike code for POWER / WATERWORKS / CLINIC: NONE = full strike; MIN_SERVICE = the struck
+	# facility keeps a minimum share of its output (Bob's constant, ~60%); NO_STRIKE = no stoppage, the dispute goes to binding
+	# arbitration (a smaller rise, no outage). Hints per step: steadier infrastructure against workers' leverage.
+	{"id": "LAW_ESSENTIAL_SERVICES", "owner": "law", "legislative": true, "type": "ENUM",
+		"values": ["NONE", "MIN_SERVICE", "NO_STRIKE"], "default": "NONE",
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": -6, "INSTITUTIONS": 3},
+		"concerns": {"INFRASTRUCTURE": 15, "FAIRNESS": -8},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
 	# ---- MEDIA v1 press law (planning/spec-media-v1.md section 8). Read by sim/media/media_ops.gd.
 	{"id": "LAW_PRESS_LICENSING", "owner": "law", "type": "ENUM", "values": ["NONE", "REGISTER", "LICENCE"], "default": "NONE",
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"AUTONOMY": -10, "INSTITUTIONS": 4},

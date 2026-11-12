@@ -408,7 +408,10 @@ static func run_pipeline(world: WorldState) -> void:
 		if e["status"] != "PENDING":
 			continue
 		# A confirmed unlawful decree skips the check: it is already recorded as a SECRET unlawful act (spec §8).
-		var errs: Array = [] if e.get("unlawful", false) else check_change(world, e["lever"], e["value"], e["legal_level"])
+		# An ordinance still pending when the constitution was adopted was deemed a statute with the rest (§7.2):
+		# check it as a LAW, not under the commander authority that lapsed at the handover.
+		var lvl := "LAW" if e["legal_level"] == "ORDINANCE" and e.get("deemed_statute", false) else String(e["legal_level"])
+		var errs: Array = [] if e.get("unlawful", false) else check_change(world, e["lever"], e["value"], lvl)
 		if not errs.is_empty():
 			e["status"] = "REJECTED"
 			e["errors"] = errs

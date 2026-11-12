@@ -208,3 +208,19 @@ func test_defamation() -> void:
 	var cid2 := J.file_defamation(w, "P1", "P2", 20)
 	J._final(w, w.table("case")[cid2], false)
 	check(not w.facts.query("LAW_DEFAMATION_RULED")[1]["data"]["guilty"], "an acquittal is ruled too")
+
+
+## A party that can't pay hands over what its account holds; the verdict fact records award and payment.
+func test_defamation_partial_payment() -> void:
+	var s := _world()
+	var w := s.world
+	for p in ["P1", "P2"]:
+		w.ledger.open_account("party:" + p)
+	w.ledger.transfer(Ledger.EXTERNAL, "party:P2", 4 * _wref(w), "seed", w.month)
+	var cid := J.file_defamation(w, "P1", "P2", 50)
+	J._final(w, w.table("case")[cid], true)
+	var d: Dictionary = w.facts.query("LAW_DEFAMATION_RULED")[0]["data"]
+	check_eq(int(d["damages"]), int(round(50 * 0.3 * _wref(w))), "the full award")
+	check_eq(int(d["paid"]), 4 * _wref(w), "paid what the account held")
+	check_eq(w.ledger.balance("party:P2"), 0, "the smearer is cleaned out, not negative")
+	check_eq(w.ledger.balance("party:P1"), 4 * _wref(w), "the victim received it")
