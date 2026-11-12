@@ -137,6 +137,30 @@ and greenhouse warming are Terra's physical model; Bob reads them. Politics read
   colony this month: …" and last month's PLANET_* news lines.
 - The colony map UI itself (A5) is `ui/colony_map.gd` (TERRAIN overlay), spec-areas-v1 §7.
 
+## Tourist sites (A42, spec-demand-v1 §D4; 2026-11-12) — sim/planet/planet_sites.gd, tests/planet/test_sites.gd
+- **Pure, nothing saved**: a function of the seed (globe), the colony grid (sites on the colony map) and the month.
+  All numbers are ints. `Planet.sites(world)` = `PlanetSites.sites(world)` →
+  `[{id, name, kind, attraction 0..100, season_mult [12 × %, January first, 100 = an average month], cell,
+  dist (hex steps from the colony), km, travel_days, where, tile}]`, colony sites first, then by distance.
+- **where**: `COLONY` (on the colony map, `tile` set, no trip), `REGION` (≤ 8 hex steps, a few days away),
+  `GLOBE` (farther). One hex step is ~210 km (planet radius 6 100 km); `travel_days` = km / 400, rounded up.
+- **Kinds**. On the colony map: FIRST_LANDING (30), RIVER_FALLS (where the river leaves the hills), GLOW_MEADOW
+  (the native-crop land glows), CRYSTAL_CRAGS (rare-mineral rock). On the globe, the best of each kind in the
+  region plus the two best elsewhere (spaced apart): WATERFALL (wet scarps), CANYON (dry land cut deep),
+  GLOWING_FIELD (alien flora in wet jungle, wetland and forest; up to 95), AURORA_PLAIN (56–75° latitude),
+  TIDAL_BORE (narrow bays the twin moons flood), SUMMIT (local tops above ~4 800 m). About 20 sites per planet.
+- **Seasons**: comfort (near 20 °C) for most; waterfalls follow the rain; glowing flora peaks in the warm wet
+  season; auroras in the dark winter; summits only in the climbing season.
+- **This month's draw**: `PlanetSites.season_pct(world, site, month)`. It is the calendar season, then:
+  - a tidal bore gets ×3 or ×4 in a twin-moon surge month (predictable: `next_surge(month)`) and ×0.6 otherwise;
+  - an aurora gets +60% per solar-flare strength;
+  - a glowing field gets +40% per strength of a spore bloom over it;
+  - a storm over the site cuts the draw (–20% per strength, at least 20% left).
+  Storms and phenomena count only for the current month.
+- **Shown**: glowing pins and names (with attraction) on the globe, the site line in the hover text, sights listed on
+  the landing hex; stars and names on the colony map, and the site in the tile panel.
+- Bob owns visitors, hotels and spending; Wilma owns news and resentment.
+
 ## Next (proposed)
 1. Terrain.generate reads the landing region and its neighbours (coast → a sea edge, mountains → more hills,
    desert/forest → different local mix). Approved by Wilma (A35 follow-up).

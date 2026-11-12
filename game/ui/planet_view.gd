@@ -45,6 +45,14 @@ var _colony_for := ""
 var _alert_mesh: MeshInstance3D
 var _alert_t := 0.0
 var _marker_lbl: Label3D
+## Tourist sites (A42, PlanetSites): a glowing pin and a name on the globe; the colony's own sites on its map.
+const SITE_COLORS := {"WATERFALL": Color("#7fd4ff"), "RIVER_FALLS": Color("#7fd4ff"), "CANYON": Color("#ff9a5a"),
+	"GLOWING_FIELD": Color("#9dff6e"), "GLOW_MEADOW": Color("#9dff6e"), "AURORA_PLAIN": Color("#c99bff"),
+	"TIDAL_BORE": Color("#5ab0ff"), "SUMMIT": Color("#ffffff"), "CRYSTAL_CRAGS": Color("#ff8ce0"),
+	"FIRST_LANDING": Color("#ffd75e")}
+const SITE_LABEL_DIST := 2.6   # globe site names show closer than this
+var _sites: Node3D
+var _site_for := ""
 const WEATHER_COLORS := {"CYCLONE": Color(1, 1, 1, 0.55), "RAIN_FRONT": Color(0.82, 0.86, 0.95, 0.45),
 	"BLIZZARD": Color(0.85, 0.93, 1.0, 0.6), "DUST": Color(0.85, 0.68, 0.42, 0.5),
 	"SPORE_BLOOM": Color(0.55, 0.95, 0.45, 0.45), "MOON_SURGE": Color(0.4, 0.75, 1.0, 0.55)}
@@ -128,6 +136,10 @@ func refresh() -> void:
 	if csig != _colony_for:
 		_colony_for = csig
 		_build_colony(w)
+	var ssig := "%s|%s" % [sig, str(w.peek("map").get("grid", {}).get("landing", []))]
+	if ssig != _site_for:
+		_site_for = ssig
+		_build_sites(w)
 	_update_colony_status(w)
 	_update_info()
 
@@ -150,10 +162,20 @@ func _place_camera() -> void:
 		for ch in _marker.get_children():
 			if ch is MeshInstance3D and ch.mesh is not ArrayMesh:   # pole and flag (the rim is an ArrayMesh)
 				ch.visible = _dist >= MARKER_HIDE_DIST
+	if _sites != null:
+		for ch in _sites.get_children():
+			if ch.has_meta("colony"):
+				ch.visible = _dist < MARKER_HIDE_DIST
+			elif ch is Label3D:
+				ch.visible = _dist < SITE_LABEL_DIST and ch.position.normalized().dot(_cam_dir()) > 0.35
 	if _weather_mesh != null:
 		_weather_mesh.transparency = clampf((1.8 - _dist) / 0.6, 0.0, 0.92)   # see the colony through the clouds up close
-	var dir := Vector3(cos(_pitch) * sin(_yaw), sin(_pitch), cos(_pitch) * cos(_yaw))
+	var dir := _cam_dir()
 	_cam.transform = Transform3D(Basis.looking_at(-dir, Vector3.UP if absf(_pitch) < 1.4 else Vector3.FORWARD), dir * _dist)
+
+
+func _cam_dir() -> Vector3:
+	return Vector3(cos(_pitch) * sin(_yaw), sin(_pitch), cos(_pitch) * cos(_yaw))
 
 
 # ------------------------------------------------------------------ mesh
@@ -244,6 +266,7 @@ func _build_globe(w: WorldState) -> void:
 	_globe.mesh = mesh
 	_build_marker(w)
 	_set_hover(-1)
+	_site_for = ""
 
 
 func _arrays() -> Array:
@@ -320,6 +343,66 @@ func _build_marker(w: WorldState) -> void:
 	ring.mesh = _ring(w, li, Color("#ffcc33"), 0.9 if Terrain.ready(w) else 0.6, 0.0015)
 	ring.transform = _marker.transform.affine_inverse()
 	_marker.add_child(ring)
+
+
+# ------------------------------------------------------------------ tourist sites
+
+func _build_sites(w: WorldState) -> void:
+	if _sites != null:
+		_sites.queue_free()
+	_sites = Node3D.new()
+	_vp.add_child(_sites)
+	var geo := Planet.geometry(Planet.freq(w))
+	var f := _hex_frame(w) if Terrain.ready(w) else {}
+	var placed: Array = []
+	for site in PlanetSites.sites(w):
+		var col: Color = SITE_COLORS.get(site["kind"], Color.WHITE)
+		var colony: bool = site["where"] == "COLONY"
+		var at: Vector3
+		if colony:
+			if f.is_empty() or site["kind"] == "FIRST_LANDING":   # the flag already marks the landing site
+				continue
+			at = colony_point(w, Vector2(site["tile"]) + Vector2(0.5, 0.5), 0.0, f)
+		else:
+			var c: Vector3 = geo["centers"][int(site["cell"])]
+			at = c * _r(maxi(Planet.height(w, int(site["cell"])), 0)) * 1.002
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = col
+		mat.emission_enabled = true
+		mat.emission = col
+		mat.emission_energy_multiplier = 1.4
+		var pin := MeshInstance3D.new()
+		var sp := SphereMesh.new()
+		sp.radius = 0.0007 if colony else 0.005
+		sp.height = sp.radius * 2.0
+		sp.radial_segments = 10
+		sp.rings = 5
+		pin.mesh = sp
+		pin.material_override = mat
+		pin.position = at
+		_sites.add_child(pin)
+		if colony:   # the colony map names its own sights; up close a label would cover it
+			pin.set_meta("colony", true)
+			continue
+		var lbl := Label3D.new()
+		lbl.text = "%s (%d)" % [site["name"], int(site["attraction"])]
+		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		lbl.fixed_size = true
+		lbl.pixel_size = 0.001
+		lbl.font_size = 16
+		lbl.outline_size = 5
+		lbl.outline_modulate = Color(0, 0, 0, 0.85)
+		lbl.modulate = col.lerp(Color.WHITE, 0.4)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		lbl.offset = Vector2(10, 0)
+		for other in placed:   # a neighbour's name already there: write this one below it
+			if Vector3(other).angle_to(at) < 0.08:
+				lbl.offset.y -= 20.0
+		placed.append(at)
+		lbl.position = at
+		lbl.no_depth_test = true   # hills must not cut names; labels on the far side are hidden in _place_camera
+		_sites.add_child(lbl)
+	_place_camera()
 
 
 # ------------------------------------------------------------------ the colony on its hex
@@ -698,6 +781,12 @@ func _update_info() -> void:
 	var air := PlanetClimate.air_pollution(w, _hover)
 	if air >= 1.0:
 		s += " · smoke %.0f" % air
+	for site in PlanetSites.at_cell(w, _hover):
+		if site["where"] != "COLONY":
+			s += "\n★ %s: %s · attraction %d · this month %d%% · %d km, %d days from the colony" % [site["name"],
+				PlanetSites.KIND_NAMES[site["kind"]], int(site["attraction"]), PlanetSites.season_pct(w, site),
+				int(site["km"]), int(site["travel_days"])]
 	if _hover == Planet.landing(w):
-		s = "★ Landing site: the colony · " + s + "\nClick to open the colony map"
+		var local: Array = PlanetSites.at_cell(w, _hover).map(func(x): return String(x["name"]))
+		s = "★ Landing site: the colony · " + s + ("\nSights: " + ", ".join(local) if not local.is_empty() else "") + "\nClick to open the colony map"
 	_info.text = head + "\n" + s

@@ -461,6 +461,8 @@ func _draw() -> void:
 	if show_dist:
 		_draw_district_borders(t)
 	_draw_facilities(w, t)
+	if not show_dist:
+		_draw_sites(w, t)
 	_draw_labels(w, t)
 	_draw_cursor(w, t)
 	if mode == "DISTRICTS" or mode == "DRAW":
@@ -528,6 +530,28 @@ func _draw_facilities(w: WorldState, t: float) -> void:
 			var g: String = st[0]
 			var gw := font.get_string_size(g, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 			draw_string(font, p + Vector2(-gw * 0.5, fs * 0.36), g, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.08, 0.08, 0.08))
+
+
+## Tourist sites on the colony map (A42, PlanetSites; the landing site has its own flag label).
+func _draw_sites(w: WorldState, t: float) -> void:
+	var font := get_theme_default_font()
+	var fs := int(clampf(t * 0.7, 9.0, 15.0))
+	for s in PlanetSites.sites(w):
+		if s["where"] != "COLONY" or s["kind"] == "FIRST_LANDING":
+			continue
+		var col: Color = PlanetView.SITE_COLORS.get(s["kind"], Color.WHITE)
+		var p := _tile_center(s["tile"])
+		var r := maxf(3.0, t * 0.38)
+		var pts := PackedVector2Array()
+		for k in 10:   # a five-pointed star
+			var rr := r if k % 2 == 0 else r * 0.45
+			var a := -PI / 2.0 + float(k) * PI / 5.0
+			pts.append(p + Vector2(cos(a), sin(a)) * rr)
+		draw_colored_polygon(pts, col)
+		pts.append(pts[0])
+		draw_polyline(pts, Color(0, 0, 0, 0.8), 1.0)
+		if t >= 9.0:
+			_label(font, p + Vector2(0, t * 0.9 + fs * 0.5), String(s["name"]), fs, col.lerp(Color.WHITE, 0.5))
 
 
 func _label(font: Font, pos: Vector2, text: String, fs: int, col: Color) -> void:
@@ -1046,6 +1070,10 @@ func tile_text(w: WorldState, tv: Vector2i) -> String:
 		uses.append("mines" if code in ["o", "x"] else "quarries and hard building")
 	if not uses.is_empty():
 		t += "Good for: %s\n" % ", ".join(uses)
+	for s in PlanetSites.sites(w):
+		if s["where"] == "COLONY" and Vector2i(s["tile"]) == tv:
+			t += "[color=#ffe08a]Sight: %s[/color] (%s), attraction %d, this month %d%% of an average month\n" % [
+				s["name"], PlanetSites.KIND_NAMES[s["kind"]], int(s["attraction"]), PlanetSites.season_pct(w, s)]
 	return t
 
 

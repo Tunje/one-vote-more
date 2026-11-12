@@ -440,3 +440,9 @@ static func describe(world: WorldState, i: int) -> String:
 	var alt := ("%d m" % (hh * METERS_PER_STEP)) if hh >= 0 else ("%d m deep" % (-hh * METERS_PER_STEP))
 	return "%s · %s · %d°%s %d°%s" % [String(NAMES.get(biome(world, i), "?")).capitalize(), alt,
 		absi(roundi(ll.x)), "N" if ll.x >= 0 else "S", absi(roundi(ll.y)), "E" if ll.y >= 0 else "W"]
+
+
+## Tourist sites (A42, spec-demand-v1 §D4): see PlanetSites. Pure: [{id, name, kind, attraction 0..100,
+## season_mult [12 × %], cell, dist, km, travel_days, where, tile}]. This month's draw: PlanetSites.season_pct.
+static func sites(world: WorldState) -> Array:
+	return PlanetSites.sites(world)
