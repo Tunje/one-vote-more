@@ -471,6 +471,11 @@ static func _end_strike(world: WorldState, d: Dictionary, u: Dictionary, outcome
 
 static func _settle(world: WorldState, d: Dictionary, u: Dictionary, outcome: String, award: int) -> void:
 	d["award_pm"] = award
+	if outcome in ["ACCEPTED", "COUNTER", "WON", "COMPROMISE", "ARBITRATED"]:
+		# a settlement relieves the grievance it answered (fading over Unions.RELIEF_M months): wages are now judged
+		# against the last settlement, not against the slump
+		u["relief"] = clampf(10.0 + 0.5 * float(award), 10.0, 50.0) if d["kind"] == "WAGE" else 15.0
+		u["relief_m"] = world.month
 	if award > 0:
 		for oid in _struck_orgs(world, d):
 			var o: Dictionary = world.table("org")[oid]

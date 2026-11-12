@@ -34,6 +34,7 @@ const MERGE_MAX := 40  # persons: both unions below this to merge
 const MERGE_P := 1.0 / 120.0
 const MERGE_MAX_SECTORS := 2
 const EMPTY_DISSOLVE_M := 24
+const RELIEF_M := 24  # months over which a settlement's relief fades
 const MERGE_GAP_M := 120
 const SPLIT_MOOD := 70
 const SPLIT_AFTER_M := 24
@@ -296,6 +297,10 @@ static func _mood(world: WorldState) -> void:
 			laid += float(lay.get(occ, 0))
 			base += float(emp.get(occ, 0))
 		var target := 20.0 + 25.0 * g + 300.0 * laid / maxf(1.0, base)
+		# relief from the last settlement, fading over RELIEF_M months (U2 sets it)
+		target -= float(u.get("relief", 0.0)) * maxf(0.0, 1.0 - float(world.month - int(u.get("relief_m", -9999))) / float(RELIEF_M))
+		if u["sectors"].size() > 0 and u["sectors"][0] in MODERATE:
+			target *= 0.75  # the professions are slower to anger
 		if u["last_strike_result"] == "LOST":
 			target += 10.0
 		u["mood"] = clampi(int(round(float(u["mood"]) + (clampf(target, 0.0, 100.0) - float(u["mood"])) / 6.0)), 0, 100)
