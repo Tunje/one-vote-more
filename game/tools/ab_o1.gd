@@ -36,9 +36,27 @@ func _init() -> void:
 		var inb := 0
 		var usum := 0.0
 		var fam_m := -1
+		var gov := {"believer_m": 0, "high_u_m": 0, "high_u_believer_m": 0, "bsum": 0.0, "n": 0, "pm": {}}
 		for m in months:
 			sim.step()
 			var u := FirmAI.colony_unemployment(sim.world)
+			# who governed: GovBuilder's public-works test is ECON_ROLE + FISCAL > -0.2 (interventionist + spending)
+			var pol: Dictionary = sim.world.peek("pol")
+			if pol.has("state"):
+				var who: Dictionary = GovBuilder._actor(sim.world, pol["state"])
+				if not who.is_empty():
+					var pos: Dictionary = who["pos"]
+					var b := (float(pos.get("ECON_ROLE", 0)) + float(pos.get("FISCAL", 0))) / 100000.0
+					gov["bsum"] += b
+					gov["n"] += 1
+					var pm := str(who["by"])
+					gov["pm"][pm] = int(gov["pm"].get(pm, 0)) + 1
+					if b > -0.2:
+						gov["believer_m"] += 1
+					if u > 0.12:
+						gov["high_u_m"] += 1
+						if b > -0.2:
+							gov["high_u_believer_m"] += 1
 			usum += u
 			if u >= 0.03 and u <= 0.25:
 				inb += 1
@@ -53,5 +71,14 @@ func _init() -> void:
 		fam += 1 if s["famine"] else 0
 		dfl += 1 if s["sovereign_default"] else 0
 		print("%s seed %d in_band %d famine %s default %s mean_u %.1f%%" % [label, sd, inb, str(s["famine"]), str(s["sovereign_default"]), 100.0 * usum / months])
+		var pm_rows: Array = []
+		for k in gov["pm"]:
+			var nm: String = str(k)
+			if sim.world.peek("party").has(k):
+				nm = "%s(%s)" % [k, str(sim.world.peek("party")[k].get("name", k))]
+			pm_rows.append([int(gov["pm"][k]), nm])
+		pm_rows.sort_custom(func(a, b): return a[0] > b[0])
+		print("%s seed %d gov: public-works-minded %d/%d months, mean ECON_ROLE+FISCAL %.2f; high-u months %d, of which a believer governed %d; PM months %s" % [label, sd,
+			gov["believer_m"], gov["n"], gov["bsum"] / maxf(1.0, float(gov["n"])), gov["high_u_m"], gov["high_u_believer_m"], str(pm_rows.slice(0, 4))])
 	print("%s TOTAL in_band %d famine %d default %d" % [label, tot, fam, dfl])
 	quit()

@@ -95,3 +95,14 @@ const COMPANY_FOUND_ENDOW := 20.0
 const P_FOUND_COMPANY := 0.002            # per eligible company-month …
 const P_FOUND_BAD_PRESS := 0.015          # … + this per bad PUBLIC story about it in 12 months (max 3)
 const BAD_PRESS_MONTHS := 12
+
+# ---- M4: money (spec §9, §16)
+const COST_STAFF_PER_QUALITY := 0.02      # W_ref per quality point per month (wages to households)
+const COST_PRINT_BASE := 0.1              # W_ref per month
+const COST_PRINT_PER_COPY := 0.0005       # W_ref per copy-month
+const PARTY_COVER_MAX := 1.0              # W_ref a party puts into its paper per month at most …
+const PARTY_COVER_RESERVE := 1.0          # … while keeping this much
+const DEFICIT_CLOSE_MONTHS := 6           # costs unpaid this many months in a row: the paper closes (not the state's)
+const SALES_RECOVER := 0.05               # sales_f recovery per month
+const SALES_F_MIN := 0.1
+const REFOUND_COOLDOWN := 36              # months before an owner whose paper closed may found another

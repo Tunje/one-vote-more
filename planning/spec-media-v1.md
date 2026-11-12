@@ -389,3 +389,29 @@ The v4 chronicles showed no paper but the Gazette in 100 years. `Media._found_ai
   - 5–6 papers are active at year 10 (union, company and party), and company papers die with their firms.
   - With no money exit, the line-up then freezes.
 - **Tests:** `tests/media/test_media_found.gd` (8). `world.meta.media_found_scale` scales the founding probabilities for tests and probes.
+
+## 16. As built: M4 money (2026-11-12, with Bob)
+
+- **Demand** `Media.demand(world)` → {hh group: {outlet: copies (milli)}}.
+  - Each district's readers from the reader pass are split over that district's hh groups by persons.
+  - Bob buys the copies in SOCIAL, after JUSTICE in the same month (`EconHouseholds._buy_media`, memo MEDIA_COPIES).
+- **Sales feedback:** `record_sales({outlet: copies})` sets `o.sales_f` = previous × sold/wanted + 0.05 (between 0.1 and 1).
+  - Reader appeal is multiplied by `sales_f`, so readership follows what households could actually pay for.
+- **Running costs** (monthly, `_finances` after the reader pass): quality × 0.02 + invest + 0.1 + 0.0005 × copies, in W_ref.
+  - Paid by `EconHouseholds.pay_media_wages` to the paper's top district (colony-wide if short), memo MEDIA_WAGES.
+- **Who covers losses:**
+  - The state covers the Gazette from the treasury, on the ECON_BUDGET_SUBSIDIES line.
+  - A party covers up to 1 W_ref a month while keeping 1 W_ref.
+  - Companies top up in Bob's COMPANY_AI, which reads `deficit_months`.
+  - Unions have no account.
+- **Press subsidy:** `LAW_PRESS_SUBSIDY` (W_ref a month, colony-wide) is split by circulation, within the subsidies-line headroom.
+- **Exit:** after 6 months in a row with costs unpaid, the paper closes as INSOLVENT (never the Gazette).
+  - Leftover cash goes back to the owner (party, company or treasury), otherwise to households.
+  - The owner may not found again for 36 months.
+- **Fields:** `o.fin` {cost, paid, balance, sales}, `o.deficit_months`, `o.sales_f`. Switched off with `meta.off` "MEDIA_M4".
+- **Probe, 2 seeds × 20 years:**
+  - The press now churns: papers found, run deficits and close.
+  - 3–4 papers are active at year 20.
+  - Union papers die without cover and refound at most every 3 years.
+  - Party papers survive while campaign ads and party cash last.
+- **Tests:** `tests/media/test_media_m4.gd` (6), and the founding tests gain the cooldown case.

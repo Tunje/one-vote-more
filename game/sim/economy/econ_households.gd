@@ -55,6 +55,7 @@ static func essentials_cost(world: WorldState, g: Dictionary) -> int:
 static func social(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	_consume(world)
+	_buy_media(world)
 	_buy_services(world)
 	if not EconUtil.off(world, "BANDS"):
 		# M10 / E92: income EMAs update monthly; people change band (and pool) once a year, in January
@@ -159,6 +160,83 @@ static func discretionary_budget(world: WorldState, g: Dictionary) -> int:
 	return maxi(b, floor_b)
 
 
+## Media M4 (Anni/Bob split): households buy newspaper copies from Media.demand() = {hh group id: {outlet id: copies
+## (milli)}} at the outlet's price_mw × W_ref / 1000 per copy-month, paid hh → the outlet's account, out of the
+## services share of the discretionary budget (papers compete with services, not with essentials). A group that cannot
+## pay for everything it wants buys pro rata less. What was bought goes back to Media.record_sales.
+static func _buy_media(world: WorldState) -> void:
+	for gid0 in world.table("hh"):
+		world.table("hh")[gid0]["media_spent"] = 0
+	if EconUtil.off(world, "MEDIA_M4") or world.peek("outlet").is_empty():
+		return
+	var dem: Dictionary = Media.demand(world)
+	var wref := int(world.values.get("ECON_W_REF", 1200 * S))
+	var outlets: Dictionary = world.peek("outlet")
+	var sold := {}
+	for gid in EconUtil.sorted_keys(dem):
+		if not world.table("hh").has(gid) or typeof(dem[gid]) != TYPE_DICTIONARY:
+			continue  # not an hh group key (older demand format): nothing to buy
+		var g: Dictionary = world.table("hh")[gid]
+		var want: Dictionary = dem[gid]
+		var cost := 0
+		var price := {}
+		for oid in EconUtil.sorted_keys(want):
+			if not outlets.has(oid) or String(outlets[oid].get("status", "")) != "ACTIVE":
+				continue
+			price[oid] = int(outlets[oid].get("price_mw", 0)) * wref / 1000
+			cost += int(want[oid]) * int(price[oid]) / S
+		if cost <= 0:
+			continue
+		var budget := int((1.0 - EconData.DISC_CONSUMER_SHARE) * discretionary_budget(world, g))
+		budget = maxi(0, mini(budget, world.ledger.balance(EconUtil.hh_acct(gid))))
+		var f := minf(1.0, float(budget) / float(cost))
+		var spent := 0
+		for oid in EconUtil.sorted_keys(price):
+			var q := int(float(want[oid]) * f)
+			var amt := q * int(price[oid]) / S
+			if q <= 0 or amt <= 0:
+				continue
+			var paid := EconUtil.pay_upto(world, EconUtil.hh_acct(gid), String(outlets[oid].get("account", "media:" + oid)), amt, "MEDIA_COPIES")
+			if paid <= 0:
+				continue
+			if paid < amt:
+				q = int(float(q) * float(paid) / float(amt))
+			spent += paid
+			sold[oid] = int(sold.get(oid, 0)) + q
+		g["media_spent"] = spent
+	Media.record_sales(world, sold)
+
+
+## Media M4: an outlet's running costs paid as wages to the district's household groups (journalists, printers,
+## distribution: service-sector income stays in the closed colony), split by employed count. Pays only what the
+## outlet's account holds; returns the amount paid.
+static func pay_media_wages(world: WorldState, from_acct: String, amount: int, district: String) -> int:
+	if amount <= 0:
+		return 0
+	var amt := mini(amount, maxi(0, world.ledger.balance(from_acct)))
+	var gids: Array = []
+	var w: Array = []
+	for gid in EconUtil.sorted_keys(world.table("hh")):
+		var g: Dictionary = world.table("hh")[gid]
+		if g["district"] == district or district == "":
+			gids.append(gid)
+			w.append(maxi(1, EconLabor.employed(g)))
+	if amt <= 0 or gids.is_empty():
+		return 0
+	var parts := EconUtil.split_lr(amt, w)
+	var paid := 0
+	for i in gids.size():
+		var a: int = parts[i]
+		if a <= 0:
+			continue
+		var p := EconUtil.pay_upto(world, from_acct, EconUtil.hh_acct(gids[i]), a, "MEDIA_WAGES")
+		if p > 0:
+			world.table("hh")[gids[i]]["income"]["wages"] += p
+			EconPop.credit_status(world, gids[i], "EMPLOYED", p, "wages")
+			paid += p
+	return paid
+
+
 static func _buy_services(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var hubs_by_d := {}
@@ -175,8 +253,8 @@ static func _buy_services(world: WorldState) -> void:
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
 		var d: String = g["district"]
-		var budget := int((1.0 - EconData.DISC_CONSUMER_SHARE) * discretionary_budget(world, g))
-		budget = mini(budget, world.ledger.balance(EconUtil.hh_acct(gid)))
+		var budget := int((1.0 - EconData.DISC_CONSUMER_SHARE) * discretionary_budget(world, g)) - int(g.get("media_spent", 0))
+		budget = maxi(0, mini(budget, world.ledger.balance(EconUtil.hh_acct(gid))))
 		var price: int = s["svc_price"][d]
 		var want := int(float(budget) * S / float(maxi(1, price)))
 		demand_d[d] = demand_d.get(d, 0) + want

@@ -118,6 +118,7 @@ static func transfer_outlet(world: WorldState, out_id: String, new_owner: Dictio
 		return {"ok": false, "reason": "OWNERSHIP_CAP"}
 	var old: Dictionary = o["owner"]
 	o["owner"] = new_owner.duplicate()
+	o["deficit_months"] = 0          # a new owner gets a fresh start (the seller's unpaid months are not its own)
 	world.add_fact({"type": "MEDIA_OUTLET_SOLD", "owner": "law", "subjects": [{"kind": "OUTLET", "id": out_id}],
 		"responsible": [], "impact": {}, "magnitude": 35, "visibility": "PUBLIC",
 		"data": {"outlet": out_id, "from": old.duplicate(), "to": new_owner.duplicate(), "price": price}})
@@ -130,6 +131,7 @@ static func close_outlet(world: WorldState, out_id: String, reason: String) -> v
 		return
 	o["status"] = "CLOSED"
 	o["closed"] = world.month
+	_refund(world, o)
 	world.add_fact({"type": "MEDIA_OUTLET_CLOSED", "owner": "law", "subjects": [{"kind": "OUTLET", "id": out_id}],
 		"responsible": [], "impact": {}, "magnitude": 35, "visibility": "PUBLIC",
 		"data": {"outlet": out_id, "name": o["name"], "reason": reason}})
@@ -381,6 +383,7 @@ static func run(world: WorldState) -> void:
 	if censored:
 		_record_censorship(world)
 	_readers(world)
+	_finances(world)
 	_prune(world)
 
 
@@ -647,7 +650,8 @@ static func _readers(world: WorldState) -> void:
 				var ak := "%d|%s" % [i, band]
 				if not aff_cache.has(ak):
 					aff_cache[ak] = _afford(world, o, band)
-				a = float(aff_cache[ak]) * (0.3 + 0.7 * fit) * (0.4 + 0.6 * tr / 100000.0) * (0.6 + float(o["quality"]) / 250.0)
+				a = float(aff_cache[ak]) * (0.3 + 0.7 * fit) * (0.4 + 0.6 * tr / 100000.0) * (0.6 + float(o["quality"]) / 250.0) \
+					* float(o.get("sales_f", 1.0))
 			appeal.append(a)
 			tot += a
 		var diet := {}
@@ -737,14 +741,58 @@ static func _prune(world: WorldState) -> void:
 
 # =================================================================================== economy & campaign hooks
 
-## Copies wanted per outlet and district (Bob books them in _buy_services; spec §9).
+## Copies wanted: {hh group id: {outlet id: copies (milli)}}. Each district's readers (from the last reader pass)
+## are split over that district's household groups by persons. Bob buys them in EconHouseholds._buy_media.
 static func demand(world: WorldState) -> Dictionary:
-	return state(world).get("circ", {}).duplicate(true)
+	var circ: Dictionary = state(world).get("circ", {})
+	var by_d := {}       # district -> [[gid, persons]]
+	var tot_d := {}
+	var hh := world.peek("hh")
+	for gid in Det.ordered(hh):
+		var g: Dictionary = hh[gid]
+		var d := String(g.get("district", ""))
+		var n := EconHouseholds.persons(g)
+		if n <= 0:
+			continue
+		if not by_d.has(d):
+			by_d[d] = []
+			tot_d[d] = 0
+		by_d[d].append([String(gid), n])
+		tot_d[d] = int(tot_d[d]) + n
+	var out := {}
+	for oid in Det.ordered(circ):
+		if String(outlet(world, oid).get("status", "")) != "ACTIVE":
+			continue
+		for d in Det.ordered(circ[oid]):
+			var copies := int(circ[oid][d]) * S
+			if copies <= 0 or not by_d.has(d):
+				continue
+			var parts := EconUtil.split_lr(copies, by_d[d].map(func(r): return int(r[1])))
+			for i in by_d[d].size():
+				if int(parts[i]) <= 0:
+					continue
+				var gid: String = by_d[d][i][0]
+				if not out.has(gid):
+					out[gid] = {}
+				out[gid][oid] = int(parts[i])
+	return out
 
 
-## Copies actually bought (Bob, after scaling down what poor groups cannot pay).
+## Copies actually bought {outlet id: copies (milli)} (Bob, SETTLEMENT). Readership follows sales: an outlet's
+## appeal is scaled by `sales_f`, which drops to what was bought and recovers SALES_RECOVER a month.
 static func record_sales(world: WorldState, sold: Dictionary) -> void:
-	state(world)["sales"] = sold.duplicate(true)
+	var st := state(world)
+	st["sales"] = sold.duplicate(true)
+	var circ: Dictionary = st.get("circ", {})
+	for oid in outlets(world):
+		var wanted := 0
+		for d in circ.get(oid, {}):
+			wanted += int(circ[oid][d]) * S
+		if wanted <= 0:
+			continue
+		var o: Dictionary = world.table("outlet")[oid]
+		var r := clampf(float(sold.get(oid, 0)) / float(wanted), 0.0, 1.0)
+		o["sales_f"] = clampf(float(o.get("sales_f", 1.0)) * r + MD.SALES_RECOVER, MD.SALES_F_MIN, 1.0)
 
 
 ## Ella's ad spend: paid to outlets by circulation share in the targeted districts; the rest goes to
@@ -1245,11 +1293,22 @@ static func founding_candidates(world: WorldState) -> Array:
 	return out
 
 
+## An owner whose paper closed within REFOUND_COOLDOWN months does not found another (no found-fail-refound churn).
+static func _recently_closed(world: WorldState, owner: Dictionary) -> bool:
+	var t := world.peek("outlet")
+	for id in t:
+		var o: Dictionary = t[id]
+		if String(o.get("status", "")) == "CLOSED" and _same(o["owner"], owner) \
+				and world.month - int(o.get("closed", -999)) < MD.REFOUND_COOLDOWN:
+			return true
+	return false
+
+
 ## Monthly: at most one new paper, if the market has room. Every candidate rolls; one hit is drawn.
 static func _found_ai(world: WorldState) -> void:
 	if world.month < MD.FOUND_FROM_MONTH or market_room(world) <= 0:
 		return
-	var cands := founding_candidates(world)
+	var cands := founding_candidates(world).filter(func(c): return not _recently_closed(world, c["owner"]))
 	if cands.is_empty():
 		return
 	var rng := world.rng.stream("media.found")
@@ -1288,3 +1347,116 @@ static func _close_orphans(world: WorldState) -> void:
 				var o: Dictionary = world.peek("org").get(String(ow["id"]), {})
 				if not o.is_empty() and String(o.get("status", "")) in ["LIQUIDATION", "DISSOLVED"]:
 					close_outlet(world, id, "OWNER_GONE")
+
+
+# =================================================================================== M4: money (spec §9, §16)
+
+static func _has_economy(world: WorldState) -> bool:
+	return not world.peek("hh").is_empty()
+
+
+## Monthly running cost of an outlet in mcr (spec §9): staff quality × 0.02 W_ref, investigation `invest`,
+## printing 0.1 W_ref + 0.0005 W_ref per copy.
+static func running_cost(world: WorldState, o: Dictionary) -> int:
+	var wref := float(maxi(1, int(world.values.get("ECON_W_REF", 1200 * S))))
+	var w := float(o["quality"]) * MD.COST_STAFF_PER_QUALITY + float(o.get("invest", 0.0)) + MD.COST_PRINT_BASE \
+		+ MD.COST_PRINT_PER_COPY * float(o.get("circulation", 0))
+	return int(round(w * wref))
+
+
+## Months in a row the outlet could not pay its running costs (Bob's firm AI reads it for company papers).
+static func deficit_months(world: WorldState, out_id: String) -> int:
+	return int(outlet(world, out_id).get("deficit_months", 0))
+
+
+static func _top_district(world: WorldState, out_id: String) -> String:
+	var cd: Dictionary = state(world).get("circ", {}).get(out_id, {})
+	var best := ""
+	var bv := -1
+	for d in Det.ordered(cd):
+		if int(cd[d]) > bv:
+			bv = int(cd[d])
+			best = String(d)
+	return best
+
+
+## LAW_PRESS_SUBSIDY (W_ref/month, colony total): treasury → outlets by circulation, inside the subsidies budget.
+static func _press_subsidy(world: WorldState) -> void:
+	var lv := float(world.levers.get("LAW_PRESS_SUBSIDY", 0))
+	if lv <= 0.0:
+		return
+	var wref := maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))
+	var total := mini(int(lv * wref), maxi(0, EconActions.headroom(world, "ECON_BUDGET_SUBSIDIES")))
+	var ids := outlets(world).filter(func(id): return int(outlet(world, id).get("circulation", 0)) > 0)
+	if total <= 0 or ids.is_empty():
+		return
+	var parts := EconUtil.split_lr(total, ids.map(func(id): return int(outlet(world, id)["circulation"])))
+	for i in ids.size():
+		var paid := EconFinance.gov_pay(world, String(outlet(world, ids[i])["account"]), int(parts[i]), "PRESS_SUBSIDY")
+		if paid > 0:
+			EconFinance._spend_line(world, "ECON_BUDGET_SUBSIDIES", paid)
+
+
+## The owner covers this month's shortfall: the state always (public media), a party up to PARTY_COVER_MAX W_ref
+## while it keeps PARTY_COVER_RESERVE W_ref. Companies top up in Bob's COMPANY_AI; unions have no account yet.
+static func _owner_cover(world: WorldState, o: Dictionary, short: int) -> void:
+	if short <= 0:
+		return
+	var wref := maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))
+	match String(o["owner"]["kind"]):
+		"STATE":
+			var paid := EconFinance.gov_pay(world, String(o["account"]), short, "PUBLIC_MEDIA")
+			if paid > 0:
+				EconFinance._spend_line(world, "ECON_BUDGET_SUBSIDIES", paid)
+		"PARTY":
+			var acc := "party:" + String(o["owner"]["id"])
+			var spare := world.ledger.balance(acc) - int(MD.PARTY_COVER_RESERVE * wref)
+			var amt := mini(short, mini(int(MD.PARTY_COVER_MAX * wref), spare))
+			if amt > 0:
+				world.ledger.transfer(acc, String(o["account"]), amt, "MEDIA_OWNER_COVER", world.month)
+
+
+## Monthly (end of Media.run): subsidy, owner cover, wages; deficit months; insolvency after DEFICIT_CLOSE_MONTHS.
+static func _finances(world: WorldState) -> void:
+	if not _has_economy(world) or EconUtil.off(world, "MEDIA_M4"):
+		return
+	_press_subsidy(world)
+	for id in outlets(world):
+		var o: Dictionary = world.table("outlet")[id]
+		var cost := running_cost(world, o)
+		_owner_cover(world, o, cost - world.ledger.balance(String(o["account"])))
+		var dist := _top_district(world, id)
+		var paid := EconHouseholds.pay_media_wages(world, String(o["account"]), cost, dist)
+		if paid < cost and dist != "":
+			paid += EconHouseholds.pay_media_wages(world, String(o["account"]), cost - paid, "")
+		o["fin"] = {"month": world.month, "cost": cost, "paid": paid, "balance": world.ledger.balance(String(o["account"])),
+			"sales": int(state(world).get("sales", {}).get(id, 0))}
+		if paid < cost:
+			o["deficit_months"] = int(o.get("deficit_months", 0)) + 1
+		else:
+			o["deficit_months"] = 0
+		if int(o["deficit_months"]) >= MD.DEFICIT_CLOSE_MONTHS and String(o["owner"]["kind"]) != "STATE":
+			close_outlet(world, id, "INSOLVENT")
+
+
+## Leftover cash goes back to the owner (party, company) or to households (closed ledger).
+static func _refund(world: WorldState, o: Dictionary) -> void:
+	var acc := String(o.get("account", ""))
+	if acc == "" or not world.ledger.has_account(acc):
+		return
+	var bal := world.ledger.balance(acc)
+	if bal <= 0:
+		return
+	var ow: Dictionary = o["owner"]
+	var to := ""
+	match String(ow.get("kind", "")):
+		"PARTY":
+			to = "party:" + String(ow["id"])
+		"COMPANY":
+			to = EconUtil.acct(String(ow["id"]))
+		"STATE":
+			to = EconUtil.TREASURY
+	if to != "" and world.ledger.has_account(to):
+		world.ledger.transfer(acc, to, bal, "MEDIA_CLOSED", world.month)
+	else:
+		PartyLife._household_receive(world, acc, bal, "MEDIA_CLOSED")

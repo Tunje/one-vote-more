@@ -33,6 +33,7 @@ static func run(world: WorldState) -> void:
 		_essentials_planner(world)
 	_expansion(world)
 	_small_business(world)
+	_media_owners(world)
 	EconLabor.update_wage_index(world)
 
 
@@ -123,6 +124,89 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 		elif f["mothball"] and f["T"] >= 500 and o["status"] in ["ACTIVE", "DISTRESSED", "ADMINISTRATION"] 				and not f.get("closed_unsafe", false) and not f.get("law_closed", false):  # E104: only repair/relicensing reopens those
 			f["mothball"] = false
 			f["low_util_m"] = 0
+
+
+## Media M4 (company side; Anni runs outlet finances in JUSTICE, after this): each month a company that owns a paper
+## decides whether to cover next month's shortfall (running cost − account balance). It covers while it is ACTIVE,
+## keeps MEDIA_RESERVE_MONTHS of its costs in cash, and the top-up stays under its willingness to pay: the more bad
+## press it had in 12 months, the more a mouthpiece is worth (MEDIA_COVER_BASE + MEDIA_COVER_PER_STORY W_ref per
+## story, up to 4 stories) plus MEDIA_COVER_PROFIT_SHARE of last month's profit. Covering is an investment from
+## retained cash ("MEDIA_COVER", no P&L line, like the founding). An owner that will not or cannot cover, or one in
+## liquidation, tries to sell to the richest willing company (one with bad press of its own and no paper, enough
+## cash); with no buyer the paper runs on until Anni's deficit rule closes it.
+const MEDIA_COVER_BASE := 2.0  # W_ref a month; a firm's costs run 20–400 W_ref, a company paper costs about 1.6–3
+const MEDIA_COVER_PER_STORY := 1.0
+const MEDIA_COVER_PROFIT_SHARE := 0.05
+const MEDIA_RESERVE_MONTHS := 1  # a firm keeps one month of its own costs (most firms never hold three)
+const MEDIA_BUYER_CASH := 100  # W_ref
+const MEDIA_SELL_AFTER := 3  # deficit months before an unwilling owner looks for a buyer
+
+
+static func _media_owners(world: WorldState) -> void:
+	if EconUtil.off(world, "MEDIA_M4") or world.peek("outlet").is_empty():
+		return
+	var wref := maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))
+	for out_id in Media.outlets(world):
+		var out: Dictionary = world.table("outlet")[out_id]
+		if String(out["owner"].get("kind", "")) != "COMPANY":
+			continue
+		var oid := String(out["owner"]["id"])
+		var o: Dictionary = world.table("org").get(oid, {})
+		var acc := String(out["account"])
+		# + 10%: the cost is re-read in JUSTICE after circulation updates; an exact top-up can miss by a few credits
+		var short := Media.running_cost(world, out) * 11 / 10 - world.ledger.balance(acc)
+		if o.is_empty() or o["status"] in ["LIQUIDATION", "DISSOLVED"]:
+			_sell_paper(world, out_id, oid, wref)  # an asset of the estate
+			continue
+		if short <= 0:
+			continue
+		var willing := (MEDIA_COVER_BASE + MEDIA_COVER_PER_STORY * float(mini(4, Media.bad_press_12m(world, oid)))) * float(wref)
+		var profit := EconFinance.profit(o["pl_last"]) if not o.get("pl_last", {}).is_empty() else 0
+		willing += MEDIA_COVER_PROFIT_SHARE * float(maxi(0, profit))
+		var spare := world.ledger.balance(EconUtil.acct(oid)) - MEDIA_RESERVE_MONTHS * maxi(1, EconFinance._monthly_costs(o))
+		# the owner's reasoning, kept on the outlet for the papers' finance view and probes (W_ref)
+		out["owner_decision"] = {"month": world.month, "short": float(short) / wref, "willing": willing / wref,
+			"spare": float(spare) / wref, "status": o["status"]}
+		if o["status"] == "ACTIVE" and float(short) <= willing and spare >= short:
+			world.ledger.transfer(EconUtil.acct(oid), acc, short, "MEDIA_COVER", world.month)
+			o["media_cover_12m"] = int(o.get("media_cover_12m", 0)) + short
+		elif Media.deficit_months(world, out_id) >= MEDIA_SELL_AFTER:
+			_sell_paper(world, out_id, oid, wref)
+	if world.month_of_year() == 1:
+		for oid2 in world.table("org"):
+			world.table("org")[oid2].erase("media_cover_12m")
+
+
+## Sells a company paper to the richest willing company; the price is the buyer's cash share it is ready to commit
+## (one month of running cost — papers in deficit sell cheaply), paid to the seller (or its estate). False: no buyer.
+static func _sell_paper(world: WorldState, out_id: String, seller: String, wref: int) -> bool:
+	var out: Dictionary = world.table("outlet")[out_id]
+	var best := ""
+	var best_cash := MEDIA_BUYER_CASH * wref
+	for oid in EconUtil.sorted_keys(world.table("org")):
+		if oid == seller:
+			continue
+		var o: Dictionary = world.table("org")[oid]
+		if o["status"] != "ACTIVE" or o["is_contractor"] or not (o["type"] in ["PRIVATE", "COOPERATIVE"]):
+			continue
+		if not Media.owned_by(world, {"kind": "COMPANY", "id": oid}).is_empty() or Media.bad_press_12m(world, oid) <= 0:
+			continue
+		var c := world.ledger.balance(EconUtil.acct(oid))
+		if c > best_cash:
+			best_cash = c
+			best = oid
+	if best == "":
+		return false
+	var price := mini(Media.running_cost(world, out), world.ledger.balance(EconUtil.acct(best)))
+	var r: Dictionary = Media.transfer_outlet(world, out_id, {"kind": "COMPANY", "id": best}, price)
+	if not bool(r.get("ok", false)):
+		return false
+	if price > 0 and world.ledger.has_account(EconUtil.acct(seller)):
+		world.ledger.transfer(EconUtil.acct(best), EconUtil.acct(seller), price, "MEDIA_SALE", world.month)
+	if world.table("org").has(seller):
+		world.table("org")[seller].erase("media_out")
+	world.table("org")[best]["media_out"] = out_id
+	return true
 
 
 ## E115b (Wilma): the owner decides on mothballing. A public enterprise keeps an idle plant running while colony

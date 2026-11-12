@@ -175,3 +175,16 @@ func test_paper_dies_with_its_owner() -> void:
 	Media._close_orphans(w)
 	check_eq(String(Media.outlet(w, id)["status"]), "CLOSED", "closed when the party dissolves")
 	check_eq(Media.outlets(w).size(), 1, "the Gazette remains")
+
+
+func test_no_refounding_right_after_a_closure() -> void:
+	var w := _world()
+	w.table("econ")["s"] = {"union": {"density": {"MINING": 45000, "PUBLIC_SECTOR": 48000}}}
+	w.meta["media_found_scale"] = 100.0
+	_months(w, 1)
+	var id: String = Media.owned_by(w, {"kind": "UNION", "id": "union:fed"})[0]
+	Media.close_outlet(w, id, "INSOLVENT")
+	_months(w, 35)
+	check(Media.owned_by(w, {"kind": "UNION", "id": "union:fed"}).is_empty(), "no new paper within 36 months")
+	_months(w, 2)
+	check_eq(Media.owned_by(w, {"kind": "UNION", "id": "union:fed"}).size(), 1, "then it may try again")

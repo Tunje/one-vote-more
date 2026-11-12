@@ -134,7 +134,7 @@ func test_readership_price_and_fit() -> void:
 	check(high["diet"].has(gz), "the well-off can afford the Gazette (%s)" % [high["diet"]])
 	check(int(rich_left["diet"].get(cheap, 0)) > int(high["diet"].get(cheap, 0)), "readers prefer papers they agree with")
 	check(int(w.table("outlet")[cheap]["circulation"]) > 0, "circulation counted")
-	check(Media.demand(w)[cheap].has("district:1"), "demand per district for Bob")
+	check(Media.state(w)["circ"][cheap].has("district:1"), "circulation per district (the basis of demand)")
 
 
 func test_news_vector_reaches_only_readers() -> void:

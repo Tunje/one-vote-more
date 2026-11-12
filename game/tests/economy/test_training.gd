@@ -12,13 +12,20 @@ func test_training_promotes_into_vacancies_and_costs_money() -> void:
 	sim.run(6)
 	var w := sim.world
 	var s0 := _skill(w, "S")
+	# force a real mismatch (training only runs then): every unemployed S worker becomes G
+	for key in PopStore.select(w, {"status": "UNEMPLOYED"}):
+		var n := int(w.peek("pop")[key]["skill"].get("S", 0))
+		if n > 0:
+			EconPop.recompose(w, key, "skill", "S", "G", n)
 	var vac := EconTraining.vacancies(w)
+	var free_g := PopStore.count(w, {"status": "UNEMPLOYED"}, "skill:G")
+	EconTraining.monthly(w)
+	var last: Dictionary = EconUtil.st(w).get("train_last", {})
+	if vac["S"] > 0 and free_g > vac["G"]:
+		check(int(last.get("S", 0)) > 0, "S vacancies %s with %d free G led to training: %s" % [vac, free_g, last])
+	else:
+		check(false, "test setup: expected S vacancies and spare G (vac %s, free G %d)" % [vac, free_g])
 	sim.run(12)
-	var trained := 0
-	for h in EconUtil.st(w).get("train_hist", []):
-		trained += int(h[0]) + int(h[1])
-	if vac["S"] + vac["Sp"] > 0:
-		check(trained > 0, "skilled vacancies %s led to training (%d)" % [vac, trained])
 	check_eq(w.ledger.total(), 0, "ledger closed (stipends are transfers)")
 	check(EconPop.check(w).is_empty(), "jobs still equal people: %s" % [EconPop.check(w)])
 	var sk: Dictionary = EconQuery.essentials(w)["SKILLS"]
