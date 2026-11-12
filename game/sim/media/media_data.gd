@@ -39,7 +39,41 @@ const SENSATIONAL := ["POL_SCANDAL", "LAW_", "ECON_FAMINE", "PLANET_", "COMP_WOR
 const NEGATIVE := ["POL_SCANDAL", "LAW_LEADER_CONVICTED", "LAW_MANAGER_CONVICTED", "POL_DIRT", "POL_SMEAR", "POL_DEBATE_GAFFE",
 	"POL_NO_CONFIDENCE", "POL_BILL_DEFEATED", "COMP_WORKPLACE_ACCIDENT", "ECON_FAMINE", "ECON_SOVEREIGN_DEFAULT",
 	"ECON_FACILITY_CLOSED", "LAW_DEFAMATION_RULED", "MEDIA_REPORT_EXPOSED", "LAW_CRISIS_CAUSE_REVEALED"]
-const STATE_PAPER := {"sens": 0.2, "ethics": 0.8, "quality": 60, "cred": 70000, "price_mw": 2}
-const PARTY_PAPER := {"sens": 0.4, "quality": 40, "cred": 55000, "price_mw": 2}
-const UNION_PAPER := {"sens": 0.4, "ethics": 0.6, "quality": 40, "cred": 55000, "price_mw": 1}
-const COMPANY_PAPER := {"sens": 0.6, "ethics": 0.5, "quality": 50, "cred": 55000, "price_mw": 3}
+const STATE_PAPER := {"sens": 0.2, "ethics": 0.8, "quality": 60, "cred": 70000, "price_mw": 2, "invest": 0.5}
+const PARTY_PAPER := {"sens": 0.4, "quality": 40, "cred": 55000, "price_mw": 2, "invest": 0.3}
+const UNION_PAPER := {"sens": 0.4, "ethics": 0.6, "quality": 40, "cred": 55000, "price_mw": 1, "invest": 0.3}
+const COMPANY_PAPER := {"sens": 0.6, "ethics": 0.5, "quality": 50, "cred": 55000, "price_mw": 3, "invest": 0.5}
+
+# ---- M2: lies, exposure, corrections, investigations, censorship (spec §3.3–3.4, §5, §6, §8)
+const MISLEAD_PRESSURE := 0.35        # |stance| × (1 − ethics) (or owner pressure) at or above this: MISLEADING
+const MISLEAD_SHIFT := 0.6            # share of blame moved by a misleading frame (× |stance|, at least 0.5)
+const P_FABRICATE := 0.03             # × pressure × (1 − ethics) × (1 + election proximity) × legal factor
+const LEGAL_FACTOR := {"STRICT": 0.4, "ACTUAL_MALICE": 1.0, "NONE": 1.6}
+const FAB_CONCERNS := ["JOBS", "COST_OF_LIVING", "HOUSING", "PUBLIC_SERVICES", "SAFETY", "GOVERNANCE"]
+const P_COMPLAINT := 0.25             # the victim complains (magnitude ≥ 40)
+const COMPLAINT_MIN_MAGNITUDE := 40
+const P_DEBUNK := 0.1                 # × rival invest (W_ref); ×1.5 when the rival opposes the liar
+const DEBUNK_MIN_INVEST := 0.5
+const P_MEDIA_WHISTLE := 0.01         # 0.03 with LAW_WHISTLEBLOWER_PROTECTION
+const P_MEDIA_WHISTLE_PROTECTED := 0.03
+const LIE_WATCH_MONTHS := 24
+const CRED_LIE := 15000
+const CRED_LIE_REPEAT := 5000
+const CRED_ERROR := 3000
+const CRED_ERROR_CORRECTED := 1000
+const CRED_RECOVERY := 300            # per month back toward the paper's founding credibility
+const CRED_GOV_RUN_SLANT := 300       # per month a government-run paper slants
+const CORRECTION_ACCEPT := 0.6        # share of the remaining false belief a correction reverses (× trust)
+const INVEST_P_PER_WREF := 0.08       # p(find) per W_ref of investigation budget, capped
+const INVEST_P_MAX := 0.4
+const FOI_TRANSPARENCY := 1.0
+const NO_FOI_TRANSPARENCY := 0.6
+const SCOOP_BONUS := 40.0
+const RULES_VERSION := 1
+
+# ---- M2 calibration (10-year probe: partisan papers misled every month and lost all credibility)
+const MISLEAD_P_SCALE := 0.5          # p(MISLEADING) per eligible story = (pressure − MISLEAD_PRESSURE) × this
+const P_COMPLAINT_BY := {"FALSE": 0.25, "ERROR": 0.15, "MISLEADING": 0.08}
+const CRED_SPIN := 5000
+const CRED_SPIN_REPEAT := 1000
+const REPEAT_CAP := 3

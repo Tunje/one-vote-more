@@ -342,3 +342,28 @@ Ideology slopes follow the usual pattern: AUTONOMY on licensing, censorship and 
   - The neutral Gazette alone gives a mean news_blame of about 0–20 milli (0.02 approval points).
   - The reader pass costs about 20 ms a month for ~360 groups, about 4% of a month step.
 - **Tests:** `tests/media/test_media.gd` (11).
+
+## 14. As built: M2 (2026-11-12)
+
+- **MISLEADING** is a per-story chance, `(pressure − 0.35) × 0.5`, where pressure = |stance| × (1 − ethics), or (1 − ethics) when the story hits the owner. It never applies to an independent public paper. It moves at least half the blame, with amp 1.5 or 0.6.
+- **FALSE**: at most one fabricated story a month per paper (§3.4). It targets the government, or the most opposed party, as the chief opponent. `world.meta.media_p_fabricate` overrides the base rate (tests).
+- **Lies table:** every MISLEADING, ERROR or FALSE report writes a SECRET `MEDIA_FALSE_REPORT` and a `media_lie` row. The row holds the victim and the claimed bias, which corrections use.
+- **Exposure** (each month, watched for 24 months):
+  - Victim complaint: FALSE 0.25, ERROR 0.15, MISLEADING 0.08 (magnitude ≥ 40).
+  - Rival debunk: 0.1 × invest (×1.5 for an opposed rival); it becomes the rival's scoop.
+  - Whistleblower: 1% (3% with protection).
+  - `Media.expose_lie` covers press investigations as well.
+- **Credibility on exposure:**
+  - FALSE: −15 −5 per recent lie.
+  - MISLEADING: −5 −1 per recent lie.
+  - ERROR: −3, or −1 when corrected.
+  - Repeats are capped at 3; recovery is +0.3 a month back to the founding level.
+  - Readers of the paper lose 0.5× the hit in trust, others 0.2×.
+- **Corrections:** on the front page under LAW_CORRECTION_DUTY, otherwise inside. A correction reverses 0.6 × trust × (0.75^months) of the claimed bias for that paper's readers.
+- **Defamation:** `Justice.file_defamation_outlet(world, victim, out, severity, liable)`. Damages come from `media:out:N`, and `Media.on_defamation_verdict` costs −5 credibility on a guilty verdict.
+- **Investigations:** p = min(0.4, invest × 0.08) × (FOI ? 1 : 0.6). Targets are hidden donations, unlawful company practices and rival lies, weighted by opposition. Reveals go through PartyFinance._scandal and Justice._reveal_violation with channel PRESS, and run as the paper's INVESTIGATION story.
+- **Censorship:** `Media.ensure_rules` installs, versioned, a charter PROHIBIT `CENSOR_REPORT` (unless the lever is on) and an AUTHORIZE when world.emergency is set and the lever is on. The censor drops negative stories that blame the government. It writes an OFFICIAL `MEDIA_CENSORED` with `exposure.kind = PRESS_RESTRICTION`.
+- **10-year probe on seed 2** (a labour paper and a business paper from year 3, default ethics):
+  - About 3 lie, error or spin records per paper a year, about half exposed, 2 defamation rulings.
+  - Credibility: Gazette 70, union paper 53, business paper 39.
+- **Tests:** `tests/media/test_media_m2.gd` (6, PD tests 13 and 14).

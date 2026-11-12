@@ -177,10 +177,12 @@ static func is_alive_active(p: Dictionary) -> bool:
 static func pool_members(world: WorldState, owner: Dictionary) -> Array:
 	var out: Array = []
 	var people := world.table("person")
-	for pid in Det.ordered(people):
+	var live: Array = []
+	for pid in people:     # filter first, then sort (the table keeps the dead and retired)
+		if is_alive_active(people[pid]):
+			live.append(pid)
+	for pid in Det.sort_ids(live):
 		var p: Dictionary = people[pid]
-		if not is_alive_active(p):
-			continue
 		if owner["kind"] == "GOVERNMENT":
 			if p["pool"] == "GOV":
 				out.append(pid)
@@ -1276,7 +1278,11 @@ static func task_priority(t: Dictionary) -> int:
 static func _tasks_by_priority(world: WorldState, owner: Dictionary) -> Array:
 	var ok := owner_key(owner)
 	var tasks := world.table("task")
-	var ids: Array = Det.ordered(tasks).filter(func(tid): return tasks[tid]["status"] == "ACTIVE" and owner_key(tasks[tid]["owner"]) == ok)
+	var ids: Array = []
+	for tid in tasks:     # filter first, then sort the few (the table keeps every finished task)
+		if tasks[tid]["status"] == "ACTIVE" and owner_key(tasks[tid]["owner"]) == ok:
+			ids.append(tid)
+	Det.sort_ids(ids)
 	var order := {}
 	for i in ids.size():
 		order[ids[i]] = i

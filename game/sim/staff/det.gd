@@ -11,6 +11,12 @@ static func ordered(d: Dictionary) -> Array:
 	return keys
 
 
+## Same order as ordered(), for a key subset the caller already filtered (sort the few, not the whole table).
+static func sort_ids(keys: Array) -> Array:
+	keys.sort_custom(_less)
+	return keys
+
+
 static func _less(a, b) -> bool:
 	var sa := String(a)
 	var sb := String(b)

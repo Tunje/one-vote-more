@@ -93,9 +93,10 @@ static func found_outlet(world: WorldState, owner: Dictionary, opts: Dictionary 
 		"founded": world.month, "account": "media:" + id, "line": line.duplicate(),
 		"cred": int(opts.get("cred", base["cred"])), "price_mw": int(opts.get("price_mw", base["price_mw"])),
 		"quality": int(opts.get("quality", base["quality"])), "sens": float(opts.get("sens", base["sens"])),
-		"ethics": float(opts.get("ethics", base.get("ethics", 0.5))), "invest": float(opts.get("invest", 0.0)),
+		"ethics": float(opts.get("ethics", base.get("ethics", 0.5))), "invest": float(opts.get("invest", base.get("invest", 0.0))),
 		"reach": opts.get("reach", "ALL"), "status": "ACTIVE", "last_fid": int(opts.get("last_fid", _last_fid(world))),
-		"agg": {}, "party_tilt": {}, "circulation": 0, "lies": []}
+		"agg": {}, "party_tilt": {}, "circulation": 0, "lies": [], "cred0": int(opts.get("cred", base["cred"])),
+		"pending_corrections": [], "scoops": []}
 	world.table("outlet")[id] = o
 	if not world.ledger.has_account(o["account"]):
 		world.ledger.open_account(o["account"])
@@ -356,6 +357,9 @@ static func edition_size(o: Dictionary) -> int:
 ## Runs all editions, then readership and the per-leaf news vector. Called at the end of JUSTICE.
 static func run(world: WorldState) -> void:
 	ensure_founding(world)
+	_expose(world)
+	_investigate(world)
+	var censored := censorship_active(world)
 	var mean := colony_mean(world)
 	var rng := world.rng.stream("media.cover")
 	var cands: Array = []
@@ -368,21 +372,30 @@ static func run(world: WorldState) -> void:
 		if cand_from != int(o["last_fid"]):
 			cand_from = int(o["last_fid"])
 			cands = candidates(world, cand_from)
-		_edition(world, o, cands, rng)
+		_edition(world, o, cands, rng, censored)
 		o["last_fid"] = _last_fid(world)
 		_party_tilt(world, o)
+		_credibility_drift(world, o)
+	if censored:
+		_record_censorship(world)
 	_readers(world)
 	_prune(world)
 
 
 ## Picks and frames one outlet's stories; stores the edition and the outlet's aggregate distortion `agg`.
-static func _edition(world: WorldState, o: Dictionary, cands: Array, rng: RandomNumberGenerator) -> void:
+static func _edition(world: WorldState, o: Dictionary, cands: Array, rng: RandomNumberGenerator, censored: bool = false) -> void:
 	var cache := {}
 	var k := edition_size(o)
 	var scored: Array = []
 	var bench: Array = []
+	var scoops: Array = o.get("scoops", [])
 	for f in cands:
 		var news := float(f["magnitude"]) + float(_weight(f["type"]))
+		bench.append({"f": f, "score": news + (MD.SENS_BONUS * 0.2 if _sensational(f["type"]) else 0.0)})
+		if censored and _gov_share(f) > 0.0 and valence(f) < 0:
+			continue     # the emergency censor strikes it (spec §8.3); readers miss it (the bench still has it)
+		if f["id"] in scoops:
+			news += MD.SCOOP_BONUS
 		var sens_t := MD.SENS_BONUS if _sensational(f["type"]) else 0.0
 		var st := stance(world, o, f, cache)
 		var bury := 0.0
@@ -393,21 +406,39 @@ static func _edition(world: WorldState, o: Dictionary, cands: Array, rng: Random
 			slant *= 0.7   # chilling effect
 		var score := news + float(o["sens"]) * sens_t + slant - bury + rng.randfn(0.0, 5.0)
 		scored.append({"f": f, "score": score, "stance": st})
-		bench.append({"f": f, "score": news + 0.2 * sens_t})
 	var by_score := func(a, b): return a["score"] > b["score"] or (a["score"] == b["score"] and String(a["f"]["id"]) < String(b["f"]["id"]))
 	scored.sort_custom(by_score)
 	bench.sort_custom(by_score)
 	var picked := _top_by_type(scored, k)
 	var neutral := _top_by_type(bench, k)
-	var reps: Array = []
+	var rows: Array = []
 	var agg := {"blame": {}, "bias": {}, "agenda": {}}
+	var any_slant := false
+	# corrections first (front page under LAW_CORRECTION_DUTY, inside pages otherwise)
+	var duty := bool(world.levers.get("LAW_CORRECTION_DUTY", true))
+	var tail: Array = []
+	for lfid in o.get("pending_corrections", []):
+		var lie: Dictionary = world.peek("media_lie").get(lfid, {})
+		if lie.is_empty():
+			continue
+		var decay := pow(1.0 - MD.BIAS_DECAY, maxf(0.0, float(world.month - int(lie["month"]))))
+		for c in lie.get("claim_bias", {}):
+			agg["bias"][c] = float(agg["bias"].get(c, 0.0)) - float(lie["claim_bias"][c]) * MD.CORRECTION_ACCEPT * decay
+		var row := {"outlet": o["id"], "month": world.month, "fact": String(world.peek("report").get(lie["report"], {}).get("fact", "")),
+			"kind": "CORRECTION", "frame": {"truth": "ACCURATE", "gov_share": 0.0, "amp": 1.0, "blame": [], "blame_actor": {},
+			"angle": "NEUTRAL", "slant": 0.0}, "truth": "ACCURATE", "corrected_by": "", "also": [], "corrects": lie["report"]}
+		if duty:
+			rows.append(row)
+		else:
+			tail.append(row)
+	o["pending_corrections"] = []
 	for i in picked.size():
 		var f: Dictionary = picked[i]["f"]
 		var fr := frame(world, o, f, float(picked[i]["stance"]), rng, cache)
-		var rid := world.new_id("rep")
-		world.table("report")[rid] = {"id": rid, "outlet": o["id"], "month": world.month, "fact": f["id"], "kind": "NEWS",
-			"rank": i + 1, "frame": fr, "truth": fr["truth"], "corrected_by": "", "also": picked[i]["also"]}
-		reps.append(rid)
+		if fr["truth"] != "ACCURATE":
+			any_slant = true
+		rows.append({"outlet": o["id"], "month": world.month, "fact": f["id"], "kind": "INVESTIGATION" if f["id"] in scoops else "NEWS",
+			"frame": fr, "truth": fr["truth"], "corrected_by": "", "also": picked[i]["also"]})
 		for c in f["impact"]:
 			var imp := float(f["impact"][c])
 			agg["blame"][c] = float(agg["blame"].get(c, 0.0)) + imp * float(fr["gov_share"]) * float(fr.get("gov_amp", 1.0))
@@ -420,7 +451,30 @@ static func _edition(world: WorldState, o: Dictionary, cands: Array, rng: Random
 			var imp := float(f["impact"][c])
 			agg["blame"][c] = float(agg["blame"].get(c, 0.0)) - imp * g
 			agg["agenda"][c] = float(agg["agenda"].get(c, 0.0)) - absf(imp) * 1.2
+	var fab := _fabricate(world, o, cache)
+	if not fab.is_empty():
+		rows.insert(mini(1, rows.size()), fab)
+		for c in fab["claim"]["impact"]:
+			var imp := float(fab["claim"]["impact"][c])
+			agg["blame"][c] = float(agg["blame"].get(c, 0.0)) + imp * float(fab["frame"]["gov_share"])
+			agg["bias"][c] = float(agg["bias"].get(c, 0.0)) + imp * S
+			agg["agenda"][c] = float(agg["agenda"].get(c, 0.0)) + absf(imp) * (1.0 + float(o["sens"]))
+	rows.append_array(tail)
+	var reps: Array = []
+	for i in rows.size():
+		var row: Dictionary = rows[i]
+		var rid := world.new_id("rep")
+		row["id"] = rid
+		row["rank"] = i + 1
+		world.table("report")[rid] = row
+		reps.append(rid)
+		if row.has("corrects") and world.table("report").has(row["corrects"]):
+			world.table("report")[row["corrects"]]["corrected_by"] = rid
+		if row["truth"] in ["MISLEADING", "ERROR", "FALSE"]:
+			_record_lie(world, o, row)
 	o["agg"] = agg
+	o["scoops"] = []
+	o["slanted_this_month"] = any_slant
 	world.table("edition")["%s|%d" % [o["id"], world.month]] = {"outlet": o["id"], "month": world.month, "reports": reps,
 		"circulation": int(o.get("circulation", 0))}
 
@@ -451,9 +505,21 @@ static func frame(world: WorldState, o: Dictionary, f: Dictionary, st: float, rn
 	var truth := "ACCURATE"
 	var resp: Array = f["responsible"]
 	var v := valence(f)
+	var pressure := absf(st) * (1.0 - float(o["ethics"]))
+	if _owner_hit(world, o, f):
+		pressure = maxf(pressure, 1.0 - float(o["ethics"]))
 	if not resp.is_empty() and rng.randf() < MD.P_ERROR * (1.0 - float(o["quality"]) / 100.0):
 		truth = "ERROR"
 		g2 = 1.0 - g
+	elif pressure >= MD.MISLEAD_PRESSURE and not resp.is_empty() and v != 0 and not neutral_public(world, o) 			and rng.randf() < (pressure - MD.MISLEAD_PRESSURE) * MD.MISLEAD_P_SCALE:
+		truth = "MISLEADING"
+		var og := _opp_cached(world, o, {"kind": "GOVERNMENT"}, cache)
+		var shift := maxf(0.5, MD.MISLEAD_SHIFT * absf(st))
+		if (v < 0) == (og > 0.0):
+			g2 = g + (1.0 - g) * shift
+		else:
+			g2 = g * (1.0 - shift)
+		amp = 1.5 if st >= 0.0 else 0.6
 	elif absf(st) > MD.SLANT_THRESHOLD and not resp.is_empty() and v != 0:
 		truth = "SLANTED"
 		var og := _opp_cached(world, o, {"kind": "GOVERNMENT"}, cache)
@@ -718,3 +784,339 @@ static func pay_ads(world: WorldState, from_acc: String, amount: int, district_w
 	if amount - paid > 0:
 		PartyLife._household_receive(world, from_acc, amount - paid, memo)
 	return paid
+
+
+# =================================================================================== M2: lies and their exposure
+
+const JO := preload("res://sim/law/justice_ops.gd")
+const PFN := preload("res://sim/law/party_finance.gd")
+const REN := preload("res://sim/law/rules_engine.gd")
+const LOPS := preload("res://sim/law/law_ops.gd")
+const LDATA := preload("res://sim/law/law_data.gd")
+
+
+## Every MISLEADING, ERROR or FALSE report leaves a SECRET MEDIA_FALSE_REPORT fact (the ground truth that the paper
+## got it wrong) and a row in "media_lie" that exposure, corrections and defamation work from (spec §3.4, §5).
+static func _record_lie(world: WorldState, o: Dictionary, row: Dictionary) -> void:
+	var fr: Dictionary = row["frame"]
+	var deliberate: bool = row["truth"] != "ERROR"
+	var victim: Dictionary = {}
+	var mag := 40
+	var claim_bias := {}
+	if row["truth"] == "FALSE":
+		victim = row["claim"]["victim"]
+		mag = int(row["claim"]["magnitude"])
+		for c in row["claim"]["impact"]:
+			claim_bias[c] = float(row["claim"]["impact"][c]) * S
+	else:
+		var f := world.facts.get_fact(String(row["fact"]))
+		mag = int(f.get("magnitude", 40))
+		var g := _gov_share(f)
+		if float(fr["gov_share"]) > g:
+			victim = {"kind": "GOVERNMENT", "id": "government"}
+		else:
+			for r in f.get("responsible", []):
+				if not (String(r["actor"]["kind"]) in ["GOVERNMENT", "COMMANDER"]):
+					victim = r["actor"].duplicate()
+					break
+		for c in f.get("impact", {}):
+			var b := (float(fr["amp"]) - 1.0) * float(f["impact"][c]) * S
+			if b != 0.0:
+				claim_bias[c] = b
+	var me := {"kind": "OUTLET", "id": o["id"]}
+	var subj: Array = [me]
+	if not victim.is_empty():
+		subj.append(victim)
+	var fid := world.add_fact({"type": "MEDIA_FALSE_REPORT", "owner": "law", "subjects": subj,
+		"responsible": [{"actor": me, "share": 1.0}], "impact": {}, "magnitude": mag, "visibility": "SECRET",
+		"data": {"outlet": o["id"], "report": row["id"], "victim": victim, "deliberate": deliberate, "truth": row["truth"]}})
+	world.table("media_lie")[fid] = {"fid": fid, "outlet": o["id"], "report": row["id"], "victim": victim,
+		"truth": row["truth"], "deliberate": deliberate, "month": world.month, "magnitude": mag, "claim_bias": claim_bias,
+		"revealed": false}
+
+
+## At most one fabricated story a month per paper (spec §3.4). -> report row (without id/rank) or {}.
+static func _fabricate(world: WorldState, o: Dictionary, cache: Dictionary) -> Dictionary:
+	if neutral_public(world, o):
+		return {}
+	var kind := String(o["owner"]["kind"])
+	var st: Dictionary = world.peek("pol").get("state", {})
+	var nxt := int(st.get("next_election", -1))
+	var months_to := nxt - world.month if nxt >= 0 else 99
+	var pressure := 0.5
+	if kind == "PARTY" and months_to <= 12:
+		pressure = 1.0
+	elif kind == "COMPANY" and _owner_under_investigation(world, String(o["owner"]["id"])):
+		pressure = 1.0
+	var prox := 1.0 if months_to >= 0 and months_to <= 3 else 0.0
+	var legal: float = MD.LEGAL_FACTOR.get(String(world.levers.get("LAW_DEFAMATION_STANDARD", "ACTUAL_MALICE")), 1.0)
+	var p := float(world.meta.get("media_p_fabricate", MD.P_FABRICATE)) * pressure * (1.0 - float(o["ethics"])) * (1.0 + prox) * legal
+	var rng := world.rng.stream("media.lie")
+	if rng.randf() >= p:
+		return {}
+	# the chief opponent: the government, or the most opposed active party
+	var victim := {}
+	var best := 0.2
+	var og := _opp_cached(world, o, {"kind": "GOVERNMENT"}, cache)
+	if og > best and not st.get("government", {}).is_empty():
+		best = og
+		victim = {"kind": "GOVERNMENT", "id": "government"}
+	for pid in Det.ordered(world.peek("party")):
+		var pt: Dictionary = world.peek("party")[pid]
+		if String(pt.get("status", "ACTIVE")) != "ACTIVE" or (kind == "PARTY" and String(o["owner"]["id"]) == String(pid)):
+			continue
+		var x := _opp_cached(world, o, {"kind": "PARTY", "id": pid}, cache)
+		if x > best:
+			best = x
+			victim = {"kind": "PARTY", "id": pid}
+	if victim.is_empty():
+		return {}
+	var c1: String = MD.FAB_CONCERNS[rng.randi_range(0, MD.FAB_CONCERNS.size() - 1)]
+	var impact := {c1: -rng.randi_range(3, 5)}
+	if victim["kind"] == "PARTY":
+		impact = {"GOVERNANCE": -rng.randi_range(3, 5)}
+	var mag := rng.randi_range(40, 60)
+	var gs := 1.0 if victim["kind"] == "GOVERNMENT" else 0.0
+	var fr := {"truth": "FALSE", "gov_share": gs, "amp": 1.0, "gov_amp": 1.0, "blame": [{"actor": victim, "share": 1.0}],
+		"blame_actor": victim, "angle": "GOVERNMENT" if gs > 0.0 else "SUBJECT", "slant": 1.0}
+	return {"outlet": o["id"], "month": world.month, "fact": "", "kind": "NEWS", "frame": fr, "truth": "FALSE",
+		"corrected_by": "", "also": [], "claim": {"victim": victim, "impact": impact, "magnitude": mag}}
+
+
+static func _owner_under_investigation(world: WorldState, org: String) -> bool:
+	for v in world.peek("violation_track").values():
+		if String(v.get("company", "")) == org and bool(v.get("revealed", false)) and not v.has("sanctioned_month"):
+			return true
+	return false
+
+
+## Monthly: unrevealed lies are found by the victim, a rival paper or an insider (spec §5).
+static func _expose(world: WorldState) -> void:
+	var lies := world.table("media_lie")
+	if lies.is_empty():
+		return
+	var rng := world.rng.stream("media.expose")
+	var whistle := MD.P_MEDIA_WHISTLE_PROTECTED if bool(world.levers.get("LAW_WHISTLEBLOWER_PROTECTION", false)) else MD.P_MEDIA_WHISTLE
+	for fid in Det.ordered(lies):
+		var l: Dictionary = lies[fid]
+		if l["revealed"]:
+			continue
+		if world.month - int(l["month"]) > MD.LIE_WATCH_MONTHS:
+			lies.erase(fid)      # nobody checks any more
+			continue
+		var liar: Dictionary = world.peek("outlet").get(l["outlet"], {})
+		var by := ""
+		var channel := ""
+		if not l["victim"].is_empty() and int(l["magnitude"]) >= MD.COMPLAINT_MIN_MAGNITUDE 				and rng.randf() < float(MD.P_COMPLAINT_BY.get(String(l["truth"]), MD.P_COMPLAINT)):
+			channel = "COMPLAINT"
+		if channel == "" and not liar.is_empty():
+			for rid in outlets(world):
+				if rid == l["outlet"]:
+					continue
+				var r: Dictionary = world.peek("outlet")[rid]
+				if float(r["invest"]) < MD.DEBUNK_MIN_INVEST:
+					continue
+				var p := MD.P_DEBUNK * float(r["invest"]) * (1.5 if opposition(r["line"], liar["line"]) > 0.0 else 1.0)
+				if rng.randf() < p:
+					channel = "RIVAL"
+					by = rid
+					break
+		if channel == "" and rng.randf() < whistle:
+			channel = "WHISTLEBLOWER"
+		if channel != "":
+			expose_lie(world, fid, channel, by)
+
+
+## Reveals one lie: public MEDIA_REPORT_EXPOSED, credibility and trust hits, correction, defamation suit.
+static func expose_lie(world: WorldState, fid: String, channel: String, by_outlet: String = "") -> bool:
+	var l: Dictionary = world.table("media_lie").get(fid, {})
+	if l.is_empty() or l["revealed"]:
+		return false
+	l["revealed"] = true
+	l["revealed_month"] = world.month
+	l["channel"] = channel
+	var by := {"kind": "OUTLET", "id": by_outlet} if by_outlet != "" else {"kind": "PRESS", "id": channel}
+	var causes: Array = [fid]
+	if not world.table("revealed_fact").has(fid):
+		world.table("revealed_fact")[fid] = true
+		causes.append(world.facts.reveal(world.month, fid, [by]))
+	var o: Dictionary = world.table("outlet").get(l["outlet"], {})
+	var rep: Dictionary = world.table("report").get(l["report"], {})
+	if not rep.is_empty():
+		rep["exposed"] = true
+	var will_correct: bool = not o.is_empty() and o["status"] == "ACTIVE" \
+		and (bool(world.levers.get("LAW_CORRECTION_DUTY", true)) or float(o["ethics"]) >= 0.5)
+	var hit := MD.CRED_ERROR
+	if l["deliberate"]:
+		var recent := 0
+		for m in o.get("lies", []):
+			if world.month - int(m) <= 24:
+				recent += 1
+		recent = mini(recent, MD.REPEAT_CAP)
+		if l["truth"] == "MISLEADING":
+			hit = MD.CRED_SPIN + MD.CRED_SPIN_REPEAT * recent      # exposed spin: true facts, dishonest framing
+		else:
+			hit = MD.CRED_LIE + MD.CRED_LIE_REPEAT * recent
+	elif will_correct:
+		hit = MD.CRED_ERROR_CORRECTED
+	if not o.is_empty():
+		o["cred"] = maxi(0, int(o["cred"]) - hit)
+		if l["deliberate"]:
+			o["lies"].append(world.month)
+		if will_correct:
+			o["pending_corrections"].append(fid)
+		for c in PolVoters.all(world):
+			var tr: Dictionary = c.get("trust", {})
+			if not tr.has(o["id"]):
+				continue
+			var k := 0.5 if c.get("diet", {}).has(o["id"]) else 0.2
+			tr[o["id"]] = maxi(0, int(tr[o["id"]]) - int(round(k * hit)))
+	var me := {"kind": "OUTLET", "id": l["outlet"]}
+	var subj: Array = [me]
+	if not l["victim"].is_empty():
+		subj.append(l["victim"])
+	var xid := world.add_fact({"type": "MEDIA_REPORT_EXPOSED", "owner": "law", "subjects": subj,
+		"responsible": [{"actor": me, "share": 1.0}], "impact": {}, "magnitude": 55 if l["deliberate"] else 35,
+		"visibility": "PUBLIC", "causes": causes,
+		"data": {"outlet": l["outlet"], "name": o.get("name", l["outlet"]), "report": l["report"], "victim": l["victim"],
+			"deliberate": l["deliberate"], "truth": l["truth"], "channel": channel, "by": by_outlet}})
+	if by_outlet != "" and world.table("outlet").has(by_outlet):
+		world.table("outlet")[by_outlet]["scoops"].append(xid)
+	_maybe_sue(world, l)
+	return true
+
+
+## Defamation (spec §8.2): parties and companies sue; a government does not. Liability depends on the standard.
+static func _maybe_sue(world: WorldState, l: Dictionary) -> void:
+	var v: Dictionary = l["victim"]
+	if v.is_empty() or not (String(v["kind"]) in ["PARTY", "COMPANY"]):
+		return
+	var std := String(world.levers.get("LAW_DEFAMATION_STANDARD", "ACTUAL_MALICE"))
+	if std == "NONE":
+		return
+	var liable := false
+	if std == "ACTUAL_MALICE":
+		liable = l["truth"] == "FALSE"
+	else:
+		liable = l["truth"] in ["FALSE", "MISLEADING", "ERROR"]
+	if not liable and l["truth"] != "FALSE":
+		return     # nobody sues over a frame the court would call lawful
+	l["case"] = JO.file_defamation_outlet(world, v, String(l["outlet"]), int(l["magnitude"]), liable)
+
+
+## Justice calls this on a defamation verdict against an outlet.
+static func on_defamation_verdict(world: WorldState, out_id: String, guilty: bool) -> void:
+	var o: Dictionary = world.table("outlet").get(out_id, {})
+	if o.is_empty() or not guilty:
+		return
+	o["cred"] = maxi(0, int(o["cred"]) - MD.CRED_LIE_REPEAT)
+	var conv: Array = o.get("convictions", [])
+	conv.append(world.month)
+	o["convictions"] = conv
+
+
+static func _credibility_drift(world: WorldState, o: Dictionary) -> void:
+	var c0 := int(o.get("cred0", o["cred"]))
+	if String(o["owner"]["kind"]) == "STATE" and not neutral_public(world, o) and bool(o.get("slanted_this_month", false)):
+		o["cred"] = maxi(0, int(o["cred"]) - MD.CRED_GOV_RUN_SLANT)
+	elif int(o["cred"]) < c0:
+		o["cred"] = mini(c0, int(o["cred"]) + MD.CRED_RECOVERY)
+
+
+# =================================================================================== M2: investigations
+
+## Each paper's investigation budget buys a chance to uncover a SECRET wrong (spec §6): an illegal donation, an
+## unlawful company practice or a rival's lie. Reveals go through the existing justice paths (channel PRESS).
+static func _investigate(world: WorldState) -> void:
+	var rng := world.rng.stream("media.invest")
+	var transp := MD.FOI_TRANSPARENCY if bool(world.levers.get("LAW_FOI", false)) else MD.NO_FOI_TRANSPARENCY
+	for id in outlets(world):
+		var o: Dictionary = world.table("outlet")[id]
+		var p := minf(MD.INVEST_P_MAX, float(o["invest"]) * MD.INVEST_P_PER_WREF) * transp
+		if p <= 0.0 or rng.randf() >= p:
+			continue
+		var targets: Array = []   # [kind, fid, weight]
+		var cache := {}
+		for fid in Det.ordered(world.peek("donation_track")):
+			var t: Dictionary = world.peek("donation_track")[fid]
+			if not bool(t.get("revealed", true)):
+				targets.append(["DONATION", fid, 1.0 + maxf(0.0, _opp_cached(world, o, {"kind": "PARTY", "id": t.get("party", "")}, cache))])
+		for fid in Det.ordered(world.peek("violation_track")):
+			var v: Dictionary = world.peek("violation_track")[fid]
+			if bool(v.get("unlawful", true)) and not bool(v.get("revealed", false)) and bool(v.get("active", true)) \
+					and String(v.get("company", "")) != String(o["owner"]["id"]):
+				targets.append(["VIOLATION", fid, 1.0 + maxf(0.0, _opp_cached(world, o, {"kind": "COMPANY", "id": v.get("company", "")}, cache))])
+		for fid in Det.ordered(world.peek("media_lie")):
+			var l: Dictionary = world.peek("media_lie")[fid]
+			if not l["revealed"] and String(l["outlet"]) != id:
+				targets.append(["LIE", fid, 1.5])
+		if targets.is_empty():
+			continue
+		var tot := 0.0
+		for t in targets:
+			tot += float(t[2])
+		var x := rng.randf() * tot
+		var pick: Array = targets[targets.size() - 1]
+		for t in targets:
+			x -= float(t[2])
+			if x <= 0.0:
+				pick = t
+				break
+		var before := world.facts.facts.size()
+		var by := {"kind": "OUTLET", "id": id}
+		match String(pick[0]):
+			"DONATION":
+				PFN._scandal(world, String(pick[1]), by, "PRESS")
+			"VIOLATION":
+				JO._reveal_violation(world, String(pick[1]), by, "PRESS")
+			"LIE":
+				expose_lie(world, String(pick[1]), "RIVAL", id)
+		var sc: Array = o["scoops"]
+		for i in range(before, world.facts.facts.size()):
+			var f: Dictionary = world.facts.facts[i]
+			if f["visibility"] == "PUBLIC" and not (f["id"] in sc):
+				sc.append(f["id"])
+		world.add_fact({"type": "MEDIA_INVESTIGATION_PUBLISHED", "owner": "law", "subjects": [by], "responsible": [],
+			"impact": {}, "magnitude": 15, "visibility": "OFFICIAL", "data": {"outlet": id, "target": pick[0], "fact": pick[1]}})
+
+
+# =================================================================================== M2: censorship
+
+## Lawful censorship only during a declared emergency with LAW_EMERGENCY_PRESS_CONTROL (spec §8.3), validated by the
+## rules engine (CENSOR_REPORT is otherwise a charter-level PROHIBIT, like RESTRICT_EXPRESSION).
+static func censorship_active(world: WorldState) -> bool:
+	if not bool(world.levers.get("LAW_EMERGENCY_PRESS_CONTROL", false)):
+		return false
+	var actor := {"kind": "GOVERNMENT", "id": "government"}
+	if world.peek("pol").get("state", {}).get("government", {}).is_empty():
+		actor = {"kind": "COMMANDER", "id": "commander"}
+	return String(REN.validate(world, actor, "CENSOR_REPORT", {})["result"]) in ["AUTHORIZED", "AUTHORIZED_WITH_CONDITIONS"]
+
+
+static func _record_censorship(world: WorldState) -> void:
+	world.add_fact({"type": "MEDIA_CENSORED", "owner": "law", "subjects": [{"kind": "GOVERNMENT", "id": "government"}],
+		"responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}], "impact": {}, "magnitude": 20,
+		"visibility": "OFFICIAL", "exposure": {"kind": "PRESS_RESTRICTION", "scope": "ALL"}, "data": {"month": world.month}})
+
+
+## Media rules (versioned): censorship is prohibited at charter level unless the emergency press-control lever is on,
+## and authorised only during a declared emergency with it.
+static func ensure_rules(world: WorldState) -> void:
+	var s := LOPS.state(world)
+	if int(s.get("media_rules_v", 0)) >= MD.RULES_VERSION:
+		return
+	s["media_rules_v"] = MD.RULES_VERSION
+	var rules := world.table("legal_rule")
+	for rid in Det.ordered(rules):
+		if rules[rid].get("source", "") == "MEDIA_LAW" and rules[rid]["status"] == "ACTIVE":
+			rules[rid]["status"] = "REPEALED"
+	var lever_on := {"field": "lever.LAW_EMERGENCY_PRESS_CONTROL", "op": "EQ", "value": true}
+	var exec := [{"field": "actor.kind", "op": "IN", "value": ["GOVERNMENT", "COMMANDER"]}]
+	var r1 := LDATA._r("PROHIBIT", "CENSOR_REPORT", LDATA.PUBLIC_SUBJECT, [], {"source": "MEDIA_LAW", "right": "RESTRICT_EXPRESSION",
+		"unless": [lever_on]})
+	var r2 := LDATA._r("AUTHORIZE", "CENSOR_REPORT", exec, [{"field": "world.emergency", "op": "EQ", "value": true}, lever_on],
+		{"source": "MEDIA_LAW"})
+	for r in [r1, r2]:
+		r["effective_month"] = world.month
+		LOPS.add_rule(world, r)
+	LOPS.bump_rules_version(world)

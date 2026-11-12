@@ -18,7 +18,9 @@ const ACTIONS := ["ZONE_DISTRICT", "BUILD_FACILITY", "DEMOLISH_FACILITY", "OPERA
 	"SELL_COLONIAL_GOOD", "WITHHOLD_QUOTA", "OBSTRUCT_QUOTA", "REFUSE_QUOTA", "PETITION_HOME", "DECLARE_INDEPENDENCE",
 	"HOME_FINE", "HOME_WITHHOLD", "HOME_REVOKE_PRIVILEGE", "HOME_APPOINT_GOVERNOR", "HOME_EXPEDITION",
 	# M13 land law (spec-areas-v1 9.4, A37)
-	"SELL_LAND", "LEASE_LAND", "ZONE_LAND", "CLEAR_HOUSING", "EVICT", "BUILD_WITHOUT_TITLE"]
+	"SELL_LAND", "LEASE_LAND", "ZONE_LAND", "CLEAR_HOUSING", "EVICT", "BUILD_WITHOUT_TITLE",
+	# MEDIA v1 (spec-media-v1 8.3): suppressing a report (a restriction of expression)
+	"CENSOR_REPORT"]
 
 ## M11 greed conduct (88 reports it with LawOps.record_greed). action = the rules-engine action that decides legality;
 ## channel = who can detect it (SAFETY inspectorate, ENV inspectorate, MARKET competition/consumer authority);
@@ -415,6 +417,14 @@ const LEVERS := [
 	{"id": "LAW_NONCITIZEN_VOTE", "owner": "law", "type": "BOOL", "default": true,
 		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": 8, "REDISTRIBUTION": 6, "SOVEREIGNTY": -5},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	# ---- Retirement age (Bob E111; read by EconHouseholds.retirement_age). Higher = fewer pensioners, more workers,
+	# a smaller pension bill: a classic fight between labour and fiscal hawks.
+	# Concern hints per unit raised (legislature.relief): budget relief (GOVERNANCE = budget-sign proxy) against
+	# lost pension years (COST_OF_LIVING, FAIRNESS). Phased in over 6 months.
+	{"id": "LAW_RETIREMENT_AGE", "owner": "law", "type": "NUMBER", "range": [55, 72], "default": 62, "step": 1,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": -2.0, "REDISTRIBUTION": -1.5, "FISCAL": -1.5},
+		"concerns": {"GOVERNANCE": 30, "JOBS": 5, "COST_OF_LIVING": -20, "FAIRNESS": -10},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 6, "scope": "COLONY", "domain": "ECON"},
 	# ---- MEDIA v1 press law (planning/spec-media-v1.md section 8). Read by sim/media/media_ops.gd.
 	{"id": "LAW_PRESS_LICENSING", "owner": "law", "type": "ENUM", "values": ["NONE", "REGISTER", "LICENCE"], "default": "NONE",
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"AUTONOMY": -10, "INSTITUTIONS": 4},

@@ -67,6 +67,8 @@ func _auto_staff_all(world: WorldState) -> void:
 	if Ops.autopilot(world, Ops.GOV):
 		Ops.auto_staff(world, Ops.GOV)
 	for pid in world.table("party"):
+		if String(world.table("party")[pid].get("status", "ACTIVE")) != "ACTIVE":
+			continue      # dissolved or merged parties keep no staff work
 		var owner := {"kind": "PARTY", "id": pid}
 		if Ops.autopilot(world, owner):
 			Ops.auto_staff(world, owner)

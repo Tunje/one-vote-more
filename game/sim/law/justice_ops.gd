@@ -560,6 +560,8 @@ static func _final(world: WorldState, c: Dictionary, claimant_wins: bool) -> voi
 				data["leader_convicted"] = c["data"].get("leader_charged", false)
 	if c["type"] == "DEFAMATION":
 		var smearer: Dictionary = c["respondent"]
+		if String(smearer.get("kind", "")) == "OUTLET":
+			load("res://sim/media/media_ops.gd").on_defamation_verdict(world, String(smearer["id"]), claimant_wins)
 		fact(world, "LAW_DEFAMATION_RULED", "PUBLIC", [c["claimant"], smearer],
 			[{"actor": smearer if claimant_wins else c["claimant"], "share": 1.0}], {}, 35 + int(c["data"].get("severity", 0)) / 4,
 			{"victim": c["claimant"]["id"], "smearer": smearer["id"], "guilty": claimant_wins,
@@ -704,6 +706,14 @@ static func file_defamation(world: WorldState, victim_party: String, smearer_par
 		{"severity": clampi(severity, 0, 100)}, [800])
 
 
+## Media defamation (spec-media-v1 8.2): a party or company sues a newspaper over an exposed false report.
+## `liable` is decided by LAW_DEFAMATION_STANDARD at filing (media_ops._maybe_sue); damages come from media:<outlet>.
+static func file_defamation_outlet(world: WorldState, victim: Dictionary, out_id: String, severity: int, liable: bool) -> String:
+	init_courts(world)
+	return file_case(world, "DEFAMATION", victim.duplicate(), {"kind": "OUTLET", "id": out_id}, liable,
+		{"severity": clampi(severity, 0, 100), "outlet": out_id}, [800] if liable else [])
+
+
 static func _root_filed(world: WorldState, c: Dictionary) -> int:
 	if c["appeal_of"] != "":
 		return int(world.table("case")[c["appeal_of"]]["filed_month"])
@@ -764,6 +774,8 @@ static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, am
 	var from := "gov:treasury" if from_ref["kind"] in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"] else company_acct(String(from_ref["id"]))
 	if from_ref["kind"] == "PARTY":
 		from = "party:" + String(from_ref["id"])
+	if from_ref["kind"] == "OUTLET":
+		from = "media:" + String(from_ref["id"])
 	var to := "gov:treasury" if to_ref["kind"] in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"] else company_acct(String(to_ref["id"]))
 	if to_ref["kind"] == "PARTY":
 		to = "party:" + String(to_ref["id"])

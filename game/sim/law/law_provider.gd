@@ -61,6 +61,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			Ops.ensure_m11_rules(world)
 			CO.ensure_m12(world)
 			Land.ensure_rules(world)
+			Media.ensure_rules(world)
 			DL.ensure_founding_district(world)
 			DL.tick(world)
 			Ops.emergency_tick(world)

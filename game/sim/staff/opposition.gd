@@ -26,6 +26,7 @@ const AI_CHALLENGE_MIN_P := 0.5
 const P_REVEALED := 0.95       # revealed unlawful act: the government's own record is in evidence
 const P_DECREE := 0.85         # decree visibly beyond delegated powers
 const P_HUNCH := 0.15          # lawful decree challenged for political reasons
+const CHALLENGE_WINDOW := 24   # months: unlawful acts and decrees older than this are no longer challenged (limitation)
 
 
 static func _viewer(pid: String) -> Dictionary:
@@ -60,6 +61,40 @@ static func suspicious_decrees(world: WorldState) -> Array:
 	return out
 
 
+## Month-level inputs shared by every party's options (computed once per run_ai; perf fix 2026-11-12).
+static func shared_inputs(world: WorldState) -> Dictionary:
+	var stale := 0
+	for e in world.peek("enactment").values():
+		if e["status"] == "LEGAL" and world.month - int(e.get("legal_month", world.month)) > 6:
+			stale += 1
+	var recent: Array = []
+	for eid in Det.ordered(world.peek("enactment")):
+		var e: Dictionary = world.peek("enactment")[eid]
+		if world.month - int(e.get("decided_month", e.get("legal_month", world.month))) <= CHALLENGE_WINDOW:
+			recent.append(eid)
+	return {"susp": suspicious_decrees(world), "stale": stale, "challenged": challenged_index(world), "recent_enactments": recent,
+		"revealed": Det.recent_facts(world, "LAW_UNLAWFUL_GOV_ACTION_REVEALED", world.month - CHALLENGE_WINDOW)}
+
+
+## {"unlawful_fact": {id: true}, "enactment": {id: true}}: targets already in court or under an active challenge.
+static func challenged_index(world: WorldState) -> Dictionary:
+	var out := {"unlawful_fact": {}, "enactment": {}}
+	for c in world.peek("case").values():
+		for key in out:
+			var v := String(c["data"].get(key, ""))
+			if v != "":
+				out[key][v] = true
+	for t in world.peek("task").values():
+		if t["def_id"] == "STAFF_T_LEGAL_CHALLENGE" and t["status"] == "ACTIVE":
+			var f := String(t["params"].get("target_fact", ""))
+			var e := String(t["params"].get("target_enactment", ""))
+			if f != "":
+				out["unlawful_fact"][f] = true
+			if e != "":
+				out["enactment"][e] = true
+	return out
+
+
 static func _challenged(world: WorldState, key: String, value: String) -> bool:
 	for c in world.peek("case").values():
 		if String(c["data"].get(key, "")) == value:
@@ -82,7 +117,10 @@ static func _recent_inquiry(world: WorldState, pid: String, domain: String) -> b
 
 ## What the party could do now (pure). Returns
 ## {role, pool: {size, free, qualified_investigator, qualified_counsel}, oversight: [...], challenges: [...], running: [...]}
-static func options(world: WorldState, pid: String) -> Dictionary:
+static func options(world: WorldState, pid: String, shared: Dictionary = {}) -> Dictionary:
+	if shared.is_empty():
+		shared = shared_inputs(world)
+	var chal: Dictionary = shared["challenged"]
 	var viewer := _viewer(pid)
 	var owner := {"kind": "PARTY", "id": pid}
 	var free := Ops.available(world, owner)
@@ -97,18 +135,16 @@ static func options(world: WorldState, pid: String) -> Dictionary:
 	var owned := {}
 	for c in party.get("commitments", []):
 		owned[String(world.lever_defs.get(c["lever"], {}).get("owner", "")).to_upper()] = true
-	var susp := suspicious_decrees(world)
-	var stale := 0
-	for e in world.peek("enactment").values():
-		if e["status"] == "LEGAL" and world.month - int(e.get("legal_month", world.month)) > 6:
-			stale += 1
+	var susp: Array = shared["susp"]
+	var stale := int(shared["stale"])
 	var oversight: Array = []
 	for d in DOMAINS:
 		var reasons: Array = []
 		var y := 0.0
 		var neg := 0
-		for f in Vis.filter_facts(world, viewer, world.facts.query(DOMAINS[d]["prefixes"][0], world.month - LOOKBACK, world.month)):
-			if f["visibility"] == "PUBLIC" and _gov_negative(f):
+		# only PUBLIC facts count, and those everyone sees: no per-fact visibility check needed (perf)
+		for f in Det.recent_facts(world, DOMAINS[d]["prefixes"][0], world.month - LOOKBACK, "PUBLIC"):
+			if _gov_negative(f):
 				neg += 1
 		if neg > 0:
 			y += minf(3.0, 0.5 * float(neg))
@@ -131,9 +167,9 @@ static func options(world: WorldState, pid: String) -> Dictionary:
 	oversight.sort_custom(func(a, b): return a["expected_yield"] > b["expected_yield"])
 	# --- challenge targets
 	var challenges: Array = []
-	for f in Vis.filter_facts(world, viewer, world.facts.query("LAW_UNLAWFUL_GOV_ACTION_REVEALED", -1, world.month)):
+	for f in Vis.filter_facts(world, viewer, shared["revealed"]):
 		var orig: String = f["causes"][0] if not f["causes"].is_empty() else ""
-		if orig == "" or _challenged(world, "unlawful_fact", orig):
+		if orig == "" or chal["unlawful_fact"].has(orig):
 			continue
 		var grievance := false
 		for s in f["subjects"]:
@@ -142,16 +178,16 @@ static func options(world: WorldState, pid: String) -> Dictionary:
 		challenges.append({"kind": "REVEALED_UNLAWFUL", "target_fact": orig, "target_enactment": "", "p_win_est": P_REVEALED,
 			"grievance": grievance, "label": "Challenge the unlawful government act revealed in month %d" % int(f["month"])})
 	for eid in susp:
-		if _challenged(world, "enactment", eid):
+		if chal["enactment"].has(eid):
 			continue
 		var e: Dictionary = world.peek("enactment")[eid]
 		challenges.append({"kind": "DECREE_ULTRA_VIRES", "target_fact": "", "target_enactment": eid, "p_win_est": P_DECREE,
 			"grievance": false, "label": "Challenge the decree on %s: only parliament may set it" % e["lever"]})
 	for c in party.get("commitments", []):
-		for eid in Det.ordered(world.peek("enactment")):
+		for eid in shared["recent_enactments"]:
 			var e: Dictionary = world.peek("enactment")[eid]
 			if e["lever"] != c["lever"] or not e["legal_level"] in ["ADMIN", "REGULATION"] or susp.has(eid) \
-					or e["status"] in ["REJECTED", "CANCELLED"] or _challenged(world, "enactment", eid):
+					or e["status"] in ["REJECTED", "CANCELLED"] or chal["enactment"].has(eid):
 				continue
 			var from_v = e.get("from")
 			var dir := 0
@@ -189,13 +225,16 @@ static func start_challenge(world: WorldState, pid: String, option: Dictionary) 
 ## AI opposition (and autoplay): one inquiry and one challenge at a time, only with qualified free staff.
 static func run_ai(world: WorldState) -> void:
 	var parties := world.peek("party")
+	var shared := {}
 	for pid in Det.ordered(parties):
 		var p: Dictionary = parties[pid]
 		if String(p.get("status", "ACTIVE")) != "ACTIVE" or int(p.get("seats", 0)) <= 0:
 			continue
 		if Vis.role(world, pid) != "OPPOSITION" or not Ops.autopilot(world, {"kind": "PARTY", "id": pid}):
 			continue
-		var o := options(world, pid)
+		if shared.is_empty():
+			shared = shared_inputs(world)
+		var o := options(world, pid, shared)
 		var busy := {}
 		for r in o["running"]:
 			busy[r["def_id"]] = true
@@ -204,4 +243,9 @@ static func run_ai(world: WorldState) -> void:
 			start_oversight(world, pid, o["oversight"][0]["domain"])
 		if not busy.has("STAFF_T_LEGAL_CHALLENGE") and o["pool"]["qualified_counsel"] and not o["challenges"].is_empty() \
 				and float(o["challenges"][0]["p_win_est"]) >= AI_CHALLENGE_MIN_P:
-			start_challenge(world, pid, o["challenges"][0])
+			var ch: Dictionary = o["challenges"][0]
+			if bool(start_challenge(world, pid, ch).get("ok", false)):
+				if String(ch.get("target_fact", "")) != "":
+					shared["challenged"]["unlawful_fact"][String(ch["target_fact"])] = true
+				if String(ch.get("target_enactment", "")) != "":
+					shared["challenged"]["enactment"][String(ch["target_enactment"])] = true
