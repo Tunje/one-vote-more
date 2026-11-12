@@ -11,6 +11,7 @@ const MONTHS := ["January", "February", "March", "April", "May", "June", "July",
 
 var session
 var body: VBoxContainer
+var paper := ""          # selected outlet id ("" = first)
 var _serif: SystemFont
 var _serif_bold: SystemFont
 
@@ -102,13 +103,37 @@ func refresh() -> void:
 		c.queue_free()
 	var w: WorldState = session.world()
 	var m := maxi(0, w.month - 1)
-	var facts: Array = w.facts.query("", m, m, "PUBLIC").filter(func(f): return int(f["magnitude"]) >= 25 and not String(f["type"]).ends_with("_DONATION"))
-	var stories := _stories(w, facts)
+	var outs: Array = MediaQuery.outlets(w) if w.peek("outlet").size() > 0 else []
+	var stories: Array = []
+	var title := ""
+	var tagline := "“All the news the colony can bear”"
+	if not outs.is_empty():
+		if paper == "" or outs.filter(func(o): return o["id"] == paper).is_empty():
+			paper = outs[0]["id"]
+		var pick := HBoxContainer.new()
+		body.add_child(pick)
+		for o in outs:
+			var b := Button.new()
+			b.text = o["name"]
+			b.disabled = o["id"] == paper
+			var oid: String = o["id"]
+			b.pressed.connect(func(): paper = oid; refresh())
+			pick.add_child(b)
+		var sel: Dictionary = outs.filter(func(o): return o["id"] == paper)[0]
+		title = String(sel["name"]).to_upper()
+		tagline = _tagline(w, sel)
+		var em := MediaQuery.latest_month(w, paper)
+		if em >= 0:
+			m = em
+			stories = _edition_stories(w, MediaQuery.edition(w, paper, em))
+	else:
+		var facts: Array = w.facts.query("", m, m, "PUBLIC").filter(func(f): return int(f["magnitude"]) >= 25 and not String(f["type"]).ends_with("_DONATION"))
+		stories = _stories(w, facts)
 	# masthead
 	var home: String = String(AreaStore.get_area(w, "hb:1").get("name", "Landing")) if w.peek("area").has("hb:1") else "Landing"
 	_rule(body, 3)
-	_text(body, "THE %s GAZETTE" % home.to_upper(), 46, true, INK, HORIZONTAL_ALIGNMENT_CENTER)
-	_text(body, "“All the news the colony can bear”", 14, false, MUTED, HORIZONTAL_ALIGNMENT_CENTER)
+	_text(body, title if title != "" else "THE %s GAZETTE" % home.to_upper(), 46, true, INK, HORIZONTAL_ALIGNMENT_CENTER)
+	_text(body, tagline, 14, false, MUTED, HORIZONTAL_ALIGNMENT_CENTER)
 	_rule(body, 1)
 	var dl := HBoxContainer.new()
 	body.add_child(dl)
@@ -168,7 +193,7 @@ func _boxes(w: WorldState, parent: VBoxContainer) -> void:
 		for pid in ids.slice(0, 6):
 			var p: Dictionary = w.peek("party").get(pid, {})
 			var pct := float(est[pid]) / 1000.0
-			_text(parent, "%-22s %5.1f%%  %s" % [String(p.get("name", pid)).left(22), pct, "▮".repeat(int(round(pct / 3.0)))], 12)
+			_text(parent, "%-22s %5.1f%%  %s" % [String(p.get("name", pid)).left(22), pct, "▮".repeat(mini(12, int(round(pct / 5.0))))], 12)
 		_rule(parent)
 	# weather (Terra)
 	if w.indicators.values.has("PLANET_RAIN_PCT"):
@@ -184,6 +209,44 @@ func _boxes(w: WorldState, parent: VBoxContainer) -> void:
 		for r in mk:
 			var ratio := float(r["price"]) / maxf(0.001, float(r["base_price"]))
 			_text(parent, "%-10s %8.0f cr  %s" % [String(r["good"]).capitalize(), float(r["price"]), "▲" if ratio > 1.15 else ("▼" if ratio < 0.85 else "•")], 12)
+
+
+func _tagline(w: WorldState, o: Dictionary) -> String:
+	var ow: Dictionary = o.get("owner", {})
+	match String(ow.get("kind", "")):
+		"STATE": return "Public newspaper of the colony · circulation %d" % int(o["circulation"])
+		"PARTY": return "Organ of the %s · circulation %d" % [NewsText.party(w, ow.get("id", "")), int(o["circulation"])]
+		"UNION": return "The voice of working people · circulation %d" % int(o["circulation"])
+		"COMPANY": return "Published by %s · circulation %d" % [NewsText.org(w, ow.get("id", "")), int(o["circulation"])]
+	return "circulation %d" % int(o.get("circulation", 0))
+
+
+## Stories as this paper chose and framed them (Media editions): the paper's own ranking; the angle picks the
+## headline (blaming the government, blaming the subject, or neutral).
+func _edition_stories(w: WorldState, ed: Dictionary) -> Array:
+	var out: Array = []
+	for st in ed.get("stories", []):
+		var f: Dictionary = w.facts.get_fact(String(st["fact"]))
+		if f.is_empty():
+			continue
+		var head := headline(w, f)
+		match String(st.get("angle", "NEUTRAL")):
+			"GOVERNMENT":
+				head = "GOVERNMENT UNDER FIRE: " + head
+			"SUBJECT":
+				var ha: Dictionary = st.get("head_actor", {})
+				var who := NewsText.org(w, ha.get("id", "")) if ha.get("kind", "") in ["COMPANY", "ORG"] else (NewsText.party(w, ha.get("id", "")) if ha.get("kind", "") == "PARTY" else "")
+				if who != "" and not who.begins_with("a "):
+					head = "%s TO BLAME: %s" % [who.to_upper(), head]
+		var also: Array = st.get("also", [])
+		var sub_t := plain(NewsText.sentence(w, f)) + ((" — and %d more like it" % also.size()) if also.size() > 0 else "")
+		if st.get("exposed", false):
+			sub_t += "  [later shown to be false]"
+		elif st.get("corrected", false):
+			sub_t += "  [corrected]"
+		out.append({"head": head, "sub": sub_t, "body": article(w, f), "score": 1000 - int(st.get("rank", 0))})
+	out.sort_custom(func(a, b): return a["score"] > b["score"])
+	return out
 
 
 ## Editorial weight by kind of news: politics, scandal and disaster lead; routine delays go to the back.
@@ -251,6 +314,8 @@ static func headline(w: WorldState, f: Dictionary) -> String:
 		"LAW_CHARTER_AMENDED": h = "HOME WORLD REWRITES THE CHARTER"
 		"HOME_PETITION_ANSWERED", "LAW_PETITION_ANSWERED": h = "HOME WORLD %s COLONY'S PLEA" % ("GRANTS" if d.get("accepted", false) else "REJECTS")
 		"LAW_PETITION_SENT": h = "PARLIAMENT PETITIONS THE HOME WORLD"
+		"POL_CHARTER_VOTE": h = "PARLIAMENT VOTES ON %s" % {"PETITION": "A PETITION TO THE HOME WORLD", "REFUSAL": "DEFYING THE HOME WORLD", "INDEPENDENCE": "INDEPENDENCE"}.get(String(d.get("what", "")), "THE CHARTER")
+		"STAFF_OVERSIGHT_REPORT": h = "WATCHDOG REPORT FINDS %d FAULTS" % int(d.get("findings", 0)) if int(d.get("findings", 0)) > 0 else "WATCHDOG GIVES GOVERNMENT CLEAN BILL"
 		"HOME_INSPECTION_REPORT": h = "HOME INSPECTOR FINDS SMUGGLING" if int(d.get("found", 0)) > 0 else "HOME INSPECTOR GIVES ALL CLEAR"
 		"HOME_EXPEDITION_SENT": h = "HOME WORLD SENDS WARSHIPS"
 		"ECON_FAMINE": h = "FAMINE GRIPS THE COLONY"
@@ -268,7 +333,7 @@ static func headline(w: WorldState, f: Dictionary) -> String:
 		"PLANET_MOON_SURGE": h = "MOON SURGE FLOODS THE SHORE"
 		"PLANET_SPORE_BLOOM": h = "SPORE BLOOM DRIFTS IN"
 		_:
-			var s := plain(NewsText.sentence(w, f))
+			var s := plain(NewsText.sentence(w, f)).replace(" (blamed on the government)", "")
 			h = s.get_slice(":", 0).to_upper()
 			if h.length() > 60:
 				h = h.left(57) + "…"

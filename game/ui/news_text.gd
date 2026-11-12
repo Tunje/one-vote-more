@@ -142,6 +142,8 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"LAW_CHARTER_AMENDED": s = "The home world amended the colony's charter (%s: %s → %s)" % [_kind(String(d.get("lever", "")).trim_prefix("LAW_CHARTER_")), str(d.get("from", "?")), str(d.get("to", "?"))]
 		"HOME_PETITION_ANSWERED", "LAW_PETITION_ANSWERED": s = "The home world %s the colony's petition" % ("granted" if d.get("accepted", false) else "rejected")
 		"HOME_INSPECTION_REPORT": s = "The home world's inspector %s" % (("found %d cases of quota evasion or smuggling" % int(d.get("found", 0))) if int(d.get("found", 0)) > 0 else "found nothing amiss")
+		"POL_CHARTER_VOTE": s = "Parliament %s a %s (%d–%d)" % ["passed" if d.get("passed", false) else "rejected", {"PETITION": "petition to the home world", "REFUSAL": "refusal of the quota", "INDEPENDENCE": "declaration of independence"}.get(String(d.get("what", "")), "charter motion"), int(d.get("yes", 0)), int(d.get("no", 0))]
+		"STAFF_OVERSIGHT_REPORT": s = "An oversight report on the %s found %d faults" % [_kind(d.get("domain", "administration")), int(d.get("findings", 0))]
 		"LAW_PETITION_SENT": s = "Parliament sent a petition to the home world asking for better terms"
 		"POL_ELECTION_HELD": s = "[b]Election held[/b]"
 		"POL_GOVERNMENT_FORMED": s = "[b]New government[/b]: %s" % ", ".join(d.get("members", []).map(func(p): return party(w, p)))
