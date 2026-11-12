@@ -105,7 +105,7 @@ func test_grudge_fades_linearly_over_eight_years() -> void:
 	var u: Dictionary = pair[0]
 	var p: Dictionary = pair[1]
 	var base := UnionPolitics.score(w, u, p)
-	UnionPolitics.betray(w, st, p["id"], {"ECON_UNION_RIGHTS": -1.0})
+	UnionPolitics.betray(w, st, p["id"], {"ECON_UNION_RIGHTS": -2.0})
 	var m0 := w.month
 	var at := func(dm: int) -> float:
 		w.month = m0 + dm
@@ -113,8 +113,8 @@ func test_grudge_fades_linearly_over_eight_years() -> void:
 	var p0: float = at.call(0)
 	var p48: float = at.call(48)
 	var p96: float = at.call(96)
-	check(absf(p0 - UnionPolitics.GRUDGE_PTS) < 0.5, "full penalty at first (%.1f)" % p0)
-	check(absf(p48 - UnionPolitics.GRUDGE_PTS / 2.0) < 0.5, "half after four years (%.1f)" % p48)
+	check(absf(p0 - 2.0 * UnionPolitics.GRUDGE_PTS) < 0.5, "full penalty at first (%.1f)" % p0)
+	check(absf(p48 - UnionPolitics.GRUDGE_PTS) < 0.5, "half after four years (%.1f)" % p48)
 	check(absf(p96) < 0.5, "gone after eight (%.1f)" % p96)
 	w.month = m0
 
@@ -141,7 +141,11 @@ func test_union_money_goes_to_the_endorsed_party_within_the_ledger() -> void:
 		return
 	var u: Dictionary = pair[0]
 	var p: Dictionary = pair[1]
-	w.ledger.transfer(Ledger.EXTERNAL, String(u["acct"]), 50_000_000, "TEST", w.month)
+	# top the fund up past its strike reserve (8 weeks of strike pay, which grows with wages and membership)
+	var reserve := int(8.0 / 4.33 * float(u["members"]) / EconUtil.S * float(Unions.strike_pay(w)))
+	var top := maxi(0, reserve - w.ledger.balance(String(u["acct"]))) + 50_000_000
+	w.ledger.transfer(Ledger.EXTERNAL, String(u["acct"]), top, "TEST", w.month)
+	check(Unions.spare_fund(w, String(u["id"])) >= 40_000_000, "spare money above the reserve")
 	var fund0 := w.ledger.balance(String(u["acct"]))
 	var party0 := w.ledger.balance("party:" + String(p["id"]))
 	UnionPolitics._donate(w, UnionPolitics._s(w))

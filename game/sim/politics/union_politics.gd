@@ -38,7 +38,7 @@ const RELEVANCE := {
 }
 const FED_RELEVANCE := {"ECON_UNION_RIGHTS": 1.0, "ECON_MIN_WAGE": 1.0, "LAW_SAFETY_STANDARD": 0.8,
 	"ECON_UNEMPLOYMENT_BENEFIT_RATE": 0.8, "ECON_PUBLIC_PAY_INDEX": 0.4}
-const BETRAY_MIN := 1.0            # a union walks out only over a cut that matters to it (weighted labour value <= -1)
+const BETRAY_MIN := 1.5            # a union walks out only over a cut that matters to it (weighted labour value <= -1.5)
 const DONATE_SHARE := 0.08         # of a union's spare fund, per quarter of an election year
 const BETRAY_DISCONTENT := 25      # the labour-side faction of a betraying party
 const MOB_FED := 0.5               # campaign volunteers: the federation's pick gets MOB_UNION x this ...
@@ -221,6 +221,12 @@ static func betray(world: WorldState, st: Dictionary, pid: String, vals: Diction
 			fs[fi]["discontent"] = mini(100, int(fs[fi]["discontent"]) + BETRAY_DISCONTENT / 2)
 
 
+## Does party p lean toward labour on union u's terms (LABOR + the union's REDISTRIBUTION weight > 0)?
+static func pro_labour(u: Dictionary, p: Dictionary) -> bool:
+	var red_w := 0.5 if "PUBLIC_SECTOR" in u.get("sectors", []) else 0.25
+	return float(p["positions"]["LABOR"]) + red_w * float(p["positions"]["REDISTRIBUTION"]) > 0.0
+
+
 ## How much union u likes party p (score points). Read-only.
 static func score(world: WorldState, u: Dictionary, p: Dictionary, s: Dictionary = {}) -> float:
 	if s.is_empty():
@@ -272,6 +278,8 @@ static func review(world: WorldState, _st: Dictionary, u: Dictionary) -> void:
 	for p in PartyLife.active(world):
 		if int(p["support"]) < PartyLife.THRESHOLD and int(p["seats"]) <= 0:
 			continue
+		if not pro_labour(u, p):
+			continue   # a union never backs a party that leans against labour, however big or tied
 		var sc := score(world, u, p, s)
 		if p["id"] == cur:
 			cur_sc = sc
