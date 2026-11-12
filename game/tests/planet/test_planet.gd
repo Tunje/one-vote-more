@@ -67,3 +67,30 @@ func test_view_builds_headless() -> void:
 	v._ready()
 	check(v._globe.mesh != null and v._globe.mesh.get_surface_count() == 2, "land and water surfaces")
 	v.free()
+
+
+## The colony on its hex: the colony map (terrain, areas, facilities) laid on the landing region, inside it, following
+## the terrain; weather over the colony flagged.
+func test_colony_lies_on_its_hex() -> void:
+	var s := GameSession.new()
+	s.new_game(3, true)
+	var w := s.world()
+	var v := PlanetView.new()
+	v.session = s
+	v._ready()
+	check(v._colony_mesh.mesh != null, "the colony map is laid on the landing hex")
+	var img := PlanetView.colony_image(w)
+	check_eq(img.get_size(), Vector2i(Terrain.W, Terrain.H) * PlanetView.COLONY_PX, "one block of pixels per colony tile")
+	check_eq(img.get_data(), PlanetView.colony_image(w).get_data(), "deterministic")
+	var li := Planet.landing(w)
+	for g in [Vector2(0, 0), Vector2(Terrain.W, 0), Vector2(0, Terrain.H), Vector2(Terrain.W, Terrain.H), Vector2(Terrain.landing(w))]:
+		var p := v.colony_point(w, g)
+		check_eq(Planet.cell_at(p.normalized(), Planet.freq(w), li), li, "colony map point %s stays inside the landing hex" % g)
+		check(p.length() > 1.0 and p.length() < 1.0 + PlanetView.RELIEF * 100.0, "on the surface")
+	check_eq(PlanetView.colony_hits(w), [], "calm weather: no hits")
+	check(not v._alert_mesh.visible, "no warning rim")
+	w.table("planet")["storms"] = [{"kind": "CYCLONE", "strength": 3, "cells": [li], "global": false}]
+	v.refresh()
+	check_eq(PlanetView.colony_hits(w), [{"kind": "CYCLONE", "strength": 3}], "a cyclone over the colony")
+	check(v._alert_mesh.visible and v._marker_lbl.text.contains("Cyclone"), "warning rim and label")
+	v.free()

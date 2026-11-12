@@ -126,6 +126,17 @@ and greenhouse warming are Terra's physical model; Bob reads them. Politics read
 - Alien phenomena: **yes** (solar flares, spore blooms, twin-moon surges above).
 - Warming: **barely noticeable for now**; one tunable constant for a future tech system.
 
+## The colony on its hex (2026-11-12, after A5)
+- Zoom in on the landing region and the colony map itself lies on it: the 64×40 grid (terrain, areas by kind,
+  facilities in ColonyMap's colours) as a texture on a mesh that follows the hex's terrain, inside the gold rim
+  (`PlanetView.colony_image`, `colony_point`). Clouds thin out as you zoom in; the flag pole hides up close.
+  The camera now comes in to distance 1.04.
+- The flag stands on the landing site within that map. Its label shows the colony (colonists, areas) and any
+  storm or phenomenon over the colony this month.
+- Weather hitting the colony (`PlanetView.colony_hits`) gets a pulsing red rim. The info header gets "Over the
+  colony this month: …" and last month's PLANET_* news lines.
+- The colony map UI itself (A5) is `ui/colony_map.gd` (TERRAIN overlay), spec-areas-v1 §7.
+
 ## Next (proposed)
 1. Terrain.generate reads the landing region and its neighbours (coast → a sea edge, mountains → more hills,
    desert/forest → different local mix). Approved by Wilma (A35 follow-up).

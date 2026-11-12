@@ -38,7 +38,8 @@ const CLOUD_R := 1.0 + RELIEF * 100.0   # storms drift above the highest peaks
 ## The colony on the globe: the 64x40 colony map (ui ColonyMap's terrain, areas, facilities) laid on the landing hex.
 const COLONY_FILL := 0.7       # half-width of the colony map, as a share of the hex's smallest centre-corner distance
 const COLONY_LIFT := 0.0006    # above the terrain, below the gold rim
-const COLONY_PX := 4           # texture pixels per colony tile (1 of them a darker grid line)
+const COLONY_PX := 4           # texture pixels per colony tile (facilities: the inner 2x2)
+const MARKER_HIDE_DIST := 1.5  # closer than this the colony map itself is readable: hide the flag pole
 var _colony_mesh: MeshInstance3D
 var _colony_for := ""
 var _alert_mesh: MeshInstance3D
@@ -74,7 +75,8 @@ func _ready() -> void:
 	_vp.add_child(env)
 	_cam = Camera3D.new()
 	_cam.fov = 40.0
-	_cam.near = 0.05
+	_cam.near = 0.004   # close enough to read the colony map on its hex
+	_cam.far = 30.0
 	_vp.add_child(_cam)
 	# the sun rides with the camera (from upper left), so the side you look at is always lit
 	var sun := DirectionalLight3D.new()
@@ -143,7 +145,13 @@ func _place_camera() -> void:
 	if _cam == null:
 		return
 	_pitch = clampf(_pitch, -1.45, 1.45)
-	_dist = clampf(_dist, 1.15, 6.0)
+	_dist = clampf(_dist, 1.04, 6.0)
+	if _marker != null:
+		for ch in _marker.get_children():
+			if ch is MeshInstance3D and ch.mesh is not ArrayMesh:   # pole and flag (the rim is an ArrayMesh)
+				ch.visible = _dist >= MARKER_HIDE_DIST
+	if _weather_mesh != null:
+		_weather_mesh.transparency = clampf((1.8 - _dist) / 0.6, 0.0, 0.92)   # see the colony through the clouds up close
 	var dir := Vector3(cos(_pitch) * sin(_yaw), sin(_pitch), cos(_pitch) * cos(_yaw))
 	_cam.transform = Transform3D(Basis.looking_at(-dir, Vector3.UP if absf(_pitch) < 1.4 else Vector3.FORWARD), dir * _dist)
 
@@ -282,16 +290,16 @@ func _build_marker(w: WorldState) -> void:
 	var cy := CylinderMesh.new()
 	cy.top_radius = 0.0025
 	cy.bottom_radius = 0.0025
-	cy.height = 0.08
+	cy.height = 0.03
 	pole.mesh = cy
-	pole.position = Vector3(0, 0.04, 0)
+	pole.position = Vector3(0, 0.015, 0)
 	pole.material_override = mat
 	_marker.add_child(pole)
 	var flag := MeshInstance3D.new()
 	var bx := BoxMesh.new()
-	bx.size = Vector3(0.03, 0.018, 0.003)
+	bx.size = Vector3(0.012, 0.008, 0.002)
 	flag.mesh = bx
-	flag.position = Vector3(0.016, 0.071, 0)
+	flag.position = Vector3(0.0065, 0.026, 0)
 	flag.material_override = mat
 	_marker.add_child(flag)
 	var lbl := Label3D.new()
@@ -301,7 +309,10 @@ func _build_marker(w: WorldState) -> void:
 	lbl.fixed_size = true
 	lbl.font_size = 22
 	lbl.outline_size = 6
-	lbl.position = Vector3(0, 0.1, 0)
+	lbl.position = Vector3(0, 0.004, 0)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	lbl.offset = Vector2(18, 0)       # beside the flag, not over the colony map
+	lbl.outline_modulate = Color(0, 0, 0, 0.85)
 	lbl.no_depth_test = true
 	_marker.add_child(lbl)
 	_marker_lbl = lbl
@@ -389,9 +400,7 @@ static func colony_image(w: WorldState) -> Image:
 			for yy in px:
 				for xx in px:
 					var cc := c
-					if xx == px - 1 or yy == px - 1:
-						cc = c.darkened(0.25)
-					elif dot.a > 0.0 and xx >= 1 and yy >= 1 and xx <= px - 2 and yy <= px - 2:
+					if dot.a > 0.0 and xx >= 1 and yy >= 1 and xx <= px - 2 and yy <= px - 2:
 						cc = dot
 					img.set_pixel(x * px + xx, y * px + yy, cc)
 	return img
@@ -425,8 +434,10 @@ func _build_colony(w: WorldState) -> void:
 				st.set_uv(v[1])
 				st.add_vertex(v[0])
 	var mat := StandardMaterial3D.new()
-	mat.albedo_texture = ImageTexture.create_from_image(colony_image(w))
-	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	var img := colony_image(w)
+	img.generate_mipmaps()
+	mat.albedo_texture = ImageTexture.create_from_image(img)
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	mat.roughness = 0.9
 	st.set_material(mat)
 	_colony_mesh.mesh = st.commit()
@@ -455,7 +466,7 @@ func _update_colony_status(w: WorldState) -> void:
 		_marker_lbl.modulate = Color("#ffb38a") if not hits.is_empty() else Color.WHITE
 	_alert_mesh.visible = not hits.is_empty()
 	if _alert_mesh.visible:
-		_alert_mesh.mesh = _ring(w, Planet.landing(w), Color("#ff5a36"), 0.82, 0.0022)
+		_alert_mesh.mesh = _ring(w, Planet.landing(w), Color("#ff3d1f"), 0.95, 0.0024)
 	set_process(_alert_mesh.visible)
 
 
@@ -463,7 +474,7 @@ func _process(delta: float) -> void:
 	if _alert_mesh == null or not _alert_mesh.visible:
 		return
 	_alert_t += delta
-	_alert_mesh.transparency = 0.45 + 0.45 * sin(_alert_t * 4.0)
+	_alert_mesh.transparency = 0.4 + 0.4 * sin(_alert_t * 4.0)
 
 
 ## This month's storms and phenomena as translucent cloud bands over their tracks, and the colony's smoke as a
@@ -522,7 +533,8 @@ func _set_hover(i: int) -> void:
 	if i < 0 or session == null:
 		_hover_mesh.mesh = null
 		return
-	_hover_mesh.mesh = _ring(session.world(), i, Color.WHITE, 0.75, 0.0015)
+	var thin: bool = i == Planet.landing(session.world()) and Terrain.ready(session.world())   # don't cover the colony map
+	_hover_mesh.mesh = _ring(session.world(), i, Color.WHITE, 0.93 if thin else 0.75, 0.0018)
 
 
 ## An outline ring following a cell's surface (inner edge at `inner` of the way from centre to corners).
