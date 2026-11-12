@@ -301,6 +301,8 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	# input orders per org per (good, district)
 	var needs := {}  # "org|good|district" -> qty
+	var upkeep_val := {}  # org -> value of its running plants' monthly upkeep (E116)
+	var upkeep_qty := {}  # "org|good|district" -> upkeep part of the need (E116)
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		var r: Dictionary = EconData.RECIPES[f["type"]]
@@ -321,12 +323,19 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 				needs[k] = needs.get(k, 0) + int(float(r["in"][g]) * S * t * EconUtil.fscale(f) * EconUtil.tier_in(f))
 		if r["upkeep"] > 0:
 			var k2 := "%s|MATERIAL|%s" % [f["org"], f["district"]]
-			needs[k2] = needs.get(k2, 0) + int(float(r["upkeep"]) * S * EconUtil.fscale(f))
+			var q2 := int(float(r["upkeep"]) * S * EconUtil.fscale(f))
+			needs[k2] = needs.get(k2, 0) + q2
+			upkeep_val[f["org"]] = int(upkeep_val.get(f["org"], 0)) + EconUtil.val(q2, s["prices"]["MATERIAL"] * 2)
+			upkeep_qty[k2] = int(upkeep_qty.get(k2, 0)) + q2
 		var uc: int = EconData.UPKEEP_COMPONENT.get(f["type"], 0)
 		if uc > 0:
 			var k3 := "%s|COMPONENT|%s" % [f["org"], f["district"]]
-			needs[k3] = needs.get(k3, 0) + int(float(uc) * S * EconUtil.fscale(f))
+			var q3 := int(float(uc) * S * EconUtil.fscale(f))
+			needs[k3] = needs.get(k3, 0) + q3
+			upkeep_val[f["org"]] = int(upkeep_val.get(f["org"], 0)) + EconUtil.val(q3, s["prices"]["COMPONENT"] * 2)
+			upkeep_qty[k3] = int(upkeep_qty.get(k3, 0)) + q3
 	var budgets := {}
+	var e116 := not EconUtil.off(world, "E116")
 	for k in EconUtil.sorted_keys(needs):
 		var parts: PackedStringArray = k.split("|")
 		var oid := parts[0]
@@ -335,17 +344,37 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 		var o: Dictionary = world.table("org")[oid]
 		if not budgets.has(oid):
 			var reserve: int = 0 if o["type"] == "PUBLIC_INSTITUTION" else o["pl_last"].get("wages", 0)
-			budgets[oid] = world.ledger.balance(EconUtil.acct(oid)) - reserve
+			var bal := world.ledger.balance(EconUtil.acct(oid))
+			budgets[oid] = bal - reserve
+			if e116:
+				# E116 maintenance first: upkeep (about 2% of a farm firm's wage bill) is funded before the wage
+				# reserve. Firms living month to month on one wage bill of cash otherwise let their plants rot.
+				budgets[oid] = maxi(0, bal - reserve) + mini(maxi(0, bal), int(upkeep_val.get(oid, 0)))
 		var want: int = needs[k] - EconUtil.inv_get(world, oid, good, d)
 		var distressed: bool = o["status"] != "ACTIVE"
 		var freight_allow := 3 * int(EconUtil.lever(world, "ECON_FREIGHT_TARIFF", 5)) * S
-		var lim := int(s["prices"][good] * (1.1 if distressed else EconData.INPUT_LIMIT_MULT)) + freight_allow
+		# a distressed firm bids tight (1.1×) for production inputs, but E116: not for upkeep parts. Sellers' asks
+		# sit at their unit-cost floor above 1.1× price, so a tight bid never fills and the plants rot.
+		var tight := distressed and not (e116 and good in ["MATERIAL", "COMPONENT"])
+		var lim := int(s["prices"][good] * (1.1 if tight else EconData.INPUT_LIMIT_MULT)) + freight_allow
 		if o["type"] in EconData.PUBLIC_TYPES:
 			lim = s["prices"][good] * 2 + freight_allow  # public services and utilities outbid industry for inputs
 		var cost_needed := EconUtil.val(maxi(want, 0), lim)
 		if cost_needed > budgets[oid] and o["type"] in ["PRIVATE", "COOPERATIVE"]:
 			budgets[oid] += _working_capital(world, oid, cost_needed - budgets[oid])
+		var up_want := mini(maxi(0, want), int(upkeep_qty.get(k, 0)))
 		want = mini(want, int(float(maxi(0, budgets[oid])) * S / float(maxi(1, lim))))
+		if e116 and up_want > 0:
+			# E116: the upkeep part is its own order, always posted at the normal input limit (not the distressed 1.1×; a 2×
+			# bid was tried and drove material prices up for everyone). Wages leave a
+			# month-to-month firm with no cash at order time, but its sales come in at TRADE before materials clear (FOOD
+			# first) and the fill takes only what it can pay.
+			var up_lim: int = maxi(lim, int(float(s["prices"][good]) * EconData.INPUT_LIMIT_MULT) + freight_allow)
+			s["orders"].append({"buyer": oid, "acct": EconUtil.acct(oid), "district": d, "good": good, "qty": up_want, "limit": up_lim,
+				"class": EconMarket.C_INSTITUTION if o["type"] == "PUBLIC_INSTITUTION" else EconMarket.C_FIRM, "kind": "org"})
+			budgets[oid] -= EconUtil.val(up_want, up_lim)
+			want = mini(want, int(float(maxi(0, budgets[oid])) * S / float(maxi(1, lim))))
+			want = mini(want, needs[k] - EconUtil.inv_get(world, oid, good, d) - up_want)
 		if want <= 0:
 			continue
 		budgets[oid] -= EconUtil.val(want, lim)

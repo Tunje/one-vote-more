@@ -318,6 +318,7 @@ static func _upkeep(world: WorldState, f: Dictionary, running: bool) -> void:
 		EconUtil.qflow(world, pair[0], "burned", got)
 		EconFinance.pl_add(world, f["org"], "cogs", EconUtil.val(got, wac))
 		frac = minf(frac, clampf(float(got) / need, 0.0, 1.0))
+	f["upkeep_frac"] = int(frac * 1000.0)  # share of this month's upkeep supplied (diagnostics)
 	if not repairing:
 		cond -= int(1.0 * S * (1.0 - frac))
 	# E84: maintenance restores. Fully supplied upkeep slowly repairs a running plant; a plant closed as unsafe

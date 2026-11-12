@@ -97,7 +97,9 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	var believer := state + spend
 	var unemp := FirmAI.colony_unemployment(world)
 	if believer > -0.2 and unemp > 0.12 - 0.04 * maxf(0.0, state):
-		var n_max := 1 + (1 if unemp > 0.20 else 0) + (1 if believer > 0.4 else 0)
+		# conviction scales the programme: a lukewarm government (+0.0) orders 1 project a quarter, a convinced
+		# one (+0.5 and up) 4-5; deep unemployment adds one more
+		var n_max := 1 + int(round(6.0 * clampf(believer, 0.0, 0.6))) + (1 if unemp > 0.20 else 0)
 		var pw := "ECON_BUDGET_PUBLIC_WORKS"
 		var cands: Array = []
 		for d in EconUtil.sorted_keys(world.table("district")):
@@ -112,7 +114,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 		var by_pop: Array = EconUtil.sorted_keys(world.table("district"))
 		by_pop.sort_custom(func(a, b): return int(world.table("district")[a].get("households", 0)) > int(world.table("district")[b].get("households", 0)) or (world.table("district")[a].get("households", 0) == world.table("district")[b].get("households", 0) and a < b))
 		for d in by_pop:
-			if world.month - int(roads.get(d, -999)) >= 36:
+			if world.month - int(roads.get(d, -999)) >= 24 - int(12.0 * clampf(believer, 0.0, 0.5)):
 				cands.append(["ROAD", d])
 		var done := 0
 		for c in cands:

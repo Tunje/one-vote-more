@@ -75,6 +75,10 @@ func test_pd5_income_mobility() -> void:
 		b.run(1)
 	var hi_a := PopStore.count(a.world, {"status": "EMPLOYED", "inc": ["I4", "I5"]}, "skill:G")
 	var hi_b := PopStore.count(b.world, {"status": "EMPLOYED", "inc": ["I4", "I5"]}, "skill:G")
-	check(hi_a > hi_b, "General-skill workers in high bands: %d with the raise vs %d without" % [hi_a, hi_b])
+	# mobility is the share of employed G workers in the high bands; a tripled wage also causes layoffs, so raw counts
+	# mix the two effects (E116 changed which one wins)
+	var emp_a := maxi(1, PopStore.count(a.world, {"status": "EMPLOYED"}, "skill:G"))
+	var emp_b := maxi(1, PopStore.count(b.world, {"status": "EMPLOYED"}, "skill:G"))
+	check(float(hi_a) / emp_a > float(hi_b) / emp_b, "share of employed General-skill workers in high bands: %d/%d with the raise vs %d/%d without" % [hi_a, emp_a, hi_b, emp_b])
 	check(PopStore.reconcile(a.world).is_empty(), "conservation holds through band moves")
 	check_eq(a.world.ledger.total(), 0, "money moved with people, ledger balanced")
