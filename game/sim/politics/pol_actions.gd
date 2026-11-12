@@ -83,7 +83,7 @@ static func player_drafts(world: WorldState) -> Array:
 ## Expected floor vote without noise: {party_id: "YES"|"NO"|"ABSTAIN"}, plus seat totals.
 static func predict_vote(world: WorldState, clauses: Array, draft_quality: int = 50) -> Dictionary:
 	var st := _st(world)
-	var cs: Array = PoliticsProvider.new().colony_concerns(world)
+	var cs: Array = Intel.picture(world, String(_st(world).get("player_party", "gov"))) if _st(world).get("intel", {}).has(String(_st(world).get("player_party", ""))) else Intel.picture(world, "gov")
 	var votes := {}
 	var yes := 0
 	var no := 0
@@ -123,7 +123,7 @@ static func player_submit(world: WorldState, bill_id: String) -> Dictionary:
 	if can["as"] == "COMMANDER":
 		Legislature.issue_ordinance(world, d["clauses"], bill_id)
 		return {"ok": true, "result": "ORDINANCE_ISSUED"}
-	var cs: Array = PoliticsProvider.new().colony_concerns(world)
+	var cs: Array = Intel.picture(world, String(_st(world).get("player_party", "gov"))) if _st(world).get("intel", {}).has(String(_st(world).get("player_party", ""))) else Intel.picture(world, "gov")
 	var bill := Legislature.submit_bill(world, d["clauses"], st["government"], cs[0], cs[1], bill_id, q)
 	return {"ok": true, "result": bill["status"], "yes": bill["yes"], "no": bill["no"], "clauses": bill["clauses"]}
 

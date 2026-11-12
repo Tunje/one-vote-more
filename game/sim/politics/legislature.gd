@@ -56,7 +56,8 @@ static func ideo_alignment(def: Dictionary, delta: float, pos: Dictionary) -> fl
 ## Expected relief of colony concerns: sum of the lever's concern hints x size of change x how unmet x how salient.
 ## Under fiscal stress (0..1) the GOVERNANCE hint (the sign-proxy for budget impact: spending < 0, revenue > 0)
 ## is amplified and treated as urgent, so tax-up / spend-down clauses rise to the top.
-static func relief(def: Dictionary, delta: float, sat: Dictionary, sal: Dictionary, stress: float = 0.0, room: float = 0.0, cur: float = 0.0) -> float:
+## belief (A49 K2): the actor's belief in the lever's effect hints (1.0 = the hints); the budget sign is not scaled.
+static func relief(def: Dictionary, delta: float, sat: Dictionary, sal: Dictionary, stress: float = 0.0, room: float = 0.0, cur: float = 0.0, belief: float = 1.0) -> float:
 	var r := _range(def)
 	var frac := delta / maxf(1.0, float(r[1] - r[0]))
 	var s := 0.0
@@ -77,7 +78,7 @@ static func relief(def: Dictionary, delta: float, sat: Dictionary, sal: Dictiona
 				pressure = -FISCAL_ROOM_PULL * room
 			s += w * frac * pressure * 1.5
 			continue
-		s += w * frac * unmet * sl / 100.0
+		s += w * frac * unmet * sl / 100.0 * belief
 	# Non-linear harm (pic-core v1.4 `concernsHigh {from, concerns}`): the part of a change that lies above
 	# `from` carries extra concern effects (e.g. taxes above 35% choke jobs). Counted like normal hints.
 	var hi: Dictionary = def.get("concernsHigh", {})
@@ -89,7 +90,7 @@ static func relief(def: Dictionary, delta: float, sat: Dictionary, sal: Dictiona
 		var frac_hi := signf(delta) * above / maxf(1.0, float(r[1] - r[0]))
 		for c in hi["concerns"]:
 			var unmet_h := 1.0 - float(sat.get(c, 50000)) / 100000.0
-			s += float(hi["concerns"][c]) * frac_hi * maxf(unmet_h, 0.5) * float(sal.get(c, 111)) / 100.0 * HIGH_HARM_WEIGHT
+			s += float(hi["concerns"][c]) * frac_hi * maxf(unmet_h, 0.5) * float(sal.get(c, 111)) / 100.0 * HIGH_HARM_WEIGHT * belief
 	# Mirror image (pic-core v1.4 `concernsLow`): extra effects for the part of a change BELOW `from`
 	# (cutting pensions, infrastructure or pay too far). Same sign convention: effect of RAISING.
 	var lw: Dictionary = def.get("concernsLow", {})
@@ -101,7 +102,7 @@ static func relief(def: Dictionary, delta: float, sat: Dictionary, sal: Dictiona
 		var frac_lo := signf(delta) * below / maxf(1.0, float(r[1] - r[0]))
 		for c in lw["concerns"]:
 			var unmet_l := 1.0 - float(sat.get(c, 50000)) / 100000.0
-			s += float(lw["concerns"][c]) * frac_lo * maxf(unmet_l, 0.5) * float(sal.get(c, 111)) / 100.0 * HIGH_HARM_WEIGHT
+			s += float(lw["concerns"][c]) * frac_lo * maxf(unmet_l, 0.5) * float(sal.get(c, 111)) / 100.0 * HIGH_HARM_WEIGHT * belief
 	return s
 
 
@@ -176,6 +177,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	var step_fraction := CRISIS_STEP_FRACTION if crisis else STEP_FRACTION
 	var mem := _bill_memory(world) if allowed == "PARLIAMENT" else {"defeated": {}, "moved": {}}
 	var skill_gap := _skill_gap(world) if allowed == "PARLIAMENT" else 0.0
+	var believer := String(world.peek("pol").get("state", {}).get("government", {}).get("pm_party", "")) if allowed == "PARLIAMENT" else ""
 	var owed := {}   # "lever|dir" of confidence-and-supply prices still owed: a commitment, not a whim
 	for a in agreement:
 		if a.get("deal", false):
@@ -215,7 +217,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			if mem["moved"].has("%s|%d" % [lid, -int(signf(delta))]) and not owes:
 				continue  # this government moved it the other way recently: no flip-flopping
 			var ia := ideo_alignment(def, delta, pos)
-			var rl := relief(def, delta, sat, sal, stress, room, cur)
+			var rl := relief(def, delta, sat, sal, stress, room, cur, Intel.belief(world, believer, lid) if believer != "" else 1.0)
 			# Conviction: a government believes its own remedies work. Relief from a change that goes against its
 			# ideology is discounted (a market government does not see a jobs scheme as the cure, a left one does not
 			# see benefit cuts as one), so parties answer the same crisis differently. Not under fiscal stress:
@@ -333,7 +335,7 @@ static func party_vote(party: Dictionary, clauses: Array, world: WorldState, gov
 	for c in clauses:
 		var def: Dictionary = world.lever_defs[c["lever"]]
 		var delta := clause_delta(def, c)
-		s += IDEOLOGY_VOTE_WEIGHT * ideo_alignment(def, delta, party["positions"]) + 1.5 * relief(def, delta, sat, sal, fiscal_stress(world), fiscal_room(world), ordinal(def, c["from"]))
+		s += IDEOLOGY_VOTE_WEIGHT * ideo_alignment(def, delta, party["positions"]) + 1.5 * relief(def, delta, sat, sal, fiscal_stress(world), fiscal_room(world), ordinal(def, c["from"]), Intel.belief(world, String(party.get("id", "")), String(c["lever"])))
 		for cm in party["commitments"]:
 			if cm["lever"] == c["lever"]:
 				var agree: bool = signf(delta) == cm["dir"]
@@ -415,7 +417,8 @@ static func submit_bill(world: WorldState, clauses: Array, gov: Dictionary, sat:
 		var noise := 0.0
 		if not (pid in gov.get("members", [])):
 			noise = world.rng.stream("pol.vote").randfn(0.0, VOTE_NOISE_SD)
-		var v := party_vote(p, clauses, world, gov, sat, sal, draft_quality, noise)
+		var pic: Array = Intel.picture(world, pid) if world.peek("pol").get("state", {}).get("intel", {}).has(pid) else [sat, sal]
+		var v := party_vote(p, clauses, world, gov, pic[0], pic[1], draft_quality, noise)
 		votes[pid] = v
 		if v == "YES":
 			yes += p["seats"]

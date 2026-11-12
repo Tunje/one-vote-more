@@ -89,6 +89,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 	else:
 		_sync_cells(world)
 	_update_opinion(world, st)
+	Intel.monthly(world, colony_concerns(world))   # A49: pictures of the electorate and the policy record
 	if st["era"] == "FOUNDING" and world.month < PolDefs.PARTY_FORMATION_MONTH:
 		_track_movements(world, st)
 	if world.month == PolDefs.PARTY_FORMATION_MONTH:
@@ -427,7 +428,7 @@ func _decisions(world: WorldState, st: Dictionary) -> void:
 		_advance_drafts(world, st)
 	# Crisis mode: a badly unmet concern (colony satisfaction < 35%) means more frequent, bigger steps.
 	var crisis := false
-	var cs := colony_concerns(world)
+	var cs := Intel.picture(world, "gov")   # A49: the government judges from its picture, not the voters' minds
 	for c in PolDefs.CONCERNS:
 		if int(cs[0][c]) < CRISIS_SATISFACTION:
 			crisis = true
@@ -508,7 +509,7 @@ func _enact(world: WorldState, st: Dictionary, clauses: Array, bill_id: String, 
 	if st["era"] == "FOUNDING":
 		Legislature.issue_ordinance(world, clauses, bill_id)
 		return
-	var cs := colony_concerns(world)
+	var cs := Intel.picture(world, "gov")
 	Legislature.submit_bill(world, clauses, st["government"], cs[0], cs[1], bill_id, quality)
 
 
