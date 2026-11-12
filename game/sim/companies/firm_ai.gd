@@ -832,18 +832,29 @@ static func _essentials_planner(world: WorldState) -> void:
 ## E87 (O-1): construction firm entry. When projects queue without bids and no private builder is alive, a new
 ## builder is founded with capital from the richest household pool (the construction sector otherwise died for good
 ## after the founding boom and every expansion stalled).
+const STALE_TENDER_M := 3  # E117a: months a tender sits without a bid before it counts as unmet construction demand
+
+
 static func _builder_entry(world: WorldState) -> void:
 	if EconUtil.off(world, "E87"):
 		return
 	var s := EconUtil.st(world)
-	if world.month - int(s.get("builder_entry_last", -100)) < 12 or EconConstruction._private_builder_alive(world):
+	if world.month - int(s.get("builder_entry_last", -100)) < 12:
 		return
 	var waiting := 0
+	var stale := 0
 	for pid in world.table("project"):
 		var p: Dictionary = world.table("project")[pid]
 		if p["status"] == "TENDERABLE" or (p["status"] == "TENDER" and p["bids"].is_empty()):
 			waiting += 1
-	if waiting < EconData.BUILDER_ENTRY_BACKLOG:
+		if p["status"] == "TENDER" and p["bids"].is_empty() and world.month - int(p.get("tender_month", world.month)) >= STALE_TENDER_M:
+			stale += 1
+	if EconConstruction._private_builder_alive(world):
+		# E117a (Wilma): the existing builders are at their crew ceiling and tenders sit unbid — a new builder enters
+		# (same founding as E87: equity from the richest household pool, at most one per 12 months)
+		if EconUtil.off(world, "E117") or stale < EconData.BUILDER_ENTRY_BACKLOG:
+			return
+	elif waiting < EconData.BUILDER_ENTRY_BACKLOG:
 		return
 	var best := ""
 	var best_cash := 0

@@ -22,6 +22,8 @@ static func vacancies_by_org(world: WorldState) -> Dictionary:
 	var out := {}
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] == "PUBJOBS":
+			continue  # E117b: scheme posts are relief work, not skilled vacancies to train for
 		var req := EconLabor.required(f)
 		for t in req:
 			var gap: int = int(req[t]) - EconLabor.tier_total(f["staff"], t)

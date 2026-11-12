@@ -41,6 +41,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			LawBridge.revalidate(world)
 			FirmAI.run(world)
 			EconTraining.monthly(world)  # E114: on-the-job training into skilled vacancies
+			EconPublicJobs.monthly(world)  # E117b: public employment scheme (budget line set by parliament)
 			EconUnions.industrial_action(world)
 			EconPop.realign(world)  # M10: workplaces that changed owner this month relabel their staff's occupation
 			EconPop.sync(world)

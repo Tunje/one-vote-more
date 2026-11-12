@@ -121,6 +121,8 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"COMP_RESTRUCTURED": s = "%s restructured its debts" % _subject_org(w, f)
 		"COMP_CEO_REPLACED": s = "%s replaced its management" % _subject_org(w, f)
 		"COMP_INVESTMENT": s = "%s is building a new %s (%s)" % [_subject_org(w, f), _kind(d.get("type", "plant")), _kind(d.get("reason", "demand"))]
+		"ECON_PUBLIC_JOBS_HIRED": s = "The public employment scheme takes on %d people (%d in all)" % [int(d.get("posts", 0)), int(d.get("total", 0))]
+		"ECON_PUBLIC_JOBS_CUT": s = "The public employment scheme lays off %d people (%d left)" % [int(d.get("posts", 0)), int(d.get("total", 0))]
 		"ECON_INCENTIVE_OFFERED": s = "The government offers a %d%% grant to anyone who builds a new %s (for %d months)" % [int(d.get("grant_pct", 0)), _kind(d.get("type", "plant")), int(d.get("months", 0))]
 		"ECON_INCENTIVE_CLAIMED": s = "%s collected a %d-credit grant for a new %s" % [_subject_org(w, f), int(d.get("amount", 0)), _kind(d.get("type", "plant"))]
 		"COMP_COMPANY_FOUNDED": s = "New company: %s" % _subject_org(w, f)

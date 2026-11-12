@@ -166,6 +166,8 @@ static func offer(world: WorldState, org_id: String, t: String) -> int:
 	var s := EconUtil.st(world)
 	var o: Dictionary = world.table("org")[org_id]
 	var w := float(s["wage"][t])
+	if o.get("key", "") == "PES" and not EconUtil.off(world, "E117"):
+		return int(float(s["wage"]["G"]) * EconPublicJobs.PES_PAY)  # E117b: scheme pay, every post, below any other job
 	if o["type"] in EconData.PUBLIC_TYPES:
 		w *= float(EconUtil.lever(world, "ECON_PUBLIC_PAY_INDEX", 100)) / 100.0
 		if o["type"] == "PUBLIC_ENTERPRISE" and not EconUtil.off(world, "E99"):

@@ -9,7 +9,7 @@ const S := 1000.0
 const LINE_LABELS := {
 	"ECON_BUDGET_ADMIN": "Administration", "ECON_BUDGET_HEALTH": "Health", "ECON_BUDGET_EDUCATION": "Education",
 	"ECON_BUDGET_TRAINING": "Training", "ECON_BUDGET_INFRASTRUCTURE": "Infrastructure", "ECON_BUDGET_HOUSING": "Public housing",
-	"ECON_BUDGET_SUBSIDIES": "Subsidies", "ECON_BUDGET_PUBLIC_WORKS": "Public works (counter-cyclical)", "ECON_BUDGET_RESERVE_PURCHASES": "Strategic reserve",
+	"ECON_BUDGET_SUBSIDIES": "Subsidies", "ECON_BUDGET_PUBLIC_WORKS": "Public works (counter-cyclical)", "ECON_BUDGET_PUBLIC_EMPLOYMENT": "Public employment scheme", "ECON_BUDGET_RESERVE_PURCHASES": "Strategic reserve",
 }
 
 
