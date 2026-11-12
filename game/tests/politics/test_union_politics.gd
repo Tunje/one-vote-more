@@ -190,3 +190,31 @@ func test_a_small_cut_is_not_a_betrayal() -> void:
 	var p: Dictionary = pair[1]
 	UnionPolitics.betray(w, st, p["id"], {"ECON_UNEMPLOYMENT_BENEFIT_RATE": -0.5})
 	check_eq(String(UnionPolitics.picks(w).get(u["id"], "")), String(p["id"]), "a token cut is grumbled at, not a walk-out")
+
+
+func test_a_union_does_not_hop_to_the_coalition_partner_that_voted_the_same_cut() -> void:
+	var w := _sim().world
+	var st := _st(w)
+	var pair := _endorsing(w)
+	if pair.is_empty():
+		check(false, "an endorsing union")
+		return
+	var u: Dictionary = pair[0]
+	var p: Dictionary = pair[1]
+	var partner := ""
+	for q in PartyLife.active(w):
+		if q["id"] != p["id"] and UnionPolitics.pro_labour(u, q):
+			partner = q["id"]
+			break
+	if partner == "":
+		check(false, "a pro-labour partner")
+		return
+	st["government"]["members"] = [p["id"], partner]
+	var r: Array = w.lever_defs["ECON_UNION_RIGHTS"].get("range", [0, 100])
+	_labour_bill(w, p["id"], {p["id"]: "YES", partner: "YES"}, int(r[1]), int(r[0]), true, "ECON_UNION_RIGHTS")
+	w.month += 1
+	UnionPolitics.monthly(w, st)
+	var now := String(UnionPolitics.picks(w).get(u["id"], ""))
+	check(now != p["id"] and now != partner, "backs neither cabinet party (now '%s')" % now)
+	var wd: Array = w.facts.query("UNION_ENDORSEMENT_WITHDRAWN").filter(func(f): return f["data"]["union"] == u["id"] and f["month"] == w.month)
+	check_eq(wd.size(), 1, "one walk-out, not a chain")

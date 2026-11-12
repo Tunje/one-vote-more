@@ -97,18 +97,22 @@ static func _scan_record(world: WorldState, st: Dictionary, s: Dictionary) -> vo
 				continue
 			var cab: Array = cabinet if String(b.get("sponsor", "")) in cabinet else [String(b.get("sponsor", ""))]
 			var votes: Dictionary = b.get("votes", {})
+			var enactors: Array = []
 			for pid in Det.ordered(votes):
 				if pid in cab:
 					if kind == "POL_BILL_PASSED":
-						_record(world, st, s, pid, lab, 1.0)
+						_record(world, st, s, pid, lab, 1.0, false)
+						enactors.append(pid)
 				elif String(votes[pid]) == "NO":
 					_record(world, st, s, pid, lab, -OPPOSITION_WEIGHT, false)
+			_betray_all(world, st, enactors, lab)
 	for f in world.facts.query("POL_ORDINANCE_ISSUED", from, to):
 		var cl: Array = f["data"].get("clauses", [])
 		var lab := labour_values(world, cl)
 		if not lab.is_empty():
 			for pid in cabinet:
-				_record(world, st, s, pid, lab, 1.0)
+				_record(world, st, s, pid, lab, 1.0, false)
+			_betray_all(world, st, cabinet, lab)
 
 
 ## Record per lever: rows [month, milli-value, lever]. weight: 1 for an enactment, -OPPOSITION_WEIGHT for a NO vote.
@@ -119,6 +123,13 @@ static func _record(world: WorldState, st: Dictionary, s: Dictionary, pid: Strin
 	s["rec"][pid] = rec
 	if enacted:
 		betray(world, st, pid, vals)
+
+
+## Every party that enacted it answers for the cut: a union backing any of them walks out and holds it against all
+## of them, so it does not hop to a coalition partner that just voted the same cut through.
+static func _betray_all(world: WorldState, st: Dictionary, enactors: Array, vals: Dictionary) -> void:
+	for pid in enactors:
+		betray(world, st, String(pid), vals, enactors)
 
 
 ## How much lever lid matters to union u (0..1.5).
@@ -188,7 +199,7 @@ static func _prune(rows: Array, month: int) -> Array:
 
 ## A cabinet party enacted labour-law moves {lever: signed value}: each union that endorsed it and counts them as a
 ## cut that matters (its weighted value <= -BETRAY_MIN) withdraws, remembers, and looks again.
-static func betray(world: WorldState, st: Dictionary, pid: String, vals: Dictionary) -> void:
+static func betray(world: WorldState, st: Dictionary, pid: String, vals: Dictionary, partners: Array = []) -> void:
 	var s := _s(world)
 	var p: Dictionary = world.table("party").get(pid, {})
 	var hit := false
@@ -202,9 +213,10 @@ static func betray(world: WorldState, st: Dictionary, pid: String, vals: Diction
 		hit = true
 		s["picks"].erase(uid)
 		var g: Dictionary = s["grudge"].get(uid, {})
-		var rows: Array = g.get(pid, [])
-		rows.append([world.month, int(round(size * 1000.0))])
-		g[pid] = rows
+		for gp in ([pid] + partners.filter(func(x): return String(x) != pid)):
+			var rows: Array = g.get(String(gp), [])
+			rows.append([world.month, int(round(size * 1000.0))])
+			g[String(gp)] = rows
 		s["grudge"][uid] = g
 		var levers: Array = Det.ordered(vals).filter(func(l): return float(vals[l]) < 0.0)
 		_fact(world, "UNION_ENDORSEMENT_WITHDRAWN", u, pid, 65,
