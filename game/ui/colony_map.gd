@@ -461,9 +461,12 @@ func _draw() -> void:
 	if show_dist:
 		_draw_district_borders(t)
 	_draw_facilities(w, t)
+	_label_rects.clear()
 	if not show_dist:
 		_draw_sites(w, t)
 	_draw_labels(w, t)
+	if not show_dist:
+		_draw_site_names(w, t)
 	_draw_cursor(w, t)
 	if mode == "DISTRICTS" or mode == "DRAW":
 		_draw_legend()
@@ -534,8 +537,6 @@ func _draw_facilities(w: WorldState, t: float) -> void:
 
 ## Tourist sites on the colony map (A42, PlanetSites; the landing site has its own flag label).
 func _draw_sites(w: WorldState, t: float) -> void:
-	var font := get_theme_default_font()
-	var fs := int(clampf(t * 0.7, 9.0, 15.0))
 	for s in PlanetSites.sites(w):
 		if s["where"] != "COLONY" or s["kind"] == "FIRST_LANDING":
 			continue
@@ -550,13 +551,49 @@ func _draw_sites(w: WorldState, t: float) -> void:
 		draw_colored_polygon(pts, col)
 		pts.append(pts[0])
 		draw_polyline(pts, Color(0, 0, 0, 0.8), 1.0)
-		if t >= 9.0:
-			_label(font, p + Vector2(0, t * 0.9 + fs * 0.5), String(s["name"]), fs, col.lerp(Color.WHITE, 0.5))
+
+
+## Site names, drawn after the area labels: below the star, or above, right or left of it if that spot is taken.
+func _draw_site_names(w: WorldState, t: float) -> void:
+	if t < 9.0:
+		return
+	var font := get_theme_default_font()
+	var fs := int(clampf(t * 0.7, 9.0, 15.0))
+	for s in PlanetSites.sites(w):
+		if s["where"] != "COLONY" or s["kind"] == "FIRST_LANDING":
+			continue
+		var col: Color = PlanetView.SITE_COLORS.get(s["kind"], Color.WHITE)
+		var p := _tile_center(s["tile"])
+		var nm := String(s["name"])
+		var tw := font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var tries := [p + Vector2(0, t * 0.9 + fs * 0.5), p + Vector2(0, -t * 0.7),
+			p + Vector2(t * 0.7 + tw * 0.5, fs * 0.35), p + Vector2(-t * 0.7 - tw * 0.5, fs * 0.35)]
+		var at: Vector2 = tries[0]
+		for c in tries:
+			if not _label_hits(_label_rect(c, tw, fs)):
+				at = c
+				break
+		_label(font, at, nm, fs, col.lerp(Color.WHITE, 0.5))
+
+
+var _label_rects: Array = []   # screen rects of labels drawn this frame (site names avoid them)
+
+
+func _label_rect(pos: Vector2, tw: float, fs: int) -> Rect2:
+	return Rect2(pos.x - tw * 0.5 - 2.0, pos.y - fs, tw + 4.0, fs * 1.3)
+
+
+func _label_hits(r: Rect2) -> bool:
+	for o in _label_rects:
+		if r.intersects(o):
+			return true
+	return false
 
 
 func _label(font: Font, pos: Vector2, text: String, fs: int, col: Color) -> void:
 	var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var p := pos - Vector2(tw * 0.5, 0)
+	_label_rects.append(_label_rect(pos, tw, fs))
 	for o in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
 		draw_string(font, p + o, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0, 0, 0, 0.85))
 	draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
