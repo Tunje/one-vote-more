@@ -23,6 +23,11 @@ const NARROW := 0.10                 # vote-share margin that makes a defeat bit
 const PA := preload("res://sim/politics/pol_actions.gd")
 
 
+## world.meta["congress"] = false: the old instant contests, no congresses (A/B measurement).
+static func enabled(world: WorldState) -> bool:
+	return bool(world.meta.get("congress", true))
+
+
 # ======================================================================= leadership races
 
 static func race_of(world: WorldState, pid: String) -> Dictionary:
@@ -132,6 +137,8 @@ static func _resolve(world: WorldState, st: Dictionary, race: Dictionary) -> voi
 
 ## Monthly (from PoliticsProvider._party_life_monthly): race hustings and votes, per-term congresses, motions.
 static func monthly(world: WorldState, st: Dictionary) -> void:
+	if not enabled(world):
+		return
 	var races := world.table("party_race")
 	for rid in Det.ordered(races):
 		var race: Dictionary = races[rid]
@@ -145,10 +152,11 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	var to_go := int(st.get("next_election", -1)) - world.month
 	if to_go != CONGRESS_AT_TO_GO:
 		return
+	var seg := Campaign.segments(world)   # once for all congresses this month
 	for p in PartyLife.active(world):
 		if not race_of(world, p["id"]).is_empty():
 			continue   # this party's congress is the race vote
-		hold_congress(world, st, p)
+		hold_congress(world, st, p, seg)
 
 
 static func latest(world: WorldState, pid: String) -> Dictionary:
@@ -169,12 +177,14 @@ static func members_mean(p: Dictionary) -> int:
 	return int(round((float(fs[0]["pole"]) * w0 + float(fs[1]["pole"]) * w1) / maxf(0.001, w0 + w1)))
 
 
-static func hold_congress(world: WorldState, st: Dictionary, p: Dictionary) -> Dictionary:
+static func hold_congress(world: WorldState, st: Dictionary, p: Dictionary, seg: Dictionary = {}) -> Dictionary:
 	PartyLife.ensure_factions(p)
+	if seg.is_empty():
+		seg = Campaign.segments(world)
 	var ax: String = p["faction_axis"]
 	var human: bool = bool(p.get("is_player", false)) and not bool(st.get("autoplay_player", true))
 	var cid := world.new_id("congress")
-	var themes := Campaign.pick_themes(world, st, p, Campaign.segments(world))
+	var themes := Campaign.pick_themes(world, st, p, seg)
 	var row := {"id": cid, "party": p["id"], "month": world.month, "axis": ax, "shift": 0, "themes": themes, "motion": {}}
 	if not human:
 		var target := members_mean(p)

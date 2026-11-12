@@ -103,7 +103,8 @@ func test_player_cannot_move_no_confidence_while_governing() -> void:
 	var sim := _sim_with_government()
 	var w := sim.world
 	var st: Dictionary = w.table("pol")["state"]
-	st["government"]["members"].append(st["player_party"]) if not (st["player_party"] in st["government"]["members"]) else null
+	if not (st["player_party"] in st["government"]["members"]):
+		st["government"]["members"].append(st["player_party"])
 	check(not PolActions.player_move_no_confidence(w)["ok"], "governing party refused")
 
 

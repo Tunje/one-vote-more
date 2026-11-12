@@ -158,3 +158,60 @@ func test_union_endorsement_helps_pro_labour_party_among_members() -> void:
 	check(PartyLife.endorsement_bonus(miner, e).get("P1", 0.0) > 0.4, "unionised miners follow the endorsement")
 	check(PartyLife.endorsement_bonus(owner, e).get("P2", 0.0) > 0.2, "owners follow the business federation")
 	check_eq(PartyLife.endorsement_bonus(owner, e).get("P1", 0.0), 0.0, "no union bonus without density")
+
+
+## Two newest polls with the given estimates (per-100000); everyone else at `rest`.
+func _plant_polls(w: WorldState, shares: Dictionary, rest: int) -> void:
+	var est := {}
+	for q in PartyLife.active(w):
+		est[q["id"]] = int(shares.get(q["id"], rest))
+	for k in 2:
+		w.table("poll")["ztest%d" % k] = {"id": "ztest%d" % k, "month": w.month + 1 + k, "by": "test", "moe_milli": 0, "estimates": est.duplicate()}
+
+
+func test_crowded_field_absorbs_a_small_party_above_the_threshold() -> void:
+	var w := _sim().world
+	var st := _st(w)
+	var ps := PartyLife.active(w).filter(func(q): return not q["is_player"])
+	var big: Dictionary = ps[0]
+	var small: Dictionary = ps[1]
+	small["founded_month"] = w.month - 100
+	small["positions"] = big["positions"].duplicate()
+	check(PartyLife.active(w).size() <= PartyLife.SOFT_MAX_PARTIES, "field not crowded yet")
+	_plant_polls(w, {small["id"]: 6000}, 10000)
+	PartyLife.check_mergers(w, st)
+	check_eq(small["status"], "ACTIVE", "6% is safe in an uncrowded field")
+	while PartyLife.active(w).size() <= PartyLife.SOFT_MAX_PARTIES:
+		var pos: Dictionary = big["positions"].duplicate()
+		pos[PolDefs.AXES[0]] = -int(pos[PolDefs.AXES[0]])
+		PartyLife._new_party(w, st, pos, "TEST")   # fresh parties: inside their grace period
+	_plant_polls(w, {small["id"]: 6000}, 10000)
+	for q in PartyLife.active(w):
+		if int(q["founded_month"]) == w.month:
+			w.table("poll")["ztest0"]["estimates"][q["id"]] = 0
+			w.table("poll")["ztest1"]["estimates"][q["id"]] = 0
+	PartyLife.check_mergers(w, st)
+	check_eq(small["status"], "MERGED", "a crowded field absorbs a 6% party")
+	var f: Array = w.facts.query("POL_PARTIES_MERGED")
+	check_eq(String(f.back()["data"]["reason"]), "CROWDED", "reason recorded")
+
+
+func test_weak_splinter_folds_back_into_its_parent_after_two_terms() -> void:
+	var w := _sim().world
+	var st := _st(w)
+	var pm: Dictionary = w.table("party")[st["government"]["pm_party"]]
+	var np := PartyLife.split_party(w, st, pm, 1 - int(pm["leader"]["faction"]))
+	check_eq(String(np["split_from"]), String(pm["id"]), "the splinter remembers its parent")
+	np["positions"] = pm["positions"].duplicate()
+	np["founded_month"] = w.month - PartyLife.FOLDBACK_MONTHS + 3
+	_plant_polls(w, {np["id"]: 5000}, 12000)
+	PartyLife.check_mergers(w, st)
+	check_eq(np["status"], "ACTIVE", "not before two terms")
+	np["founded_month"] = w.month - PartyLife.FOLDBACK_MONTHS
+	_plant_polls(w, {np["id"]: 7000}, 12000)
+	PartyLife.check_mergers(w, st)
+	check_eq(np["status"], "ACTIVE", "a 7% splinter has made it")
+	_plant_polls(w, {np["id"]: 5000}, 12000)
+	PartyLife.check_mergers(w, st)
+	check_eq(np["status"], "MERGED", "folded back")
+	check_eq(String(np["merged_into"]), String(pm["id"]), "into the party it left")

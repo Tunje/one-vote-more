@@ -33,6 +33,15 @@ const SPLINTER_SEAT_SHARE := 0.6     # share of the faction's MPs who actually l
 const OWNERSHIP_FAILURE_LOSS := 12     # issue credibility lost per year of failure in government
 const NEW_PARTY_GRACE := 48            # months before a new party can be merged away
 const MERGE_DISTANCE := 15.0
+# Consolidation (Ella, for Wilma's 4..9 gate): foundings + splits outpace mergers over a century, so a crowded field
+# pulls small parties together. Not a cap: nothing is forced while the field is at or under SOFT_MAX_PARTIES.
+const SOFT_MAX_PARTIES := 9
+const CONSOLIDATE_SHARE := 8000      # 8%: under this a party can be absorbed when the field is crowded
+const CONSOLIDATE_DIST_STEP := 0.25  # merge distance grows 25% per party above SOFT_MAX_PARTIES...
+const CONSOLIDATE_DIST_MAX := 25.0   # ...up to this
+const FOLDBACK_SHARE := 6000         # a splinter under 6% after two terms folds back into its parent
+const FOLDBACK_MONTHS := 96
+const FOLDBACK_DISTANCE := 25.0
 # leaders
 const CONTEST_SUPPORT_DROP := 3000   # 3 pp lost at an election triggers a contest
 const CONTEST_POPULARITY := 25
@@ -107,7 +116,7 @@ static func leaders_monthly(world: WorldState, st: Dictionary) -> void:
 static func leadership_contest(world: WorldState, st: Dictionary, p: Dictionary, reason: String) -> void:
 	if p["is_player"] and not st.get("autoplay_player", true):
 		return  # a human leads their own party (an internal challenge to the player is post-v1)
-	if not (reason in FORCED_CONTESTS):
+	if not (reason in FORCED_CONTESTS) and Congress.enabled(world):
 		Congress.open_race(world, st, p, reason)   # election year (Ella): a race decided by the members at a congress
 		return
 	ensure_factions(p)
@@ -541,6 +550,7 @@ static func split_party(world: WorldState, st: Dictionary, p: Dictionary, fi: in
 	pos[ax] = clampi(int(f["pole"]) + (int(f["pole"]) - int(p["positions"][ax])) / 2, -100 * S, 100 * S)
 	var sgn := 1 if int(f["pole"]) >= int(p["positions"][ax]) else -1
 	var np := _new_party(world, st, pos, "SPLINTER", PartyGen.name_for(pos, _taken_names(world), ax, sgn))
+	np["split_from"] = p["id"]
 	np["leader"]["faction"] = 0
 	var mps := int(round(float(p["seats"]) * faction_strength(f) * SPLINTER_SEAT_SHARE))
 	p["seats"] = int(p["seats"]) - mps
@@ -563,7 +573,10 @@ static func split_party(world: WorldState, st: Dictionary, p: Dictionary, fi: in
 	return np
 
 
-## Quarterly, after the poll: small parties close to a bigger one merge into it.
+## Quarterly, after the poll: small parties close to a bigger one merge into it (at most one merger per quarter).
+## Normal: under the 4% threshold in the last two polls and within MERGE_DISTANCE.
+## Crowded field (> SOFT_MAX_PARTIES active): under 8%, and the distance allowed grows with the crowding.
+## Splinters: under 6% two terms after the split, a splinter folds back into the party it left.
 static func check_mergers(world: WorldState, st: Dictionary) -> void:
 	var polls: Array = []
 	for pid in world.peek("poll"):
@@ -572,12 +585,29 @@ static func check_mergers(world: WorldState, st: Dictionary) -> void:
 	if polls.size() < 2:
 		return
 	var parties := active(world)
-	for small in parties:
+	var est: Dictionary = polls[0]["estimates"]
+	var prev: Dictionary = polls[1]["estimates"]
+	var excess := parties.size() - SOFT_MAX_PARTIES
+	var limit := CONSOLIDATE_SHARE if excess > 0 else THRESHOLD
+	var max_d := minf(CONSOLIDATE_DIST_MAX, MERGE_DISTANCE * (1.0 + CONSOLIDATE_DIST_STEP * excess)) if excess > 0 else MERGE_DISTANCE
+	var order := parties.duplicate()
+	order.sort_custom(func(a, b):
+		var ea := int(est.get(a["id"], 0))
+		var eb := int(est.get(b["id"], 0))
+		return ea < eb or (ea == eb and String(a["id"]) < String(b["id"])))
+	for small in order:   # smallest first
 		if small["is_player"] or world.month - int(small["founded_month"]) < NEW_PARTY_GRACE:
 			continue  # a new or breakaway party gets time to prove itself before it can be absorbed
-		var e0: int = int(polls[0]["estimates"].get(small["id"], 0))
-		var e1: int = int(polls[1]["estimates"].get(small["id"], 0))
-		if e0 >= THRESHOLD or e1 >= THRESHOLD:
+		var e0: int = int(est.get(small["id"], 0))
+		var e1: int = int(prev.get(small["id"], 0))
+		var parent: Dictionary = world.table("party").get(String(small.get("split_from", "")), {})
+		var fold: bool = not parent.is_empty() and parent["status"] == "ACTIVE"
+		fold = fold and world.month - int(small["founded_month"]) >= FOLDBACK_MONTHS
+		fold = fold and e0 < FOLDBACK_SHARE and e1 < FOLDBACK_SHARE and int(est.get(parent["id"], 0)) > e0
+		if fold and VoteModel.distance(small["positions"], parent["positions"]) <= FOLDBACK_DISTANCE:
+			merge(world, st, parent, small, "FOLDBACK")
+			return
+		if e0 >= limit or e1 >= limit:
 			continue
 		var best := ""
 		var bd := INF
@@ -585,15 +615,15 @@ static func check_mergers(world: WorldState, st: Dictionary) -> void:
 			if big["id"] == small["id"]:
 				continue
 			var d := VoteModel.distance(small["positions"], big["positions"])
-			if d < bd and int(polls[0]["estimates"].get(big["id"], 0)) > e0:
+			if d < bd and int(est.get(big["id"], 0)) > e0:
 				bd = d
 				best = big["id"]
-		if best != "" and bd <= MERGE_DISTANCE:
-			merge(world, st, world.table("party")[best], small)
+		if best != "" and bd <= max_d:
+			merge(world, st, world.table("party")[best], small, "CROWDED" if e0 >= THRESHOLD or e1 >= THRESHOLD else "SMALL")
 			return
 
 
-static func merge(world: WorldState, st: Dictionary, big: Dictionary, small: Dictionary) -> void:
+static func merge(world: WorldState, st: Dictionary, big: Dictionary, small: Dictionary, reason: String = "SMALL") -> void:
 	var wb := maxf(1.0, float(big["support"]))
 	var ws := maxf(1.0, float(small["support"]))
 	if not big["is_player"]:
@@ -616,7 +646,7 @@ static func merge(world: WorldState, st: Dictionary, big: Dictionary, small: Dic
 			g["members"].append(big["id"])
 	_refresh_government(world, st)
 	world.add_fact({"type": "POL_PARTIES_MERGED", "owner": "pol", "subjects": [{"kind": "PARTY", "id": big["id"]}, {"kind": "PARTY", "id": small["id"]}],
-		"responsible": [], "impact": {}, "magnitude": 55, "visibility": "PUBLIC", "data": {"into": big["id"], "absorbed": small["id"]}})
+		"responsible": [], "impact": {}, "magnitude": 55, "visibility": "PUBLIC", "data": {"into": big["id"], "absorbed": small["id"], "reason": reason}})
 
 
 ## Quarterly (poll) and at elections: a party below 0.1% of the vote for 3 years running is wound up;
