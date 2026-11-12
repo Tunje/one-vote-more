@@ -58,3 +58,35 @@ func test_worthless_plant_is_not_sold_for_nothing() -> void:
 		sim.run(1)
 	check(f["mothball"], "a scrapped plant is not restarted automatically")
 	check_eq(EconLabor.required(f).get("G", 0), 0, "no repair crew for a scrapped plant")
+
+
+## E119: a plant in liquidation goes only to a firm of its own sector, never to an unrelated conglomerate.
+func test_no_unrelated_buyer() -> void:
+	var sim := EconSim.make_econ_only(3)
+	sim.run(2)
+	var w := sim.world
+	var oid := EconFinance.org_by_key(w, "HEARTH")
+	var fid := EconSetup.add_facility(w, "BAKERY", oid, "d:4", false)
+	var f: Dictionary = w.table("facility")[fid]
+	check_eq(EconInsolvency._find_buyer(w, oid, f, 0), "", "no bakery owner exists: nobody unrelated may buy it")
+	var other := EconFinance.org_by_key(w, "COMMONS")
+	EconSetup.add_facility(w, "BAKERY", other, "d:1", false)
+	check_eq(EconInsolvency._find_buyer(w, oid, f, 0), other, "a firm of the same sector buys")
+
+
+## E119: a company in administration keeps buying production inputs (the administrator runs the business).
+func test_administrator_buys_inputs() -> void:
+	var sim := EconSim.make_econ_only(3)
+	sim.run(4)
+	var w := sim.world
+	var oid := EconFinance.org_by_key(w, "HEARTH")
+	var o: Dictionary = w.table("org")[oid]
+	o["status"] = "ADMINISTRATION"
+	o["pl_last"]["wages"] = w.ledger.balance(EconUtil.acct(oid)) * 2  # a wage bill above its cash: the old rule bought nothing
+	EconUtil.st(w)["orders"] = []
+	FirmAI._post_inputs_and_offers(w)
+	var mat := 0
+	for od in EconUtil.st(w)["orders"]:
+		if od["buyer"] == oid and od["good"] == "MATERIAL":
+			mat += int(od["qty"])
+	check(mat > 0, "inputs ordered in administration (%d)" % mat)

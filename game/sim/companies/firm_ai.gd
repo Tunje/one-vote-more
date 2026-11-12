@@ -350,12 +350,20 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 				# E116 maintenance first: upkeep (about 2% of a farm firm's wage bill) is funded before the wage
 				# reserve. Firms living month to month on one wage bill of cash otherwise let their plants rot.
 				budgets[oid] = maxi(0, bal - reserve) + mini(maxi(0, bal), int(upkeep_val.get(oid, 0)))
+			if o["status"] == "ADMINISTRATION" and not EconUtil.off(world, "E119"):
+				# E119 (Wilma): the administrator runs the business — inputs are bought out of revenue (last month's sales),
+				# not out of cash above the wage bill, which starved every plant of a big employer in administration
+				var rev := int(o["pl_last"].get("rev", 0)) if not o.get("pl_last", {}).is_empty() else 0
+				# (when the plants already stand idle there is no revenue: restart from up to a quarter of the cash)
+				budgets[oid] = maxi(int(budgets[oid]), mini(maxi(0, bal), maxi(int(float(rev) * ADMIN_INPUT_SHARE), maxi(0, bal) / 4)))
 		var want: int = needs[k] - EconUtil.inv_get(world, oid, good, d)
 		var distressed: bool = o["status"] != "ACTIVE"
 		var freight_allow := 3 * int(EconUtil.lever(world, "ECON_FREIGHT_TARIFF", 5)) * S
 		# a distressed firm bids tight (1.1×) for production inputs, but E116: not for upkeep parts. Sellers' asks
 		# sit at their unit-cost floor above 1.1× price, so a tight bid never fills and the plants rot.
 		var tight := distressed and not (e116 and good in ["MATERIAL", "COMPONENT"])
+		if o["status"] == "ADMINISTRATION" and not EconUtil.off(world, "E119"):
+			tight = false  # E119: an administrator buys at normal terms (a tight bid never fills)
 		var lim := int(s["prices"][good] * (1.1 if tight else EconData.INPUT_LIMIT_MULT)) + freight_allow
 		if o["type"] in EconData.PUBLIC_TYPES:
 			lim = s["prices"][good] * 2 + freight_allow  # public services and utilities outbid industry for inputs
@@ -834,6 +842,7 @@ static func _essentials_planner(world: WorldState) -> void:
 ## after the founding boom and every expansion stalled).
 const STALE_TENDER_M := 3  # E117a: months a tender sits without a bid before it counts as unmet construction demand
 const MAX_FORMING := 3  # D2: new companies being set up at once (was 1; the consumer industries waited years in line)
+const ADMIN_INPUT_SHARE := 0.6  # E119: share of last month's revenue an administrator spends on inputs
 const D2_ENTRY_UNEMP := 0.06
 const D2_ENTRY_MONTH := 24  # the founding years build essentials first
 

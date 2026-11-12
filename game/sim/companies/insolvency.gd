@@ -426,8 +426,10 @@ static func _find_buyer(world: WorldState, seller: String, f: Dictionary, reserv
 				same = true
 		if same:
 			return oid
-		if best == "" and not (f["type"] in EconData.STRATEGIC):
+		if best == "" and not (f["type"] in EconData.STRATEGIC) and EconUtil.off(world, "E119"):
 			best = oid  # E65: strategic plants are not sold to unrelated firms (public operator takes them instead)
+	# E119 (Wilma): no unrelated conglomerate either — only a firm of the same sector buys; otherwise the plant goes to
+	# a workers' co-op of its district or closes (liquidation_round / _forced_sale fall back to those)
 	return best
 
 
