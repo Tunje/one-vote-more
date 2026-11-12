@@ -48,3 +48,8 @@ projects." — clarified: "I did not mean a bostadsrätt (co-op), I meant owning
   disputes and non-payers let the shared parts decay even when flats are fine.
 - Owners maintain better than landlords (slower decay); ownership builds wealth (inequality owners vs renters);
   defaults and repossessions in a crash; selling CHO flats to tenants is a political issue (price, replacement).
+- Correction (user): a tenant may buy their flat ONLY IF THE OWNER AGREES to sell (landlord's or CHO's decision:
+  price, strategy, politics for CHO). And co-operatives (bostadsrätt) come in TOO, alongside individual ownership:
+  tenants of a building may form a co-operative and buy the whole building if the owner sells; members own shares
+  and the right to their flat; the co-op maintains the building and hires firms. So three tenures plus rental:
+  rented (CHO / landlord), co-operative (bostadsrätt), owner-occupied flat.
