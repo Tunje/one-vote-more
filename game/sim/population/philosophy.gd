@@ -6,7 +6,7 @@ extends RefCounted
 ## miners hold several philosophies (PD §6.7). Leaves with the placeholder archetype "MIX" (new people from the
 ## economy) are spread over the archetypes that fit their work and income, and get beliefs: occupation base +
 ## income shift + archetype vector + colony variant. Beliefs live on the leaves and travel with people.
-## State: pol.state["archetypes"] = {name: {offset: {axis: milli}, weight: float}}.
+## State: pol.state["archetypes"] = {name: {offset: {axis: milli}, weight: milli}}.
 
 const S := 1000
 const ARCHETYPES := {
@@ -53,7 +53,7 @@ static func ensure(world: WorldState) -> Dictionary:
 		var off := {}
 		for ax in PolDefs.AXES:
 			off[ax] = int(round((float(ARCHETYPES[n].get(ax, 0)) + r.randfn(0.0, 8.0)) * S))
-		out[n] = {"offset": off, "weight": snappedf(exp(r.randfn(0.0, 0.4)), 0.001)}
+		out[n] = {"offset": off, "weight": int(round(exp(r.randfn(0.0, 0.4)) * 1000.0))}  # milli (integer state survives save/load)
 	st["archetypes"] = out
 	return out
 
@@ -63,7 +63,7 @@ static func mix(world: WorldState, occ: String, status: String, inc: String) -> 
 	var arch := ensure(world)
 	var w := {}
 	for n in arch:
-		var x := float(arch[n]["weight"])
+		var x := float(arch[n]["weight"]) / 1000.0
 		x *= float(OCC_PRIOR.get(occ, {}).get(n, 1.0))
 		x *= float(STATUS_PRIOR.get(status, {}).get(n, 1.0))
 		x *= float(BAND_PRIOR.get(inc, {}).get(n, 1.0))
