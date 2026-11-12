@@ -27,11 +27,32 @@ const NICE := {"CONSUMERF": "consumer goods factory", "SERVICEHUB": "service hub
 	"DEPOT": "freight depot", "FARM": "farm", "MINE": "mine", "HOUSING": "housing block", "CLINIC": "clinic", "SCHOOL": "school"}
 
 
+static func outlet(w: WorldState, id) -> String:
+	return String(w.peek("outlet").get(String(id), {}).get("name", "a newspaper"))
+
+
+## Who an actor reference ({kind, id}) is, in words.
+static func actor(w: WorldState, a) -> String:
+	if not (a is Dictionary) or a.is_empty():
+		return "someone"
+	match String(a.get("kind", "")):
+		"PARTY": return party(w, a.get("id", ""))
+		"OUTLET": return outlet(w, a.get("id", ""))
+		"GOVERNMENT": return "the government"
+		"ORG", "COMPANY": return org(w, a.get("id", ""))
+		"UNION": return "the union federation"
+	return String(a.get("id", "someone"))
+
+
 static func _kind(t) -> String:
 	return String(NICE.get(str(t), str(t).to_lower().replace("_", " ")))
 
 
 ## Capitalise only the first letter (String capitalises every word).
+static func months(n: int) -> String:
+	return "%d month%s" % [n, "" if n == 1 else "s"]
+
+
 static func cap1(s: String) -> String:
 	return s if s.is_empty() else s.substr(0, 1).to_upper() + s.substr(1)
 
@@ -82,10 +103,10 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 	var where := " in " + district(w, f["location"]) if f.get("location") != null else ""
 	var s := ""
 	match t:
-		"ECON_CONTRACT_DELAYED": s = cap1("%s is running %d month(s) late" % [project(w, d.get("project", "")), int(d.get("months_late", 1))])
+		"ECON_CONTRACT_DELAYED": s = cap1("%s is running %s late" % [project(w, d.get("project", "")), months(int(d.get("months_late", 1)))])
 		"ECON_CONTRACT_SEVERELY_DELAYED": s = cap1("%s is now %d months late" % [project(w, d.get("project", "")), int(d.get("months_late", 0))])
 		"ECON_CONTRACT_FAILED": s = "The builder walked away from %s" % project(w, d.get("project", ""))
-		"ECON_CONTRACT_PAYMENT_MISSED": s = "Payment for %s is %d month(s) overdue" % [project(w, d.get("project", "")), int(d.get("months_overdue", 1))]
+		"ECON_CONTRACT_PAYMENT_MISSED": s = "Payment for %s is %s overdue" % [project(w, d.get("project", "")), months(int(d.get("months_overdue", 1)))]
 		"ECON_TENDER_FAILED": s = "Nobody bid to build %s" % project(w, d.get("project", ""))
 		"ECON_TENDER_OPENED": s = "Tender opened for %s" % project(w, d.get("project", ""))
 		"ECON_CONTRACT_AWARDED": s = "Contract awarded for %s" % project(w, d.get("project", ""))
@@ -163,6 +184,14 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"HOME_DEMAND_RAISED": s = "[color=#ff8a65]The home world raised its demands[/color]"
 		"HOME_SANCTION": s = "The home world imposed a sanction: %s" % _kind(d.get("kind", ""))
 		"HOME_EXPEDITION_SENT": s = "[color=#ff5252][b]The home world has sent a punitive expedition[/b][/color]"
+		# ---- media (Anni, sim/media) ----
+		"MEDIA_OUTLET_FOUNDED": s = "A new newspaper, [b]%s[/b], is published by %s" % [d.get("name", "?"), actor(w, d.get("owner", {}))]
+		"MEDIA_OUTLET_SOLD": s = "%s was sold to %s" % [outlet(w, d.get("outlet", "")), actor(w, d.get("to", {}))]
+		"MEDIA_OUTLET_CLOSED": s = "%s has stopped publishing" % d.get("name", outlet(w, d.get("outlet", "")))
+		"MEDIA_FALSE_REPORT": s = "%s ran a false story about %s" % [outlet(w, d.get("outlet", "")), actor(w, d.get("victim", {}))]
+		"MEDIA_REPORT_EXPOSED": s = "[color=#ff8a65]%s's story about %s was shown to be %s[/color]%s" % [d.get("name", outlet(w, d.get("outlet", ""))), actor(w, d.get("victim", {})) if not d.get("victim", {}).is_empty() else "the colony", "a fabrication" if d.get("deliberate", false) else "wrong", (" — exposed by %s" % outlet(w, d.get("by", ""))) if String(d.get("by", "")) != "" else ""]
+		"MEDIA_INVESTIGATION_PUBLISHED": s = "%s published an investigation" % outlet(w, d.get("outlet", ""))
+		"MEDIA_CENSORED": s = "[color=#ff5252]The government restricted the press[/color]"
 		# ---- election year (Ella, sim/politics/campaign.gd) ----
 		"POL_CAMPAIGN_OPENED": s = "[b]%s[/b]: the parties launch their campaigns" % ("A snap election campaign begins" if d.get("extra", false) else "Election year")
 		"POL_CAMPAIGN_GOES_NEGATIVE": s = "%s goes negative: its ads now target %s" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
@@ -182,6 +211,9 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"POL_ELECTION_PORK": s = ("%s hands out election-year goodies" if d.get("believed", true) else "%s's election-year goodies fool nobody") % party(w, d.get("party", ""))
 		"POL_SMEAR_EXPOSED": s = "[color=#ff5252]Smear exposed[/color]: %s's claims about %s were false" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
 		_:
+			var orig: Dictionary = w.facts.get_fact(String(f.get("causes", [""])[0])) if t.ends_with("_REVEALED") and not f.get("causes", []).is_empty() else {}
+			if not orig.is_empty():
+				return "[color=#ff8a65]Revealed[/color]: " + sentence(w, orig)
 			s = cap1(t.replace("_", " ").to_lower())
 	return s + _gov(f)
 

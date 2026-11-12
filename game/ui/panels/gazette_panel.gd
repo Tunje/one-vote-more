@@ -227,7 +227,7 @@ func _edition_stories(w: WorldState, ed: Dictionary) -> Array:
 	var out: Array = []
 	for st in ed.get("stories", []):
 		var f: Dictionary = w.facts.get_fact(String(st["fact"]))
-		if f.is_empty():
+		if f.is_empty() or String(f["type"]) == "MEDIA_FALSE_REPORT_REVEALED":  # the exposure story already tells it
 			continue
 		var head := headline(w, f)
 		match String(st.get("angle", "NEUTRAL")):
@@ -236,7 +236,7 @@ func _edition_stories(w: WorldState, ed: Dictionary) -> Array:
 			"SUBJECT":
 				var ha: Dictionary = st.get("head_actor", {})
 				var who := NewsText.org(w, ha.get("id", "")) if ha.get("kind", "") in ["COMPANY", "ORG"] else (NewsText.party(w, ha.get("id", "")) if ha.get("kind", "") == "PARTY" else "")
-				if who != "" and not who.begins_with("a "):
+				if who != "" and not who.begins_with("a ") and not head.contains(who.to_upper()):
 					head = "%s TO BLAME: %s" % [who.to_upper(), head]
 		var also: Array = st.get("also", [])
 		var sub_t := plain(NewsText.sentence(w, f)) + ((" — and %d more like it" % also.size()) if also.size() > 0 else "")
@@ -252,7 +252,7 @@ func _edition_stories(w: WorldState, ed: Dictionary) -> Array:
 ## Editorial weight by kind of news: politics, scandal and disaster lead; routine delays go to the back.
 const WEIGHT := {"POL_": 30, "HOME_": 40, "LAW_LEADER": 30, "LAW_CHARTER": 35, "LAW_PETITION": 30, "LAW_EVICTION": 25,
 	"ECON_FAMINE": 60, "ECON_SOVEREIGN": 50, "PLANET_": 25, "COMP_WORKPLACE": 15, "ECON_STRIKE": 20, "ECON_LAYOFFS": 15,
-	"COMP_LIQUIDATED": 10, "ECON_SHIP": 20, "ECON_CONTRACT": -40, "ECON_TENDER": -40, "ECON_RENT": -10, "ECON_SHORTAGE": -15,
+	"COMP_LIQUIDATED": 10, "ECON_SHIP": 20, "MEDIA_": -5, "MEDIA_FALSE_REPORT_REVEALED": -60, "MEDIA_CENSORED": 30, "ECON_CONTRACT": -40, "ECON_TENDER": -40, "ECON_RENT": -10, "ECON_SHORTAGE": -15,
 	"ECON_LEVER_EFFECTIVE": -60, "POL_PROJECT_ORDERED": -20, "POL_BILL_PASSED": -15}
 const GROUP_HEAD := {"ECON_CONTRACT_DELAYED": "BUILDING DELAYS PILE UP", "ECON_CONTRACT_SEVERELY_DELAYED": "BUILDING PROJECTS BADLY BEHIND",
 	"ECON_TENDER_FAILED": "NO BUILDERS FOR PUBLIC PROJECTS", "COMP_LIQUIDATED": "COMPANIES GO UNDER", "ECON_SHORTAGE": "SHORTAGES SPREAD",
@@ -276,6 +276,8 @@ func _stories(w: WorldState, facts: Array) -> Array:
 	var by_type := {}
 	for f in facts:
 		var t: String = f["type"]
+		if t == "MEDIA_FALSE_REPORT_REVEALED":
+			continue
 		if not by_type.has(t):
 			by_type[t] = []
 		by_type[t].append(f)
@@ -306,6 +308,11 @@ static func headline(w: WorldState, f: Dictionary) -> String:
 		"POL_NO_CONFIDENCE_PASSED": h = "GOVERNMENT FALLS"
 		"POL_PARTY_SPLIT": h = "REBELS QUIT %s" % pn.call(d.get("party", ""))
 		"POL_PARTY_FOUNDED": h = "NEW PARTY ENTERS THE FRAY"
+		"MEDIA_REPORT_EXPOSED": h = "%s STORY %s" % [String(d.get("name", "PAPER")).to_upper(), "WAS MADE UP" if d.get("deliberate", false) else "WAS WRONG"]
+		"MEDIA_OUTLET_FOUNDED": h = "A NEW PAPER: %s" % String(d.get("name", "")).to_upper()
+		"MEDIA_OUTLET_SOLD": h = "%s CHANGES HANDS" % NewsText.outlet(w, d.get("outlet", "")).to_upper()
+		"MEDIA_OUTLET_CLOSED": h = "%s FOLDS" % String(d.get("name", "PAPER")).to_upper()
+		"MEDIA_CENSORED": h = "PRESS MUZZLED"
 		"POL_SCANDAL_REVEALED": h = "SCANDAL ROCKS %s" % pn.call(d.get("party", ""))
 		"POL_LEADER_CHANGED": h = "%s CHANGES LEADER" % pn.call(d.get("party", ""))
 		"POL_BILL_DEFEATED": h = "GOVERNMENT DEFEATED IN PARLIAMENT"
