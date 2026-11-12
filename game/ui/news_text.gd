@@ -123,6 +123,17 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"COMP_CEO_REPLACED": s = "%s replaced its management" % _subject_org(w, f)
 		"COMP_INVESTMENT": s = "%s is building a new %s (%s)" % [_subject_org(w, f), _kind(d.get("type", "plant")), _kind(d.get("reason", "demand"))]
 		"ECON_FACILITY_SCRAPPED": s = "%s was scrapped as beyond repair%s" % [cap1(facility(w, d.get("facility", ""))), (" — %d jobs lost" % int(d.get("jobs", 0))) if int(d.get("jobs", 0)) > 0 else ""]
+		# ---- unions (A41, Bob's sim/economy/unions.gd; U2 facts follow the same data shape) ----
+		"UNION_FOUNDED": s = ("Unions unite: the [b]%s[/b] is founded (%d unions)" % [d.get("name", "?"), int(d.get("affiliates", 0))]) if d.get("federation", false) else ("Workers organise: the [b]%s[/b] is founded, led by %s" % [d.get("name", "?"), d.get("leader", "?")])
+		"UNION_LEADER_ELECTED": s = ("%s re-elects %s as leader" % [d.get("name", "?"), d.get("leader", "?")]) if d.get("re_elected", false) else ("%s elects a %s leader, %s%s" % [d.get("name", "?"), "militant" if int(d.get("militancy", 50)) >= 70 else ("moderate" if int(d.get("militancy", 50)) < 45 else "new"), d.get("leader", "?"), (" (replacing %s)" % d.get("previous", "")) if String(d.get("previous", "")) != "" else ""])
+		"UNION_MERGED": s = "%s merges into the %s" % [d.get("absorbed_name", "A union"), d.get("name", "?")]
+		"UNION_SPLIT": s = "[color=#ff8a65]Rank-and-file revolt[/color]: militants break away from the %s to form the %s" % [d.get("from_name", "?"), d.get("name", "?")]
+		"UNION_DEMAND": s = "The %s demands %s from %s" % [d.get("name", "?"), {"WAGE": "a pay rise", "SAFETY": "safer workplaces", "JOBS": "a stop to job cuts", "RECOGNITION": "recognition"}.get(String(d.get("kind", "")), "a deal"), "the government" if String(d.get("employer", "")) == "gov" else org(w, d.get("employer", ""))]
+		"UNION_SETTLED": s = "The %s and %s reach a deal" % [d.get("name", "?"), "the government" if String(d.get("employer", "")) == "gov" else org(w, d.get("employer", ""))]
+		"UNION_TALKS_FAILED": s = "Talks break down between the %s and %s" % [d.get("name", "?"), "the government" if String(d.get("employer", "")) == "gov" else org(w, d.get("employer", ""))]
+		"UNION_STRIKE_CALLED": s = "[color=#ff5252][b]%s[/b][/color]: the %s walks out at %s" % ["GENERAL STRIKE" if d.get("general", false) else "Strike", d.get("name", "?"), "every workplace" if d.get("general", false) else ("the government" if String(d.get("employer", "")) == "gov" else org(w, d.get("employer", "")))]
+		"UNION_STRIKE_COLLAPSED": s = "The %s strike collapses as strike pay runs out" % d.get("name", "?")
+		"UNION_ENDORSEMENT_WITHDRAWN": s = "[color=#ff8a65]The %s withdraws its backing from %s[/color]" % [d.get("name", "?"), party(w, d.get("party", ""))]
 		"ECON_PUBLIC_JOBS_HIRED": s = "The public employment scheme takes on %d people (%d in all)" % [int(d.get("posts", 0)), int(d.get("total", 0))]
 		"ECON_PUBLIC_JOBS_CUT": s = "The public employment scheme lays off %d people (%d left)" % [int(d.get("posts", 0)), int(d.get("total", 0))]
 		"ECON_INCENTIVE_OFFERED": s = "The government offers a %d%% grant to anyone who builds a new %s (for %d months)" % [int(d.get("grant_pct", 0)), _kind(d.get("type", "plant")), int(d.get("months", 0))]

@@ -135,7 +135,7 @@ func _load_extra_panels() -> void:
 const WINDOW_GROUPS := [
 	["Read", ["Gazette"]],
 	["Govern", ["Legislate", "Personnel", "Staff briefing"]],
-	["Politics", ["Parliament", "Parties", "My Party", "Campaign", "Opposition"]],
+	["Politics", ["Parliament", "Parties", "My Party", "Campaign", "Opposition", "Unions"]],
 	["Economy", ["Budget", "Projects", "Companies"]],
 	["Help", ["Why?"]],
 ]

@@ -251,8 +251,8 @@ func _edition_stories(w: WorldState, ed: Dictionary) -> Array:
 
 ## Editorial weight by kind of news: politics, scandal and disaster lead; routine delays go to the back.
 const WEIGHT := {"POL_": 30, "HOME_": 40, "LAW_LEADER": 30, "LAW_CHARTER": 35, "LAW_PETITION": 30, "LAW_EVICTION": 25,
-	"ECON_FAMINE": 60, "ECON_SOVEREIGN": 50, "PLANET_": 25, "COMP_WORKPLACE": 15, "ECON_STRIKE": 20, "ECON_LAYOFFS": 15,
-	"COMP_LIQUIDATED": 10, "ECON_SHIP": 20, "MEDIA_": -5, "MEDIA_FALSE_REPORT_REVEALED": -60, "MEDIA_CENSORED": 30, "ECON_CONTRACT": -40, "ECON_TENDER": -40, "ECON_RENT": -10, "ECON_SHORTAGE": -15,
+	"ECON_FAMINE": 60, "ECON_SOVEREIGN": 50, "PLANET_": 25, "COMP_WORKPLACE": 15, "ECON_STRIKE": 20, "ECON_ARBITRATION": 5, "ECON_LAYOFFS": 15,
+	"COMP_LIQUIDATED": 10, "ECON_SHIP": 20, "UNION_STRIKE": 25, "UNION_SPLIT": 15, "UNION_LEADER": -10, "MEDIA_": -5, "MEDIA_FALSE_REPORT_REVEALED": -60, "MEDIA_CENSORED": 30, "ECON_CONTRACT": -40, "ECON_TENDER": -40, "ECON_RENT": -10, "ECON_SHORTAGE": -15,
 	"ECON_LEVER_EFFECTIVE": -60, "POL_PROJECT_ORDERED": -20, "POL_BILL_PASSED": -15}
 const GROUP_HEAD := {"ECON_CONTRACT_DELAYED": "BUILDING DELAYS PILE UP", "ECON_CONTRACT_SEVERELY_DELAYED": "BUILDING PROJECTS BADLY BEHIND",
 	"ECON_TENDER_FAILED": "NO BUILDERS FOR PUBLIC PROJECTS", "COMP_LIQUIDATED": "COMPANIES GO UNDER", "ECON_SHORTAGE": "SHORTAGES SPREAD",
@@ -313,6 +313,9 @@ static func headline(w: WorldState, f: Dictionary) -> String:
 		"MEDIA_OUTLET_SOLD": h = "%s CHANGES HANDS" % NewsText.outlet(w, d.get("outlet", "")).to_upper()
 		"MEDIA_OUTLET_CLOSED": h = "%s FOLDS" % String(d.get("name", "PAPER")).to_upper()
 		"MEDIA_CENSORED": h = "PRESS MUZZLED"
+		"UNION_STRIKE_CALLED": h = ("GENERAL STRIKE" if d.get("general", false) else "%s WALK OUT" % String(d.get("name", "WORKERS")).to_upper())
+		"UNION_SPLIT": h = "REVOLT IN THE %s" % String(d.get("from_name", "UNION")).to_upper()
+		"UNION_STRIKE_COLLAPSED": h = "%s STRIKE CRUMBLES" % String(d.get("name", "")).to_upper()
 		"POL_SCANDAL_REVEALED": h = "SCANDAL ROCKS %s" % pn.call(d.get("party", ""))
 		"POL_LEADER_CHANGED": h = "%s CHANGES LEADER" % pn.call(d.get("party", ""))
 		"POL_BILL_DEFEATED": h = "GOVERNMENT DEFEATED IN PARLIAMENT"
@@ -328,6 +331,7 @@ static func headline(w: WorldState, f: Dictionary) -> String:
 		"ECON_FAMINE": h = "FAMINE GRIPS THE COLONY"
 		"ECON_SOVEREIGN_DEFAULT": h = "GOVERNMENT DEFAULTS ON ITS DEBTS"
 		"ECON_STRIKE": h = "WORKERS WALK OUT"
+		"ECON_ARBITRATION": h = "ARBITRATOR AVERTS STRIKE AT %s" % NewsText.org(w, d.get("org", "")).to_upper()
 		"ECON_LAYOFFS_MASS": h = "MASS LAYOFFS AT %s" % NewsText.org(w, d.get("org", "")).to_upper()
 		"COMP_LIQUIDATED": h = "COMPANY GOES UNDER"
 		"COMP_WORKPLACE_ACCIDENT": h = "ACCIDENT AT THE WORKS"
