@@ -37,7 +37,14 @@ const DISTRICT_COLORS := [Color("#5dade2"), Color("#f5b041"), Color("#58d68d"), 
 const FAC_TERRAIN := ColonyLayout.FAC_TERRAIN
 const BUILD_TERRAIN := ColonyLayout.BUILD_TERRAIN
 ## What the player can place: public housing and public buildings (EconActions.OPERATOR ∩ EconData.BUILD).
-const BUILD_TYPES := ["HOUSING", "CLINIC", "SCHOOL", "POWER", "WATERWORKS", "DEPOT", "ROAD"]
+const BUILD_TYPES := ["HOUSING", "CLINIC", "SCHOOL", "POWER", "WATERWORKS", "DEPOT", "ROAD",
+	"LANDFILL", "INCINERATOR", "RECYCLING", "TREATMENT", "CEMETERY", "CREMATORIUM"]
+## Waste, sewage and the dead (A45): site colours (open / filled) and glyphs; WASTE_BUILD_LIVE flips when Bob's waste
+## economy builds these facilities (W3-W5). Until then the Build tab shows the siting study only.
+const WASTE_STYLE := {"LANDFILL": ["Lf", Color("#a08a6a"), Color("#5e4b36")], "INCINERATOR": ["In", Color("#d07a4a"), Color("#d07a4a")],
+	"RECYCLING": ["Rc", Color("#5fbf8f"), Color("#5fbf8f")], "TREATMENT": ["Tr", Color("#4aa3c0"), Color("#4aa3c0")],
+	"CEMETERY": ["Cm", Color("#7f9a7a"), Color("#4d5f4a")], "CREMATORIUM": ["Cr", Color("#9a8fb0"), Color("#9a8fb0")]}
+const WASTE_BUILD_LIVE := false
 ## Transport (A43): how links, junctions and site reach are drawn.
 const LINK_COLORS := {"TRACK": Color("#c9a27a"), "ROAD": Color("#d8d8d8"), "PAVED": Color("#ffffff")}
 const REACH_COLORS := {"ROAD": Color("#8bc34a"), "ROVER": Color("#ffa040"), "AIRSHIP": Color("#7fd4ff"), "UNREACHABLE": Color("#ef5350")}
@@ -76,6 +83,9 @@ var road_a := Vector2i(-1, -1)   # BUILD ROAD: the two ends of a new link
 var road_b := Vector2i(-1, -1)
 var road_kind := "TRACK"
 var _road_kind_pick: OptionButton
+var _site_cands: Array = []      # BUILD (waste kinds): the siting study's shortlist
+var _site_pick := -1             # index of the chosen candidate
+var _waste_at := {}              # tile int -> waste site id
 
 var _info: RichTextLabel
 var _mode_buttons := {}
@@ -131,8 +141,8 @@ func _ready() -> void:
 	_build_box.add_child(bl)
 	_build_pick = OptionButton.new()
 	for t in BUILD_TYPES:
-		_build_pick.add_item("Public housing" if t == "HOUSING" else ("Road link" if t == "ROAD" else String(FAC_NAMES[t]).capitalize()))
-	_build_pick.item_selected.connect(func(i: int): build_type = BUILD_TYPES[i]; build_tile = Vector2i(-1, -1); road_a = Vector2i(-1, -1); road_b = Vector2i(-1, -1); _update_panel(); queue_redraw())
+		_build_pick.add_item("Public housing" if t == "HOUSING" else ("Road link" if t == "ROAD" else String(FAC_NAMES.get(t, WasteMap.KIND_NAMES.get(t, t))).capitalize()))
+	_build_pick.item_selected.connect(func(i: int): build_type = BUILD_TYPES[i]; build_tile = Vector2i(-1, -1); road_a = Vector2i(-1, -1); road_b = Vector2i(-1, -1); _refresh_siting(); _update_panel(); queue_redraw())
 	_build_box.add_child(_build_pick)
 	_road_kind_pick = OptionButton.new()
 	for k in Transport.KINDS:
@@ -198,6 +208,7 @@ func refresh() -> void:
 	for fid in _fac_tiles:
 		_fac_at[Terrain.key(_fac_tiles[fid].x, _fac_tiles[fid].y)] = fid
 	_refresh_network(w)
+	_refresh_waste(w)
 	if mode == "DRAW" and plan.is_empty():
 		start_drawing()
 	_build_territory(w)
@@ -368,12 +379,20 @@ func _draw() -> void:
 	var gap := 1.0 if t >= 7.0 else 0.0
 	var show_dist := mode in ["DISTRICTS", "DRAW"]
 	var rows: Array = w.peek("map")["grid"]["rows"]
+	var river_poll: Dictionary = w.peek("river").get("poll", {})
 	for y in Terrain.H:
 		var row: String = rows[y]
 		for x in Terrain.W:
 			var code := row.substr(x, 1)
 			var c: Color = MapView.TERRAIN_COLORS.get(code, Color.GRAY)
 			c = c.darkened(float((x * 31 + y * 17) % 5) * 0.02)
+			if code == "r" and not river_poll.is_empty():   # polluted water turns murky brown-green
+				var pv := float(river_poll.get(str(y * Terrain.W + x), 0))
+				if pv > 0.0:
+					c = c.lerp(Color("#8c7a32"), clampf(pv / (pv + WasteMap.QUALITY_HALF), 0.0, 1.0))
+			var wsite := String(_waste_at.get(y * Terrain.W + x, ""))
+			if wsite != "":
+				c = _waste_tile_color(w, wsite, y * Terrain.W + x)
 			var use := Terrain.use_at(w, x, y)
 			var area := String(use.get("area", ""))
 			if area != "":
@@ -391,6 +410,8 @@ func _draw() -> void:
 		_draw_district_borders(t)
 	else:
 		_draw_network(w, t)
+	if not show_dist:
+		_draw_waste_sites(w, t)
 	_draw_facilities(w, t)
 	_label_rects.clear()
 	if not show_dist:
@@ -569,6 +590,9 @@ func _draw_labels(w: WorldState, t: float) -> void:
 
 
 func _draw_cursor(w: WorldState, t: float) -> void:
+	if mode == "BUILD" and build_type in WasteMap.KINDS:
+		_draw_siting(t)
+		return
 	if mode == "BUILD" and build_type == "ROAD":
 		if _in_map(_hover):
 			draw_rect(_tile_rect(_hover.x, _hover.y), Color(1, 0.85, 0.35, 0.45))
@@ -675,7 +699,9 @@ func click_tile(t: Vector2i) -> void:
 	last_message = ""
 	match mode:
 		"BUILD":
-			if build_type == "ROAD":
+			if build_type in WasteMap.KINDS:
+				_site_pick = _candidate_at(Transport.tile_int(t))
+			elif build_type == "ROAD":
 				if road_a.x < 0 or road_b.x >= 0:
 					road_a = t
 					road_b = Vector2i(-1, -1)
@@ -1087,6 +1113,7 @@ func tile_text(w: WorldState, tv: Vector2i) -> String:
 				s["name"], PlanetSites.KIND_NAMES[s["kind"]], int(s["attraction"]), PlanetSites.season_pct(w, s)]
 			t += _reach_line(String(s["id"]))
 	var ti := Transport.tile_int(tv)
+	t += _waste_tile_text(w, ti, code)
 	for lid in _link_at.get(ti, []):
 		t += "On the %s %s\n" % [Transport.KIND_NAMES[_link(lid).get("kind", "TRACK")], lid]
 	return t
@@ -1095,6 +1122,8 @@ func tile_text(w: WorldState, tv: Vector2i) -> String:
 func _build_text(w: WorldState) -> String:
 	if build_type == "ROAD":
 		return _road_text(w)
+	if build_type in WasteMap.KINDS:
+		return _siting_text(w)
 	var name := "public housing" if build_type == "HOUSING" else String(FAC_NAMES.get(build_type, build_type))
 	var t := "[b]Build %s[/b]\nChoose a free tile: green is buildable, red is not.\n" % name
 	var est := EconConstruction.estimate(build_type) / EconUtil.S
@@ -1480,3 +1509,139 @@ func _draw_bridge(pts: PackedVector2Array, first: int, n: int, t: float, road_w:
 			var flare: Vector2 = (nrm * side - d) * deck * 0.35
 			draw_line(a2 + r, a2 + r + flare, Color(0.08, 0.08, 0.08), 1.5)
 			draw_line(b2 + r, b2 + r + nrm * side * deck * 0.35 + d * deck * 0.35, Color(0.08, 0.08, 0.08), 1.5)
+
+
+# ======================================================================= waste, sewage and the dead (A45)
+
+func _refresh_waste(w: WorldState) -> void:
+	_waste_at.clear()
+	for s in WasteMap.sites(w):
+		for ti in s["tiles"]:
+			_waste_at[int(ti)] = String(s["id"])
+	_refresh_siting()
+
+
+func _refresh_siting() -> void:
+	var w := _world()
+	_site_cands = WasteMap.candidates(w, build_type) if w != null and mode == "BUILD" and build_type in WasteMap.KINDS else []
+	_site_pick = 0 if not _site_cands.is_empty() else -1
+
+
+func _candidate_at(ti: int) -> int:
+	for i in _site_cands.size():
+		if ti in _site_cands[i]["tiles"]:
+			return i
+	return _site_pick
+
+
+## A site's tile: open ground, or filled (landfills fill tile by tile, cemeteries plot by plot).
+func _waste_tile_color(w: WorldState, sid: String, ti: int) -> Color:
+	var s: Dictionary = w.peek("waste_sites").get(sid, {})
+	var st: Array = WASTE_STYLE.get(String(s.get("kind", "")), ["", Color.GRAY, Color.GRAY])
+	var tiles: Array = s.get("tiles", [])
+	var k := tiles.find(ti)
+	var full := int(s.get("fill", 0)) * tiles.size() / 1000   # tiles completely full
+	if k < full:
+		return st[2]
+	if k == full:
+		return Color(st[1]).lerp(st[2], float(int(s.get("fill", 0)) * tiles.size() % 1000) / 1000.0)
+	return st[1]
+
+
+func _draw_waste_sites(w: WorldState, t: float) -> void:
+	var font := get_theme_default_font()
+	for s in WasteMap.sites(w):
+		var st: Array = WASTE_STYLE[String(s["kind"])]
+		var tiles: Array = s["tiles"]
+		var mn := Vector2i(999, 999)
+		var mx := Vector2i(-1, -1)
+		for ti in tiles:
+			var v := Transport.int_tile(int(ti))
+			mn = Vector2i(mini(mn.x, v.x), mini(mn.y, v.y))
+			mx = Vector2i(maxi(mx.x, v.x), maxi(mx.y, v.y))
+			if s["kind"] == "CEMETERY" and t >= 10.0:   # rows of graves on the filled part
+				var k := tiles.find(ti)
+				var filled := int(s.get("fill", 0)) * tiles.size()
+				if k * 1000 < filled:
+					var p := _tile_rect(v.x, v.y).position
+					for gx in 3:
+						for gy in 2:
+							var g := p + Vector2((float(gx) + 0.5) * t / 3.0, (float(gy) + 0.5) * t / 2.0)
+							draw_line(g + Vector2(0, -t * 0.12), g + Vector2(0, t * 0.12), Color(0.9, 0.9, 0.85), 1.0)
+							draw_line(g + Vector2(-t * 0.07, -t * 0.04), g + Vector2(t * 0.07, -t * 0.04), Color(0.9, 0.9, 0.85), 1.0)
+		var r := Rect2(_tile_rect(mn.x, mn.y).position, Vector2(mx.x - mn.x + 1, mx.y - mn.y + 1) * t)
+		draw_rect(r, Color(0.05, 0.05, 0.05, 0.9), false, 1.5)
+		if t >= 9.0:
+			var fs := int(clampf(t * 0.45, 9.0, 14.0))
+			var label := "%s %d%%" % [st[0], int(s.get("fill", 0)) / 10] if s["kind"] in ["LANDFILL", "CEMETERY"] else String(st[0])
+			_label(font, r.get_center() + Vector2(0, fs * 0.35), label, fs, Color.WHITE)
+
+
+## The siting study in the Build tab: the shortlist as numbered outlines, the chosen one bright, its neighbours named.
+func _draw_siting(t: float) -> void:
+	var font := get_theme_default_font()
+	for i in _site_cands.size():
+		var c: Dictionary = _site_cands[i]
+		var mn := Vector2i(999, 999)
+		var mx := Vector2i(-1, -1)
+		for ti in c["tiles"]:
+			var v := Transport.int_tile(int(ti))
+			mn = Vector2i(mini(mn.x, v.x), mini(mn.y, v.y))
+			mx = Vector2i(maxi(mx.x, v.x), maxi(mx.y, v.y))
+		var r := Rect2(_tile_rect(mn.x, mn.y).position, Vector2(mx.x - mn.x + 1, mx.y - mn.y + 1) * t)
+		var chosen := i == _site_pick
+		var col := Color("#ffd75e") if chosen else Color(1, 1, 1, 0.7)
+		draw_rect(r, Color(col.r, col.g, col.b, 0.22), true)
+		draw_rect(r, col, false, 3.0 if chosen else 1.5)
+		_label(font, r.position + Vector2(r.size.x * 0.5, -3.0), "%d" % (i + 1), 13, col)
+		if chosen:
+			var rr: int = WasteMap.NIMBY_R[build_type]
+			var halo := Rect2(r.position - Vector2(rr, rr) * t, r.size + Vector2(rr, rr) * 2.0 * t)
+			var whole := Rect2(_tile_rect(0, 0).position, Vector2(Terrain.W, Terrain.H) * t)
+			draw_rect(halo.intersection(whole), Color("#ef5350"), false, 1.5)
+
+
+func _siting_text(w: WorldState) -> String:
+	var name := String(WasteMap.KIND_NAMES[build_type])
+	var t := "[b]Where to put a %s?[/b]\nThe siting study ranks free land by distance to towns and the river, road access and land cost. Click a numbered site; the red frame shows who will call it \"next door\".\n" % name
+	_act_btn.text = "Commission here"
+	_act_btn.disabled = true
+	if _site_cands.is_empty():
+		return t + "\n[color=#ef5350]No free land suits it.[/color]\n"
+	if _site_pick < 0 or _site_pick >= _site_cands.size():
+		return t
+	var c: Dictionary = _site_cands[_site_pick]
+	var a := Transport.int_tile(int(c["tile"]))
+	t += "\n[b]Site %d[/b] at %d,%d · score %d/100\n" % [_site_pick + 1, a.x, a.y, int(c["score"])]
+	t += "%d tile%s of %s · %d tiles from the nearest town · %d from the river\n" % [c["tiles"].size(), "" if c["tiles"].size() == 1 else "s",
+		String(Terrain.NAMES.get(String(c["terrain"]), c["terrain"])), int(c["dist_town"]), int(c["dist_river"])]
+	t += ("Road: %d tiles to the nearest road\n" % int(c["road"])) if int(c["road"]) >= 0 else "Road: [color=#ef5350]none: a road must be built first[/color]\n"
+	t += "Land cost index %d%s%s\n" % [int(c["land_cost"]), (" · takes " + String(c["competing"])) if String(c["competing"]) != "" else "",
+		(" · %d tile%s privately owned" % [int(c["private"]), "" if int(c["private"]) == 1 else "s"]) if int(c["private"]) > 0 else ""]
+	if build_type == "TREATMENT":
+		t += "Downstream of every town: %s\n" % ("yes" if int(c["downstream_of_towns"]) == 1 else "[color=#ef5350]no, some sewage enters above it[/color]")
+	var nd: Array = c["next_door"]
+	if nd.is_empty():
+		t += "[color=#8bc34a]Nobody lives next door.[/color]\n"
+	else:
+		t += "[b]Next door[/b] (they may object): " + ", ".join(nd.map(func(x): return "%s (%d tiles)" % [x["name"], int(x["dist"])])) + "\n"
+	if not WASTE_BUILD_LIVE:
+		t += "[i]Commissioning goes live with the waste economy (sanitation, disposal, cemeteries).[/i]\n"
+	return t
+
+
+func _waste_tile_text(w: WorldState, ti: int, code: String) -> String:
+	var t := ""
+	var sid := String(_waste_at.get(ti, ""))
+	if sid != "":
+		var s: Dictionary = w.peek("waste_sites")[sid]
+		t += "[b]%s[/b] (%s)" % [String(WasteMap.KIND_NAMES[s["kind"]]).capitalize(), sid]
+		if s["kind"] == "CEMETERY":
+			t += ": %d of %d plots taken" % [int(s["burials"]), WasteMap.plots(s)]
+		elif s["kind"] == "LANDFILL":
+			t += ": %d%% full" % (int(s["fill"]) / 10)
+		t += "\n"
+	if code == "r":
+		var q := WasteMap.river_quality(w, ti)
+		t += "Water quality %d/100%s\n" % [q, " · clean" if q >= 95 else (" · [color=#ef5350]polluted from upstream[/color]" if q < 60 else "")]
+	return t

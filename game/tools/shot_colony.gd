@@ -1,6 +1,6 @@
 extends SceneTree
 ## Terra (A5): render the colony map to a PNG (needs a window, not --headless).
-## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1] [bridge]
+## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1] [bridge|waste|siting]
 ## fixture 1 builds a few areas (Landing, a mining camp, a farm village, a private enclave) with residents, as the
 ## economy will once A2/A3 land, so the area tools can be seen today.
 const DL := preload("res://sim/law/districting.gd")
@@ -8,7 +8,8 @@ var _view: ColonyMap
 var _frames := 0
 var _out := "user://colony.png"
 var _mode := "INSPECT"
-var _bridge := false   # arg 6 = "bridge": zoom in on the first river crossing and open its link panel
+var _bridge := false
+var _waste := ""       # arg 6 = "waste": a demo landfill, cemetery and sewage in the river; "siting": the landfill siting study   # arg 6 = "bridge": zoom in on the first river crossing and open its link panel
 
 
 func _init() -> void:
@@ -20,12 +21,22 @@ func _init() -> void:
 		_mode = args[2]
 	var months := int(args[3]) if args.size() > 3 else 40
 	_bridge = args.size() > 5 and args[5] == "bridge"
+	_waste = args[5] if args.size() > 5 and args[5] in ["waste", "siting"] else ""
 	var s := GameSession.new()
 	s.new_game(seed_v, true)
 	for _m in months:
 		s.end_month()
 	if args.size() > 4 and args[4] == "1":
 		fixture(s.world())
+	if _waste == "waste":
+		var w := s.world()
+		WasteMap.register_site(w, "demo:landfill", "LANDFILL", WasteMap.candidates(w, "LANDFILL")[0]["tiles"])
+		WasteMap.set_fill(w, "demo:landfill", 620)
+		WasteMap.register_site(w, "demo:cemetery", "CEMETERY", WasteMap.candidates(w, "CEMETERY")[0]["tiles"])
+		WasteMap.add_burials(w, "demo:cemetery", 700)
+		for _m in 3:
+			WasteMap.add_discharge(w, Transport.tile_int(Terrain.landing(w)), 2500)
+			WasteMap.step_month(w)
 	_view = ColonyMap.new()
 	_view.session = s
 	root.size = Vector2i(1600, 900)
@@ -103,6 +114,12 @@ func _process(_d: float) -> bool:
 			_view.assign_area(areas[areas.size() - 2]["id"], _view.draw_group)
 			_view.click_tile(Vector2i(-5, -5))
 			_view.refresh()
+		if _waste == "siting":
+			_view.set_mode("BUILD")
+			_view.build_type = "LANDFILL"
+			_view._build_pick.select(ColonyMap.BUILD_TYPES.find("LANDFILL"))
+			_view._refresh_siting()
+			_view._update_panel()
 		if _bridge:
 			for l in Transport.network(w)["links"]:
 				if not l.get("spans", []).is_empty():

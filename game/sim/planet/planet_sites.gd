@@ -9,10 +9,10 @@ extends RefCounted
 ##         tile (Vector2i on the colony map for COLONY sites, else (-1, -1))}
 ## Every number is an int. Sort order: colony sites first, then by distance, then by id.
 
-const KINDS := ["FIRST_LANDING", "RIVER_FALLS", "GLOW_MEADOW", "CRYSTAL_CRAGS",
+const KINDS := ["FOUNDERS_CEMETERY", "FIRST_LANDING", "RIVER_FALLS", "GLOW_MEADOW", "CRYSTAL_CRAGS",
 	"WATERFALL", "CANYON", "GLOWING_FIELD", "AURORA_PLAIN", "TIDAL_BORE", "SUMMIT"]
 const KIND_NAMES := {
-	"FIRST_LANDING": "first landing site", "RIVER_FALLS": "river falls", "GLOW_MEADOW": "glowing meadow",
+	"FIRST_LANDING": "first landing site", "FOUNDERS_CEMETERY": "the founders' cemetery", "RIVER_FALLS": "river falls", "GLOW_MEADOW": "glowing meadow",
 	"CRYSTAL_CRAGS": "crystal crags", "WATERFALL": "waterfall", "CANYON": "canyon",
 	"GLOWING_FIELD": "glowing field (alien)", "AURORA_PLAIN": "aurora plain", "TIDAL_BORE": "twin-moon tidal bore",
 	"SUMMIT": "summit"}
@@ -41,8 +41,8 @@ static func sites(world: WorldState) -> Array:
 	if not Planet.ready(world):
 		return []
 	var rows: Array = world.peek("map").get("grid", {}).get("rows", [])
-	var key := "%d|%d|%d|%d" % [world.rng.derive_seed("planet.terrain"), Planet.freq(world),
-		int(world.peek("planet").get("gen", Planet.GEN_VERSION)), hash("".join(rows))]
+	var key := "%d|%d|%d|%d|%s" % [world.rng.derive_seed("planet.terrain"), Planet.freq(world),
+		int(world.peek("planet").get("gen", Planet.GEN_VERSION)), hash("".join(rows)), str(WasteMap.founders_sight_tile(world))]
 	if not _cache.has(key):
 		if _cache.size() >= 6:
 			_cache.clear()
@@ -294,6 +294,9 @@ static func _colony_sites(world: WorldState, home: int, sd: int, names: Dictiona
 		out.append(_site(world, "GLOW_MEADOW", home, clampi(30 + meadow_s, 30, 60), 0, names, meadow, sd))
 	if crag.x >= 0:
 		out.append(_site(world, "CRYSTAL_CRAGS", home, 35, 0, names, crag, sd))
+	var graves := WasteMap.founders_sight_tile(world)   # A45 W4: the founders' graves, once enough lie there
+	if graves.x >= 0:
+		out.append(_site(world, "FOUNDERS_CEMETERY", home, 40, 0, names, graves, sd))
 	return out
 
 

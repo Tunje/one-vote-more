@@ -160,3 +160,30 @@ func test_road_tool_and_network_panels() -> void:
 		check(String(r["message"]) != "", "or a readable reason (%s)" % r["message"])
 	check(ColonyMap.submit_road(w, {"a": 0, "b": 0, "kind": "TRACK"})["message"] != "", "a bad link is refused with a reason")
 	v.free()
+
+
+func test_waste_siting_and_sites_on_the_map() -> void:
+	var s := _session(false)
+	var w := s.world()
+	WasteMap.register_site(w, "t:lf", "LANDFILL", WasteMap.candidates(w, "LANDFILL")[0]["tiles"])
+	WasteMap.set_fill(w, "t:lf", 500)
+	WasteMap.add_discharge(w, Transport.tile_int(Terrain.landing(w)), 3000)
+	WasteMap.step_month(w)
+	var v := _view(s)
+	var lf_tile: int = w.peek("waste_sites")["t:lf"]["tiles"][0]
+	check(v.tile_text(w, Transport.int_tile(lf_tile)).contains("50% full"), "a landfill tile tells how full it is")
+	var down: int = WasteMap.downstream(w, Transport.tile_int(Terrain.landing(w)))[0]
+	check(v.tile_text(w, Transport.int_tile(down)).contains("Water quality"), "a river tile tells its water quality")
+	v.set_mode("BUILD")
+	for kind in WasteMap.KINDS:
+		v.build_type = kind
+		v._refresh_siting()
+		v._update_panel()
+		check(not v._site_cands.is_empty(), "%s: a shortlist" % kind)
+		check(v._info.text.contains("Site 1") and v._info.text.contains("score"), "%s: the chosen site's study shows" % kind)
+		var second: Dictionary = v._site_cands[mini(1, v._site_cands.size() - 1)]
+		v.click_tile(Transport.int_tile(int(second["tile"])))
+		check_eq(v._site_pick, mini(1, v._site_cands.size() - 1), "%s: clicking a site picks it" % kind)
+	var img := v.get_rect()   # draw path smoke: no errors drawing sites and the study
+	check(img.size.x > 0, "drawn")
+	v.free()

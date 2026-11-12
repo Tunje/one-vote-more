@@ -58,6 +58,30 @@ Each option is a real facility on the map with capacity and side effects:
   water quality for waterworks, farm yields along the banks, health, and tourist sites (River Falls) downstream.
 - River pollution is drawn on the colony map and decays with distance and time.
 
+### Map and river side implemented (Terra, 2026-11-12): sim/waste/waste_map.gd, tests/waste/test_waste_map.gd
+- **River flow (pure, cached per terrain)**: the river runs north to south and leaves the colony map at the south
+  edge. The tributary flows into it; stretches cut off where it meets hills join the nearest flowing tile (the
+  stream runs under the hills).
+- **River state**, table "river", with string tile keys and integer values: `load` (this month's discharges) and
+  `poll`. In NATURE, last month's load flows downstream: each tile passes on 97%, and 30% of last month's
+  pollution lingers. Units: 1 000 ≈ the untreated sewage of 1 000 people for a month. Water quality is
+  100·1500/(1500+poll), so 3 000 units at Landing give quality 33 there and about 40 further downstream.
+- **Siting (pure)**: `candidates(world, kind)` returns the 10 best free footprints, at least 3 tiles apart.
+  - Footprints: landfill 3×3, cemetery 2×2, the others 1 tile.
+  - Terrain by kind. Distance wishes: landfills ≥ 6 tiles from towns and ≥ 4 from the river; incinerators ≥ 4
+    from towns; recycling works and cemeteries 2–6 from towns; treatment plants by the river and downstream of
+    every town.
+  - Road access counts: a site off the network needs a road first. Land cost counts too: farmland and housing land
+    cost more, private land double.
+  - Each candidate carries its neighbours: the settlements within the NIMBY radius (landfill and incinerator 6,
+    treatment and crematorium 4, recycling and cemetery 3).
+- **Sites (state)**, table "waste_sites": Bob registers a footprint when he builds. Landfill fill is in ‰ and set by
+  Bob. A cemetery tile holds 400 graves; burials fill it, and the overflow is returned to Bob. Once 150 lie in the
+  first cemetery, it becomes a colony sight ("The Founders' Cemetery", attraction 40).
+- **Map**: the river turns murky olive-brown where it is polluted. Landfills and cemeteries fill tile by tile (rows
+  of graves). The Build tab gains a siting study for the six kinds: a numbered shortlist, the red "next door"
+  frame, and the study in the panel. Commissioning waits for Bob's W3–W5 (WASTE_BUILD_LIVE).
+
 ## W6. Law (Anni)
 
 NUMBER levers where possible: LAW_WASTE_STANDARD (disposal rules strictness: cost vs pollution),
