@@ -32,3 +32,19 @@
    - Terra (T1): ROAD projects with p["link"] use Transport.validate_link / plan_link (bill) / complete_road (on _complete, link id on the fact); add_traffic(world, link_id, units) monthly for freight; route(world, from, to, mode). Wire only after transport.gd is registered; off switch "T1".
    - Anni (T5, sim/law/transport_law.gd, preload): capped_fare → {fare, subsidy}, fare_cap_binds, accident_factor / safety_cost_factor, tour_approval_p / tour_accident_factor, road_toll (PAVED links → treasury), operation() PUBLIC/FRANCHISE/OPEN.
    - Anni (T7): I maintain table "traffic_stat" keyed "LINK:<id>" / "NODE:<id>" {kind, id, name, load_pm, flow, accidents_12m, serious_12m, fatal_12m} monthly (ints), and emit ECON_TRAFFIC_ACCIDENT {target, serious, fatal}; Terra supplies "traffic_fix".
+13. **Queue order (Wilma, 2026-11-13):** E120 + S3 (in progress) → S1 = A2 (economy on areas) → rest of A46 (settlements emerge; new games start with only the landing camp; old saves keep fixed districts behind a flag) → A47 expedition X3–X4 (spec-expedition-v1.md: passage/cargo price list and ship mass; a closing balance sheet money raised = spent + endowment + company capital; investors become the starting companies with capital, dividends home and mandates; debts repaid from exports; the first bank's owner from the funding mix; presets Balanced / Corporate / State charter / Pioneer co-op / Hard world) → banking spec (deposits → lending capacity, mortgages and home ownership, interest-rate policy, bank ownership and failures). S3 developers should be able to SELL homes on mortgages once banking lands.
+14. **D2 follow-ups (Wilma/user):** EconQuery.shortages(world) → [{good, unmet_pct, producers, price_vs_home, months_short}]; action ECON_AUTHORISE_IMPORT {good, qty|pct, ships: 1} (merchants bring CLOTHING/FURNISHINGS/FINE_FOOD only when authorised; CONSUMER/MEDICAL stay automatic); TEXTILE/FURNITURE/BAKERY in INCENTIVE_TYPES and commissionable as state workshops; unmet durables feed a concern; a cheap BASIC fallback (home sewing, second-hand) so stock never hits zero.
+15. **A48 sister colonies, C2 (after A47; spec-sister-colonies-v1.md):** a light economy per sister colony (a few goods, surpluses/shortages), ship ROUTES calling at several colonies (each colony's ship interval follows the route), inter-colony trade on shared ships, migration between colonies; under 10% extra run time. Design note: EconTrade.on_ship / EconCohorts.ship_migration are per-arrival hooks today — grow them toward a route object (ports of call, cargo per leg).
+
+## For the banking spec (Wilma, user 2026-11-13): individual flat ownership
+User: "Can people buy out their apartments and have companies renovate them themselves? That would be smaller
+projects." — clarified: "I did not mean a bostadsrätt (co-op), I meant owning the apartment alone."
+- A household buys ITS OWN FLAT outright (mortgage from the bank) from the landlord or the state housing office (CHO);
+  buildings become mixed: some flats owned, others rented.
+- Owners renovate their own flat when they choose and can afford it (kitchen, bathroom, windows, heating) by hiring
+  small trade firms — a new small-firm trade sector (plumbers, electricians, carpenters, roofers) living off a steady
+  flow of SMALL contracts.
+- Shared parts (roof, façade, stairwell, pipes) are paid by all owners and the remaining landlord by share of flats;
+  disputes and non-payers let the shared parts decay even when flats are fine.
+- Owners maintain better than landlords (slower decay); ownership builds wealth (inequality owners vs renters);
+  defaults and repossessions in a crash; selling CHO flats to tenants is a political issue (price, replacement).
