@@ -357,6 +357,8 @@ static func edition_size(o: Dictionary) -> int:
 ## Runs all editions, then readership and the per-leaf news vector. Called at the end of JUSTICE.
 static func run(world: WorldState) -> void:
 	ensure_founding(world)
+	_close_orphans(world)
+	_found_ai(world)
 	_expose(world)
 	_investigate(world)
 	var censored := censorship_active(world)
@@ -1120,3 +1122,169 @@ static func ensure_rules(world: WorldState) -> void:
 		r["effective_month"] = world.month
 		LOPS.add_rule(world, r)
 	LOPS.bump_rules_version(world)
+
+
+# =================================================================================== AI founding (spec §2.1, §15)
+
+## How many more papers the market carries: active outlets < 1 + voters / POP_PER_PAPER, at most MAX_OUTLETS.
+static func market_room(world: WorldState) -> int:
+	var pop := 0
+	for c in PolVoters.all(world):
+		pop += maxi(0, int(c.get("pop", 0)))
+	var cap := mini(MD.MAX_OUTLETS, 1 + pop / MD.POP_PER_PAPER)
+	return maxi(0, cap - outlets(world).size())
+
+
+## Under LAW_PRESS_LICENSING = LICENCE the government licenses only owners not opposed to it.
+static func licensed(world: WorldState, owner: Dictionary) -> bool:
+	if String(world.levers.get("LAW_PRESS_LICENSING", "NONE")) != "LICENCE":
+		return true
+	return opposition(actor_pos(world, {"kind": "GOVERNMENT", "id": "government"}), actor_pos(world, owner)) < 0.5
+
+
+## Occupations at or above UNION_FOUND_DENSITY.
+static func _union_strong_occs(world: WorldState) -> int:
+	var n := 0
+	var dens: Dictionary = EconUtil.peek_st(world).get("union", {}).get("density", {})
+	for occ in dens:
+		if int(dens[occ]) >= MD.UNION_FOUND_DENSITY:
+			n += 1
+	return n
+
+
+## Public query (Bob's firm AI at M4): bad PUBLIC stories about one company in the last 12 months.
+static func bad_press_12m(world: WorldState, org_id: String) -> int:
+	return int(_bad_press(world).get(org_id, 0))
+
+
+## Bad PUBLIC stories per company over the last BAD_PRESS_MONTHS (responsible or subject, negative valence).
+static func _bad_press(world: WorldState) -> Dictionary:
+	var out := {}
+	for f in Det.recent_facts(world, "", world.month - MD.BAD_PRESS_MONTHS, "PUBLIC"):
+		if valence(f) >= 0 or not newsworthy(f):
+			continue
+		var seen := {}
+		var actors: Array = f["subjects"].duplicate()
+		for r in f["responsible"]:
+			actors.append(r["actor"])
+		for a in actors:
+			if typeof(a) == TYPE_DICTIONARY and String(a.get("kind", "")) == "COMPANY" and not seen.has(String(a.get("id", ""))):
+				seen[String(a["id"])] = true
+				out[String(a["id"])] = int(out.get(String(a["id"]), 0)) + 1
+	return out
+
+
+## Staff per org (milli-persons), facilities plus contractor crews.
+static func _org_staff(world: WorldState) -> Dictionary:
+	var out := {}
+	var facs := world.peek("facility")
+	for fid in facs:
+		var f: Dictionary = facs[fid]
+		out[String(f.get("org", ""))] = int(out.get(String(f.get("org", "")), 0)) + EconLabor.staff_total(f.get("staff", {}))
+	var orgs := world.peek("org")
+	for oid in orgs:
+		if bool(orgs[oid].get("is_contractor", false)):
+			out[String(oid)] = int(out.get(String(oid), 0)) + EconLabor.staff_total(orgs[oid].get("crew", {}))
+	return out
+
+
+## Would-be founders this month: [{owner, p, from, endow, opts}] in a fixed order.
+static func founding_candidates(world: WorldState) -> Array:
+	var out: Array = []
+	var wref := float(maxi(1, int(world.values.get("ECON_W_REF", 1200 * S))))
+	# parties (spec §2.1: funds ≥ 6 W_ref and ≥ 8% in the polls; ethics follows the leader's integrity)
+	if bool(world.levers.get("LAW_PARTY_PRESS", true)):
+		var parties := world.peek("party")
+		for pid in Det.ordered(parties):
+			var p: Dictionary = parties[pid]
+			var owner := {"kind": "PARTY", "id": String(pid)}
+			if String(p.get("status", "")) != "ACTIVE" or int(p.get("support", 0)) < MD.PARTY_FOUND_SUPPORT \
+					or p.get("positions", {}).is_empty() or not owned_by(world, owner).is_empty():
+				continue
+			var acc := "party:" + String(pid)
+			if float(world.ledger.balance(acc)) < MD.PARTY_FOUND_CASH * wref:
+				continue
+			var lead = p.get("leader", {})
+			var integ := float(lead.get("integrity", 50)) if typeof(lead) == TYPE_DICTIONARY else 50.0
+			out.append({"owner": owner, "p": MD.P_FOUND_PARTY * (1.0 + float(p["support"]) / 20000.0), "from": acc,
+				"endow": int(MD.PARTY_FOUND_ENDOW * wref), "opts": {"name": "The %s Herald" % String(p.get("name", pid)),
+				"line": p["positions"].duplicate(), "ethics": clampf(integ / 100.0, 0.0, 1.0)}})
+	# the union federation (density ≥ 30% in two occupations; line pulled toward LABOR and REDISTRIBUTION)
+	var uowner := {"kind": "UNION", "id": "union:fed"}
+	if owned_by(world, uowner).is_empty() and _union_strong_occs(world) >= MD.UNION_FOUND_OCCS:
+		var line := colony_mean(world)
+		for ax in MD.UNION_LINE_PULL:
+			line[ax] = clampi(int(line.get(ax, 0)) + int(MD.UNION_LINE_PULL[ax]), -100 * S, 100 * S)
+		out.append({"owner": uowner, "p": MD.P_FOUND_UNION, "from": "", "endow": 0,
+			"opts": {"name": "The Worker", "line": line}})
+	# large private companies, more so after bad press
+	var orgs := world.peek("org")
+	if not orgs.is_empty():
+		var staff := {}
+		var bad := {}
+		var scanned := false
+		for oid in Det.ordered(orgs):
+			var o: Dictionary = orgs[oid]
+			if String(o.get("status", "")) != "ACTIVE" or String(o.get("type", "")).begins_with("PUBLIC"):
+				continue
+			var owner := {"kind": "COMPANY", "id": String(oid)}
+			var acc := EconUtil.acct(String(oid))
+			if float(world.ledger.balance(acc)) < MD.COMPANY_FOUND_CASH * wref or not owned_by(world, owner).is_empty():
+				continue
+			if not scanned:
+				staff = _org_staff(world)
+				bad = _bad_press(world)
+				scanned = true
+			if int(staff.get(String(oid), 0)) < MD.COMPANY_FOUND_STAFF:
+				continue
+			var nbad := mini(3, int(bad.get(String(oid), 0)))
+			var word := String(o.get("name", oid)).get_slice(" ", 0)
+			out.append({"owner": owner, "p": MD.P_FOUND_COMPANY + MD.P_FOUND_BAD_PRESS * nbad, "from": acc,
+				"endow": int(MD.COMPANY_FOUND_ENDOW * wref), "bad_press": nbad,
+				"opts": {"name": "The %s Courier" % word, "line": _vec(PolDefs.OCC_IDEOLOGY["BUSINESS_OWNER"])}})
+	return out
+
+
+## Monthly: at most one new paper, if the market has room. Every candidate rolls; one hit is drawn.
+static func _found_ai(world: WorldState) -> void:
+	if world.month < MD.FOUND_FROM_MONTH or market_room(world) <= 0:
+		return
+	var cands := founding_candidates(world)
+	if cands.is_empty():
+		return
+	var rng := world.rng.stream("media.found")
+	var scale := float(world.meta.get("media_found_scale", 1.0))     # tests and probes
+	var hits: Array = []
+	for c in cands:
+		if rng.randf() < float(c["p"]) * scale:
+			hits.append(c)
+	if hits.is_empty():
+		return
+	var pick: Dictionary = hits[rng.randi_range(0, hits.size() - 1)]
+	var opts: Dictionary = pick["opts"].duplicate()
+	opts["reach"] = "ALL"
+	opts["licensed"] = licensed(world, pick["owner"])
+	var r := found_outlet(world, pick["owner"], opts)
+	if not bool(r["ok"]):
+		return
+	if String(pick["owner"]["kind"]) == "COMPANY" and world.table("org").has(String(pick["owner"]["id"])):
+		world.table("org")[String(pick["owner"]["id"])]["media_out"] = String(r["out_id"])   # Bob reads it (M4: sell as an asset)
+	if int(pick["endow"]) > 0:      # pay_upto reads the live balance at payment time
+		EconUtil.pay_upto(world, String(pick["from"]), "media:" + String(r["out_id"]), int(pick["endow"]), "MEDIA_FOUNDING")
+
+
+## A paper dies with its owner: a party no longer ACTIVE, a company in liquidation. Unknown owners are kept.
+static func _close_orphans(world: WorldState) -> void:
+	for id in outlets(world):
+		var ow: Dictionary = outlet(world, id)["owner"]
+		match String(ow.get("kind", "")):
+			"PARTY":
+				var p: Dictionary = world.peek("party").get(String(ow["id"]), {})
+				if not p.is_empty() and String(p.get("status", "")) != "ACTIVE":
+					close_outlet(world, id, "OWNER_GONE")
+				elif not bool(world.levers.get("LAW_PARTY_PRESS", true)):
+					close_outlet(world, id, "PARTY_PRESS_BANNED")
+			"COMPANY":
+				var o: Dictionary = world.peek("org").get(String(ow["id"]), {})
+				if not o.is_empty() and String(o.get("status", "")) in ["LIQUIDATION", "DISSOLVED"]:
+					close_outlet(world, id, "OWNER_GONE")

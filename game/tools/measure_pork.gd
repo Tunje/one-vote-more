@@ -69,7 +69,7 @@ func _spending_moves(w: WorldState, before: Dictionary) -> int:
 	var n := 0
 	for lid in w.levers:
 		var def: Dictionary = w.lever_defs.get(lid, {})
-		if def.get("type", "") != "NUMBER" or def.get("owner", "") == "law":
+		if def.get("type", "") != "NUMBER" or (def.get("owner", "") == "law" and not bool(def.get("legislative", false))):
 			continue
 		var d := float(w.levers[lid]) - float(before.get(lid, w.levers[lid]))
 		if d != 0.0 and float(def.get("concerns", {}).get("GOVERNANCE", 0)) * d < 0.0:

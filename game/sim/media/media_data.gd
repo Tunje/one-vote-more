@@ -77,3 +77,21 @@ const P_COMPLAINT_BY := {"FALSE": 0.25, "ERROR": 0.15, "MISLEADING": 0.08}
 const CRED_SPIN := 5000
 const CRED_SPIN_REPEAT := 1000
 const REPEAT_CAP := 3
+
+# ---- AI founding (spec §2.1, §15; v4 chronicles: no paper but the Gazette in 100 years)
+const FOUND_FROM_MONTH := 12              # no private press in the first year
+const POP_PER_PAPER := 500                # market room: active outlets < 1 + voters / this (and ≤ MAX_OUTLETS)
+const PARTY_FOUND_CASH := 6.0             # W_ref in the party account (spec §2.1) …
+const PARTY_FOUND_SUPPORT := 8000         # … and ≥ 8% in the polls (support, milli-%)
+const PARTY_FOUND_ENDOW := 3.0            # W_ref moved into the paper's account
+const P_FOUND_PARTY := 0.005              # per eligible party-month, × (1 + support / 20%)
+const UNION_FOUND_DENSITY := 30000        # ≥ 30% density …
+const UNION_FOUND_OCCS := 2               # … in at least this many occupations
+const P_FOUND_UNION := 0.02
+const UNION_LINE_PULL := {"LABOR": 40000, "REDISTRIBUTION": 30000}
+const COMPANY_FOUND_STAFF := 50000        # milli-persons employed (50 people)
+const COMPANY_FOUND_CASH := 150.0         # W_ref
+const COMPANY_FOUND_ENDOW := 20.0
+const P_FOUND_COMPANY := 0.002            # per eligible company-month …
+const P_FOUND_BAD_PRESS := 0.015          # … + this per bad PUBLIC story about it in 12 months (max 3)
+const BAD_PRESS_MONTHS := 12

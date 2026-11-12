@@ -13,7 +13,7 @@ extends RefCounted
 ##   REDISTRIBUTION > 0, or owning PUBLIC_SERVICES / HOUSING, raises the bar for schools, clinics and homes
 ##   Essentials (food, power, water, materials, components): ECON_ROLE > 0.15 builds; < -0.15 offers a grant to
 ##   private builders (ECON_OFFER_INCENTIVE); in between offers first and builds if still short.
-## Stateless.
+## State: pol.state["pw_roads"] (district -> month of the last public-works road, so roads are spread out).
 
 const QUARTER_MONTH := 1
 
@@ -90,14 +90,41 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 			if r.get("ok", false):
 				world.add_fact({"type": "POL_PROJECT_ORDERED", "owner": "pol", "subjects": [], "responsible": [{"actor": {"kind": "GOVERNMENT" if who["by"] != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}],
 					"impact": {}, "magnitude": 35, "visibility": "PUBLIC", "data": {"type": "UPGRADE", "facility": opts[0]["facility"], "to_tier": opts[0]["next_tier"], "by": who["by"]}})
-	# 5. counter-cyclical public works: interventionist and spending governments fight unemployment by building
-	if state + spend > -0.2 and FirmAI.colony_unemployment(world) > 0.12 - 0.04 * maxf(0.0, state):
+	# 5. counter-cyclical public works: interventionist and spending governments fight unemployment by building.
+	#    Jobs follow output (Bob's E115 trace): idle plants hire nobody, so the jobs have to be created. The more
+	#    a government believes in it, and the worse unemployment is, the more it orders per quarter: crowded
+	#    housing first, then schools and clinics (a higher bar than the normal programme), then roads (pure works).
+	var believer := state + spend
+	var unemp := FirmAI.colony_unemployment(world)
+	if believer > -0.2 and unemp > 0.12 - 0.04 * maxf(0.0, state):
+		var n_max := 1 + (1 if unemp > 0.20 else 0) + (1 if believer > 0.4 else 0)
 		var pw := "ECON_BUDGET_PUBLIC_WORKS"
+		var cands: Array = []
 		for d in EconUtil.sorted_keys(world.table("district")):
-			if float(world.table("district")[d].get("occupancy", 0)) >= 850.0 and not busy.has("HOUSING|" + d):
-				if EconActions.headroom(world, pw) >= EconConstruction.estimate("HOUSING") * 11 / 10:
-					orders += _order(world, st, busy, who, "HOUSING", d, pw)
-					break
+			if float(world.table("district")[d].get("occupancy", 0)) >= 850.0:
+				cands.append(["HOUSING", d])
+		for key in [["health_access", "CLINIC"], ["edu_access", "SCHOOL"]]:
+			var acc: Dictionary = s.get(key[0], {})
+			for d in EconUtil.sorted_keys(acc):
+				if float(acc[d]) < 900.0 and not _has_facility(world, key[1], d):
+					cands.append([key[1], d])
+		var roads: Dictionary = st.get("pw_roads", {})
+		var by_pop: Array = EconUtil.sorted_keys(world.table("district"))
+		by_pop.sort_custom(func(a, b): return int(world.table("district")[a].get("households", 0)) > int(world.table("district")[b].get("households", 0)) or (world.table("district")[a].get("households", 0) == world.table("district")[b].get("households", 0) and a < b))
+		for d in by_pop:
+			if world.month - int(roads.get(d, -999)) >= 36:
+				cands.append(["ROAD", d])
+		var done := 0
+		for c in cands:
+			if done >= n_max:
+				break
+			if busy.has(c[0] + "|" + c[1]) or EconActions.headroom(world, pw) < EconConstruction.estimate(c[0]) * 11 / 10:
+				continue
+			if _order(world, st, busy, who, c[0], c[1], pw) > 0:
+				done += 1
+				if c[0] == "ROAD":
+					roads[c[1]] = world.month
+		st["pw_roads"] = roads
 
 
 ## Who decides: the AI government in parliament, or the commander in the founding era when the player's

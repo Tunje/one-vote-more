@@ -17,7 +17,7 @@ func _init() -> void:
 			for f in w.facts.query("", m - 59):
 				var t: String = f["type"]
 				var d: Dictionary = f.get("data", {})
-				if t == "POL_PROJECT_ORDERED" and String(d.get("type", "")) in ["FARM", "POWER", "WATERWORKS", "PROCESSING", "COMPONENTS"]:
+				if t == "POL_PROJECT_ORDERED":
 					t += ":" + String(d["type"])
 				elif t in ["ECON_INCENTIVE_OFFERED", "ECON_INCENTIVE_CLAIMED", "COMP_INVESTMENT"]:
 					t += ":" + String(d.get("type", ""))
@@ -29,7 +29,7 @@ func _init() -> void:
 			for fid in w.table("facility"):
 				if w.table("facility")[fid]["type"] == "FARM":
 					farms += 1
-			print("Y%d pop=%d farms=%d food_margin=%d%% famine_months=%d  %s" % [(m + 1) / 12, PopStore.total(w), farms, int(e["FOOD"]["margin_pct"]), famine, str(c)])
+			print("Y%d pop=%d unemp=%.1f%% farms=%d food_margin=%d%% famine_months=%d  %s" % [(m + 1) / 12, PopStore.total(w), 100.0 * FirmAI.colony_unemployment(w), farms, int(e["FOOD"]["margin_pct"]), famine, str(c)])
 			famine = 0
 			var pst: Dictionary = w.table("pol")["state"]
 			var g: Dictionary = pst.get("government", {})

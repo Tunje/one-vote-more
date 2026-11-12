@@ -367,3 +367,25 @@ Ideology slopes follow the usual pattern: AUTONOMY on licensing, censorship and 
   - About 3 lie, error or spin records per paper a year, about half exposed, 2 defamation rulings.
   - Credibility: Gazette 70, union paper 53, business paper 39.
 - **Tests:** `tests/media/test_media_m2.gd` (6, PD tests 13 and 14).
+
+## 15. As built: AI founding (2026-11-12)
+
+The v4 chronicles showed no paper but the Gazette in 100 years. `Media._found_ai` now runs monthly at the start of `Media.run`, from month 12 on.
+- **Market room:** active outlets < 1 + voters / `POP_PER_PAPER` (500), and at most 8. `Media.market_room(world)`.
+- **Entry rate:** at most one new paper a month and one per owner. Every candidate rolls; one hit is drawn (stream `media.found`).
+- **Party:** ACTIVE, support ≥ 8%, ≥ 6 W_ref in `party:<id>`, and `LAW_PARTY_PRESS` on.
+  - Monthly probability: 0.005 × (1 + support/20%).
+  - The paper: "The {party} Herald", with the party's line and ethics = leader integrity / 100. 3 W_ref moves from the party into the paper.
+- **Union federation** (`union:fed`): density ≥ 30% in ≥ 2 occupations.
+  - Monthly probability: 0.02.
+  - The paper: "The Worker", with the colony mean line + LABOR 40 and REDISTRIBUTION 30. No endowment, because unions have no account yet.
+- **Company:** a private ACTIVE org (not `PUBLIC_*`) with ≥ 150 W_ref cash and ≥ 50 staff.
+  - Monthly probability: 0.002 + 0.015 per bad PUBLIC story about it in 12 months (at most 3).
+  - The paper: "The {firm} Courier", with the BUSINESS_OWNER line. 20 W_ref moves from `co:<id>`.
+- **Licensing:** under `LAW_PRESS_LICENSING` = LICENCE, an owner opposed to the government (opposition ≥ 0.5) is refused.
+- **Exit:** a paper closes when its party is no longer ACTIVE or `LAW_PARTY_PRESS` is switched off, or when its company is in LIQUIDATION or DISSOLVED. Money-driven exit is still M4.
+- **Probe, 2 seeds × 20 years:**
+  - Papers appear from year 2.
+  - 5–6 papers are active at year 10 (union, company and party), and company papers die with their firms.
+  - With no money exit, the line-up then freezes.
+- **Tests:** `tests/media/test_media_found.gd` (8). `world.meta.media_found_scale` scales the founding probabilities for tests and probes.

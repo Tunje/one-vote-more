@@ -421,7 +421,7 @@ const LEVERS := [
 	# a smaller pension bill: a classic fight between labour and fiscal hawks.
 	# Concern hints per unit raised (legislature.relief): budget relief (GOVERNANCE = budget-sign proxy) against
 	# lost pension years (COST_OF_LIVING, FAIRNESS). Phased in over 6 months.
-	{"id": "LAW_RETIREMENT_AGE", "owner": "law", "type": "NUMBER", "range": [55, 72], "default": 62, "step": 1,
+	{"id": "LAW_RETIREMENT_AGE", "owner": "law", "legislative": true, "type": "NUMBER", "range": [55, 72], "default": 62, "step": 1,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": -2.0, "REDISTRIBUTION": -1.5, "FISCAL": -1.5},
 		"concerns": {"GOVERNANCE": 30, "JOBS": 5, "COST_OF_LIVING": -20, "FAIRNESS": -10},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 6, "scope": "COLONY", "domain": "ECON"},

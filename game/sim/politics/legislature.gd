@@ -179,7 +179,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	ids.sort()
 	for lid in ids:
 		var def: Dictionary = world.lever_defs[lid]
-		if def["type"] != "NUMBER" or def.get("owner", "") == "law":
+		if def["type"] != "NUMBER" or (def.get("owner", "") == "law" and not bool(def.get("legislative", false))):
 			continue
 		if allowed == "COMMANDER" and def["foundingEra"] != "COMMANDER":
 			continue
