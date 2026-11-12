@@ -31,6 +31,21 @@ static func hours(world: WorldState) -> int:
 	return int(st.get("office_hours", HOURS_PER_MONTH))
 
 
+## Interview and meeting minutes: they add up, and every full hour comes off the month's office hours.
+static func spend_minutes(world: WorldState, m: int) -> bool:
+	var st: Dictionary = world.table("pol")["state"]
+	var acc := int(st.get("office_minutes", 0)) if int(st.get("office_hours_month", -1)) == world.month else 0
+	var total := acc + m
+	var hours_needed := total / 60
+	if hours_needed > 0 and not spend_hours(world, hours_needed):
+		return false
+	st["office_minutes"] = total % 60
+	st["office_hours_month"] = world.month
+	if not st.has("office_hours") or int(st.get("office_hours_month", -1)) != world.month:
+		st["office_hours"] = hours(world)
+	return true
+
+
 static func spend_hours(world: WorldState, h: int) -> bool:
 	var st: Dictionary = world.table("pol")["state"]
 	var left := hours(world)
