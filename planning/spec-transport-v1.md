@@ -76,10 +76,38 @@ LAW_ROAD_TOLL (0–n per trip on paved roads); public vs private operation of ro
 - UI: a Transport window (network, worst links, routes, operators, accidents) and the map tools; news lines for road
   openings, closures, accidents, strikes, new operators, first tourists reaching a site.
 
+## T7. Traffic engineering: lanes, junctions, engineers (user addition)
+
+User: "Infrastructure architects? How do you know when you need a roundabout, when should a double-lane road be made,
+what causes these things?" Answer: measured traffic and accidents, studied by engineers, paid for by politicians.
+
+- **Counts** (Bob): every link and junction node gets monthly traffic counts from freight, commuters, buses and
+  tourists, against its capacity (lanes × road kind × junction type).
+- **Problems** (Bob): congestion above ~80% of capacity raises delay and cost (freight dearer, commutes longer,
+  tourists fewer); accident risk rises with volume, speed, condition, junction type, darkness and storms; accidents
+  are facts (news, inquiries, a fatal one is a scandal if a report was ignored). Growth (a new mine, arena,
+  settlement) moves the flows, so problems appear where the colony grows.
+- **Fixes** (Terra models them in the network): lanes 1→2 (capacity ×2, more land and cost), bypass link, second
+  bridge, TRACK→ROAD→PAVED; junction types CROSSING → PRIORITY → ROUNDABOUT (medium multi-way traffic, far fewer
+  serious accidents) → SIGNALS (more capacity, needs power, costs more). Each fix is a ROAD-family project with a
+  target (link or junction) and params.
+- **Engineers** (Anni, staff system): an infrastructure department with transport engineers (skill matters). Yearly,
+  and after a serious accident, it issues a traffic report: worst links/junctions with counts, accidents and a
+  recommended fix with cost and time. A strong department spots problems early and picks the right fix; a weak or
+  understaffed one is late or wrong (lights where a roundabout would do). Report quality follows the staff model.
+- **Decision** (Wilma): AI governments act on reports by ideology and budget (development-minded build more, green
+  parties prefer transit and fewer roads, austere ones wait for the accidents); the player governs → the player
+  reads the report and decides. Companies lobby for roads to their plants; districts press for bypasses. Ignoring a
+  report before a fatal crash is a scandal (fact with the report as cause).
+- UI: the Transport window lists the latest report and its recommendations with an "order it" button; the map shows
+  traffic load colours and accident spots.
+
 ## Acceptance (century runs, 3 seeds)
 
 - No tourist ever visits a site without a road, a rover route or an airship route (tested).
 - Roads get built (by governments and the player) and link kinds upgrade over a century; at least one site opens to
   tourists through a new road or operator per seed.
 - Commuting exists between areas; freight costs differ by route; storms close tracks.
+- Junctions and lanes get upgraded where traffic and accidents grow (at least one roundabout or second lane per seed
+  by Year 60), driven by engineers' reports; accident counts fall after a fix.
 - Ledger closed, integer state, determinism and save/load hold.
