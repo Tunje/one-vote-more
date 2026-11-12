@@ -297,7 +297,7 @@ func _ensure_globe() -> void:
 	var w: WorldState = session.world()
 	if not Planet.ready(w):
 		return
-	var key := "%d|%d" % [w.rng.derive_seed("planet.terrain"), Planet.landing(w)]
+	var key := "%d|%d" % [Planet.seed_of(w), Planet.landing(w)]
 	if key == _globe_for and _globe_tex != null:
 		return
 	_globe_for = key

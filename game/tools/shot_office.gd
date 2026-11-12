@@ -1,6 +1,6 @@
 extends SceneTree
 ## Terra (A44): render the office's drawn desk to a PNG (needs a window, not --headless).
-## godot --path game --script res://tools/shot_office.gd -- <seed> <out.png> [months] [click: paper|tray|pc|phone|calendar|door] [w] [h] [planet|map] [storm|-] [3d]
+## godot --path game --script res://tools/shot_office.gd -- <seed> <out.png> [months] [click: paper|tray|pc|phone|calendar|door] [w] [h] [planet|map] [storm|-] [3d|2d] [camp]
 ## Uses its own settings file (user://shot_settings.cfg), so the player's settings stay untouched.
 const OfficePanel := preload("res://ui/panels/office_panel.gd")
 var _panel
@@ -24,6 +24,11 @@ func _init() -> void:
 	for _m in months:
 		s.end_month()
 	_demo(s.world())
+	if args.size() > 9 and args[9] == "camp":   # the landing camp: no housing at Landing yet
+		var fac: Dictionary = s.world().table("facility")
+		for fid in EconUtil.sorted_keys(fac):
+			if String(fac[fid]["type"]) == "HOUSING" and String(fac[fid].get("district", "")) == "d:1":
+				fac.erase(fid)
 	if args.size() > 7 and args[7] == "storm":   # a strong rain front over the colony this month
 		var li := Planet.landing(s.world())
 		s.world().table("planet")["storms"] = [{"id": "shot", "kind": "RAIN_FRONT", "strength": 4, "cells": [li], "global": false}]

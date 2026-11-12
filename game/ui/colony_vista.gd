@@ -1,5 +1,8 @@
 class_name ColonyVista
 extends Control
+## TRUTHFUL (user: "if you don't settle there, will there be nothing?"): only what the colony has built is drawn —
+## fields only where farms stand, plants where they stand, houses on their tiles, the built roads and bridges,
+## landfills and cemeteries; the rest stays wild. No housing yet: Landing is a tent camp.
 ## Terra (A44, user: the office window should be a VIEW, not a display of the grounds): the colony seen from an office
 ## window in Landing, looking north over the real colony map in perspective: the ground tile by tile (hills raised,
 ## the river, fields), the other settlements as roof clusters, distant hills on the horizon, Landing's own rooftops
@@ -78,17 +81,44 @@ static func gather(w: WorldState) -> Dictionary:
 	d["eye"] = Terrain.landing(w)
 	d["look"] = look_dir(w)
 	d["seed"] = w.rng.derive_seed("ui.vista")
-	var towns: Array = []
-	for st in ColonyLayout.settlements(w):
-		var t: Vector2i = st["tile"]
-		if true:
-			towns.append({"tile": t, "size": clampi(st["tiles"].size() / 6, 2, 9), "name": st["name"]})
-	d["towns"] = towns
-	var homes := 0
-	for f in w.peek("facility").values():
-		if String(f.get("district", "")) == "d:1" and String(f["type"]) == "HOUSING":
-			homes += 1
-	d["roofs"] = clampi(homes + 4, 5, 12)
+	# what stands where (facility tiles: A2 tiles, or the display placement before A2)
+	var ft := ColonyLayout.facility_tiles(w)
+	var fac: Dictionary = w.peek("facility")
+	var things: Array = []   # [{kind, tile}] drawn as objects
+	var farm := {}           # tile int -> true: farmed land (a farm and its fields around it)
+	var land := Terrain.landing(w)
+	var homes_here := 0
+	for fid in EconUtil.sorted_keys(ft):
+		var f: Dictionary = fac.get(fid, {})
+		if f.is_empty() or f.get("closed_m", 0) == null:
+			continue
+		var t: Vector2i = ft[fid]
+		var ty := String(f["type"])
+		things.append({"kind": ty, "tile": t, "fid": fid})
+		if ty == "HOUSING" and maxi(absi(t.x - land.x), absi(t.y - land.y)) <= 4:
+			homes_here += 1
+		if ty == "FARM":
+			for dy in range(-1, 2):
+				for dx in range(-1, 2):
+					if Terrain.at(w, t.x + dx, t.y + dy) in ["f", "n", "."]:
+						farm[(t.y + dy) * Terrain.W + t.x + dx] = true
+	for k in w.peek("map").get("uses", {}):   # area housing tiles (after A2)
+		var u: Dictionary = w.peek("map")["uses"][k]
+		if String(u.get("area", "")) != "":
+			things.append({"kind": "HOUSING", "tile": ColonyLayout.as_tile(k), "fid": ""})
+	d["things"] = things
+	d["farm"] = farm
+	d["homes_here"] = homes_here
+	var links: Array = []
+	for l in Transport.network(w)["links"]:
+		if int(l.get("globe", 0)) == 0:
+			links.append({"path": l["path"], "kind": String(l["effective"])})
+	d["links"] = links
+	var waste := {}
+	for ws in WasteMap.sites(w):
+		for ti in ws["tiles"]:
+			waste[int(ti)] = String(ws["kind"])
+	d["waste"] = waste
 	return d
 
 
@@ -105,8 +135,8 @@ func _draw() -> void:
 	_draw_sky(W, hy)
 	_draw_far_hills(W, hy)
 	_draw_ground(w, W, H, hy)
-	_draw_towns(W, hy)
-	_draw_smoke(W, hy)
+	_draw_roads(w, W, H, hy)
+	_draw_things(w, W, H, hy)
 	_draw_rooftops(W, H)
 	_draw_weather(W, H)
 	if mullions:
@@ -225,7 +255,18 @@ func _draw_ground(w: WorldState, W: float, H: float, hy: float) -> void:
 				continue
 			if minf(minf(c00.y, c10.y), minf(c11.y, c01.y)) > H:
 				continue
+			var ti := y * Terrain.W + x
+			var farmed: bool = _d["farm"].has(ti)
 			var col: Color = WATER if code == "r" else (pal.get(code, pal["."]) as Color)
+			if code == "f" and not farmed:   # fertile but wild: meadow, no fields
+				col = (pal["."] as Color).lerp(Color("#6aa04a"), 0.35)
+			elif code == "." and farmed:
+				col = pal["f"]
+			var wk := String(_d["waste"].get(ti, ""))
+			if wk == "LANDFILL":
+				col = Color("#8a7a62")
+			elif wk == "CEMETERY":
+				col = Color("#6f8a68")
 			if code == "r" and float(_d["temp"]) < -3.0:
 				col = Color("#cfe0ea")   # ice
 			# light from the south-west: slopes facing us are brighter, far land fades into haze
@@ -235,28 +276,104 @@ func _draw_ground(w: WorldState, W: float, H: float, hy: float) -> void:
 				col = col.lerp(Color("#f4f6f8"), cold * (0.6 if code in ["h", "k", "o", "x"] else 0.5))
 			var fade := clampf(float(tl[0]) / float(MAX_DIST), 0.0, 1.0)
 			col = col.lerp(Color("#9fb0c0"), fade * 0.55)
-			if not Terrain.use_at(w, x, y).is_empty():
+			if not Terrain.use_at(w, x, y).is_empty() and wk == "":
 				col = col.lerp(Color("#d9b48a"), 0.35)   # built land
 			draw_primitive(PackedVector2Array([c00, c10, c11, c01]), PackedColorArray([col, col, col, col]), PackedVector2Array())
-			if code in ["f", "n"] and float(tl[0]) < 18.0:   # furrows and crop rows
+			if farmed and code != "r" and float(tl[0]) < 18.0:   # furrows and crop rows: only where a farm works the land
 				for k in 3:
 					var t := (float(k) + 0.5) / 3.0
 					draw_line(c00.lerp(c01, t), c10.lerp(c11, t), col.darkened(0.15), 1.0)
 
 
-## Other settlements: little clusters of houses where they really stand.
-func _draw_towns(W: float, hy: float) -> void:
+## The built roads and tracks across the land, with plank bridges over the river.
+func _draw_roads(w: WorldState, W: float, H: float, hy: float) -> void:
+	var cols := {"TRACK": Color("#b8a07a"), "ROAD": Color("#9a9a9a"), "PAVED": Color("#d8d8d8")}
+	for l in _d.get("links", []):
+		var path: Array = l["path"]
+		for i in range(1, path.size()):
+			var a := Transport.int_tile(int(path[i - 1]))
+			var b := Transport.int_tile(int(path[i]))
+			var pa := Vector2(a) + Vector2(0.5, 0.5)
+			var pb := Vector2(b) + Vector2(0.5, 0.5)
+			var da := _fwd_side(pa).x
+			var db := _fwd_side(pb).x
+			if da < 1.2 or db < 1.2 or da > MAX_DIST:
+				continue
+			var sa := _proj(pa, maxf(_height(w, a.x, a.y), 0.0) + 0.02, W, hy)
+			var sb := _proj(pb, maxf(_height(w, b.x, b.y), 0.0) + 0.02, W, hy)
+			if (sa.x < -W and sb.x < -W) or (sa.x > 2.0 * W and sb.x > 2.0 * W) or (sa.y > H and sb.y > H):
+				continue
+			var wd := clampf(W * 0.05 / minf(da, db), 1.0, 7.0)
+			var bridge := Terrain.at(w, b.x, b.y) == "r" or Terrain.at(w, a.x, a.y) == "r"
+			if bridge:
+				draw_line(sa, sb, Color("#5e4632"), wd * 2.2)
+			draw_line(sa, sb, cols.get(String(l["kind"]), Color("#b8a07a")), wd)
+
+
+## What the colony has built, far to near: houses, plants (mines with spoil heaps and headframes, works with stacks and
+## smoke, waterworks, depots, farm barns, public buildings), cemetery graves.
+func _draw_things(w: WorldState, W: float, H: float, hy: float) -> void:
+	var items: Array = []
+	for t in _d.get("things", []):
+		var p := Vector2(t["tile"]) + Vector2(0.5, 0.5)
+		var dist := _fwd_side(p).x
+		if dist >= 2.0 and dist <= MAX_DIST:
+			items.append([dist, t])
+	for ti in _d.get("waste", {}):
+		if _d["waste"][ti] == "CEMETERY":
+			var tv := Transport.int_tile(int(ti))
+			var dd := _fwd_side(Vector2(tv) + Vector2(0.5, 0.5)).x
+			if dd >= 2.0 and dd <= MAX_DIST:
+				items.append([dd, {"kind": "GRAVES", "tile": tv, "fid": ""}])
+	items.sort_custom(func(a, b): return a[0] > b[0])
+	var smoke := float(_d.get("smoke", 0.0))
 	var r := _rng(3)
-	for t in _d.get("towns", []):
+	for it in items:
+		var t: Dictionary = it[1]
 		var tile: Vector2i = t["tile"]
-		var base := _proj(Vector2(tile) + Vector2(0.5, 0.5), 0.0, W, hy)
-		var dist := _fwd_side(Vector2(tile) + Vector2(0.5, 0.5)).x
-		if dist < 2.0:
+		var p := _proj(Vector2(tile) + Vector2(0.5, 0.5), maxf(_height(w, tile.x, tile.y), 0.0), W, hy)
+		if p.x < -W * 0.1 or p.x > W * 1.1 or p.y > H + 10.0:
 			continue
-		var s := W * FOCAL * 0.45 / maxf(dist, 1.0)
-		for k in int(t["size"]):
-			var p := base + Vector2((float(k) - float(t["size"]) * 0.5) * s * 0.9 + r.randf_range(-s, s) * 0.3, -r.randf() * s * 0.5)
-			_house(p, s * (0.7 + r.randf() * 0.4), Color("#efe1c0"), Color("#b0503a").lerp(Color("#6f4e37"), r.randf() * 0.5))
+		var s := W * FOCAL * 0.42 / float(it[0])
+		var fade := clampf(float(it[0]) / float(MAX_DIST), 0.0, 1.0) * 0.5
+		var haze := func(c: Color) -> Color: return c.lerp(Color("#9fb0c0"), fade)
+		match String(t["kind"]):
+			"HOUSING":
+				_house(p, s * (0.8 + r.randf() * 0.3), haze.call(Color("#efe1c0")), haze.call(Color("#b0503a").lerp(Color("#6f4e37"), r.randf() * 0.5)))
+			"MINE":
+				draw_colored_polygon(PackedVector2Array([p + Vector2(-s * 0.9, 0), p + Vector2(-s * 0.3, -s * 0.55), p + Vector2(s * 0.2, -s * 0.5), p + Vector2(s * 0.7, 0)]), haze.call(Color("#6e6258")))
+				var top := p + Vector2(s * 0.45, -s * 1.3)
+				draw_line(p + Vector2(s * 0.2, 0), top, haze.call(Color("#3a3530")), maxf(1.0, s * 0.06))
+				draw_line(p + Vector2(s * 0.7, 0), top, haze.call(Color("#3a3530")), maxf(1.0, s * 0.06))
+				draw_arc(top, s * 0.16, 0.0, TAU, 12, haze.call(Color("#3a3530")), maxf(1.0, s * 0.04))
+			"WATERWORKS":
+				draw_rect(Rect2(p.x - s * 0.5, p.y - s * 0.35, s, s * 0.35), haze.call(Color("#9fb4c0")))
+				draw_circle(p + Vector2(s * 0.2, -s * 0.45), s * 0.28, haze.call(Color("#7a9fb5")))
+			"FARM":
+				draw_rect(Rect2(p.x - s * 0.35, p.y - s * 0.45, s * 0.7, s * 0.45), haze.call(Color("#9c3d2e")))
+				draw_colored_polygon(PackedVector2Array([p + Vector2(-s * 0.42, -s * 0.42), p + Vector2(0, -s * 0.75), p + Vector2(s * 0.42, -s * 0.42)]), haze.call(Color("#5e3a2a")))
+			"DEPOT":
+				draw_rect(Rect2(p.x - s * 0.8, p.y - s * 0.4, s * 1.6, s * 0.4), haze.call(Color("#a08a6a")))
+				draw_rect(Rect2(p.x - s * 0.85, p.y - s * 0.48, s * 1.7, s * 0.1), haze.call(Color("#6e5e4a")))
+			"CLINIC", "SCHOOL", "ADMIN", "SERVICEHUB":
+				draw_rect(Rect2(p.x - s * 0.5, p.y - s * 0.55, s, s * 0.55), haze.call(Color("#f2ede1")))
+				draw_rect(Rect2(p.x - s * 0.55, p.y - s * 0.62, s * 1.1, s * 0.09), haze.call(Color("#8a8a8a")))
+			"GRAVES":
+				for k in 3:
+					var g := p + Vector2((float(k) - 1.0) * s * 0.35, -s * 0.05)
+					draw_line(g, g + Vector2(0, -s * 0.25), haze.call(Color("#f4f2ea")), maxf(1.0, s * 0.04))
+					draw_line(g + Vector2(-s * 0.07, -s * 0.18), g + Vector2(s * 0.07, -s * 0.18), haze.call(Color("#f4f2ea")), maxf(1.0, s * 0.04))
+			_:   # works: a block with a saw-tooth roof and a stack (smoke as the air is fouled)
+				draw_rect(Rect2(p.x - s * 0.7, p.y - s * 0.5, s * 1.4, s * 0.5), haze.call(Color("#8f8a84")))
+				for k in 3:
+					var x0 := p.x - s * 0.7 + float(k) * s * 0.466
+					draw_colored_polygon(PackedVector2Array([Vector2(x0, p.y - s * 0.5), Vector2(x0 + s * 0.466, p.y - s * 0.5), Vector2(x0 + s * 0.466, p.y - s * 0.72)]), haze.call(Color("#6f6a64")))
+				var st := Rect2(p.x + s * 0.35, p.y - s * 1.3, s * 0.14, s * 0.8)
+				draw_rect(st, haze.call(Color("#5e5a56")))
+				if smoke >= 1.0:
+					for b in 5:
+						draw_circle(Vector2(st.position.x + st.size.x * 0.5 + b * s * 0.12, st.position.y - b * s * 0.2), s * (0.1 + b * 0.05),
+							Color(0.6, 0.6, 0.6, clampf(smoke / 100.0, 0.08, 0.4)))
 
 
 func _house(p: Vector2, s: float, wall: Color, roof: Color) -> void:
@@ -264,25 +381,28 @@ func _house(p: Vector2, s: float, wall: Color, roof: Color) -> void:
 	draw_colored_polygon(PackedVector2Array([Vector2(p.x - s * 0.62, p.y - s * 0.5), Vector2(p.x, p.y - s * 1.05), Vector2(p.x + s * 0.62, p.y - s * 0.5)]), roof)
 
 
-func _draw_smoke(W: float, hy: float) -> void:
-	var sm := float(_d.get("smoke", 0.0))
-	if sm < 5.0:
-		return
-	var r := _rng(4)
-	for k in clampi(int(sm / 10.0), 1, 5):
-		var x := W * (0.2 + r.randf() * 0.6)
-		var y := hy + W * 0.02
-		for b in 6:
-			draw_circle(Vector2(x + b * W * 0.012, y - b * W * 0.022), W * (0.008 + b * 0.004), Color(0.55, 0.55, 0.55, clampf(sm / 120.0, 0.08, 0.35)))
-
-
-## Landing's own rooftops in front of the window (the office is in town).
+## In front of the window: Landing's own roofs, as many as Landing has homes; without homes, the shelter camp's tents.
 func _draw_rooftops(W: float, H: float) -> void:
 	var r := _rng(5)
-	var n := int(_d.get("roofs", 7))
+	var n := mini(int(_d.get("homes_here", 0)), 10)
+	var tents := 0 if n >= 6 else (7 if n == 0 else 6 - n)
+	for k in tents:   # tents and shelter modules of the landing camp, behind the first roofs
+		var cx := W * (float(k) + 0.5) / maxf(1.0, float(tents)) + r.randf_range(-W * 0.03, W * 0.03)
+		var s := W * (0.13 + r.randf() * 0.05)
+		var base := H - W * 0.01 + r.randf() * W * 0.02
+		var cloth := Color("#d9cfae").lerp(Color("#b8b09a"), r.randf())
+		if k % 3 == 2:   # a ship module: a rounded shelter
+			draw_rect(Rect2(cx - s * 0.6, base - s * 0.45, s * 1.2, s * 0.45), Color("#c7ccd0"))
+			draw_circle(Vector2(cx - s * 0.6, base - s * 0.225), s * 0.225, Color("#c7ccd0"))
+			draw_circle(Vector2(cx + s * 0.6, base - s * 0.225), s * 0.225, Color("#c7ccd0"))
+			draw_rect(Rect2(cx - s * 0.1, base - s * 0.3, s * 0.2, s * 0.3), Color("#5a6066"))
+		else:
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.55, base), Vector2(cx, base - s * 0.6), Vector2(cx + s * 0.55, base)]), cloth)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.12, base), Vector2(cx, base - s * 0.3), Vector2(cx + s * 0.12, base)]), cloth.darkened(0.45))
+			draw_line(Vector2(cx, base - s * 0.6), Vector2(cx, base - s * 0.72), Color("#5e4a36"), 1.5)
 	var snow := float(_d["temp"]) < 0.0
 	for k in n:
-		var cx := W * (float(k) + 0.5) / n + r.randf_range(-W * 0.02, W * 0.02)
+		var cx := W * (float(k) + 0.5) / maxf(1.0, float(n)) + r.randf_range(-W * 0.02, W * 0.02)
 		var s := W * (0.24 + r.randf() * 0.1)
 		var base := H + s * (0.0 + r.randf() * 0.2)
 		var roof := Color("#a5442f").lerp(Color("#5e4636"), r.randf() * 0.6)

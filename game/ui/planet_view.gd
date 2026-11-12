@@ -124,7 +124,7 @@ func refresh() -> void:
 		_info.text = "No planet yet."
 		return
 	var w := session.world()
-	var sig := "%d|%d|%d" % [Planet.landing(w), Planet.freq(w), w.rng.derive_seed("planet.terrain")]
+	var sig := "%d|%d|%d" % [Planet.landing(w), Planet.freq(w), Planet.seed_of(w)]
 	if sig != _built_for:
 		_built_for = sig
 		_build_globe(w)

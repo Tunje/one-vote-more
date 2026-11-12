@@ -24,6 +24,16 @@ const GEN_VERSION := 1          # bump when the generator changes (old saves kee
 ## Coarse levels from height (for rules and text): -2 deep sea, -1 shallow, 0 lowland, 1 upland, 2 hills,
 ## 3 highlands, 4 mountains, 5 peaks.
 const LEVEL_CUTS := [10, 20, 35, 50, 70]
+## A47 expedition worlds: each candidate lands somewhere different. Archetype -> [biomes allowed, target |latitude|,
+## max height, prefers coast]. The default game (no expedition) keeps its temperate coastal lowland.
+const ARCHETYPES := {
+	"TEMPERATE": [["g", "f", "F"], 36.0, 20, true],
+	"COOL": [["F", "T", "g", "s"], 54.0, 25, false],
+	"WARM_WET": [["j", "w", "f", "F"], 12.0, 20, true],
+	"DRY": [["s", "d", "g"], 26.0, 25, false],
+	"HIGHLAND": [["h", "H", "g", "F", "s"], 32.0, 50, false],
+}
+const ARCHETYPE_ORDER := ["TEMPERATE", "COOL", "WARM_WET", "DRY", "HIGHLAND"]
 
 static var _geo := {}           # freq -> {"centers", "corners", "corner_tri", "tris", "nbrs", "edge_nbr"}
 static var _cache := {}         # "seed|freq|gen" -> {"h", "bio", "landing"}
@@ -164,6 +174,20 @@ static func generate(world: WorldState, freq: int = FREQ) -> void:
 	var tb := world.table("planet")
 	tb["freq"] = freq
 	tb["gen"] = GEN_VERSION
+	# A47 expedition: the chosen candidate world has its own planet seed (and its own colony grid, written here so
+	# that PoliticsProvider's "Terrain if not ready" keeps it). Without an expedition choice nothing changes.
+	var k := int(world.meta.get("expedition", {}).get("planet", -1))
+	if k >= 0:
+		tb["seed"] = candidate_seed(world, k)
+		tb["arch"] = candidate_archetype(world, k)
+	var d0 := _data(world)
+	if k >= 0 and not Terrain.ready(world):
+		var scratch := WorldState.new(int(tb["seed"]) & 0x7fffffff)
+		Terrain.generate(scratch)
+		var grid: Dictionary = scratch.peek("map")["grid"].duplicate(true)
+		_local_mix(world, grid, int(d0["landing"]))
+		world.table("map")["grid"] = grid
+		world.table("map")["uses"] = {}
 	var d := _data(world)
 	tb["landing"] = d["landing"]
 	tb["uses"] = {str(d["landing"]): {"colony": true}}
@@ -174,16 +198,17 @@ static func generate(world: WorldState, freq: int = FREQ) -> void:
 ## the master seed, frequency and generator version, so it is cached (bounded) and never saved.
 static func _data(world: WorldState) -> Dictionary:
 	var fq := freq(world)
-	var sd := world.rng.derive_seed("planet.terrain")   # own generator: never advances shared streams
-	var key := "%d|%d|%d" % [sd, fq, int(world.peek("planet").get("gen", GEN_VERSION))]
+	var sd := seed_of(world)   # own generator: never advances shared streams
+	var arch := String(world.peek("planet").get("arch", ""))
+	var key := "%d|%d|%d|%s" % [sd, fq, int(world.peek("planet").get("gen", GEN_VERSION)), arch]
 	if not _cache.has(key):
 		if _cache.size() >= 6:
 			_cache.clear()
-		_cache[key] = _compute(sd, fq)
+		_cache[key] = _compute(sd, fq, arch)
 	return _cache[key]
 
 
-static func _compute(sd: int, freq: int) -> Dictionary:
+static func _compute(sd: int, freq: int, arch: String = "") -> Dictionary:
 	var r := RandomNumberGenerator.new()
 	r.seed = sd
 	var geo := geometry(freq)
@@ -279,7 +304,7 @@ static func _compute(sd: int, freq: int) -> Dictionary:
 		moist += 0.15 * maxf(0.0, 1.0 - lat_f / 0.12) - 0.3 * maxf(0.0, 1.0 - absf(lat_f - 0.3) / 0.12)
 		bio[i] = _biome(h[i], temp, moist)
 		moist_a[i] = clampf(moist, 0.0, 1.2)
-	var landing := _choose_landing(cs, nb, h, bio, r)
+	var landing := _choose_landing(cs, nb, h, bio, r) if arch == "" else _choose_landing_arch(cs, nb, h, bio, r, ARCHETYPES[arch])
 	return {"h": h, "bio": "".join(bio), "landing": landing, "moist": moist_a, "coast": coast}
 
 
@@ -330,6 +355,26 @@ static func _biome(height_v: int, temp: float, moist: float) -> String:
 
 ## Landing: temperate lowland or upland near the sea, preferring fertile ground with hills nearby
 ## (the colony grid inside it has a river, hills and deposits).
+## An expedition world's landing for its archetype: allowed biomes, a target latitude, a height limit, maybe a coast.
+static func _choose_landing_arch(cs: PackedVector3Array, nb: Array, h: PackedInt32Array, bio: PackedStringArray, r: RandomNumberGenerator, a: Array) -> int:
+	var best := -1
+	var best_s := INF
+	for i in cs.size():
+		if not (bio[i] in a[0]) or h[i] >= int(a[2]) or h[i] < 0:
+			continue
+		var sea := false
+		for j in nb[i]:
+			sea = sea or h[j] < 0
+		var lat := rad_to_deg(asin(clampf(absf(cs[i].y), 0.0, 1.0)))
+		var s := absf(lat - float(a[1])) / 10.0 + r.randf() * 0.4
+		if bool(a[3]) and not sea:
+			s += 0.6
+		if s < best_s:
+			best_s = s
+			best = i
+	return best if best >= 0 else _choose_landing(cs, nb, h, bio, r)
+
+
 static func _choose_landing(cs: PackedVector3Array, nb: Array, h: PackedInt32Array, bio: PackedStringArray, r: RandomNumberGenerator) -> int:
 	var best := -1
 	var best_s := INF
@@ -357,6 +402,89 @@ static func _choose_landing(cs: PackedVector3Array, nb: Array, h: PackedInt32Arr
 
 
 # ================================================================== reads
+
+## The planet's own seed: the expedition's chosen candidate, else derived from the master seed (stream "planet.terrain").
+static func seed_of(world: WorldState) -> int:
+	return int(world.peek("planet").get("seed", world.rng.derive_seed("planet.terrain")))
+
+
+## The planet seed of expedition candidate k (A47): derived from the master seed, so candidates are fixed per game seed.
+static func candidate_seed(world: WorldState, k: int) -> int:
+	return world.rng.derive_seed("expedition.world.%d" % k)
+
+
+## The climate archetype of expedition candidate k: a different one for each candidate of a game (shuffled per seed).
+static func candidate_archetype(world: WorldState, k: int) -> String:
+	var order: Array = ARCHETYPE_ORDER.duplicate()
+	var r := RandomNumberGenerator.new()
+	r.seed = world.rng.derive_seed("expedition.archetypes")
+	for i in range(order.size() - 1, 0, -1):
+		var j := r.randi_range(0, i)
+		var t = order[i]
+		order[i] = order[j]
+		order[j] = t
+	return String(order[k % order.size()])
+
+
+## The colony grid of an expedition world follows its landing region (A35 follow-up): mountains nearby bring ore and
+## rare minerals, dry land loses fertile fields, wet tropics grow native crops, highland adds hills. Deterministic.
+static func _local_mix(world: WorldState, grid: Dictionary, li: int) -> void:
+	var rows: Array = grid["rows"]
+	var g: Array = []
+	for row in rows:
+		var a: Array = []
+		for ch in String(row):
+			a.append(ch)
+		g.append(a)
+	var W: int = g[0].size()
+	var H: int = g.size()
+	var r := RandomNumberGenerator.new()
+	r.seed = seed_of(world) ^ 0x10ca1
+	var high := 0
+	var peaks := 0
+	var wet := 0
+	for j in neighbors(world, li):
+		var lv := level(world, j)
+		high += 1 if lv >= 3 else 0
+		peaks += 1 if lv >= 4 else 0
+		wet += 1 if biome(world, j) in ["j", "w"] else 0
+	var arch := String(world.peek("planet").get("arch", "TEMPERATE"))
+	var b := biome(world, li)
+	var put := func(code: String, on: Array, n: int) -> void:
+		for _i in n:
+			for _try in 40:
+				var x := r.randi_range(1, W - 2)
+				var y := r.randi_range(1, H - 2)
+				if g[y][x] in on and g[y][x] != "L":
+					g[y][x] = code
+					break
+	put.call("o", ["h", "k"], high * 2 + (3 if arch == "HIGHLAND" else 0))
+	put.call("x", ["k"], peaks + (1 if arch in ["HIGHLAND", "DRY"] else 0))
+	if arch == "HIGHLAND" or high >= 3:   # more hills with rocky cores
+		for _i in 3 + high:
+			var cx := r.randi_range(3, W - 4)
+			var cy := r.randi_range(3, H - 4)
+			for y in range(cy - 2, cy + 3):
+				for x in range(cx - 3, cx + 4):
+					if y > 0 and y < H and x > 0 and x < W and g[y][x] in [".", "f"]:
+						g[y][x] = "k" if absi(x - cx) + absi(y - cy) <= 1 else "h"
+	if arch == "DRY" or b in ["d", "s"]:   # dry land: most fertile fields are only plain (river banks keep some)
+		for y in H:
+			for x in W:
+				if g[y][x] == "f" and r.randf() < 0.65:
+					g[y][x] = "."
+	if arch == "COOL" or b in ["T", "I"]:   # a short growing season: fewer fertile fields
+		for y in H:
+			for x in W:
+				if g[y][x] == "f" and r.randf() < 0.4:
+					g[y][x] = "."
+	if arch == "WARM_WET" or wet >= 2:   # the wet tropics: native-crop land spreads
+		put.call("n", [".", "f"], 60 + wet * 15)
+	var out: Array = []
+	for row2 in g:
+		out.append("".join(row2))
+	grid["rows"] = out
+
 
 static func ready(world: WorldState) -> bool:
 	return world.peek("planet").has("landing")

@@ -111,3 +111,31 @@ func test_3d_office_has_named_objects_and_the_same_data() -> void:
 	check_eq(UserSettings.office_view(), "DESK3D", "three-way setting")
 	p.free()
 	_restore()
+
+
+func test_the_window_view_shows_only_what_is_built() -> void:
+	var s := GameSession.new()
+	s.new_game(1, true)
+	var w := s.world()
+	var d := ColonyVista.gather(w)
+	check(d["ok"], "a view")
+	var n_fac := 0
+	for fid in w.peek("facility"):
+		n_fac += 1
+	check(d["things"].size() >= n_fac, "every facility stands in the view where it is (%d)" % d["things"].size())
+	for ti in d["farm"]:   # fields only around farms
+		var t := Transport.int_tile(int(ti))
+		var near := false
+		for th in d["things"]:
+			if th["kind"] == "FARM" and maxi(absi(th["tile"].x - t.x), absi(th["tile"].y - t.y)) <= 1:
+				near = true
+		check(near, "a field at %s belongs to a farm" % str(t))
+	check(not d["links"].is_empty(), "the built roads are in the view")
+	# a colony with no homes at Landing yet: the landing camp
+	var fac: Dictionary = w.table("facility")
+	for fid in EconUtil.sorted_keys(fac):
+		if String(fac[fid]["type"]) == "HOUSING":
+			fac.erase(fid)
+	check_eq(int(ColonyVista.gather(w)["homes_here"]), 0, "no homes: tents in front of the window")
+	WasteMap.register_site(w, "t:cem", "CEMETERY", WasteMap.candidates(w, "CEMETERY")[0]["tiles"])
+	check(ColonyVista.gather(w)["waste"].values().has("CEMETERY"), "a cemetery shows where it is sited")

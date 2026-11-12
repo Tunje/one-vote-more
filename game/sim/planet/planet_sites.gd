@@ -41,7 +41,7 @@ static func sites(world: WorldState) -> Array:
 	if not Planet.ready(world):
 		return []
 	var rows: Array = world.peek("map").get("grid", {}).get("rows", [])
-	var key := "%d|%d|%d|%d|%s" % [world.rng.derive_seed("planet.terrain"), Planet.freq(world),
+	var key := "%d|%d|%d|%d|%s" % [Planet.seed_of(world), Planet.freq(world),
 		int(world.peek("planet").get("gen", Planet.GEN_VERSION)), hash("".join(rows)), str(WasteMap.founders_sight_tile(world))]
 	if not _cache.has(key):
 		if _cache.size() >= 6:
@@ -117,7 +117,7 @@ static func _compute(world: WorldState) -> Array:
 	var n := cs.size()
 	var home := Planet.landing(world)
 	var dist := _bfs(nb, home, n)
-	var sd := world.rng.derive_seed("planet.sites")
+	var sd := world.rng.derive_seed("planet.sites") if not world.peek("planet").has("seed") else Planet.seed_of(world) + 7919
 	var cand := {}   # kind -> [[score, cell]]
 	for k in ["WATERFALL", "CANYON", "GLOWING_FIELD", "AURORA_PLAIN", "TIDAL_BORE", "SUMMIT"]:
 		cand[k] = []
