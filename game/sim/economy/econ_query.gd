@@ -392,3 +392,9 @@ static func recent_econ_facts(world: WorldState, months: int = 6, min_mag: int =
 			out.append({"fact": f["id"], "month": f["month"], "type": f["type"], "location": f["location"], "data": f["data"], "magnitude": f["magnitude"]})
 	out.reverse()
 	return out
+
+
+## E120: demography forecast for GovBuilder's housing rule and the UI — {pop_by_band (5-year bands), births_12m,
+## deaths_12m, arrivals_12m, departures_12m, households_forming_12m, housing_units, occupancy_pct, slums, attractiveness_pct}.
+static func demography(world: WorldState) -> Dictionary:
+	return EconCohorts.forecast(world)

@@ -192,10 +192,16 @@ static func _consign(world: WorldState, t: Dictionary) -> void:
 	# the most valuable cargo first: limited port space goes to the goods that earn most per unit
 	var by_value: Array = EXPORT_GOODS.duplicate()
 	by_value.sort_custom(func(a, b): return int(px[a]["net"]) > int(px[b]["net"]) or (int(px[a]["net"]) == int(px[b]["net"]) and a < b))
+	# only producers export their own output: a builder's or a plant's INPUT stock (materials, components bought for
+	# their work) is not for sale abroad (v5 review: builders shipped their construction materials)
+	var producers := {}
+	for fid in world.table("facility"):
+		var ff: Dictionary = world.table("facility")[fid]
+		producers[ff["org"] + "|" + str(EconData.RECIPES[ff["type"]]["out"][0])] = true
 	for g in by_value:
 		for oid in EconUtil.sorted_keys(world.table("org")):
 			var o: Dictionary = world.table("org")[oid]
-			if o["status"] in ["LIQUIDATION", "DISSOLVED"] or o["type"] == "PUBLIC_INSTITUTION":
+			if o["status"] in ["LIQUIDATION", "DISSOLVED"] or o["type"] == "PUBLIC_INSTITUTION" or not producers.has(oid + "|" + g):
 				continue
 			if free <= 0:
 				return

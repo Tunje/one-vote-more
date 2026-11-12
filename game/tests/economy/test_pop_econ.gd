@@ -70,7 +70,8 @@ func test_pd5_income_mobility() -> void:
 	a.run(2)
 	b.run(2)
 	for i in 11:  # through the next January
-		EconUtil.st(a.world)["wage"]["G"] = EconUtil.st(b.world)["wage"]["G"] * 3
+		# a 50% raise: a tripled wage bankrupts employers (partial payroll, layoffs), so actual incomes barely rose
+		EconUtil.st(a.world)["wage"]["G"] = EconUtil.st(b.world)["wage"]["G"] * 3 / 2
 		a.run(1)
 		b.run(1)
 	var hi_a := PopStore.count(a.world, {"status": "EMPLOYED", "inc": ["I4", "I5"]}, "skill:G")

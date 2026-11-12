@@ -31,6 +31,7 @@ static func run(world: WorldState) -> void:
 		_builder_entry(world)
 		_new_plants(world)
 		_essentials_planner(world)
+		_developers(world)  # E120: private housing where the colony is crowded
 	_expansion(world)
 	_small_business(world)
 	_media_owners(world)
@@ -916,9 +917,18 @@ static func _entry(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var hist: Dictionary = s.get("entry_signal", {})
 	var hot_list: Array = []  # [ftype, price / unit cost]
+	var svc_district := "d:1"
 	for ftype in ["FARM", "CONSUMERF", "SERVICEHUB", "PROCESSING", "MINE", "TEXTILE", "FURNITURE", "BAKERY"]:  # D2: consumer workshops
 		var good: String = EconData.RECIPES[ftype]["out"][0]
-		var price := float(s["svc_price"]["d:1"]) if good == "SERVICES" else float(s["prices"].get(good, 0))
+		var price := float(s["prices"].get(good, 0))
+		if good == "SERVICES":
+			# the dearest district (a new hub is built there; the old code read d:1 and built in the founder's district,
+			# so hubs piled up where they were not needed while d:1 stayed "hot")
+			price = 0.0
+			for dd in EconUtil.sorted_keys(s["svc_price"]):
+				if float(s["svc_price"][dd]) > price:
+					price = float(s["svc_price"][dd])
+					svc_district = dd
 		var uc := unit_cost(world, ftype)
 		var hot := price >= 1.25 * uc
 		hist[ftype] = hist.get(ftype, 0) + 1 if hot else 0
@@ -964,7 +974,7 @@ static func _entry(world: WorldState) -> void:
 		if forming_types.has(ft):
 			continue
 		var e := EconConstruction.estimate(ft)
-		var d: String = "d:3" if ft == "MINE" else g["district"]
+		var d: String = "d:3" if ft == "MINE" else (svc_district if ft == "SERVICEHUB" else g["district"])
 		if best_cash < e * 4 / 10:
 			continue
 		if not LawBridge.allowed(world, "new", "BUILD_FACILITY", {"facility_type": ft, "district": d, "owner_kind": "COMPANY", "value_wref": 0}):
@@ -993,3 +1003,53 @@ static func _entry(world: WorldState) -> void:
 	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", district, [["COMPANY", id]], [["COMPANY", id, 0.8], ["GOVERNMENT", "government", 0.2]],
 		{"JOBS": 3}, 15, "PUBLIC", {"type": candidate}, {"districts": [district]})
 	hist[candidate] = 0
+
+
+## E120: private housing developers. Each quarter the most crowded district (occupancy ≥ DEV_OCC) gets a housing
+## project from the richest company that can finance it (30% cash, 70% bank loan), at most one per district every
+## DEV_GAP months and none while one is being built there. The homes are let at the private rent (EconFinance).
+const DEV_OCC := 1050
+const DEV_GAP := 12
+
+
+static func _developers(world: WorldState) -> void:
+	if EconUtil.off(world, "E120"):
+		return
+	var s := EconUtil.st(world)
+	var last: Dictionary = s.get("dev_last", {})
+	s["dev_last"] = last
+	var best_d := ""
+	var best_occ := DEV_OCC - 1
+	for d in EconUtil.sorted_keys(world.table("district")):
+		var occ := int(world.table("district")[d].get("occupancy", 0))
+		if occ > best_occ and world.month - int(last.get(d, -999)) >= DEV_GAP:
+			best_occ = occ
+			best_d = d
+	if best_d == "":
+		return
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["type"] == "HOUSING" and p["district"] == best_d and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+			return
+	var est := EconConstruction.estimate("HOUSING")
+	var owner := ""
+	var cash := 0
+	for oid in EconUtil.sorted_keys(world.table("org")):
+		var o: Dictionary = world.table("org")[oid]
+		if o["status"] != "ACTIVE" or o["is_contractor"] or not (o["type"] in ["PRIVATE", "COOPERATIVE"]):
+			continue
+		var c := world.ledger.balance(EconUtil.acct(oid))
+		if c >= est * 3 / 10 and c > cash:
+			cash = c
+			owner = oid
+	if owner == "":
+		return
+	if not LawBridge.allowed(world, owner, "BUILD_FACILITY", {"facility_type": "HOUSING", "district": best_d, "owner_kind": "COMPANY",
+			"value_wref": est / maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))}):
+		return
+	if not EconFinance.new_loan(world, owner, est * 7 / 10, 0, true):
+		return
+	var pid2 := EconConstruction.create(world, "HOUSING", best_d, owner, owner, "")
+	last[best_d] = world.month
+	EconFacts.emit(world, "COMP_INVESTMENT", best_d, [["COMPANY", owner]], [["COMPANY", owner, 1.0]], {"HOUSING": 5, "JOBS": 3}, 25, "PUBLIC",
+		{"type": "HOUSING", "project": pid2, "reason": "crowding", "occupancy_pct": best_occ / 10})

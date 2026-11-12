@@ -4,6 +4,7 @@ extends RefCounted
 ## FORMING → ACTIVE ⇄ DISTRESSED → ADMINISTRATION → ACTIVE (restructured) | LIQUIDATION → DISSOLVED.
 ## Public enterprises are never liquidated: distress triggers an automatic support transfer + funding-request fact (E44).
 
+const BUYOUT_GAP_M := 60  # E121: months before a plant can be rescued by its workers again
 const S := EconUtil.S
 
 
@@ -381,6 +382,11 @@ static func liquidation_round(world: WorldState) -> void:
 ## E77 worker buyout: an unsold productive plant passes (for free) to a new workers' co-op owned by the largest
 ## household group of its district; the bank lends 3 months of wages as working capital. Jobs survive.
 static func _worker_buyout(world: WorldState, seller: String, f: Dictionary) -> bool:
+	# E121 (v5 review): one rescue per plant per BUYOUT_GAP_M — a co-op that failed within that time is not followed by
+	# another (seed 3 chained 54 short-lived co-ops through the same plants); the plant closes instead
+	if not EconUtil.off(world, "E121") and world.month - int(f.get("buyout_m", -9999)) < BUYOUT_GAP_M:
+		return false
+	f["buyout_m"] = world.month
 	var d: String = f["district"]
 	var best := ""
 	var best_lf := 0

@@ -38,6 +38,7 @@ const EMPTY_DISSOLVE_M := 24
 const RELIEF_M := 24  # months over which a settlement's relief fades
 const DRIFT_PER_YEAR := 5.0  # mood points a year without a settlement (wage-round pressure)
 const DRIFT_MAX := 25.0
+const PAY_COMPRESSION_PTS := 100.0  # professions: mood points per unit of pay compression vs the founding Sp/G ratio
 const MERGE_GAP_M := 120
 const SPLIT_MOOD := 70
 const SPLIT_AFTER_M := 24
@@ -303,6 +304,11 @@ static func _mood(world: WorldState) -> void:
 		# relief from the last settlement, fading over RELIEF_M months (U2 sets it)
 		target -= float(u.get("relief", 0)) * maxf(0.0, 1.0 - float(world.month - int(u.get("relief_m", -9999))) / float(RELIEF_M))
 		if u["sectors"].size() > 0 and u["sectors"][0] in MODERATE:
+			# the professions' own grievance: pay compression (specialist pay vs general pay, against the founding ratio)
+			var wg: Dictionary = EconUtil.peek_st(world).get("wage", {})
+			var ratio := float(wg.get("Sp", 0)) / maxf(1.0, float(wg.get("G", 1)))
+			var ratio0 := float(EconData.WAGE["Sp"]) / float(EconData.WAGE["G"])
+			target += PAY_COMPRESSION_PTS * maxf(0.0, 1.0 - ratio / ratio0)
 			target *= 0.75  # the professions are slower to anger
 		# wage-round pressure: the longer since the last settlement, the more members expect a new one
 		target += minf(DRIFT_MAX, DRIFT_PER_YEAR * float(world.month - int(u.get("relief_m", u["founded"]))) / 12.0)

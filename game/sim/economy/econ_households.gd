@@ -489,6 +489,10 @@ static func _housing(world: WorldState) -> void:
 ## Rates as before; flows are computed per pool in milli-persons and applied in whole persons with the
 ## remainder carried in the pool ("demo_rem"), so small pools still have births and deaths over time.
 static func _demography(world: WorldState) -> void:
+	if not EconUtil.off(world, "E120"):
+		EconCohorts.monthly(world)  # E120: age-structured births, deaths, growing up and retirement by cohort
+		EconPop.sync(world)
+		return
 	var s := EconUtil.st(world)
 	var edu: Dictionary = s.get("edu_access", {})
 	var health: Dictionary = s.get("health_access", {})
@@ -644,12 +648,23 @@ static func _ships(world: WorldState) -> void:
 	if world.month < int(s["ship_next"]):
 		return
 	var interval: int = world.month - int(s.get("ship_last", 0))
-	var quota := int(EconUtil.lever(world, "ECON_IMMIGRATION_QUOTA", 60))
-	var cap := mini(EconData.SHIP_CAPACITY, int(float(quota) * float(interval) / 3.0 * EconData.SHIP_QUOTA_SHARE))
-	var migrants := _ship_migrants(world, cap, false)
+	var migrants := 0
+	var departed := 0
+	if not EconUtil.off(world, "E120"):
+		# E120: settlers = ship space × attractiveness × LAW_IMMIGRATION; the unemployed young may leave on it
+		if world.levers.has("ECON_IMMIGRATION_QUOTA") and not world.levers.has("LAW_IMMIGRATION"):
+			# old saves: the retired colony quota (persons/quarter, default 60) becomes the openness (default 70)
+			world.levers["LAW_IMMIGRATION"] = clampi(int(world.levers["ECON_IMMIGRATION_QUOTA"]) * 70 / 60, 0, 100)
+		var mig := EconCohorts.ship_migration(world)
+		migrants = int(mig["arrived"])
+		departed = int(mig["departed"])
+	else:
+		var quota := int(EconUtil.lever(world, "ECON_IMMIGRATION_QUOTA", 60))
+		var cap := mini(EconData.SHIP_CAPACITY, int(float(quota) * float(interval) / 3.0 * EconData.SHIP_QUOTA_SHARE))
+		migrants = _ship_migrants(world, cap, false)
 	var trade := EconTrade.on_ship(world)  # D1: exports loaded, merchants' imports unloaded
 	EconFacts.emit(world, "ECON_SHIP_ARRIVED", "d:1", [["EXTERNAL", "home_world"]], [["EXTERNAL", "home_world", 1.0]], {}, 40, "PUBLIC",
-		{"interval": interval, "migrants": migrants, "cargo": trade["cargo"], "quota_delivered": trade["quota_delivered"],
+		{"interval": interval, "migrants": migrants, "emigrants": departed, "cargo": trade["cargo"], "quota_delivered": trade["quota_delivered"],
 		"export_value": trade["export_value"], "imports": trade["imports"], "import_value": trade["import_value"]})
 	s["ship_last"] = world.month
 	s["ship_next"] = world.month + rng.randi_range(EconData.SHIP_INTERVAL[0], EconData.SHIP_INTERVAL[1])
@@ -691,25 +706,7 @@ static func _ship_migrants(world: WorldState, cap: int, emit_fact: bool) -> int:
 		n = mini(n, quota)  # old model: per-quarter quota
 	if n <= 0 or best == "":
 		return 0
-	var hb := EconPop.hb_of(best)
-	var adults_n := n * 7 / 10
-	var tiers := EconUtil.split_lr(adults_n, [0.5, 0.35, 0.15])
-	var names := ["G", "S", "Sp"]
-	var band_of := {"G": "I2", "S": "I3", "Sp": "I4"}
-	for i in 3:
-		var t: String = names[i]
-		var band: String = band_of[t]
-		var lf: int = tiers[i] * 85 / 100
-		var parts := {"hb": hb, "inc": band, "occ": "NONE", "arch": EconPop.ARCH, "eff": "e0"}
-		parts["status"] = "UNEMPLOYED"
-		PopStore.arrive(world, PopStore.key_of(parts), lf, {"age": _adult_ages(lf), "skill": {t: lf}})
-		parts["status"] = "NOT_IN_LF"
-		PopStore.arrive(world, PopStore.key_of(parts), tiers[i] - lf, {"age": _adult_ages(tiers[i] - lf), "skill": {t: tiers[i] - lf}})
-		if i == 0:
-			parts["status"] = "CHILD"
-			PopStore.arrive(world, PopStore.key_of(parts), n - adults_n, {"age": {"C": n - adults_n}, "skill": {"G": n - adults_n}})
-		world.ledger.transfer(Ledger.EXTERNAL, EconUtil.hh_acct(EconPop.pool_id(hb, band)), int(tiers[i] * EconData.MIGRANT_FUNDS) * S, "MIGRANT_FUNDS", world.month)
-	EconPop.sync(world)
+	land_migrants(world, best, n)
 	if emit_fact:
 		EconFacts.emit(world, "ECON_MIGRANTS_ARRIVED", best, [], [["GOVERNMENT", "government", 0.5], ["EXTERNAL", "origin", 0.5]], {}, 10,
 			"PUBLIC", {"persons": n}, {"districts": [best]})
@@ -768,3 +765,29 @@ static func food_buyers(world: WorldState) -> Array:
 			rows.append({"org": oid, "name": str(world.peek("org")[oid].get("name", oid)), "units": u})
 	rows.sort_custom(func(a, b): return int(a["units"]) > int(b["units"]) or (int(a["units"]) == int(b["units"]) and str(a["org"]) < str(b["org"])))
 	return rows.slice(0, 3)
+
+
+## Lands n migrants in district d: 70% adults by skill (half general, a third skilled), 30% children; they bring
+## savings from the origin. Shared by the old ship model and E120 (EconCohorts.ship_migration).
+static func land_migrants(world: WorldState, best: String, n: int) -> void:
+	if n <= 0:
+		return
+	var hb := EconPop.hb_of(best)
+	var adults_n := n * 7 / 10
+	var tiers := EconUtil.split_lr(adults_n, [0.5, 0.35, 0.15])
+	var names := ["G", "S", "Sp"]
+	var band_of := {"G": "I2", "S": "I3", "Sp": "I4"}
+	for i in 3:
+		var t: String = names[i]
+		var band: String = band_of[t]
+		var lf: int = tiers[i] * 85 / 100
+		var parts := {"hb": hb, "inc": band, "occ": "NONE", "arch": EconPop.ARCH, "eff": "e0"}
+		parts["status"] = "UNEMPLOYED"
+		PopStore.arrive(world, PopStore.key_of(parts), lf, {"age": _adult_ages(lf), "skill": {t: lf}})
+		parts["status"] = "NOT_IN_LF"
+		PopStore.arrive(world, PopStore.key_of(parts), tiers[i] - lf, {"age": _adult_ages(tiers[i] - lf), "skill": {t: tiers[i] - lf}})
+		if i == 0:
+			parts["status"] = "CHILD"
+			PopStore.arrive(world, PopStore.key_of(parts), n - adults_n, {"age": {"C": n - adults_n}, "skill": {"G": n - adults_n}})
+		world.ledger.transfer(Ledger.EXTERNAL, EconUtil.hh_acct(EconPop.pool_id(hb, band)), int(tiers[i] * EconData.MIGRANT_FUNDS) * S, "MIGRANT_FUNDS", world.month)
+	EconPop.sync(world)
