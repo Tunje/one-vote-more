@@ -15,6 +15,7 @@ extends RefCounted
 
 const KINDS := ["PAPER", "REPORT", "EMAIL", "CALL", "MEETING", "CALENDAR"]
 const OPEN := ["NEW", "READ"]
+const KEEP_CLOSED_MONTHS := 12
 const SA := preload("res://sim/staff/staff_law_actions.gd")
 ## Anni's O5 author engine (staff as authors, chief-of-staff sorting, delegation). Loaded when present.
 const AUTHOR_PATH := "res://sim/staff/office_staff.gd"
@@ -121,6 +122,9 @@ static func expire(world: WorldState) -> void:
 	for id in EconUtil.sorted_keys(t):
 		var o: Dictionary = t[id]
 		if not (o["status"] in OPEN):
+			# closed items are kept a year for the record, then dropped (the table must not grow for a century)
+			if world.month - int(o.get("answered_month", o["month"])) >= KEEP_CLOSED_MONTHS:
+				t.erase(id)
 			continue
 		if o["kind"] in ["PAPER", "REPORT", "CALENDAR"]:
 			if world.month - int(o["month"]) >= 6:
