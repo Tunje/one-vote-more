@@ -136,3 +136,34 @@ func test_donation_offers_contract() -> void:
 				check(PolDefs.AXES.has(ax) and absi(d["prefers"][ax]) == 1, "prefers {axis: ±1}: %s" % [d["prefers"]])
 	check(seen > 0, "companies make offers in a year (%d)" % seen)
 	check_eq(w.ledger.total(), 0, "offers move no money by themselves")
+
+
+## LAW_ESSENTIAL_SERVICES (Anni's law): MIN_SERVICE keeps a struck power plant at 60% labour; NO_STRIKE sends a
+## dispute at essential services only to arbitration (no stoppage, half the usual rise).
+func test_essential_services_law() -> void:
+	var sim := EconSim.make_econ_only(3)
+	sim.run(2)
+	var w := sim.world
+	var cpw := EconFinance.org_by_key(w, "CPW")
+	var power: Array = []
+	for fid in EconUtil.sorted_keys(w.table("facility")):
+		if w.table("facility")[fid]["type"] == "POWER" and w.table("facility")[fid]["org"] == cpw:
+			power.append(fid)
+	check(not power.is_empty(), "CPW runs power plants")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var f: Dictionary = w.table("facility")[power[0]]
+	w.levers["LAW_ESSENTIAL_SERVICES"] = "MIN_SERVICE"
+	EconUnions._strike(w, cpw, {"facs": [power[0]]}, "UTILITIES", 10 * EconUtil.S, "REAL_WAGES", rng)
+	check_eq(EconUnions.work_factor(w, f), EconUnions.MIN_SERVICE_SHARE, "MIN_SERVICE: power keeps 60% during the strike")
+	f["stop_until"] = -1
+	f["stop_min"] = false
+	w.levers["LAW_ESSENTIAL_SERVICES"] = "NO_STRIKE"
+	var pm0 := int(w.table("org")[cpw].get("union_pm", 0))
+	EconUnions._strike(w, cpw, {"facs": power}, "UTILITIES", 10 * EconUtil.S, "REAL_WAGES", rng)
+	check_eq(EconUnions.work_factor(w, f), 1.0, "NO_STRIKE: no stoppage at a power plant")
+	check_eq(int(w.table("org")[cpw]["union_pm"]) - pm0, EconUnions.ARBITRATION_PM, "arbitration award, not a strike win")
+	check(not w.facts.query("ECON_ARBITRATION").is_empty(), "arbitration makes news")
+	w.levers["LAW_ESSENTIAL_SERVICES"] = "NONE"
+	EconUnions._strike(w, cpw, {"facs": [power[0]]}, "UTILITIES", 10 * EconUtil.S, "REAL_WAGES", rng)
+	check_eq(EconUnions.work_factor(w, f), EconUnions.STRIKE_WORK, "NONE: today's strike")

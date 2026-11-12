@@ -18,6 +18,9 @@ const MAX_NEW_STOPPAGES := 2             # per month, colony-wide
 const STRIKE_WORK := 0.5                 # labor effectiveness while on strike (partial strike / work-to-rule)
 const LOCKOUT_WORK := 0.2                # labor effectiveness during a lockout (skeleton crews)
 const STRIKE_WIN_PM := 40                # wage premium won by a strike (‰), decays
+const ESSENTIAL_TYPES := ["POWER", "WATERWORKS", "CLINIC"]  # LAW_ESSENTIAL_SERVICES applies to these
+const MIN_SERVICE_SHARE := 0.6           # MIN_SERVICE: a struck essential service keeps 60% of its labour
+const ARBITRATION_PM := 20               # NO_STRIKE: binding arbitration awards half a strike's gain
 const UNION_PM_MAX := 120
 const UNION_PM_DECAY := 4                # ‰ per month
 const MASS_LAYOFF_MIN := 15              # persons laid off in one month by one org …
@@ -270,12 +273,30 @@ static func _strike(world: WorldState, oid: String, wf: Dictionary, occ: String,
 	var persons := staff / S
 	var mag := clampi(30 + persons / 3, 30, 75)
 	var services := false
+	# LAW_ESSENTIAL_SERVICES (Anni's law, Bob's hook): power, water and clinics keep a minimum service, or may not
+	# stop at all (binding arbitration: a smaller rise, no outage)
+	var ess_law := str(world.levers.get("LAW_ESSENTIAL_SERVICES", "NONE"))
+	var stopped := 0
+	var arbitrated := 0
 	for fid in wf["facs"]:
 		var f: Dictionary = world.table("facility")[fid]
+		var essential: bool = f["type"] in ESSENTIAL_TYPES
+		if essential and ess_law == "NO_STRIKE" and not lockout:
+			arbitrated += 1
+			continue
 		f["stop_until"] = world.month + months
 		f["stop_kind"] = "LOCKOUT" if lockout else "STRIKE"
-		if f["type"] in ["CLINIC", "SCHOOL", "DEPOT", "POWER", "WATERWORKS"]:
+		f["stop_min"] = essential and ess_law == "MIN_SERVICE" and not lockout
+		stopped += 1
+		if f["type"] in ["CLINIC", "SCHOOL", "DEPOT", "POWER", "WATERWORKS"] and not f["stop_min"]:
 			services = true
+	if stopped == 0 and arbitrated > 0:
+		# every struck workplace is an essential service under NO_STRIKE: the dispute goes to arbitration
+		o["union_pm"] = mini(UNION_PM_MAX, int(o.get("union_pm", 0)) + ARBITRATION_PM)
+		EconFacts.emit(world, "ECON_ARBITRATION", o["hq"], [["COMPANY", oid], ["OCCUPATION", occ]], resp,
+			{"FAIRNESS": -5, "INFRASTRUCTURE": 5}, clampi(20 + persons / 5, 20, 50), "PUBLIC",
+			{"org": oid, "occupation": occ, "persons": persons, "cause": cause, "award_pm": ARBITRATION_PM})
+		return
 	var impact := {"JOBS": -40, "FAIRNESS": -15, "COST_OF_LIVING": -20}
 	if services:
 		impact["PUBLIC_SERVICES"] = -60
@@ -294,6 +315,8 @@ static func _strike(world: WorldState, oid: String, wf: Dictionary, occ: String,
 static func work_factor(world: WorldState, f: Dictionary) -> float:
 	if int(f.get("stop_until", -1)) < world.month:
 		return 1.0
+	if f.get("stop_min", false):
+		return maxf(STRIKE_WORK, MIN_SERVICE_SHARE)  # LAW_ESSENTIAL_SERVICES = MIN_SERVICE
 	return LOCKOUT_WORK if f.get("stop_kind", "") == "LOCKOUT" else STRIKE_WORK
 
 

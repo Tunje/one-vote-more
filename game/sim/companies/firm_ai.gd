@@ -121,7 +121,7 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 			EconFacts.emit(world, "ECON_FACILITY_MOTHBALLED", f["district"], [["COMPANY", f["org"]]],
 				EconFacts.company_blame(world, f["org"], 0.7), {"JOBS": -10}, 35, "PUBLIC", {"facility": f["id"],
 				"type": f["type"], "jobs": jobs / S}, {"districts": [f["district"]]})
-		elif f["mothball"] and f["T"] >= 500 and o["status"] in ["ACTIVE", "DISTRESSED", "ADMINISTRATION"] 				and not f.get("closed_unsafe", false) and not f.get("law_closed", false):  # E104: only repair/relicensing reopens those
+		elif f["mothball"] and f["T"] >= 500 and o["status"] in ["ACTIVE", "DISTRESSED", "ADMINISTRATION"] 				and not f.get("closed_unsafe", false) and not f.get("law_closed", false) and not f.get("abandoned", false):  # E104: only repair/relicensing reopens those; E118: never a scrapped plant
 			f["mothball"] = false
 			f["low_util_m"] = 0
 

@@ -105,8 +105,14 @@ static func bid_round(world: WorldState) -> void:
 			continue
 		if world.month - p["tender_month"] > 2:
 			p["status"] = "TENDERABLE"
-			EconFacts.emit(world, "ECON_TENDER_FAILED", p["district"], [["GOVERNMENT", "government"]],
-				[["GOVERNMENT", "government", 0.7], ["NATURE", "market", 0.3]], {"GOVERNANCE": -5}, 20, "PUBLIC", {"project": pid})
+			# E118: the same project is re-tendered until it finds a builder; the papers hear of the first failure and of
+			# every 4th after (a review counted 1,600+ failure facts a century from a few dozen stuck projects)
+			var nf := int(p.get("tenders_failed", 0))
+			p["tenders_failed"] = nf + 1
+			if EconUtil.off(world, "E118") or nf % 4 == 0:
+				EconFacts.emit(world, "ECON_TENDER_FAILED", p["district"], [["GOVERNMENT", "government"]],
+					[["GOVERNMENT", "government", 0.7], ["NATURE", "market", 0.3]], {"GOVERNANCE": -5}, 20, "PUBLIC",
+					{"project": pid, "type": p["type"], "failures": nf + 1})
 			continue
 		for oid in EconUtil.sorted_keys(world.table("org")):
 			var o: Dictionary = world.table("org")[oid]

@@ -222,6 +222,8 @@ static func reprivatize(world: WorldState) -> void:
 		var f: Dictionary = world.table("facility")[fid]
 		if f["org"] != pe or f["type"] in ["POWER", "WATERWORKS"] or world.month - f.get("nationalized_month", world.month) < 12:
 			continue
+		if not EconUtil.off(world, "E118") and (f["mothball"] or f.get("abandoned", false)):
+			continue  # E118: a closed plant is not passed on to a buyer who cannot run it either
 		var reserve := int(f["book"] * EconData.LIQUIDATION_RESERVE)
 		var buyer := _find_buyer(world, pe, f, reserve)
 		if buyer == "":
@@ -261,7 +263,27 @@ static func forced_sale_round(world: WorldState) -> void:
 			unfunded = unfunded or world.ledger.balance(EconUtil.acct(oid)) < 3 * EconFinance._monthly_costs(o)
 		if not unfunded:
 			continue
+		if not EconUtil.off(world, "E118") and int(f.get("forced_sales", 0)) >= 1:
+			scrap(world, f, "UNREPAIRABLE_AFTER_SALE")  # E118: the buyer could not put it right either
+			continue
 		_forced_sale(world, f)
+
+
+## E118 (review P0: plants were force-sold every year at halving prices down to 0). A closed plant that a forced
+## sale did not save — or that would fetch nothing — is scrapped: written off, its crew laid off (no repair crew,
+## no overhaul upkeep), never restarted automatically. The state may still buy and restore it deliberately
+## (ECON_BUY_FACILITY clears the flag).
+static func scrap(world: WorldState, f: Dictionary, reason: String) -> void:
+	var jobs := EconLabor.staff_total(f["staff"]) / EconUtil.S
+	f["abandoned"] = true
+	f["scrapped"] = true
+	f["mothball"] = true
+	f["closed_unsafe"] = false
+	f["law_closed"] = false
+	f["closed_m"] = 0
+	f["book"] = 0
+	EconFacts.emit(world, "ECON_FACILITY_SCRAPPED", f["district"], [["COMPANY", f["org"]]], EconFacts.company_blame(world, f["org"], 0.7),
+		{"JOBS": -5}, 35, "PUBLIC", {"facility": f["id"], "type": f["type"], "jobs": jobs, "reason": reason}, {"districts": [f["district"]]})
 
 
 static func _forced_sale(world: WorldState, f: Dictionary) -> void:
@@ -275,6 +297,9 @@ static func _forced_sale(world: WorldState, f: Dictionary) -> void:
 	var overhaul := EconConstruction.estimate(f["type"]) / 4
 	var debt := EconFinance.debt_of(world, seller) if whole else 0
 	var price := maxi(0, f["book"] - overhaul - debt)
+	if price <= 0 and not EconUtil.off(world, "E118"):
+		scrap(world, f, "WORTHLESS")  # E118: no sales at 0 credits
+		return
 	var buyer := _find_buyer(world, seller, f, price)
 	var kind := "FIRM"
 	if buyer != "":
@@ -296,6 +321,7 @@ static func _forced_sale(world: WorldState, f: Dictionary) -> void:
 	else:
 		return
 	f["book"] = price
+	f["forced_sales"] = int(f.get("forced_sales", 0)) + 1  # E118: a second time round it is scrapped
 	f["closed_m"] = 0
 	if whole:
 		for lid in EconUtil.sorted_keys(world.table("loan")):

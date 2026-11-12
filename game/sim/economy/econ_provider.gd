@@ -49,3 +49,4 @@ func run_phase(phase: int, world: WorldState) -> void:
 			EconHouseholds.social(world)
 			EconIndicators.publish(world)
 			EconUnions.publish_density(world)
+			Unions.monthly(world)  # U1 (A41): unions as organisations: members, dues, mood, leaders, mergers, breakaways
