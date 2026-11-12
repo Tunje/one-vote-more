@@ -394,7 +394,7 @@ static func pyramid(world: WorldState) -> Array:
 
 const TL := preload("res://sim/law/trade_law.gd")
 const SHIP_PASSENGERS := 450  # settlers a home-world ship can carry (HomeWorld may scale it later)
-const EMIG_SHARE := 0.2  # of the unemployed young adults, × how unattractive the colony is
+const EMIG_SHARE := 0.1  # of the unemployed young adults, × how unattractive the colony is
 const SLUM_OCC := 1.2
 
 
@@ -482,7 +482,7 @@ static func _take_ages(h: Array, n: int, lo: int, hi: int) -> void:
 static func slums(world: WorldState) -> Array:
 	var out: Array = []
 	for d in EconUtil.sorted_keys(world.peek("district")):
-		if float(world.peek("district")[d].get("occupancy", 1000)) / 1000.0 >= SLUM_OCC:
+		if _is_slum(world, d):
 			out.append(d)
 	return out
 
@@ -492,7 +492,7 @@ static func _slum_watch(world: WorldState) -> void:
 	var was: Dictionary = s.get("slum", {})
 	for d in EconUtil.sorted_keys(world.peek("district")):
 		var occ := int(world.peek("district")[d].get("occupancy", 1000))
-		var now := float(occ) / 1000.0 >= SLUM_OCC
+		var now := _is_slum(world, d)
 		if now and not bool(was.get(d, false)):
 			EconFacts.emit(world, "ECON_SLUM", d, [], [["GOVERNMENT", "government", 0.7], ["NATURE", "market", 0.3]],
 				{"HOUSING": -40, "PUBLIC_SERVICES": -10, "SAFETY": -10}, 45, "PUBLIC", {"district": d, "occupancy_pct": occ / 10}, {"districts": [d]})
@@ -523,3 +523,11 @@ static func forecast(world: WorldState) -> Dictionary:
 	return {"pop_by_band": pyr, "births_12m": births, "deaths_12m": sum12.call("deaths_12m"), "arrivals_12m": arr,
 		"departures_12m": dep, "households_forming_12m": forming, "housing_units": units / S, "occupancy_pct": int(100.0 * float(hh) / maxf(1.0, float(units))),
 		"slums": slums(world), "attractiveness_pct": int(attractiveness(world) * 100.0)}
+
+
+## A slum: overcrowded (≥ SLUM_OCC) or run-down housing (S3 mean condition < EconHousing.SLUM_COND) with no spare room.
+static func _is_slum(world: WorldState, d: String) -> bool:
+	var occ := float(world.peek("district")[d].get("occupancy", 1000)) / 1000.0
+	if occ >= SLUM_OCC:
+		return true
+	return not EconUtil.off(world, "S3") and occ >= 1.0 and EconHousing.district_condition(world, d) < EconHousing.SLUM_COND

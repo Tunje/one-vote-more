@@ -850,6 +850,7 @@ static func _essentials_planner(world: WorldState) -> void:
 ## E87 (O-1): construction firm entry. When projects queue without bids and no private builder is alive, a new
 ## builder is founded with capital from the richest household pool (the construction sector otherwise died for good
 ## after the founding boom and every expansion stalled).
+const LATE_CONTRACT_M := 6  # months past its bid duration before a running contract counts as overload
 const STALE_TENDER_M := 3  # E117a: months a tender sits without a bid before it counts as unmet construction demand
 const MAX_FORMING := 3  # D2: new companies being set up at once (was 1; the consumer industries waited years in line)
 const ADMIN_INPUT_SHARE := 0.6  # E119: share of last month's revenue an administrator spends on inputs
@@ -872,7 +873,11 @@ static func _builder_entry(world: WorldState) -> void:
 		var p: Dictionary = world.table("project")[pid]
 		if p["status"] == "TENDERABLE" or (p["status"] == "TENDER" and p["bids"].is_empty()):
 			waiting += 1
-		if p["status"] == "TENDER" and p["bids"].is_empty() and world.month - int(p.get("tender_month", world.month)) >= STALE_TENDER_M:
+		if p["status"] == "TENDERABLE" or (p["status"] == "TENDER" and p["bids"].is_empty() and world.month - int(p.get("tender_month", world.month)) >= STALE_TENDER_M):  # a failed tender waits as TENDERABLE (after 2 months), so count those too
+			stale += 1
+		# a contract running well past its bid duration is unmet construction demand too (the builders took more work
+		# than their crews can do: in the D2 probe a bakery took 42 months for 250 WU while no tender sat unbid)
+		if p["status"] == "ACTIVE" and int(p.get("start_month", -1)) >= 0 				and world.month - int(p["start_month"]) > int(p.get("bid_duration", 0)) + LATE_CONTRACT_M:
 			stale += 1
 	if EconConstruction._private_builder_alive(world):
 		# E117a (Wilma): the existing builders are at their crew ceiling and tenders sit unbid — a new builder enters
@@ -1010,6 +1015,7 @@ static func _entry(world: WorldState) -> void:
 ## DEV_GAP months and none while one is being built there. The homes are let at the private rent (EconFinance).
 const DEV_OCC := 1050
 const DEV_GAP := 12
+const DEV_EQUITY_PM := 100  # ‰ of the build cost a developer puts in (rental housing borrows the rest, like a mortgage)
 
 
 static func _developers(world: WorldState) -> void:
@@ -1018,19 +1024,29 @@ static func _developers(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var last: Dictionary = s.get("dev_last", {})
 	s["dev_last"] = last
-	var best_d := ""
-	var best_occ := DEV_OCC - 1
+	# the districts by crowding, most crowded first; one with a block already planned or recently started is skipped
+	# (before, a single stuck tender in the most crowded district stopped all private building)
+	var cands: Array = []
 	for d in EconUtil.sorted_keys(world.table("district")):
 		var occ := int(world.table("district")[d].get("occupancy", 0))
-		if occ > best_occ and world.month - int(last.get(d, -999)) >= DEV_GAP:
-			best_occ = occ
-			best_d = d
+		if occ >= DEV_OCC and world.month - int(last.get(d, -999)) >= DEV_GAP:
+			cands.append([occ, d])
+	cands.sort_custom(func(a, b): return int(a[0]) > int(b[0]) or (int(a[0]) == int(b[0]) and str(a[1]) < str(b[1])))
+	var best_d := ""
+	var best_occ := 0
+	for c in cands:
+		var pending := false
+		for pid in world.table("project"):
+			var p: Dictionary = world.table("project")[pid]
+			if p["type"] == "HOUSING" and p["district"] == c[1] and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+				pending = true
+				break
+		if not pending:
+			best_d = c[1]
+			best_occ = int(c[0])
+			break
 	if best_d == "":
 		return
-	for pid in world.table("project"):
-		var p: Dictionary = world.table("project")[pid]
-		if p["type"] == "HOUSING" and p["district"] == best_d and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
-			return
 	var est := EconConstruction.estimate("HOUSING")
 	var owner := ""
 	var cash := 0
@@ -1039,17 +1055,49 @@ static func _developers(world: WorldState) -> void:
 		if o["status"] != "ACTIVE" or o["is_contractor"] or not (o["type"] in ["PRIVATE", "COOPERATIVE"]):
 			continue
 		var c := world.ledger.balance(EconUtil.acct(oid))
-		if c >= est * 3 / 10 and c > cash:
+		if c >= est * DEV_EQUITY_PM / 1000 and c > cash:
 			cash = c
 			owner = oid
+	if owner == "":
+		owner = _found_developer(world, best_d, est)  # nobody can: a housing company is founded from household savings
 	if owner == "":
 		return
 	if not LawBridge.allowed(world, owner, "BUILD_FACILITY", {"facility_type": "HOUSING", "district": best_d, "owner_kind": "COMPANY",
 			"value_wref": est / maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))}):
 		return
-	if not EconFinance.new_loan(world, owner, est * 7 / 10, 0, true):
+	if not EconFinance.new_loan(world, owner, est * (1000 - DEV_EQUITY_PM) / 1000, 0, true):
 		return
-	var pid2 := EconConstruction.create(world, "HOUSING", best_d, owner, owner, "")
+	var lot_ids: Array = EconConstruction.create_lots(world, "HOUSING", best_d, owner, owner, "")  # E120 lots: parallel builders
+	var pid2: String = str(lot_ids[0]) if not lot_ids.is_empty() else ""
 	last[best_d] = world.month
 	EconFacts.emit(world, "COMP_INVESTMENT", best_d, [["COMPANY", owner]], [["COMPANY", owner, 1.0]], {"HOUSING": 5, "JOBS": 3}, 25, "PUBLIC",
 		{"type": "HOUSING", "project": pid2, "reason": "crowding", "occupancy_pct": best_occ / 10})
+
+
+## E120: a housing company founded by the richest household pool (equity: DEV_EQUITY_PM of one block) when the colony is
+## crowded and no company can develop. "" if no one can afford it.
+static func _found_developer(world: WorldState, d: String, est: int) -> String:
+	var best := ""
+	var best_cash := 0
+	for gid in EconUtil.sorted_keys(world.table("hh")):
+		var c := world.ledger.balance(EconUtil.hh_acct(gid))
+		if c > best_cash:
+			best_cash = c
+			best = gid
+	var equity := est * DEV_EQUITY_PM / 1000
+	if best == "" or best_cash < equity * 2:
+		return ""
+	var g: Dictionary = world.table("hh")[best]
+	var id := world.new_id("org")
+	world.table("org")[id] = {"id": id, "key": "HOMES_" + id, "name": EconUtil.firm_name(world, d, "HOMES", "Ltd"), "type": "PRIVATE",
+		"hq": d, "status": "ACTIVE", "ceo": {"mgmt": 50, "risk": 40, "age_m": 45 * 12}, "reliability": 0, "is_contractor": false,
+		"crew": {}, "crew_target": {}, "premium_m": {"G": 0, "S": 0, "Sp": 0}, "tax_loss_cf": 0, "profit_q": 0, "pl": EconFinance.empty_pl(),
+		"pl_last": {}, "missed_streak": 0, "ok_streak": 0, "low_cash_streak": 0, "distress_months": 0, "admin_months": 0, "liq_months": 0,
+		"missed_this_month": false, "owner_group": best, "sales_ema": {}, "contracts": [], "dividends_ytd": 0, "sold": {}}
+	world.ledger.open_account(EconUtil.acct(id))
+	world.ledger.transfer(EconUtil.hh_acct(best), EconUtil.acct(id), equity, "EQUITY", world.month)
+	EconPop.make_owner(world, g["hb"], g["band"])
+	EconPop.sync(world)
+	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", d, [["COMPANY", id]], [["COMPANY", id, 1.0]], {"HOUSING": 3}, 20, "PUBLIC",
+		{"type": "HOUSING", "reason": "crowding"}, {"districts": [d]})
+	return id

@@ -46,6 +46,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			EconConsumer.quality_monthly(world)  # D2: workshop quality, brand reputation, scandals
 			EconTraining.monthly(world)  # E114: on-the-job training into skilled vacancies
 			EconPublicJobs.monthly(world)  # E117b: public employment scheme (budget line set by parliament)
+			EconHousing.monthly(world)  # S3 (A46): housing ages on an S-curve; owners renovate or let it slide
 			EconUnions.industrial_action(world)
 			EconPop.realign(world)  # M10: workplaces that changed owner this month relabel their staff's occupation
 			EconPop.sync(world)

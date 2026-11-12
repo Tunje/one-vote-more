@@ -53,3 +53,16 @@ projects." — clarified: "I did not mean a bostadsrätt (co-op), I meant owning
   tenants of a building may form a co-operative and buy the whole building if the owner sells; members own shares
   and the right to their flat; the co-op maintains the building and hires firms. So three tenures plus rental:
   rented (CHO / landlord), co-operative (bostadsrätt), owner-occupied flat.
+
+16. **A45 W1–W5 waste economy** (after housing; Anni's W6 law is in: game/sim/law/waste_law.gd, preload as WL).
+   Hooks to read: WL.disposal_cost_factor / disposal_pollution_factor; recycling_target_pm, landfill_tax_per_tonne (mcr);
+   sewage_removal_pm, sewage_cost_factor (private operator treating below the standard → record_greed DUMPING);
+   cremation_share_pm(world, wished_pm), sanitation_fee_pm. Levers: LAW_WASTE_STANDARD, RECYCLING_TARGET, LANDFILL_TAX,
+   SEWAGE_STANDARD, BURIAL_RULES (−100 cremation … +100 burial), SANITATION_FEE. Defaults change nothing.
+
+17. **S7 (user, after v6; spec-settlements-v1 §S7)** right after the housing-bid fix. Economy part first, on districts:
+   doubling-up ceiling ~130%; above it new households → SHACKS (informal stock: no utilities, health/fire/crime risk,
+   FAIRNESS/HOUSING concern) or HOMELESS (counted indicator) when no land/materials; delayed household formation and
+   lower fertility under crowding; working families emigrate when no home. Informal AREA kind (AreaStore INFORMAL) +
+   map drawing with Terra once S1 areas land. Political choice (clear / legalise+upgrade / build) is Wilma's; Bob gives
+   actions + hooks (clearance under Anni's eviction rules; upgrade as S3 renovation lots).

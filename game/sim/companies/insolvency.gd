@@ -368,6 +368,18 @@ static func liquidation_round(world: WorldState) -> void:
 				f["mothball"] = false
 				EconFacts.emit(world, "ECON_FACILITY_SOLD", f["district"], [["COMPANY", oid], ["GOVERNMENT", "government"]],
 					[["GOVERNMENT", "government", 1.0]], {"JOBS": 5}, 30, "PUBLIC", {"facility": fid, "price": paid, "nationalized": true})
+			elif o["liq_months"] >= 3 and f["type"] == "HOUSING" and EconFinance.org_by_key(world, "CHO") != "" and not EconUtil.off(world, "E120"):
+				# E120 / spec-areas §9.6: people are never put out — homes of a failed landlord pass to the public housing
+				# office at the state's first-purchase price (no unrelated buyer may take them, E119)
+				var cho := EconFinance.org_by_key(world, "CHO")
+				var hprice := int(f["book"] * EconData.GOV_FIRST_PURCHASE)
+				var hpaid := EconFinance.gov_pay(world, EconUtil.acct(oid), hprice, "LIQUIDATION")
+				EconFinance._spend_line(world, "ECON_BUDGET_HOUSING", hpaid)
+				f["org"] = cho
+				f["book"] = hpaid
+				f["mothball"] = false
+				EconFacts.emit(world, "ECON_FACILITY_SOLD", f["district"], [["COMPANY", oid], ["GOVERNMENT", "government"]],
+					[["GOVERNMENT", "government", 1.0]], {"HOUSING": 5}, 30, "PUBLIC", {"facility": fid, "price": hpaid, "nationalized": true})
 			elif o["liq_months"] >= 3 and not (f["type"] in ["HOUSING", "SERVICEHUB"]) and _worker_buyout(world, oid, f):
 				pass  # E77: plant continues as a workers' co-op
 			elif o["liq_months"] >= 3:

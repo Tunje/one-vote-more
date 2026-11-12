@@ -56,7 +56,7 @@ static func fscale(f: Dictionary) -> float:
 ## ("Foundry Consumer Goods Ltd", "New Foundry Consumer Goods Ltd", ...). Deterministic.
 const SECTOR_WORDS := {"FARM": "Farms", "CONSUMERF": "Consumer Goods", "SERVICEHUB": "Services", "PROCESSING": "Materials",
 	"MINE": "Mining", "COMPONENTS": "Components", "MEDWORKS": "Medical Works", "CONTRACTOR": "Builders", "TRADERS": "Traders",
-	"TEXTILE": "Textiles", "FURNITURE": "Furniture Works", "BAKERY": "Bakery",
+	"TEXTILE": "Textiles", "FURNITURE": "Furniture Works", "BAKERY": "Bakery", "HOMES": "Homes",
 	"WORKERS": "Workers'"}
 const NAME_QUALIFIERS := ["", "New ", "United ", "Frontier ", "Allied ", "Pioneer ", "Northern ", "Southern ", "Colonial ", "Free "]
 

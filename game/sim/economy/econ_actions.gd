@@ -178,7 +178,10 @@ static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 				return false  # includes the T1 route check and its exact road price
 			var op: String = EconEssentials.operator_for(world, ftype)
 			var link: Dictionary = p.get("link", {}) if ftype == "ROAD" and typeof(p.get("link", {})) == TYPE_DICTIONARY else {}
-			EconConstruction.create(world, ftype, p["district"], "gov", op, line, link)
+			if ftype == "HOUSING":  # E120 lots: a public block is tendered as parallel lots too ("lots": 1..10)
+				EconConstruction.create_lots(world, ftype, p["district"], "gov", op, line, int(p.get("lots", EconConstruction.HOUSING_LOTS)))
+			else:
+				EconConstruction.create(world, ftype, p["district"], "gov", op, line, link)
 			return true
 		"ECON_AWARD_CONTRACT":
 			return EconConstruction.award(world, p["project"], p["org"])

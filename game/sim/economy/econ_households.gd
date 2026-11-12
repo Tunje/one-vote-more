@@ -31,7 +31,7 @@ static func units_by_district(world: WorldState) -> Dictionary:
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		if f["type"] == "HOUSING" and not f["mothball"]:
-			out[f["district"]] = out.get(f["district"], 0) + 50 * S
+			out[f["district"]] = out.get(f["district"], 0) + int(50.0 * EconUtil.fscale(f) * float(S))  # E120: lots are part-blocks
 	return out
 
 

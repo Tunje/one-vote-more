@@ -4,6 +4,7 @@ extends RefCounted
 ## Project rows live in world.table("project"). Quantities in mu, money in mcr.
 
 const S := EconUtil.S
+const HOUSING_LOTS := 4  # E120: a 50-home block is tendered as 4 lots of about 12 homes
 
 
 static func size_class(wu: int) -> String:
@@ -14,7 +15,7 @@ static func size_class(wu: int) -> String:
 
 ## Create a project + open tender. owner = "gov" or an org id. operator = org id that will run the facility.
 static func create(world: WorldState, ftype: String, district: String, owner: String, operator: String, line: String,
-		link: Dictionary = {}) -> String:
+		link: Dictionary = {}, size_pm: int = 1000) -> String:
 	var b: Array = EconData.BUILD[ftype]
 	var est := estimate(ftype)
 	var use_link := ftype == "ROAD" and not link.is_empty() and not EconUtil.off(world, "T1")
@@ -26,6 +27,11 @@ static func create(world: WorldState, ftype: String, district: String, owner: St
 			est = int(plan["cost"])
 		else:
 			use_link = false
+	size_pm = clampi(size_pm, 100, 1000)
+	if size_pm < 1000:
+		# E120 lots: a part of a block (‰ of the standard build) — work, materials, price and time scale with it
+		b = [int(b[0]) * size_pm / 1000, int(b[1]) * size_pm / 1000, int(b[2]) * size_pm / 1000, maxi(2, int(b[3]) * size_pm / 1000 + 1)]
+		est = est * size_pm / 1000
 	var id := world.new_id("project")
 	world.table("project")[id] = {"id": id, "type": ftype, "district": district, "owner": owner, "operator": operator, "line": line,
 		"wu_total": b[0] * S, "wu_done": 0, "mat_total": b[1] * S, "comp_total": b[2] * S, "min_months": b[3],
@@ -34,9 +40,27 @@ static func create(world: WorldState, ftype: String, district: String, owner: St
 		"late_noted": false, "supervision": 1000, "staff_task": "", "est_cost": est}
 	if use_link:
 		world.table("project")[id]["link"] = link.duplicate()
+	if size_pm < 1000:
+		world.table("project")[id]["size_pm"] = size_pm
 	EconFacts.emit(world, "ECON_TENDER_OPENED", district, [["GOVERNMENT" if owner == "gov" else "COMPANY", owner]],
 		[["GOVERNMENT", "government", 1.0]] if owner == "gov" else [["COMPANY", owner, 1.0]], {}, 10, "PUBLIC", {"project": id, "type": ftype})
 	return id
+
+
+## E120 lots (user): a housing block is tendered as `lots` separate contracts (each its own builder, progress and pay),
+## so several builders work in parallel; the lots share a group id and are numbered as phases (1 next to the existing
+## housing, then outward — map placement comes with the areas, S1). Returns the project ids.
+static func create_lots(world: WorldState, ftype: String, district: String, owner: String, operator: String, line: String,
+		lots: int = HOUSING_LOTS) -> Array:
+	lots = clampi(lots, 1, 10)
+	var grp := world.new_id("lotgrp")
+	var ids: Array = []
+	for i in lots:
+		var pid := create(world, ftype, district, owner, operator, line, {}, 1000 / lots)
+		world.table("project")[pid]["lot_group"] = grp
+		world.table("project")[pid]["phase"] = i + 1
+		ids.append(pid)
+	return ids
 
 
 ## Modular expansion (E54): +25% capacity on an existing facility for 25% of its build bill.
@@ -146,6 +170,8 @@ static func bid_round(world: WorldState) -> void:
 			if not EconUtil.off(world, "E113") and o["contracts"].any(func(q): return world.table("project")[q]["status"] == "ACTIVE"):
 				k = maxi(capacity(world, oid), S)  # E113: a busy builder is judged by the crew it has, not its founding size
 			var window := maxi(p["min_months"], 12)
+			if p["type"] in ["HOUSING", "RENOVATE"] and not EconUtil.off(world, "E120"):
+				window = maxi(p["min_months"], 24)  # E120: a housing block is a two-year build (no builder could fit it into 12 months, so housing never got a bid)
 			var load := float(committed(world, oid) + tentative.get(oid, 0) + p["wu_total"]) / float(k * window)
 			var allowance := 1.0 + 0.5 * float(o["ceo"]["risk"]) / 100.0
 			if _strategic_expansion(world, p):
@@ -424,6 +450,8 @@ static func _complete(world: WorldState, p: Dictionary) -> void:
 			var tf: Dictionary = world.table("facility")[fid]
 			tf["scale"] = mini(3000, tf.get("scale", 1000) + 250)
 			tf["book"] += p["price"]
+	elif p["type"] == "RENOVATE":
+		fid = EconHousing.on_renovated(world, p)  # S3: condition restored, effective age reset
 	elif p["type"] == "UPGRADE":
 		fid = p["target"]
 		if world.table("facility").has(fid):
@@ -432,6 +460,8 @@ static func _complete(world: WorldState, p: Dictionary) -> void:
 			uf["book"] += p["price"]
 	else:
 		fid = EconSetup.add_facility(world, p["type"], p["operator"], p["district"], false)
+		if p.has("size_pm"):
+			world.table("facility")[fid]["scale"] = int(p["size_pm"])  # E120: a lot builds part of a block
 		world.table("facility")[fid]["book"] = p["price"]
 	var impact := {"HOUSING": 15} if p["type"] == "HOUSING" else {"INFRASTRUCTURE": 5, "JOBS": 3}
 	EconFacts.emit(world, "ECON_PROJECT_COMPLETED", p["district"], [["GOVERNMENT", "government"], ["COMPANY", p["contractor"]]],
@@ -458,9 +488,17 @@ static func settle_payments(world: WorldState) -> void:
 		elif p["prog_m"] > 0:
 			due = int(float(p["price"]) * 0.8 * float(p["prog_m"]) / float(p["wu_total"]))
 			due += _escalation(world, p, float(p["prog_m"]) / float(p["wu_total"]))
+		# E122 (v6 review P0): unpaid bills carry over as arrears and are billed again every month. Before, a short
+		# payment was forgotten: work stopped at unpaid_m 2, so nothing new was billed and unpaid_m never cleared —
+		# seed 1 froze CPW's power and water plants for decades with millions in the bank (38 years of outages).
+		var e122: bool = not EconUtil.off(world, "E122") and p["status"] == "ACTIVE"
+		if e122:
+			due += int(p.get("arrears", 0))
 		if due <= 0:
 			continue
 		var paid := _pay(world, p, due)
+		if e122:
+			p["arrears"] = due - paid
 		if paid < due:
 			p["unpaid_m"] += 1
 			if p["owner"] != "gov" and p["unpaid_m"] >= 3 and p["status"] == "ACTIVE":

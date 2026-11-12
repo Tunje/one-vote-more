@@ -74,7 +74,7 @@ static func validate_answer(world: WorldState, p: Dictionary) -> String:
 	if d.is_empty():
 		return "Unknown demand %s" % did
 	if d["employer"] != PUBLIC_EMPLOYER:
-		return "Only public-sector demands are answered by the government"
+		return "Only public-sector demands are answered by the Cabinet"
 	if not d["status"] in ["OPEN", "STRIKE"]:
 		return "This dispute is already over"
 	var a := str(p.get("answer", ""))
@@ -83,7 +83,7 @@ static func validate_answer(world: WorldState, p: Dictionary) -> String:
 	if a == "COUNTER" and d["kind"] == "WAGE" and (int(p.get("counter_pm", 0)) <= 0 or int(p.get("counter_pm", 0)) >= int(d["size_pm"])):
 		return "A counter-offer must be between 0 and %d‰" % int(d["size_pm"])
 	if a == "REFUSE" and UL.must_bargain(world, Unions.at_employer(world, _a_public_org(world)).get("density_pm", 0)):
-		return "The recognition law obliges the government to bargain: accept or make a counter-offer"
+		return "The recognition law obliges the Cabinet to bargain: accept or make a counter-offer"
 	return ""
 
 
@@ -116,7 +116,7 @@ static func monthly(world: WorldState) -> void:
 
 static func _employer_for(world: WorldState, u: Dictionary) -> Dictionary:
 	if "PUBLIC_SECTOR" in u["sectors"]:
-		return {"id": PUBLIC_EMPLOYER, "name": "the government", "occ": "PUBLIC_SECTOR"}
+		return {"id": PUBLIC_EMPLOYER, "name": "the Cabinet", "occ": "PUBLIC_SECTOR"}
 	var best := ""
 	var best_n := 0
 	var best_occ := ""
@@ -187,12 +187,18 @@ static func _talks(world: WorldState, d: Dictionary, rng: RandomNumberGenerator)
 		_close(world, d, "FAILED", "STOOD_DOWN", 0)
 		return
 	var answer := ""
-	if d["employer"] == PUBLIC_EMPLOYER and EconEssentials.human_governs(world):
+	# Cabinet (Wilma, user): a public-sector demand is answered by the Cabinet whoever governs — the player, or an AI
+	# First Minister on the Labour Liaison's advice (OfficeFeed → ECON_ANSWER_UNION_DEMAND sets player_answer).
+	# Only an AI government that gave no answer by the deadline falls back to the ideology rule.
+	var human := EconEssentials.human_governs(world)
+	if d["employer"] == PUBLIC_EMPLOYER and (human or str(d["player_answer"]) != ""):
 		answer = str(d["player_answer"])
 		if answer == "":
 			if world.month < int(d["deadline"]):
 				return  # waiting for the government (the player)
 			answer = "REFUSE"  # no answer by the deadline: talks failed
+	elif d["employer"] == PUBLIC_EMPLOYER and world.month < int(d["deadline"]):
+		return  # waiting for the Cabinet's answer
 	elif world.month <= int(d["made"]):
 		return  # talks take a month
 	else:
@@ -403,8 +409,8 @@ static func _strike_month(world: WorldState, d: Dictionary, rng: RandomNumberGen
 	# settlement
 	var outcome := ""
 	var m := float(d["strike_months"])
-	if d["employer"] == PUBLIC_EMPLOYER and EconEssentials.human_governs(world):
-		match str(d["player_answer"]):
+	if d["employer"] == PUBLIC_EMPLOYER and (EconEssentials.human_governs(world) or str(d["player_answer"]) != ""):
+		match str(d["player_answer"]):  # the Cabinet's answer (player or AI First Minister); AI with none: ideology below
 			"ACCEPT": outcome = "WON"
 			"COUNTER":
 				var p_take := clampf(0.3 + 0.15 * m - float(u["mood"]) / 300.0, 0.1, 0.95)

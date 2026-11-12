@@ -278,7 +278,12 @@ static func _housing_ahead(world: WorldState, st: Dictionary, busy: Dictionary, 
 	var needed := forming * horizon - free
 	if needed <= 0.0 or units <= 0.0:
 		return 0
-	var per_block := units / float(maxi(1, _count(world, "HOUSING")))
+	var blocks := 0.0  # E120 lots: a lot is a part-block (facility scale), so count blocks, not facilities
+	for fid in world.table("facility"):
+		var hf: Dictionary = world.table("facility")[fid]
+		if hf["type"] == "HOUSING" and not hf.get("mothball", false):
+			blocks += EconUtil.fscale(hf)
+	var per_block := units / maxf(1.0, blocks)
 	if state > -0.15:
 		var best := ""
 		var best_v := -1.0

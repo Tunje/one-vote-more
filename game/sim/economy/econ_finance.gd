@@ -318,19 +318,24 @@ static func district_rent(world: WorldState, d: String) -> int:
 	var pub := int(EconUtil.lever(world, "ECON_PUBLIC_RENT", 250)) * S
 	var units_pub := 0
 	var units_priv := 0
+	var priv_cf := 0  # S3: Σ units × condition rent factor (‰)
 	for fid in world.table("facility"):
 		var f: Dictionary = world.table("facility")[fid]
 		if f["type"] != "HOUSING" or f["district"] != d or f["mothball"]:
 			continue
 		var o: Dictionary = world.table("org").get(f["org"], {})
+		# S3: a run-down block lets for less (50% at condition 0); public rent is set by law and stays
+		var cf := 1000 if EconUtil.off(world, "S3") else EconHousing.rent_factor(f)
 		if o.get("type", "") in EconData.PUBLIC_TYPES:
-			units_pub += 50
+			units_pub += int(50.0 * EconUtil.fscale(f))
 		else:
-			units_priv += 50
+			units_priv += int(50.0 * EconUtil.fscale(f))
+			priv_cf += int(50.0 * EconUtil.fscale(f)) * cf
 	if units_pub + units_priv == 0:
 		return 0
 	var priv: int = world.table("district")[d]["rent_private"]
-	return int((float(units_pub) * pub + float(units_priv) * priv) / float(units_pub + units_priv))
+	var priv_eff := int(float(priv) * float(priv_cf) / 1000.0 / float(maxi(1, units_priv)))
+	return int((float(units_pub) * pub + float(units_priv) * priv_eff) / float(units_pub + units_priv))
 
 
 static func _rent(world: WorldState) -> void:
@@ -340,7 +345,7 @@ static func _rent(world: WorldState) -> void:
 		if f["type"] == "HOUSING" and not f["mothball"] and world.table("org").has(f["org"]):
 			if not landlords.has(f["district"]):
 				landlords[f["district"]] = {}
-			landlords[f["district"]][f["org"]] = landlords[f["district"]].get(f["org"], 0) + 50
+			landlords[f["district"]][f["org"]] = landlords[f["district"]].get(f["org"], 0) + int(50.0 * EconUtil.fscale(f))  # E120: lots are part-blocks
 	var arrears := {}
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
