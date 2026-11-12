@@ -1,7 +1,7 @@
 class_name UserSettings
 extends RefCounted
 ## The player's own settings (A44 §O4): saved in user://settings.cfg, never in the world state or saves.
-##   ui.office_view = "TABS" | "OFFICE"   (the office as plain tabs, or the drawn desk)
+##   ui.office_view = "TABS" | "DESK2D" | "DESK3D"   (plain tabs, the drawn desk, the 3D office; "OFFICE" = DESK2D)
 ## No static state (static vars were reset under us): the file path lives in an Engine meta, and the small file is
 ## read on each call.
 
@@ -40,11 +40,18 @@ static func reload() -> void:
 	pass
 
 
+const OFFICE_VIEWS := ["TABS", "DESK2D", "DESK3D"]
+
+
 static func office_view() -> String:
 	var v := String(get_value("ui", "office_view"))
-	return v if v in ["TABS", "OFFICE"] else "TABS"
+	if v == "OFFICE":   # the first drawn desk's name
+		return "DESK2D"
+	return v if v in OFFICE_VIEWS else "TABS"
 
 
 static func set_office_view(v: String) -> Error:
-	assert(v in ["TABS", "OFFICE"], "office_view is TABS or OFFICE")
+	if v == "OFFICE":
+		v = "DESK2D"
+	assert(v in OFFICE_VIEWS, "office_view is TABS, DESK2D or DESK3D")
 	return set_value("ui", "office_view", v)

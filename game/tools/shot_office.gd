@@ -1,6 +1,6 @@
 extends SceneTree
 ## Terra (A44): render the office's drawn desk to a PNG (needs a window, not --headless).
-## godot --path game --script res://tools/shot_office.gd -- <seed> <out.png> [months] [click: paper|tray|pc|phone|calendar|door] [w] [h] [planet]
+## godot --path game --script res://tools/shot_office.gd -- <seed> <out.png> [months] [click: paper|tray|pc|phone|calendar|door] [w] [h] [planet|map] [storm|-] [3d]
 ## Uses its own settings file (user://shot_settings.cfg), so the player's settings stay untouched.
 const OfficePanel := preload("res://ui/panels/office_panel.gd")
 var _panel
@@ -18,12 +18,15 @@ func _init() -> void:
 	_click = args[3] if args.size() > 3 else ""
 	var sz := Vector2i(int(args[4]) if args.size() > 4 else 1280, int(args[5]) if args.size() > 5 else 720)
 	UserSettings.use_file("user://shot_settings.cfg")
-	UserSettings.set_office_view("OFFICE")
+	UserSettings.set_office_view("DESK3D" if args.size() > 8 and args[8] == "3d" else "DESK2D")
 	var s := GameSession.new()
 	s.new_game(seed_v, true)
 	for _m in months:
 		s.end_month()
 	_demo(s.world())
+	if args.size() > 7 and args[7] == "storm":   # a strong rain front over the colony this month
+		var li := Planet.landing(s.world())
+		s.world().table("planet")["storms"] = [{"id": "shot", "kind": "RAIN_FRONT", "strength": 4, "cells": [li], "global": false}]
 	var bg := ColorRect.new()
 	bg.color = Color("#23282e")
 	bg.size = Vector2(sz)
@@ -42,11 +45,11 @@ func _process(_d: float) -> bool:
 		(root.get_child(0) as ColorRect).size = Vector2(root.size)
 		_panel.refresh()
 		if OS.get_cmdline_user_args().size() > 6 and OS.get_cmdline_user_args()[6] == "planet":
-			_panel.desk.outside = "PLANET"
-			_panel.desk.queue_redraw()
+			_panel.set_outside("PLANET")
+			_panel.refresh()
 		if _click != "":
-			_panel.desk.click(_click)
-	if _frames < 8:
+			(_panel.desk3d if _panel.desk3d != null and _panel.desk3d.visible else _panel.desk).click(_click)
+	if _frames < 14:
 		return false
 	root.get_texture().get_image().save_png(_out)
 	print("saved ", _out)

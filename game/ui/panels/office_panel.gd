@@ -20,6 +20,7 @@ var status: Label
 ## an object shows that tab here, and "◀ Desk" goes back. The window object asks the main screen to show the colony.
 signal outside_requested(view: String)   # "MAP" | "PLANET": what the desk's window showed
 var desk: OfficeDesk
+var desk3d: OfficeDesk3D   # made on first use (DESK3D)
 var at_desk := true
 
 
@@ -45,12 +46,28 @@ func refresh() -> void:
 	if session == null or body == null:
 		return
 	var w: WorldState = session.world()
-	var desk_mode := UserSettings.office_view() == "OFFICE"
-	desk.visible = desk_mode and at_desk
-	bar.visible = not desk.visible
-	body.get_parent().visible = not desk.visible
+	var view := UserSettings.office_view()
+	var desk_mode := view != "TABS"
+	if view == "DESK3D" and desk3d == null:
+		desk3d = OfficeDesk3D.new()
+		desk3d.session = session
+		desk3d.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		desk3d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		desk3d.object_clicked.connect(_on_desk)
+		desk3d.outside = desk.outside
+		add_child(desk3d)
+		move_child(desk3d, 1)
+	desk.visible = view == "DESK2D" and at_desk
+	if desk3d != null:
+		desk3d.visible = view == "DESK3D" and at_desk
+	var on_desk := desk.visible or (desk3d != null and desk3d.visible)
+	bar.visible = not on_desk
+	body.get_parent().visible = not on_desk
 	if desk.visible:
 		desk.refresh()
+		return
+	if desk3d != null and desk3d.visible:
+		desk3d.refresh()
 		return
 	for c in bar.get_children():
 		c.queue_free()
@@ -300,3 +317,11 @@ func _on_desk(what: String) -> void:
 	tab = what
 	at_desk = false
 	refresh()
+
+
+
+## What the office window looks out on ("MAP" | "PLANET"), set by the main screen when the office opens.
+func set_outside(v: String) -> void:
+	desk.outside = v
+	if desk3d != null:
+		desk3d.outside = v

@@ -22,7 +22,7 @@ const SPOTS := {
 	"window": [Rect2(60, 50, 380, 290), "Outside", "The window: look out over the colony"],
 	"calendar": [Rect2(700, 50, 210, 250), "Calendar", "The wall calendar: the next twelve months"],
 	"door": [Rect2(1010, 40, 220, 440), "Visitors", "The door: visitors and interviews"],
-	"pc": [Rect2(410, 262, 270, 250), "Inbox", "Your computer: the inbox"],
+	"pc": [Rect2(442, 262, 254, 250), "Inbox", "Your computer: the inbox"],
 	"tray": [Rect2(105, 470, 250, 160), "Reports", "The in-tray: reports"],
 	"paper": [Rect2(470, 500, 330, 165), "Paper", "Today's paper and the press digest"],
 	"phone": [Rect2(900, 520, 230, 150), "Calls", "The red phone"],
@@ -43,9 +43,13 @@ var _view_for := ""
 var _data := {}
 ## What the window looks out on: "MAP" (the colony map, from close by) or "PLANET" (the globe, when the player was on
 ## the planet view). The main screen sets it when the office opens; clicking the window returns to that view.
-var outside := "MAP"
+var outside := "MAP":
+	set(v):
+		outside = v
+		_place_vista()
 var _globe_tex: ImageTexture
 var _globe_for := ""
+var _vista: ColonyVista            # the view out of the window (a child laid on the glass)
 var _globe_mark := Vector2.ZERO   # where the colony is on the globe picture (-1..1, y up)
 
 
@@ -58,7 +62,29 @@ func _ready() -> void:
 ## Re-read the office (counts, headline, calendar marks) and redraw.
 func refresh() -> void:
 	_data = gather()
+	if _vista == null:
+		_vista = ColonyVista.new()
+		add_child(_vista)
+	_vista.session = session
+	_vista.refresh()
+	_place_vista()
 	queue_redraw()
+
+
+## The view sits exactly on the window's glass (canvas → screen), and shows only when the window looks on the colony.
+func _place_vista() -> void:
+	if _vista == null:
+		return
+	var glass: Rect2 = (SPOTS["window"][0] as Rect2).grow(-14)
+	_vista.position = _offset() + glass.position * _scale()
+	_vista.size = glass.size * _scale()
+	_vista.visible = outside != "PLANET"
+	_vista.queue_redraw()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		_place_vista()
 
 
 ## What the desk shows, as plain data (tests read this too).
@@ -225,6 +251,8 @@ func _draw_window() -> void:
 		draw_texture_rect(_globe_tex, Rect2(glass.get_center() - Vector2(dsz, dsz) * 0.5, Vector2(dsz, dsz)), false)
 		var mk := glass.get_center() + Vector2(_globe_mark.x, -_globe_mark.y) * dsz * 0.5
 		draw_arc(mk, 9.0, 0.0, TAU, 16, Color("#ffd75e"), 2.5)   # the colony
+	elif _vista != null and _vista.visible:
+		pass   # the view (ColonyVista) is laid on the glass as a child
 	elif _view_tex != null:
 		draw_texture_rect(_view_tex, glass, false)
 	else:

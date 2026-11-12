@@ -211,8 +211,8 @@ func open_window(title: String) -> void:
 	if win == null:
 		return
 	var p: Control = win.get_child(1).get_child(0)
-	if "desk" in p and p.desk != null:   # the office window looks out on whatever the player was looking at
-		p.desk.outside = "PLANET" if planet.visible else "MAP"
+	if p.has_method("set_outside"):   # the office window looks out on whatever the player was looking at
+		p.set_outside("PLANET" if planet.visible else "MAP")
 	p.refresh()
 	win.popup_centered()
 
@@ -486,12 +486,13 @@ func _settings_button(parent: Node) -> void:
 	var pm := mb.get_popup()
 	pm.add_radio_check_item("Office as tabs", 0)
 	pm.add_radio_check_item("Office as a drawn desk", 1)
+	pm.add_radio_check_item("Office in 3D", 2)
 	var sync := func():
-		pm.set_item_checked(0, UserSettings.office_view() == "TABS")
-		pm.set_item_checked(1, UserSettings.office_view() == "OFFICE")
+		for i in 3:
+			pm.set_item_checked(i, UserSettings.office_view() == UserSettings.OFFICE_VIEWS[i])
 	sync.call()
 	pm.id_pressed.connect(func(id: int):
-		UserSettings.set_office_view("TABS" if id == 0 else "OFFICE")
+		UserSettings.set_office_view(UserSettings.OFFICE_VIEWS[id])
 		sync.call()
 		for p in extra_panels:
 			if "at_desk" in p:
