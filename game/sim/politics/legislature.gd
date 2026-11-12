@@ -208,7 +208,15 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 				continue  # parliament threw this out and its make-up hasn't changed: don't table it again
 			if mem["moved"].has("%s|%d" % [lid, -int(signf(delta))]):
 				continue  # this government moved it the other way recently: no flip-flopping
-			var sc := (1.0 - 0.3 * pork) * ideo_alignment(def, delta, pos) + 3.0 * (1.0 + 0.5 * pork) * relief(def, delta, sat, sal, stress, room, cur)
+			var ia := ideo_alignment(def, delta, pos)
+			var rl := relief(def, delta, sat, sal, stress, room, cur)
+			# Conviction: a government believes its own remedies work. Relief from a change that goes against its
+			# ideology is discounted (a market government does not see a jobs scheme as the cure, a left one does not
+			# see benefit cuts as one), so parties answer the same crisis differently. Not under fiscal stress:
+			# budget repair is shared ground.
+			if ia < 0.0 and rl > 0.0 and stress <= 0.0:
+				rl /= 1.0 + absf(ia) / 2.0
+			var sc := (1.0 - 0.3 * pork) * ia + 3.0 * (1.0 + 0.5 * pork) * rl
 			if skill_gap > 0.0 and delta > 0.0 and lid in TRAINING_LEVERS:
 				sc += skill_gap  # E114: firms cannot fill skilled posts; training money and the subsidy go together
 			for a in agreement:
