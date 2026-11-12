@@ -1,6 +1,6 @@
 extends SceneTree
 ## Terra (A5): render the colony map to a PNG (needs a window, not --headless).
-## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1]
+## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1] [bridge]
 ## fixture 1 builds a few areas (Landing, a mining camp, a farm village, a private enclave) with residents, as the
 ## economy will once A2/A3 land, so the area tools can be seen today.
 const DL := preload("res://sim/law/districting.gd")
@@ -8,6 +8,7 @@ var _view: ColonyMap
 var _frames := 0
 var _out := "user://colony.png"
 var _mode := "INSPECT"
+var _bridge := false   # arg 6 = "bridge": zoom in on the first river crossing and open its link panel
 
 
 func _init() -> void:
@@ -18,6 +19,7 @@ func _init() -> void:
 	if args.size() > 2:
 		_mode = args[2]
 	var months := int(args[3]) if args.size() > 3 else 40
+	_bridge = args.size() > 5 and args[5] == "bridge"
 	var s := GameSession.new()
 	s.new_game(seed_v, true)
 	for _m in months:
@@ -101,6 +103,19 @@ func _process(_d: float) -> bool:
 			_view.assign_area(areas[areas.size() - 2]["id"], _view.draw_group)
 			_view.click_tile(Vector2i(-5, -5))
 			_view.refresh()
+		if _bridge:
+			for l in Transport.network(w)["links"]:
+				if not l.get("spans", []).is_empty():
+					var tl := Transport.int_tile(int(l["path"][int(l["spans"][0][0])]))
+					_view._zoom = 3.5
+					_view._user_view = true
+					_view._pan = Vector2.ZERO
+					_view._pan = _view._map_rect().get_center() - _view._tile_center(tl)
+					_view.set_mode("INSPECT")
+					_view.selected = {"kind": "LINK", "id": l["id"], "tile": tl}
+					_view._update_panel()
+					_view.queue_redraw()
+					break
 	if _frames < 8:
 		return false
 	root.get_texture().get_image().save_png(_out)

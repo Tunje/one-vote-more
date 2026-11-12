@@ -165,3 +165,40 @@ func test_wear_and_save_load_in_the_game() -> void:
 	b.step()
 	check_eq(b.world.state_hash(), a.world.state_hash(), "save/load/continue stays identical")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func test_bridges_cross_straight_and_old_links_are_replanned() -> void:
+	for seed_v in [1, 2, 7]:
+		var w := _game(seed_v).world
+		for l in Transport.network(w)["links"]:
+			check(not Transport.bad_crossing(w, l["path"]), "seed %d %s crosses the river straight" % [seed_v, l["id"]])
+			var water := 0
+			for ti in l["path"]:
+				water += 1 if Terrain.at(w, int(ti) % Terrain.W, int(ti) / Terrain.W) == "r" else 0
+			check_eq(int(l["bridges"]), water, "every water tile on the route is bridged")
+			for sp in l["spans"]:
+				check(int(sp[1]) <= 2, "short spans only (%s)" % str(sp))
+	# a span over 2 tiles costs more per tile than a single-tile bridge
+	var one := Transport._bridge_bill("ROAD", [[3, 1]])
+	var two := Transport._bridge_bill("ROAD", [[3, 2]])
+	check(two[0] > 2 * one[0], "a longer span costs more per tile")
+	# an old link that slips diagonally between water tiles is re-planned once, keeping its kind and condition
+	var w2 := _game(1).world
+	Transport.ensure(w2)
+	var t := w2.table("transport")
+	var cut := []
+	for y in range(1, Terrain.H - 1):
+		for x in range(1, Terrain.W - 1):
+			if cut.is_empty() and Terrain.at(w2, x, y) == "r" and Terrain.at(w2, x + 1, y + 1) != "r" and Terrain.at(w2, x, y + 1) != "r" and Terrain.at(w2, x + 1, y) == "." and Terrain.at(w2, x - 1, y) != "r":
+				cut = [Transport.tile_int(Vector2i(x - 1, y)), Transport.tile_int(Vector2i(x - 1, y + 1)), Transport.tile_int(Vector2i(x, y + 1)), Transport.tile_int(Vector2i(x + 1, y))]
+	if not cut.is_empty():
+		t["links"]["link:99"] = {"id": "link:99", "kind": "ROAD", "path": cut, "lanes": 1, "bridges": 0, "bridge_lanes": 1,
+			"cond": 700, "traffic": 0, "acc": 0, "built": 0, "globe": 0}
+		t["planner"] = 1
+		Transport._replan_crossings(w2)
+		var l2: Dictionary = t["links"]["link:99"]
+		check_eq(l2["kind"], "ROAD", "kind kept")
+		check_eq(int(l2["cond"]), 700, "condition kept")
+		check(not Transport.bad_crossing(w2, l2["path"]), "re-planned straight: %s" % str(l2["path"]))
+		check(l2.has("spans"), "spans recorded")
+		check_eq(int(t["planner"]), Transport.PLANNER, "only once")

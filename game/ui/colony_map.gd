@@ -1267,6 +1267,8 @@ func _draw_network(_w: WorldState, t: float) -> void:
 			draw_polyline(pts, col, wdt)
 			if int(l.get("lanes", 1)) == 2 and t >= 9.0:
 				draw_polyline(pts, Color(0.2, 0.2, 0.2), 1.0)
+		for sp in l.get("spans", []):
+			_draw_bridge(pts, int(sp[0]), int(sp[1]), t, wdt, int(l.get("bridge_lanes", 1)), col)
 		if String(l["closed"]) != "" and pts.size() >= 2:
 			var m := pts[pts.size() / 2]
 			var r := maxf(4.0, t * 0.4)
@@ -1351,8 +1353,11 @@ func link_text(w: WorldState, lid: String) -> String:
 	if String(l["effective"]) != String(l["kind"]):
 		t += " · [color=#ef5350]worn down to a track[/color]"
 	t += "\nCapacity %d trips a month, last month %d" % [int(l["capacity"]), int(l["traffic"])]
-	if int(l["bridges"]) > 0:
-		t += "\nCrosses the river (%s)" % ("two bridges" if int(l.get("bridge_lanes", 1)) == 2 else "one bridge")
+	for sp in l.get("spans", []):
+		var n := int(sp[1])
+		var bl := int(l.get("bridge_lanes", 1))
+		t += "\nBridge: %d tile%s span, %d lane%s%s" % [n, "" if n == 1 else "s", bl, "" if bl == 1 else "s",
+			" (two bridges side by side)" if bl == 2 else ""]
 	if int(l.get("acc", 0)) > 0:
 		t += "\nRecent accidents: %d" % int(l["acc"])
 	if String(l["closed"]) != "":
@@ -1450,3 +1455,28 @@ static func submit_road(w: WorldState, spec: Dictionary, anchors: Dictionary = {
 		return {"ok": false, "message": "The plan is ready, but road projects build links only once the economy's hook is in. Nothing was commissioned."}
 	var r: Dictionary = EconActions.enqueue(w, "ECON_COMMISSION_PROJECT", params)
 	return {"ok": r["ok"], "message": "Commissioned: the tender opens next month." if r["ok"] else String(r["error"])}
+
+
+
+## A bridge over a span of water tiles (path points first..first+n-1): a deck with railings and the ][ end flares,
+## wider for two lanes; a second bridge is drawn beside the first.
+func _draw_bridge(pts: PackedVector2Array, first: int, n: int, t: float, road_w: float, bridges: int, col: Color) -> void:
+	if first <= 0 or first + n >= pts.size():
+		return
+	var a := (pts[first - 1] + pts[first]) * 0.5     # the banks: halfway to the land tiles on either side
+	var b := (pts[first + n - 1] + pts[first + n]) * 0.5
+	var d := (b - a).normalized()
+	var nrm := Vector2(-d.y, d.x)
+	var deck := maxf(road_w + 3.0, t * 0.42)
+	for k in bridges:
+		var off := nrm * (deck + 2.0) * (float(k) - float(bridges - 1) * 0.5)
+		var a2 := a + off
+		var b2 := b + off
+		draw_line(a2, b2, Color("#6d5a45"), deck)                       # the deck
+		draw_line(a2, b2, col, maxf(1.5, road_w * 0.6))                   # the roadway on it
+		for side: float in [-1.0, 1.0]:                                   # railings and ][ flares
+			var r: Vector2 = nrm * side * deck * 0.5
+			draw_line(a2 + r, b2 + r, Color(0.08, 0.08, 0.08), 1.5)
+			var flare: Vector2 = (nrm * side - d) * deck * 0.35
+			draw_line(a2 + r, a2 + r + flare, Color(0.08, 0.08, 0.08), 1.5)
+			draw_line(b2 + r, b2 + r + nrm * side * deck * 0.35 + d * deck * 0.35, Color(0.08, 0.08, 0.08), 1.5)

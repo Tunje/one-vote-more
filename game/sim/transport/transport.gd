@@ -30,6 +30,11 @@ const ROVER_RANGE_HEX := 5         # rovers reach land hexes this many steps fro
 const AIRSHIP_RANGE_HEX := 80      # the whole hemisphere and more
 ## Path planning: cost of entering a tile (10 = open plain); a river tile needs a bridge.
 const TERRAIN_COST := {".": 10, "f": 10, "n": 10, "L": 10, "h": 20, "k": 35, "o": 25, "x": 25, "r": 60}
+## Bridges: a road crosses the river straight (no diagonal step touches water), and every further water tile of the
+## same span costs RIVER_RUN, so the planner takes the shortest span and never runs along the river.
+const RIVER_RUN := 160
+const SPAN_EXTRA := 50             # each tile beyond the first of a span costs this % more to build (longer, higher bridge)
+const PLANNER := 2                 # bump when crossings are planned differently: old links are re-planned once
 ## Work bill per tile (wu, materials, components), like an EconData.BUILD row; bridges per river tile;
 ## globe links per hex (a long road through the wild).
 const BILL_TILE := {"TRACK": [6, 2, 0], "ROAD": [20, 18, 1], "PAVED": [32, 36, 2]}
@@ -90,6 +95,7 @@ static func ensure(world: WorldState) -> void:
 	t["bases"] = {}
 	t["seq"] = t["links"].size()
 	t["junctions"] = _derive_junctions(t["links"], {})
+	t["planner"] = PLANNER
 	t["rev"] = 1
 
 
@@ -162,11 +168,32 @@ static func _founding(world: WorldState) -> Dictionary:
 
 
 static func _colony_link(id: String, kind: String, path: Array, world: WorldState, month: int) -> Dictionary:
+	var sp := spans(world, path)
 	var br := 0
-	for ti in path:
-		br += 1 if Terrain.at(world, int(ti) % Terrain.W, int(ti) / Terrain.W) == "r" else 0
-	return {"id": id, "kind": kind, "path": path.duplicate(), "lanes": 1, "bridges": br, "bridge_lanes": 1, "cond": 1000,
-		"traffic": 0, "acc": 0, "built": month, "globe": 0}
+	for x in sp:
+		br += int(x[1])
+	return {"id": id, "kind": kind, "path": path.duplicate(), "lanes": 1, "bridges": br, "spans": sp, "bridge_lanes": 1,
+		"cond": 1000, "traffic": 0, "acc": 0, "built": month, "globe": 0}
+
+
+## River crossings of a tile path: [[index of the first water tile, tiles of water in a row], ...].
+static func spans(world: WorldState, path: Array) -> Array:
+	var out: Array = []
+	var i := 0
+	while i < path.size():
+		if _water(world, int(path[i])):
+			var n := 0
+			while i + n < path.size() and _water(world, int(path[i + n])):
+				n += 1
+			out.append([i, n])
+			i += n
+		else:
+			i += 1
+	return out
+
+
+static func _water(world: WorldState, ti: int) -> bool:
+	return Terrain.at(world, ti % Terrain.W, ti / Terrain.W) == "r"
 
 
 ## Junctions: tiles where three or more road branches meet. Keeps the type, traffic and accidents of junctions
@@ -280,7 +307,12 @@ static func plan_path(world: WorldState, a: Vector2i, b: Vector2i, reuse: Dictio
 					continue
 				var ni: int = ny * W + nx
 				var code := String(rows[ny]).substr(nx, 1)
+				var from_water := String(rows[cy]).substr(cx, 1) == "r"
+				if dx != 0 and dy != 0 and (code == "r" or from_water or String(rows[cy]).substr(nx, 1) == "r" or String(rows[ny]).substr(cx, 1) == "r"):
+					continue   # bridges go straight across: no diagonal step over, into, out of or past a water corner
 				var step: int = 4 if reuse.has(ni) else int(TERRAIN_COST.get(code, 10))
+				if code == "r" and from_water:
+					step = RIVER_RUN   # one more tile of the same span (even on an old link: a long span is a bad bridge)
 				if avoid.has(ni):
 					step *= 8
 				if dx != 0 and dy != 0:
@@ -821,8 +853,7 @@ static func plan_link(world: WorldState, spec: Dictionary) -> Dictionary:
 			if int(l2.get("bridge_lanes", 1)) >= 2:
 				out["error"] = "This crossing already has a second bridge"
 				return out
-			var row: Array = BILL_BRIDGE[k2]
-			bill = [int(row[0]) * int(l2["bridges"]), int(row[1]) * int(l2["bridges"]), int(row[2]) * int(l2["bridges"])]
+			bill = _bridge_bill(k2, l2.get("spans", spans(world, l2["path"])))
 			out["job"] = "BRIDGE"
 		out["kind"] = k2
 		out["km"] = link_km(l2)
@@ -927,10 +958,25 @@ static func _tile_bill(world: WorldState, kind: String, path: Array) -> Array:
 	var b := [0, 0, 0]
 	for ti in path:
 		var code := Terrain.at(world, int(ti) % Terrain.W, int(ti) / Terrain.W)
-		var row: Array = BILL_BRIDGE[kind] if code == "r" else BILL_TILE[kind]
+		if code == "r":
+			continue
+		var row: Array = BILL_TILE[kind]
 		b[0] += int(row[0]) * int(TERRAIN_WU.get(code, 10)) / 10
 		b[1] += int(row[1])
 		b[2] += int(row[2])
+	var br := _bridge_bill(kind, spans(world, path))
+	return [b[0] + br[0], b[1] + br[1], b[2] + br[2]]
+
+
+## Bridges priced by span: a span of n water tiles costs n tiles × (1 + SPAN_EXTRA% × (n - 1)).
+static func _bridge_bill(kind: String, sp: Array) -> Array:
+	var row: Array = BILL_BRIDGE[kind]
+	var b := [0, 0, 0]
+	for x in sp:
+		var n := int(x[1])
+		var f := 100 + SPAN_EXTRA * (n - 1)
+		for k in 3:
+			b[k] += int(row[k]) * n * f / 100
 	return b
 
 
@@ -1139,6 +1185,7 @@ static func step_month(world: WorldState) -> void:
 	if not Terrain.ready(world):
 		return
 	ensure(world)
+	_replan_crossings(world)
 	var links: Dictionary = world.table("transport")["links"]
 	var home := Planet.landing(world)
 	var s_home := _storm(world, home)
@@ -1302,3 +1349,48 @@ static func _fix_option(world: WorldState, fix: String, spec: Dictionary, l: Dic
 	change.call(after)
 	return {"fix": fix, "cost": int(plan["cost"]), "months": int(plan["months"]),
 		"cap_pm": link_capacity(after) * 1000 / maxi(1, link_capacity(l)), "acc_pm": acc_pm, "spec": spec}
+
+
+
+## Links planned before straight bridges (PLANNER 2) that cross the river diagonally or run along it get their route
+## re-planned once between the same ends (kind, lanes, condition kept). Deterministic; runs in the NATURE tick.
+static func _replan_crossings(world: WorldState) -> void:
+	var t := world.table("transport")
+	if int(t.get("planner", 1)) >= PLANNER:
+		return
+	t["planner"] = PLANNER
+	var links: Dictionary = t["links"]
+	var changed := false
+	for lid in EconUtil.sorted_keys(links):
+		var l: Dictionary = links[lid]
+		if int(l.get("globe", 0)) == 1 or not bad_crossing(world, l["path"]):
+			continue
+		var p := plan_path(world, int_tile(int(l["path"][0])), int_tile(int(l["path"][-1])))
+		if p.is_empty():
+			continue
+		var fresh := _colony_link(lid, String(l["kind"]), p, world, int(l["built"]))
+		for k in ["lanes", "bridge_lanes", "cond", "traffic", "acc", "built"]:
+			fresh[k] = l.get(k, fresh[k])
+		links[lid] = fresh
+		changed = true
+	for lid2 in links:   # every colony link records its spans
+		if int(links[lid2].get("globe", 0)) == 0 and not links[lid2].has("spans"):
+			links[lid2]["spans"] = spans(world, links[lid2]["path"])
+	if changed:
+		t["junctions"] = _derive_junctions(links, t.get("junctions", {}))
+	_bump(world)
+
+
+## A path crosses water badly: a diagonal step touching a river tile, or a span longer than the river is wide there
+## (it runs along the river).
+static func bad_crossing(world: WorldState, path: Array) -> bool:
+	for i in range(1, path.size()):
+		var a := int_tile(int(path[i - 1]))
+		var b := int_tile(int(path[i]))
+		if a.x != b.x and a.y != b.y and (_water(world, int(path[i - 1])) or _water(world, int(path[i]))
+				or _water(world, tile_int(Vector2i(b.x, a.y))) or _water(world, tile_int(Vector2i(a.x, b.y)))):
+			return true   # a diagonal step over water, or slipping between two water tiles without a bridge
+	for x in spans(world, path):
+		if int(x[1]) >= 3:
+			return true
+	return false
