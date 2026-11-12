@@ -137,6 +137,33 @@ and greenhouse warming are Terra's physical model; Bob reads them. Politics read
   colony this month: …" and last month's PLANET_* news lines.
 - The colony map UI itself (A5) is `ui/colony_map.gd` (TERRAIN overlay), spec-areas-v1 §7.
 
+## The colony map is the landing region (2026-11-12, user order via Wilma) — Terrain.derive, tests/planet/test_colony_region.gd
+- **Shape**: the 64×40 map at 3 km per tile (192×120 km) is a window centred on the landing hex (~210 km), laid on
+  the globe with `Planet.colony_frame` (the same frame PlanetView uses). The tiles stay square. A taller map
+  covering the whole hex or several hexes is on hold until Wilma confirms.
+- **Globe rivers and deposits** (new, pure, nothing saved, no world RNG stream):
+  - `Planet.downstream(i)` / `river_flow(i)` / `is_river(i)` / `inflows(i)`: a priority flood from the sea, so
+    every land cell drains to the sea. A river is a cell gathering `RIVER_MIN` = 14 cells of rain.
+  - `Planet.deposit(i)`: "o" ore in hills and mountains, "x" rare minerals among the peaks, from a hash of the
+    planet seed.
+  - Deposits are map and display only: the economy does not read them until Bob agrees.
+  - The globe draws rivers as ribbons, and the hex tooltip names a river and any deposit.
+- **Derivation** (own RNG from the planet seed and the landing cell):
+  - The base is the landing hex's height and biome. The edges blend toward the six neighbours: a sea neighbour puts
+    a coast ("~") on its side, a higher neighbour raises its side into hills and rock, and a neighbour's biome takes
+    over its edge.
+  - Local relief noise adds hills with rocky cores, more of them on high ground. Meadows and native-crop land
+    follow the biome (`Terrain.FERTILE_SHARE`, `NATIVE_SHARE`), and river banks are fertile.
+  - The river enters from the neighbour that drains into the landing hex and leaves toward
+    `Planet.downstream(landing)`, into the sea when that neighbour is sea. A tributary comes from the second inflow,
+    or is a local stream. The grid stores `"mouth"`.
+  - Deposits are the landing hex's own (in the middle) and each neighbour's (on its side), plus at least 4 ore and
+    1 rare locally.
+  - Expedition worlds use the same derivation, which replaces the old `_local_mix`.
+- **Sea "~"**: nothing is built on it (every build whitelist excludes it), and roads cannot enter it or cut its
+  corners. Waste flow starts at the stored mouth.
+- **Old saves** keep their stored grid (no "mouth": the river leaves at the south edge as before).
+
 ## Tourist sites (A42, spec-demand-v1 §D4; 2026-11-12) — sim/planet/planet_sites.gd, tests/planet/test_sites.gd
 - **Pure, nothing saved**: a function of the seed (globe), the colony grid (sites on the colony map) and the month.
   All numbers are ints. `Planet.sites(world)` = `PlanetSites.sites(world)` →

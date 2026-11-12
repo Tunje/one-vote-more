@@ -34,6 +34,10 @@ const ARCHETYPES := {
 	"HIGHLAND": [["h", "H", "g", "F", "s"], 32.0, 50, false],
 }
 const ARCHETYPE_ORDER := ["TEMPERATE", "COOL", "WARM_WET", "DRY", "HIGHLAND"]
+## Rivers on the globe: cells gathering at least this much rain (in cells of average rain) from upstream.
+const RIVER_MIN := 14.0
+## Half-width of the colony map on its hex, as a share of the hex's smallest centre-corner distance (PlanetView too).
+const COLONY_FILL := 0.7
 
 static var _geo := {}           # freq -> {"centers", "corners", "corner_tri", "tris", "nbrs", "edge_nbr"}
 static var _cache := {}         # "seed|freq|gen" -> {"h", "bio", "landing"}
@@ -180,17 +184,13 @@ static func generate(world: WorldState, freq: int = FREQ) -> void:
 	if k >= 0:
 		tb["seed"] = candidate_seed(world, k)
 		tb["arch"] = candidate_archetype(world, k)
-	var d0 := _data(world)
-	if k >= 0 and not Terrain.ready(world):
-		var scratch := WorldState.new(int(tb["seed"]) & 0x7fffffff)
-		Terrain.generate(scratch)
-		var grid: Dictionary = scratch.peek("map")["grid"].duplicate(true)
-		_local_mix(world, grid, int(d0["landing"]))
-		world.table("map")["grid"] = grid
-		world.table("map")["uses"] = {}
 	var d := _data(world)
 	tb["landing"] = d["landing"]
 	tb["uses"] = {str(d["landing"]): {"colony": true}}
+	# the colony map is the landing region of this planet (Terrain derives it from the globe). An expedition world
+	# writes it here, so that PoliticsProvider's "Terrain if not ready" keeps it; default games get it from there.
+	if k >= 0 and not Terrain.ready(world):
+		Terrain.generate(world)
 
 
 ## Generated planet for this world: {"h": PackedInt32Array, "bio": String, "landing": int,
@@ -305,7 +305,55 @@ static func _compute(sd: int, freq: int, arch: String = "") -> Dictionary:
 		bio[i] = _biome(h[i], temp, moist)
 		moist_a[i] = clampf(moist, 0.0, 1.2)
 	var landing := _choose_landing(cs, nb, h, bio, r) if arch == "" else _choose_landing_arch(cs, nb, h, bio, r, ARCHETYPES[arch])
-	return {"h": h, "bio": "".join(bio), "landing": landing, "moist": moist_a, "coast": coast}
+	var dr := _drainage(nb, h, moist_a)
+	return {"h": h, "bio": "".join(bio), "landing": landing, "moist": moist_a, "coast": coast, "down": dr[0], "acc": dr[1]}
+
+
+## Where water runs (pure maths of heights and moisture, no RNG): a priority flood from the sea over the land, lowest
+## first, so every land cell drains to the sea along a route that never climbs (pits fill like lakes). down[i] is the
+## cell water flows to (a sea cell at the mouth; -1 for sea cells); acc[i] the rain gathered upstream, in cells of
+## average rain (1 + moisture each). Rivers are cells with acc >= RIVER_MIN.
+static func _drainage(nb: Array, h: PackedInt32Array, moist: PackedFloat32Array) -> Array:
+	var n := h.size()
+	var down := PackedInt32Array()
+	down.resize(n)
+	down.fill(-1)
+	var seen := PackedByteArray()
+	seen.resize(n)
+	var buckets: Array = []   # buckets[level] = FIFO of cells (heights are whole steps, so a bucket queue is exact)
+	buckets.resize(128)
+	for b in 128:
+		buckets[b] = []
+	for i in n:
+		if h[i] < 0:
+			seen[i] = 1
+			for j in nb[i]:
+				if h[j] >= 0 and seen[j] == 0:
+					seen[j] = 1
+					down[j] = i
+					buckets[mini(h[j], 127)].append(j)
+	var order := PackedInt32Array()   # land cells, downstream first
+	for lv in 128:
+		var q: Array = buckets[lv]
+		var qi := 0
+		while qi < q.size():
+			var c: int = q[qi]
+			qi += 1
+			order.append(c)
+			for j in nb[c]:
+				if seen[j] == 0:
+					seen[j] = 1
+					down[j] = c
+					buckets[mini(maxi(h[j], lv), 127)].append(j)
+	var acc := PackedFloat32Array()
+	acc.resize(n)
+	for i in n:
+		acc[i] = 1.0 + moist[i] if h[i] >= 0 else 0.0
+	for k in range(order.size() - 1, -1, -1):
+		var c2 := order[k]
+		if down[c2] >= 0 and h[down[c2]] >= 0:
+			acc[down[c2]] += acc[c2]
+	return [down, acc]
 
 
 static func _noise(sd: int, fq: float, fractal: int, octaves: int) -> FastNoiseLite:
@@ -426,66 +474,6 @@ static func candidate_archetype(world: WorldState, k: int) -> String:
 	return String(order[k % order.size()])
 
 
-## The colony grid of an expedition world follows its landing region (A35 follow-up): mountains nearby bring ore and
-## rare minerals, dry land loses fertile fields, wet tropics grow native crops, highland adds hills. Deterministic.
-static func _local_mix(world: WorldState, grid: Dictionary, li: int) -> void:
-	var rows: Array = grid["rows"]
-	var g: Array = []
-	for row in rows:
-		var a: Array = []
-		for ch in String(row):
-			a.append(ch)
-		g.append(a)
-	var W: int = g[0].size()
-	var H: int = g.size()
-	var r := RandomNumberGenerator.new()
-	r.seed = seed_of(world) ^ 0x10ca1
-	var high := 0
-	var peaks := 0
-	var wet := 0
-	for j in neighbors(world, li):
-		var lv := level(world, j)
-		high += 1 if lv >= 3 else 0
-		peaks += 1 if lv >= 4 else 0
-		wet += 1 if biome(world, j) in ["j", "w"] else 0
-	var arch := String(world.peek("planet").get("arch", "TEMPERATE"))
-	var b := biome(world, li)
-	var put := func(code: String, on: Array, n: int) -> void:
-		for _i in n:
-			for _try in 40:
-				var x := r.randi_range(1, W - 2)
-				var y := r.randi_range(1, H - 2)
-				if g[y][x] in on and g[y][x] != "L":
-					g[y][x] = code
-					break
-	put.call("o", ["h", "k"], high * 2 + (3 if arch == "HIGHLAND" else 0))
-	put.call("x", ["k"], peaks + (1 if arch in ["HIGHLAND", "DRY"] else 0))
-	if arch == "HIGHLAND" or high >= 3:   # more hills with rocky cores
-		for _i in 3 + high:
-			var cx := r.randi_range(3, W - 4)
-			var cy := r.randi_range(3, H - 4)
-			for y in range(cy - 2, cy + 3):
-				for x in range(cx - 3, cx + 4):
-					if y > 0 and y < H and x > 0 and x < W and g[y][x] in [".", "f"]:
-						g[y][x] = "k" if absi(x - cx) + absi(y - cy) <= 1 else "h"
-	if arch == "DRY" or b in ["d", "s"]:   # dry land: most fertile fields are only plain (river banks keep some)
-		for y in H:
-			for x in W:
-				if g[y][x] == "f" and r.randf() < 0.65:
-					g[y][x] = "."
-	if arch == "COOL" or b in ["T", "I"]:   # a short growing season: fewer fertile fields
-		for y in H:
-			for x in W:
-				if g[y][x] == "f" and r.randf() < 0.4:
-					g[y][x] = "."
-	if arch == "WARM_WET" or wet >= 2:   # the wet tropics: native-crop land spreads
-		put.call("n", [".", "f"], 60 + wet * 15)
-	var out: Array = []
-	for row2 in g:
-		out.append("".join(row2))
-	grid["rows"] = out
-
-
 static func ready(world: WorldState) -> bool:
 	return world.peek("planet").has("landing")
 
@@ -542,6 +530,68 @@ static func is_coast(world: WorldState, i: int) -> bool:
 	return _data(world)["coast"][i] == 1
 
 
+## Where the water of cell i runs: the neighbour downstream (a sea cell at the mouth), -1 for sea cells.
+static func downstream(world: WorldState, i: int) -> int:
+	return _data(world)["down"][i]
+
+
+## Rain gathered at cell i from everything upstream (cells of average rain); a river from RIVER_MIN.
+static func river_flow(world: WorldState, i: int) -> float:
+	return _data(world)["acc"][i]
+
+
+static func is_river(world: WorldState, i: int) -> bool:
+	return height(world, i) >= 0 and river_flow(world, i) >= RIVER_MIN
+
+
+## The neighbours whose water runs into cell i, biggest flow first: [[cell, flow]].
+static func inflows(world: WorldState, i: int) -> Array:
+	var out: Array = []
+	for j in neighbors(world, i):
+		if downstream(world, j) == i:
+			out.append([j, river_flow(world, j)])
+	out.sort_custom(func(a, b): return float(a[1]) > float(b[1]) or (float(a[1]) == float(b[1]) and int(a[0]) < int(b[0])))
+	return out
+
+
+## Mineral deposits of a cell (pure in the planet seed, no RNG stream): "o" ore in hills and mountains, "x" rare
+## minerals among the high peaks, "" none. Map and display only for now (Wilma: the economy does not read it yet).
+static func deposit(world: WorldState, i: int) -> String:
+	var lv := level(world, i)
+	if lv < 2:
+		return ""
+	var u := _mix(seed_of(world) ^ 0xde9051, i) % 1000
+	if lv >= 4 and u < 220:
+		return "x"
+	if lv == 3 and u < 70:
+		return "x"
+	return "o" if u < [0, 0, 300, 380, 450, 450][lv] else ""
+
+
+## A small integer hash (pure, the same on every machine).
+static func _mix(a: int, b: int) -> int:
+	var x := (a ^ (b * 0x9E3779B1)) & 0xffffffff
+	x = ((x ^ (x >> 16)) * 0x45d9f3b) & 0xffffffff
+	x = ((x ^ (x >> 16)) * 0x45d9f3b) & 0xffffffff
+	return (x ^ (x >> 16)) & 0x7fffffff
+
+
+## The colony map's frame on the landing hex: tangent directions (east, north) at the landing centre and the map's
+## half-size in that plane (unit-sphere units). PlanetView lays the map texture with the same frame.
+static func colony_frame(world: WorldState) -> Dictionary:
+	var li := landing(world)
+	var geo := geometry(freq(world))
+	var c: Vector3 = geo["centers"][li]
+	var east := Vector3.UP.cross(c)
+	east = east.normalized() if east.length() > 0.0001 else Vector3.RIGHT
+	var north := c.cross(east).normalized()
+	var reach := INF
+	for q in geo["corners"][li]:
+		reach = minf(reach, Vector2(Vector3(q).dot(east), Vector3(q).dot(north)).length())
+	var hw := COLONY_FILL * reach
+	return {"c": c, "east": east, "north": north, "hw": hw, "hh": hw * float(Terrain.H) / float(Terrain.W)}
+
+
 ## Hex that holds a tile of the 64×40 colony grid (Terrain). The whole grid lies inside the landing hex today;
 ## when settlements spread to other hexes, each gets its own grid and this maps grid → hex (agreed with Bob).
 static func hex_of_tile(world: WorldState, _tile: Vector2i) -> int:
@@ -566,8 +616,14 @@ static func describe(world: WorldState, i: int) -> String:
 	var ll := lat_lon(i, freq(world))
 	var hh := height(world, i)
 	var alt := ("%d m" % (hh * METERS_PER_STEP)) if hh >= 0 else ("%d m deep" % (-hh * METERS_PER_STEP))
-	return "%s · %s · %d°%s %d°%s" % [String(NAMES.get(biome(world, i), "?")).capitalize(), alt,
-		absi(roundi(ll.x)), "N" if ll.x >= 0 else "S", absi(roundi(ll.y)), "E" if ll.y >= 0 else "W"]
+	var extra := ""
+	if is_river(world, i):
+		extra += " · a river"
+	match deposit(world, i):
+		"o": extra += " · ore"
+		"x": extra += " · rare minerals"
+	return "%s · %s · %d°%s %d°%s%s" % [String(NAMES.get(biome(world, i), "?")).capitalize(), alt,
+		absi(roundi(ll.x)), "N" if ll.x >= 0 else "S", absi(roundi(ll.y)), "E" if ll.y >= 0 else "W", extra]
 
 
 ## Tourist sites (A42, spec-demand-v1 §D4): see PlanetSites. Pure: [{id, name, kind, attraction 0..100,

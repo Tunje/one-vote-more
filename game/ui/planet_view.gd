@@ -36,7 +36,8 @@ var _weather_mesh: MeshInstance3D
 var _weather_for := ""                  # month|planet the weather layer was built for
 const CLOUD_R := 1.0 + RELIEF * 100.0   # storms drift above the highest peaks
 ## The colony on the globe: the 64x40 colony map (ui ColonyMap's terrain, areas, facilities) laid on the landing hex.
-const COLONY_FILL := 0.7       # half-width of the colony map, as a share of the hex's smallest centre-corner distance
+const COLONY_FILL := Planet.COLONY_FILL   # half-width of the colony map, as a share of the hex's smallest centre-corner distance
+const RIVER_COLOR := Color("#2f7fd0")
 const COLONY_LIFT := 0.0006    # above the terrain, below the gold rim
 const COLONY_PX := 4           # texture pixels per colony tile (facilities: the inner 2x2)
 const MARKER_HIDE_DIST := 1.5  # closer than this the colony map itself is readable: hide the flag pole
@@ -264,9 +265,50 @@ func _build_globe(w: WorldState) -> void:
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surf[k])
 		mesh.surface_set_material(k, lm if k == 0 else wm)
 	_globe.mesh = mesh
+	_build_rivers(w)
 	_build_marker(w)
 	_set_hover(-1)
 	_site_for = ""
+
+
+## Rivers (Planet.downstream / river_flow): a ribbon from each river cell's centre to the next cell downstream (into
+## the sea: to the coast), wider as more water gathers. The colony map, lifted higher, covers it on the landing hex.
+func _build_rivers(w: WorldState) -> void:
+	for c in _globe.get_children():
+		if c.name == "Rivers":
+			c.free()
+	var geo := Planet.geometry(Planet.freq(w))
+	var cs: PackedVector3Array = geo["centers"]
+	var hts := Planet.heights(w)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_color(RIVER_COLOR)
+	for i in cs.size():
+		if not Planet.is_river(w, i):
+			continue
+		var j := Planet.downstream(w, i)
+		if j < 0:
+			continue
+		var a := cs[i]
+		var b := cs[j] if hts[j] >= 0 else cs[i].slerp(cs[j], 0.5)
+		var hr := _r(maxf(maxf(hts[i], hts[j]), 0.0) + 1.5)
+		var half := 0.0004 + 0.0004 * minf(sqrt(Planet.river_flow(w, i) / Planet.RIVER_MIN), 3.0)
+		for q in 3:
+			var p0 := a.slerp(b, float(q) / 3.0) * hr
+			var p1 := a.slerp(b, float(q + 1) / 3.0) * hr
+			var side := (p1 - p0).cross(p0).normalized() * half
+			for v in [p0 - side, p1 - side, p1 + side, p0 - side, p1 + side, p0 + side]:
+				st.add_vertex(v)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.vertex_color_use_as_albedo = true
+	mat.vertex_color_is_srgb = true
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mi := MeshInstance3D.new()
+	mi.name = "Rivers"
+	mi.mesh = st.commit()
+	mi.material_override = mat
+	_globe.add_child(mi)
 
 
 func _arrays() -> Array:

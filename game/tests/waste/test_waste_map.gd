@@ -18,7 +18,13 @@ func test_the_river_flows_to_one_mouth() -> void:
 		for t in f["order"]:
 			var path := WasteMap.downstream(w, int(t))
 			check(path.size() >= 1 and int(f["down"][path[-1]]) == -1, "every tile reaches the mouth")
-		check_eq(Transport.int_tile(int(WasteMap.downstream(w, int(f["order"][0]))[-1])).y, Terrain.H - 1, "the river leaves at the south edge")
+		var mouth := Transport.int_tile(int(WasteMap.downstream(w, int(f["order"][0]))[-1]))
+		var mo: Array = w.peek("map")["grid"]["mouth"]
+		check_eq(mouth, Vector2i(int(mo[0]), int(mo[1])), "seed %d: the river leaves at the map's mouth" % seed_v)
+		var by_sea := false
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			by_sea = by_sea or Terrain.at(w, mouth.x + d.x, mouth.y + d.y) == Terrain.SEA
+		check(by_sea or mouth.x in [0, Terrain.W - 1] or mouth.y in [0, Terrain.H - 1], "seed %d: the mouth is at the sea or the map's edge" % seed_v)
 
 
 func test_sewage_pollutes_downstream_and_washes_out() -> void:

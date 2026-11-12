@@ -106,7 +106,7 @@ static func _settlements(w: WorldState) -> Array:
 			var tiles2: Array = []
 			for yy in range(t0.y - TOWN_R, t0.y + TOWN_R + 1):
 				for xx in range(t0.x - TOWN_R, t0.x + TOWN_R + 1):
-					if Terrain.at(w, xx, yy) != "" and Vector2(xx - t0.x, yy - t0.y).length() <= float(TOWN_R) + 0.01:
+					if not Terrain.at(w, xx, yy) in ["", Terrain.SEA] and Vector2(xx - t0.x, yy - t0.y).length() <= float(TOWN_R) + 0.01:
 						tiles2.append(Vector2i(xx, yy))
 			out.append({"id": d, "name": String(EconData.DISTRICTS.get(d, {}).get("name", d)), "tile": t0, "tiles": tiles2,
 				"district": d})

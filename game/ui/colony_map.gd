@@ -1107,6 +1107,8 @@ func tile_text(w: WorldState, tv: Vector2i) -> String:
 		uses.append("mines" if code in ["o", "x"] else "quarries and hard building")
 	if not uses.is_empty():
 		t += "Good for: %s\n" % ", ".join(uses)
+	if code == Terrain.SEA:
+		t += "Open water: nothing is built here and roads go round it\n"
 	for s in PlanetSites.sites(w):
 		if s["where"] == "COLONY" and Vector2i(s["tile"]) == tv:
 			t += "[color=#ffe08a]Sight: %s[/color] (%s), attraction %d, this month %d%% of an average month\n" % [

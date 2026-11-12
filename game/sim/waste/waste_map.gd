@@ -39,20 +39,25 @@ static var _flow_cache := {}
 # ================================================================== the river (flow is pure)
 
 ## River flow of the colony map: {"down": {tile: next tile downstream (-1 at the mouth)}, "order": [tiles, upstream
-## first], "dist": {tile: steps to the mouth}}. The river runs north to south and leaves the map at the south edge;
-## the tributary flows into it. Cached per terrain.
+## first], "dist": {tile: steps to the mouth}}. The river leaves the map at its mouth (grid "mouth": the sea or the
+## edge towards the globe's downstream hex; old maps: the south edge); the tributary flows into it. Cached per terrain.
 static func flow(world: WorldState) -> Dictionary:
 	if not Terrain.ready(world):
 		return {"down": {}, "order": [], "dist": {}}
-	var key := "%d|%d" % [world.rng.derive_seed("map.terrain"), hash(world.peek("map")["grid"]["rows"])]
+	var key := "%d|%d|%s" % [world.rng.derive_seed("map.terrain"), hash(world.peek("map")["grid"]["rows"]), str(world.peek("map")["grid"].get("mouth", ""))]
 	if _flow_cache.has(key):
 		return _flow_cache[key]
 	var W := Terrain.W
 	var H := Terrain.H
 	var dist := {}
 	var q: Array = []
-	for x in W:   # the mouth: river tiles on the south edge (else the southernmost ones)
-		if Terrain.at(world, x, H - 1) == "r":
+	var mo: Array = world.peek("map")["grid"].get("mouth", [-1, -1])   # maps derived from the globe store their mouth
+	if Terrain.at(world, int(mo[0]), int(mo[1])) == "r":
+		dist[int(mo[1]) * W + int(mo[0])] = 0
+		q.append(int(mo[1]) * W + int(mo[0]))
+	var old_map := q.is_empty()   # old maps: the mouth is the river's tiles on the south edge (else the southernmost ones)
+	for x in W:
+		if old_map and Terrain.at(world, x, H - 1) == "r":
 			dist[(H - 1) * W + x] = 0
 			q.append((H - 1) * W + x)
 	if q.is_empty():

@@ -276,7 +276,7 @@ static func plan_path(world: WorldState, a: Vector2i, b: Vector2i, reuse: Dictio
 	var n := W * Terrain.H
 	var src := tile_int(a)
 	var dst := tile_int(b)
-	if Terrain.at(world, a.x, a.y) == "" or Terrain.at(world, b.x, b.y) == "":
+	if Terrain.at(world, a.x, a.y) in ["", Terrain.SEA] or Terrain.at(world, b.x, b.y) in ["", Terrain.SEA]:
 		return []
 	var dist := PackedInt32Array()
 	dist.resize(n)
@@ -307,8 +307,10 @@ static func plan_path(world: WorldState, a: Vector2i, b: Vector2i, reuse: Dictio
 					continue
 				var ni: int = ny * W + nx
 				var code := String(rows[ny]).substr(nx, 1)
+				if code == Terrain.SEA:
+					continue   # no road into the sea (a river can be bridged, the sea cannot)
 				var from_water := String(rows[cy]).substr(cx, 1) == "r"
-				if dx != 0 and dy != 0 and (code == "r" or from_water or String(rows[cy]).substr(nx, 1) == "r" or String(rows[ny]).substr(cx, 1) == "r"):
+				if dx != 0 and dy != 0 and (code == "r" or from_water or String(rows[cy]).substr(nx, 1) in ["r", Terrain.SEA] or String(rows[ny]).substr(cx, 1) in ["r", Terrain.SEA]):
 					continue   # bridges go straight across: no diagonal step over, into, out of or past a water corner
 				var step: int = 4 if reuse.has(ni) else int(TERRAIN_COST.get(code, 10))
 				if code == "r" and from_water:
@@ -918,6 +920,9 @@ static func plan_link(world: WorldState, spec: Dictionary) -> Dictionary:
 		if Terrain.at(world, a.x, a.y) == "" or Terrain.at(world, b.x, b.y) == "":
 			out["error"] = "An end lies off the colony map"
 			return out
+		if Terrain.at(world, a.x, a.y) == Terrain.SEA or Terrain.at(world, b.x, b.y) == Terrain.SEA:
+			out["error"] = "An end lies in the sea"
+			return out
 		if a == b or Vector2(a).distance_to(Vector2(b)) < 1.5:
 			out["error"] = "The two ends are too close: a link needs at least two tiles"
 			return out
@@ -1113,6 +1118,9 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 				bd = d
 				best = String(s["district"])
 		return best == district
+	var ours := func(l: Dictionary) -> bool:   # a link serves the districts of its ends and of its middle
+		var pth: Array = l["path"]
+		return mine.call(int_tile(int(pth[pth.size() / 2]))) or mine.call(int_tile(int(pth[0]))) or mine.call(int_tile(int(pth[-1])))
 	for n in nodes(world):
 		if n["kind"] != "PLANT" or not mine.call(int_tile(int(n["tile"]))):
 			continue
@@ -1126,7 +1134,7 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 	var busiest := ""
 	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
-		if int(l.get("globe", 0)) == 1 or not mine.call(int_tile(int(l["path"][l["path"].size() / 2]))):
+		if int(l.get("globe", 0)) == 1 or not ours.call(l):
 			continue
 		if worst == "" or int(l["cond"]) < int(links[worst]["cond"]):
 			worst = lid
@@ -1143,7 +1151,7 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 			return {"junction": jid, "type": "ROUNDABOUT" if ji == 1 or int(j["branches"]) >= 4 else "PRIORITY"}
 	for lid3 in EconUtil.sorted_keys(links):
 		var l3: Dictionary = links[lid3]
-		if int(l3.get("globe", 0)) == 1 or not mine.call(int_tile(int(l3["path"][l3["path"].size() / 2]))):
+		if int(l3.get("globe", 0)) == 1 or not ours.call(l3):
 			continue
 		if int(l3["traffic"]) * 10 > link_capacity(l3) * 8:
 			if int(l3["bridges"]) > 0 and int(l3.get("bridge_lanes", 1)) < 2 and int(l3.get("lanes", 1)) == 2:
@@ -1156,7 +1164,7 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 		return {"repair": worst}
 	for lid2 in EconUtil.sorted_keys(links):   # all good: upgrade the district's first road that can still go up
 		var l2: Dictionary = links[lid2]
-		if int(l2.get("globe", 0)) == 0 and l2["kind"] != "PAVED" and mine.call(int_tile(int(l2["path"][l2["path"].size() / 2]))):
+		if int(l2.get("globe", 0)) == 0 and l2["kind"] != "PAVED" and ours.call(l2):
 			return {"upgrade": lid2}
 	return {}
 

@@ -23,7 +23,8 @@ const MAX_REACH := 13.0
 
 var overlay := "DISTRICTS"   # DISTRICTS | UNEMPLOYMENT | APPROVAL | LEAN | TERRAIN
 const TERRAIN_COLORS := {".": Color("#6f8f5a"), "f": Color("#8fbf5f"), "r": Color("#3f78b5"), "h": Color("#8a7a5a"),
-	"k": Color("#6d6a66"), "o": Color("#b07a3a"), "x": Color("#b048b0"), "n": Color("#4fb08f"), "L": Color("#f2e6a0")}
+	"k": Color("#6d6a66"), "o": Color("#b07a3a"), "x": Color("#b048b0"), "n": Color("#4fb08f"), "L": Color("#f2e6a0"),
+	"~": Color("#2b5f93")}
 var session: GameSession
 var selected := ""
 var _owner: Array = []       # [y][x] -> district id or ""

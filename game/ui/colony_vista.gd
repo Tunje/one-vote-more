@@ -9,7 +9,7 @@ extends Control
 ## in front. Sky, light and ground follow the season and Terra's weather this month (rain, snow, storms, lightning,
 ## spore haze, factory smoke). Presentation only; deterministic per world (no RNG streams are touched).
 
-const HEIGHT := {".": 0.0, "f": 0.0, "n": 0.0, "L": 0.0, "r": -0.06, "h": 0.55, "k": 0.95, "o": 0.65, "x": 0.95}
+const HEIGHT := {".": 0.0, "f": 0.0, "n": 0.0, "L": 0.0, "r": -0.06, "h": 0.55, "k": 0.95, "o": 0.65, "x": 0.95, "~": -0.08}
 const EYE := 0.75            # eye height above the ground, in tiles (the office is on the first floor)
 const HORIZON := 0.36        # horizon line, share of the height
 const FOCAL := 0.5           # focal length, share of the width (about 90° across)
@@ -257,7 +257,7 @@ func _draw_ground(w: WorldState, W: float, H: float, hy: float) -> void:
 				continue
 			var ti := y * Terrain.W + x
 			var farmed: bool = _d["farm"].has(ti)
-			var col: Color = WATER if code == "r" else (pal.get(code, pal["."]) as Color)
+			var col: Color = WATER if code == "r" else (WATER.darkened(0.25) if code == Terrain.SEA else (pal.get(code, pal["."]) as Color))
 			if code == "f" and not farmed:   # fertile but wild: meadow, no fields
 				col = (pal["."] as Color).lerp(Color("#6aa04a"), 0.35)
 			elif code == "." and farmed:
@@ -267,19 +267,19 @@ func _draw_ground(w: WorldState, W: float, H: float, hy: float) -> void:
 				col = Color("#8a7a62")
 			elif wk == "CEMETERY":
 				col = Color("#6f8a68")
-			if code == "r" and float(_d["temp"]) < -3.0:
+			if code in ["r", Terrain.SEA] and float(_d["temp"]) < -3.0:
 				col = Color("#cfe0ea")   # ice
 			# light from the south-west: slopes facing us are brighter, far land fades into haze
 			var slope := (_corner(w, x, y) + _corner(w, x + 1, y)) - (_corner(w, x, y + 1) + _corner(w, x + 1, y + 1))
 			col = col.lightened(clampf(slope * 0.25, 0.0, 0.25)).darkened(clampf(-slope * 0.3, 0.0, 0.3))
-			if code != "r":
+			if not code in ["r", Terrain.SEA]:
 				col = col.lerp(Color("#f4f6f8"), cold * (0.6 if code in ["h", "k", "o", "x"] else 0.5))
 			var fade := clampf(float(tl[0]) / float(MAX_DIST), 0.0, 1.0)
 			col = col.lerp(Color("#9fb0c0"), fade * 0.55)
 			if not Terrain.use_at(w, x, y).is_empty() and wk == "":
 				col = col.lerp(Color("#d9b48a"), 0.35)   # built land
 			draw_primitive(PackedVector2Array([c00, c10, c11, c01]), PackedColorArray([col, col, col, col]), PackedVector2Array())
-			if farmed and code != "r" and float(tl[0]) < 18.0:   # furrows and crop rows: only where a farm works the land
+			if farmed and not code in ["r", Terrain.SEA] and float(tl[0]) < 18.0:   # furrows and crop rows: only where a farm works the land
 				for k in 3:
 					var t := (float(k) + 0.5) / 3.0
 					draw_line(c00.lerp(c01, t), c10.lerp(c11, t), col.darkened(0.15), 1.0)
