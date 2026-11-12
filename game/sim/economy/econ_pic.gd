@@ -15,6 +15,8 @@ static func indicators() -> Array:
 		["ECON_LOCAL_PRICE_INDEX", "index", [50, 200], "DISTRICT", -1, {"COST_OF_LIVING": 0.3, "FAIRNESS": 0.2}, 95, 120, "PUBLIC", 1],
 		["ECON_RENT_BURDEN", "%", [0, 200], "VOTER_CELL", -1, {"HOUSING": 0.6, "COST_OF_LIVING": 0.3}, 20, 45, "PUBLIC", 0],
 		["ECON_OVERCROWDING", "households/unit", [0, 3], "DISTRICT", -1, {"HOUSING": 1.0}, 0.95, 1.30, "PUBLIC", 0],
+		# S3 (v6 review): the state of the homes (average block condition, 0–100) — renovations show up in housing concern
+		["ECON_HOUSING_CONDITION", "index", [0, 100], "DISTRICT", 1, {"HOUSING": 0.4}, 80, 40, "PUBLIC", 2],
 		["ECON_UTILITY_RELIABILITY", "%", [0, 100], "DISTRICT", 1, {"INFRASTRUCTURE": 0.6, "PUBLIC_SERVICES": 0.3}, 100, 85, "PUBLIC", 0],
 		["ECON_INFRA_CONDITION", "index", [0, 100], "DISTRICT", 1, {"INFRASTRUCTURE": 0.6, "SAFETY": 0.1}, 90, 50, "PUBLIC", 3],
 		["ECON_LOGISTICS_DELAY", "%", [0, 100], "DISTRICT", -1, {"INFRASTRUCTURE": 0.5, "COST_OF_LIVING": 0.1}, 0, 20, "PUBLIC", 1],
