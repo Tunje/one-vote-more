@@ -58,6 +58,22 @@ D2 replaces that with real consumer industries (LUXURY becomes their top quality
   - Fashion: a clothing "style" index that shifts every few years; stock of an old style counts as worn sooner, a
     new style is a buying wave.
   - Seasonal: clothing by Terra's seasons; fine food around holidays and arena events.
+- **Quality is a property of the producer, not only a price tier** (user: "and quality, don't forget quality"):
+  - Every consumer workshop has a quality score (0..100) from its workers' skill mix, plant tier/condition
+    (fabrication kits, upkeep), management (CEO competence vs greed: cutting corners raises margin and lowers
+    quality) and experience (quality creeps up with years of production; training E114 helps).
+  - Quality sets which tier it can sell (FINE needs high quality) and the **lifetime** of what it sells: cheap,
+    poor goods wear out faster ("buy cheap, buy twice"), so low quality means more replacement demand but unhappy
+    buyers; fine goods last.
+  - **Reputation**: buyers remember. A brand's reputation follows its delivered quality with a lag; households and
+    tourists choose by price × reputation, so a good workshop can charge more and a careless one loses customers.
+    A quality scandal (defective goods, a fire from shoddy furnishings) is a fact for the papers and an inquiry.
+  - **Exports and imports compete on quality**: the home-world price paid for colony goods scales with their
+    quality, and imported goods arrive with their own (usually high) quality, so a colony with poor workshops
+    exports raw materials and imports finished goods — a development choice for governments (training, standards,
+    an export drive).
+  - Law hooks (Anni, later): product standards (a minimum quality floor that raises costs and safety), labelling.
+  - Housing quality (A3) and food quality follow the same idea: a fine-food bakery vs basic rations.
 - **Links**: FINE goods and preserved FINE_FOOD are exportable (D1) and bought by tourists (D4); a luxury tax (D5)
   lands on the FINE tier.
 
@@ -109,7 +125,7 @@ market for now) or claim an export levy; refusing it is part of colony politics.
 - Mean unemployment falls clearly against the current tree on the same seeds (target: century mean under 14%) without
   forcing it, and it still differs by politics.
 - Consumer industries (clothing, furnishings, fine food) exist on every seed by Year 10; their output swings with
-  confidence (at least one boom and one slump per century per seed); FINE-tier spending rises with inequality; leisure venues exist in every area over 300 people by Year 30.
+  confidence (at least one boom and one slump per century per seed); FINE-tier spending rises with inequality; workshop quality differs and moves (reputation and lifetime effects visible); leisure venues exist in every area over 300 people by Year 30.
 - Tourist arrivals vary with safety and law (a strike-heavy or riot decade shows fewer tourists).
 - Ledger: EXTERNAL flows only for exports, tourist spending, imports and migrants; determinism and save/load hold;
   integer state only.
