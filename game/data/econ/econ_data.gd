@@ -131,6 +131,7 @@ const RECIPES := {
 	"SCHOOL":   {"labor": {"G": 4, "S": 16, "Sp": 10}, "in": {"ENERGY": 30, "WATER": 20, "CONSUMER": 15}, "out": ["EDUCATION", 450], "upkeep": 2, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "PUBLIC_SECTOR"},
 	"DEPOT":    {"labor": {"G": 20, "S": 5}, "in": {"ENERGY": 120}, "out": ["FREIGHT", 8000], "upkeep": 5, "poll": 2, "acc": 4, "hazard": "MEDIUM", "licence": "", "occ": "LOGISTICS"},
 	"ADMIN":    {"labor": {"G": 20, "S": 30, "Sp": 30}, "in": {"ENERGY": 40, "CONSUMER": 10}, "out": ["ADMIN", 1], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "PUBLIC_SECTOR"},
+	"PUBJOBS":  {"labor": {"G": 4, "S": 1}, "in": {}, "out": ["PUBWORK", 0], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "PUBLIC_SECTOR"},  # E117b public employment scheme: upkeep work, no output
 	"HOUSING":  {"labor": {"G": 1}, "in": {}, "out": ["HOUSING", 50], "upkeep": 2, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "SERVICES"},
 }
 const CONTRACTOR_ACC := 6
