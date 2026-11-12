@@ -1,6 +1,6 @@
 extends SceneTree
 ## Terra: render the planet view to a PNG (needs a window, not --headless).
-## godot --path game --script res://tools/shot_planet.gd -- <seed> <out.png> [yaw_offset_deg] [dist] [weather_month]
+## godot --path game --script res://tools/shot_planet.gd -- <seed> <out.png> [yaw_offset_deg] [dist] [weather_month] [storm_over_colony 0|1]
 var _view: PlanetView
 var _frames := 0
 var _out := "user://planet.png"
@@ -20,6 +20,10 @@ func _init() -> void:
 		s.world().table("econ")["s"]["emissions"] = {"d:1": 30000}
 		for _k in 30:
 			PlanetClimate.step_month(s.world())
+	# arg 6 = 1: a strong rain front over the colony this month (shows the warning rim)
+	if args.size() > 5 and args[5] == "1":
+		var li := Planet.landing(s.world())
+		s.world().table("planet")["storms"] = [{"kind": "RAIN_FRONT", "strength": 4, "cells": [li] + Array(Planet.neighbors(s.world(), li)).slice(0, 2), "global": false}]
 	_view = PlanetView.new()
 	_view.session = s
 	root.size = Vector2i(1600, 900)

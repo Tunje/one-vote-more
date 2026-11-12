@@ -35,6 +35,15 @@ var _corner_h := PackedFloat32Array()   # display height per corner (geometry tr
 var _weather_mesh: MeshInstance3D
 var _weather_for := ""                  # month|planet the weather layer was built for
 const CLOUD_R := 1.0 + RELIEF * 100.0   # storms drift above the highest peaks
+## The colony on the globe: the 64x40 colony map (ui ColonyMap's terrain, areas, facilities) laid on the landing hex.
+const COLONY_FILL := 0.7       # half-width of the colony map, as a share of the hex's smallest centre-corner distance
+const COLONY_LIFT := 0.0006    # above the terrain, below the gold rim
+const COLONY_PX := 4           # texture pixels per colony tile (1 of them a darker grid line)
+var _colony_mesh: MeshInstance3D
+var _colony_for := ""
+var _alert_mesh: MeshInstance3D
+var _alert_t := 0.0
+var _marker_lbl: Label3D
 const WEATHER_COLORS := {"CYCLONE": Color(1, 1, 1, 0.55), "RAIN_FRONT": Color(0.82, 0.86, 0.95, 0.45),
 	"BLIZZARD": Color(0.85, 0.93, 1.0, 0.6), "DUST": Color(0.85, 0.68, 0.42, 0.5),
 	"SPORE_BLOOM": Color(0.55, 0.95, 0.45, 0.45), "MOON_SURGE": Color(0.4, 0.75, 1.0, 0.55)}
@@ -78,6 +87,11 @@ func _ready() -> void:
 	_vp.add_child(_hover_mesh)
 	_weather_mesh = MeshInstance3D.new()
 	_vp.add_child(_weather_mesh)
+	_colony_mesh = MeshInstance3D.new()
+	_vp.add_child(_colony_mesh)
+	_alert_mesh = MeshInstance3D.new()
+	_alert_mesh.visible = false
+	_vp.add_child(_alert_mesh)
 	_vp.add_child(_stars())
 	_vp.add_child(_atmosphere())
 	_info = Label.new()
@@ -108,6 +122,11 @@ func refresh() -> void:
 	if "%d|%s" % [w.month, sig] != _weather_for:
 		_weather_for = "%d|%s" % [w.month, sig]
 		_build_weather(w)
+	var csig := "%d|%s|%d|%d" % [w.month, sig, w.peek("area").size(), w.peek("facility").size()]
+	if csig != _colony_for:
+		_colony_for = csig
+		_build_colony(w)
+	_update_colony_status(w)
 	_update_info()
 
 
@@ -250,7 +269,10 @@ func _build_marker(w: WorldState) -> void:
 	var c: Vector3 = Planet.geometry(Planet.freq(w))["centers"][li]
 	_marker = Node3D.new()
 	_vp.add_child(_marker)
-	_marker.transform = Transform3D(Basis(Quaternion(Vector3.UP, c)), c * _r(Planet.height(w, li)))
+	var at := c * _r(Planet.height(w, li))
+	if Terrain.ready(w):   # the flag stands on the landing site of the colony map laid on the hex
+		at = colony_point(w, Vector2(Terrain.landing(w)) + Vector2(0.5, 0.5), 0.0)
+	_marker.transform = Transform3D(Basis(Quaternion(Vector3.UP, at.normalized())), at)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color("#ffd75e")
 	mat.emission_enabled = true
@@ -273,7 +295,7 @@ func _build_marker(w: WorldState) -> void:
 	flag.material_override = mat
 	_marker.add_child(flag)
 	var lbl := Label3D.new()
-	lbl.text = "Landing"
+	lbl.text = "The colony"
 	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	lbl.pixel_size = 0.0012
 	lbl.fixed_size = true
@@ -282,10 +304,166 @@ func _build_marker(w: WorldState) -> void:
 	lbl.position = Vector3(0, 0.1, 0)
 	lbl.no_depth_test = true
 	_marker.add_child(lbl)
+	_marker_lbl = lbl
 	var ring := MeshInstance3D.new()   # permanent gold outline (in globe space, so not under the marker's basis)
-	ring.mesh = _ring(w, li, Color("#ffcc33"), 0.6, 0.0015)
+	ring.mesh = _ring(w, li, Color("#ffcc33"), 0.9 if Terrain.ready(w) else 0.6, 0.0015)
 	ring.transform = _marker.transform.affine_inverse()
 	_marker.add_child(ring)
+
+
+# ------------------------------------------------------------------ the colony on its hex
+
+## The landing hex's tangent frame and fan (2D in the tangent plane) for laying the colony map on the terrain.
+func _hex_frame(w: WorldState) -> Dictionary:
+	var li := Planet.landing(w)
+	var geo := Planet.geometry(Planet.freq(w))
+	var c: Vector3 = geo["centers"][li]
+	var east := Vector3.UP.cross(c)
+	east = east.normalized() if east.length() > 0.0001 else Vector3.RIGHT
+	var north := c.cross(east).normalized()
+	var poly: PackedVector3Array = geo["corners"][li]
+	var ct: PackedInt32Array = geo["corner_tri"][li]
+	var pts := PackedVector2Array()
+	var rads := PackedFloat32Array()
+	var reach := INF
+	for k in poly.size():
+		var q := Vector2(poly[k].dot(east), poly[k].dot(north))
+		pts.append(q)
+		rads.append(_r(_corner_h[ct[k]]))
+		reach = minf(reach, q.length())
+	var hw := COLONY_FILL * reach
+	return {"c": c, "east": east, "north": north, "pts": pts, "rads": rads, "rc": _r(maxf(Planet.height(w, li), 0.0)),
+		"hw": hw, "hh": hw * float(Terrain.H) / float(Terrain.W)}
+
+
+## Terrain radius at a tangent-plane point of the landing hex (barycentric in the fan triangle that holds it).
+static func _surface_r(f: Dictionary, q: Vector2) -> float:
+	var pts: PackedVector2Array = f["pts"]
+	var rads: PackedFloat32Array = f["rads"]
+	var m := pts.size()
+	for k in m:
+		var a: Vector2 = pts[k]
+		var b: Vector2 = pts[(k + 1) % m]
+		var den := a.x * b.y - a.y * b.x
+		if absf(den) < 1e-12:
+			continue
+		var u := (q.x * b.y - q.y * b.x) / den
+		var v := (a.x * q.y - a.y * q.x) / den
+		if u >= -1e-6 and v >= -1e-6 and u + v <= 1.0 + 1e-6:
+			return float(f["rc"]) * (1.0 - u - v) + rads[k] * u + rads[(k + 1) % m] * v
+	return float(f["rc"])
+
+
+## Where a colony-map point (tile units, x east, y south) sits on the globe, `lift` above the terrain.
+func colony_point(w: WorldState, g: Vector2, lift: float = COLONY_LIFT, f: Dictionary = {}) -> Vector3:
+	if f.is_empty():
+		f = _hex_frame(w)
+	var q := Vector2((g.x / Terrain.W - 0.5) * 2.0 * float(f["hw"]), (0.5 - g.y / Terrain.H) * 2.0 * float(f["hh"]))
+	var dir: Vector3 = (Vector3(f["c"]) + Vector3(f["east"]) * q.x + Vector3(f["north"]) * q.y).normalized()
+	return dir * (_surface_r(f, q) + lift)
+
+
+## The colony map as a texture: terrain, areas by kind, facilities (ColonyMap's colours), a faint tile grid.
+static func colony_image(w: WorldState) -> Image:
+	var px := COLONY_PX
+	var img := Image.create(Terrain.W * px, Terrain.H * px, false, Image.FORMAT_RGBA8)
+	var rows: Array = w.peek("map")["grid"]["rows"]
+	var fac: Dictionary = w.peek("facility")
+	var fac_col := {}
+	var tiles := ColonyMap.facility_tiles(w)
+	for fid in tiles:
+		var st: Array = ColonyMap.FAC_STYLE.get(String(fac[fid]["type"]), ["", Color.WHITE])
+		fac_col[Terrain.key(tiles[fid].x, tiles[fid].y)] = st[1]
+	if AreaStore.areas(w).is_empty():   # before A2: the six settlements
+		var an := ColonyMap.econ_anchors(w)
+		for d in an:
+			fac_col[Terrain.key(an[d].x, an[d].y)] = Color("#fff3b0")
+	for y in Terrain.H:
+		var row: String = rows[y]
+		for x in Terrain.W:
+			var c: Color = MapView.TERRAIN_COLORS.get(row.substr(x, 1), Color.GRAY)
+			var area := String(Terrain.use_at(w, x, y).get("area", ""))
+			if area != "":
+				c = c.lerp(ColonyMap.KIND_COLORS.get(String(AreaStore.get_area(w, area).get("kind", "SETTLEMENT")), Color.WHITE), 0.75)
+			var dot: Color = fac_col.get(Terrain.key(x, y), Color(0, 0, 0, 0))
+			for yy in px:
+				for xx in px:
+					var cc := c
+					if xx == px - 1 or yy == px - 1:
+						cc = c.darkened(0.25)
+					elif dot.a > 0.0 and xx >= 1 and yy >= 1 and xx <= px - 2 and yy <= px - 2:
+						cc = dot
+					img.set_pixel(x * px + xx, y * px + yy, cc)
+	return img
+
+
+## Lay the colony map on the landing hex: a grid mesh following the terrain, textured with colony_image.
+func _build_colony(w: WorldState) -> void:
+	if not Terrain.ready(w) or _corner_h.is_empty():
+		_colony_mesh.mesh = null
+		return
+	var f := _hex_frame(w)
+	var nx := 32
+	var ny := 20
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var grid: Array = []
+	for j in ny + 1:
+		var row: Array = []
+		for i in nx + 1:
+			var g := Vector2(float(i) / nx * Terrain.W, float(j) / ny * Terrain.H)
+			row.append([colony_point(w, g, COLONY_LIFT, f), Vector2(float(i) / nx, float(j) / ny)])
+		grid.append(row)
+	for j in ny:
+		for i in nx:
+			var a: Array = grid[j][i]
+			var b: Array = grid[j][i + 1]
+			var c: Array = grid[j + 1][i + 1]
+			var d: Array = grid[j + 1][i]
+			for v in [a, b, c, a, c, d]:   # clockwise seen from outside (Godot front faces)
+				st.set_normal(Vector3(v[0]).normalized())
+				st.set_uv(v[1])
+				st.add_vertex(v[0])
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = ImageTexture.create_from_image(colony_image(w))
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	mat.roughness = 0.9
+	st.set_material(mat)
+	_colony_mesh.mesh = st.commit()
+
+
+## What the weather is doing to the colony this month: [{kind, strength}] (storms and phenomena over the landing hex).
+static func colony_hits(w: WorldState) -> Array:
+	var li := Planet.landing(w)
+	return PlanetClimate.storms_at(w, li) + PlanetClimate.phenomena_at(w, li)
+
+
+## The flag label (colonists, areas, weather now) and a pulsing warning rim when weather hits the colony.
+func _update_colony_status(w: WorldState) -> void:
+	var hits := colony_hits(w)
+	if _marker_lbl != null:
+		var n := PopStore.total(w)
+		var t := "The colony"
+		if n > 0:
+			t += "\n%d colonists" % n
+		var na := AreaStore.areas(w).size()
+		if na > 0:
+			t += " · %d area%s" % [na, "" if na == 1 else "s"]
+		for h in hits.slice(0, 2):
+			t += "\n%s (%d)" % [String(PlanetClimate.NAMES.get(h["kind"], h["kind"])).capitalize(), int(h["strength"])]
+		_marker_lbl.text = t
+		_marker_lbl.modulate = Color("#ffb38a") if not hits.is_empty() else Color.WHITE
+	_alert_mesh.visible = not hits.is_empty()
+	if _alert_mesh.visible:
+		_alert_mesh.mesh = _ring(w, Planet.landing(w), Color("#ff5a36"), 0.82, 0.0022)
+	set_process(_alert_mesh.visible)
+
+
+func _process(delta: float) -> void:
+	if _alert_mesh == null or not _alert_mesh.visible:
+		return
+	_alert_t += delta
+	_alert_mesh.transparency = 0.45 + 0.45 * sin(_alert_t * 4.0)
 
 
 ## This month's storms and phenomena as translucent cloud bands over their tracks, and the colony's smoke as a
@@ -488,6 +666,14 @@ func _update_info() -> void:
 	if warm >= 0.01:
 		notes.append("warming +%.2f °C" % warm)
 	head += "\n" + " · ".join(notes)
+	var hits := colony_hits(w)
+	if not hits.is_empty():
+		head += "\nOver the colony this month: " + ", ".join(hits.map(func(h): return "%s (strength %d)" % [
+			String(PlanetClimate.NAMES.get(h["kind"], h["kind"])), int(h["strength"])]))
+	var news: Array = w.facts.query("PLANET_", w.month - 1, w.month, "PUBLIC")
+	news.reverse()
+	for f in news.slice(0, 2):
+		head += "\n• " + NewsText.sentence(w, f)
 	if _hover < 0:
 		_info.text = head
 		return

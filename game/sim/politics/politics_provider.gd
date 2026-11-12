@@ -12,6 +12,7 @@ const StaffOps := preload("res://sim/staff/staff_ops.gd")
 const DRAFT_TIMEOUT_MONTHS := 12
 const LOSS_AVERSION := 0.8          # extra weight on shortfalls below 50% satisfaction (tuning knob)
 const EXPECTATION_MONTHS := 36.0
+const MEDIA_PULL := 0.002            # monthly ideology pull toward a paper's line at full reading weight (PD 17.6)
 const HONEYMOON := 8000.0            # approval bonus for a new government, fading over its first year
 const CRISIS_SATISFACTION := 35000
 const MAX_PARALLEL_DRAFTS := 3  # colony-wide concern satisfaction below this triggers crisis mode    # time constant of voter expectations (tuning knob)
@@ -198,16 +199,19 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 			for c in d["concerns"]:
 				num[c] = num.get(c, 0.0) + float(d["concerns"][c]) * nv
 				den[c] = den.get(c, 0.0) + float(d["concerns"][c])
+		var nb: Dictionary = cell.get("news_bias", {})
 		for c in PolDefs.CONCERNS:
-			cell["sat"][c] = int(round(num[c] / den[c])) if den.get(c, 0.0) > 0.0 else 50000
+			var actual := int(round(num[c] / den[c])) if den.get(c, 0.0) > 0.0 else 50000
+			cell["sat"][c] = clampi(actual + int(nb.get(c, 0)), 0, 100000)   # media: perceived = actual + bias (facts unchanged)
 		# 2. salience: occupation base x (1 + 2 x unmet), renormalised to 1000
 		var occ_sal: Array = PolDefs.OCC_SALIENCE[PolVoters.vocc(cell)]
+		var na: Dictionary = cell.get("news_agenda", {})   # media: what your papers cover
 		var raw := {}
 		var tot := 0.0
 		for i in PolDefs.CONCERNS.size():
 			var c: String = PolDefs.CONCERNS[i]
 			var unmet := 1.0 - float(cell["sat"][c]) / 100000.0
-			raw[c] = float(occ_sal[i]) * (1.0 + 2.0 * unmet) + float(agenda.get(c, 0))
+			raw[c] = maxf(1.0, float(occ_sal[i]) * (1.0 + 2.0 * unmet) + float(agenda.get(c, 0)) + float(na.get(c, 0)))
 			tot += raw[c]
 		for c in raw:
 			cell["salience"][c] = int(round(raw[c] / tot * 1000.0))
@@ -224,6 +228,15 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 			cell["ideology"][ax] += int(round(float(cell["base"][ax] - cell["ideology"][ax]) * 0.01))
 			cell["ideology"][ax] += int(round((float(dmeans[cell["district"]][ax]) - float(cell["ideology"][ax])) * PolDefs.SOCIAL_INFLUENCE))
 			cell["ideology"][ax] = clampi(cell["ideology"][ax], -100 * S, 100 * S)
+		# media (PD 17.6): years of reading one paper slowly pull readers toward its line
+		var diet: Dictionary = cell.get("diet", {})
+		for oid in diet:
+			var o: Dictionary = world.peek("outlet").get(oid, {})
+			if o.is_empty():
+				continue
+			var wgt := MediaQuery.weight(cell, oid) * MEDIA_PULL
+			for ax in PolDefs.AXES:
+				cell["ideology"][ax] = clampi(cell["ideology"][ax] + int(round((float(o["line"].get(ax, 0)) - float(cell["ideology"][ax])) * wgt)), -100 * S, 100 * S)
 		# 4. government approval: level + trend + attributable facts
 		# Loss aversion: shortfalls below 50% hurt 1.8x as much as the same distance above helps.
 		var perf := 0.0
@@ -246,6 +259,7 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 		var pe := float(cell.get("perf_expect", perf))
 		cell["perf_expect"] = int(round(pe + (perf - pe) / EXPECTATION_MONTHS))
 		var target := 50000.0 + 0.8 * (perf - pe) + 0.25 * (perf - 50000.0) + 2.5 * trend + honeymoon
+		target += float(cell.get("news_blame", 0))   # media framing: distortion vs a neutral full account
 		for f in gov_facts:
 			if _affects(f, cell):
 				for c in f["impact"]:
