@@ -177,6 +177,8 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"ECON_TRAFFIC_ACCIDENT": s = "%s accident on %s" % ["[color=#ff5252]Fatal[/color]" if int(d.get("fatal", 0)) > 0 else ("Serious" if d.get("serious", false) else "An"), str(d.get("name", d.get("target", "the road")))]
 		"OFFICE_ITEM_EXPIRED": s = "Left unanswered: \"%s\" — it went the default way (%s)" % [d.get("subject", "?"), String(d.get("label", d.get("default", ""))).to_lower()]
 		"OFFICE_ITEM_BURIED": s = "[color=#ff8a65]Buried[/color]: the chief of staff never showed the governor \"%s\"" % d.get("subject", "?")
+		"ECON_HOUSING_RUNDOWN": s = "[color=#ff8a65]Run-down housing[/color]: %s, %d years old, is falling apart%s" % [cap1(facility(w, d.get("facility", ""))), int(d.get("age_years", 0)), (" (owner: %s)" % org(w, d.get("owner", ""))) if String(d.get("owner", "")) != "" else ""]
+		"ECON_HOUSING_RENOVATED": s = "%s has been renovated" % cap1(facility(w, d.get("facility", "")))
 		"ECON_PORT_FULL": s = "Goods pile up at the port: the warehouses are full (%d units) with the next ship still to come" % int(d.get("units", 0))
 		"ECON_HOME_PRICE_SWING": s = "%s prices on the home world %s %d%% this year" % [cap1(_kind(d.get("good", "goods"))), "rose" if int(d.get("pct", 0)) > 0 else "fell", absi(int(d.get("pct", 0)))]
 		"ECON_IMPORT_ARRIVED": s = "Imports arrived: %d %s" % [int(d.get("qty", 0)) / 1000, _kind(d.get("good", "goods"))]
@@ -208,6 +210,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"LAW_CHARTER_EXPORT_RESERVED": s = ("The home world reserves the colony's %s for its own buyer, at the charter price" if d.get("reserved", true) else "The home world lifts its claim on the colony's %s") % _kind(d.get("good", "goods"))
 		"LAW_CHARTER_DEFIANCE": s = "[color=#ff8a65]The colony defies the home world[/color]: %s" % {"REFUSE_EXPORT_TERMS": "it refuses the charter's export terms", "REFUSE_QUOTA": "it refuses the quota"}.get(String(d.get("act", "")), "it breaks the charter")
 		"LAW_CHARTER_COMPLIANCE_RESUMED": s = "The colony returns to the charter's %s" % {"EXPORT_TERMS": "export terms", "QUOTA": "quota"}.get(String(d.get("act", "")), "terms")
+		"LAW_CHARTER_SIGNED": s = "[b]The colonial charter is signed[/b]: the colony owes %d%% of its colonial goods at %d%% of their value%s%s" % [int(d.get("LAW_CHARTER_QUOTA_SHARE", d.get("quota", 0))), int(d.get("LAW_CHARTER_PRICE_PCT", d.get("price", 0))), (", plus a %d%% export levy" % int(d.get("LAW_CHARTER_EXPORT_LEVY", d.get("levy", 0)))) if int(d.get("LAW_CHARTER_EXPORT_LEVY", d.get("levy", 0))) > 0 else "", "; a home-world governor holds a veto" if d.get("governor", false) else ""]
 		"LAW_PETITION_SENT": s = "Parliament sent a petition to the home world asking for better terms"
 		"POL_ELECTION_HELD": s = "[b]Election held[/b]"
 		"POL_GOVERNMENT_FORMED": s = "[b]New government[/b]: %s" % ", ".join(d.get("members", []).map(func(p): return party(w, p)))
