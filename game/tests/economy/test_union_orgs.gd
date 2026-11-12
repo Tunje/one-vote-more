@@ -56,3 +56,13 @@ func test_elections_happen() -> void:
 		u["election_due"] = w.month + 1
 	sim.run(2)
 	check(w.facts.query("UNION_LEADER_ELECTED").size() >= Unions.active(w).size(), "every union held its election")
+
+
+func test_employer_density() -> void:
+	var sim := EconSim.make_econ_only(5)
+	sim.run(15)
+	var w := sim.world
+	var cpw := EconFinance.org_by_key(w, "CPW")
+	var d := Unions.at_employer(w, cpw)
+	check_eq(String(d["occ"]), "PUBLIC_SECTOR", "the utility's staff are public servants")
+	check(int(d["density_pm"]) > 0 and String(d["union"]) != "", "a density and a union at the employer: %s" % [d])
