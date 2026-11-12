@@ -317,6 +317,32 @@ static func upgrade_options(world: WorldState) -> Array:
 	return out
 
 
+## E110 (A39): the essentials at a glance, for GovBuilder's food-security response and the UI. Pure read.
+## {good: {capacity, demand, margin_pct, trend, labour_fill, incentive}} for FOOD, ENERGY, WATER, MATERIAL, COMPONENT
+## (units per month; margin_pct = 100 × (capacity/demand − 1); trend = margin change over 12 months in points;
+## labour_fill = expected crew fill 0..1 of one new plant from the unemployed; incentive = open offer or {}),
+## plus "HOUSING": {units, households, occupancy_pct}.
+static func essentials(world: WorldState) -> Dictionary:
+	var m: Dictionary = EconEssentials.measure(world)
+	var offers: Dictionary = EconEssentials.offers(world)
+	var out := {}
+	for g in EconEssentials.GOODS:
+		var ftype: String = EconEssentials.PLANT[g]
+		var o: Dictionary = offers.get(ftype, {})
+		out[g] = {"capacity": m[g]["capacity"], "demand": m[g]["demand"], "margin_pct": int(round(m[g]["margin_pct"])),
+			"trend": EconEssentials.trend(world, g), "labour_fill": EconEssentials.labour_fill(world, ftype),
+			"incentive": {} if o.is_empty() else {"grant_pct": o["grant_pct"], "until": o["until"], "cap": float(o["cap"]) / S,
+				"paid": float(o["paid"]) / S}}
+	var units := 0
+	var hhs := 0
+	for d in EconUtil.sorted_keys(world.peek("district")):
+		var dr: Dictionary = world.peek("district")[d]
+		units += int(dr.get("units", 0))
+		hhs += int(dr.get("households", 0))
+	out["HOUSING"] = {"units": float(units) / S, "households": float(hhs) / S, "occupancy_pct": int(round(100.0 * hhs / maxf(1.0, units)))}
+	return out
+
+
 static func shortages(world: WorldState, threshold_pct: float = 97.0) -> Array:
 	var s := EconUtil.peek_st(world)
 	var out: Array = []

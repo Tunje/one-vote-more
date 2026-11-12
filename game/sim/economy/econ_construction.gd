@@ -248,6 +248,9 @@ static func progress(world: WorldState) -> void:
 		if active.is_empty():
 			continue
 		var k := capacity(world, oid)
+		if not EconUtil.off(world, "E109"):
+			_progress_fill(world, oid, o, active, k)
+			continue
 		var weights: Array = []
 		for pid in active:
 			var p: Dictionary = world.table("project")[pid]
@@ -294,6 +297,66 @@ static func progress(world: WorldState) -> void:
 		o["blocked_last"] = done_total < k * 7 / 10
 
 
+## E109: crew capacity is filled project by project in priority order (strategic input capacity, then overdue,
+## then the nearest to completion), instead of being spread pro rata. Suspended contracts (owner not paying) and
+## projects without material take no capacity, so it rolls on to work that can proceed. A remnant under one work
+## unit is finished off. The crew counts as material-blocked only when material, not a lack of workable
+## contracts, left capacity idle.
+static func _progress_fill(world: WorldState, oid: String, o: Dictionary, active: Array, k: int) -> void:
+	var rows: Array = []
+	for pid in active:
+		var p: Dictionary = world.table("project")[pid]
+		p["prog_m"] = 0
+		if p["unpaid_m"] >= 2:
+			continue  # work suspended for non-payment
+		var overdue: bool = world.month > int(p["start_month"]) + int(p["bid_duration"])
+		rows.append([0 if _strategic_expansion(world, p) else 1, 0 if overdue else 1, p["wu_total"] - p["wu_done"], pid])
+	rows.sort()
+	var hq: String = o["hq"]
+	var left := k
+	var workable := 0
+	var done_total := 0
+	for r in rows:
+		var p: Dictionary = world.table("project")[r[3]]
+		var remaining: int = int(p["wu_total"]) - int(p["wu_done"])
+		if remaining < S:
+			p["wu_done"] = p["wu_total"]  # remnant under one work unit
+			_complete(world, p)
+			continue
+		var sup := 0.9 + 0.2 * float(p["supervision"]) / 1000.0
+		var cap_p: int = mini(maxi(S, int(p["wu_total"]) / maxi(1, int(p["min_months"]))), remaining)
+		workable += cap_p
+		if left <= 0:
+			continue
+		var wu := mini(int(float(left) * sup), cap_p)
+		var mat_need := int(float(p["mat_total"]) * wu / p["wu_total"])
+		var comp_need := int(float(p["comp_total"]) * wu / p["wu_total"])
+		var um := 1.0
+		if mat_need > 0:
+			um = minf(um, float(EconUtil.inv_get(world, oid, "MATERIAL", hq)) / float(mat_need))
+		var uc := 1.0
+		if comp_need > 0:
+			uc = clampf(float(EconUtil.inv_get(world, oid, "COMPONENT", hq)) / float(comp_need), 0.0, 1.0)
+		um = clampf(minf(um, 0.5 + 0.5 * uc), 0.0, 1.0)  # components are soft (E46)
+		var done := int(wu * um)
+		if done <= 0:
+			continue
+		for pair in [["MATERIAL", int(mat_need * um)], ["COMPONENT", int(comp_need * minf(um, uc))]]:
+			var wac := EconUtil.inv_wac(world, oid, pair[0], hq)
+			var took := EconUtil.inv_take(world, oid, pair[0], hq, pair[1])
+			EconUtil.qflow(world, pair[0], "burned", took)
+			EconFinance.pl_add(world, oid, "cogs", EconUtil.val(took, wac))
+		p["wu_done"] += done
+		p["prog_m"] = done
+		done_total += done
+		left -= int(float(done) / sup)
+		_check_late(world, p)
+		if p["wu_total"] - p["wu_done"] < S:
+			p["wu_done"] = p["wu_total"]
+			_complete(world, p)
+	o["blocked_last"] = done_total < mini(k, workable) * 7 / 10
+
+
 static func _check_late(world: WorldState, p: Dictionary) -> void:
 	var late: int = world.month - (p["start_month"] + p["bid_duration"])
 	if late <= 0:
@@ -311,6 +374,8 @@ static func _check_late(world: WorldState, p: Dictionary) -> void:
 static func _complete(world: WorldState, p: Dictionary) -> void:
 	p["status"] = "DONE"
 	p["done_month"] = world.month
+	if not EconUtil.off(world, "E110"):
+		EconEssentials.on_complete(world, p)  # E110: incentive grant to a private owner
 	var o: Dictionary = world.table("org")[p["contractor"]]
 	o["contracts"].erase(p["id"])
 	var actual: int = world.month - p["start_month"] + 1

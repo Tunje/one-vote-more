@@ -1,6 +1,6 @@
 # Bob (economy & companies): backlog, in order
 
-1. **Century gate** (running): 6 seeds × 100 years, with E104 (labour repair crews) and E105 (CPW planner of last resort). It must pass before the user's century chronicles.
+1. **Century gate** (running): 6 seeds × 100 years with E109 (construction fill order), E110 (A39) and E111 (demography). It must pass before the user's century chronicles. E108 alone did not pass (famine on every seed, years 10–36).
 2. **E106 fabrication kits** (user, A38):
    - Kits Mk I → II → III. An upgrade consumes the previous tier's output; each tier raises output per worker and cuts waste.
    - Founding: a Mk I component workshop and a small smelter (CPW).
@@ -8,7 +8,7 @@
    - `EconQuery.upgrade_options(world)`.
    - CPW plans upgrades first.
    - Ping Wilma so she can wire GovBuilder and the news line.
-3. **A39, governments secure the essentials** (Wilma does the government side):
+3. ~~**A39**~~ DONE as E110 (2026-11-12; Wilma wired GovBuilder). Original notes:
    - Public farms: a public enterprise "Colony Agricultural Board". Add FARM to `EconActions.OPERATOR`. Check that PROCESSING and COMPONENTS commission with CPW as operator.
    - `ECON_OFFER_INCENTIVE {type: FARM | PROCESSING | COMPONENTS | POWER | WATERWORKS | HOUSING, grant_pct: 10–50, months, cap}`:
      - paid from ECON_BUDGET_SUBSIDIES, on completion;
@@ -25,3 +25,4 @@
    - Copies booked in `_buy_services` from `Media.demand`, with actuals reported back via `Media.record_sales`.
    - Ad spend routed to outlets.
    - Firm AI founds, sells or closes papers through Anni's `found_outlet` / `transfer_outlet` / `close_outlet`.
+10. **Population follow-ups (Wilma's notes, M12(2))**: ship volume driven by home-world demand for colonial goods and by colony attractiveness (wages, housing, food); emigration when the colony can't feed or house people.

@@ -23,6 +23,8 @@ static func run(world: WorldState) -> void:
 	EconInsolvency.forced_sale_round(world)
 	if world.month % 6 == 0:
 		EconInsolvency.reprivatize(world)
+	if not EconUtil.off(world, "E110"):
+		EconEssentials.record(world)
 	if world.month_of_year() % 3 == 0:
 		_investment(world)
 		_entry(world)
@@ -521,10 +523,19 @@ static func _new_plants(world: WorldState) -> void:
 			scarce = float(s.get("util_demand", {}).get(k, 0)) > 0.85 * float(maxi(1, s.get("util_supply", {}).get(k, 1)))
 		else:
 			var fill := int(s.get("fill_last", {}).get(good, 1000))
-			scarce = fill < 750 or (fill < 900 and float(s["prices"].get(good, 0)) >= 1.3 * unit_cost(world, ftype))
+			# E110: an open incentive offer is co-financing — a lower price threshold and fill bar
+			var e110 := not EconUtil.off(world, "E110")
+			var incent: bool = e110 and EconEssentials.offer_open(world, ftype)
+			var pmult := 1.1 if incent else 1.3
+			scarce = fill < 750 or (fill < (1000 if incent else 900) and float(s["prices"].get(good, 0)) >= pmult * unit_cost(world, ftype))
+			if e110 and good == "FOOD" and int(s.get("food_shortfall", 0)) >= 50:
+				scarce = true  # households ration food at high prices, so market fill hides the gap
 		sig[good] = int(sig.get(good, 0)) + 1 if scarce else 0
-		if int(sig[good]) < EconData.NEW_PLANT_QUARTERS or world.month - int(last.get(ftype, -999)) < EconData.NEW_PLANT_GAP:
+		var quarters := 1 if not EconUtil.off(world, "E110") and EconEssentials.offer_open(world, ftype) else EconData.NEW_PLANT_QUARTERS
+		if int(sig[good]) < quarters or world.month - int(last.get(ftype, -999)) < EconData.NEW_PLANT_GAP:
 			continue
+		if not EconUtil.off(world, "E110") and EconEssentials.labour_fill(world, ftype) < EconEssentials.MIN_LABOUR_FILL:
+			continue  # E110: no plant that cannot be staffed
 		var pending := false
 		for pid in world.table("project"):
 			var p: Dictionary = world.table("project")[pid]
@@ -548,6 +559,17 @@ static func _new_plants(world: WorldState) -> void:
 				best_cash = c
 				best = f["org"]
 				district = f["district"]
+		if best == "" and not EconUtil.off(world, "E110") and EconEssentials.offer_open(world, ftype):
+			# E110: with a grant on offer, the richest private firm or co-op diversifies
+			for oid3 in EconUtil.sorted_keys(world.table("org")):
+				var o3: Dictionary = world.table("org")[oid3]
+				if o3["status"] != "ACTIVE" or o3["is_contractor"] or not (o3["type"] in ["PRIVATE", "COOPERATIVE"]):
+					continue
+				var c3 := world.ledger.balance(EconUtil.acct(oid3))
+				if c3 > best_cash:
+					best_cash = c3
+					best = oid3
+					district = o3["hq"]
 		if best == "":
 			continue  # nobody runs this kind of plant: firm entry (_entry) covers new owners
 		var est := EconConstruction.estimate(ftype)
@@ -559,7 +581,7 @@ static func _new_plants(world: WorldState) -> void:
 		if need > 0:
 			var loan := mini(need, est * 7 / 10)
 			if not EconFinance.new_loan(world, best, loan, 0, true):
-				if o2["type"] == "PUBLIC_ENTERPRISE":
+				if o2["type"] == "PUBLIC_ENTERPRISE" and not (not EconUtil.off(world, "E110") and EconEssentials.human_governs(world)):
 					var paid := EconFinance.gov_pay(world, EconUtil.acct(best), need, "PE_INVESTMENT")
 					EconFinance._spend_line(world, "ECON_BUDGET_INFRASTRUCTURE", paid)
 					if paid < need / 2:
@@ -586,56 +608,71 @@ static func _essentials_planner(world: WorldState) -> void:
 		return
 	var last: Dictionary = s.get("essential_last", {})
 	s["essential_last"] = last
-	for ftype in ["POWER", "WATERWORKS", "PROCESSING", "COMPONENTS"]:
+	var e110 := not EconUtil.off(world, "E110")
+	# E110 (Wilma, user rules): food is a political decision — farms are built only when a government commissions
+	# them or a firm invests, never by this automatic floor (famine must stay possible).
+	var types: Array = ["POWER", "WATERWORKS", "PROCESSING", "COMPONENTS"]
+	var ess: Dictionary = EconEssentials.measure(world) if e110 else {}
+	for ftype in types:
 		if world.month - int(last.get(ftype, -999)) < EconData.ESSENTIAL_GAP:
 			continue
 		var r: Dictionary = EconData.RECIPES[ftype]
 		var good: String = r["out"][0]
 		var cap := 0.0
+		var demand := 0.0
 		var district := ""
 		for fid in EconUtil.sorted_keys(world.table("facility")):
 			var f: Dictionary = world.table("facility")[fid]
-			if f["type"] != ftype:
-				continue
-			if district == "":
+			if f["type"] == ftype:
 				district = f["district"]
-			if not f["mothball"]:
-				cap += float(r["out"][1]) * S * EconUtil.fscale(f) * EconProduction._eff(world, f)
-		var demand := 0.0
-		match ftype:
-			"POWER": demand = float(s.get("util_demand", {}).get("E", 0))
-			"WATERWORKS": demand = float(s.get("util_demand", {}).get("W", 0))
-			_: demand = float(s.get("wanted_ema", {}).get(good, 0))
+				break
+		if e110:
+			cap = float(ess[good]["capacity"])
+			demand = float(ess[good]["demand"])
+		else:
+			for fid in EconUtil.sorted_keys(world.table("facility")):
+				var f: Dictionary = world.table("facility")[fid]
+				if f["type"] == ftype and not f["mothball"]:
+					cap += float(r["out"][1]) * S * EconUtil.fscale(f) * EconProduction._eff(world, f)
+			match ftype:
+				"POWER": demand = float(s.get("util_demand", {}).get("E", 0))
+				"WATERWORKS": demand = float(s.get("util_demand", {}).get("W", 0))
+				_: demand = float(s.get("wanted_ema", {}).get(good, 0))
 		if demand <= 0.0 or cap >= demand * (1.0 + EconData.ESSENTIAL_SPARE):
+			continue
+		# E110: no plant that cannot be staffed — unless a survival good is in outright deficit
+		if e110 and EconEssentials.labour_fill(world, ftype) < EconEssentials.MIN_LABOUR_FILL 				and not (good in ["FOOD", "ENERGY", "WATER"] and cap < demand):
 			continue
 		var pending := false
 		for pid in world.table("project"):
 			var p: Dictionary = world.table("project")[pid]
-			if (p["type"] == ftype or (p["type"] == "UPGRADE" and world.table("facility").has(p.get("target", "")) \
-					and world.table("facility")[p["target"]]["type"] == ftype)) and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+			if (p["type"] == ftype or (p["type"] == "UPGRADE" and world.table("facility").has(p.get("target", "")) 					and world.table("facility")[p["target"]]["type"] == ftype)) and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
 				pending = true
 		if pending:
 			continue
+		var owner: String = EconEssentials.ag_board(world) if ftype == "FARM" else cpw
 		# E106: for fabrication kits, upgrading CPW's lowest-tier kit comes before building a new one
 		var up_fid := ""
 		if ftype in EconData.KIT_TYPES and not EconUtil.off(world, "E106"):
 			var low := 3
 			for fid in EconUtil.sorted_keys(world.table("facility")):
 				var kf: Dictionary = world.table("facility")[fid]
-				if kf["type"] == ftype and kf["org"] == cpw and not kf["mothball"] and int(kf.get("tier", 2)) < low \
-						and not EconConstruction.upgrade_pending(world, fid):
+				if kf["type"] == ftype and kf["org"] == cpw and not kf["mothball"] and int(kf.get("tier", 2)) < low 						and not EconConstruction.upgrade_pending(world, fid):
 					low = int(kf.get("tier", 2))
 					up_fid = fid
 		var est := EconConstruction.upgrade_estimate(int(world.table("facility")[up_fid].get("tier", 2)) + 1) if up_fid != "" else EconConstruction.estimate(ftype)
-		var need := maxi(0, est - world.ledger.balance(EconUtil.acct(cpw)))
-		if need > 0 and not EconFinance.new_loan(world, cpw, mini(need, est * 7 / 10), 0, true):
-			var paid := EconFinance.gov_pay(world, EconUtil.acct(cpw), need, "PE_INVESTMENT")
+		var need := maxi(0, est - world.ledger.balance(EconUtil.acct(owner)))
+		if need > 0 and not EconFinance.new_loan(world, owner, mini(need, est * 7 / 10), 0, true):
+			if e110 and EconEssentials.human_governs(world):
+				continue  # E110: no treasury money behind a human government's back
+			var paid := EconFinance.gov_pay(world, EconUtil.acct(owner), need, "PE_INVESTMENT")
 			EconFinance._spend_line(world, "ECON_BUDGET_INFRASTRUCTURE", paid)
-		var pid2 := EconConstruction.create_upgrade(world, up_fid, cpw, "") if up_fid != "" else EconConstruction.create(world, ftype, district if district != "" else "d:4", cpw, cpw, "")
+		var home := district if district != "" else ("d:2" if ftype == "FARM" else "d:4")
+		var pid2 := EconConstruction.create_upgrade(world, up_fid, owner, "") if up_fid != "" else EconConstruction.create(world, ftype, home, owner, owner, "")
 		last[ftype] = world.month
-		EconFacts.emit(world, "COMP_INVESTMENT", district, [["COMPANY", cpw]], [["COMPANY", cpw, 0.5], ["GOVERNMENT", "government", 0.5]],
+		EconFacts.emit(world, "COMP_INVESTMENT", home, [["COMPANY", owner]], [["COMPANY", owner, 0.5], ["GOVERNMENT", "government", 0.5]],
 			{"JOBS": 3, "INFRASTRUCTURE": 5}, 25, "PUBLIC", {"type": ftype, "project": pid2, "reason": "spare_capacity", "good": good,
-			"capacity_pct": int(100.0 * cap / maxf(1.0, demand))})
+			"capacity_pct": int(100.0 * cap / maxf(0.001, demand))})
 
 
 ## E87 (O-1): construction firm entry. When projects queue without bids and no private builder is alive, a new

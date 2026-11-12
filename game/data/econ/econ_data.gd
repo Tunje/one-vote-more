@@ -39,6 +39,17 @@ const DISC_SMOOTH_SHARE := 0.6
 const WAGE_MAX_CUT_PM := 0.0015  # E70: share of habitual discretionary budget kept from savings
 const MAX_DISC_CONSUMER_PC := 0.4
 const FREIGHT_FLEET_CAP := 8000      # unit-links / month per depot
+## E111: age-structured demography (the colony aged far too fast: retirees almost never died).
+## Careers run from 18 to RETIREMENT_AGE (Anni may wrap it as LAW_RETIREMENT_AGE; read via EconHouseholds.retirement_age),
+## retirees live LIFE_EXPECTANCY − RETIREMENT_AGE years on average (shorter with poor health access).
+const RETIREMENT_AGE := 62
+const LIFE_EXPECTANCY := 78
+const BIRTH_RATE_ADULT := 0.0021      # births per working-age adult per month (≈ replacement plus slow growth)
+const MORTALITY_CHILD := 0.0001       # per month
+const MORTALITY_ADULT := 0.0001       # per month (working age)
+const FAMINE_MORTALITY := {"RETIRED": 0.006, "CHILD": 0.003, "NOT_IN_LF": 0.002}  # extra per month in famine
+const FOOD_BRAKE_SHORTFALL := 300     # ‰ food shortfall at which births and ship migrants are at their floor
+const FOOD_BRAKE_FLOOR := 0.5         # soft: births/migrants never fall below this share from food alone
 const SHIP_CARGO := 2000
 const SHIP_MIGRANTS := 120
 ## M12 §4: home-world ships every SHIP_INTERVAL months (seeded, irregular). Migrants per ship: the immigration quota

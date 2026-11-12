@@ -417,6 +417,9 @@ static func _demography(world: WorldState) -> void:
 		g["demo_rem"] = rem
 		var h := float(health.get(g["district"], 1000)) / 1000.0
 		var f := {"hb": g["hb"], "inc": g["band"]}
+		if not EconUtil.off(world, "E111"):
+			_demography_e111(world, g, rem, h, f, edu, famine)
+			continue
 		# births: into the pool's children (parents' housing block and income band, PD §9.3)
 		var births := _whole(rem, "birth", int(p * 0.0015))
 		if births > 0:
@@ -451,6 +454,51 @@ static func _demography(world: WorldState) -> void:
 			var m2 := PopStore.move_group(world, {"hb": g["hb"], "inc": g["band"], "status": "UNEMPLOYED"}, ret - m1, {"status": "RETIRED"}, "RETIRE")
 			_reage(world, g, "RETIRED", m1 + m2, "O")
 	EconPop.sync(world)
+
+
+## Retirement age in years (LAW_RETIREMENT_AGE lever if the law module defines it).
+static func retirement_age(world: WorldState) -> int:
+	return clampi(int(world.levers.get("LAW_RETIREMENT_AGE", EconData.RETIREMENT_AGE)), 50, 75)
+
+
+## Soft food brake on births and ship migrants (Wilma): 1.0 with no shortfall, down to FOOD_BRAKE_FLOOR.
+static func food_brake(world: WorldState) -> float:
+	var sf := float(EconUtil.st(world).get("food_shortfall", 0))
+	return 1.0 - (1.0 - EconData.FOOD_BRAKE_FLOOR) * clampf(sf / float(EconData.FOOD_BRAKE_SHORTFALL), 0.0, 1.0)
+
+
+## E111: one pool's month — births from working-age adults, deaths by age group, growing up, retirement by career length.
+static func _demography_e111(world: WorldState, g: Dictionary, rem: Dictionary, h: float, f: Dictionary, edu: Dictionary, famine: bool) -> void:
+	var adults: int = g["lf"] + g["nonpart"] + g["owners"]
+	var births := _whole(rem, "birth", int(float(adults) * EconData.BIRTH_RATE_ADULT * food_brake(world)))
+	if births > 0:
+		var ck := PopStore.key_of({"hb": g["hb"], "inc": g["band"], "occ": "NONE", "status": "CHILD", "arch": EconPop.ARCH, "eff": "e0"})
+		PopStore.birth(world, ck, births)
+	var ra := retirement_age(world)
+	var years_retired := maxf(4.0, float(EconData.LIFE_EXPECTANCY - ra) - 6.0 * (1.0 - h))
+	var fam: Dictionary = EconData.FAMINE_MORTALITY if famine else {}
+	var d_ret := _whole(rem, "death_r", int(float(g["retired"]) * (1.0 / (12.0 * years_retired) + float(fam.get("RETIRED", 0.0)))))
+	var d_ch := _whole(rem, "death_c", int(float(g["children"]) * (EconData.MORTALITY_CHILD * (2.0 - h) + float(fam.get("CHILD", 0.0)))))
+	var d_ad := _whole(rem, "death_a", int(float(g["nonpart"]) * (EconData.MORTALITY_ADULT * (2.0 - h) + float(fam.get("NOT_IN_LF", 0.0)))))
+	_die(world, f, "RETIRED", mini(d_ret, g["retired"] / S))
+	_die(world, f, "CHILD", mini(d_ch, g["children"] / S))
+	_die(world, f, "NOT_IN_LF", mini(d_ad, g["nonpart"] / S))
+	var grown := _whole(rem, "grow", g["children"] / 216)
+	if grown > 0:
+		var a := float(edu.get(g["district"], 1000)) / 1000.0
+		var split := EconUtil.split_lr(grown, [a * 0.45 + (1.0 - a) * 0.85, a * 0.40 + (1.0 - a) * 0.15, a * 0.15])
+		var tiers := ["G", "S", "Sp"]
+		for i in 3:
+			var n_t: int = split[i]
+			var to_lf := n_t * 82 / 100
+			_grow_up(world, g, tiers[i], "UNEMPLOYED", to_lf)
+			_grow_up(world, g, tiers[i], "NOT_IN_LF", n_t - to_lf)
+	var ret := _whole(rem, "retire", int(float(g["lf"] + g["nonpart"]) / (12.0 * float(maxi(10, ra - 18)))))
+	if ret > 0:
+		var from_np := mini(ret, g["nonpart"] / S)
+		var m1 := PopStore.move_group(world, {"hb": g["hb"], "inc": g["band"], "status": ["NOT_IN_LF", "STUDENT"]}, from_np, {"status": "RETIRED"}, "RETIRE")
+		var m2 := PopStore.move_group(world, {"hb": g["hb"], "inc": g["band"], "status": "UNEMPLOYED"}, ret - m1, {"status": "RETIRED"}, "RETIRE")
+		_reage(world, g, "RETIRED", m1 + m2, "O")
 
 
 ## Whole persons from a milli-person flow, carrying the remainder under `key`.
@@ -550,6 +598,8 @@ static func _ship_migrants(world: WorldState, cap: int, emit_fact: bool) -> int:
 	if lf_t > 0 and float(lf_t - emp_t) / float(lf_t) >= 0.10:
 		return 0
 	var n := mini(int(vacant * 2.5) / S, cap)  # persons
+	if not EconUtil.off(world, "E111"):
+		n = int(float(n) * food_brake(world))  # E111: a colony that cannot feed people draws fewer settlers
 	if emit_fact:
 		n = mini(n, quota)  # old model: per-quarter quota
 	if n <= 0 or best == "":

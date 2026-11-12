@@ -5,8 +5,9 @@ extends RefCounted
 
 const S := EconUtil.S
 ## Government project operators by facility type.
+## E110 (A39): FARM → the Colony Agricultural Board (founded on first use), fabrication plants → CPW.
 const OPERATOR := {"HOUSING": "CHO", "POWER": "CPW", "WATERWORKS": "CPW", "DEPOT": "CTA", "ROAD": "CTA",
-	"CLINIC": "HEALTH", "SCHOOL": "SCHOOLS"}
+	"CLINIC": "HEALTH", "SCHOOL": "SCHOOLS", "FARM": "CAB", "PROCESSING": "CPW", "COMPONENTS": "CPW"}
 const LINE_OF := {"HOUSING": "ECON_BUDGET_HOUSING"}
 ## Budget lines that may pay for a commissioned project (first = default). Public works is the counter-cyclical line (E68).
 const PUBLIC_WORKS := "ECON_BUDGET_PUBLIC_WORKS"
@@ -39,6 +40,8 @@ static func validate(world: WorldState, id: String, p: Dictionary) -> String:
 	if id == "ECON_ORDER_IMPORTS" and not EconUtil.support(world):
 		return "No ship is due: imports arrive only with the home-world ships, rarely and at great cost"
 	match id:
+		"ECON_OFFER_INCENTIVE":
+			return EconEssentials.validate_offer(world, p)
 		"ECON_UPGRADE_FACILITY":
 			var fid: String = p.get("facility", "")
 			if not world.peek("facility").has(fid):
@@ -149,6 +152,8 @@ static func headroom(world: WorldState, line: String) -> int:  # pure read (used
 
 static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 	match id:
+		"ECON_OFFER_INCENTIVE":
+			return EconEssentials.apply_offer(world, p)
 		"ECON_UPGRADE_FACILITY":
 			EconConstruction.create_upgrade(world, p["facility"], "gov", p.get("line", "ECON_BUDGET_INFRASTRUCTURE"))
 			return true
@@ -161,7 +166,7 @@ static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 				return false
 			if headroom(world, line) < EconConstruction.estimate(ftype) * 11 / 10:
 				return false
-			var op := EconFinance.org_by_key(world, OPERATOR[ftype])
+			var op: String = EconEssentials.operator_for(world, ftype)
 			EconConstruction.create(world, ftype, p["district"], "gov", op, line)
 			return true
 		"ECON_AWARD_CONTRACT":
@@ -200,7 +205,7 @@ static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 			var price := int(f["book"] * (EconData.GOV_FIRST_PURCHASE if seller["status"] in ["LIQUIDATION", "DISSOLVED"] else 1.0))
 			var paid := EconFinance.gov_pay(world, EconUtil.acct(f["org"]), price, "ASSET_PURCHASE")
 			EconFinance._spend_line(world, "ECON_BUDGET_INFRASTRUCTURE", paid)
-			var op := EconFinance.org_by_key(world, OPERATOR.get(f["type"], "CPW"))
+			var op: String = EconEssentials.operator_for(world, f["type"])
 			f["org"] = op
 			f["abandoned"] = false
 			f["mothball"] = false

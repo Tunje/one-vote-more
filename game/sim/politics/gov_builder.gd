@@ -6,11 +6,13 @@ extends RefCounted
 ## only in econ-only test sims.
 ##
 ## Every quarter the government reviews needs (overcrowded districts, poor health/school access, utility headroom,
-## unemployment) and orders public projects through the same EconActions entry point the player uses. Its politics
+## unemployment, essentials margins from EconQuery.essentials) and orders public projects through the same EconActions entry point the player uses. Its politics
 ## shape the programme:
 ##   FISCAL > 0 (spend for growth)  builds with less cash in hand and does counter-cyclical public works
 ##   ECON_ROLE > 0 (state-directed) builds public housing earlier
 ##   REDISTRIBUTION > 0, or owning PUBLIC_SERVICES / HOUSING, raises the bar for schools, clinics and homes
+##   Essentials (food, power, water, materials, components): ECON_ROLE > 0.15 builds; < -0.15 offers a grant to
+##   private builders (ECON_OFFER_INCENTIVE); in between offers first and builds if still short.
 ## Stateless.
 
 const QUARTER_MONTH := 1
@@ -37,8 +39,14 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	# food emergency: any government opens the reserve
 	if int(s.get("food_shortfall", 0)) > 50:
 		EconActions.enqueue(world, "ECON_RELEASE_RESERVE", {"good": "FOOD", "qty": 1500})
+	# 1a. essentials (A39 / Bob's E110): food, power, water, materials, components. State-minded governments
+	#     build (the Colony Agricultural Board runs state farms, CPW the rest); market-minded ones offer a grant to
+	#     private builders; centrists offer first and build if the deficit persists. Incentives cost nothing until
+	#     a plant is finished, so they are not held back by the cash check below.
 	var runway := float(world.indicators.read("ECON_TREASURY_RUNWAY", "COLONY", 240000)) / 1000.0
-	if runway < 12.0 - 6.0 * spend:
+	var can_build := runway >= 12.0 - 6.0 * spend
+	_essentials(world, st, busy, who, state, spend, can_build)
+	if not can_build:
 		return  # not enough cash and credit for new capital projects (a spending government accepts less)
 	var services_owner := float(who.get("own_services", 0)) / 100.0
 	var housing_owner := float(who.get("own_housing", 0)) / 100.0
@@ -54,12 +62,6 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 			worst = d
 	if worst != "":
 		orders += _order(world, st, busy, who, "HOUSING", worst, "")
-	# 2. utilities: until the power and water company invests on its own (Bob), the state keeps the lights on
-	var dem: Dictionary = s.get("util_demand", {})
-	if float(dem.get("E", 0)) > 0.80 * float(_capacity(world, "POWER")):
-		orders += _order(world, st, busy, who, "POWER", "d:4", "")
-	if float(dem.get("W", 0)) > 0.80 * float(_capacity(world, "WATERWORKS")):
-		orders += _order(world, st, busy, who, "WATERWORKS", "d:2", "")
 	# 3. schools and clinics where access is poor; egalitarian and service-owning governments set a higher bar
 	var bar := clampf(650.0 + 150.0 * maxf(equality, services_owner), 500.0, 850.0)
 	var needs: Array = []
@@ -147,3 +149,54 @@ static func _capacity(world: WorldState, ftype: String) -> int:
 		if f["type"] == ftype and not f["mothball"]:
 			c += int(float(EconData.RECIPES[ftype]["out"][1]) * EconUtil.S * EconUtil.fscale(f))
 	return c
+
+
+const ESS_PLANT := {"FOOD": "FARM", "ENERGY": "POWER", "WATER": "WATERWORKS", "MATERIAL": "PROCESSING", "COMPONENT": "COMPONENTS"}
+const ESS_HOME := {"FARM": "d:2", "POWER": "d:4", "WATERWORKS": "d:2", "PROCESSING": "d:4", "COMPONENTS": "d:4"}
+
+
+## How worried a government is about one essential good: survival goods (food, power, water) worry it once the
+## spare margin falls under 10% or is shrinking fast; supply-chain goods only when actually short. A government
+## that owns the issue (ECONOMY) or leans state-ward worries a little sooner.
+static func _worried(good: String, e: Dictionary, state: float) -> bool:
+	var margin := int(e.get("margin_pct", 0))
+	var trend := int(e.get("trend", 0))
+	if good in ["FOOD", "ENERGY", "WATER"]:
+		return margin < 10 + int(5.0 * maxf(0.0, state)) or (trend < -10 and margin < 25)
+	return margin < 0
+
+
+static func _essentials(world: WorldState, st: Dictionary, busy: Dictionary, who: Dictionary, state: float, spend: float, can_build: bool) -> void:
+	var ess: Dictionary = EconQuery.essentials(world)
+	var pending := {}
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
+			pending[p["type"]] = true
+	for good in ["FOOD", "ENERGY", "WATER", "MATERIAL", "COMPONENT"]:
+		var e: Dictionary = ess.get(good, {})
+		if e.is_empty() or float(e.get("demand", 0)) <= 0.0 or not _worried(good, e, state):
+			continue
+		var ftype: String = ESS_PLANT[good]
+		if pending.has(ftype):
+			continue  # something is already being built; wait for it
+		var survival: bool = good in ["FOOD", "ENERGY", "WATER"] and int(e["margin_pct"]) < 0
+		if float(e.get("labour_fill", 1.0)) < 0.5 and not survival:
+			continue  # nobody to staff it
+		var offer_open: bool = not (e.get("incentive", {}) as Dictionary).is_empty()
+		# state > 0.15 builds; state < -0.15 only offers; in between offer first, build if still short with an offer out
+		var build: bool = state > 0.15 or (state >= -0.15 and offer_open and int(e["margin_pct"]) < 0)
+		if build and can_build:
+			_order(world, st, busy, who, ftype, _home(world, ftype), "")
+		elif not build and not offer_open:
+			var pct := clampi(25 + int(round(15.0 * spend)), 10, 50)
+			var cap := int(float(EconConstruction.estimate(ftype)) / float(EconUtil.S) * float(pct) / 100.0 * 1.5)
+			EconActions.enqueue(world, "ECON_OFFER_INCENTIVE", {"type": ftype, "grant_pct": pct, "months": 24, "cap": maxi(1, cap)})
+
+
+static func _home(world: WorldState, ftype: String) -> String:
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] == ftype:
+			return String(f["district"])
+	return ESS_HOME.get(ftype, "d:2")
