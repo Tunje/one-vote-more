@@ -141,9 +141,13 @@ static func _consume(world: WorldState) -> void:
 	for d in need_d:
 		s["shortfall_d"][d] = int(1000.0 * float(short_d[d]) / maxf(1.0, float(need_d[d])))
 		if s["shortfall_d"][d] >= 50:
-			EconFacts.emit(world, "ECON_SHORTAGE", d, [], [["GOVERNMENT", "government", 0.6], ["NATURE", "market", 0.4]],
+			var big := food_buyers(world)
+			var resp: Array = [["GOVERNMENT", "government", 0.6], ["NATURE", "market", 0.4]]
+			if not big.is_empty():
+				resp = [["GOVERNMENT", "government", 0.5], ["NATURE", "market", 0.25], ["COMPANY", big[0]["org"], 0.25]]
+			EconFacts.emit(world, "ECON_SHORTAGE", d, [], resp,
 				{"COST_OF_LIVING": -mini(60, int(0.3 * s["shortfall_d"][d]))}, int(0.2 * s["shortfall_d"][d]), "PUBLIC",
-				{"shortfall_permille": s["shortfall_d"][d]}, {"districts": [d]})
+				{"shortfall_permille": s["shortfall_d"][d], "big_buyers": big}, {"districts": [d]})
 
 
 ## Discretionary budget (mcr) for this month (spec §7.3).
@@ -744,5 +748,23 @@ static func _famine_check(world: WorldState) -> void:
 		s["food_short_streak"] = 0
 	if s["food_short_streak"] >= 3 and not s["famine"]:
 		s["famine"] = true
-		EconFacts.emit(world, "ECON_FAMINE", null, [], [["GOVERNMENT", "government", 0.8], ["NATURE", "nature", 0.2]],
-			{"COST_OF_LIVING": -80, "GOVERNANCE": -40}, 100, "PUBLIC")
+		var big := food_buyers(world)
+		var resp: Array = [["GOVERNMENT", "government", 0.8], ["NATURE", "nature", 0.2]]
+		if not big.is_empty():
+			resp = [["GOVERNMENT", "government", 0.65], ["NATURE", "nature", 0.15], ["COMPANY", big[0]["org"], 0.2]]
+		EconFacts.emit(world, "ECON_FAMINE", null, [], resp,
+			{"COST_OF_LIVING": -80, "GOVERNANCE": -40}, 100, "PUBLIC", {"big_buyers": big})
+
+
+## D2: the companies that bought the most FOOD last month (bakeries, delicatessens): [{org, name, units}], top 3 with
+## at least 5% of household food need; named in shortage and famine facts so the papers and parties can blame them.
+static func food_buyers(world: WorldState) -> Array:
+	var fb: Dictionary = EconUtil.peek_st(world).get("food_buyers_m", {})
+	var need := float(PopStore.total(world)) * float(EconData.NEED["FOOD"])
+	var rows: Array = []
+	for oid in EconUtil.sorted_keys(fb):
+		var u := int(fb[oid]) / S
+		if float(u) >= 0.05 * need and world.peek("org").has(oid):
+			rows.append({"org": oid, "name": str(world.peek("org")[oid].get("name", oid)), "units": u})
+	rows.sort_custom(func(a, b): return int(a["units"]) > int(b["units"]) or (int(a["units"]) == int(b["units"]) and str(a["org"]) < str(b["org"])))
+	return rows.slice(0, 3)

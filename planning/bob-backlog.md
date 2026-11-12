@@ -28,3 +28,7 @@
    - Firm AI founds, sells or closes papers through Anni's `found_outlet` / `transfer_outlet` / `close_outlet`.
 10. **Population follow-ups (Wilma's notes, M12(2))**: ship volume driven by home-world demand for colonial goods and by colony attractiveness (wages, housing, food); emigration when the colony can't feed or house people.
 11. **Policy fork harness** (Wilma, 2026-11-13): run a seed to month M, save, continue the same world N years with a lever forced on/off; the difference isolates the policy (6-seed A/Bs diverge politically and swamp 3–5 point effects — E117 A/B). Reusable for any lever.
+12. **Transport T2–T4** (A43, after the v5 chronicles; spec-transport-v1.md). Contracts agreed:
+   - Terra (T1): ROAD projects with p["link"] use Transport.validate_link / plan_link (bill) / complete_road (on _complete, link id on the fact); add_traffic(world, link_id, units) monthly for freight; route(world, from, to, mode). Wire only after transport.gd is registered; off switch "T1".
+   - Anni (T5, sim/law/transport_law.gd, preload): capped_fare → {fare, subsidy}, fare_cap_binds, accident_factor / safety_cost_factor, tour_approval_p / tour_accident_factor, road_toll (PAVED links → treasury), operation() PUBLIC/FRANCHISE/OPEN.
+   - Anni (T7): I maintain table "traffic_stat" keyed "LINK:<id>" / "NODE:<id>" {kind, id, name, load_pm, flow, accidents_12m, serious_12m, fatal_12m} monthly (ints), and emit ECON_TRAFFIC_ACCIDENT {target, serious, fatal}; Terra supplies "traffic_fix".

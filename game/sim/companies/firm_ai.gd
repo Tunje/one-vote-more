@@ -303,9 +303,12 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 	var needs := {}  # "org|good|district" -> qty
 	var upkeep_val := {}  # org -> value of its running plants' monthly upkeep (E116)
 	var upkeep_qty := {}  # "org|good|district" -> upkeep part of the need (E116)
+	var bakery_orgs := {}  # D2: orgs that turn food into fine food
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		var r: Dictionary = EconData.RECIPES[f["type"]]
+		if f["type"] == "BAKERY":
+			bakery_orgs[f["org"]] = true
 		if f["mothball"]:
 			if f.get("closed_unsafe", false):  # E84: overhaul of a plant closed as unsafe needs its full upkeep
 				if r["upkeep"] > 0:
@@ -367,6 +370,12 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 		var lim := int(s["prices"][good] * (1.1 if tight else EconData.INPUT_LIMIT_MULT)) + freight_allow
 		if o["type"] in EconData.PUBLIC_TYPES:
 			lim = s["prices"][good] * 2 + freight_allow  # public services and utilities outbid industry for inputs
+		if good == "FOOD" and bakery_orgs.has(oid) and not EconUtil.off(world, "D2"):
+			# D2 (Wilma): a bakery pays for food only what its fine food earns (1.2 per unit of food, at BAKERY_FOOD_SHARE of
+			# the value; a corner-cutting CEO pays more). In a shortage food outprices cakes and bakeries cut back by
+			# themselves; strong fine-food demand from the rich, or a greedy owner, can still keep them buying.
+			var share := BAKERY_FOOD_SHARE_GREEDY if int(o["ceo"].get("risk", 50)) >= 70 else BAKERY_FOOD_SHARE
+			lim = mini(lim, int(float(s["prices"].get("FINE_FOOD", 0)) * BAKERY_YIELD * share))
 		var cost_needed := EconUtil.val(maxi(want, 0), lim)
 		if cost_needed > budgets[oid] and o["type"] in ["PRIVATE", "COOPERATIVE"]:
 			budgets[oid] += _working_capital(world, oid, cost_needed - budgets[oid])
@@ -843,6 +852,9 @@ static func _essentials_planner(world: WorldState) -> void:
 const STALE_TENDER_M := 3  # E117a: months a tender sits without a bid before it counts as unmet construction demand
 const MAX_FORMING := 3  # D2: new companies being set up at once (was 1; the consumer industries waited years in line)
 const ADMIN_INPUT_SHARE := 0.6  # E119: share of last month's revenue an administrator spends on inputs
+const BAKERY_YIELD := 1.2  # D2: fine food made per unit of food (BAKERY recipe 300 out / 250 in)
+const BAKERY_FOOD_SHARE := 0.6  # of the fine-food value a bakery will pay for its food
+const BAKERY_FOOD_SHARE_GREEDY := 0.8  # a corner-cutting CEO (risk ≥ 70) keeps buying longer
 const D2_ENTRY_UNEMP := 0.06
 const D2_ENTRY_MONTH := 24  # the founding years build essentials first
 

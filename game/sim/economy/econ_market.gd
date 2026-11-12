@@ -20,6 +20,7 @@ static func trade(world: WorldState) -> void:
 		g["spent_goods"] = 0
 		g["short"] = {}
 	s["input_short"] = {}
+	s["food_buyers_m"] = {}
 	s["layoffs_m"] = {}
 	EconActions.apply_queue(world)
 	_import_arrivals(world)
@@ -247,6 +248,10 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 			EconFinance._gov_rev(world, vpaid)
 		else:
 			EconUtil.inv_add(world, bid["buyer"], good, bid["district"], take, unit)
+			if good == "FOOD" and bid["kind"] == "org":  # D2: who besides households eats into the food supply (for the papers)
+				var fb: Dictionary = s.get("food_buyers_m", {})
+				fb[bid["buyer"]] = int(fb.get(bid["buyer"], 0)) + take
+				s["food_buyers_m"] = fb
 			if bid["kind"] == "org":
 				EconFinance.pl_add(world, bid["buyer"], "freight", freight)
 		got += take

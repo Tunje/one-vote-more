@@ -30,6 +30,7 @@ const DEMAND_COOLDOWN_M := 12
 const MAX_NEW_DEMANDS := 2
 const DEADLINE_M := 2
 const STRIKE_MAX_M := 6
+const FARM_STRIKE_MAX_M := 2  # months a strike can hold the farms (at minimum service)
 const GENERAL_WORK := 0.7
 const GENERAL_GAP_M := 120
 const GENERAL_P := 0.1
@@ -308,9 +309,17 @@ static func _stop(world: WorldState, d: Dictionary) -> int:
 			var essential: bool = f["type"] in EconUnions.ESSENTIAL_TYPES
 			if essential and ess_law == "NO_STRIKE" and not d["lockout"]:
 				continue
+			# food: strikers keep tending crops and animals (a minimum service), and the harvest cannot wait — farms leave
+			# a strike after FARM_STRIKE_MAX_M months (a long public strike still means shortages, not a famine by itself)
+			var farm: bool = f["type"] == "FARM" and not d["lockout"]
+			if farm and int(d["strike_months"]) >= FARM_STRIKE_MAX_M:
+				if str(f.get("stop_demand", "")) == d["id"]:
+					f["stop_until"] = world.month - 1
+					f.erase("stop_demand")
+				continue
 			f["stop_until"] = world.month + 1
 			f["stop_kind"] = "LOCKOUT" if d["lockout"] else "STRIKE"
-			f["stop_min"] = essential and ess_law == "MIN_SERVICE" and not d["lockout"]
+			f["stop_min"] = farm or (essential and ess_law == "MIN_SERVICE" and not d["lockout"])
 			f["stop_demand"] = d["id"]
 			n += 1
 		var o: Dictionary = world.table("org")[oid]
