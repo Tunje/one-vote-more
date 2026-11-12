@@ -106,6 +106,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 		PartyLife.check_dissolutions(world, st, PartyLife.latest_poll_shares(world))
 	if have_parties and world.month_of_year() == 1 and world.month > PolDefs.PARTY_FORMATION_MONTH:
 		_adapt_parties(world)
+		Learn.step(world)   # A53: the learning party (no-op unless meta.learning_party is set)
 		var base := PartyLife.axis_baseline(world)   # (Ella) faction lines judged against the other parties
 		for p in PartyLife.active(world):
 			PartyLife.update_factions(world, p, base)
@@ -665,6 +666,7 @@ func run_election(world: WorldState, st: Dictionary, extra: bool = false) -> voi
 	for p in PartyLife.active(world):
 		shares[p["id"]] = int(p["support"])
 	PartyLife.check_dissolutions(world, st, shares)
+	Learn.step(world)   # A53: the learning party judges its trial genome on the result
 	var base := PartyLife.axis_baseline(world)
 	for p in PartyLife.active(world):
 		PartyLife.update_factions(world, p, base)
@@ -726,7 +728,7 @@ func _adapt_parties(world: WorldState) -> void:
 			vmean[ax] = int(round(acc[ax] / w))
 		var target := PartyGen.exaggerate(vmean, cmean)
 		for ax in PolDefs.AXES:
-			p["positions"][ax] += int(round((float(target[ax]) - float(p["positions"][ax])) * 0.10))
+			p["positions"][ax] += int(round((float(target[ax]) - float(p["positions"][ax])) * 0.10 * Learn.mult(p, "G_DRIFT")))   # A53 gene
 		p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs)
 
 

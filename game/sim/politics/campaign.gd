@@ -12,6 +12,16 @@ const WINDOW_EXTRA := 3              # compressed campaign before an extra elect
 const SHORT_CAMPAIGN := 2            # months before the election: valstugor, debates, full spending
 const POLITICS_WEEK_MONTH := 7       # July (Almedalen-style), ordinary campaigns only
 # ---- money ----
+# ---- A53 strategy genes (Learn.gene, milli, 500 = the behaviour below exactly; spec-learning-party-v1 L0) ----
+const GENE_ISSUE_EXP := 1.0          # G_ISSUE: theme score = ownership^(1-k) x worry^(1+k), k = this x (g-500)/500
+                                     #   (0: own issues only, 1000: the voters' worries only);
+                                     #   debate PIVOT (to own themes) fit -/+ GENE_ISSUE_PIVOT x (g-500)/500
+const GENE_ISSUE_PIVOT := 0.2
+const GENE_NEGATIVE_TONE := 0.2      # G_NEGATIVE: tone pressure n + this x (g-500)/500 (attack ads and dirt via tone)
+const GENE_SPEND_SPAN := 0.5         # G_SPEND: monthly spending rate x 0.5..1.5
+const GENE_PORK_SPAN := 0.5          # G_PORK: the governing First Minister's party's pork pressure x 0.5..1.5
+const GENE_UNION_PTS := 10.0         # G_UNION: unions' score of the party + this x (g-500)/500 (UnionPolitics.score)
+
 const SPEND_LONG := 80               # per-mille of party funds per month in the long campaign
 const SPEND_SHORT := 300             # per-mille per month in the short campaign
 # ---- persuasion (utility, milli) ----
@@ -104,7 +114,10 @@ static func pork_pressure(world: WorldState, st: Dictionary) -> float:
 	if c.is_empty():
 		return 0.0
 	var to_go := int(c["election_month"]) - world.month
-	return 1.0 if to_go >= PORK_FROM and to_go <= WINDOW_ORDINARY else 0.0
+	if to_go < PORK_FROM or to_go > WINDOW_ORDINARY:
+		return 0.0
+	var pm: Dictionary = world.peek("party").get(String(st.get("government", {}).get("pm_party", "")), {})
+	return Learn.mult(pm, "G_PORK", GENE_PORK_SPAN)
 
 
 ## Pollsters swarm the short campaign: a poll every month from T−2 to T−1 (not on election day).
@@ -187,8 +200,16 @@ static func _open(world: WorldState, st: Dictionary, month: int, extra: bool) ->
 	st["campaign_id"] = cid
 	world.add_fact({"type": "POL_CAMPAIGN_OPENED", "owner": "pol", "subjects": [], "responsible": [], "impact": {},
 		"magnitude": 50 if not extra else 60, "visibility": "PUBLIC",
-		"data": {"campaign": cid, "election_month": month, "extra": extra, "channel": "CAMPAIGN"}})
+		"data": {"campaign": cid, "election_month": month, "extra": extra, "channel": "CAMPAIGN", "hot": hot_now(world)}})
 	return c
+
+
+## The hot issues right now, hottest first (HotIssues.HOT and up).
+static func hot_now(world: WorldState) -> Array:
+	var hs := HotIssues.heat(world)
+	var out: Array = Det.ordered(hs).filter(func(i): return int(hs[i]) >= HotIssues.HOT)
+	out.sort_custom(func(a, b): return int(hs[a]) > int(hs[b]) or (hs[a] == hs[b] and a < b))
+	return out
 
 
 static func _close(world: WorldState, st: Dictionary, c: Dictionary, status: String) -> void:
@@ -274,7 +295,18 @@ static func _plan(world: WorldState, st: Dictionary, c: Dictionary, p: Dictionar
 	_set_tone(world, st, c, p, e)
 
 
-## Owned concerns the voters care about: the opposition picks failures, government parties their record.
+## A49: what party pid believes the electorate thinks — its picture [sat, sal] (polls with error, its own base as a
+## bubble, slow uptake) in place of the truth's first two entries; the truth when it has no picture yet. Campaign
+## choices read this; the real voters still react to the real campaign.
+static func party_view(world: WorldState, pid: String, truth: Array) -> Array:
+	if not world.peek("pol").get("state", {}).get("intel", {}).has(pid):
+		return truth
+	var pic := Intel.picture(world, pid)
+	return [pic[0], pic[1]] + truth.slice(2)
+
+
+## Owned concerns the voters care about (as the party sees them, A49): the opposition picks failures, government
+## parties their record.
 static func pick_themes(world: WorldState, st: Dictionary, p: Dictionary, seg: Dictionary) -> Array:
 	var gov: Array = st.get("government", {}).get("members", [])
 	var in_gov := gov.has(p["id"])
@@ -284,13 +316,21 @@ static func pick_themes(world: WorldState, st: Dictionary, p: Dictionary, seg: D
 		tot += int(seg[k]["pop"])
 		for cn in seg[k]["sal"]:
 			colony_sal[cn] = int(colony_sal.get(cn, 0)) + int(seg[k]["sal"][cn]) * int(seg[k]["pop"])
+	var pic: Array = []
+	if world.peek("pol").get("state", {}).get("intel", {}).has(String(p["id"])):
+		pic = Intel.picture(world, String(p["id"]))
+		tot = 1
+		colony_sal = pic[1]
 	var scored: Array = []
+	var heat := HotIssues.concern_heat(HotIssues.heat(world))
+	var k := GENE_ISSUE_EXP * (float(Learn.gene(p, "G_ISSUE")) - 500.0) / 500.0   # A53: chase worries vs own issues
 	for cn in PolDefs.CONCERNS:
 		var own := float(p.get("ownership", {}).get(cn, 0)) + 10.0
 		var sal := float(colony_sal.get(cn, 0)) / maxf(1.0, float(tot))
-		var sat := float(PartyLife._colony_sat(world, cn)) / 100000.0
+		var sat := (float(pic[0].get(cn, 50000)) if not pic.is_empty() else float(PartyLife._colony_sat(world, cn))) / 100000.0
 		var fit := sat if in_gov else 1.0 - sat
-		scored.append([own * sal * (0.3 + fit), cn])
+		var hot := 1.0 + HotIssues.THEME_WEIGHT * float(heat.get(cn, 0)) / 1000.0
+		scored.append([pow(own, 1.0 - k) * pow(sal * (0.3 + fit) * hot, 1.0 + k), cn])
 	scored.sort_custom(func(a, b): return a[0] > b[0] or (a[0] == b[0] and a[1] < b[1]))
 	return [scored[0][1], scored[1][1]]
 
@@ -325,6 +365,7 @@ static func _set_tone(world: WorldState, st: Dictionary, c: Dictionary, p: Dicti
 	trailing += clampf((last - now) / 4000.0, 0.0, 1.0) * 0.2               # below the last election
 	var opp := 0.1 if not st.get("government", {}).get("members", []).has(p["id"]) else 0.0
 	var n := 0.2 + trailing + opp - integ / 200.0
+	n += GENE_NEGATIVE_TONE * (float(Learn.gene(p, "G_NEGATIVE")) - 500.0) / 500.0   # A53
 	var tone := "NEGATIVE" if n > 0.15 else ("MIXED" if n > 0.0 else "POSITIVE")
 	if e["target"] == "":
 		tone = "POSITIVE"
@@ -374,8 +415,9 @@ static func _spend(world: WorldState, c: Dictionary, to_go: int, seg: Dictionary
 		var e: Dictionary = c["parties"][pid]
 		var acc: String = "party:" + pid
 		var amt := 0
+		var prate := int(round(float(rate) * Learn.mult(p, "G_SPEND", GENE_SPEND_SPAN)))   # A53
 		if world.ledger.has_account(acc):
-			amt = maxi(0, world.ledger.balance(acc)) * rate / 1000
+			amt = maxi(0, world.ledger.balance(acc)) * prate / 1000
 		var oppo := amt * int(e["split"]["oppo"]) / 1000 if to_go >= 1 else 0
 		var ground := amt * int(e["split"]["ground"]) / 1000
 		var ad := amt - oppo - ground
@@ -628,6 +670,9 @@ static func _debate(world: WorldState, st: Dictionary, c: Dictionary, final: boo
 	var answers := {}
 	var perf := {}
 	var gaffes: Array = []
+	var views := {}
+	for p in ps:
+		views[p["id"]] = party_view(world, p["id"], cs)   # A49: each leader prepares from the party's own picture
 	for p in ps:
 		var pid: String = p["id"]
 		perf[pid] = performance(c, p, r, 15.0)
@@ -635,7 +680,7 @@ static func _debate(world: WorldState, st: Dictionary, c: Dictionary, final: boo
 		var sum_fit := 0.0
 		for i in qs.size():
 			var topic: String = qs[i]["topic"]
-			var stance := _chosen_stance(world, st, c, p, topic, prep.get("answers", {}).get(str(i), ""), r, cs)
+			var stance := _chosen_stance(world, st, c, p, topic, prep.get("answers", {}).get(str(i), ""), r, views[pid])
 			var f := stance_fit(world, st, c, p, topic, stance, cs)
 			sum_fit += f
 			row.append({"topic": topic, "stance": stance, "fit": int(round(f * 1000.0))})
@@ -666,7 +711,7 @@ static func _debate(world: WorldState, st: Dictionary, c: Dictionary, final: boo
 		_event(world, c, "POL_DEBATE_GAFFE", "DEBATE", [pid], 60,
 			{"party": pid, "leader": PartyLife.leader_name(world.table("party")[pid]), "final": final})
 	var d := {"month": world.month, "final": final, "winner": winner, "loser": loser, "killer_on": killer, "gaffes": gaffes,
-		"answers": answers, "topics": qs.map(func(q): return q["topic"])}
+		"answers": answers, "topics": qs.map(func(q): return q["topic"]), "issues": qs.map(func(q): return String(q.get("issue", "")))}
 	c["debates"].append(d)
 	var data := d.duplicate()
 	data.erase("answers")
@@ -679,7 +724,8 @@ const STANCES := ["ATTACK", "DEFEND", "PIVOT"]
 const DEBATE_FIT_WEIGHT := 15.0       # performance points per unit of stance fit
 
 ## The questions for the debate `at_to_go` months before the election (0 = the final). Topics: the colony's
-## most pressing concerns (salience × unmet), three drawn from the top five. Answers start empty.
+## most pressing concerns (salience × unmet × hot-issue heat), three drawn from the top five; the hottest issue
+## (HotIssues) takes the audience question if the first two miss it. Answers start empty.
 static func prepare_debate(world: WorldState, c: Dictionary, at_to_go: int) -> Dictionary:
 	var month := int(c["election_month"]) - at_to_go
 	var cur: Dictionary = c.get("debate_prep", {})
@@ -689,7 +735,8 @@ static func prepare_debate(world: WorldState, c: Dictionary, at_to_go: int) -> D
 	var scored: Array = []
 	for cn in PolDefs.CONCERNS:
 		var unmet := 1.0 - float(cs[0][cn]) / 100000.0
-		scored.append([float(cs[1][cn]) * unmet, cn])
+		var hot := 1.0 + HotIssues.DEBATE_WEIGHT * float(cs[2].get(cn, 0)) / 1000.0
+		scored.append([float(cs[1][cn]) * unmet * hot, cn])
 	scored.sort_custom(func(a, b): return a[0] > b[0] or (a[0] == b[0] and a[1] < b[1]))
 	var pool: Array = scored.slice(0, 5)
 	var r := world.rng.stream("pol.campaign.questions")
@@ -706,8 +753,21 @@ static func prepare_debate(world: WorldState, c: Dictionary, at_to_go: int) -> D
 			idx = j
 			if pick <= 0.0:
 				break
-		qs.append({"topic": pool[idx][1], "asker": askers[i]})
+		var q := {"topic": pool[idx][1], "asker": askers[i]}
+		var iss := HotIssues.issue_for(cs[3], String(pool[idx][1]))
+		if iss != "":
+			q["issue"] = iss
+		qs.append(q)
 		pool.remove_at(idx)
+	# what everyone is talking about gets asked: the hottest issue takes the audience question if not yet covered
+	var hottest := ""
+	for i in Det.ordered(cs[3]):
+		if int(cs[3][i]) >= HotIssues.HOT and (hottest == "" or int(cs[3][i]) > int(cs[3][hottest])):
+			hottest = i
+	if hottest != "":
+		var hc := String(HotIssues.ISSUES[hottest]["concern"])
+		if not qs.slice(0, 2).any(func(q): return q["topic"] == hc):
+			qs[2] = {"topic": hc, "asker": "AUDIENCE", "issue": hottest}
 	var prep := {"month": month, "final": at_to_go == 0, "questions": qs, "answers": {}}
 	c["debate_prep"] = prep
 	return prep
@@ -735,6 +795,8 @@ static func stance_fit(world: WorldState, st: Dictionary, c: Dictionary, p: Dict
 			else:
 				var tgt_gov := 1.0 if members.has(tgt) else 0.5
 				f = unmet * vulnerability(world.table("party")[tgt]) * tgt_gov * 1.2 - 0.15
+				if members.has(tgt) and cs.size() > 2:
+					f += HotIssues.ATTACK_BONUS * float(cs[2].get(topic, 0)) / 1000.0   # the government is blamed for it
 		"DEFEND":
 			f = (sat - 0.45) * 2.0 if in_gov else own * 0.8 - 0.1
 		"PIVOT":
@@ -752,8 +814,11 @@ static func _chosen_stance(world: WorldState, st: Dictionary, c: Dictionary, p: 
 		return given
 	var best := "DEFEND"
 	var bf := -INF
+	var pivot_bias := -GENE_ISSUE_PIVOT * (float(Learn.gene(p, "G_ISSUE")) - 500.0) / 500.0   # A53: high G_ISSUE stays on the question
 	for s in STANCES:
 		var f := stance_fit(world, st, c, p, topic, s, cs)
+		if s == "PIVOT":
+			f += pivot_bias
 		if f > bf:
 			bf = f
 			best = s
@@ -966,7 +1031,7 @@ static func _pork(world: WorldState, st: Dictionary, c: Dictionary) -> void:
 				{"party": pid, "value": int(round(value * 1000.0)), "believed": d >= 0, "momentum": d})
 
 
-## Colony-wide [sat, sal] (same shape as PoliticsProvider.colony_concerns), read-only.
+## Colony-wide [sat, sal, {concern: hot-issue heat}, {issue: heat}] (sat/sal as PoliticsProvider.colony_concerns), read-only.
 static func colony_concerns(world: WorldState) -> Array:
 	var sat := {}
 	var sal := {}
@@ -985,7 +1050,8 @@ static func colony_concerns(world: WorldState) -> Array:
 	for cn in PolDefs.CONCERNS:
 		sat[cn] = int(round(sat[cn] / maxf(1.0, p)))
 		sal[cn] = int(round(sal[cn] / maxf(1.0, p)))
-	return [sat, sal]
+	var hs := HotIssues.heat(world)
+	return [sat, sal, HotIssues.concern_heat(hs), hs]
 
 
 # ======================================================================= player actions (Campaign panel)

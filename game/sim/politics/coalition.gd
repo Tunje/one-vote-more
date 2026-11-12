@@ -60,7 +60,7 @@ static func evaluate(members: Array, parties: Dictionary, tolerance: float) -> D
 			yes += p["seats"]
 		else:
 			var d := VoteModel.distance(p["positions"], center)
-			if d > tolerance:
+			if d > tolerance * Learn.mult(p, "G_COALITION", 0.4):   # A53: willingness to compromise
 				no += p["seats"]
 			elif d <= SUPPORT_LIMIT:
 				near.append([d, pid])

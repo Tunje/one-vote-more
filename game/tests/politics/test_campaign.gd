@@ -404,3 +404,35 @@ static func Det_ordered(d: Dictionary) -> Array:
 	var ks: Array = d.keys()
 	ks.sort()
 	return ks
+
+
+## A49: a party campaigns on what its own picture of the electorate says, not on the truth.
+func test_a_party_campaigns_on_its_own_picture() -> void:
+	var sim := _sim()
+	var w := sim.world
+	_open_campaign(sim)
+	var st := _st(w)
+	var ps := PartyLife.active(w)
+	var p: Dictionary = ps[0]
+	st["government"] = {"members": [ps[1]["id"]], "pm_party": ps[1]["id"], "support": []}
+	var truth := Campaign.colony_concerns(w)
+	var sat := {}
+	var sal := {}
+	for cn in PolDefs.CONCERNS:
+		sat[cn] = 90000
+		sal[cn] = 60
+	sat["FAIRNESS"] = 5000
+	sal["FAIRNESS"] = 600
+	var intel: Dictionary = st.get("intel", {})
+	var keep: Variant = intel.get(p["id"])
+	intel[p["id"]] = {"sat": sat, "sal": sal, "q": 50, "month": w.month}
+	st["intel"] = intel
+	check("FAIRNESS" in Campaign.pick_themes(w, st, p, Campaign.segments(w)), "themes follow the party's picture")
+	var v := Campaign.party_view(w, p["id"], truth)
+	check_eq(int(v[0]["FAIRNESS"]), 5000, "the view is the picture")
+	check_eq(v.size(), truth.size(), "hot-issue heat carried over")
+	check_eq(Campaign.party_view(w, "nobody", truth), truth, "no picture: the truth")
+	if keep == null:
+		intel.erase(p["id"])
+	else:
+		intel[p["id"]] = keep

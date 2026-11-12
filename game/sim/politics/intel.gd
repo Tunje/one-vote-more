@@ -33,7 +33,8 @@ static func quality(world: WorldState, key: String) -> int:
 	var p: Dictionary = world.peek("party").get(key, {})
 	var st: Dictionary = world.peek("pol").get("state", {})
 	var gov := 10 if key in st.get("government", {}).get("members", []) else 0
-	return clampi(25 + int(p.get("seats", 0)) * 2 / 5 + gov, 15, 85)
+	var research := int(round(20.0 * (Learn.mult(p, "G_RESEARCH") - 1.0)))   # A53: polling money buys a sharper picture
+	return clampi(25 + int(p.get("seats", 0)) * 2 / 5 + gov + research, 15, 90)
 
 
 ## A party's (or the government's) picture: [sat {c: milli}, sal {c: int}]. Pure read; neutral if none yet.

@@ -131,3 +131,39 @@ AI government answers to public-sector demands, Unions window and news. Waits fo
    UNION_ENDORSEMENT_WITHDRAWN) and carries a penalty with those unions that decays linearly over 8 years. Its
    labour-side faction gains discontent; with a LABOR faction axis, its union wing can split.
 5. **Campaign**: MOB_UNION volunteers per endorsing union, scaled by members (no money cost).
+   A coalition answers for a cut together: a union that walks out holds it against every cabinet party that
+   enacted it, so it does not hop to a partner that voted the same cut through (fix after v5, 2026-11-12).
+
+## §11 Hot issues (2026-11-12, Wilma's suggestion; owner Ella; `sim/politics/hot_issues.gd`)
+
+Live controversies the sim's own facts make hot, so campaigns and debates talk about what is happening in the colony.
+Nothing is saved: the heat (0..1000) is computed from the last 18 months of facts, fading linearly, plus live state.
+Each issue sits under one voter concern, so the vote model is unchanged.
+
+| Issue | Concern | Heat from |
+|---|---|---|
+| IMMIGRATION | HOUSING | settlers arriving (ECON_MIGRANTS_ARRIVED; 5% of the colony = full), ×0.5..1.5 by crowding; +400 when parliament moved LAW_IMMIGRATION |
+| SLUMS | HOUSING | +80 per district in slum now, capped at 250 (chronic slums stay the housing concern's business), +600 for a new one (ECON_SLUM) |
+| EMIGRATION | JOBS | the young leaving on the ships (ECON_EMIGRATION; 3% of the colony = full) |
+| WASTE_SITING | ENVIRONMENT_QUALITY | waits for the siting facts of spec-waste W7 (list them in `WASTE_SITING_FACTS`) |
+
+An issue is hot at 300+. Effects:
+- **Debates**: a concern's question weight × (1 + heat); a question on a concern with a hot issue carries its name
+  ("asks about immigration"); the hottest issue takes the audience question if the first two miss its concern.
+- **Themes**: AI parties' theme score × (1 + 0.6 × heat); the player's theme menu always lists hot concerns.
+- **Attack**: attacking the governing target on a hot concern fits up to +0.2 better (the facts blame the government).
+- **News**: the campaign opening names what everyone is talking about (fact data `hot`); debates name the clash
+  (data `issues`).
+Measured with `tools/measure_hot_issues.gd <months> <seed>`.
+
+## §12 Imperfect knowledge and strategy genes in the campaign (A49, A53; 2026-11-12)
+
+- **A49**: a party's campaign choices read its own picture of the electorate (`Campaign.party_view`, from
+  `Intel.picture`): theme picks and its leader's debate stances. The debate's real effect is still scored on the
+  truth, and the voters react to the real campaign, so a party with a bad picture misjudges. Debate questions
+  (the moderators') and hot issues (public facts) stay on the truth. The player's debate panel shows the player's
+  polling. Geographic targeting stays on the voter segments (pictures are colony-wide).
+- **A53** genes (`Learn.gene`, 500 = the behaviour above exactly): G_ISSUE (theme score ownership^(1−k) × worry^(1+k),
+  k = (g−500)/500; debate pivot ∓0.2), G_NEGATIVE (tone pressure ±0.2), G_SPEND (spending rate ×0.5..1.5), G_PORK
+  (the First Minister's party's pork pressure ×0.5..1.5), G_UNION (unions' score of the party ±10). Tests:
+  `tests/politics/test_campaign_genes.gd`.

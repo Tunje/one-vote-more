@@ -312,6 +312,7 @@ static func factions_monthly(world: WorldState, st: Dictionary) -> void:
 				gov_gap = absf(float(int(g["center"][ax]) - int(f["pole"]))) / 1000.0
 			var lead := -10.0 if int(p["leader"]["faction"]) == i else 8.0
 			var target := clampf(gap + 0.5 * gov_gap + 3.0 * drop + lead + (50.0 - float(p["credibility"])) * 0.3, 0.0, 100.0)
+			target *= Learn.mult(p, "G_DISCIPLINE", -0.4)   # A53: a disciplined party damps its factions
 			f["discontent"] = int(round(0.92 * float(f["discontent"]) + 0.08 * target))
 			f["high_months"] = int(f.get("high_months", 0)) + 1 if int(f["discontent"]) >= SPLIT_DISCONTENT else 0
 

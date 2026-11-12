@@ -162,7 +162,7 @@ func _debate_night(w: WorldState, c: Dictionary, pp: String) -> void:
 		Kit.header(body, "Debate night: %s, %s" % ["the final debate" if prep["final"] else "the leaders' debate", "next month" if int(prep["month"]) > w.month else "tonight"])
 		Kit.label(body, "Choose how your leader answers each question. Attack goes after %s; defend stands on the record; pivot turns to your themes (%s)." % [
 			_pname(w, c["parties"][pp]["target"]) if String(c["parties"][pp]["target"]) != "" else "nobody (no target set)", ", ".join(c["parties"][pp]["themes"])], 12, Color(0.75, 0.75, 0.75))
-		var cs := Campaign.colony_concerns(w)
+		var cs := Campaign.party_view(w, pp, Campaign.colony_concerns(w))   # A49: your polling, not the truth
 		var own: Dictionary = w.peek("party")[pp].get("ownership", {})
 		var members: Array = st.get("government", {}).get("members", [])
 		for i in prep["questions"].size():
@@ -172,10 +172,10 @@ func _debate_night(w: WorldState, c: Dictionary, pp: String) -> void:
 			var about := topic.capitalize()
 			if String(q.get("issue", "")) != "":
 				about = "%s (%s)" % [HotIssues.label(String(q["issue"])), topic.capitalize()]
-			Kit.label(body, "%d. %s asks about %s. Colony satisfaction %d%%, how much people care %s, your ownership %d%s." % [i + 1,
+			Kit.label(body, "%d. %s asks about %s. Your polling: satisfaction %d%%, how much people care %s, your ownership %d%s." % [i + 1,
 				"The moderator" if q["asker"] == "MODERATOR" else "Someone in the audience", about,
 				int(cs[0][topic]) / 1000, "high" if int(cs[1][topic]) > 130 else ("low" if int(cs[1][topic]) < 90 else "average"),
-				int(own.get(topic, 0)), " · you govern: it's your record" if members.has(pp) else ""], 13)
+				int(own.get(topic, 0)), " · you sit in the Cabinet: it's your record" if members.has(pp) else ""], 13)
 			var row := Kit.hbox(body)
 			for stance in Campaign.STANCES:
 				var sname: String = stance

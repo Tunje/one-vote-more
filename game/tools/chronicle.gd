@@ -37,6 +37,8 @@ func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(out.get_base_dir())
 	var sim: Simulation = EconSim.make(seed_v, "BALANCED", {}, true)
 	w = sim.world
+	if args.size() > 3 and args[3] == "learn":
+		w.meta["learning_party"] = "auto"   # A53: the largest founding party learns its strategy
 	var t0 := Time.get_ticks_msec()
 	var prev_levers := w.levers.duplicate(true)
 	for _m in years * 12:
@@ -210,6 +212,7 @@ func _render(seed_v: int, years: int) -> String:
 	_event_log(L)
 	_society(L)
 	_knowledge(L)
+	_learning(L)
 	return "\n".join(L)
 
 
@@ -712,6 +715,51 @@ static func _top_worry(cs: Array) -> String:
 			bv = v
 			best = c
 	return best
+
+
+## 11. The learning party (A53): what it tried and what stuck. Only when the run was started with "learn".
+func _learning(L: PackedStringArray) -> void:
+	var ls: Dictionary = w.peek("pol").get("state", {}).get("learn", {})
+	if ls.is_empty():
+		return
+	var pid := String(ls.get("party", ""))
+	var name := String(w.peek("party").get(pid, {}).get("name", pid))
+	L.append("## 11. The learning party")
+	L.append("")
+	L.append("%s adjusted its strategy each January and after each election: one gene moved per step; a trial that scored" % name)
+	L.append("at least as well as the last baseline was kept, otherwise it fell halfway back. Score = support + 0.3 x seats")
+	L.append("+ 25 if it held the First Minister + 10 if in the Cabinet. Genes are 0..1000; 500 = the default behaviour.")
+	L.append("Trials kept: %d." % int(ls.get("kept", 0)))
+	L.append("")
+	var hist: Array = ls.get("history", [])
+	var genes: Array = Learn.GENES
+	var head := "| year | score |"
+	var sep := "|---|---|"
+	for g in genes:
+		head += " %s |" % String(g).substr(2)
+		sep += "---|"
+	L.append(head)
+	L.append(sep)
+	var last_year := -1
+	for h in hist:
+		var y := int(h["month"]) / 12 + 1
+		if y / 5 == last_year / 5 and h != hist[hist.size() - 1]:
+			continue   # one row per five years, plus the last
+		last_year = y
+		var row := "| %d | %.1f |" % [y, float(h["score"]) / 1000.0]
+		for g in genes:
+			row += " %d |" % int(h["genome"].get(g, 500))
+		L.append(row)
+	L.append("")
+	if not hist.is_empty():
+		var fin: Dictionary = hist[hist.size() - 1]["genome"]
+		var moved: Array = []
+		for g in genes:
+			var v := int(fin.get(g, 500))
+			if absi(v - 500) >= 150:
+				moved.append("%s %s (%d)" % [String(g).substr(2).to_lower(), "up" if v > 500 else "down", v])
+		L.append("What stuck: " + (", ".join(moved) if not moved.is_empty() else "nothing moved far from the default") + ".")
+		L.append("")
 
 
 ## 10. What the parties knew, and what they believed (A49): expectation vs reality.

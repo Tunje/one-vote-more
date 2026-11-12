@@ -201,6 +201,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	var skill_gap := _skill_gap(world) if allowed == "PARLIAMENT" else 0.0
 	var believer := String(world.peek("pol").get("state", {}).get("government", {}).get("pm_party", "")) if allowed == "PARLIAMENT" else ""
 	var labour_need := _labour_need(world) if allowed == "PARLIAMENT" else 0.0
+	var tinker := TINKER_COST * Learn.mult(world.peek("party").get(believer, {}), "G_PACE", -0.6)   # A53: legislative pace
 	var owed := {}   # "lever|dir" of confidence-and-supply prices still owed: a commitment, not a whim
 	for a in agreement:
 		if a.get("deal", false):
@@ -259,7 +260,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 				if a["lever"] == lid and signf(delta) == a["dir"]:
 					programme = true
 			if mem["moved"].has(dk) and not programme and not owes:
-				sc -= TINKER_COST
+				sc -= tinker
 			var is_deal := false
 			for a in agreement:
 				if a["lever"] == lid:

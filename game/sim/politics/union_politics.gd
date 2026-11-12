@@ -254,6 +254,7 @@ static func score(world: WorldState, u: Dictionary, p: Dictionary, s: Dictionary
 	if _tied(world, u, p):
 		sc += TIE_PTS
 	sc += VIABLE_PTS * float(p.get("support", 0)) / 1000.0
+	sc += Campaign.GENE_UNION_PTS * (float(Learn.gene(p, "G_UNION")) - 500.0) / 500.0   # A53: a party courting the unions
 	return sc
 
 
