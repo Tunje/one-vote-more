@@ -168,6 +168,28 @@ static func _skill_gap(world: WorldState) -> float:
 	return clampf(gap, 0.0, 2.0)
 
 
+## The long-term case for immigration (0..2), which the short-term hints (jobs, housing) don't carry: more open jobs
+## than jobless people, and an ageing population (people 60+ against working age 20–59). v6: every colony closed its
+## borders for good; a government should see when reopening pays.
+static func _labour_need(world: WorldState) -> float:
+	if not world.table("econ").has("s"):
+		return 0.0
+	var k: Dictionary = EconTraining.summary(world)
+	var vac := float(k.get("vacancies_G", 0)) + float(k.get("vacancies_S", 0)) + float(k.get("vacancies_Sp", 0))
+	var une := float(k.get("unemployed_G", 0)) + float(k.get("unemployed_S", 0)) + float(k.get("unemployed_Sp", 0))
+	var shortage := maxf(0.0, vac - une) / 60.0
+	var pyr: Array = EconQuery.demography(world).get("pop_by_band", [])
+	var old := 0.0
+	var work := 0.0
+	for i in pyr.size():
+		if i >= 12:
+			old += float(pyr[i])
+		elif i >= 4:
+			work += float(pyr[i])
+	var ageing := maxf(0.0, old / maxf(1.0, work) - 0.35) * 4.0
+	return clampf(shortage + ageing, 0.0, 2.0)
+
+
 ## pork (0..1, election year; Ella/Campaign.pork_pressure): crowd-pleasing relief counts more, ideology less.
 ## stats (optional, written by the caller's state): {"guard_blocked": n} clauses the fiscal guard kept out.
 static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Dictionary, agreement: Array, allowed: String, stress: float = 0.0, crisis: bool = false, exclude: Dictionary = {}, pork: float = 0.0, stats: Dictionary = {}) -> Array:
@@ -178,6 +200,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	var mem := _bill_memory(world) if allowed == "PARLIAMENT" else {"defeated": {}, "moved": {}}
 	var skill_gap := _skill_gap(world) if allowed == "PARLIAMENT" else 0.0
 	var believer := String(world.peek("pol").get("state", {}).get("government", {}).get("pm_party", "")) if allowed == "PARLIAMENT" else ""
+	var labour_need := _labour_need(world) if allowed == "PARLIAMENT" else 0.0
 	var owed := {}   # "lever|dir" of confidence-and-supply prices still owed: a commitment, not a whim
 	for a in agreement:
 		if a.get("deal", false):
@@ -225,6 +248,8 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			if ia < 0.0 and rl > 0.0 and stress <= 0.0:
 				rl /= 1.0 + absf(ia) / 2.0
 			var sc := (1.0 - 0.3 * pork) * ia + 3.0 * (1.0 + 0.5 * pork) * rl
+			if labour_need > 0.0 and lid == "LAW_IMMIGRATION":
+				sc += labour_need * signf(delta)   # v6 review: an ageing colony with unfilled jobs needs newcomers
 			if skill_gap > 0.0 and delta > 0.0 and lid in TRAINING_LEVERS:
 				sc += skill_gap  # E114: firms cannot fill skilled posts; training money and the subsidy go together
 			# v5 review (433 bills in one run): no endless tinkering. Moving the same lever again the same way within

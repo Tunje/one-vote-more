@@ -46,7 +46,7 @@ static func formation_step(world: WorldState, st: Dictionary) -> void:
 		return
 	var f: Dictionary = st["formation"]
 	var parties := _active(world)
-	var best := Coalition.form_round(parties, int(f["round"]))
+	var best := _form_respecting(parties, int(f["round"]), f.get("ousted", {}))
 	if best.is_empty():
 		f["round"] = int(f["round"]) + 1
 		world.add_fact({"type": "POL_PM_VOTE_FAILED", "owner": "pol", "subjects": [], "responsible": [],
@@ -247,6 +247,7 @@ static func vote_no_confidence(world: WorldState, st: Dictionary, mover: String)
 	var parties := _active(world)
 	var rng := world.rng.stream("pol.vote")
 	var against := 0
+	var hostile: Array = []
 	var ids := parties.keys()
 	ids.sort()
 	for pid in ids:
@@ -258,6 +259,7 @@ static func vote_no_confidence(world: WorldState, st: Dictionary, mover: String)
 		var alternative: bool = pid in g.get("nc_alternative", [])
 		if pid == mover or alternative or pid in g.get("withdrawn", []) or (not supporter and d > Coalition.BASE_TOLERANCE):
 			against += int(p["seats"])
+			hostile.append(pid)
 	st["last_no_confidence"] = world.month
 	var passed := against >= PolDefs.MAJORITY
 	world.add_fact({"type": "POL_NO_CONFIDENCE_PASSED" if passed else "POL_NO_CONFIDENCE_FAILED", "owner": "pol",
@@ -266,7 +268,9 @@ static func vote_no_confidence(world: WorldState, st: Dictionary, mover: String)
 		"impact": {"GOVERNANCE": -15} if passed else {}, "magnitude": 85 if passed else 40, "visibility": "PUBLIC",
 		"data": {"mover": mover, "against": against}})
 	if passed:
+		var ousted := {"pm": String(g.get("pm_party", "")), "members": g.get("members", []).duplicate(), "hostile": hostile}
 		start_formation(world, st, "NO_CONFIDENCE")
+		st["formation"]["ousted"] = ousted   # v6 review: the parties that brought it down don't rebuild it
 		formation_step(world, st)
 	return {"passed": passed, "against": against}
 
@@ -283,3 +287,38 @@ static func schedule_extra_election(world: WorldState, st: Dictionary, by: Strin
 	world.add_fact({"type": "POL_EXTRA_ELECTION_CALLED", "owner": "pol", "subjects": [], "responsible": [],
 		"impact": {}, "magnitude": 70, "visibility": "PUBLIC", "data": {"by": by, "month": st["extra_election_month"], "mandatory": mandatory}})
 	return {"ok": true, "month": st["extra_election_month"]}
+
+
+## After a successful no-confidence vote, the replacement must respect it (v6 review: 5 of 11 motions were followed
+## by the identical cabinet): no party that voted the government down joins a government led by the ousted PM's
+## party, and the same PM party with the same members cannot simply re-form. Otherwise the normal search.
+static func _form_respecting(parties: Dictionary, round_i: int, ousted: Dictionary) -> Dictionary:
+	var best := Coalition.form_round(parties, round_i)
+	if ousted.is_empty() or best.is_empty():
+		return best
+	var pm := String(ousted.get("pm", ""))
+	var hostile: Array = ousted.get("hostile", [])
+	var same: bool = String(best.get("pm_party", "")) == pm and _same_set(best.get("members", []), ousted.get("members", []))
+	var tainted: bool = String(best.get("pm_party", "")) == pm and best.get("members", []).any(func(x): return x in hostile)
+	if not same and not tainted:
+		return best
+	# 1) the ousted PM party may try again, but without the parties that voted it down
+	var without_hostile := parties.duplicate()
+	for h in hostile:
+		without_hostile.erase(h)
+	var alt := Coalition.form_round(without_hostile, round_i)
+	if not alt.is_empty() and not (String(alt.get("pm_party", "")) == pm and _same_set(alt.get("members", []), ousted.get("members", []))):
+		return alt
+	# 2) otherwise someone else must lead: the ousted PM party cannot head the next government
+	var without_pm := parties.duplicate()
+	without_pm.erase(pm)
+	return Coalition.form_round(without_pm, round_i)
+
+
+static func _same_set(a: Array, b: Array) -> bool:
+	if a.size() != b.size():
+		return false
+	for x in a:
+		if not (x in b):
+			return false
+	return true

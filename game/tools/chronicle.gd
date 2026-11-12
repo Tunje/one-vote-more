@@ -662,7 +662,7 @@ func _press_section(L: PackedStringArray, by_type: Dictionary) -> void:
 			_date(int(o.get("founded", 0))), String(o.get("status", "ACTIVE")).to_lower(), int(o.get("cred", 0)) / 1000])
 	L.append("")
 	L.append("Reports exposed as false or misleading: %d · investigations: %d · censorship: %d." % [by_type.get("MEDIA_REPORT_EXPOSED", []).size(),
-		by_type.get("MEDIA_INVESTIGATION_PUBLISHED", []).size(), by_type.get("MEDIA_CENSORED", []).size()])
+		_inv_total(), by_type.get("MEDIA_CENSORED", []).size()])
 	L.append("")
 
 
@@ -803,3 +803,12 @@ func _knowledge(L: PackedStringArray) -> void:
 	for g in gaps.slice(0, 8):
 		L.append("- %s believes %s works at %.2f of its promise; the record says %.2f." % [_pname(String(g[1])), String(g[2]).to_lower().replace("_", " "), g[3], g[4]])
 	L.append("")
+
+
+## Investigations over the whole run (their facts are compacted after 24 months; MediaQuery keeps a lasting count).
+func _inv_total() -> int:
+	var n := 0
+	var inv: Dictionary = MediaQuery.investigations(w)
+	for k in inv:
+		n += int(inv[k])
+	return n

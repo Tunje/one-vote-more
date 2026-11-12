@@ -207,6 +207,6 @@ static func _learn(world: WorldState, st: Dictionary, r: Dictionary, truth: Arra
 			rate *= OWN_LAW
 		b[lid] = clampi(int(round(cur + rate * (evidence - cur))), 100, 2000)
 		moved[pid] = [int(round(cur)), int(b[lid])]
-	world.add_fact({"type": "POL_POLICY_EVIDENCE", "owner": "pol", "subjects": [], "responsible": [], "impact": {}, "magnitude": 10,
+	world.add_fact({"type": "POL_POLICY_EVIDENCE", "owner": "pol", "subjects": [], "responsible": [], "impact": {}, "magnitude": 20,   # >= COMPACT_BELOW_MAGNITUDE: kept for the chronicle
 		"visibility": "OFFICIAL", "data": {"lever": String(r["lever"]), "dir": int(r["dir"]), "evidence": int(round(evidence)),
 		"changed": int(r["month"]), "passed_by": r.get("gov", []).duplicate(), "beliefs": moved}})
