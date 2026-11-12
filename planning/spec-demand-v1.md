@@ -32,13 +32,34 @@ share the same ships.
 - Risks: a ship can be lost (M11), a price collapse can hit a colony that bet on one export, the home world can raise
   tariffs or ban a good (HomeWorld actor), independence changes the terms. Dependence on one export is a real choice.
 
-## D2. Luxury goods (Bob)
+## D2. Consumer industries: durables, wear, quality and fashion (Bob)
 
-- New market good **LUXURY**: made in workshops from MATERIAL + COMPONENT + skilled labour (S/Sp heavy), with quality
-  tiers. Exportable.
-- Household demand: only after essentials are met, rising steeply with income band (the I4/I5 households spend most),
-  plus status: more luxury where inequality is high. Rich enclaves (areas) want more.
-- Effect: high earners' surplus becomes jobs instead of idle savings; the luxury trade shows inequality on the street.
+User addition 2026-11-13: "What about consumables… furnishings for your houses, extra tasty food, things you would buy
+and use, clothes… resources that never run out, never stable the same way the housing market and power markets are."
+
+Today there is one generic CONSUMER good, burned the month it is bought, with discretionary spending capped per
+person (MAX_DISC_CONSUMER_PC × band) — demand saturates once the ration is met, one more reason capacity sits idle.
+D2 replaces that with real consumer industries (LUXURY becomes their top quality tier, not a separate good):
+
+- **Goods and industries**: CLOTHING (textile mill + tailors), FURNISHINGS (furniture works; household goods),
+  FINE_FOOD (bakeries, delicatessens, preserves from FOOD and the native crop; keeps a few months, exportable when
+  preserved), and the existing general CONSUMER. Each has its own facility type, inputs (MATERIAL, COMPONENT, FOOD,
+  ENERGY), labour mix (many G jobs, S/Sp for the fine tiers) and occupation.
+- **Wear (never runs out)**: households hold a STOCK of clothing and furnishings per person that depreciates
+  (clothing ~24 months, furnishings ~10 years; fine food is eaten). Replacement demand never ends. Stock is a per-
+  household-pool integer (no new PopStore key), moved with households.
+- **Quality tiers instead of a cap**: each good comes in BASIC / GOOD / FINE (FINE = luxury, skilled labour, higher
+  margin). Richer bands buy more units and higher tiers; no hard per-person cap, only diminishing returns, so rising
+  income keeps creating demand. Inequality shows as a FINE trade.
+- **Never stable (like housing and power)**:
+  - Durables are postponable: purchases follow confidence (approval, unemployment trend, price shocks, strikes,
+    crises), so they boom and slump — real business cycles.
+  - New housing (areas, A3 housing life-cycle) brings furnishing waves.
+  - Fashion: a clothing "style" index that shifts every few years; stock of an old style counts as worn sooner, a
+    new style is a buying wave.
+  - Seasonal: clothing by Terra's seasons; fine food around holidays and arena events.
+- **Links**: FINE goods and preserved FINE_FOOD are exportable (D1) and bought by tourists (D4); a luxury tax (D5)
+  lands on the FINE tier.
 
 ## D3. Leisure (Bob, with Wilma for the state side)
 
@@ -87,7 +108,8 @@ market for now) or claim an export levy; refusing it is part of colony politics.
   capacity/demand above +100% on no essential good for more than 10 years.
 - Mean unemployment falls clearly against the current tree on the same seeds (target: century mean under 14%) without
   forcing it, and it still differs by politics.
-- Luxury spending rises with inequality; leisure venues exist in every area over 300 people by Year 30.
+- Consumer industries (clothing, furnishings, fine food) exist on every seed by Year 10; their output swings with
+  confidence (at least one boom and one slump per century per seed); FINE-tier spending rises with inequality; leisure venues exist in every area over 300 people by Year 30.
 - Tourist arrivals vary with safety and law (a strike-heavy or riot decade shows fewer tourists).
 - Ledger: EXTERNAL flows only for exports, tourist spending, imports and migrants; determinism and save/load hold;
   integer state only.
