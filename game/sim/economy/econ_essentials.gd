@@ -19,6 +19,8 @@ const INCENTIVE_PCT := [10, 50]
 const INCENTIVE_MONTHS := [6, 60]
 const HIST := 13  # months of margin history kept (trend = now vs 12 months ago)
 const MIN_LABOUR_FILL := 0.5  # a planner builds only if at least half the new crew can be hired from the unemployed
+const OVERBUILT_PCT := 50  # E115b: no new capacity above this margin over demand ...
+const OVERBUILT_FALL := 25  # ... unless the margin fell by more than this many points in a year
 
 
 ## {good: {capacity, demand, margin_pct}} in display units per month. margin_pct = 100 × (capacity / demand − 1).
@@ -45,6 +47,12 @@ static func measure(world: WorldState) -> Dictionary:
 		"WATER": float(s.get("util_demand", {}).get("W", 0)) / S,
 		"MATERIAL": float(s.get("wanted_ema", {}).get("MATERIAL", 0)) / S,
 		"COMPONENT": float(s.get("wanted_ema", {}).get("COMPONENT", 0)) / S}
+	# E115a: the market only sees what is bought; owners that supply themselves (CPW runs mines, smelters and
+	# component works and uses their output for its own upkeep and inputs) never bid. Real use is everything burned
+	# (production inputs, upkeep, construction), smoothed; demand is the larger of the two.
+	if not EconUtil.off(world, "E115"):
+		for g2 in ["MATERIAL", "COMPONENT"]:
+			dem[g2] = maxf(dem[g2], float(s.get("use_ema", {}).get(g2, 0)) / S)
 	var out := {}
 	for g in GOODS:
 		out[g] = {"capacity": cap[g], "demand": dem[g],
@@ -55,6 +63,17 @@ static func measure(world: WorldState) -> Dictionary:
 ## Monthly (COMPANY_AI): keep margin history for the trend.
 static func record(world: WorldState) -> void:
 	var s := EconUtil.st(world)
+	# E115a: monthly use (cumulative burned → delta), smoothed like wanted_ema
+	var ue: Dictionary = s.get("use_ema", {})
+	var prev: Dictionary = s.get("use_prev", {})
+	for g2 in ["MATERIAL", "COMPONENT"]:
+		var burned := int(s.get("qflow", {}).get(g2, {}).get("burned", 0))
+		if prev.has(g2):
+			var used := float(maxi(0, burned - int(prev[g2])))
+			ue[g2] = int(0.9 * float(ue.get(g2, used)) + 0.1 * used)
+		prev[g2] = burned
+	s["use_ema"] = ue
+	s["use_prev"] = prev
 	var h: Dictionary = s.get("ess_hist", {})
 	s["ess_hist"] = h
 	var m := measure(world)
@@ -72,6 +91,17 @@ static func trend(world: WorldState, good: String) -> int:
 	if a.size() < 2:
 		return 0
 	return int(a[a.size() - 1]) - int(a[0])
+
+
+## E115b: capacity is well above demand (margin > OVERBUILT_PCT) and not falling fast: no new plant or expansion
+## of this good. Reads the margin recorded this month (no history → false).
+static func overbuilt(world: WorldState, good: String) -> bool:
+	if EconUtil.off(world, "E115") or not good in GOODS:
+		return false
+	var a: Array = EconUtil.peek_st(world).get("ess_hist", {}).get(good, [])
+	if a.is_empty():
+		return false
+	return int(a[a.size() - 1]) > OVERBUILT_PCT and trend(world, good) > -OVERBUILT_FALL
 
 
 ## Expected fill (0..1) of a new plant's crew from the unemployed, worst skill tier.

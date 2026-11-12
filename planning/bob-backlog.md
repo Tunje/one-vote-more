@@ -21,6 +21,7 @@
 7. **M12 (2):** colonial goods, quotas, ship cargo, smuggling.
 8. **Wilma's chronicle findings:** answer #3, #4, #6 and #7 with century data (indicators for the chronicle table).
 9. **Media v1 M4** (Anni leads; spec-media-v1.md §9; answered 2026-11-12):
+   - 2026-11-12: Anni added company-founded papers in `Media._found_ai` ("The X Courier", 20 W_ref via pay_upto "MEDIA_FOUNDING", no P&L line by agreement). At M4 Bob takes over the company-side decision (found/sell/close, money-driven exit) in firm AI, reading Anni's `Media.bad_press_12m(world, org)` for the motive and `org["media_out"]` for liquidation; Anni then drops her company branch.
    - `outlet` table with accounts `media:out:N`; quarterly settlement to the owner; deficits covered up to the subsidy, then `Media.on_insolvent`.
    - Copies booked in `_buy_services` from `Media.demand`, with actuals reported back via `Media.record_sales`.
    - Ad spend routed to outlets.

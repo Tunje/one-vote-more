@@ -73,3 +73,30 @@ func test_incentive_offer_and_claim() -> void:
 	var gain := w.ledger.balance(EconUtil.acct(owner)) - before
 	check(gain > 0 and gain <= 30000 * EconUtil.S, "grant paid, at most 30%% of price: %d" % gain)
 	check_eq(w.ledger.total(), 0, "ledger closed")
+
+
+## E115a: self-supplied use (CPW's own upkeep and inputs) counts as demand, not only market bids.
+func test_e115_own_use_counts_as_demand() -> void:
+	var sim := EconSim.make_econ_only(7)
+	sim.run(36)
+	var w := sim.world
+	var s := EconUtil.st(w)
+	var ess: Dictionary = EconEssentials.measure(w)
+	var use := float(s.get("use_ema", {}).get("COMPONENT", 0)) / EconUtil.S
+	check(use > 0.0, "component use is tracked (%.1f/month)" % use)
+	check(float(ess["COMPONENT"]["demand"]) >= use - 0.01, "demand %.1f covers real use %.1f" % [ess["COMPONENT"]["demand"], use])
+
+
+## E115b: overbuilt goods block new capacity; the switch restores the old behaviour.
+func test_e115_overbuilt_guard() -> void:
+	var sim := EconSim.make_econ_only(7)
+	sim.run(3)
+	var w := sim.world
+	var s := EconUtil.st(w)
+	s["ess_hist"] = {"MATERIAL": [300, 300], "WATER": [300, 0], "ENERGY": [10, 10]}
+	check(EconEssentials.overbuilt(w, "MATERIAL"), "+300% and steady is overbuilt")
+	check(not EconEssentials.overbuilt(w, "WATER"), "margin falling fast (300 → 0) is not")
+	check(not EconEssentials.overbuilt(w, "ENERGY"), "+10% is not")
+	check(not EconEssentials.overbuilt(w, "MINERAL"), "goods outside the essentials are never blocked")
+	w.meta["off"] = ["E115"]
+	check(not EconEssentials.overbuilt(w, "MATERIAL"), "E115 off restores the old behaviour")

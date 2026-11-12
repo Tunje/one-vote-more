@@ -111,14 +111,29 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 			f["low_util_m"] += 1
 		else:
 			f["low_util_m"] = 0
-		if not f["mothball"] and f["low_util_m"] >= 12:
+		if not f["mothball"] and f["low_util_m"] >= 12 and not _keeps_idle_plant(world, o):
+			var jobs := 0  # E115b: posts lost, for the papers
+			var req := EconLabor.required(f)
+			for t2 in req:
+				jobs += int(req[t2])
 			f["mothball"] = true
 			EconFacts.emit(world, "ECON_FACILITY_MOTHBALLED", f["district"], [["COMPANY", f["org"]]],
-				EconFacts.company_blame(world, f["org"], 0.7), {"JOBS": -10}, 35, "PUBLIC", {"facility": f["id"]},
-				{"districts": [f["district"]]})
+				EconFacts.company_blame(world, f["org"], 0.7), {"JOBS": -10}, 35, "PUBLIC", {"facility": f["id"],
+				"type": f["type"], "jobs": jobs / S}, {"districts": [f["district"]]})
 		elif f["mothball"] and f["T"] >= 500 and o["status"] in ["ACTIVE", "DISTRESSED", "ADMINISTRATION"] 				and not f.get("closed_unsafe", false) and not f.get("law_closed", false):  # E104: only repair/relicensing reopens those
 			f["mothball"] = false
 			f["low_util_m"] = 0
+
+
+## E115b (Wilma): the owner decides on mothballing. A public enterprise keeps an idle plant running while colony
+## unemployment is high (keeping jobs is a political choice it may make; it pays for it).
+static func _keeps_idle_plant(world: WorldState, o: Dictionary) -> bool:
+	if EconUtil.off(world, "E115") or o["type"] != "PUBLIC_ENTERPRISE" or o["status"] != "ACTIVE":
+		return false
+	return colony_unemployment(world) >= PE_KEEP_IDLE_U
+
+
+const PE_KEEP_IDLE_U := 0.12
 
 
 ## E112: monthly input requirement of `good` by the org's own running plants at their current targets.
@@ -387,6 +402,8 @@ static func _investment(world: WorldState) -> void:
 			var good: String = EconData.RECIPES[ftype]["out"][0]
 			if not all_high or float(s["prices"][good]) < 1.10 * unit_cost(world, ftype):
 				continue
+			if EconEssentials.overbuilt(world, good):
+				continue  # E115b: the colony already has far more of this than it uses
 			if not EconUtil.off(world, "E113") and EconConstruction.has_open_project(world, oid, ftype):
 				continue  # E113: one open project per owner and plant type
 			var est := EconConstruction.estimate(ftype)
@@ -445,6 +462,8 @@ static func _expansion(world: WorldState) -> void:
 		var price := float(s["svc_price"].get(f["district"], 0)) if good == "SERVICES" else float(s["prices"].get(good, 0))
 		if not (good in EconData.MARKET_GOODS or good == "SERVICES") or price < unit_cost(world, f["type"]):
 			continue
+		if EconEssentials.overbuilt(world, good):
+			continue  # E115b
 		if not idle and price < 1.2 * unit_cost(world, f["type"]):
 			continue  # without idle labour, only a strong price signal justifies expansion
 		if pe_ok and price < 1.3 * unit_cost(world, f["type"]):
@@ -550,6 +569,8 @@ static func _new_plants(world: WorldState) -> void:
 			scarce = fill < 750 or (fill < (1000 if incent else 900) and float(s["prices"].get(good, 0)) >= pmult * unit_cost(world, ftype))
 			if e110 and good == "FOOD" and int(s.get("food_shortfall", 0)) >= 50:
 				scarce = true  # households ration food at high prices, so market fill hides the gap
+		if scarce and EconEssentials.overbuilt(world, good):
+			scarce = false  # E115b: a price spike over idle capacity is a supply hiccup, not a reason for a new plant
 		sig[good] = int(sig.get(good, 0)) + 1 if scarce else 0
 		var quarters := 1 if not EconUtil.off(world, "E110") and EconEssentials.offer_open(world, ftype) else EconData.NEW_PLANT_QUARTERS
 		if int(sig[good]) < quarters or world.month - int(last.get(ftype, -999)) < EconData.NEW_PLANT_GAP:
