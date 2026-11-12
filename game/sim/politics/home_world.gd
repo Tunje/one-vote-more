@@ -136,6 +136,9 @@ static func _on_ship(world: WorldState, st: Dictionary, h: Dictionary, r: Random
 		if String(pt.get("status", "")) != "SENT":
 			continue
 		_answer_petition(world, st, h, r, pid, pt)
+	# a prosperous export trade invites a cut (A42 D6): the home world claims an export levy, and when it is very
+	# needy it reserves the colony's top export for its own charter buyer
+	_export_claims(world, h, sv, r)
 	# rising demands: a needy home world tightens the charter (the "Stamp Act" moment)
 	if int(h["need"]) > 65 and r.randf() < float(int(h["need"]) - 55) / 100.0:
 		var share := int(sv.get("quota_share", 40))
@@ -334,3 +337,35 @@ static func _referendum(world: WorldState, st: Dictionary, h: Dictionary) -> voi
 		"impact": {}, "magnitude": 95, "visibility": "PUBLIC",
 		"data": {"yes": int(round(yes)), "no": int(round(no)), "eligible": eligible, "declared": res.get("ok", false), "reason": res.get("reason", "")}})
 	_note(world, h, "referendum: %d yes / %d no -> %s" % [int(yes), int(no), "DECLARED" if res.get("ok", false) else "failed"])
+
+const LEVY_STEP := 5
+const LEVY_MAX := 30
+const EXPORT_RICH := 2000000   # credits of exports over 24 months that catch the home world's eye
+
+
+## Export claims: when the colony's trade is rich and the home world needy, it raises the export levy a step (up to
+## LEVY_MAX); a very needy home world with the levy already high reserves the top export good for its own buyer.
+## Facts come from CharterOps (LAW_CHARTER_AMENDED, LAW_CHARTER_EXPORT_RESERVED); the colony may refuse the terms.
+static func _export_claims(world: WorldState, h: Dictionary, sv: Dictionary, r: RandomNumberGenerator) -> void:
+	if not world.table("econ").has("s") or bool(CO.export_terms(world, "MATERIAL").get("refusal", false)):
+		return
+	var exports := int(EconTrade.balance(world).get("exports_24m", 0)) / 1000
+	if exports < EXPORT_RICH or int(h["need"]) < 50:
+		return
+	var levy := int(world.levers.get("LAW_CHARTER_EXPORT_LEVY", 0))
+	var p := clampf(float(int(h["need"]) - 40) / 100.0 + float(exports) / float(EXPORT_RICH * 10), 0.0, 0.8)
+	if r.randf() >= p:
+		return
+	if levy < LEVY_MAX:
+		CO.home_world_amend(world, "LAW_CHARTER_EXPORT_LEVY", mini(LEVY_MAX, levy + LEVY_STEP))
+		_note(world, h, "claimed a %d%% levy on colony exports" % mini(LEVY_MAX, levy + LEVY_STEP))
+	elif int(h["need"]) > 80:
+		var last: Dictionary = EconTrade.last_ship(world)
+		var ex: Dictionary = last.get("exports", {})
+		var top := ""
+		for g in EconUtil.sorted_keys(ex):
+			if top == "" or int(ex[g]) > int(ex[top]):
+				top = g
+		if top != "":
+			CO.home_world_reserve(world, top, true)
+			_note(world, h, "reserved the colony's %s for its own buyer" % String(top).to_lower())
