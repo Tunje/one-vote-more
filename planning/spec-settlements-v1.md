@@ -79,6 +79,28 @@ transport T3.
 - When the player governs, the planning adviser sends a REPORT ("in 3 years we need about 400 more homes") and
   EMAILs with options (build, sell land to developers, incentives, wait).
 
+## S7. When formal housing fails: self-built settlements, homelessness, delayed families (user, after v6)
+
+User (listening to v6): "Because of overpopulation they closed the borders, and that could not solve it… once all
+buildings and areas were completely overpopulated, what happened to anyone born after that?" — in v6 they were
+squeezed into full homes (occupancy 140–175%) with nothing visible happening. That is a missing safety valve.
+
+- **Doubling up has a ceiling**: above ~130% occupancy in an area, new households stop squeezing in.
+- **Self-built (informal) settlements** (Bob economy, Terra map): households that find no home build shacks on free
+  land near jobs — no water, sewage, roads or safety (health and fire risk, crime, a FAIRNESS/HOUSING concern hit).
+  They found or grow an **informal area** (AreaStore, a new kind INFORMAL), drawn as shacks on the map; some later
+  become real villages (S2).
+- **Homelessness**: when no land or materials are within reach, people end up homeless (workshops, doorways, the
+  old landing shelters) — a counted indicator with health, crime and political effects.
+- **Delayed families**: crowded young adults stay with their parents longer (household formation and fertility
+  fall further).
+- **Leaving**: working families also emigrate when the colony offers no home (not only the jobless young).
+- **Politics** (Wilma): the choice is real — **clear** the shacks (harsh, votes lost, evictions under Anni's rules),
+  **legalise and upgrade** them (titles, water, roads; slowly they become neighbourhoods — renovation lots in S3),
+  or **build fast** to replace them. Parties take sides; the papers cover clearances and fires.
+- Acceptance: a housing shortfall shows as informal areas and homelessness on the map and in the record, not only
+  as a number; at least one informal area is legalised or cleared on some seed.
+
 ## Acceptance (century runs, 3 seeds)
 
 - No pre-designed settlements in new games; 3–10 settlements founded by Year 30 at different places per seed;
