@@ -66,3 +66,25 @@ func test_employer_density() -> void:
 	var d := Unions.at_employer(w, cpw)
 	check_eq(String(d["occ"]), "PUBLIC_SECTOR", "the utility's staff are public servants")
 	check(int(d["density_pm"]) > 0 and String(d["union"]) != "", "a density and a union at the employer: %s" % [d])
+
+
+func test_empty_union_dissolves_and_merges_do_not_chain() -> void:
+	var sim := EconSim.make_econ_only(5)
+	sim.run(15)
+	var w := sim.world
+	var fed := Unions.federation(w)
+	var u: Dictionary = Unions.active(w).filter(func(x): return not x["federation"])[0]
+	u["sectors"] = ["NO_SUCH_OCC"]
+	u["share"] = {"NO_SUCH_OCC": 1.0}
+	u["lapsed"] = 0
+	u["members"] = 0
+	u["empty_m"] = Unions.EMPTY_DISSOLVE_M - 1
+	var fund0 := Unions.fund(w, u["id"])
+	var fed0 := Unions.fund(w, fed["id"])
+	sim.run(2)
+	check_eq(String(u["status"]), "DISSOLVED", "a union with no members for two years winds up")
+	check(Unions.fund(w, fed["id"]) >= fed0 + fund0 * 9 / 10, "its fund goes to the federation")
+	check(not w.facts.query("UNION_DISSOLVED").is_empty(), "dissolution makes news")
+	check_eq(w.ledger.total(), 0, "ledger closed")
+	for x in Unions.active(w):
+		check(x["sectors"].size() <= Unions.MERGE_MAX_SECTORS, "%s covers at most two sectors" % x["name"])

@@ -32,6 +32,9 @@ const ELECTION_M := 48
 const STRIKE_PAY_SHARE := 0.5  # strike pay per striking member-month, share of the General wage (U2 pays it)
 const MERGE_MAX := 40  # persons: both unions below this to merge
 const MERGE_P := 1.0 / 120.0
+const MERGE_MAX_SECTORS := 2
+const EMPTY_DISSOLVE_M := 24
+const MERGE_GAP_M := 120
 const SPLIT_MOOD := 70
 const SPLIT_AFTER_M := 24
 const SPLIT_P := 1.0 / 60.0
@@ -75,6 +78,16 @@ static func of_occ(world: WorldState, occ: String) -> Dictionary:
 ## Every active sector union with members in an occupation (after a breakaway there are two).
 static func all_of_occ(world: WorldState, occ: String) -> Array:
 	return active(world).filter(func(u): return not u["federation"] and occ in u["sectors"])
+
+
+## Union density at one employer (‰): its dominant occupation's sector density (v1 keeps no per-firm membership),
+## and the union organising it. {occ, density_pm, union}.
+static func at_employer(world: WorldState, org_id: String) -> Dictionary:
+	if not world.peek("org").has(org_id):
+		return {"occ": "", "density_pm": 0, "union": ""}
+	var occ := EconUnions._dominant(EconUnions._org_workforce(world, org_id)["occ"])
+	var u := of_occ(world, occ)
+	return {"occ": occ, "density_pm": EconUnions.density(world, occ) / 100, "union": "" if u.is_empty() else String(u["id"])}
 
 
 static func federation(world: WorldState) -> Dictionary:
@@ -204,6 +217,11 @@ static func _members(world: WorldState, emp: Dictionary) -> void:
 		u["lapsed"] = lapsed
 		u["members"] = m + lapsed
 		u["density"] = int(1000.0 * float(m) / maxf(1.0, float(sector_emp)))
+		# a union whose sector has emptied (e.g. every mine went to the public utility, whose staff are public servants)
+		# winds up after EMPTY_DISSOLVE_M months below one member; its fund goes to the federation
+		u["empty_m"] = int(u.get("empty_m", 0)) + 1 if int(u["members"]) < S else 0
+		if int(u["empty_m"]) >= EMPTY_DISSOLVE_M:
+			_dissolve(world, u, fed)
 		if not fed.is_empty() and u["affiliated_to"] == fed["id"]:
 			fed_members += int(u["members"])
 	if not fed.is_empty():
@@ -212,6 +230,18 @@ static func _members(world: WorldState, emp: Dictionary) -> void:
 		for occ in emp:
 			all_emp += int(emp[occ])
 		fed["density"] = int(1000.0 * float(fed_members) / maxf(1.0, float(all_emp)))
+
+
+static func _dissolve(world: WorldState, u: Dictionary, fed: Dictionary) -> void:
+	u["status"] = "DISSOLVED"
+	u["dissolved"] = world.month
+	var amt := world.ledger.balance(u["acct"])
+	var to := ""
+	if not fed.is_empty() and fed["id"] != u["id"]:
+		to = String(fed["acct"])
+	if amt > 0 and to != "":
+		world.ledger.transfer(u["acct"], to, amt, "UNION_DISSOLVED", world.month)
+	_emit(world, "UNION_DISSOLVED", u, {}, 20, {"sectors": u["sectors"], "fund_to": to, "amount": amt / S})
 
 
 ## Dues: per employed member, from the household pools whose people hold those jobs; affiliates pass FED_SHARE on.
@@ -309,7 +339,18 @@ static func _merge_and_split(world: WorldState) -> void:
 		var b := of_occ(world, pair[1])
 		if a.is_empty() or b.is_empty() or a["id"] == b["id"]:
 			continue
-		if int(a["members"]) >= MERGE_MAX * S or int(b["members"]) >= MERGE_MAX * S or r.randf() >= MERGE_P:
+		if int(a["members"]) >= MERGE_MAX * S or int(b["members"]) >= MERGE_MAX * S:
+			continue
+		# no snowballing (Wilma's U1 review): a merged union covers at most MERGE_MAX_SECTORS sectors, and a union
+		# merges at most once per MERGE_GAP_M months
+		var covered := {}
+		for occ in a["sectors"] + b["sectors"]:
+			covered[occ] = true
+		if covered.size() > MERGE_MAX_SECTORS:
+			continue
+		if world.month - int(a.get("last_merge", -9999)) < MERGE_GAP_M or world.month - int(b.get("last_merge", -9999)) < MERGE_GAP_M:
+			continue
+		if r.randf() >= MERGE_P:
 			continue
 		var big := a if int(a["members"]) >= int(b["members"]) else b
 		var small := b if big["id"] == a["id"] else a
@@ -322,6 +363,7 @@ static func _merge_and_split(world: WorldState) -> void:
 			world.ledger.transfer(small["acct"], big["acct"], amt, "UNION_MERGER", world.month)
 		small["status"] = "MERGED"
 		small["merged_into"] = big["id"]
+		big["last_merge"] = world.month
 		big["lapsed"] = int(big["lapsed"]) + int(small["lapsed"])
 		_emit(world, "UNION_MERGED", big, {}, 30, {"absorbed": small["id"], "absorbed_name": small["name"], "sectors": big["sectors"]})
 		return  # at most one structural change a month

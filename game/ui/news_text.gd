@@ -129,7 +129,15 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"UNION_MERGED": s = "%s merges into the %s" % [d.get("absorbed_name", "A union"), d.get("name", "?")]
 		"UNION_SPLIT": s = "[color=#ff8a65]Rank-and-file revolt[/color]: militants break away from the %s to form the %s" % [d.get("from_name", "?"), d.get("name", "?")]
 		"UNION_DEMAND": s = "The %s demands %s from %s" % [d.get("name", "?"), {"WAGE": "a pay rise", "SAFETY": "safer workplaces", "JOBS": "a stop to job cuts", "RECOGNITION": "recognition"}.get(String(d.get("kind", "")), "a deal"), "the government" if String(d.get("employer", "")) == "gov" else org(w, d.get("employer", ""))]
-		"UNION_SETTLED": s = "The %s and %s reach a deal" % [d.get("name", "?"), "the government" if String(d.get("employer", "")) == "gov" else org(w, d.get("employer", ""))]
+		"UNION_SETTLED":
+			var who := "the government" if String(d.get("employer", "")) == "gov" else String(d.get("employer_name", org(w, d.get("employer", ""))))
+			var oc := String(d.get("outcome", ""))
+			var how: String = {"ACCEPTED": "%s accepts the %s's demand", "COUNTER": "The %s accepts a counter-offer from %s", "WON": "The %s wins its strike against %s",
+				"COMPROMISE": "The %s and %s settle on a compromise", "LOST": "The %s returns to work empty-handed after its strike against %s"}.get(oc, "The %s and %s reach a deal")
+			s = (how % [who, d.get("name", "?")]) if oc == "ACCEPTED" else (how % [d.get("name", "?"), who])
+			if int(d.get("strike_months", 0)) > 0:
+				s += " (after %s on strike)" % months(int(d.get("strike_months", 0)))
+		"UNION_DISSOLVED": s = "The %s winds up for lack of members; its fund passes to the federation" % d.get("name", "?")
 		"UNION_TALKS_FAILED": s = "Talks break down between the %s and %s" % [d.get("name", "?"), "the government" if String(d.get("employer", "")) == "gov" else org(w, d.get("employer", ""))]
 		"UNION_STRIKE_CALLED": s = "[color=#ff5252][b]%s[/b][/color]: the %s walks out at %s" % ["GENERAL STRIKE" if d.get("general", false) else "Strike", d.get("name", "?"), "every workplace" if d.get("general", false) else ("the government" if String(d.get("employer", "")) == "gov" else org(w, d.get("employer", "")))]
 		"UNION_STRIKE_COLLAPSED": s = "The %s strike collapses as strike pay runs out" % d.get("name", "?")
