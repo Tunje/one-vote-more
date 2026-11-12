@@ -422,6 +422,35 @@ const LEVERS := [
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"AUTONOMY": -0.1, "INSTITUTIONS": 0.05},
 		"concerns": {"SAFETY": 15, "JOBS": -10, "FAIRNESS": -3},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# ---- T5 transport law (planning/spec-transport-v1.md T5). Read through sim/law/transport_law.gd. NUMBER levers.
+	# Fare cap: public (CTA) fares at most this % of the route's cost; below 100 the treasury pays the difference,
+	# 0 = free public transport.
+	{"id": "LAW_FARE_CAP", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 150], "default": 100,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"REDISTRIBUTION": -0.05, "FISCAL": -0.04},
+		"concerns": {"COST_OF_LIVING": -20, "JOBS": -5, "GOVERNANCE": 20},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_PROGRAM", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Vehicle inspection strictness (all operators): 0 lax .. 100 strict. Fewer accidents, dearer transport.
+	{"id": "LAW_TRANSPORT_SAFETY", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 40,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 0.05, "INSTITUTIONS": 0.04},
+		"concerns": {"SAFETY": 20, "COST_OF_LIVING": -8, "JOBS": -4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Rover and airship tour operators: 0 lax (anyone with a vehicle) .. 100 strict (few, well-equipped operators).
+	{"id": "LAW_TOUR_LICENSING", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 40,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 0.04, "ENVIRONMENT": 0.04},
+		"concerns": {"SAFETY": 10, "ENVIRONMENT_QUALITY": 4, "JOBS": -8},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Road toll per vehicle trip on PAVED roads, in milli-W_ref (0 = free roads). Revenue to the treasury.
+	{"id": "LAW_ROAD_TOLL", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 20], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"FISCAL": -0.3, "REDISTRIBUTION": -0.2},
+		"concerns": {"COST_OF_LIVING": -10, "JOBS": -5, "GOVERNANCE": 15},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Who runs passenger routes: 0 = the transport authority (CTA) runs them all, 1 = franchise (routes tendered to
+	# private operators under the CTA's fares and timetable), 2 = open market (private operators run where they like;
+	# the CTA runs only what nobody else will, and the fare cap binds only the CTA).
+	{"id": "LAW_TRANSPORT_OPERATION", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 2], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": -6, "REDISTRIBUTION": -2},
+		"concerns": {"GOVERNANCE": 10, "PUBLIC_SERVICES": -6, "FAIRNESS": -4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_PROGRAM", "lag": 3, "scope": "COLONY", "domain": "ECON"},
 	# Colony law: whether colony customs also chase charter evasion (false = passive defiance), and the militia.
 	# SOVEREIGNTY slopes (+ = independence). The charter terms above have none: only the home world sets them.
 	# Eligibility: newcomers lean loyal, so independence parties favour residency rules over the non-citizen vote.

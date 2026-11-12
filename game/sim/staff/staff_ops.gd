@@ -1165,6 +1165,8 @@ static func complete_task(world: WorldState, t: Dictionary) -> void:
 			t["outputs"]["procurement_quality"] = int(round(q))
 		"STAFF_T_REPORT":
 			t["outputs"]["report_quality"] = int(round(q))
+		"STAFF_T_TRAFFIC_STUDY":
+			load("res://sim/staff/traffic_reports.gd").on_complete(world, t, q)
 		"STAFF_T_TRAINING":
 			var pid: String = t["params"]["only_person"]
 			var p := person(world, pid)

@@ -13,14 +13,27 @@ static func size_class(wu: int) -> String:
 
 
 ## Create a project + open tender. owner = "gov" or an org id. operator = org id that will run the facility.
-static func create(world: WorldState, ftype: String, district: String, owner: String, operator: String, line: String) -> String:
+static func create(world: WorldState, ftype: String, district: String, owner: String, operator: String, line: String,
+		link: Dictionary = {}) -> String:
 	var b: Array = EconData.BUILD[ftype]
+	var est := estimate(ftype)
+	var use_link := ftype == "ROAD" and not link.is_empty() and not EconUtil.off(world, "T1")
+	if use_link:
+		# A43 / T1 (Terra): a road that builds, upgrades or repairs a real link is billed from the route plan
+		var plan: Dictionary = Transport.plan_link(world, link)
+		if bool(plan.get("ok", false)):
+			b = [int(plan["wu"]), int(plan["mat"]), int(plan["comp"]), int(plan["months"])]
+			est = int(plan["cost"])
+		else:
+			use_link = false
 	var id := world.new_id("project")
 	world.table("project")[id] = {"id": id, "type": ftype, "district": district, "owner": owner, "operator": operator, "line": line,
 		"wu_total": b[0] * S, "wu_done": 0, "mat_total": b[1] * S, "comp_total": b[2] * S, "min_months": b[3],
 		"status": "TENDER", "tender_month": world.month, "bids": [], "contractor": "", "price": 0, "paid": 0,
 		"bid_duration": 0, "start_month": -1, "size_class": size_class(b[0]), "prog_m": 0, "unpaid_m": 0,
-		"late_noted": false, "supervision": 1000, "staff_task": "", "est_cost": estimate(ftype)}
+		"late_noted": false, "supervision": 1000, "staff_task": "", "est_cost": est}
+	if use_link:
+		world.table("project")[id]["link"] = link.duplicate()
 	EconFacts.emit(world, "ECON_TENDER_OPENED", district, [["GOVERNMENT" if owner == "gov" else "COMPANY", owner]],
 		[["GOVERNMENT", "government", 1.0]] if owner == "gov" else [["COMPANY", owner, 1.0]], {}, 10, "PUBLIC", {"project": id, "type": ftype})
 	return id
@@ -402,7 +415,9 @@ static func _complete(world: WorldState, p: Dictionary) -> void:
 	o["reliability"] = int(0.8 * o["reliability"] + 0.2 * 100.0 * minf(1.0, float(p["bid_duration"]) / float(maxi(1, actual))))
 	var fid := ""
 	if p["type"] == "ROAD":
-		pass  # link upgrades are recorded only (map owns links; v1 keeps capacities fixed)
+		if not EconUtil.off(world, "T1"):
+			# A43 / T1 (Terra): build, upgrade or repair the link (or, without a spec, the district's most useful road job)
+			p["link_id"] = Transport.complete_road(world, p)
 	elif p["type"] == "EXPAND":
 		fid = p["target"]
 		if world.table("facility").has(fid):
@@ -421,7 +436,8 @@ static func _complete(world: WorldState, p: Dictionary) -> void:
 	var impact := {"HOUSING": 15} if p["type"] == "HOUSING" else {"INFRASTRUCTURE": 5, "JOBS": 3}
 	EconFacts.emit(world, "ECON_PROJECT_COMPLETED", p["district"], [["GOVERNMENT", "government"], ["COMPANY", p["contractor"]]],
 		[["GOVERNMENT", "government", 0.7], ["COMPANY", p["contractor"], 0.3]] if p["owner"] == "gov" else [["COMPANY", p["owner"], 1.0]],
-		impact, 40 if p["type"] == "HOUSING" else 30, "PUBLIC", {"project": p["id"], "facility": fid, "type": p["type"]},
+		impact, 40 if p["type"] == "HOUSING" else 30, "PUBLIC", {"project": p["id"], "facility": fid, "type": p["type"],
+		"link": str(p.get("link_id", ""))},
 		{"districts": [p["district"]]})
 
 

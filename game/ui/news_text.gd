@@ -171,6 +171,12 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 			s = "Exports worth [b]%d credits[/b] sold on the home world (%s)%s" % [int(d.get("value", 0)), ", ".join(top.slice(0, 3).map(func(g): return _kind(g))),
 				("; the biggest exporter was %s" % org(w, d.get("top_exporter", ""))) if String(d.get("top_exporter", "")) != "" else ""]
 		"ECON_QUALITY_SCANDAL": s = "[color=#ff8a65]Shoddy goods[/color]: %s's %s fall apart — customers turn away" % [org(w, d.get("org", "")), _kind(d.get("good", "goods"))]
+		"STAFF_TRAFFIC_REPORT": s = "The transport engineers' %s report flags %d trouble spot%s%s" % ["accident" if String(d.get("kind", "")) == "ACCIDENT" else "yearly", int(d.get("items", 0)), "" if int(d.get("items", 0)) == 1 else "s", (": worst is %s" % str(d.get("top", ""))) if str(d.get("top", "")) != "" else ""]
+		"STAFF_TRAFFIC_REPORT_LATE": s = "The transport engineers' report is late: the department is short of staff"
+		"STAFF_REPORT_IGNORED": s = "[color=#ff5252][b]Warning ignored[/b][/color]: a fatal crash at %s, %s after engineers recommended %s" % [d.get("name", "a known black spot"), months(int(d.get("months_ignored", 0))), _kind(d.get("fix", "a fix"))]
+		"ECON_TRAFFIC_ACCIDENT": s = "%s accident on %s" % ["[color=#ff5252]Fatal[/color]" if int(d.get("fatal", 0)) > 0 else ("Serious" if d.get("serious", false) else "An"), str(d.get("name", d.get("target", "the road")))]
+		"OFFICE_ITEM_EXPIRED": s = "Left unanswered: \"%s\" — it went the default way (%s)" % [d.get("subject", "?"), String(d.get("label", d.get("default", ""))).to_lower()]
+		"OFFICE_ITEM_BURIED": s = "[color=#ff8a65]Buried[/color]: the chief of staff never showed the governor \"%s\"" % d.get("subject", "?")
 		"ECON_PORT_FULL": s = "Goods pile up at the port: the warehouses are full (%d units) with the next ship still to come" % int(d.get("units", 0))
 		"ECON_HOME_PRICE_SWING": s = "%s prices on the home world %s %d%% this year" % [cap1(_kind(d.get("good", "goods"))), "rose" if int(d.get("pct", 0)) > 0 else "fell", absi(int(d.get("pct", 0)))]
 		"ECON_IMPORT_ARRIVED": s = "Imports arrived: %d %s" % [int(d.get("qty", 0)) / 1000, _kind(d.get("good", "goods"))]

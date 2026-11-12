@@ -78,6 +78,7 @@ func _make_culture(world: WorldState) -> Dictionary:
 func run_phase(phase: int, world: WorldState) -> void:
 	var st: Dictionary = world.table("pol")["state"]
 	if phase == TickPhase.DECISIONS:
+		Office.expire(world)          # A44: past-deadline office items fall to their default (logged)
 		if PolVoters.leaves_mode(world):
 			PolVoters.refresh(world)  # new people since last month get voter fields before decisions read them
 		_decisions(world, st)
@@ -126,6 +127,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 	GovBuilder.monthly(world, st)  # the state's capital programme, decided by whoever governs (not when the player does)
 	if have_parties and world.month > PolDefs.PARTY_FORMATION_MONTH:
 		HomeWorld.monthly(world, st)
+	OfficeFeed.monthly(world)      # A44: what needs the player this month reaches the office channel
 	world.set_indicator("pol", "POL_GOV_APPROVAL", "COLONY", colony_approval(world))
 	world.set_indicator("pol", "POL_COLONIAL_BURDEN", "COLONY", HomeWorld.burden(world))
 

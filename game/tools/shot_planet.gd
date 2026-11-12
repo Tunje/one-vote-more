@@ -1,6 +1,6 @@
 extends SceneTree
 ## Terra: render the planet view to a PNG (needs a window, not --headless).
-## godot --path game --script res://tools/shot_planet.gd -- <seed> <out.png> [yaw_offset_deg] [dist] [weather_month] [storm_over_colony 0|1]
+## godot --path game --script res://tools/shot_planet.gd -- <seed> <out.png> [yaw_offset_deg] [dist] [weather_month] [storm_over_colony 0|1] [globe_road 0|1]
 var _view: PlanetView
 var _frames := 0
 var _out := "user://planet.png"
@@ -24,6 +24,12 @@ func _init() -> void:
 	if args.size() > 5 and args[5] == "1":
 		var li := Planet.landing(s.world())
 		s.world().table("planet")["storms"] = [{"kind": "RAIN_FRONT", "strength": 4, "cells": [li] + Array(Planet.neighbors(s.world(), li)).slice(0, 2), "global": false}]
+	# arg 7 = 1: a globe road to the first region site that has a land route (shows routes)
+	if args.size() > 6 and args[6] == "1":
+		for st in PlanetSites.sites(s.world()):
+			if st["where"] == "REGION" and Transport.plan_link(s.world(), {"site": st["id"], "kind": "ROAD"})["ok"]:
+				Transport.complete_road(s.world(), {"id": "shot", "district": "d:1", "owner": "gov", "link": {"site": st["id"], "kind": "ROAD"}})
+				break
 	_view = PlanetView.new()
 	_view.session = s
 	root.size = Vector2i(1600, 900)

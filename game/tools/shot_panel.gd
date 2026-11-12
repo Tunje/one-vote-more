@@ -10,7 +10,7 @@ func _init() -> void:
 	var args := OS.get_cmdline_user_args()
 	_out = args[0]
 	var s := GameSession.new()
-	s.new_game(int(args[2]) if args.size() > 2 else 3, true)
+	s.new_game(int(args[2]) if args.size() > 2 else 3, not (args.size() > 4 and args[4] == "player"))
 	for _i in int(args[3]) if args.size() > 3 else 60:
 		s.end_month()
 	_p = load("res://ui/panels/%s_panel.gd" % args[1]).new()

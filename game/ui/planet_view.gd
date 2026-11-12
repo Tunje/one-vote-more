@@ -136,7 +136,7 @@ func refresh() -> void:
 	if csig != _colony_for:
 		_colony_for = csig
 		_build_colony(w)
-	var ssig := "%s|%s" % [sig, str(w.peek("map").get("grid", {}).get("landing", []))]
+	var ssig := "%s|%s|%d|%d" % [sig, str(w.peek("map").get("grid", {}).get("landing", [])), w.month, int(w.peek("transport").get("rev", 0))]
 	if ssig != _site_for:
 		_site_for = ssig
 		_build_sites(w)
@@ -402,7 +402,55 @@ func _build_sites(w: WorldState) -> void:
 		lbl.position = at
 		lbl.no_depth_test = true   # hills must not cut names; labels on the far side are hidden in _place_camera
 		_sites.add_child(lbl)
+	_build_routes(w)
 	_place_camera()
+
+
+## Globe roads (A43): built links from the landing hex to tourist sites, hex centre to hex centre.
+func _build_routes(w: WorldState) -> void:
+	var geo := Planet.geometry(Planet.freq(w))
+	var cols := {"TRACK": Color("#c9a27a"), "ROAD": Color("#e0e0e0"), "PAVED": Color("#ffffff")}
+	for l in Transport.network(w)["links"]:
+		if int(l.get("globe", 0)) != 1:
+			continue
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_LINES)
+		var col: Color = cols.get(String(l["effective"]), Color.WHITE)
+		if String(l["closed"]) != "":
+			col = Color("#ff4040")
+		var cells: Array = l["cells"]
+		for k in range(1, cells.size()):
+			var a: Vector3 = geo["centers"][int(cells[k - 1])]
+			var b: Vector3 = geo["centers"][int(cells[k])]
+			for q in 4:   # follow the ground in four steps per hex
+				var p0 := a.slerp(b, float(q) / 4.0)
+				var p1 := a.slerp(b, float(q + 1) / 4.0)
+				st.set_color(col)
+				st.add_vertex(p0 * (_r(maxi(Planet.height(w, int(cells[k - 1 if q < 2 else k])), 0)) + 0.002))
+				st.set_color(col)
+				st.add_vertex(p1 * (_r(maxi(Planet.height(w, int(cells[k - 1 if q < 1 else k])), 0)) + 0.002))
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.vertex_color_use_as_albedo = true
+		var mi := MeshInstance3D.new()
+		mi.mesh = st.commit()
+		mi.material_override = mat
+		_sites.add_child(mi)
+
+
+## How tourists reach a site this month (Transport.reachable_sites).
+func _reach_text(w: WorldState, site_id: String) -> String:
+	for r in Transport.reachable_sites(w):
+		if r["id"] == site_id:
+			match String(r["mode"]):
+				"ROAD":
+					return "by road, %d days" % maxi(1, int(r["time_days"]))
+				"ROVER":
+					return "by rover tour, %d days" % maxi(1, int(r["time_days"]))
+				"AIRSHIP":
+					return "by airship, %d days" % maxi(1, int(r["time_days"]))
+			return "unreachable: no road, no rover base or airship mast" if String(r["usual"]) == "UNREACHABLE" else "closed by the weather this month"
+	return ""
 
 
 # ------------------------------------------------------------------ the colony on its hex
@@ -786,6 +834,7 @@ func _update_info() -> void:
 			s += "\n★ %s: %s · attraction %d · this month %d%% · %d km, %d days from the colony" % [site["name"],
 				PlanetSites.KIND_NAMES[site["kind"]], int(site["attraction"]), PlanetSites.season_pct(w, site),
 				int(site["km"]), int(site["travel_days"])]
+			s += " · " + _reach_text(w, String(site["id"]))
 	if _hover == Planet.landing(w):
 		var local: Array = PlanetSites.at_cell(w, _hover).map(func(x): return String(x["name"]))
 		s = "★ Landing site: the colony · " + s + ("\nSights: " + ", ".join(local) if not local.is_empty() else "") + "\nClick to open the colony map"

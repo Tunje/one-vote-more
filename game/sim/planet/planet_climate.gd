@@ -44,13 +44,14 @@ static func season_name(lat_deg: float, month: int) -> String:
 
 ## Baseline climate of a hex in a month (no weather noise): {temp_c, rain_mm, season, growing}.
 ## growing: 0..1, how good the month is for crops by temperature (rain is in weather()).
-static func climate(world: WorldState, cell: int, month: int) -> Dictionary:
+## with_warming false: the planet's own climate (no greenhouse offset), a pure function of the seed.
+static func climate(world: WorldState, cell: int, month: int, with_warming: bool = true) -> Dictionary:
 	var ll := Planet.lat_lon(cell, Planet.freq(world))
 	var lat := ll.x
 	var sl := sin(deg_to_rad(absf(lat)))
 	var h := Planet.height(world, cell)
 	var coast := Planet.is_coast(world, cell) or h < 0
-	var tmean := 28.0 - 32.0 * sl * sl - 18.0 * sl * sl * sl * sl - LAPSE_C_PER_STEP * float(maxi(h, 0)) + warming_c(world)
+	var tmean := 28.0 - 32.0 * sl * sl - 18.0 * sl * sl * sl * sl - LAPSE_C_PER_STEP * float(maxi(h, 0)) + (warming_c(world) if with_warming else 0.0)
 	var amp := (1.5 + 17.0 * sl) * (0.55 if coast else 1.0) * (TILT_DEG / 26.0)
 	var sp := season_phase(lat, month)
 	var temp := tmean + amp * sp

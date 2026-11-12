@@ -2,6 +2,7 @@ extends PicProvider
 ## Staff subsystem provider (planning/spec-staff-v1.md §11, pic-staff-law.md). Stateless.
 
 const Ops := preload("res://sim/staff/staff_ops.gd")
+const OfficeStaff := preload("res://sim/staff/office_staff.gd")
 
 
 func owner_id() -> String:
@@ -47,20 +48,29 @@ func run_phase(phase: int, world: WorldState) -> void:
 			Ops.auto_appoint(world)
 			Ops.auto_answer(world)
 			preload("res://sim/staff/opposition.gd").run_ai(world)
+			preload("res://sim/staff/traffic_reports.gd").start_studies(world)
+			OfficeStaff.fill_roles(world)
+			OfficeStaff.resolve_references(world)
 			_auto_staff_all(world)
 		TickPhase.STAFF:
 			Ops.state(world)["flags"] = {}
 			Ops.lifecycle(world)
 			Ops.process_recruitment(world)
 			Ops.process_tasks(world)
+			preload("res://sim/staff/traffic_reports.gd").monthly(world)
+			OfficeStaff.update_known(world)
 			Ops.check_deadlines(world)
 			Ops.delivery(world)
 		TickPhase.EVENTS:
 			# Follow a government formed in POLITICS this month (seats, departing officials, opposition pools).
 			Ops.ensure_benches(world)
 			Ops.sync_politics(world)
+			OfficeStaff.run_delegation(world)
+			OfficeStaff.check_buried(world)
 		TickPhase.RECORD:
 			Ops.make_reports(world)
+			if not Ops.autopilot(world, Ops.GOV):
+				OfficeStaff.press_digest(world)     # the player's office only (O5); AI offices get no items
 
 
 func _auto_staff_all(world: WorldState) -> void:

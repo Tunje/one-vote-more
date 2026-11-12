@@ -226,7 +226,7 @@ static func _seasons(world: WorldState, kind: String, cell: int) -> Array:
 	var raw: Array = []
 	var lat := Planet.lat_lon(cell, Planet.freq(world)).x
 	for mo in 12:
-		var cl := PlanetClimate.climate(world, cell, mo)
+		var cl := PlanetClimate.climate(world, cell, mo, false)   # the planet's own seasons (cached per seed), no warming
 		var t := float(cl["temp_c"])
 		var comfort := clampf(1.0 - absf(t - 20.0) / 22.0, 0.15, 1.0)   # a pleasant month to travel
 		var sp := PlanetClimate.season_phase(lat, mo)

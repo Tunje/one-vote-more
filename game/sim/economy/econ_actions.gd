@@ -75,6 +75,12 @@ static func validate(world: WorldState, id: String, p: Dictionary) -> String:
 			if not line in lines_for(ftype):
 				return "%s cannot be paid from %s (allowed: %s)" % [ftype, line, ", ".join(lines_for(ftype))]
 			var need := EconConstruction.estimate(ftype) * 11 / 10
+			if ftype == "ROAD" and p.has("link") and not EconUtil.off(world, "T1"):
+				# A43 / T1: a road along a real link — Terra's planner checks the route and prices it exactly
+				var lerr: String = Transport.validate_link(world, p["link"])
+				if lerr != "":
+					return lerr
+				need = int(Transport.plan_link(world, p["link"]).get("cost", 0)) * 11 / 10
 			var room := headroom(world, line)
 			if room < need:
 				return "Not enough budget: %s has %dk uncommitted this year, %s needs %dk (estimate + 10%%)" % [line, room / 1000 / S, ftype, need / 1000 / S]
@@ -168,10 +174,11 @@ static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 			var line: String = p.get("line", LINE_OF.get(ftype, "ECON_BUDGET_INFRASTRUCTURE"))
 			if not line in lines_for(ftype):
 				return false
-			if headroom(world, line) < EconConstruction.estimate(ftype) * 11 / 10:
-				return false
+			if validate(world, id, p) != "":
+				return false  # includes the T1 route check and its exact road price
 			var op: String = EconEssentials.operator_for(world, ftype)
-			EconConstruction.create(world, ftype, p["district"], "gov", op, line)
+			var link: Dictionary = p.get("link", {}) if ftype == "ROAD" and typeof(p.get("link", {})) == TYPE_DICTIONARY else {}
+			EconConstruction.create(world, ftype, p["district"], "gov", op, line, link)
 			return true
 		"ECON_AWARD_CONTRACT":
 			return EconConstruction.award(world, p["project"], p["org"])

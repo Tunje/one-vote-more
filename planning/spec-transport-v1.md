@@ -37,6 +37,48 @@ an operator buying rovers or an airship is a real investment.
   globe routes; a build-road tool in the colony map's Build tab (player) using the normal ECON_COMMISSION_PROJECT.
 - ROAD projects (econ_construction) finally change a link: new link, or upgrade TRACK → ROAD → PAVED, or a bridge.
 
+### T1 implemented (Terra, 2026-11-12): sim/transport/transport.gd, colony_layout.gd, tests/transport
+- **State**, world table "transport", integers and strings only:
+  `{links, junctions, bases, seq, rev}`.
+  - A colony link: `{id, kind, path [tile = y*64+x], lanes, bridges, bridge_lanes, cond 0..1000, traffic, acc, built, globe 0}`.
+  - A globe link: `{..., cells [hexes], site, globe 1}`.
+  - Junctions are `junc:<tile>` (three or more branches) with type, traffic and acc.
+  - Bases are ROVER_BASE or MAST, at a tile.
+  - The first NATURE tick writes the founding network. Until then, queries see it as a pure function.
+- **Founding network**: tracks join the settlements, nearest first from the landing. Spur tracks reach founding
+  plants that stand outside every town. Path planning runs over the terrain: hills cost more, river tiles need bridges.
+- **Scale**: one tile is about 3 km. Speeds in km a day: track 80, road 200, paved 400, rover 60, airship 900.
+  Cost index: 100 = 100 km on a sound road.
+- **Capacity** in trips a month: track 300, road 1 500, paved 6 000, times lanes, and limited by the bridges.
+- **Junctions** carry, in trips a month: crossing 400, priority 900, roundabout 2 000, signals 3 000, times lanes.
+  Accident risk per trip: 100, 70, 25 and 45.
+- **Wear** each month: by kind, plus traffic above capacity, plus storms. A link below 15% condition works as a track.
+- **Closures**: tracks close in storms of 2+ or rain at 160% of normal; roads close in storms of 4+; paved roads
+  never close. Airships are grounded by storms of 2+, rovers stopped by storms of 3+.
+- **Reach**: a node off the network is reached only by rover (it needs a ROVER_BASE; anywhere on the colony map,
+  or land hexes within 5 of the colony) or by airship (it needs a MAST). Globe sites in the REGION can get a
+  globe road, which is a large project. Far sites are airship-only.
+- **ROAD projects** (Bob's hook): `link` specs are
+  - new `{a, b, kind}`;
+  - bypass `{a, b, kind, avoid}`;
+  - `{upgrade}`, `{repair}`, `{lanes}`, `{bridge}`;
+  - `{junction, type}`;
+  - globe road `{site, kind}`.
+  District roads without a spec pick the most useful job:
+  1. a track to a plant off the network;
+  2. repairing a link below 60%;
+  3. a bottleneck fix above 80% of capacity;
+  4. upgrading the busiest track.
+  They never link tourist sites by themselves (T6).
+- **T7 fixes for the engineers**: `Transport.traffic_fixes(world)` gives
+  `{"LINK:<id>" | "NODE:<id>": {options: [{fix, cost, months, cap_pm, acc_pm, spec}]}}`. Ordering a fix means
+  commissioning a ROAD with that spec.
+- **UI**:
+  - Colony map: links by kind, lanes, condition and closures; junctions by type; a coloured reach ring on each sight.
+  - Link and junction panels list the works on offer, with an Order button.
+  - A "Road link" tool in the Build tab: two clicks, a planned route and its cost, then Commission.
+  - The globe draws globe roads, and the hover text gives each site's reach.
+
 ## T2. Freight (Bob)
 
 - Freight cost and time per shipment follow the route (distance, link kind, condition, congestion), replacing the

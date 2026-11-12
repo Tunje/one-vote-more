@@ -121,3 +121,42 @@ func test_every_panel_and_mode_renders() -> void:
 		v.click_tile(Terrain.nearest_free(w, 2, 2, ["."], 30))
 		check(v._info.text.contains("Tile"), "build panel for a chosen tile")
 		v.free()
+
+
+func test_road_tool_and_network_panels() -> void:
+	var s := _session(false)
+	var w := s.world()
+	var v := _view(s)
+	check(not v._net.get("links", []).is_empty(), "the map knows the network")
+	# inspect a link and a junction: their works on offer are listed and orderable
+	var lid := String(v._net["links"][0]["id"])
+	v.click_tile(Transport.int_tile(int(v._net["links"][0]["path"][1])))
+	if v.selected.get("kind", "") == "LINK":
+		check(v._info.text.contains("Possible works") or v._info.text.contains("Nothing more"), "the link panel lists works")
+	check(v.link_text(w, lid).contains("Capacity"), "a link panel")
+	for j in v._net.get("junctions", []):
+		check(v.junction_text(w, String(j["id"])).contains("accident risk"), "a junction panel")
+	# draw a road in the Build tab and commission it
+	v.set_mode("BUILD")
+	v.build_type = "ROAD"
+	var meadow := {}
+	for st in PlanetSites.sites(w):
+		if st["kind"] == "GLOW_MEADOW":
+			meadow = st
+	var a := Terrain.landing(w)
+	v.click_tile(a)
+	v.click_tile(meadow["tile"])
+	check_eq(v.road_b, Vector2i(meadow["tile"]), "two clicks give the two ends")
+	var plan := Transport.plan_link(w, v.road_spec())
+	check(plan["ok"] and v._info.text.contains("Estimated cost"), "the plan and its cost show")
+	var params := ColonyMap.road_params(w, v.road_spec())
+	check_eq(params["type"], "ROAD", "a ROAD project")
+	check_eq(params["link"], v.road_spec(), "carrying the link")
+	var q: int = EconUtil.st(w)["queue"].size()
+	var r := ColonyMap.submit_road(w, v.road_spec())
+	if r["ok"]:
+		check_eq(EconUtil.st(w)["queue"].size(), q + 1, "commissioned: queued for the tender")
+	else:
+		check(String(r["message"]) != "", "or a readable reason (%s)" % r["message"])
+	check(ColonyMap.submit_road(w, {"a": 0, "b": 0, "kind": "TRACK"})["message"] != "", "a bad link is refused with a reason")
+	v.free()

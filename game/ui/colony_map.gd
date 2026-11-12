@@ -34,19 +34,17 @@ const FAC_NAMES := {"POWER": "power plant", "WATERWORKS": "waterworks", "DEPOT":
 const DISTRICT_COLORS := [Color("#5dade2"), Color("#f5b041"), Color("#58d68d"), Color("#ec7063"), Color("#af7ac5"),
 	Color("#f4d03f"), Color("#48c9b0"), Color("#eb984e"), Color("#85929e"), Color("#f1948a"), Color("#7fb3d5"), Color("#c39bd3")]
 ## Where facilities may stand (display placement before A2, and build validity).
-const FAC_TERRAIN := {"MINE": ["o", "x", "k", "h"], "FARM": ["f", "n", "."], "HOUSING": [".", "f", "L", "n"]}
-const BUILD_TERRAIN := [".", "f", "L", "n", "h"]
+const FAC_TERRAIN := ColonyLayout.FAC_TERRAIN
+const BUILD_TERRAIN := ColonyLayout.BUILD_TERRAIN
 ## What the player can place: public housing and public buildings (EconActions.OPERATOR ∩ EconData.BUILD).
-const BUILD_TYPES := ["HOUSING", "CLINIC", "SCHOOL", "POWER", "WATERWORKS", "DEPOT"]
-## Display anchors for the six economic districts until areas and facility tiles exist (A2): what each one
-## looks for on the terrain, how far from the landing site, in which direction.
-const ECON_ANCHORS := {
-	"d:2": {"want": [".", "f"], "near": "r", "dist": 9.0, "dir": Vector2(1, -0.4)},     # Riverside
-	"d:3": {"want": ["h", "k", "o"], "near": "", "dist": 13.0, "dir": Vector2(-1, 0.6)},  # Redrock
-	"d:4": {"want": [".", "h"], "near": "", "dist": 6.0, "dir": Vector2(-1, -0.2)},     # Foundry
-	"d:5": {"want": ["h", "."], "near": "", "dist": 10.0, "dir": Vector2(0.6, 1)},      # Greenhill
-	"d:6": {"want": ["f", "."], "near": "", "dist": 11.0, "dir": Vector2(-0.2, -1)},    # Northfield
-}
+const BUILD_TYPES := ["HOUSING", "CLINIC", "SCHOOL", "POWER", "WATERWORKS", "DEPOT", "ROAD"]
+## Transport (A43): how links, junctions and site reach are drawn.
+const LINK_COLORS := {"TRACK": Color("#c9a27a"), "ROAD": Color("#d8d8d8"), "PAVED": Color("#ffffff")}
+const REACH_COLORS := {"ROAD": Color("#8bc34a"), "ROVER": Color("#ffa040"), "AIRSHIP": Color("#7fd4ff"), "UNREACHABLE": Color("#ef5350")}
+const REACH_NAMES := {"ROAD": "by road", "ROVER": "by rover (off-road)", "AIRSHIP": "by airship", "UNREACHABLE": "unreachable"}
+## ROAD_LINK_LIVE: flip to true when Bob's ROAD projects build the link they carry (Transport.complete_road).
+const ROAD_LINK_LIVE := true
+const ECON_ANCHORS := ColonyLayout.ECON_ANCHORS
 const TERRITORY_REACH := 6   # tiles of open land a district's areas claim around them (display)
 
 var session: GameSession
@@ -70,6 +68,14 @@ var _anchors := {}           # econ district -> Vector2i (pre-A2 settlements)
 var _territory: Array = []   # [y * W + x] -> district key or ""
 var _dist_keys: Array = []   # district keys in colour order
 var _dist_names := {}        # district key -> display name
+var _net := {}               # Transport.network (refreshed with the map)
+var _link_at := {}           # tile int -> [link ids]
+var _junc_at := {}           # tile int -> junction id
+var _reach := {}             # site id -> reachable_sites row
+var road_a := Vector2i(-1, -1)   # BUILD ROAD: the two ends of a new link
+var road_b := Vector2i(-1, -1)
+var road_kind := "TRACK"
+var _road_kind_pick: OptionButton
 
 var _info: RichTextLabel
 var _mode_buttons := {}
@@ -125,9 +131,14 @@ func _ready() -> void:
 	_build_box.add_child(bl)
 	_build_pick = OptionButton.new()
 	for t in BUILD_TYPES:
-		_build_pick.add_item(("Public housing" if t == "HOUSING" else String(FAC_NAMES[t]).capitalize()))
-	_build_pick.item_selected.connect(func(i: int): build_type = BUILD_TYPES[i]; build_tile = Vector2i(-1, -1); _update_panel(); queue_redraw())
+		_build_pick.add_item("Public housing" if t == "HOUSING" else ("Road link" if t == "ROAD" else String(FAC_NAMES[t]).capitalize()))
+	_build_pick.item_selected.connect(func(i: int): build_type = BUILD_TYPES[i]; build_tile = Vector2i(-1, -1); road_a = Vector2i(-1, -1); road_b = Vector2i(-1, -1); _update_panel(); queue_redraw())
 	_build_box.add_child(_build_pick)
+	_road_kind_pick = OptionButton.new()
+	for k in Transport.KINDS:
+		_road_kind_pick.add_item(String(Transport.KIND_NAMES[k]).capitalize())
+	_road_kind_pick.item_selected.connect(func(i: int): road_kind = Transport.KINDS[i]; _update_panel(); queue_redraw())
+	_build_box.add_child(_road_kind_pick)
 	_draw_box = VBoxContainer.new()
 	v.add_child(_draw_box)
 	_draw_groups = HFlowContainer.new()
@@ -159,7 +170,7 @@ func _ready() -> void:
 	_act_btn.pressed.connect(_on_action)
 	acts.add_child(_act_btn)
 	_act2_btn = Button.new()
-	_act2_btn.pressed.connect(func(): selected = {}; build_tile = Vector2i(-1, -1); last_message = ""; _update_panel(); queue_redraw())
+	_act2_btn.pressed.connect(func(): selected = {}; build_tile = Vector2i(-1, -1); road_a = Vector2i(-1, -1); road_b = Vector2i(-1, -1); last_message = ""; _update_panel(); queue_redraw())
 	_act2_btn.text = "Clear"
 	acts.add_child(_act2_btn)
 	_update_panel()
@@ -186,6 +197,7 @@ func refresh() -> void:
 	_fac_at.clear()
 	for fid in _fac_tiles:
 		_fac_at[Terrain.key(_fac_tiles[fid].x, _fac_tiles[fid].y)] = fid
+	_refresh_network(w)
 	if mode == "DRAW" and plan.is_empty():
 		start_drawing()
 	_build_territory(w)
@@ -228,102 +240,19 @@ func set_mode(m: String) -> void:
 
 # ======================================================================= display layout (static, pure reads)
 
-## Settlements of the six economic districts (display, until areas exist): d:1 at the landing site, the others
-## on suitable terrain around it. Deterministic in the terrain.
+## Layout (settlements, facility tiles) lives in the sim now (ColonyLayout), shared with the transport network.
 static func econ_anchors(w: WorldState) -> Dictionary:
-	var l := Terrain.landing(w)
-	var out := {"d:1": l}
-	for d in ECON_ANCHORS:
-		var spec: Dictionary = ECON_ANCHORS[d]
-		var dir: Vector2 = Vector2(spec["dir"]).normalized()
-		var best := l
-		var bs := INF
-		for y in Terrain.H:
-			for x in Terrain.W:
-				if not (Terrain.at(w, x, y) in spec["want"]):
-					continue
-				var off := Vector2(x - l.x, y - l.y)
-				var s := absf(off.length() - float(spec["dist"])) + 6.0 * (1.0 - off.normalized().dot(dir))
-				if String(spec["near"]) != "" and not _near_code(w, Vector2i(x, y), String(spec["near"]), 2):
-					s += 8.0
-				for o in out.values():
-					if Vector2(x - o.x, y - o.y).length() < 5.0:
-						s += 20.0
-				if s < bs:
-					bs = s
-					best = Vector2i(x, y)
-		out[d] = best
-	return out
+	return ColonyLayout.econ_anchors(w)
 
 
-static func _near_code(w: WorldState, t: Vector2i, code: String, r: int) -> bool:
-	for yy in range(t.y - r, t.y + r + 1):
-		for xx in range(t.x - r, t.x + r + 1):
-			if Terrain.at(w, xx, yy) == code:
-				return true
-	return false
-
-
-## Where each facility is drawn: its own tile once Bob's A2 gives facilities one (f["tile"]), otherwise a free
-## tile of suitable terrain nearest its area or its district's settlement (display only, deterministic).
+## Where each facility is drawn: its own tile once A2 gives it one, else a display placement (uncached here, so the
+## UI always shows the current state).
 static func facility_tiles(w: WorldState, anchors: Dictionary = {}) -> Dictionary:
-	if anchors.is_empty():
-		anchors = econ_anchors(w)
-	var out := {}
-	var taken := {}
-	for k in w.peek("map").get("uses", {}):
-		taken[k] = true
-	var fac: Dictionary = w.peek("facility")
-	var ids: Array = EconUtil.sorted_keys(fac)
-	for fid in ids:   # facilities that already stand on a tile
-		var tv = fac[fid].get("tile", null)
-		if tv != null:
-			var t := _as_tile(tv)
-			out[fid] = t
-			taken[Terrain.key(t.x, t.y)] = true
-	for k in anchors:
-		taken[Terrain.key(anchors[k].x, anchors[k].y)] = true
-	for fid in ids:
-		if out.has(fid):
-			continue
-		var f: Dictionary = fac[fid]
-		var a: Vector2i = anchors.get(String(f.get("district", "")), Terrain.landing(w))
-		if f.has("area") and not AreaStore.get_area(w, String(f["area"])).is_empty():
-			var c := AreaStore.centroid(w, String(f["area"]))
-			a = Vector2i(roundi(c.x), roundi(c.y))
-		var codes: Array = FAC_TERRAIN.get(String(f["type"]), BUILD_TERRAIN)
-		var t := _nearest_untaken(w, a, codes, taken, 40)
-		if t.x < 0:
-			t = _nearest_untaken(w, a, BUILD_TERRAIN + ["k", "o", "x"], taken, 40)
-		if t.x >= 0:
-			out[fid] = t
-			taken[Terrain.key(t.x, t.y)] = true
-	return out
+	return ColonyLayout._facility_tiles(w, anchors if not anchors.is_empty() else ColonyLayout.econ_anchors(w))
 
 
 static func _as_tile(v) -> Vector2i:
-	if v is Vector2i:
-		return v
-	if v is String:
-		return Vector2i(int(String(v).get_slice(",", 0)), int(String(v).get_slice(",", 1)))
-	if v is Array:
-		return Vector2i(int(v[0]), int(v[1]))
-	return Vector2i(-1, -1)
-
-
-## Nearest tile to `a` (ring by ring, rows then columns: deterministic) of one of `codes` that is not taken.
-static func _nearest_untaken(w: WorldState, a: Vector2i, codes: Array, taken: Dictionary, reach: int) -> Vector2i:
-	var best := Vector2i(-1, -1)
-	var bd := INF
-	for yy in range(maxi(0, a.y - reach), mini(Terrain.H, a.y + reach + 1)):
-		for xx in range(maxi(0, a.x - reach), mini(Terrain.W, a.x + reach + 1)):
-			if taken.has(Terrain.key(xx, yy)) or not (Terrain.at(w, xx, yy) in codes):
-				continue
-			var d := Vector2(xx - a.x, yy - a.y).length()
-			if d < bd:
-				bd = d
-				best = Vector2i(xx, yy)
-	return best
+	return ColonyLayout.as_tile(v)
 
 
 ## Law districts from areas once they exist; before that the economic districts (settlements and facilities).
@@ -460,6 +389,8 @@ func _draw() -> void:
 	_draw_area_outlines(w, t)
 	if show_dist:
 		_draw_district_borders(t)
+	else:
+		_draw_network(w, t)
 	_draw_facilities(w, t)
 	_label_rects.clear()
 	if not show_dist:
@@ -548,6 +479,14 @@ func _draw_sites(w: WorldState, t: float) -> void:
 			var rr := r if k % 2 == 0 else r * 0.45
 			var a := -PI / 2.0 + float(k) * PI / 5.0
 			pts.append(p + Vector2(cos(a), sin(a)) * rr)
+		var reach: Dictionary = _reach.get(String(s["id"]), {})
+		if not reach.is_empty():   # how tourists get there: a ring in the reach colour (dashed when unreachable)
+			var rc: Color = REACH_COLORS[String(reach["mode"])]
+			if reach["mode"] == "UNREACHABLE":
+				for k in 8:
+					draw_arc(p, r + 3.0, float(k) * TAU / 8.0, float(k) * TAU / 8.0 + TAU / 16.0, 4, rc, 2.0)
+			else:
+				draw_arc(p, r + 3.0, 0.0, TAU, 20, rc, 2.0)
 		draw_colored_polygon(pts, col)
 		pts.append(pts[0])
 		draw_polyline(pts, Color(0, 0, 0, 0.8), 1.0)
@@ -630,6 +569,11 @@ func _draw_labels(w: WorldState, t: float) -> void:
 
 
 func _draw_cursor(w: WorldState, t: float) -> void:
+	if mode == "BUILD" and build_type == "ROAD":
+		if _in_map(_hover):
+			draw_rect(_tile_rect(_hover.x, _hover.y), Color(1, 0.85, 0.35, 0.45))
+		_draw_road_plan(w, t)
+		return
 	if mode == "BUILD":
 		if _in_map(_hover):
 			var why := build_problem(w, build_type, _hover, _fac_at)
@@ -713,7 +657,11 @@ func hover_text(w: WorldState, t: Vector2i) -> String:
 	var fid := String(_fac_at.get(Terrain.key(t.x, t.y), ""))
 	if fid != "":
 		s += " · " + String(FAC_NAMES.get(String(w.peek("facility")[fid]["type"]), "facility"))
-	if mode == "BUILD":
+	for lid in _link_at.get(Transport.tile_int(t), []):
+		s += " · " + String(Transport.KIND_NAMES[_link(lid).get("kind", "TRACK")])
+	if mode == "BUILD" and build_type == "ROAD":
+		s += "\n" + ("Click: the link starts here" if road_a.x < 0 or road_b.x >= 0 else "Click: the link ends here")
+	elif mode == "BUILD":
 		var why := build_problem(w, build_type, t, _fac_at)
 		s += "\n" + ("Free: click to place here" if why == "" else why)
 	return s
@@ -727,7 +675,14 @@ func click_tile(t: Vector2i) -> void:
 	last_message = ""
 	match mode:
 		"BUILD":
-			build_tile = t
+			if build_type == "ROAD":
+				if road_a.x < 0 or road_b.x >= 0:
+					road_a = t
+					road_b = Vector2i(-1, -1)
+				else:
+					road_b = t
+			else:
+				build_tile = t
 		"DRAW":
 			var a := AreaStore.area_of(w, t)
 			if a != "" and draw_group != "":
@@ -754,6 +709,11 @@ func _pick(w: WorldState, t: Vector2i) -> Dictionary:
 	for d in _anchors:
 		if Vector2(_anchors[d] - t).length() <= 1.5 and AreaStore.areas(w).is_empty():
 			return {"kind": "SETTLEMENT", "id": d, "tile": t}
+	var ti := Transport.tile_int(t)
+	if _junc_at.has(ti):
+		return {"kind": "JUNCTION", "id": _junc_at[ti], "tile": t}
+	if _link_at.has(ti):
+		return {"kind": "LINK", "id": _link_at[ti][0], "tile": t}
 	return {"kind": "TILE", "id": "", "tile": t}
 
 
@@ -896,8 +856,16 @@ func _on_action() -> void:
 		return
 	match mode:
 		"BUILD":
-			if _in_map(build_tile):
+			if build_type == "ROAD":
+				if road_a.x >= 0 and road_b.x >= 0:
+					last_message = String(submit_road(w, road_spec(), _anchors)["message"])
+			elif _in_map(build_tile):
 				last_message = String(submit_build(w, build_type, build_tile, _anchors)["message"])
+		"INSPECT":
+			var key := ("LINK:" if selected.get("kind", "") == "LINK" else "NODE:") + String(selected.get("id", ""))
+			var opts: Array = Transport.traffic_fixes(w).get(key, {}).get("options", [])
+			if not opts.is_empty():
+				last_message = String(submit_road(w, opts[0]["spec"], _anchors)["message"])
 		"DRAW":
 			last_message = String(submit_plan()["message"])
 			if is_inside_tree():
@@ -909,8 +877,9 @@ func _update_panel() -> void:
 	if _info == null:
 		return
 	_build_box.visible = mode == "BUILD"
+	_road_kind_pick.visible = build_type == "ROAD"
 	_draw_box.visible = mode == "DRAW" and not plan.is_empty()
-	_act_btn.visible = mode in ["BUILD", "DRAW"]
+	_act_btn.visible = mode in ["BUILD", "DRAW"] or (mode == "INSPECT" and selected.get("kind", "") in ["LINK", "JUNCTION"])
 	var w := _world()
 	if w == null or not Terrain.ready(w):
 		_info.text = "No colony map yet."
@@ -942,9 +911,14 @@ func _inspect_text(w: WorldState) -> String:
 			return settlement_text(w, String(selected["id"]))
 		"TILE":
 			return tile_text(w, selected["tile"])
+		"LINK":
+			return link_text(w, String(selected["id"]))
+		"JUNCTION":
+			return junction_text(w, String(selected["id"]))
 	var n := AreaStore.areas(w).size()
 	var t := "[b]%d area%s, %d facilities[/b]\n" % [n, "" if n == 1 else "s", _fac_tiles.size()]
 	t += "Click an area, a facility or a tile.\nWheel zooms (out to the whole map), right-drag pans.\n\n"
+	t += _network_summary(w)
 	t += "[b]Areas by kind[/b]\n"
 	for k in KIND_COLORS:
 		t += "[color=#%s]■[/color] %s\n" % [KIND_COLORS[k].to_html(false), String(KIND_NAMES[k]).capitalize()]
@@ -1111,10 +1085,16 @@ func tile_text(w: WorldState, tv: Vector2i) -> String:
 		if s["where"] == "COLONY" and Vector2i(s["tile"]) == tv:
 			t += "[color=#ffe08a]Sight: %s[/color] (%s), attraction %d, this month %d%% of an average month\n" % [
 				s["name"], PlanetSites.KIND_NAMES[s["kind"]], int(s["attraction"]), PlanetSites.season_pct(w, s)]
+			t += _reach_line(String(s["id"]))
+	var ti := Transport.tile_int(tv)
+	for lid in _link_at.get(ti, []):
+		t += "On the %s %s\n" % [Transport.KIND_NAMES[_link(lid).get("kind", "TRACK")], lid]
 	return t
 
 
 func _build_text(w: WorldState) -> String:
+	if build_type == "ROAD":
+		return _road_text(w)
 	var name := "public housing" if build_type == "HOUSING" else String(FAC_NAMES.get(build_type, build_type))
 	var t := "[b]Build %s[/b]\nChoose a free tile: green is buildable, red is not.\n" % name
 	var est := EconConstruction.estimate(build_type) / EconUtil.S
@@ -1232,3 +1212,241 @@ static func _money(credits: float) -> String:
 	if absf(credits) >= 1000.0:
 		return "%.0fk" % (credits / 1000.0)
 	return "%.0f" % credits
+
+
+# ======================================================================= transport (A43)
+
+func _refresh_network(w: WorldState) -> void:
+	_net = Transport.network(w)
+	_link_at.clear()
+	_junc_at.clear()
+	for l in _net["links"]:
+		if int(l.get("globe", 0)) == 1:
+			continue
+		for ti in l["path"]:
+			if not _link_at.has(int(ti)):
+				_link_at[int(ti)] = []
+			_link_at[int(ti)].append(String(l["id"]))
+	for j in _net.get("junctions", []):
+		_junc_at[int(j["tile"])] = String(j["id"])
+	_reach.clear()
+	for r in Transport.reachable_sites(w):
+		_reach[String(r["id"])] = r
+
+
+func _link(lid: String) -> Dictionary:
+	for l in _net.get("links", []):
+		if l["id"] == lid:
+			return l
+	return {}
+
+
+## Links by kind (tracks dashed, roads grey, paved white; two lanes wider), worn ones redden, closed ones are
+## crossed out in red; junctions by type.
+func _draw_network(_w: WorldState, t: float) -> void:
+	var sel := String(selected.get("id", "")) if selected.get("kind", "") == "LINK" else ""
+	for l in _net.get("links", []):
+		if int(l.get("globe", 0)) == 1:
+			continue
+		var k := String(l["effective"])
+		var col: Color = LINK_COLORS[k]
+		var cond := int(l["cond"])
+		if cond < 500:
+			col = col.lerp(Color("#d9534f"), float(500 - cond) / 500.0 * 0.8)
+		var wdt := maxf(1.5, t * (0.16 if k == "TRACK" else (0.24 if k == "ROAD" else 0.3))) * (1.6 if int(l.get("lanes", 1)) == 2 else 1.0)
+		var pts := PackedVector2Array()
+		for ti in l["path"]:
+			pts.append(_tile_center(Transport.int_tile(int(ti))))
+		if l["id"] == sel:
+			draw_polyline(pts, Color("#fff3b0"), wdt + 5.0)
+		draw_polyline(pts, Color(0.05, 0.05, 0.05, 0.75), wdt + 2.0)
+		if k == "TRACK":
+			for i in range(1, pts.size()):
+				draw_dashed_line(pts[i - 1], pts[i], col, wdt, maxf(3.0, t * 0.35))
+		else:
+			draw_polyline(pts, col, wdt)
+			if int(l.get("lanes", 1)) == 2 and t >= 9.0:
+				draw_polyline(pts, Color(0.2, 0.2, 0.2), 1.0)
+		if String(l["closed"]) != "" and pts.size() >= 2:
+			var m := pts[pts.size() / 2]
+			var r := maxf(4.0, t * 0.4)
+			draw_line(m + Vector2(-r, -r), m + Vector2(r, r), Color("#ff3030"), 3.0)
+			draw_line(m + Vector2(-r, r), m + Vector2(r, -r), Color("#ff3030"), 3.0)
+	var font := get_theme_default_font()
+	for j in _net.get("junctions", []):
+		var p := _tile_center(Transport.int_tile(int(j["tile"])))
+		var r2 := maxf(2.5, t * 0.28)
+		match String(j["type"]):
+			"ROUNDABOUT":
+				draw_arc(p, r2, 0.0, TAU, 20, Color.WHITE, maxf(1.5, t * 0.12))
+			"SIGNALS":
+				draw_circle(p, r2, Color("#f4d03f"))
+			"PRIORITY":
+				draw_circle(p, r2, Color("#ffffff"))
+			_:
+				draw_circle(p, r2 * 0.7, Color("#bdbdbd"))
+		if selected.get("kind", "") == "JUNCTION" and selected.get("id", "") == j["id"]:
+			draw_arc(p, r2 + 3.0, 0.0, TAU, 20, Color("#fff3b0"), 2.0)
+		if t >= 16.0 and String(j["type"]) in ["PRIORITY", "SIGNALS"]:
+			var g := "P" if j["type"] == "PRIORITY" else "S"
+			draw_string(font, p + Vector2(-3, 4), g, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.BLACK)
+
+
+## The planned route of a new link in the Build tab (dashed yellow), and its two ends.
+func _draw_road_plan(w: WorldState, t: float) -> void:
+	for e in [road_a, road_b]:
+		if _in_map(e):
+			draw_rect(_tile_rect(e.x, e.y), Color("#fff3b0"), false, maxf(2.0, t * 0.2))
+	if road_a.x < 0 or road_b.x < 0:
+		return
+	var plan := Transport.plan_link(w, road_spec())
+	var pts := PackedVector2Array()
+	for ti in plan.get("path", []):
+		pts.append(_tile_center(Transport.int_tile(int(ti))))
+	for i in range(1, pts.size()):
+		draw_dashed_line(pts[i - 1], pts[i], Color("#ffd75e"), maxf(2.0, t * 0.22), maxf(3.0, t * 0.3))
+
+
+func _reach_line(site_id: String) -> String:
+	var r: Dictionary = _reach.get(site_id, {})
+	if r.is_empty():
+		return ""
+	var m := String(r["mode"])
+	var t := "[color=#%s]Reach: %s[/color]" % [REACH_COLORS[m].to_html(false), REACH_NAMES[m]]
+	if m != "UNREACHABLE":
+		t += ", %d km, %s from the port" % [int(r["km"]), "under a day" if int(r["time_days"]) <= 1 else "%d days" % int(r["time_days"])]
+	elif String(r["usual"]) != "UNREACHABLE":
+		t += " this month (weather); usually %s" % REACH_NAMES[String(r["usual"])]
+	else:
+		t += ": build a road to it, or license rover tours or an airship"
+	return t + "\n"
+
+
+func _network_summary(_w: WorldState) -> String:
+	var n := {"TRACK": 0, "ROAD": 0, "PAVED": 0}
+	var km := 0
+	var closed := 0
+	for l in _net.get("links", []):
+		n[String(l["kind"])] += 1
+		km += int(l["km"])
+		closed += 1 if String(l["closed"]) != "" else 0
+	var t := "[b]Roads[/b]: %d tracks, %d roads, %d paved, %d km%s\n" % [n["TRACK"], n["ROAD"], n["PAVED"], km,
+		(" · [color=#ef5350]%d closed this month[/color]" % closed) if closed > 0 else ""]
+	var by := {}
+	for sid in _reach:
+		var m := String(_reach[sid]["mode"])
+		by[m] = int(by.get(m, 0)) + 1
+	t += "Sights: %d by road, %d by rover, %d by airship, %d unreachable\n\n" % [int(by.get("ROAD", 0)), int(by.get("ROVER", 0)),
+		int(by.get("AIRSHIP", 0)), int(by.get("UNREACHABLE", 0))]
+	return t
+
+
+func link_text(w: WorldState, lid: String) -> String:
+	var l := _link(lid)
+	if l.is_empty():
+		return "Unknown link."
+	var t := "[b]%s %s[/b]\n" % [String(Transport.KIND_NAMES[l["kind"]]).capitalize(), lid]
+	var lanes := int(l.get("lanes", 1))
+	t += "%d km · %d lane%s · condition %d%%" % [int(l["km"]), lanes, "" if lanes == 1 else "s", int(l["cond"]) / 10]
+	if String(l["effective"]) != String(l["kind"]):
+		t += " · [color=#ef5350]worn down to a track[/color]"
+	t += "\nCapacity %d trips a month, last month %d" % [int(l["capacity"]), int(l["traffic"])]
+	if int(l["bridges"]) > 0:
+		t += "\nCrosses the river (%s)" % ("two bridges" if int(l.get("bridge_lanes", 1)) == 2 else "one bridge")
+	if int(l.get("acc", 0)) > 0:
+		t += "\nRecent accidents: %d" % int(l["acc"])
+	if String(l["closed"]) != "":
+		t += "\n[color=#ef5350]Closed this month: %s[/color]" % ("storm" if l["closed"] == "STORM" else "mud after heavy rain")
+	t += "\n\n" + _fixes_text(w, "LINK:" + lid)
+	return t
+
+
+func junction_text(w: WorldState, jid: String) -> String:
+	var j := {}
+	for x in _net.get("junctions", []):
+		if x["id"] == jid:
+			j = x
+	if j.is_empty():
+		return "Unknown junction."
+	var t := "[b]%s[/b] (%d roads meet)\n" % [String(Transport.JUNCTION_NAMES[j["type"]]).capitalize(), int(j["branches"])]
+	t += "Capacity %d trips a month, last month %d · accident risk %d (a plain crossing = 100)" % [int(j["capacity"]), int(j["traffic"]), int(j["risk"])]
+	if int(j.get("acc", 0)) > 0:
+		t += "\nRecent accidents: %d" % int(j["acc"])
+	return t + "\n\n" + _fixes_text(w, "NODE:" + jid)
+
+
+func _fixes_text(w: WorldState, key: String) -> String:
+	var opts: Array = Transport.traffic_fixes(w).get(key, {}).get("options", [])
+	_act_btn.disabled = opts.is_empty()
+	_act_btn.text = ("Order: " + _fix_name(String(opts[0]["fix"]))) if not opts.is_empty() else "No works on offer"
+	if opts.is_empty():
+		return "[i]Nothing more to build here.[/i]\n"
+	var t := "[b]Possible works[/b]\n"
+	for o in opts:
+		t += "• %s: %s, %s · capacity ×%.1f, accident risk ×%.2f\n" % [_fix_name(String(o["fix"])), _money(float(o["cost"]) / EconUtil.S),
+			_month_text(int(o["months"])), float(o["cap_pm"]) / 1000.0, float(o["acc_pm"]) / 1000.0]
+	if not ROAD_LINK_LIVE:
+		t += "[i]Ordering goes live when the economy's road projects build links.[/i]\n"
+	return t
+
+
+static func _fix_name(f: String) -> String:
+	var names := {"ROAD": "make it a road", "PAVE": "pave it", "LANES_2": "a second lane", "BRIDGE_2": "a second bridge",
+		"BYPASS": "a bypass road", "PRIORITY": "priority rules", "ROUNDABOUT": "a roundabout", "SIGNALS": "traffic lights"}
+	return String(names.get(f, f))
+
+
+func road_spec() -> Dictionary:
+	return {"a": Transport.tile_int(road_a), "b": Transport.tile_int(road_b), "kind": road_kind}
+
+
+func _road_text(w: WorldState) -> String:
+	var t := "[b]Build a %s[/b]\nClick where it starts, then where it ends: the engineers plan the route over the land (rivers need bridges, hills cost more).\n" % Transport.KIND_NAMES[road_kind]
+	t += "Nothing is reachable for free: a place off the network needs a road (or rovers and airships).\n"
+	_act_btn.text = "Commission this link"
+	_act_btn.disabled = true
+	if road_a.x < 0:
+		return t
+	t += "\nFrom %d,%d" % [road_a.x, road_a.y]
+	if road_b.x < 0:
+		return t + ", now click the other end.\n"
+	t += " to %d,%d\n" % [road_b.x, road_b.y]
+	var plan := Transport.plan_link(w, road_spec())
+	if not plan["ok"]:
+		return t + "[color=#ef5350]%s[/color]\n" % plan["error"]
+	var br := int(plan["bridges"])
+	t += "%d km%s · %d work units · about %s\nEstimated cost %s\n" % [int(plan["km"]),
+		(", %d river tile%s bridged" % [br, "" if br == 1 else "s"]) if br > 0 else "",
+		int(plan["wu"]), _month_text(int(plan["months"])), _money(float(plan["cost"]) / EconUtil.S)]
+	var chk: Dictionary = EconActions.check(w, "ECON_COMMISSION_PROJECT", road_params(w, road_spec(), _anchors))
+	if not chk["ok"]:
+		t += "[color=#ef5350]%s[/color]\n" % chk["error"]
+	else:
+		t += "[color=#8bc34a]The budget allows it.[/color]\n"
+		_act_btn.disabled = false
+	if not ROAD_LINK_LIVE:
+		t += "[i]Commissioning goes live when the economy's road projects build links.[/i]\n"
+	return t
+
+
+## ECON_COMMISSION_PROJECT params for a ROAD-family job (a new link, an upgrade, a junction...).
+static func road_params(w: WorldState, spec: Dictionary, anchors: Dictionary = {}) -> Dictionary:
+	var plan := Transport.plan_link(w, spec)
+	var tiles: Array = plan.get("path", [])
+	var mid := Terrain.landing(w) if tiles.is_empty() else Transport.int_tile(int(tiles[tiles.size() / 2]))
+	return {"type": "ROAD", "district": econ_district_near(w, mid, anchors), "link": spec.duplicate()}
+
+
+## Commission a ROAD-family job (Bob's hook builds the link when the project completes). {ok, message}.
+static func submit_road(w: WorldState, spec: Dictionary, anchors: Dictionary = {}) -> Dictionary:
+	var why := Transport.validate_link(w, spec)
+	if why != "":
+		return {"ok": false, "message": why}
+	var params := road_params(w, spec, anchors)
+	var chk: Dictionary = EconActions.check(w, "ECON_COMMISSION_PROJECT", params)
+	if not chk["ok"]:
+		return {"ok": false, "message": String(chk["error"])}
+	if not ROAD_LINK_LIVE:
+		return {"ok": false, "message": "The plan is ready, but road projects build links only once the economy's hook is in. Nothing was commissioned."}
+	var r: Dictionary = EconActions.enqueue(w, "ECON_COMMISSION_PROJECT", params)
+	return {"ok": r["ok"], "message": "Commissioned: the tender opens next month." if r["ok"] else String(r["error"])}

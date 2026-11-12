@@ -266,6 +266,17 @@ const TASKS := {
 		"positions": [
 			{"role": "Analyst", "mandatory": true, "weights": {"ECON": 1.0}, "paths": [{"min": {"ECON": 50}}]},
 		]},
+	# T7 (spec-transport-v1): the infrastructure department's traffic study (yearly, and after a serious accident).
+	# Report quality follows the team's engineering skill (sim/staff/traffic_reports.gd).
+	"STAFF_T_TRAFFIC_STUDY": {"category": "PROJECT", "mode": "COORDINATED", "tags": ["INDUSTRY"], "tier": 2,
+		"owners": ["GOVERNMENT"], "work": {"base": 24},
+		"positions": [
+			{"role": "Traffic engineer", "mandatory": true, "weights": {"ENG": 0.8, "LOGI": 0.2},
+				"paths": [{"min": {"ENG": 50}}, {"min": {"ENG": 40, "LOGI": 55}}]},
+			{"role": "Second engineer", "mandatory": false, "weights": {"ENG": 1.0}, "paths": [{"min": {"ENG": 45}}]},
+			{"role": "Data analyst", "mandatory": false, "weights": {"LOGI": 0.5, "ECON": 0.5},
+				"paths": [{"min": {"LOGI": 40}}, {"min": {"ECON": 45}}]},
+		]},
 	"STAFF_T_TRAINING": {"category": "TRAINING", "mode": "PARALLEL", "tags": [], "tier": 1,
 		"owners": ["GOVERNMENT", "PARTY"], "fixed_months": 3, "cost_wref": 10,
 		"positions": [{"role": "Trainee", "mandatory": true, "weights": {}, "paths": [{"min": {}}]}]},
