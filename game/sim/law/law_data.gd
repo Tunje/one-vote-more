@@ -416,6 +416,13 @@ const LEVERS := [
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": -0.05, "ENVIRONMENT": -0.06, "SOVEREIGNTY": -0.04},
 		"concerns": {"JOBS": 20, "HOUSING": -8, "COST_OF_LIVING": -6, "ENVIRONMENT_QUALITY": -6},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Immigration (E120): 0 = closed to settlers, 100 = open. Bob multiplies would-be arrivals by it (with
+	# attractiveness and ship space). Opening: more hands and growth; crowded jobs and housing.
+	{"id": "LAW_IMMIGRATION", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 70,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER",
+		"ideology": {"SOVEREIGNTY": -0.08, "INSTITUTIONS": 0.04, "ECON_ROLE": -0.05, "ENVIRONMENT": -0.03},
+		"concerns": {"JOBS": -12, "HOUSING": -10, "GOVERNANCE": 8},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
 	# Leisure licensing: venue licence and alcohol strictness, 0 = lax (anyone, all hours) .. 100 = strict (few venues,
 	# early closing, no alcohol). Fewer venues and jobs, calmer streets.
 	{"id": "LAW_LEISURE_LICENSING", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 40,

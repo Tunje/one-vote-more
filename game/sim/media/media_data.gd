@@ -76,6 +76,10 @@ const MISLEAD_P_SCALE := 0.5          # p(MISLEADING) per eligible story = (pres
 const P_COMPLAINT_BY := {"FALSE": 0.25, "ERROR": 0.15, "MISLEADING": 0.08}
 const CRED_SPIN := 5000
 const CRED_SPIN_REPEAT := 1000
+# v5 calibration (228–442 exposures a century, mostly honest errors): exposure windows
+const COMPLAINT_WINDOW := 3           # months after the report in which the victim complains
+const DEBUNK_WINDOW := 6              # months after the report in which rivals check it
+const DEBUNK_ERROR_FACTOR := 0.5      # an honest error draws half the rivals' scrutiny
 const REPEAT_CAP := 3
 
 # ---- AI founding (spec §2.1, §15; v4 chronicles: no paper but the Gazette in 100 years)
@@ -106,6 +110,18 @@ const DEFICIT_CLOSE_MONTHS := 6           # costs unpaid this many months in a r
 const SALES_RECOVER := 0.05               # sales_f recovery per month
 const SALES_F_MIN := 0.1
 const REFOUND_COOLDOWN := 36              # months before an owner whose paper closed may found another
+# v5: managed papers (Media.manage) — price up, then investigation, then staff when losing money; restore when not
+const MANAGE_EVERY := 3                   # months between adjustments
+const MANAGE_SMOOTH := 3                  # margin average over about this many months
+const MANAGE_PRICE_MAX := 4               # milli-W_ref per copy-month (6 in the v5 probe: households could not buy them all)
+const MANAGE_INVEST_STEP := 100           # milli-W_ref
+const MANAGE_QUALITY_STEP := 5
+const MANAGE_QUALITY_MIN := 20
+const MANAGE_QUALITY_MAX := 80
+const MANAGE_CUSHION_MONTHS := 6          # cash for this many months of costs before restoring cuts
+const MANAGE_CUT_BELOW_MONTHS := 12       # a losing paper cuts only while its cash covers fewer months than this
+const MANAGE_RICH_MONTHS := 24            # cash for this many months: restore, lower the price, improve even at a loss
+const MANAGE_KEEP_MONTHS := 36            # cash above this many months of costs is paid out to the owner
 
 # ---- unions as organisations (spec-unions-v1 §4): the federation owns The Worker and pays for it
 const UNION_FOUND_CASH := 4.0             # W_ref the federation can spare before it founds a paper …

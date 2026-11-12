@@ -416,3 +416,40 @@ The v4 chronicles showed no paper but the Gazette in 100 years. `Media._found_ai
   - Union papers die without cover and refound at most every 3 years.
   - Party papers survive while campaign ads and party cash last.
 - **Tests:** `tests/media/test_media_m4.gd` (6), and the founding tests gain the cooldown case.
+
+## 17. v5 calibration: durable papers, fewer exposures (2026-11-12)
+
+The v5 century chronicles showed two problems:
+- **No rival paper survived.** Seed 1 founded 14 papers and seed 2 founded 24, and every one except the Gazette closed. Each owner refounded after its cooldown.
+- **Too many exposures:** 228–442 a century.
+
+**Why papers failed.** About 400 readers at price 3 (The Worker: price 1) earn about 1.2 W_ref a month against about 1.8 W_ref of costs. Prices and costs were fixed for life, so every rival paper lost money until the owner's cover ran out.
+
+**Managed papers** (`Media.manage`, `MANAGE_*` in media_data):
+- **Who:** every non-state outlet, every 3 months, judged on its average operating margin (copy sales minus running costs). Ads and owner cover are windfalls, not part of the business.
+- **Losing money** while holding under 12 months of cash: one step, in this order:
+  1. price +1, up to 4 milli-W_ref (or the founding price if higher);
+  2. investigation −0.1 W_ref;
+  3. staff quality −5, down to 20.
+- **Recovering:** with 6 months of cash and a surplus, or 24 months of cash at any margin, it undoes its cuts: staff first, then investigation.
+- **Rich** (24 months of cash): the price comes back down to the founding level, then staff quality rises toward 80.
+- **Payout:** cash above 36 months of costs goes to the owner (`MEDIA_PAYOUT`). The first version had no payout, and the probe's papers sat on about 650 W_ref of ad money, held out of circulation.
+- The state paper is the government's business and is not managed.
+
+**Exposure windows** (§5 rates unchanged):
+- The victim complains only within 3 months of the report.
+- Rivals check only reports up to 6 months old, at half rate for honest ERRORs.
+- Insiders leak only deliberate lies (MISLEADING, FALSE).
+
+Before this, every channel rolled each month for 24 months, so nearly every report was exposed. About 85% of exposures were honest errors, mostly found by rivals.
+
+**Probe** (50 years each, seeds 1 and 2):
+
+| | Before | After |
+|---|---|---|
+| Insolvency closures | 13 / 4 | 1 / 1 (company papers after 18 and 27 years) |
+| Papers alive at Y50 | 3 | 6 / 7 |
+| Exposures | 328 / 230 (managed press, old rules) | 115 / 131 |
+
+- The other closures were papers whose owner dissolved (OWNER_GONE).
+- Households' media budget is the limit. With 7 papers, each sells about 30% of the copies its readers want (`sales_pm`).

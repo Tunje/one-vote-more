@@ -181,3 +181,34 @@ func test_press_investigation_reveals_misconduct() -> void:
 	check_eq(w.peek("violation_track")[vid]["channel"], "PRESS", "through the press channel")
 	var ed := MediaQuery.edition(w, pp, w.month)
 	check(ed["stories"].any(func(s): return s["kind"] == "INVESTIGATION"), "run as the paper's own investigation")
+
+
+## v5: exposure windows — victims complain while a story is fresh, rivals check recent stories, insiders leak only
+## lies. An honest error past both windows is never exposed; a fresh lie with a motivated victim usually is.
+func test_old_errors_are_not_exposed_fresh_lies_are() -> void:
+	var w := _world()
+	w.levers["LAW_WHISTLEBLOWER_PROTECTION"] = true
+	var a := _party_paper(w)
+	Media.found_outlet(w, {"kind": "COMPANY", "id": "org:9"}, {"invest": 3.0})     # an eager rival
+	var lies := w.table("media_lie")
+	var victim := {"kind": "PARTY", "id": "party:2"}
+	for i in 40:
+		lies["E%d" % i] = {"fid": "E%d" % i, "outlet": a, "report": "", "victim": victim, "truth": "ERROR", "deliberate": false,
+			"month": w.month - 8, "magnitude": 50, "claim_bias": {}, "revealed": false}
+		lies["F%d" % i] = {"fid": "F%d" % i, "outlet": a, "report": "", "victim": victim, "truth": "FALSE", "deliberate": true,
+			"month": w.month, "magnitude": 50, "claim_bias": {}, "revealed": false}
+		w.table("revealed_fact")["E%d" % i] = true
+		w.table("revealed_fact")["F%d" % i] = true
+	for m in 3:
+		Media._expose(w)
+		w.month += 1
+	var old := 0
+	var fresh := 0
+	for k in lies:
+		if bool(lies[k]["revealed"]):
+			if String(k).begins_with("E"):
+				old += 1
+			else:
+				fresh += 1
+	check_eq(old, 0, "an honest error eight months on: nobody looks any more")
+	check(fresh >= 25, "fresh lies with a motivated victim and an eager rival are mostly exposed (%d/40)" % fresh)

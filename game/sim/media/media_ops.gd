@@ -1024,21 +1024,25 @@ static func _expose(world: WorldState) -> void:
 		var liar: Dictionary = world.peek("outlet").get(l["outlet"], {})
 		var by := ""
 		var channel := ""
-		if not l["victim"].is_empty() and int(l["magnitude"]) >= MD.COMPLAINT_MIN_MAGNITUDE 				and rng.randf() < float(MD.P_COMPLAINT_BY.get(String(l["truth"]), MD.P_COMPLAINT)):
+		var age := world.month - int(l["month"])
+		var honest := String(l["truth"]) == "ERROR"
+		# v5: rolled every month for 24 months, nearly every report was exposed. A victim complains while the story
+		# is fresh, rivals check recent stories (honest errors draw less scrutiny), and insiders leak only lies.
+		if age <= MD.COMPLAINT_WINDOW and not l["victim"].is_empty() and int(l["magnitude"]) >= MD.COMPLAINT_MIN_MAGNITUDE 				and rng.randf() < float(MD.P_COMPLAINT_BY.get(String(l["truth"]), MD.P_COMPLAINT)):
 			channel = "COMPLAINT"
-		if channel == "" and not liar.is_empty():
+		if channel == "" and not liar.is_empty() and age <= MD.DEBUNK_WINDOW:
 			for rid in outlets(world):
 				if rid == l["outlet"]:
 					continue
 				var r: Dictionary = world.peek("outlet")[rid]
 				if _inv(r) < MD.DEBUNK_MIN_INVEST:
 					continue
-				var p := MD.P_DEBUNK * _inv(r) * (1.5 if opposition(r["line"], liar["line"]) > 0.0 else 1.0)
+				var p := MD.P_DEBUNK * _inv(r) * (1.5 if opposition(r["line"], liar["line"]) > 0.0 else 1.0) 					* (MD.DEBUNK_ERROR_FACTOR if honest else 1.0)
 				if rng.randf() < p:
 					channel = "RIVAL"
 					by = rid
 					break
-		if channel == "" and rng.randf() < whistle:
+		if channel == "" and not honest and rng.randf() < whistle:
 			channel = "WHISTLEBLOWER"
 		if channel != "":
 			expose_lie(world, fid, channel, by)
@@ -1528,14 +1532,77 @@ static func _finances(world: WorldState) -> void:
 			o["deficit_months"] = 0
 		if int(o["deficit_months"]) >= MD.DEFICIT_CLOSE_MONTHS and String(o["owner"]["kind"]) != "STATE":
 			close_outlet(world, id, "INSOLVENT")
+		elif String(o["owner"]["kind"]) != "STATE":
+			manage(world, o)
 
 
-## Leftover cash goes back to the owner (party, company) or to households (closed ledger).
-static func _refund(world: WorldState, o: Dictionary) -> void:
+## Operating margin this month (mcr): copy sales at the paper's price minus running costs (ads and owner cover
+## are windfalls, not the business).
+static func margin(world: WorldState, o: Dictionary) -> int:
+	var fin: Dictionary = o.get("fin", {})
+	var wref := maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))
+	return int(fin.get("sales", 0)) * (int(o["price_mw"]) * wref / 1000) / S - int(fin.get("cost", 0))
+
+
+## v5 chronicles: every private paper ran at a loss for life (price far below what readers bear, full staff and
+## investigation budget whatever the sales) and closed. A managed paper reacts every MANAGE_EVERY months to its
+## average margin: losing money, it raises the price, then cuts investigation, then staff; with a cash cushion and
+## a surplus it restores what it cut and, when rich, improves. The state's paper is the government's business.
+static func manage(world: WorldState, o: Dictionary) -> void:
+	if not o.has("base"):
+		o["base"] = {"price_mw": int(o["price_mw"]), "quality": int(o["quality"]), "invest": int(o["invest"])}
+	var cur := margin(world, o)
+	o["margin_avg"] = int(round((float(o.get("margin_avg", cur)) * float(MD.MANAGE_SMOOTH - 1) + float(cur)) / float(MD.MANAGE_SMOOTH)))
+	if world.month - int(o.get("managed", -999)) < MD.MANAGE_EVERY:
+		return
+	var avg := int(o["margin_avg"])
+	var cost := maxi(1, int(o.get("fin", {}).get("cost", 1)))
+	var bal := world.ledger.balance(String(o["account"]))
+	var base: Dictionary = o["base"]
+	var rich := bal >= MD.MANAGE_RICH_MONTHS * cost
+	var acted := ""
+	if avg < 0 and bal < MD.MANAGE_CUT_BELOW_MONTHS * cost:
+		if int(o["price_mw"]) < maxi(MD.MANAGE_PRICE_MAX, int(base["price_mw"])):
+			o["price_mw"] = int(o["price_mw"]) + 1
+			acted = "PRICE_UP"
+		elif int(o["invest"]) > 0:
+			o["invest"] = maxi(0, int(o["invest"]) - MD.MANAGE_INVEST_STEP)
+			acted = "INVEST_CUT"
+		elif int(o["quality"]) > MD.MANAGE_QUALITY_MIN:
+			o["quality"] = maxi(MD.MANAGE_QUALITY_MIN, int(o["quality"]) - MD.MANAGE_QUALITY_STEP)
+			acted = "STAFF_CUT"
+	elif bal >= MD.MANAGE_CUSHION_MONTHS * cost and (avg > 0 or rich):
+		if int(o["quality"]) < int(base["quality"]):
+			o["quality"] = mini(int(base["quality"]), int(o["quality"]) + MD.MANAGE_QUALITY_STEP)
+			acted = "STAFF_BACK"
+		elif int(o["invest"]) < int(base["invest"]):
+			o["invest"] = mini(int(base["invest"]), int(o["invest"]) + MD.MANAGE_INVEST_STEP)
+			acted = "INVEST_BACK"
+		elif rich and int(o["price_mw"]) > int(base["price_mw"]):
+			o["price_mw"] = int(o["price_mw"]) - 1
+			acted = "PRICE_DOWN"
+		elif rich and int(o["quality"]) < MD.MANAGE_QUALITY_MAX:
+			o["quality"] = mini(MD.MANAGE_QUALITY_MAX, int(o["quality"]) + MD.MANAGE_QUALITY_STEP)
+			acted = "STAFF_UP"
+	# cash beyond MANAGE_KEEP_MONTHS of costs goes back to the owner: a paper is not a vault (the v5 probe's papers
+	# sat on ~650 W_ref of ad money, out of the colony's circulation)
+	var keep := MD.MANAGE_KEEP_MONTHS * cost
+	if bal > keep:
+		_refund(world, o, bal - keep, "MEDIA_PAYOUT")
+	if acted != "":
+		o["managed"] = world.month
+		o["last_manage"] = acted
+
+
+## Leftover cash goes back to the owner (party, company) or to households (closed ledger). `amount` < 0: all of it
+## (closure); otherwise at most that much (a rich paper's payout, Media.manage).
+static func _refund(world: WorldState, o: Dictionary, amount: int = -1, memo: String = "MEDIA_CLOSED") -> void:
 	var acc := String(o.get("account", ""))
 	if acc == "" or not world.ledger.has_account(acc):
 		return
 	var bal := world.ledger.balance(acc)
+	if amount >= 0:
+		bal = mini(bal, amount)
 	if bal <= 0:
 		return
 	var ow: Dictionary = o["owner"]
@@ -1550,6 +1617,6 @@ static func _refund(world: WorldState, o: Dictionary) -> void:
 		"UNION":
 			to = String(Unions.get_union(world, String(ow["id"])).get("acct", ""))
 	if to != "" and world.ledger.has_account(to):
-		world.ledger.transfer(acc, to, bal, "MEDIA_CLOSED", world.month)
+		world.ledger.transfer(acc, to, bal, memo, world.month)
 	else:
-		PartyLife._household_receive(world, acc, bal, "MEDIA_CLOSED")
+		PartyLife._household_receive(world, acc, bal, memo)

@@ -16,12 +16,14 @@ func _world() -> WorldState:
 
 func test_levers_registered() -> void:
 	var w := _world()
-	for id in ["LAW_EXPORT_TAX", "LAW_LUXURY_TAX", "LAW_TOURIST_TAX", "LAW_TOURIST_VISA", "LAW_LEISURE_LICENSING"]:
+	for id in ["LAW_EXPORT_TAX", "LAW_LUXURY_TAX", "LAW_TOURIST_TAX", "LAW_TOURIST_VISA", "LAW_LEISURE_LICENSING", "LAW_IMMIGRATION"]:
 		check(w.lever_defs.has(id) and String(w.lever_defs[id]["type"]) == "NUMBER" and bool(w.lever_defs[id]["legislative"]),
 			id + " is a draftable NUMBER")
 	check_eq(String(w.lever_defs["LAW_CHARTER_EXPORT_LEVY"]["legalLevel"]), "CHARTER", "the levy is a charter term")
 	check(not LawOps.check_change(w, "LAW_CHARTER_EXPORT_LEVY", 10, "LAW").is_empty(), "the colony cannot set the levy")
 	check_eq(TL.visa_openness(w), 0.5, "visas half open by default")
+	check_eq(TL.immigration_openness(w), 0.7, "settlers mostly welcome by default")
+	check(float(w.lever_defs["LAW_IMMIGRATION"]["ideology"]["SOVEREIGNTY"]) < 0.0, "sovereigntists close the door")
 	w.levers["LAW_LEISURE_LICENSING"] = 100
 	check(TL.venue_approval_p(w) < 0.5 and TL.venue_sales_factor(w) < 1.0, "strict licensing: fewer, quieter venues")
 

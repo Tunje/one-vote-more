@@ -3,6 +3,7 @@ extends TestCase
 ## paid as wages, owner cover, press subsidy, insolvency and the refund on closure.
 
 const LawOps := preload("res://sim/law/law_ops.gd")
+const MDT := preload("res://sim/media/media_data.gd")
 
 const WREF := 1200000
 const LEFT := {"ECON_ROLE": 60000, "REDISTRIBUTION": 60000, "LABOR": 60000}
@@ -165,3 +166,60 @@ func test_union_federation_covers_its_paper() -> void:
 		w.month += 1
 		Media.run(w)
 		check_eq(String(Media.outlet(w, up)["status"]), "CLOSED", "the paper dies with the federation")
+
+
+## v5: a managed paper answers losses with price, then investigation, then staff — one step per MANAGE_EVERY months.
+func _set_fin(w: WorldState, o: Dictionary, sales_copies: int, cost_wref: float) -> void:
+	o["fin"] = {"month": w.month, "cost": int(cost_wref * WREF), "paid": int(cost_wref * WREF), "balance": 0, "sales": sales_copies * 1000}
+
+
+func test_a_losing_paper_raises_its_price_then_cuts() -> void:
+	var w := _world()
+	var o := Media.outlet(w, _party_paper(w, 0.0))
+	o["price_mw"] = MDT.MANAGE_PRICE_MAX - 1
+	o["invest"] = 100
+	var q0 := int(o["quality"])
+	var steps: Array = []
+	for i in 10:
+		_set_fin(w, o, 100, 2.0)
+		Media.manage(w, o)
+		steps.append(String(o.get("last_manage", "")) if int(o.get("managed", -1)) == w.month else "")
+		w.month += 1
+	check_eq(steps.filter(func(s): return s != ""), ["PRICE_UP", "INVEST_CUT", "STAFF_CUT", "STAFF_CUT"], "price, then investigation, then staff (%s)" % [steps])
+	check_eq(steps[1], "", "one step per quarter")
+	check_eq(int(o["price_mw"]), MDT.MANAGE_PRICE_MAX, "price capped")
+	check_eq(int(o["invest"]), 0, "investigation cut")
+	check_eq(int(o["quality"]), q0 - 2 * MDT.MANAGE_QUALITY_STEP, "staff cut")
+
+
+func test_a_paying_paper_restores_then_improves() -> void:
+	var w := _world()
+	var o := Media.outlet(w, _party_paper(w, 0.0))
+	Media.manage(w, o)                       # records the founding base
+	var q0 := int(o["base"]["quality"])
+	o["quality"] = q0 - 5
+	o["margin_avg"] = WREF
+	o["managed"] = -999
+	w.ledger.transfer(Ledger.EXTERNAL, String(o["account"]), 100 * WREF, "seed", w.month)
+	var acts: Array = []
+	for i in 12:
+		_set_fin(w, o, 2000, 1.0)                # 2000 copies at 2 milli-W_ref: 4 W_ref against 1 W_ref of costs
+		Media.manage(w, o)
+		if int(o.get("managed", -1)) == w.month:
+			acts.append(String(o["last_manage"]))
+		w.month += 1
+	check_eq(acts[0], "STAFF_BACK", "cuts restored first (%s)" % [acts])
+	check(w.ledger.balance("party:party:1") >= 60 * WREF, "cash beyond three years of costs goes back to the party")
+	check(w.ledger.balance(String(o["account"])) <= (MDT.MANAGE_KEEP_MONTHS + 4) * WREF, "the paper keeps its reserve only")
+	check(acts.has("STAFF_UP") and int(o["quality"]) > q0, "a rich paper hires better staff (%d)" % int(o["quality"]))
+
+
+func test_the_state_paper_is_not_managed() -> void:
+	var w := _world()
+	var gz: String = Media.outlets(w)[0]
+	var p0 := int(Media.outlet(w, gz)["price_mw"])
+	for i in 9:
+		Media.run(w)
+		w.month += 1
+	check_eq(int(Media.outlet(w, gz)["price_mw"]), p0, "the government sets the Gazette's price")
+	check(not Media.outlet(w, gz).has("base"), "never managed")

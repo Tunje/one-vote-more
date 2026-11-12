@@ -8,6 +8,7 @@ extends RefCounted
 ##   LAW_LUXURY_TAX          0–50 % on LUXURY sales to households
 ##   LAW_TOURIST_TAX         0–30 % on tourists' spending (hotels, guides, leisure)
 ##   LAW_TOURIST_VISA        0 closed … 100 open (50 default)
+##   LAW_IMMIGRATION         0 closed … 100 open (70 default): settlers let in (E120, Bob's arrivals)
 ##   LAW_LEISURE_LICENSING   0 lax … 100 strict (40 default): venue licences, opening hours, alcohol
 ##   LAW_CHARTER_EXPORT_LEVY 0–50 % of export revenue to the home world (charter level: home world only)
 
@@ -37,6 +38,11 @@ static func tourist_tax_pct(world: WorldState) -> int:
 ## Share of would-be visitors let in (0 = closed borders .. 1 = fully open); default 0.5.
 static func visa_openness(world: WorldState) -> float:
 	return float(_lv(world, "LAW_TOURIST_VISA", 50, 0, 100)) / 100.0
+
+
+## Share of would-be settlers let in (0 = closed .. 1 = open); default 0.7. Bob: arrivals × this.
+static func immigration_openness(world: WorldState) -> float:
+	return float(_lv(world, "LAW_IMMIGRATION", 70, 0, 100)) / 100.0
 
 
 static func leisure_strictness(world: WorldState) -> float:
