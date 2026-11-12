@@ -62,11 +62,18 @@ func test_desk_shows_the_office_and_opens_tabs() -> void:
 		check_eq(p.tab, tabs[obj], "%s opens %s" % [obj, tabs[obj]])
 		check(not p.desk.visible and p.bar.visible, "the tab replaces the desk")
 	var out := [false]
-	p.outside_requested.connect(func(): out[0] = true)
+	p.outside_requested.connect(func(_v: String): out[0] = true)
 	p.at_desk = true
 	p.refresh()
 	p.desk.click("window")
 	check(out[0], "the window looks outside")
+	var seen := [""]
+	p.outside_requested.connect(func(v: String): seen[0] = v)
+	p.desk.outside = "PLANET"
+	p.desk.click("window")
+	check_eq(seen[0], "PLANET", "from the planet view the window shows the globe and leads back to it")
+	p.desk._ensure_globe()
+	check(p.desk._globe_tex != null, "the globe is drawn in the window")
 	check_eq(p.desk.spot_at(Vector2(560, 380)), "pc", "hotspots on the canvas")
 	check_eq(p.desk.spot_at(Vector2(5, 5)), "", "the bare wall is not an object")
 	p.free()

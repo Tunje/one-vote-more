@@ -18,7 +18,7 @@ var body: VBoxContainer
 var status: Label
 ## Drawn desk view (A44 §O4, Terra): with the setting ui.office_view = OFFICE the panel opens on OfficeDesk; clicking
 ## an object shows that tab here, and "◀ Desk" goes back. The window object asks the main screen to show the colony.
-signal outside_requested
+signal outside_requested(view: String)   # "MAP" | "PLANET": what the desk's window showed
 var desk: OfficeDesk
 var at_desk := true
 
@@ -295,7 +295,7 @@ func _hire(w: WorldState, iid: String) -> void:
 ## A click on the drawn desk: open that tab here (or look out of the window).
 func _on_desk(what: String) -> void:
 	if what == "Outside":
-		outside_requested.emit()
+		outside_requested.emit(desk.outside)
 		return
 	tab = what
 	at_desk = false

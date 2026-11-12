@@ -41,6 +41,12 @@ var _t := 0.0
 var _view_tex: ImageTexture
 var _view_for := ""
 var _data := {}
+## What the window looks out on: "MAP" (the colony map, from close by) or "PLANET" (the globe, when the player was on
+## the planet view). The main screen sets it when the office opens; clicking the window returns to that view.
+var outside := "MAP"
+var _globe_tex: ImageTexture
+var _globe_for := ""
+var _globe_mark := Vector2.ZERO   # where the colony is on the globe picture (-1..1, y up)
 
 
 func _ready() -> void:
@@ -207,7 +213,19 @@ func _draw_window() -> void:
 	var glass := r.grow(-14)
 	if session != null:
 		_ensure_view()
-	if _view_tex != null:
+		if outside == "PLANET":
+			_ensure_globe()
+	if outside == "PLANET" and _globe_tex != null:   # night sky, and the planet hanging in it
+		draw_rect(glass, Color("#0d1424"))
+		for k in 24:
+			var sx := glass.position.x + float((k * 97) % int(glass.size.x))
+			var sy := glass.position.y + float((k * 53) % int(glass.size.y))
+			draw_circle(Vector2(sx, sy), 1.2, Color(1, 1, 1, 0.7))
+		var dsz := minf(glass.size.x, glass.size.y) * 0.92
+		draw_texture_rect(_globe_tex, Rect2(glass.get_center() - Vector2(dsz, dsz) * 0.5, Vector2(dsz, dsz)), false)
+		var mk := glass.get_center() + Vector2(_globe_mark.x, -_globe_mark.y) * dsz * 0.5
+		draw_arc(mk, 9.0, 0.0, TAU, 16, Color("#ffd75e"), 2.5)   # the colony
+	elif _view_tex != null:
 		draw_texture_rect(_view_tex, glass, false)
 	else:
 		draw_rect(glass, Color("#8cc3e8"))
@@ -244,6 +262,52 @@ func _ensure_view() -> void:
 				if t.x + dx >= 0 and t.x + dx < Terrain.W and t.y + dy >= 0 and t.y + dy < Terrain.H:
 					img.set_pixel(t.x + dx, t.y + dy, Color("#c8553d") if (dx + dy) % 2 == 0 else Color("#efe1c0"))
 	_view_tex = ImageTexture.create_from_image(img)
+
+
+## The globe as seen from space, centred on the colony (biome colours, a little shading, the landing hex marked).
+func _ensure_globe() -> void:
+	var w: WorldState = session.world()
+	if not Planet.ready(w):
+		return
+	var key := "%d|%d" % [w.rng.derive_seed("planet.terrain"), Planet.landing(w)]
+	if key == _globe_for and _globe_tex != null:
+		return
+	_globe_for = key
+	var n := 96
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var fq := Planet.freq(w)
+	var cs: PackedVector3Array = Planet.geometry(fq)["centers"]
+	var home := Planet.landing(w)
+	var h: Vector3 = cs[home].normalized()
+	var r0 := Vector3.UP.cross(h).normalized()
+	if r0.length() < 0.01:
+		r0 = Vector3.RIGHT
+	var u0 := h.cross(r0).normalized()
+	var fwd := (h - r0 * 0.4 - u0 * 0.35).normalized()   # look a little past the colony: it sits in the upper-right pane
+	var right := Vector3.UP.cross(fwd).normalized()
+	if right.length() < 0.01:
+		right = Vector3.RIGHT
+	var up := fwd.cross(right).normalized()
+	_globe_mark = Vector2(h.dot(right), h.dot(up))
+	var bio := Planet.biomes(w)
+	var hint := home
+	for y in n:
+		for x in n:
+			var u := (float(x) + 0.5) / n * 2.0 - 1.0
+			var v := 1.0 - (float(y) + 0.5) / n * 2.0
+			var r2 := u * u + v * v
+			if r2 > 1.0:
+				continue
+			var z := sqrt(1.0 - r2)
+			var dir := right * u + up * v + fwd * z
+			hint = Planet.cell_at(dir, fq, hint)
+			var c: Color = PlanetView.BIOME_COLORS.get(bio.substr(hint, 1), Color.GRAY)
+			c = c.darkened(0.55 * (1.0 - z))   # the limb darkens
+			if hint == home:
+				c = Color("#ffd75e")
+			img.set_pixel(x, y, c)
+	_globe_tex = ImageTexture.create_from_image(img)
 
 
 func _draw_calendar() -> void:

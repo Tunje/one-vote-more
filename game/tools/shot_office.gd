@@ -1,6 +1,6 @@
 extends SceneTree
 ## Terra (A44): render the office's drawn desk to a PNG (needs a window, not --headless).
-## godot --path game --script res://tools/shot_office.gd -- <seed> <out.png> [months] [click: paper|tray|pc|phone|calendar|door] [w] [h]
+## godot --path game --script res://tools/shot_office.gd -- <seed> <out.png> [months] [click: paper|tray|pc|phone|calendar|door] [w] [h] [planet]
 ## Uses its own settings file (user://shot_settings.cfg), so the player's settings stay untouched.
 const OfficePanel := preload("res://ui/panels/office_panel.gd")
 var _panel
@@ -41,6 +41,9 @@ func _process(_d: float) -> bool:
 		_panel.size = Vector2(root.size)
 		(root.get_child(0) as ColorRect).size = Vector2(root.size)
 		_panel.refresh()
+		if OS.get_cmdline_user_args().size() > 6 and OS.get_cmdline_user_args()[6] == "planet":
+			_panel.desk.outside = "PLANET"
+			_panel.desk.queue_redraw()
 		if _click != "":
 			_panel.desk.click(_click)
 	if _frames < 8:

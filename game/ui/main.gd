@@ -130,7 +130,14 @@ func _load_extra_panels() -> void:
 		extra_panels.append(p)
 		_make_window(p)
 		if p.has_signal("outside_requested"):   # the office window looks out over the colony
-			p.outside_requested.connect(func(): windows[String(p.name)].hide(); _show_planet(false); map.overlay = "TERRAIN"; map.refresh())
+			p.outside_requested.connect(func(view: String):
+				windows[String(p.name)].hide()
+				if view == "PLANET":
+					_show_planet(true)
+				else:
+					_show_planet(false)
+					map.overlay = "TERRAIN"
+					map.refresh())
 	_build_toolbar()
 
 
@@ -204,6 +211,8 @@ func open_window(title: String) -> void:
 	if win == null:
 		return
 	var p: Control = win.get_child(1).get_child(0)
+	if "desk" in p and p.desk != null:   # the office window looks out on whatever the player was looking at
+		p.desk.outside = "PLANET" if planet.visible else "MAP"
 	p.refresh()
 	win.popup_centered()
 
