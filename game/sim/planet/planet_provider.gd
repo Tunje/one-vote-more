@@ -41,6 +41,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 		return
 	Planet.generate(world)   # worlds set up before the planet existed
 	PlanetClimate.step_month(world)
+	Transport.step_month(world)   # A43 T1: the network wears, storms and mud close tracks (after this month's weather)
 	var home := Planet.landing(world)
 	var wx := PlanetClimate.weather(world, home)
 	world.set_indicator(OWNER, "PLANET_RAIN_PCT", "COLONY", int(wx["rain_pct"]) * 1000)
