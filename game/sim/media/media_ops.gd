@@ -1199,6 +1199,11 @@ static func _investigate(world: WorldState) -> void:
 				sc.append(f["id"])
 		world.add_fact({"type": "MEDIA_INVESTIGATION_PUBLISHED", "owner": "law", "subjects": [by], "responsible": [],
 			"impact": {}, "magnitude": 15, "visibility": "OFFICIAL", "data": {"outlet": id, "target": pick[0], "fact": pick[1]}})
+		# the fact is minor and compacted after 24 months (FactStore): keep lasting counts for chronicles and the UI
+		o["investigations"] = int(o.get("investigations", 0)) + 1
+		var tot_by: Dictionary = state(world).get("investigations", {})
+		tot_by[String(pick[0])] = int(tot_by.get(String(pick[0]), 0)) + 1
+		state(world)["investigations"] = tot_by
 
 
 # =================================================================================== M2: censorship

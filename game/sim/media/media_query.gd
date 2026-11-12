@@ -76,6 +76,12 @@ static func campaign_tilt_district(world: WorldState, district: String, party_id
 	return clampf(1.0 + TILT_K * float(td.get(district, {}).get(party_id, 0)) / 1000.0, 0.7, 1.3)
 
 
+## Press investigations published since the founding, by target {DONATION, VIOLATION, LIE: count}. Pure read.
+## (The MEDIA_INVESTIGATION_PUBLISHED fact is minor and compacted after 24 months: count with this.)
+static func investigations(world: WorldState) -> Dictionary:
+	return world.peek("media").get("s", {}).get("investigations", {}).duplicate()
+
+
 ## The news vector of a voter group (what PoliticsProvider applies; spec §7).
 static func news(leaf: Dictionary) -> Dictionary:
 	return {"blame": int(leaf.get("news_blame", 0)), "bias": leaf.get("news_bias", {}), "agenda": leaf.get("news_agenda", {}),

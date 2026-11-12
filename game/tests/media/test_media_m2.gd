@@ -181,6 +181,8 @@ func test_press_investigation_reveals_misconduct() -> void:
 	check_eq(w.peek("violation_track")[vid]["channel"], "PRESS", "through the press channel")
 	var ed := MediaQuery.edition(w, pp, w.month)
 	check(ed["stories"].any(func(s): return s["kind"] == "INVESTIGATION"), "run as the paper's own investigation")
+	check(int(MediaQuery.investigations(w).get("VIOLATION", 0)) >= 1 and int(Media.outlet(w, pp).get("investigations", 0)) >= 1,
+		"counted for good (the fact itself is compacted after 24 months)")
 
 
 ## v5: exposure windows — victims complain while a story is fresh, rivals check recent stories, insiders leak only
