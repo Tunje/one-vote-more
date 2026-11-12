@@ -219,11 +219,18 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			var sc := (1.0 - 0.3 * pork) * ia + 3.0 * (1.0 + 0.5 * pork) * rl
 			if skill_gap > 0.0 and delta > 0.0 and lid in TRAINING_LEVERS:
 				sc += skill_gap  # E114: firms cannot fill skilled posts; training money and the subsidy go together
+			var is_deal := false
 			for a in agreement:
 				if a["lever"] == lid:
-					sc += 6.0 if signf(delta) == a["dir"] else -6.0
+					var w := 12.0 if a.get("deal", false) else 6.0   # a confidence-and-supply price is owed: deliver it
+					sc += w if signf(delta) == a["dir"] else -w
+					if a.get("deal", false) and signf(delta) == a["dir"]:
+						is_deal = true
 			if sc > 1.0:
-				scored.append({"lever": lid, "from": int(cur), "to": int(to), "score": int(round(sc * 100.0))})
+				var cl := {"lever": lid, "from": int(cur), "to": int(to), "score": int(round(sc * 100.0))}
+				if is_deal:
+					cl["deal"] = true
+				scored.append(cl)
 	scored.sort_custom(func(a, b): return a["score"] > b["score"] or (a["score"] == b["score"] and a["lever"] < b["lever"]))
 	var out: Array = []
 	var used := {}
@@ -231,7 +238,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	for c in scored:
 		if used.has(c["lever"]):
 			continue
-		if not gov.is_empty() and not _members_back(world, gov, c, sat, sal):
+		if not gov.is_empty() and not c.get("deal", false) and not _members_back(world, gov, c, sat, sal):
 			continue  # every governing party must be willing to vote for its own government's bill
 		used[c["lever"]] = true
 		out.append(c)
@@ -326,6 +333,10 @@ static func party_vote(party: Dictionary, clauses: Array, world: WorldState, gov
 		s += 2.0   # support parties lean towards tolerating
 	else:
 		s -= 3.0   # mild opposition reflex; the bill's content decides
+	if member:
+		# coalition discipline (v4 review: cabinet parties voted against their own government's bills): a governing
+		# party votes for the government's bills; on a matter of strong conscience it abstains, never votes against
+		return "YES" if s > -10.0 else "ABSTAIN"
 	if s > 2.0:
 		return "YES"
 	if s < -2.0:

@@ -129,6 +129,17 @@ func run_phase(phase: int, world: WorldState) -> void:
 	world.set_indicator("pol", "POL_COLONIAL_BURDEN", "COLONY", HomeWorld.burden(world))
 
 
+## The government's agenda for drafting: its coalition agreement plus the confidence-and-supply prices it still owes
+## (deals not yet withdrawn). Deals are marked so drafting gives them priority and the cabinet backs them.
+static func _agenda(gov: Dictionary) -> Array:
+	var out: Array = gov.get("agreement", []).duplicate()
+	for d in gov.get("deals", []):
+		if d["party"] in gov.get("withdrawn", []) or not (d["party"] in gov.get("support", [])):
+			continue
+		out.append({"lever": d["lever"], "dir": d["dir"], "deal": true})
+	return out
+
+
 # ======================= opinion =======================
 
 func _sync_cells(world: WorldState) -> void:
@@ -446,7 +457,7 @@ func _decisions(world: WorldState, st: Dictionary) -> void:
 			return
 		if st.get("player_party", "") in gov["members"] and not st["autoplay_player"]:
 			return  # the human government acts through the UI
-		clauses = Legislature.propose(world, gov["center"], cs[0], cs[1], gov.get("agreement", []), "PARLIAMENT", stress, crisis, busy, Campaign.pork_pressure(world, st), _leg_stats(st))
+		clauses = Legislature.propose(world, gov["center"], cs[0], cs[1], _agenda(gov), "PARLIAMENT", stress, crisis, busy, Campaign.pork_pressure(world, st), _leg_stats(st))
 	if clauses.is_empty():
 		return
 	if not staffed:

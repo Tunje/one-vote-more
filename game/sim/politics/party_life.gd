@@ -172,14 +172,12 @@ static func _colony_sd(world: WorldState) -> Dictionary:
 	return out
 
 
-static func update_factions(world: WorldState, p: Dictionary) -> void:
+## Per-axis faction-line scores for party p: {"scores": {axis: float}, "sds": {axis: points}}. Read-only.
+## The faction line runs where the party's voters are UNUSUALLY divided (their spread relative to the
+## colony's spread on that axis) on issues they CARE about (salience-linked axis weight). Raw spread alone
+## always picked REDISTRIBUTION, because income bands spread everyone on it (100-year chronicle: 13/13 splits).
+static func faction_axis_scores(world: WorldState, p: Dictionary) -> Dictionary:
 	var pid: String = p["id"]
-	# The faction line runs where the party's voters are UNUSUALLY divided (their spread relative to the
-	# colony's spread on that axis) on issues they CARE about (salience-linked axis weight). Raw spread alone
-	# always picked REDISTRIBUTION, because income bands spread everyone on it (100-year chronicle: 13/13 splits).
-	var best_ax := ""
-	var best_sd := -1.0
-	var best_score := -1.0
 	var scores := {}
 	var sds := {}
 	var col_sd := _colony_sd(world)
@@ -208,10 +206,21 @@ static func update_factions(world: WorldState, p: Dictionary) -> void:
 		if w <= 0.0:
 			continue
 		var mean := m / w
-		var sd := sqrt(maxf(0.0, m2 / w - mean * mean))
-		sds[ax] = sd
-		scores[ax] = sd / maxf(5.0, float(col_sd.get(ax, 20.0))) * float(aw.get(ax, aw_w)) / maxf(1.0, aw_w)
-		if scores[ax] > best_score:
+		sds[ax] = sqrt(maxf(0.0, m2 / w - mean * mean))
+		scores[ax] = float(sds[ax]) / maxf(5.0, float(col_sd.get(ax, 20.0))) * float(aw.get(ax, aw_w)) / maxf(1.0, aw_w)
+	return {"scores": scores, "sds": sds}
+
+
+static func update_factions(world: WorldState, p: Dictionary) -> void:
+	var pid: String = p["id"]
+	var fs := faction_axis_scores(world, p)
+	var scores: Dictionary = fs["scores"]
+	var sds: Dictionary = fs["sds"]
+	var best_ax := ""
+	var best_sd := -1.0
+	var best_score := -1.0
+	for ax in PolDefs.AXES:
+		if scores.has(ax) and float(scores[ax]) > best_score:
 			best_score = scores[ax]
 			best_ax = ax
 	# sticky: keep the current conflict unless another is clearly (25%) more divisive
@@ -467,18 +476,40 @@ static func _found_single_issue(world: WorldState, st: Dictionary, parties: Arra
 			pos[ax] = int(round(pos[ax] / maxf(1.0, w)))
 		for ax in PolDefs.CONCERN_PULL[c]:
 			pos[ax] = clampi(pos[ax] + 25 * S, -100 * S, 100 * S)
-		var np := _new_party(world, st, pos, "SINGLE_ISSUE", ISSUE_NAMES.get(c, ""))
+		var np := _new_party(world, st, pos, "SINGLE_ISSUE", issue_name(world, c))
 		np["ownership"][c] = SINGLE_ISSUE_OWNERSHIP
 		_fact_founded(world, np, "SINGLE_ISSUE", {"concern": c})
 		return true
 	return false
 
 
+## Single-issue parties are named for their issue (v4 review: once "Homes Now" was taken, a housing party fell back to
+## the ideology pool and could be called "Independence Party"). Several names per issue; then "New ..." / "Real ...".
 const ISSUE_NAMES := {
-	"JOBS": "Work for All", "COST_OF_LIVING": "Fair Prices League", "HOUSING": "Homes Now",
-	"PUBLIC_SERVICES": "Care & Schools Alliance", "SAFETY": "Safe Shifts Party", "ENVIRONMENT_QUALITY": "Clean Air Coalition",
-	"INFRASTRUCTURE": "Roads & Power Party", "FAIRNESS": "Justice for All", "GOVERNANCE": "Clean Government List",
+	"JOBS": ["Work for All", "Jobs First", "Full Employment League", "Fair Work Alliance"],
+	"COST_OF_LIVING": ["Fair Prices League", "Bread & Rent Party", "Cost of Living Alliance", "Affordable Colony"],
+	"HOUSING": ["Homes Now", "Roof for Every Family", "Housing First", "Tenants' Alliance"],
+	"PUBLIC_SERVICES": ["Care & Schools Alliance", "Services First", "Clinics & Classrooms", "Public Care League"],
+	"SAFETY": ["Safe Shifts Party", "Safety First", "Workplace Safety League", "Safe Colony"],
+	"ENVIRONMENT_QUALITY": ["Clean Air Coalition", "Clean Water League", "Living Land", "Breathe Free"],
+	"INFRASTRUCTURE": ["Roads & Power Party", "Build the Colony", "Power to the Districts", "Infrastructure Now"],
+	"FAIRNESS": ["Justice for All", "Fair Share Alliance", "Equal Chance", "Fair Deal League"],
+	"GOVERNANCE": ["Clean Government List", "Honest Colony", "Accountability Now", "Open Government League"],
+	"COLONIAL_BURDEN": ["Independence Party", "Free Colony Movement", "Sovereign Colony League", "Colony First"],
 }
+
+
+static func issue_name(world: WorldState, concern: String) -> String:
+	var taken := _taken_names(world)
+	var names: Array = ISSUE_NAMES.get(concern, [])
+	for n in names:
+		if not taken.has(n):
+			return n
+	for pre in ["New ", "Real ", "United "]:
+		for n in names:
+			if not taken.has(pre + n):
+				return pre + n
+	return ""
 
 
 static func _fact_founded(world: WorldState, np: Dictionary, kind: String, data: Dictionary) -> void:

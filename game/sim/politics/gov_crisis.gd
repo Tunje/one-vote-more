@@ -229,9 +229,16 @@ static func no_confidence_ai(world: WorldState, st: Dictionary) -> void:
 	elif world.rng.stream("pol.vote").randf() > 0.15:
 		return  # symbolic motions are occasional
 	hostile.sort_custom(func(a, b): return parties[a]["seats"] > parties[b]["seats"])
+	# v4 review: the same motion was moved again and again with an identical count. An opposition only tries again
+	# when something changed: the hostile camp, its seats, or the government's support.
+	var key := "%s|%s|%d|%s" % [str(g["formed_month"]), ",".join(PackedStringArray(hostile)), seats, ",".join(PackedStringArray(g.get("withdrawn", [])))]
+	if String(st.get("nc_failed_key", "")) == key:
+		return
 	if not LQ.can_move_no_confidence(world, hostile[0], hostile.slice(1)).get("ok", false):
 		return
-	vote_no_confidence(world, st, hostile[0])
+	var r: Dictionary = vote_no_confidence(world, st, hostile[0])
+	if not r.get("passed", false):
+		st["nc_failed_key"] = key
 
 
 ## The vote itself (also used by the player). Members never vote against their own government.

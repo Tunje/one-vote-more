@@ -164,8 +164,12 @@ static func feasible(world: WorldState, lever: String, dir: int) -> bool:
 	if not world.lever_defs.has(lever):
 		return false
 	var def: Dictionary = world.lever_defs[lever]
-	if def["type"] != "NUMBER":
-		return true
+	# only what parliament can actually table (v4 review: deals on charter enforcement and eviction notice could
+	# never be delivered because the drafting code skips law-owned and non-numeric levers)
+	if def["type"] != "NUMBER" or not (String(def.get("legalLevel", "")) in ["LAW", "REGULATION"]):
+		return false
+	if def.get("owner", "") == "law" and not bool(def.get("legislative", false)):
+		return false
 	var r: Array = Legislature._range(def)
 	var cur := float(world.levers.get(lever, def["default"]))
 	if (dir > 0 and cur >= float(r[1])) or (dir < 0 and cur <= float(r[0])):

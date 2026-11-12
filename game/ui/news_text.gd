@@ -114,6 +114,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"ECON_LAYOFFS_MASS":
 			s = "%s laid off %d workers (%d%% of its staff)%s" % [org(w, d.get("org", "")), int(d.get("persons", 0)), int(d.get("share_pct", 0)), ", and is closing" if d.get("closing", false) else ""]
 		"ECON_STRIKE": s = "%d %s workers at %s are on strike over %s" % [int(d.get("persons", 0)), _kind(d.get("occupation", "")), org(w, d.get("org", "")), _kind(d.get("cause", "pay"))]
+		"ECON_ARBITRATION": s = "An arbitrator settled the %s dispute at %s: %d workers kept working and won a %.1f%% rise" % [_kind(d.get("cause", "pay")), org(w, d.get("org", "")), int(d.get("persons", 0)), float(d.get("award_pm", 0)) / 10.0]
 		"ECON_LOCKOUT": s = "%s locked out %d workers" % [org(w, d.get("org", "")), int(d.get("persons", 0))]
 		"COMP_LIQUIDATED": s = "%s has gone out of business" % _subject_org(w, f)
 		"COMP_INSOLVENCY": s = "%s is insolvent (%d employees)" % [_subject_org(w, f), int(d.get("employees", 0))]
@@ -121,6 +122,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"COMP_RESTRUCTURED": s = "%s restructured its debts" % _subject_org(w, f)
 		"COMP_CEO_REPLACED": s = "%s replaced its management" % _subject_org(w, f)
 		"COMP_INVESTMENT": s = "%s is building a new %s (%s)" % [_subject_org(w, f), _kind(d.get("type", "plant")), _kind(d.get("reason", "demand"))]
+		"ECON_FACILITY_SCRAPPED": s = "%s was scrapped as beyond repair%s" % [cap1(facility(w, d.get("facility", ""))), (" — %d jobs lost" % int(d.get("jobs", 0))) if int(d.get("jobs", 0)) > 0 else ""]
 		"ECON_PUBLIC_JOBS_HIRED": s = "The public employment scheme takes on %d people (%d in all)" % [int(d.get("posts", 0)), int(d.get("total", 0))]
 		"ECON_PUBLIC_JOBS_CUT": s = "The public employment scheme lays off %d people (%d left)" % [int(d.get("posts", 0)), int(d.get("total", 0))]
 		"ECON_INCENTIVE_OFFERED": s = "The government offers a %d%% grant to anyone who builds a new %s (for %d months)" % [int(d.get("grant_pct", 0)), _kind(d.get("type", "plant")), int(d.get("months", 0))]
