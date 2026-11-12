@@ -35,6 +35,49 @@ static func _same(a: Dictionary, b: Dictionary) -> bool:
 	return String(a.get("kind", "")) == String(b.get("kind", "")) and String(a.get("id", "")) == String(b.get("id", ""))
 
 
+## Integer-only state (README rule 3: floats don't round-trip through saves). Outlet sens/ethics (0..1) and invest
+## (W_ref) are stored in milli; frame shares/amps, agg, party tilt and sales factor too. Convert at read time.
+static func _m(x) -> int:
+	return int(round(float(x) * 1000.0))
+
+
+static func _sens(o: Dictionary) -> float:
+	return float(o.get("sens", 0)) / 1000.0
+
+
+static func _eth(o: Dictionary) -> float:
+	return float(o.get("ethics", 500)) / 1000.0
+
+
+static func _inv(o: Dictionary) -> float:
+	return float(o.get("invest", 0)) / 1000.0
+
+
+## A report frame as stored (milli ints) -> floats, and back.
+static func _frame_store(fr: Dictionary) -> Dictionary:
+	var out := fr.duplicate(true)
+	for k in ["gov_share", "amp", "gov_amp", "slant"]:
+		if out.has(k):
+			out[k] = _m(out[k])
+	for b in out.get("blame", []):
+		b["share"] = _m(b["share"])
+	return out
+
+
+static func _fv(fr: Dictionary, k: String, dflt: float) -> float:
+	return float(fr[k]) / 1000.0 if fr.has(k) else dflt
+
+
+static func _milli_tree(d: Dictionary) -> Dictionary:
+	var out := {}
+	for k in d:
+		if d[k] is Dictionary:
+			out[k] = _milli_tree(d[k])
+		else:
+			out[k] = _m(d[k])
+	return out
+
+
 static func state(world: WorldState) -> Dictionary:
 	var m := world.table("media")
 	if not m.has("s"):
@@ -92,8 +135,8 @@ static func found_outlet(world: WorldState, owner: Dictionary, opts: Dictionary 
 	var o := {"id": id, "name": String(opts.get("name", "Paper %s" % id.get_slice(":", 1))), "owner": owner.duplicate(),
 		"founded": world.month, "account": "media:" + id, "line": line.duplicate(),
 		"cred": int(opts.get("cred", base["cred"])), "price_mw": int(opts.get("price_mw", base["price_mw"])),
-		"quality": int(opts.get("quality", base["quality"])), "sens": float(opts.get("sens", base["sens"])),
-		"ethics": float(opts.get("ethics", base.get("ethics", 0.5))), "invest": float(opts.get("invest", base.get("invest", 0.0))),
+		"quality": int(opts.get("quality", base["quality"])), "sens": _m(opts.get("sens", base["sens"])),
+		"ethics": _m(opts.get("ethics", base.get("ethics", 0.5))), "invest": _m(opts.get("invest", base.get("invest", 0.0))),
 		"reach": opts.get("reach", "ALL"), "status": "ACTIVE", "last_fid": int(opts.get("last_fid", _last_fid(world))),
 		"agg": {}, "party_tilt": {}, "circulation": 0, "lies": [], "cred0": int(opts.get("cred", base["cred"])),
 		"pending_corrections": [], "scoops": []}
@@ -172,6 +215,9 @@ static func _fnum(fid: String) -> int:
 ## The founding state paper: today's Gazette. Created once.
 static func ensure_founding(world: WorldState) -> void:
 	var st := state(world)
+	if bool(st.get("founded", false)) and int(st.get("units", 0)) < 1:
+		_to_milli(world)
+	st["units"] = 1
 	if bool(st.get("founded", false)):
 		return
 	st["founded"] = true
@@ -179,6 +225,26 @@ static func ensure_founding(world: WorldState) -> void:
 	if world.peek("area").has("hb:1"):
 		home = String(AreaStore.get_area(world, "hb:1").get("name", "Landing"))
 	found_outlet(world, {"kind": "STATE", "id": "state"}, {"name": "The %s Gazette" % home, "last_fid": 0})
+
+
+## One-off conversion of a pre-milli save (floats in outlets, reports, lies and the district tilt).
+static func _to_milli(world: WorldState) -> void:
+	for id in Det.ordered(world.table("outlet")):
+		var o: Dictionary = world.table("outlet")[id]
+		for k in ["sens", "ethics", "invest"]:
+			o[k] = _m(o.get(k, 0.0))
+		o["sales_pm"] = _m(o.get("sales_f", 1.0))
+		o.erase("sales_f")
+		o["agg"] = {}
+		o["party_tilt"] = {}
+	for rid in Det.ordered(world.table("report")):
+		var r: Dictionary = world.table("report")[rid]
+		r["frame"] = _frame_store(r["frame"])
+	for lid in Det.ordered(world.table("media_lie")):
+		var cb: Dictionary = world.table("media_lie")[lid].get("claim_bias", {})
+		for c in cb.keys():
+			cb[c] = int(round(float(cb[c])))
+	state(world)["tilt_district"] = {}
 
 
 # =================================================================================== positions & stance
@@ -405,11 +471,11 @@ static func _edition(world: WorldState, o: Dictionary, cands: Array, rng: Random
 		var st := stance(world, o, f, cache)
 		var bury := 0.0
 		if int(f["magnitude"]) < MD.BURY_MAX_MAGNITUDE and _owner_hit(world, o, f):
-			bury = MD.BURY * (1.0 - float(o["ethics"]))
+			bury = MD.BURY * (1.0 - _eth(o))
 		var slant := MD.SLANT_SCORE * st
 		if String(world.levers.get("LAW_DEFAMATION_STANDARD", "ACTUAL_MALICE")) == "STRICT":
 			slant *= 0.7   # chilling effect
-		var score := news + float(o["sens"]) * sens_t + slant - bury + rng.randfn(0.0, 5.0)
+		var score := news + _sens(o) * sens_t + slant - bury + rng.randfn(0.0, 5.0)
 		scored.append({"f": f, "score": score, "stance": st})
 	var by_score := func(a, b): return a["score"] > b["score"] or (a["score"] == b["score"] and String(a["f"]["id"]) < String(b["f"]["id"]))
 	scored.sort_custom(by_score)
@@ -448,7 +514,7 @@ static func _edition(world: WorldState, o: Dictionary, cands: Array, rng: Random
 			var imp := float(f["impact"][c])
 			agg["blame"][c] = float(agg["blame"].get(c, 0.0)) + imp * float(fr["gov_share"]) * float(fr.get("gov_amp", 1.0))
 			agg["bias"][c] = float(agg["bias"].get(c, 0.0)) + (float(fr["amp"]) - 1.0) * imp * S
-			agg["agenda"][c] = float(agg["agenda"].get(c, 0.0)) + absf(imp) * (1.0 + float(o["sens"]))
+			agg["agenda"][c] = float(agg["agenda"].get(c, 0.0)) + absf(imp) * (1.0 + _sens(o))
 	for b in neutral:
 		var f: Dictionary = b["f"]
 		var g := _gov_share(f)
@@ -463,7 +529,7 @@ static func _edition(world: WorldState, o: Dictionary, cands: Array, rng: Random
 			var imp := float(fab["claim"]["impact"][c])
 			agg["blame"][c] = float(agg["blame"].get(c, 0.0)) + imp * float(fab["frame"]["gov_share"])
 			agg["bias"][c] = float(agg["bias"].get(c, 0.0)) + imp * S
-			agg["agenda"][c] = float(agg["agenda"].get(c, 0.0)) + absf(imp) * (1.0 + float(o["sens"]))
+			agg["agenda"][c] = float(agg["agenda"].get(c, 0.0)) + absf(imp) * (1.0 + _sens(o))
 	rows.append_array(tail)
 	var reps: Array = []
 	for i in rows.size():
@@ -471,13 +537,14 @@ static func _edition(world: WorldState, o: Dictionary, cands: Array, rng: Random
 		var rid := world.new_id("rep")
 		row["id"] = rid
 		row["rank"] = i + 1
+		row["frame"] = _frame_store(row["frame"])
 		world.table("report")[rid] = row
 		reps.append(rid)
 		if row.has("corrects") and world.table("report").has(row["corrects"]):
 			world.table("report")[row["corrects"]]["corrected_by"] = rid
 		if row["truth"] in ["MISLEADING", "ERROR", "FALSE"]:
 			_record_lie(world, o, row)
-	o["agg"] = agg
+	o["agg"] = _milli_tree(agg)
 	o["scoops"] = []
 	o["slanted_this_month"] = any_slant
 	world.table("edition")["%s|%d" % [o["id"], world.month]] = {"outlet": o["id"], "month": world.month, "reports": reps,
@@ -510,9 +577,9 @@ static func frame(world: WorldState, o: Dictionary, f: Dictionary, st: float, rn
 	var truth := "ACCURATE"
 	var resp: Array = f["responsible"]
 	var v := valence(f)
-	var pressure := absf(st) * (1.0 - float(o["ethics"]))
+	var pressure := absf(st) * (1.0 - _eth(o))
 	if _owner_hit(world, o, f):
-		pressure = maxf(pressure, 1.0 - float(o["ethics"]))
+		pressure = maxf(pressure, 1.0 - _eth(o))
 	if not resp.is_empty() and rng.randf() < MD.P_ERROR * (1.0 - float(o["quality"]) / 100.0):
 		truth = "ERROR"
 		g2 = 1.0 - g
@@ -578,7 +645,7 @@ static func _party_tilt(world: WorldState, o: Dictionary) -> void:
 		var x := 0.0 if neutral_public(world, o) else -opposition(o["line"], p.get("positions", {}))
 		if String(o["owner"]["kind"]) == "PARTY":
 			x = 1.0 if String(o["owner"]["id"]) == String(pid) else minf(x, 0.0)
-		t[pid] = x
+		t[pid] = _m(x)
 	o["party_tilt"] = t
 
 
@@ -651,7 +718,7 @@ static func _readers(world: WorldState) -> void:
 				if not aff_cache.has(ak):
 					aff_cache[ak] = _afford(world, o, band)
 				a = float(aff_cache[ak]) * (0.3 + 0.7 * fit) * (0.4 + 0.6 * tr / 100000.0) * (0.6 + float(o["quality"]) / 250.0) \
-					* float(o.get("sales_f", 1.0))
+					* float(o.get("sales_pm", 1000)) / 1000.0
 			appeal.append(a)
 			tot += a
 		var diet := {}
@@ -680,21 +747,21 @@ static func _readers(world: WorldState) -> void:
 			var agg: Dictionary = o.get("agg", {})
 			var ab: Dictionary = agg.get("blame", {})
 			for cn in ab:
-				blame += w * float(ab[cn]) * float(sal.get(cn, 0)) / 1000.0 * MD.BLAME_SCALE
+				blame += w * float(ab[cn]) / 1000.0 * float(sal.get(cn, 0)) / 1000.0 * MD.BLAME_SCALE
 			var abi: Dictionary = agg.get("bias", {})
 			for cn in abi:
-				var b := w * float(abi[cn]) * MD.K_BIAS
+				var b := w * float(abi[cn]) / 1000.0 * MD.K_BIAS
 				if absf(b) >= 0.5:
 					bias[cn] = int(round(float(bias.get(cn, 0)) + b))
 			var aa: Dictionary = agg.get("agenda", {})
 			for cn in aa:
-				agenda[cn] = float(agenda.get(cn, 0.0)) + w * float(aa[cn]) * MD.AGENDA_PER_IMPACT
+				agenda[cn] = float(agenda.get(cn, 0.0)) + w * float(aa[cn]) / 1000.0 * MD.AGENDA_PER_IMPACT
 			var copies := pop * float(pm) / 1000.0
 			circ[i] = float(circ[i]) + copies
 			circ_d[i][dist] = float(circ_d[i].get(dist, 0.0)) + copies
 			var pt: Dictionary = o.get("party_tilt", {})
 			for pid in pt:
-				tn[pid] = float(tn.get(pid, 0.0)) + pop * w * float(pt[pid])
+				tn[pid] = float(tn.get(pid, 0.0)) + pop * w * float(pt[pid]) / 1000.0
 		c["diet"] = diet
 		c["trust"] = nt
 		c["news_bias"] = bias
@@ -724,7 +791,7 @@ static func _readers(world: WorldState) -> void:
 			continue
 		var row := {}
 		for pid in Det.ordered(tilt_num[d]):
-			row[pid] = float(tilt_num[d][pid]) / float(tilt_den[d])
+			row[pid] = _m(float(tilt_num[d][pid]) / float(tilt_den[d]))
 		td[d] = row
 	st["tilt_district"] = td
 
@@ -779,7 +846,7 @@ static func demand(world: WorldState) -> Dictionary:
 
 
 ## Copies actually bought {outlet id: copies (milli)} (Bob, SETTLEMENT). Readership follows sales: an outlet's
-## appeal is scaled by `sales_f`, which drops to what was bought and recovers SALES_RECOVER a month.
+## appeal is scaled by `sales_pm` (‰), which drops to what was bought and recovers SALES_RECOVER a month.
 static func record_sales(world: WorldState, sold: Dictionary) -> void:
 	var st := state(world)
 	st["sales"] = sold.duplicate(true)
@@ -792,7 +859,7 @@ static func record_sales(world: WorldState, sold: Dictionary) -> void:
 			continue
 		var o: Dictionary = world.table("outlet")[oid]
 		var r := clampf(float(sold.get(oid, 0)) / float(wanted), 0.0, 1.0)
-		o["sales_f"] = clampf(float(o.get("sales_f", 1.0)) * r + MD.SALES_RECOVER, MD.SALES_F_MIN, 1.0)
+		o["sales_pm"] = _m(clampf(float(o.get("sales_pm", 1000)) / 1000.0 * r + MD.SALES_RECOVER, MD.SALES_F_MIN, 1.0))
 
 
 ## Ella's ad spend: paid to outlets by circulation share in the targeted districts; the rest goes to
@@ -857,12 +924,12 @@ static func _record_lie(world: WorldState, o: Dictionary, row: Dictionary) -> vo
 		victim = row["claim"]["victim"]
 		mag = int(row["claim"]["magnitude"])
 		for c in row["claim"]["impact"]:
-			claim_bias[c] = float(row["claim"]["impact"][c]) * S
+			claim_bias[c] = int(row["claim"]["impact"][c]) * S
 	else:
 		var f := world.facts.get_fact(String(row["fact"]))
 		mag = int(f.get("magnitude", 40))
 		var g := _gov_share(f)
-		if float(fr["gov_share"]) > g:
+		if _fv(fr, "gov_share", 0.0) > g + 0.0005:
 			victim = {"kind": "GOVERNMENT", "id": "government"}
 		else:
 			for r in f.get("responsible", []):
@@ -870,8 +937,8 @@ static func _record_lie(world: WorldState, o: Dictionary, row: Dictionary) -> vo
 					victim = r["actor"].duplicate()
 					break
 		for c in f.get("impact", {}):
-			var b := (float(fr["amp"]) - 1.0) * float(f["impact"][c]) * S
-			if b != 0.0:
+			var b := int(round((_fv(fr, "amp", 1.0) - 1.0) * float(f["impact"][c]) * S))
+			if b != 0:
 				claim_bias[c] = b
 	var me := {"kind": "OUTLET", "id": o["id"]}
 	var subj: Array = [me]
@@ -900,7 +967,7 @@ static func _fabricate(world: WorldState, o: Dictionary, cache: Dictionary) -> D
 		pressure = 1.0
 	var prox := 1.0 if months_to >= 0 and months_to <= 3 else 0.0
 	var legal: float = MD.LEGAL_FACTOR.get(String(world.levers.get("LAW_DEFAMATION_STANDARD", "ACTUAL_MALICE")), 1.0)
-	var p := float(world.meta.get("media_p_fabricate", MD.P_FABRICATE)) * pressure * (1.0 - float(o["ethics"])) * (1.0 + prox) * legal
+	var p := float(world.meta.get("media_p_fabricate", MD.P_FABRICATE)) * pressure * (1.0 - _eth(o)) * (1.0 + prox) * legal
 	var rng := world.rng.stream("media.lie")
 	if rng.randf() >= p:
 		return {}
@@ -964,9 +1031,9 @@ static func _expose(world: WorldState) -> void:
 				if rid == l["outlet"]:
 					continue
 				var r: Dictionary = world.peek("outlet")[rid]
-				if float(r["invest"]) < MD.DEBUNK_MIN_INVEST:
+				if _inv(r) < MD.DEBUNK_MIN_INVEST:
 					continue
-				var p := MD.P_DEBUNK * float(r["invest"]) * (1.5 if opposition(r["line"], liar["line"]) > 0.0 else 1.0)
+				var p := MD.P_DEBUNK * _inv(r) * (1.5 if opposition(r["line"], liar["line"]) > 0.0 else 1.0)
 				if rng.randf() < p:
 					channel = "RIVAL"
 					by = rid
@@ -995,7 +1062,7 @@ static func expose_lie(world: WorldState, fid: String, channel: String, by_outle
 	if not rep.is_empty():
 		rep["exposed"] = true
 	var will_correct: bool = not o.is_empty() and o["status"] == "ACTIVE" \
-		and (bool(world.levers.get("LAW_CORRECTION_DUTY", true)) or float(o["ethics"]) >= 0.5)
+		and (bool(world.levers.get("LAW_CORRECTION_DUTY", true)) or _eth(o) >= 0.5)
 	var hit := MD.CRED_ERROR
 	if l["deliberate"]:
 		var recent := 0
@@ -1082,7 +1149,7 @@ static func _investigate(world: WorldState) -> void:
 	var transp := MD.FOI_TRANSPARENCY if bool(world.levers.get("LAW_FOI", false)) else MD.NO_FOI_TRANSPARENCY
 	for id in outlets(world):
 		var o: Dictionary = world.table("outlet")[id]
-		var p := minf(MD.INVEST_P_MAX, float(o["invest"]) * MD.INVEST_P_PER_WREF) * transp
+		var p := minf(MD.INVEST_P_MAX, _inv(o) * MD.INVEST_P_PER_WREF) * transp
 		if p <= 0.0 or rng.randf() >= p:
 			continue
 		var targets: Array = []   # [kind, fid, weight]
@@ -1257,14 +1324,18 @@ static func founding_candidates(world: WorldState) -> Array:
 			out.append({"owner": owner, "p": MD.P_FOUND_PARTY * (1.0 + float(p["support"]) / 20000.0), "from": acc,
 				"endow": int(MD.PARTY_FOUND_ENDOW * wref), "opts": {"name": "The %s Herald" % String(p.get("name", pid)),
 				"line": p["positions"].duplicate(), "ethics": clampf(integ / 100.0, 0.0, 1.0)}})
-	# the union federation (density ≥ 30% in two occupations; line pulled toward LABOR and REDISTRIBUTION)
-	var uowner := {"kind": "UNION", "id": "union:fed"}
-	if owned_by(world, uowner).is_empty() and _union_strong_occs(world) >= MD.UNION_FOUND_OCCS:
-		var line := colony_mean(world)
-		for ax in MD.UNION_LINE_PULL:
-			line[ax] = clampi(int(line.get(ax, 0)) + int(MD.UNION_LINE_PULL[ax]), -100 * S, 100 * S)
-		out.append({"owner": uowner, "p": MD.P_FOUND_UNION, "from": "", "endow": 0,
-			"opts": {"name": "The Worker", "line": line}})
+	# the union federation (spec-unions-v1 §4: Bob's U1 row; density ≥ 30% in two occupations and a fund to pay
+	# for it; line pulled toward LABOR and REDISTRIBUTION). Endowed from the federation's account.
+	var fed := Unions.federation(world)
+	if not fed.is_empty():
+		var uowner := {"kind": "UNION", "id": String(fed["id"])}
+		var spare := Unions.spare_fund(world, String(fed["id"]))
+		if owned_by(world, uowner).is_empty() and _union_strong_occs(world) >= MD.UNION_FOUND_OCCS 				and spare >= int(MD.UNION_FOUND_CASH * wref):
+			var line := colony_mean(world)
+			for ax in MD.UNION_LINE_PULL:
+				line[ax] = clampi(int(line.get(ax, 0)) + int(MD.UNION_LINE_PULL[ax]), -100 * S, 100 * S)
+			out.append({"owner": uowner, "p": MD.P_FOUND_UNION, "from": String(fed["acct"]),
+				"endow": int(MD.UNION_FOUND_ENDOW * wref), "opts": {"name": "The Worker", "line": line}})
 	# large private companies, more so after bad press
 	var orgs := world.peek("org")
 	if not orgs.is_empty():
@@ -1347,6 +1418,15 @@ static func _close_orphans(world: WorldState) -> void:
 				var o: Dictionary = world.peek("org").get(String(ow["id"]), {})
 				if not o.is_empty() and String(o.get("status", "")) in ["LIQUIDATION", "DISSOLVED"]:
 					close_outlet(world, id, "OWNER_GONE")
+			"UNION":
+				var u := Unions.get_union(world, String(ow["id"]))
+				if u.is_empty() and String(ow["id"]) == "union:fed":
+					# pre-U1 saves: the abstract federation's paper passes to the real one once it exists
+					var fed := Unions.federation(world)
+					if not fed.is_empty():
+						world.table("outlet")[id]["owner"] = {"kind": "UNION", "id": String(fed["id"])}
+				elif not u.is_empty() and String(u.get("status", "")) != "ACTIVE":
+					close_outlet(world, id, "OWNER_GONE")
 
 
 # =================================================================================== M4: money (spec §9, §16)
@@ -1359,7 +1439,7 @@ static func _has_economy(world: WorldState) -> bool:
 ## printing 0.1 W_ref + 0.0005 W_ref per copy.
 static func running_cost(world: WorldState, o: Dictionary) -> int:
 	var wref := float(maxi(1, int(world.values.get("ECON_W_REF", 1200 * S))))
-	var w := float(o["quality"]) * MD.COST_STAFF_PER_QUALITY + float(o.get("invest", 0.0)) + MD.COST_PRINT_BASE \
+	var w := float(o["quality"]) * MD.COST_STAFF_PER_QUALITY + _inv(o) + MD.COST_PRINT_BASE \
 		+ MD.COST_PRINT_PER_COPY * float(o.get("circulation", 0))
 	return int(round(w * wref))
 
@@ -1398,7 +1478,8 @@ static func _press_subsidy(world: WorldState) -> void:
 
 
 ## The owner covers this month's shortfall: the state always (public media), a party up to PARTY_COVER_MAX W_ref
-## while it keeps PARTY_COVER_RESERVE W_ref. Companies top up in Bob's COMPANY_AI; unions have no account yet.
+## while it keeps PARTY_COVER_RESERVE W_ref; a union from its spare fund (UNION_COVER_*). Companies top up in Bob's
+## COMPANY_AI.
 static func _owner_cover(world: WorldState, o: Dictionary, short: int) -> void:
 	if short <= 0:
 		return
@@ -1414,6 +1495,16 @@ static func _owner_cover(world: WorldState, o: Dictionary, short: int) -> void:
 			var amt := mini(short, mini(int(MD.PARTY_COVER_MAX * wref), spare))
 			if amt > 0:
 				world.ledger.transfer(acc, String(o["account"]), amt, "MEDIA_OWNER_COVER", world.month)
+		"UNION":
+			# the union pays from what it can spare (Unions.spare_fund keeps a strike reserve), keeping a floor
+			var uid := String(o["owner"]["id"])
+			var u := Unions.get_union(world, uid)
+			if u.is_empty() or not world.ledger.has_account(String(u.get("acct", ""))):
+				return
+			var spare_u := Unions.spare_fund(world, uid) - int(MD.UNION_COVER_RESERVE * wref)
+			var amt_u := mini(short, mini(int(MD.UNION_COVER_MAX * wref), spare_u))
+			if amt_u > 0:
+				world.ledger.transfer(String(u["acct"]), String(o["account"]), amt_u, "MEDIA_OWNER_COVER", world.month)
 
 
 ## Monthly (end of Media.run): subsidy, owner cover, wages; deficit months; insolvency after DEFICIT_CLOSE_MONTHS.
@@ -1456,6 +1547,8 @@ static func _refund(world: WorldState, o: Dictionary) -> void:
 			to = EconUtil.acct(String(ow["id"]))
 		"STATE":
 			to = EconUtil.TREASURY
+		"UNION":
+			to = String(Unions.get_union(world, String(ow["id"])).get("acct", ""))
 	if to != "" and world.ledger.has_account(to):
 		world.ledger.transfer(acc, to, bal, "MEDIA_CLOSED", world.month)
 	else:

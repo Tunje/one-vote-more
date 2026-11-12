@@ -521,11 +521,14 @@ static func _ground(world: WorldState, c: Dictionary, spend: Dictionary) -> void
 			n += 1
 	var mean := tot / maxf(1.0, float(n))
 	var union := String(PartyLife.endorsements(world).get("union", ""))
+	var unions_on := UnionPolitics.on(world)
 	for pid in cum:
 		var e: Dictionary = c["parties"][pid]
 		var rel := float(cum[pid]) / maxf(1.0, mean) if mean > 0.0 else 0.0
 		var m := float(MOB_SCALE) * sqrt(minf(rel, 4.0)) * float(e["quality"]) / 1000.0
-		if pid == union:
+		if unions_on:
+			m += float(MOB_UNION) * UnionPolitics.mob_units(world, pid)   # A41: each endorsing union's members
+		elif pid == union:
 			m += float(MOB_UNION)
 		e["mob"] = clampi(int(round(m)), 0, MOB_MAX)
 

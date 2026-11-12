@@ -25,7 +25,7 @@ const BAND_DISPOSABLE := {"LOW": 0.6, "MID": 1.0, "HIGH": 2.0}
 
 ## Editorial weight by kind of news (moved from the Gazette panel): politics, scandal and disaster lead.
 const WEIGHT := {"POL_": 30, "HOME_": 40, "LAW_LEADER": 30, "LAW_CHARTER": 35, "LAW_PETITION": 30, "LAW_EVICTION": 25,
-	"ECON_FAMINE": 60, "ECON_SOVEREIGN": 50, "PLANET_": 25, "COMP_WORKPLACE": 15, "ECON_STRIKE": 20, "ECON_LAYOFFS": 15,
+	"ECON_FAMINE": 60, "ECON_SOVEREIGN": 50, "PLANET_": 25, "COMP_WORKPLACE": 15, "ECON_STRIKE": 20, "ECON_ARBITRATION": 5, "ECON_LAYOFFS": 15,
 	"COMP_LIQUIDATED": 10, "ECON_SHIP": 20, "ECON_CONTRACT": -40, "ECON_TENDER": -40, "ECON_RENT": -10, "ECON_SHORTAGE": -15,
 	"ECON_LEVER_EFFECTIVE": -60, "POL_PROJECT_ORDERED": -20, "POL_BILL_PASSED": -15, "MEDIA_": 20}
 ## Never news: bookkeeping and paid space.
@@ -106,3 +106,9 @@ const DEFICIT_CLOSE_MONTHS := 6           # costs unpaid this many months in a r
 const SALES_RECOVER := 0.05               # sales_f recovery per month
 const SALES_F_MIN := 0.1
 const REFOUND_COOLDOWN := 36              # months before an owner whose paper closed may found another
+
+# ---- unions as organisations (spec-unions-v1 §4): the federation owns The Worker and pays for it
+const UNION_FOUND_CASH := 4.0             # W_ref the federation can spare before it founds a paper …
+const UNION_FOUND_ENDOW := 2.0            # … of which this goes into the paper's account
+const UNION_COVER_MAX := 1.0              # W_ref a union puts into its paper per month at most …
+const UNION_COVER_RESERVE := 0.5          # … while keeping this much of its spare fund

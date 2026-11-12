@@ -110,3 +110,24 @@ Choose themes, set the budget split, approve attack ads, order opposition resear
 - **Human player's party:** the leader is not challenged (post-v1), but congress motions can go against the leadership when a faction is unhappy. The player chooses *accept* (the platform shifts, discontent falls) or *fight* (popularity risk, discontent rises).
 - Code: new `sim/politics/congress.gd` (Ella). party_life.gd only delegates (`leadership_contest` → `Congress.open_race` for non-forced reasons; `Congress.monthly` from `_party_life_monthly`).
 - Gates: ≥2 leadership changes per 40-year run (spec v2 §7) still hold; the party-system gates are unchanged.
+
+## §10 Unions in politics (A41 / spec-unions-v1 §3, Ella's half; plan approved by Wilma 2026-11-12)
+
+Ella: endorsements, union donations, betrayal, campaign hooks. Wilma: UNION party kind, union leaders into politics,
+AI government answers to public-sector demands, Unions window and news. Waits for Bob's U1 API.
+
+1. **Endorsements**: `PartyLife.endorsements(world)` returns `{unions: {union_id: party_id}, federation: party_id,
+   union: <federation pick, legacy key>, business, density}`. Each union reviews in January and at T-12. Score = LABOR
+   position (+ REDISTRIBUTION for public servants) + labour-law record + ties (an ex-union leader in the party). Sticky:
+   an incumbent pick is kept unless a rival is clearly better. The Professionals' Association may endorse nobody.
+   **Record** counts cabinet enactments that cut or raise union rights / minimum wage / benefits, and (at half weight)
+   the party's votes against pro-labour bills while in opposition, so endorsements can move between opposition
+   parties too.
+2. **Vote model**: a cell gets UNION_ENDORSE_BETA × density, 2/3 from its own union's pick and 1/3 from the
+   federation's (all of it from whichever exists when only one does).
+3. **Donations**: in election years from union funds to the endorsed party, through the donation booking and the
+   same law (cap, disclosure, political levy opt-out).
+4. **Betrayal**: a cabinet party that enacts a cut loses the endorsement of every union that backed it (fact
+   UNION_ENDORSEMENT_WITHDRAWN) and carries a penalty with those unions that decays linearly over 8 years. Its
+   labour-side faction gains discontent; with a LABOR faction axis, its union wing can split.
+5. **Campaign**: MOB_UNION volunteers per endorsing union, scaled by members (no money cost).

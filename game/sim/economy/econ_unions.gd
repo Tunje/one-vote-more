@@ -29,6 +29,9 @@ const MASS_LAYOFF_SHARE := 0.20          # … and at least this share of its wo
 const LABOR_LEVERS := {"ECON_UNION_RIGHTS": "", "ECON_MIN_WAGE": "", "LAW_SAFETY_STANDARD": "",
 	"ECON_UNEMPLOYMENT_BENEFIT_RATE": "", "ECON_PUBLIC_PAY_INDEX": "PUBLIC_SECTOR"}
 const SAFETY_ORDER := ["BASIC", "STANDARD", "STRICT"]
+const CLOSED_SHOP_LAW := preload("res://sim/law/union_law.gd")
+const CLOSED_SHOP_MULT := 1.2
+const CLOSED_SHOP_M := 48
 ## Donations (SETTLEMENT).
 const DONATION_SHARE := 0.06             # of last month's profit, times exposure (0..1.5)
 const DONATION_MIN := 2000 * S           # mcr; smaller offers are not made
@@ -67,6 +70,12 @@ static func target_density(world: WorldState, occ: String, emp: Dictionary, tota
 	var grievance := 1.0 + 0.15 * minf(2.0, wage_grievance(world, occ) + law_grievance(world, occ))
 	var u := _unemp(world)
 	var fear := clampf(1.0 - 0.8 * maxf(0.0, u - 0.10), 0.6, 1.0)  # high unemployment weakens organising
+	# U4 closed shop (Anni's LAW_CLOSED_SHOP): where the sector's union holds an agreement (a settlement in the last
+	# CLOSED_SHOP_M months) membership becomes a condition of the job
+	if not EconUtil.off(world, "UNIONS_U2") and CLOSED_SHOP_LAW.closed_shop(world):
+		var su := Unions.of_occ(world, occ)
+		if not su.is_empty() and world.month - int(su.get("relief_m", -9999)) < CLOSED_SHOP_M:
+			law *= CLOSED_SHOP_MULT
 	return int(clampf(BASE_DENSITY[occ] * law * size * grievance * fear, 0.0, 95.0) * 1000.0)
 
 

@@ -376,9 +376,10 @@ The v4 chronicles showed no paper but the Gazette in 100 years. `Media._found_ai
 - **Party:** ACTIVE, support ≥ 8%, ≥ 6 W_ref in `party:<id>`, and `LAW_PARTY_PRESS` on.
   - Monthly probability: 0.005 × (1 + support/20%).
   - The paper: "The {party} Herald", with the party's line and ethics = leader integrity / 100. 3 W_ref moves from the party into the paper.
-- **Union federation** (`union:fed`): density ≥ 30% in ≥ 2 occupations.
+- **Union federation** (since spec-unions-v1 U1: Bob's federation row, `Unions.federation(world)`; the old `union:fed` owner passes to it in pre-U1 saves): density ≥ 30% in ≥ 2 occupations, and the federation can spare ≥ 4 W_ref (`Unions.spare_fund`).
   - Monthly probability: 0.02.
-  - The paper: "The Worker", with the colony mean line + LABOR 40 and REDISTRIBUTION 30. No endowment, because unions have no account yet.
+  - The paper: "The Worker", with the colony mean line + LABOR 40 and REDISTRIBUTION 30. Endowed with 2 W_ref from the federation's account (`row["acct"]`).
+  - Cover (M4): the owning union pays up to 1 W_ref a month from its spare fund while keeping 0.5 W_ref; the leftover goes back to it on closure; the paper closes OWNER_GONE when the union is no longer ACTIVE.
 - **Company:** a private ACTIVE org (not `PUBLIC_*`) with ≥ 150 W_ref cash and ≥ 50 staff.
   - Monthly probability: 0.002 + 0.015 per bad PUBLIC story about it in 12 months (at most 3).
   - The paper: "The {firm} Courier", with the BUSINESS_OWNER line. 20 W_ref moves from `co:<id>`.

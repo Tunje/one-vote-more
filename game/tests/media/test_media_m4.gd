@@ -68,13 +68,13 @@ func test_sales_shape_readership() -> void:
 	var cell: Dictionary = w.table("cell")["c1"]
 	var share0 := int(cell["diet"][gz])
 	Media.record_sales(w, {gz: 0})            # nobody could pay
-	check(float(Media.outlet(w, gz)["sales_f"]) < 0.2, "sales factor drops")
+	check(int(Media.outlet(w, gz)["sales_pm"]) < 200, "sales factor drops")
 	w.month += 1
 	Media.run(w)
 	check(int(cell["diet"].get(gz, 0)) < share0 / 2, "readership follows what was bought (%d → %d)" % [share0, int(cell["diet"].get(gz, 0))])
 	for i in 30:
 		Media.record_sales(w, {gz: 1 << 40})     # everything wanted was bought
-	check(float(Media.outlet(w, gz)["sales_f"]) >= 0.999, "recovers when sales come back")
+	check_eq(int(Media.outlet(w, gz)["sales_pm"]), 1000, "recovers when sales come back")
 
 
 func test_costs_are_paid_as_wages_and_the_state_covers_the_gazette() -> void:
@@ -143,3 +143,25 @@ func test_a_sale_resets_the_deficit_clock() -> void:
 	w.table("org")["org:1"] = {"id": "org:1", "name": "Buyer Ltd", "type": "PRIVATE", "status": "ACTIVE"}
 	check(Media.transfer_outlet(w, pp, {"kind": "COMPANY", "id": "org:1"}, 0)["ok"], "sold")
 	check_eq(Media.deficit_months(w, pp), 0, "the buyer starts with a clean slate")
+
+
+func test_union_federation_covers_its_paper() -> void:
+	var w := _world()
+	w.table("union")["union:9"] = {"id": "union:9", "acct": "union:union:9", "status": "ACTIVE", "federation": true,
+		"members": 0, "sectors": [], "share": {}}
+	w.ledger.open_account("union:union:9")
+	w.ledger.transfer(Ledger.EXTERNAL, "union:union:9", 3 * WREF, "seed", w.month)
+	var up: String = Media.found_outlet(w, {"kind": "UNION", "id": "union:9"}, {"line": _line(LEFT)})["out_id"]
+	Media.run(w)
+	var o := Media.outlet(w, up)
+	check(int(o["fin"]["paid"]) >= WREF, "the federation paid up to its 1 W_ref cap (%d of %d)" % [int(o["fin"]["paid"]), int(o["fin"]["cost"])])
+	check(w.ledger.balance("union:union:9") < 3 * WREF, "from its fund")
+	for i in 12:
+		w.month += 1
+		Media.run(w)
+	check(w.ledger.balance("union:union:9") >= WREF / 2, "keeps its floor")
+	w.table("union")["union:9"]["status"] = "DISSOLVED"
+	if Media.outlet(w, up)["status"] != "CLOSED":
+		w.month += 1
+		Media.run(w)
+		check_eq(String(Media.outlet(w, up)["status"]), "CLOSED", "the paper dies with the federation")

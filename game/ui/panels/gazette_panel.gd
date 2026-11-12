@@ -331,7 +331,7 @@ static func headline(w: WorldState, f: Dictionary) -> String:
 		"ECON_FAMINE": h = "FAMINE GRIPS THE COLONY"
 		"ECON_SOVEREIGN_DEFAULT": h = "GOVERNMENT DEFAULTS ON ITS DEBTS"
 		"ECON_STRIKE": h = "WORKERS WALK OUT"
-		"ECON_ARBITRATION": h = "ARBITRATOR AVERTS STRIKE AT %s" % NewsText.org(w, d.get("org", "")).to_upper()
+		"ECON_ARBITRATION": h = "ARBITRATOR AVERTS STRIKE IN %s" % ("THE PUBLIC SERVICE" if String(d.get("org", "")) == "gov" else NewsText.org(w, d.get("org", "")).to_upper())
 		"ECON_LAYOFFS_MASS": h = "MASS LAYOFFS AT %s" % NewsText.org(w, d.get("org", "")).to_upper()
 		"COMP_LIQUIDATED": h = "COMPANY GOES UNDER"
 		"COMP_WORKPLACE_ACCIDENT": h = "ACCIDENT AT THE WORKS"

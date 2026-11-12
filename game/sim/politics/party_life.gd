@@ -24,6 +24,7 @@ const SPLIT_MIN_STRENGTH := 0.25
 const SPLIT_MIN_SEATS := 10
 const SPLIT_COOLDOWN := 60            # colony-wide; splits are rare, memorable events
 const SINGLE_ISSUE_OWNERSHIP := 75
+const ISSUE_CREDIBLE := 40           # a party at this issue credibility blocks a new single-issue party on it
 const FORCED_CONTESTS := ["SCANDAL", "RETIREMENT", "CONVICTION"]
 # interest groups (spec §4–5)
 const UNION_ENDORSE_BETA := 0.8       # utility bonus x union density for the endorsed party
@@ -211,10 +212,32 @@ static func faction_axis_scores(world: WorldState, p: Dictionary) -> Dictionary:
 	return {"scores": scores, "sds": sds}
 
 
-static func update_factions(world: WorldState, p: Dictionary) -> void:
+## Mean faction-line score per axis across the active parties. Some axes divide EVERY party's voters (income bands
+## spread everyone on REDISTRIBUTION), so scores are compared against this baseline: a party splits where it is
+## unusually divided compared with the other parties (v4 chronicles, 18/18 splits on REDISTRIBUTION). Read-only.
+static func axis_baseline(world: WorldState) -> Dictionary:
+	var sum := {}
+	var n := 0
+	for q in active(world):
+		var sc: Dictionary = faction_axis_scores(world, q)["scores"]
+		if sc.is_empty():
+			continue
+		n += 1
+		for ax in sc:
+			sum[ax] = float(sum.get(ax, 0.0)) + float(sc[ax])
+	for ax in sum:
+		sum[ax] = float(sum[ax]) / float(n)
+	return sum
+
+
+static func update_factions(world: WorldState, p: Dictionary, baseline: Dictionary = {}) -> void:
 	var pid: String = p["id"]
+	if baseline.is_empty():
+		baseline = axis_baseline(world)
 	var fs := faction_axis_scores(world, p)
 	var scores: Dictionary = fs["scores"]
+	for ax in scores:
+		scores[ax] = float(scores[ax]) / maxf(0.001, float(baseline.get(ax, scores[ax])))
 	var sds: Dictionary = fs["sds"]
 	var best_ax := ""
 	var best_sd := -1.0
@@ -457,9 +480,11 @@ static func _found_single_issue(world: WorldState, st: Dictionary, parties: Arra
 	for c in PolDefs.CONCERNS:
 		if int(im.get(c, 0)) < ISSUE_MONTHS:
 			continue
+		# Owned: a party holds the issue with credibility, or an earlier single-issue party for it is still active
+		# (v4 chronicles: seven housing parties in one century, each founded while the last was still around).
 		var owned := false
 		for p in parties:
-			if int(p["ownership"].get(c, 0)) >= SINGLE_ISSUE_OWNERSHIP:
+			if int(p["ownership"].get(c, 0)) >= ISSUE_CREDIBLE or String(p.get("issue", "")) == c:
 				owned = true
 		im[c] = 0
 		if owned:
@@ -477,6 +502,7 @@ static func _found_single_issue(world: WorldState, st: Dictionary, parties: Arra
 		for ax in PolDefs.CONCERN_PULL[c]:
 			pos[ax] = clampi(pos[ax] + 25 * S, -100 * S, 100 * S)
 		var np := _new_party(world, st, pos, "SINGLE_ISSUE", issue_name(world, c))
+		np["issue"] = c
 		np["ownership"][c] = SINGLE_ISSUE_OWNERSHIP
 		_fact_founded(world, np, "SINGLE_ISSUE", {"concern": c})
 		return true
@@ -896,6 +922,11 @@ static func endorsements(world: WorldState) -> Dictionary:
 	if world.indicators.defs.has("ECON_UNION_DENSITY"):
 		for occ in world.indicators.values["ECON_UNION_DENSITY"]:
 			dens[occ] = world.indicators.read("ECON_UNION_DENSITY", occ)
+	if UnionPolitics.on(world):   # A41: real unions endorse one by one (Ella, sim/politics/union_politics.gd)
+		var e := UnionPolitics.endorsements(world)
+		e["business"] = market
+		e["density"] = dens
+		return e
 	return {"union": labor, "business": market, "density": dens}
 
 
@@ -905,7 +936,9 @@ static func endorsement_bonus(cell: Dictionary, e: Dictionary) -> Dictionary:
 	if e.is_empty():
 		return out
 	var d := float(e["density"].get(cell["occ"], 0)) / 100000.0
-	if e["union"] != "" and d > 0.0:
+	if e.has("occ_pick"):
+		out = UnionPolitics.union_bonus(cell, e, UNION_ENDORSE_BETA)
+	elif e["union"] != "" and d > 0.0:
 		out[e["union"]] = UNION_ENDORSE_BETA * d
 	if e["business"] != "" and cell["occ"] == "BUSINESS_OWNER":
 		out[e["business"]] = float(out.get(e["business"], 0.0)) + BUSINESS_ENDORSE_BETA

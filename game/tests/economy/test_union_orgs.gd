@@ -75,7 +75,7 @@ func test_empty_union_dissolves_and_merges_do_not_chain() -> void:
 	var fed := Unions.federation(w)
 	var u: Dictionary = Unions.active(w).filter(func(x): return not x["federation"])[0]
 	u["sectors"] = ["NO_SUCH_OCC"]
-	u["share"] = {"NO_SUCH_OCC": 1.0}
+	u["share"] = {"NO_SUCH_OCC": 1000}
 	u["lapsed"] = 0
 	u["members"] = 0
 	u["empty_m"] = Unions.EMPTY_DISSOLVE_M - 1
@@ -88,3 +88,23 @@ func test_empty_union_dissolves_and_merges_do_not_chain() -> void:
 	check_eq(w.ledger.total(), 0, "ledger closed")
 	for x in Unions.active(w):
 		check(x["sectors"].size() <= Unions.MERGE_MAX_SECTORS, "%s covers at most two sectors" % x["name"])
+
+
+## U4 closed shop: with LAW_CLOSED_SHOP and a recent agreement, the sector's density target is 20% higher.
+func test_closed_shop_raises_density_target() -> void:
+	var sim := EconSim.make_econ_only(5)
+	sim.run(15)
+	var w := sim.world
+	var u: Dictionary = Unions.of_occ(w, "PUBLIC_SECTOR")
+	check(not u.is_empty(), "a public servants' union")
+	var emp := EconUnions.employed_by_occ(w)
+	var total := 0
+	for occ in emp:
+		total += int(emp[occ])
+	u["relief_m"] = w.month - 1  # an agreement last month
+	var base := EconUnions.target_density(w, "PUBLIC_SECTOR", emp, total)
+	w.levers["LAW_CLOSED_SHOP"] = 1
+	var cs := EconUnions.target_density(w, "PUBLIC_SECTOR", emp, total)
+	check(cs > base, "closed shop raises the target (%d → %d)" % [base, cs])
+	u["relief_m"] = w.month - 100
+	check_eq(EconUnions.target_density(w, "PUBLIC_SECTOR", emp, total), base, "no recent agreement: no effect")

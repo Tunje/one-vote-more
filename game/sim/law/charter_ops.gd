@@ -17,7 +17,7 @@ const INDEPENDENCE_SEATS := 101          # 2/3 of 151
 const REFERENDUM_MIN_TURNOUT := 0.5      # of eligible voters
 const REFERENDUM_MONTHS := 3             # the referendum must follow the parliament vote within 3 months
 const EVASION_MEMORY := 36               # months a proven evasion justifies sanctions
-const CHARTER_LEVERS := ["LAW_CHARTER_QUOTA_SHARE", "LAW_CHARTER_PRICE_PCT"]
+const CHARTER_LEVERS := ["LAW_CHARTER_QUOTA_SHARE", "LAW_CHARTER_PRICE_PCT", "LAW_CHARTER_EXPORT_LEVY"]
 
 
 static func sov(world: WorldState) -> Dictionary:
@@ -40,12 +40,29 @@ static func is_colonial(world: WorldState) -> bool:
 static func ensure_m12(world: WorldState) -> void:
 	var s := LawOps.state(world)
 	if s.get("m12_rules", false):
+		ensure_d5(world)
 		return
 	s["m12_rules"] = true
 	sov(world)
 	for r in L.m12_rules():
 		r["effective_month"] = world.month
 		LawOps.add_rule(world, r)
+	LawOps.bump_rules_version(world)
+
+
+## D5 export-terms rule (spec-demand-v1), added once (new games and older saves). Colonial: it follows the charter's
+## status (suspended by a declaration, repealed on recognition).
+static func ensure_d5(world: WorldState) -> void:
+	var s := LawOps.state(world)
+	if s.get("d5_rules", false):
+		return
+	s["d5_rules"] = true
+	var colonial := is_colonial(world)
+	for r in L.d5_rules():
+		r["effective_month"] = world.month
+		var rid := LawOps.add_rule(world, r)
+		if not colonial:
+			world.table("legal_rule")[rid]["status"] = "REPEALED" if status(world) == "INDEPENDENT" else "SUSPENDED"
 	LawOps.bump_rules_version(world)
 
 
@@ -88,6 +105,64 @@ static func quota_due(world: WorldState) -> Dictionary:
 		reason = "REFUSAL"
 	return {"due": due, "share_pct": int(world.levers.get("LAW_CHARTER_QUOTA_SHARE", 40)) if is_colonial(world) else 0,
 		"price_pct": int(world.levers.get("LAW_CHARTER_PRICE_PCT", 35)), "reason": reason}
+
+
+# =====================================================================================  export terms (D5)
+
+## The home world reserves a good (or releases it): a reserved good may only go to the home world's charter buyer at
+## the charter price (LAW_CHARTER_PRICE_PCT of the home price), like the quota goods, and colony export tax may not
+## touch it. Only while the colony is colonial.
+static func home_world_reserve(world: WorldState, good: String, reserved: bool) -> Dictionary:
+	if not is_colonial(world):
+		return {"ok": false, "reason": "the home world can only reserve goods while the colony is colonial"}
+	var st := sov(world)
+	var rg: Array = st.get("reserved_goods", [])
+	if reserved == (good in rg):
+		return {"ok": false, "reason": "unchanged"}
+	if reserved:
+		rg.append(good)
+		rg.sort()
+	else:
+		rg.erase(good)
+	st["reserved_goods"] = rg
+	_fact(world, "LAW_CHARTER_EXPORT_RESERVED", [HOME], [{"actor": HOME, "share": 1.0}], {"JOBS": -2 if reserved else 2}, 45,
+		{"good": good, "reserved": reserved})
+	return {"ok": true}
+
+
+## Terms for exporting one good on the next ship (Bob's D1 reads this at loading/sale time):
+## {colonial, reserved, levy_pct (home-world share of revenue), charter_price_pct (reserved goods' price), export_tax_pct
+## (colony tax; 0 on reserved goods), refusal}. Under refusal the colony keeps the levy and sells reserved goods freely
+## (unlawful under the charter; the home world may sanction).
+static func export_terms(world: WorldState, good: String) -> Dictionary:
+	var st: Dictionary = world.peek("law_state").get("s", {}).get("sovereignty", {})
+	var colonial := is_colonial(world)
+	var refusing: bool = bool(st.get("refusal", false)) or bool(st.get("export_refusal", false))
+	var reserved: bool = colonial and not refusing and good in st.get("reserved_goods", [])
+	var tax := clampi(int(world.levers.get("LAW_EXPORT_TAX", 0)), 0, 50)
+	return {"colonial": colonial, "reserved": reserved, "refusal": colonial and refusing,
+		"levy_pct": int(world.levers.get("LAW_CHARTER_EXPORT_LEVY", 0)) if colonial and not refusing else 0,
+		"charter_price_pct": int(world.levers.get("LAW_CHARTER_PRICE_PCT", 35)), "export_tax_pct": 0 if reserved else tax}
+
+
+## The government refuses the export terms (levy and reserved goods): open defiance, unlawful under the charter.
+static func refuse_export_terms(world: WorldState, by: Dictionary = GOVERNMENT) -> Dictionary:
+	var st := sov(world)
+	if not is_colonial(world) or bool(st.get("export_refusal", false)):
+		return {"ok": false, "reason": "no export terms to refuse"}
+	var res := LawOps.validate(world, by, "REFUSE_EXPORT_TERMS", {})
+	st["export_refusal"] = true
+	st["export_refusal_month"] = world.month
+	_fact(world, "LAW_CHARTER_DEFIANCE", [by, HOME], [{"actor": by, "share": 1.0}], {}, 60,
+		{"act": "REFUSE_EXPORT_TERMS", "lawful_under_charter": res["result"] == "AUTHORIZED", "rule": res["trace"]})
+	return {"ok": true, "lawful": res["result"] == "AUTHORIZED"}
+
+
+static func end_export_refusal(world: WorldState) -> void:
+	var st := sov(world)
+	if bool(st.get("export_refusal", false)):
+		st["export_refusal"] = false
+		_fact(world, "LAW_CHARTER_COMPLIANCE_RESUMED", [GOVERNMENT, HOME], [], {}, 40, {"act": "EXPORT_TERMS"})
 
 
 # =====================================================================================  home-world inspector (§6)
@@ -144,8 +219,9 @@ static func home_sanction(world: WorldState, kind: String, params: Dictionary = 
 	var p := params.duplicate()
 	var bound: bool = st["status"] != "INDEPENDENT"     # after recognition no charter grievance justifies sanctions
 	p["evasion_proven"] = bound and evasion_proven(world)
-	p["refusal"] = bound and bool(st["refusal"])
-	p["colony_defiant"] = bool(st["refusal"]) or st["status"] == "INDEPENDENCE_DECLARED"
+	var defiant: bool = bool(st["refusal"]) or bool(st.get("export_refusal", false))
+	p["refusal"] = bound and defiant
+	p["colony_defiant"] = defiant or st["status"] == "INDEPENDENCE_DECLARED"
 	var res := LawOps.validate(world, HOME, "HOME_" + kind, p)
 	var lawful: bool = res["result"] == "AUTHORIZED"
 	if not lawful:
@@ -261,9 +337,12 @@ static func recognise_independence(world: WorldState) -> void:
 	st["status"] = "INDEPENDENT"
 	st["since"] = world.month
 	st["refusal"] = false
+	st["export_refusal"] = false
+	st["reserved_goods"] = []
 	st["governor"] = false
 	_set_colonial_rules(world, "REPEALED")
 	world.levers["LAW_CHARTER_QUOTA_SHARE"] = 0
+	world.levers["LAW_CHARTER_EXPORT_LEVY"] = 0
 	_fact(world, "LAW_INDEPENDENCE_RECOGNISED", [HOME, PARLIAMENT], [], {"GOVERNANCE": 10, "FAIRNESS": 5}, 95, {})
 
 
@@ -285,12 +364,14 @@ static func _back_under_charter(world: WorldState, new_status: String, terms: Di
 	st["status"] = new_status
 	st["since"] = world.month
 	st["refusal"] = false
+	st["export_refusal"] = false
 	st["governor"] = governor
 	st["governor_month"] = world.month if governor else -1
 	_set_colonial_rules(world, "ACTIVE")
 	for lever in terms:
 		if lever in CHARTER_LEVERS:
-			world.levers[lever] = clampi(int(terms[lever]), 0, 100)
+			var rg: Array = world.lever_defs[lever]["range"]
+			world.levers[lever] = clampi(int(terms[lever]), int(rg[0]), int(rg[1]))
 	# A militia above the charter cap is unlawful again: clamp it (disbanded down to the cap).
 	var cap := int(L.LEVER_BOUNDS["LAW_MILITIA"]["max"])
 	if int(world.levers.get("LAW_MILITIA", 0)) > cap:

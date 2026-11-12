@@ -19,7 +19,7 @@ const JUDGE_COST_WREF := 3000       # milli-W_ref per judge per month (budget ad
 const INSPECTOR_COST_WREF := 2000
 const INSPECTIONS_PER_INSPECTOR := 3
 const CASE_CP := {"ADMIN_APPEAL": 3, "UNLAWFUL_GOV": 6, "CONTRACT": 5, "ENFORCEMENT": 4, "APPEAL": 4, "PARTY_FINANCE": 4,
-	"TORT": 5, "DEFAMATION": 3}
+	"TORT": 5, "DEFAMATION": 3, "STRIKE": 4}
 const DEFAMATION_DAMAGES_WREF := 0.3       # damages per severity point (severity 0..100 -> up to 30 W_ref)
 # M11 detection channels (spec-events 3): environment inspectorate and competition/consumer authority.
 const ENV_INSPECTION_COST_WREF := 1500     # milli-W_ref per environmental inspection
@@ -58,6 +58,12 @@ static func w_ref(world: WorldState) -> int:
 
 static func company_acct(org_id: String) -> String:
 	return "co:" + org_id
+
+
+## A union's fund (spec-unions-v1 §1): the row's "acct" (Bob's U1: "union:" + id, e.g. union:union:3).
+static func union_acct(world: WorldState, union_id: String) -> String:
+	var u: Dictionary = world.peek("union").get(union_id, {})
+	return String(u.get("acct", "union:" + union_id))
 
 
 static func fact(world: WorldState, type: String, vis: String, subjects: Array, resp: Array, impact: Dictionary,
@@ -552,6 +558,14 @@ static func _final(world: WorldState, c: Dictionary, claimant_wins: bool) -> voi
 				data["paid"] = _pay(world, c["respondent"], c["claimant"], dmg, "DAMAGES")
 				data["remedy"] = "DAMAGES"
 				data["amount"] = dmg
+			"STRIKE":
+				# unlawful strike (spec-unions-v1 §4): LAW_STRIKE_LIABILITY % of the employer's losses, from the union fund
+				var dmg_s := int(c["data"].get("claim", 0))
+				data["paid"] = _pay(world, c["respondent"], c["claimant"], dmg_s, "DAMAGES")
+				data["remedy"] = "DAMAGES"
+				data["amount"] = dmg_s
+				data["union"] = String(c["respondent"]["id"])
+				data["reasons"] = c["data"].get("reasons", [])
 			"PARTY_FINANCE":
 				data["remedy"] = "FINE"
 				data["fine"] = _party_fine(world, c)
@@ -777,6 +791,8 @@ static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, am
 		from = "party:" + String(from_ref["id"])
 	if from_ref["kind"] == "OUTLET":
 		from = "media:" + String(from_ref["id"])
+	if from_ref["kind"] == "UNION":
+		from = union_acct(world, String(from_ref["id"]))
 	var to := "gov:treasury" if to_ref["kind"] in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"] else company_acct(String(to_ref["id"]))
 	if to_ref["kind"] == "PARTY":
 		to = "party:" + String(to_ref["id"])

@@ -2,7 +2,7 @@ class_name Unions
 extends RefCounted
 ## U1 (user decision A41, planning/spec-unions-v1.md §1): unions as organisations.
 ## Table "union", one row per union (ids "union:N"; ledger account row["acct"] = "union:" + id, closed ledger):
-##   {id, name, sectors: [occ], share: {occ: 0..1 of that sector's organised workers}, members (mu), density (‰ of the
+##   {id, name, sectors: [occ], share: {occ: ‰ (1000 = all) of that sector's organised workers}, members (mu), density (‰ of the
 ##    union's sector employment, 0..1000), acct, dues_pm (milli per member-month), leader: {name, militancy, competence,
 ##    ambition, since}, mood (0..100 grievance), status ACTIVE|MERGED|DISSOLVED, founded, federation: bool,
 ##    affiliated_to (union id or ""), lapsed (mu, unemployed members kept for a while), election_due (month),
@@ -71,7 +71,7 @@ static func of_occ(world: WorldState, occ: String) -> Dictionary:
 	for u in active(world):
 		if u["federation"] or not occ in u["sectors"]:
 			continue
-		if best.is_empty() or float(u["share"].get(occ, 0.0)) > float(best["share"].get(occ, 0.0)):
+		if best.is_empty() or int(u["share"].get(occ, 0)) > int(best["share"].get(occ, 0)):
 			best = u
 	return best
 
@@ -183,7 +183,7 @@ static func _found_unions(world: WorldState, emp: Dictionary) -> void:
 		if not all_of_occ(world, occ).is_empty() or int(emp.get(occ, 0)) < MIN_SECTOR * S:
 			continue
 		var bias := 35.0 if occ in MODERATE else 50.0
-		var u := _new_union(world, NAMES[occ], [occ], {occ: 1.0}, false, bias)
+		var u := _new_union(world, NAMES[occ], [occ], {occ: 1000}, false, bias)
 		var fed := federation(world)
 		if not fed.is_empty() and not occ in MODERATE:
 			u["affiliated_to"] = fed["id"]
@@ -208,8 +208,8 @@ static func _members(world: WorldState, emp: Dictionary) -> void:
 		var sector_emp := 0
 		for occ in u["sectors"]:
 			var dens := float(EconUnions.density(world, occ)) / 100000.0
-			m += int(float(emp.get(occ, 0)) * dens * float(u["share"].get(occ, 1.0)))
-			sector_emp += int(float(emp.get(occ, 0)) * float(u["share"].get(occ, 1.0)))
+			m += int(float(emp.get(occ, 0)) * dens * float(u["share"].get(occ, 1000)) / 1000.0)
+			sector_emp += int(float(emp.get(occ, 0)) * float(u["share"].get(occ, 1000)) / 1000.0)
 		# members who lose their job: LAPSE_KEEP of them stay on the books, fading over LAPSE_MONTHS
 		var drop := int(u["members"]) - int(u["lapsed"]) - m
 		var lapsed := int(float(u["lapsed"]) * (1.0 - 1.0 / float(LAPSE_MONTHS)))
@@ -258,7 +258,7 @@ static func _dues(world: WorldState) -> void:
 			var e: Dictionary = world.table("hh")[gid].get("emp", {})
 			var n := 0.0
 			for occ in u["sectors"]:
-				n += float(e.get(occ, 0)) * float(EconUnions.density(world, occ)) / 100000.0 * float(u["share"].get(occ, 1.0))
+				n += float(e.get(occ, 0)) * float(EconUnions.density(world, occ)) / 100000.0 * float(u["share"].get(occ, 1000)) / 1000.0
 			var amt := int(n / S * float(due))
 			if amt > 0:
 				got += EconUtil.pay_upto(world, EconUtil.hh_acct(gid), u["acct"], amt, "UNION_DUES")
@@ -298,7 +298,7 @@ static func _mood(world: WorldState) -> void:
 			base += float(emp.get(occ, 0))
 		var target := 20.0 + 25.0 * g + 300.0 * laid / maxf(1.0, base)
 		# relief from the last settlement, fading over RELIEF_M months (U2 sets it)
-		target -= float(u.get("relief", 0.0)) * maxf(0.0, 1.0 - float(world.month - int(u.get("relief_m", -9999))) / float(RELIEF_M))
+		target -= float(u.get("relief", 0)) * maxf(0.0, 1.0 - float(world.month - int(u.get("relief_m", -9999))) / float(RELIEF_M))
 		if u["sectors"].size() > 0 and u["sectors"][0] in MODERATE:
 			target *= 0.75  # the professions are slower to anger
 		if u["last_strike_result"] == "LOST":
@@ -362,7 +362,7 @@ static func _merge_and_split(world: WorldState) -> void:
 		for occ in small["sectors"]:
 			if not occ in big["sectors"]:
 				big["sectors"].append(occ)
-			big["share"][occ] = minf(1.0, float(big["share"].get(occ, 0.0)) + float(small["share"].get(occ, 1.0)))
+			big["share"][occ] = mini(1000, int(big["share"].get(occ, 0)) + int(small["share"].get(occ, 1000)))
 		var amt := world.ledger.balance(small["acct"])
 		if amt > 0:
 			world.ledger.transfer(small["acct"], big["acct"], amt, "UNION_MERGER", world.month)
@@ -382,9 +382,9 @@ static func _merge_and_split(world: WorldState) -> void:
 			continue
 		var share := {}
 		for occ in u["sectors"]:
-			var sh := float(u["share"].get(occ, 1.0))
-			share[occ] = sh * SPLIT_SHARE
-			u["share"][occ] = sh * (1.0 - SPLIT_SHARE)
+			var sh := int(u["share"].get(occ, 1000))
+			share[occ] = int(float(sh) * SPLIT_SHARE)
+			u["share"][occ] = sh - int(share[occ])
 		var nu := _new_union(world, "%s (Rank and File)" % u["name"], u["sectors"], share, false, 80.0)
 		nu["mood"] = u["mood"]
 		nu["affiliated_to"] = ""

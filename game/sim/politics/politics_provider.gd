@@ -104,8 +104,9 @@ func run_phase(phase: int, world: WorldState) -> void:
 		PartyLife.check_dissolutions(world, st, PartyLife.latest_poll_shares(world))
 	if have_parties and world.month_of_year() == 1 and world.month > PolDefs.PARTY_FORMATION_MONTH:
 		_adapt_parties(world)
+		var base := PartyLife.axis_baseline(world)   # (Ella) faction lines judged against the other parties
 		for p in PartyLife.active(world):
-			PartyLife.update_factions(world, p)
+			PartyLife.update_factions(world, p, base)
 		PartyLife.check_foundings(world, st)
 		_zeitgeist(world, st)
 	if have_parties and world.month == st["next_election"]:
@@ -661,8 +662,9 @@ func run_election(world: WorldState, st: Dictionary, extra: bool = false) -> voi
 	for p in PartyLife.active(world):
 		shares[p["id"]] = int(p["support"])
 	PartyLife.check_dissolutions(world, st, shares)
+	var base := PartyLife.axis_baseline(world)
 	for p in PartyLife.active(world):
-		PartyLife.update_factions(world, p)
+		PartyLife.update_factions(world, p, base)
 	PartyLife.check_foundings(world, st)
 	st["campaign_spent"] = {}
 	if not extra:
@@ -736,6 +738,7 @@ func _party_life_monthly(world: WorldState, st: Dictionary) -> void:
 	PartyLife.check_splits(world, st)
 	PartyLife.funds_monthly(world, st)
 	Campaign.monthly(world, st)   # election year (Ella): themes, ads, ground game, debates, dirt
+	UnionPolitics.monthly(world, st)   # unions in politics (Ella, A41 U3): endorsements, betrayal, union money
 
 
 ## Generational replacement / changing times: each value cohort drifts slowly (random walk), and so do

@@ -44,6 +44,15 @@ func _all(v: int) -> Dictionary:
 	return d
 
 
+## Bob's U1 federation row with a fund (spec-unions-v1 §1).
+func _fed(w: WorldState, fund_wref: float) -> String:
+	w.table("union")["union:9"] = {"id": "union:9", "name": "Colony Federation of Labour", "acct": "union:union:9",
+		"status": "ACTIVE", "federation": true, "members": 0, "sectors": [], "share": {}}
+	w.ledger.open_account("union:union:9")
+	w.ledger.transfer(Ledger.EXTERNAL, "union:union:9", int(fund_wref * WREF), "seed", w.month)
+	return "union:9"
+
+
 func _months(w: WorldState, n: int) -> void:
 	for i in n:
 		w.month += 1
@@ -62,7 +71,7 @@ func test_party_founds_a_paper_when_rich_and_popular() -> void:
 	check(Media.owned_by(w, {"kind": "PARTY", "id": "party:3"}).is_empty(), "not below 8% in the polls")
 	var o := Media.outlet(w, Media.owned_by(w, {"kind": "PARTY", "id": "party:1"})[0])
 	check_eq(int(o["line"]["LABOR"]), 50000, "the party's line")
-	check(absf(float(o["ethics"]) - 0.8) < 0.001, "ethics follows the leader's integrity")
+	check_eq(int(o["ethics"]), 800, "ethics follows the leader's integrity (milli)")
 	check_eq(w.ledger.balance("media:" + String(o["id"])), 3 * WREF, "endowed from the party account")
 	check_eq(w.ledger.balance("party:party:1"), 7 * WREF, "paid by the party")
 	check(not w.facts.query("MEDIA_OUTLET_FOUNDED").filter(func(f): return f["data"]["outlet"] == o["id"]).is_empty(), "a public fact")
@@ -107,15 +116,27 @@ func test_union_federation_founds_the_worker() -> void:
 	w.table("econ")["s"] = {"union": {"density": {"MINING": 45000, "PUBLIC_SECTOR": 48000, "SERVICES": 12000}}}
 	w.meta["media_found_scale"] = 100.0
 	_months(w, 2)
-	var ids := Media.owned_by(w, {"kind": "UNION", "id": "union:fed"})
+	check(Media.owned_by(w, {"kind": "UNION", "id": "union:9"}).is_empty(), "no federation yet: no union paper")
+	var fid := _fed(w, 10.0)
+	_months(w, 2)
+	var ids := Media.owned_by(w, {"kind": "UNION", "id": fid})
 	check_eq(ids.size(), 1, "the federation founds a paper")
 	var o := Media.outlet(w, ids[0])
 	check(int(o["line"]["LABOR"]) == 40000 and int(o["line"]["REDISTRIBUTION"]) == 30000, "line pulled toward labour")
+	check_eq(w.ledger.balance("media:" + String(o["id"])), 2 * WREF, "endowed from the federation's fund")
+	check_eq(w.ledger.balance("union:union:9"), 8 * WREF, "paid by the federation")
 	var w2 := _world()
 	w2.table("econ")["s"] = {"union": {"density": {"MINING": 45000, "SERVICES": 12000}}}
+	_fed(w2, 10.0)
 	w2.meta["media_found_scale"] = 100.0
 	_months(w2, 3)
-	check(Media.owned_by(w2, {"kind": "UNION", "id": "union:fed"}).is_empty(), "one strong occupation is not enough")
+	check(Media.owned_by(w2, {"kind": "UNION", "id": "union:9"}).is_empty(), "one strong occupation is not enough")
+	var w3 := _world()
+	w3.table("econ")["s"] = {"union": {"density": {"MINING": 45000, "PUBLIC_SECTOR": 48000}}}
+	_fed(w3, 3.0)
+	w3.meta["media_found_scale"] = 100.0
+	_months(w3, 3)
+	check(Media.owned_by(w3, {"kind": "UNION", "id": "union:9"}).is_empty(), "a poor federation founds nothing")
 
 
 func _company(w: WorldState, oid: String, cash_wref: float, staff: int, type: String = "PRIVATE") -> void:
@@ -180,11 +201,12 @@ func test_paper_dies_with_its_owner() -> void:
 func test_no_refounding_right_after_a_closure() -> void:
 	var w := _world()
 	w.table("econ")["s"] = {"union": {"density": {"MINING": 45000, "PUBLIC_SECTOR": 48000}}}
+	_fed(w, 100.0)
 	w.meta["media_found_scale"] = 100.0
 	_months(w, 1)
-	var id: String = Media.owned_by(w, {"kind": "UNION", "id": "union:fed"})[0]
+	var id: String = Media.owned_by(w, {"kind": "UNION", "id": "union:9"})[0]
 	Media.close_outlet(w, id, "INSOLVENT")
 	_months(w, 35)
-	check(Media.owned_by(w, {"kind": "UNION", "id": "union:fed"}).is_empty(), "no new paper within 36 months")
+	check(Media.owned_by(w, {"kind": "UNION", "id": "union:9"}).is_empty(), "no new paper within 36 months")
 	_months(w, 2)
-	check_eq(Media.owned_by(w, {"kind": "UNION", "id": "union:fed"}).size(), 1, "then it may try again")
+	check_eq(Media.owned_by(w, {"kind": "UNION", "id": "union:9"}).size(), 1, "then it may try again")

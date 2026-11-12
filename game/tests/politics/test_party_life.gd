@@ -215,3 +215,49 @@ func test_weak_splinter_folds_back_into_its_parent_after_two_terms() -> void:
 	PartyLife.check_mergers(w, st)
 	check_eq(np["status"], "MERGED", "folded back")
 	check_eq(String(np["merged_into"]), String(pm["id"]), "into the party it left")
+
+
+func test_faction_line_is_judged_against_the_other_parties() -> void:
+	var w := _sim().world
+	var p: Dictionary = PartyLife.active(w).filter(func(q): return not q["is_player"])[0]
+	var raw: Dictionary = PartyLife.faction_axis_scores(w, p)["scores"]
+	var top := ""
+	for ax in PolDefs.AXES:
+		if raw.has(ax) and (top == "" or float(raw[ax]) > float(raw[top])):
+			top = ax
+	var flat := {}
+	for ax in raw:
+		flat[ax] = 1.0
+	p["faction_axis"] = ""
+	PartyLife.update_factions(w, p, flat)
+	check_eq(p["faction_axis"], top, "a flat baseline keeps the raw choice")
+	var heavy := flat.duplicate()
+	heavy[top] = 1000.0   # every party is divided on this axis: not this party's own conflict
+	p["faction_axis"] = ""
+	PartyLife.update_factions(w, p, heavy)
+	check(p["faction_axis"] != top, "an axis that divides everyone is not the party's own line (%s)" % p["faction_axis"])
+	var base := PartyLife.axis_baseline(w)
+	check_eq(base.size(), raw.size(), "baseline per axis")
+
+
+func test_no_new_single_issue_party_while_the_issue_is_owned() -> void:
+	var w := _sim().world
+	var st := _st(w)
+	var c := "HOUSING"
+	var lc := PartyLife.lifecycle(st)
+	var ps := PartyLife.active(w)
+	for q in ps:
+		q["ownership"][c] = 0
+	var n0 := PartyLife.active(w).size()
+	ps[0]["ownership"][c] = PartyLife.ISSUE_CREDIBLE
+	lc["issue_months"][c] = PartyLife.ISSUE_MONTHS
+	check(not PartyLife._found_single_issue(w, st, PartyLife.active(w)), "a credible owner blocks it")
+	ps[0]["ownership"][c] = 0
+	ps[1]["issue"] = c
+	lc["issue_months"][c] = PartyLife.ISSUE_MONTHS
+	check(not PartyLife._found_single_issue(w, st, PartyLife.active(w)), "an earlier single-issue party still around blocks it")
+	ps[1].erase("issue")
+	lc["issue_months"][c] = PartyLife.ISSUE_MONTHS
+	check(PartyLife._found_single_issue(w, st, PartyLife.active(w)), "an unowned issue gets its party")
+	var np: Dictionary = PartyLife.active(w).filter(func(q): return q.get("issue", "") == c)[0] if PartyLife.active(w).size() > n0 else {}
+	check_eq(String(np.get("issue", "")), c, "the new party remembers its issue")

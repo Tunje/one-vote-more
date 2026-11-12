@@ -203,7 +203,7 @@ static func _talks(world: WorldState, d: Dictionary, rng: RandomNumberGenerator)
 		"COUNTER":
 			if int(d["counter_pm"]) <= 0:
 				d["counter_pm"] = int(d["size_pm"]) / 2
-			var p_take := clampf(1.0 - 1.2 * float(u["leader"].get("militancy", 50)) / 100.0 * float(u["mood"]) / 100.0, 0.1, 0.95)
+			var p_take := clampf(1.0 - 1.6 * float(u["leader"].get("militancy", 50)) / 100.0 * float(u["mood"]) / 100.0, 0.1, 0.95)
 			if rng.randf() < p_take:
 				_settle(world, d, u, "COUNTER", int(d["counter_pm"]))
 			else:
@@ -219,7 +219,7 @@ static func _ai_answer(world: WorldState, d: Dictionary) -> String:
 	var a := "REFUSE"
 	if d["employer"] == PUBLIC_EMPLOYER:
 		var lab := _gov_labour(world)
-		a = "ACCEPT" if lab > 0.25 else ("COUNTER" if lab > -0.15 else "REFUSE")
+		a = "ACCEPT" if lab > 0.4 else ("COUNTER" if lab > -0.15 else "REFUSE")
 	else:
 		var o: Dictionary = world.table("org").get(d["employer"], {})
 		if o.is_empty():
@@ -405,7 +405,9 @@ static func _strike_month(world: WorldState, d: Dictionary, rng: RandomNumberGen
 			_: d["player_answer"] = ""
 	elif d["employer"] == PUBLIC_EMPLOYER:
 		var lab := _gov_labour(world)
-		if rng.randf() < clampf(0.15 * m * (1.0 + lab), 0.0, 0.9):
+		if lab < -0.15 and rng.randf() < clampf(0.12 * m, 0.0, 0.8):
+			outcome = "LOST"  # a market-minded government breaks the strike
+		elif rng.randf() < clampf(0.15 * m * (1.0 + lab), 0.0, 0.9):
 			outcome = "WON" if lab > 0.2 else "COMPROMISE"
 	else:
 		var o: Dictionary = world.table("org").get(d["employer"], {})
@@ -415,8 +417,15 @@ static func _strike_month(world: WorldState, d: Dictionary, rng: RandomNumberGen
 			var weak := world.ledger.balance(EconUtil.acct(d["employer"])) < 2 * EconFinance._monthly_costs(o)
 			if weak:
 				outcome = "WON"
-			elif rng.randf() < clampf(0.15 * m, 0.0, 0.8):
-				outcome = "COMPROMISE" if rng.randf() < 0.65 else "WON"
+			else:
+				# a rich, profitable employer can outlast a union whose fund is thin; otherwise the sides settle
+				var strong: bool = world.ledger.balance(EconUtil.acct(d["employer"])) >= 6 * EconFinance._monthly_costs(o) and EconFinance.profit(o["pl_last"] if not o.get("pl_last", {}).is_empty() else o["pl"]) > 0
+				var fund_f := clampf(Unions.strike_weeks(world, u["id"]) / 8.0, 0.0, 1.0)
+				var r := rng.randf()
+				if strong and r < clampf(0.12 * m * (1.2 - fund_f), 0.0, 0.8):
+					outcome = "LOST"
+				elif rng.randf() < clampf(0.15 * m, 0.0, 0.8):
+					outcome = "COMPROMISE" if rng.randf() < 0.65 else "WON"
 	if outcome == "" and int(d["strike_months"]) >= STRIKE_MAX_M:
 		outcome = "LOST"  # the members drift back
 	if outcome != "":
@@ -474,7 +483,7 @@ static func _settle(world: WorldState, d: Dictionary, u: Dictionary, outcome: St
 	if outcome in ["ACCEPTED", "COUNTER", "WON", "COMPROMISE", "ARBITRATED"]:
 		# a settlement relieves the grievance it answered (fading over Unions.RELIEF_M months): wages are now judged
 		# against the last settlement, not against the slump
-		u["relief"] = clampf(10.0 + 0.5 * float(award), 10.0, 50.0) if d["kind"] == "WAGE" else 15.0
+		u["relief"] = clampi(10 + award / 2, 10, 50) if d["kind"] == "WAGE" else 15  # mood points (int: saved state holds no floats)
 		u["relief_m"] = world.month
 	if award > 0:
 		for oid in _struck_orgs(world, d):

@@ -16,6 +16,7 @@ const ACTIONS := ["ZONE_DISTRICT", "BUILD_FACILITY", "DEMOLISH_FACILITY", "OPERA
 	"CUT_CONTRACT_CORNERS", "DECLARE_EMERGENCY", "REQUISITION",
 	# M12 (spec-colony-v1): colonial charter, home-world sanctions, breaking away
 	"SELL_COLONIAL_GOOD", "WITHHOLD_QUOTA", "OBSTRUCT_QUOTA", "REFUSE_QUOTA", "PETITION_HOME", "DECLARE_INDEPENDENCE",
+	"REFUSE_EXPORT_TERMS",
 	"HOME_FINE", "HOME_WITHHOLD", "HOME_REVOKE_PRIVILEGE", "HOME_APPOINT_GOVERNOR", "HOME_EXPEDITION",
 	# M13 land law (spec-areas-v1 9.4, A37)
 	"SELL_LAND", "LEASE_LAND", "ZONE_LAND", "CLEAR_HOUSING", "EVICT", "BUILD_WITHOUT_TITLE",
@@ -161,6 +162,14 @@ static func m12_rules() -> Array:
 	out.append(_r("AUTHORIZE", "PETITION_HOME", [{"field": "actor.kind", "op": "IN", "value": ["PARLIAMENT", "GOVERNMENT", "COMMANDER"]}],
 		[], {"source": "COLONIAL_CHARTER"}))
 	return out
+
+
+## D5 (spec-demand-v1): the home world's export terms. Refusing the export levy and the reserved goods is defiance,
+## like refusing the quota. (Reserved goods are colonial goods: SELL_COLONIAL_GOOD to anyone but the home world's
+## charter buyer, and colony export tax on them (LEVY_TAX base COLONIAL_EXPORT), are already prohibited above.)
+static func d5_rules() -> Array:
+	var pub := [{"field": "actor.kind", "op": "IN", "value": ["GOVERNMENT", "COMMANDER", "PARLIAMENT", "AUTHORITY"]}]
+	return [_r("PROHIBIT", "REFUSE_EXPORT_TERMS", pub, [], {"source": "COLONIAL_CHARTER", "colonial": true})]
 
 
 ## M13 land law (spec-areas-v1 9.4). Added once by LandLaw.ensure_rules.
@@ -384,6 +393,35 @@ const LEVERS := [
 	{"id": "LAW_CHARTER_PRICE_PCT", "owner": "law", "type": "NUMBER", "range": [0, 100], "default": 35,
 		"legalLevel": "CHARTER", "foundingEra": "LOCKED", "ideology": {},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 0, "scope": "COLONY", "domain": "ECON"},
+	# D5 (spec-demand-v1): the home world's levy on general exports (% of export revenue), set by the home world only.
+	{"id": "LAW_CHARTER_EXPORT_LEVY", "owner": "law", "type": "NUMBER", "range": [0, 50], "default": 0,
+		"legalLevel": "CHARTER", "foundingEra": "LOCKED", "ideology": {},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 0, "scope": "COLONY", "domain": "ECON"},
+	# ---- D5 trade, luxury, tourism and leisure law (planning/spec-demand-v1.md D5). Read through sim/law/trade_law.gd.
+	# NUMBER so AI governments draft them. Taxes carry is_tax (charter cap 50%) and a GOVERNANCE (+revenue) hint.
+	{"id": "LAW_EXPORT_TAX", "owner": "law", "legislative": true, "is_tax": true, "type": "NUMBER", "range": [0, 50], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 0.6, "SOVEREIGNTY": 0.2},
+		"concerns": {"JOBS": -30, "GOVERNANCE": 25},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	{"id": "LAW_LUXURY_TAX", "owner": "law", "legislative": true, "is_tax": true, "type": "NUMBER", "range": [0, 50], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"REDISTRIBUTION": 1.2, "ECON_ROLE": 0.3},
+		"concerns": {"FAIRNESS": 20, "JOBS": -10, "GOVERNANCE": 20},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	{"id": "LAW_TOURIST_TAX", "owner": "law", "legislative": true, "is_tax": true, "type": "NUMBER", "range": [0, 30], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 0.4, "ENVIRONMENT": 0.3},
+		"concerns": {"JOBS": -10, "GOVERNANCE": 15},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Tourist visas: 0 = closed to visitors, 100 = open. Visitors bring jobs and money, and crowd housing and nature.
+	{"id": "LAW_TOURIST_VISA", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 50,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": -0.05, "ENVIRONMENT": -0.06, "SOVEREIGNTY": -0.04},
+		"concerns": {"JOBS": 20, "HOUSING": -8, "COST_OF_LIVING": -6, "ENVIRONMENT_QUALITY": -6},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Leisure licensing: venue licence and alcohol strictness, 0 = lax (anyone, all hours) .. 100 = strict (few venues,
+	# early closing, no alcohol). Fewer venues and jobs, calmer streets.
+	{"id": "LAW_LEISURE_LICENSING", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 40,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"AUTONOMY": -0.1, "INSTITUTIONS": 0.05},
+		"concerns": {"SAFETY": 15, "JOBS": -10, "FAIRNESS": -3},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
 	# Colony law: whether colony customs also chase charter evasion (false = passive defiance), and the militia.
 	# SOVEREIGNTY slopes (+ = independence). The charter terms above have none: only the home world sets them.
 	# Eligibility: newcomers lean loyal, so independence parties favour residency rules over the non-citizen vote.
@@ -433,6 +471,40 @@ const LEVERS := [
 		"values": ["NONE", "MIN_SERVICE", "NO_STRIKE"], "default": "NONE",
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": -6, "INSTITUTIONS": 3},
 		"concerns": {"INFRASTRUCTURE": 15, "FAIRNESS": -8},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# ---- Union law (planning/spec-unions-v1.md §4, U4). Read through sim/law/union_law.gd. All NUMBER so AI
+	# governments can draft them (one clause = 10% of the range); defaults keep the M9 behaviour. Ideology is per unit
+	# (+LABOR = pro-worker), concern hints are over the whole range.
+	# Strike ballot: yes share of members (%) a strike needs; 0 = no ballot required.
+	{"id": "LAW_STRIKE_BALLOT", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 80], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": -0.12, "INSTITUTIONS": 0.05},
+		"concerns": {"INFRASTRUCTURE": 8, "JOBS": 4, "FAIRNESS": -10},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Closed shop: 1 = closed-shop agreements are enforceable (membership a condition of the job), 0 = banned.
+	{"id": "LAW_CLOSED_SHOP", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 1], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": 8, "AUTONOMY": -6},
+		"concerns": {"FAIRNESS": 8, "JOBS": -4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Public-sector right to strike: 1 = public servants may strike, 0 = they may not (disputes go to arbitration).
+	{"id": "LAW_PUBLIC_SECTOR_STRIKE", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 1], "default": 1,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": 8, "INSTITUTIONS": -4},
+		"concerns": {"FAIRNESS": 10, "PUBLIC_SERVICES": -12},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Union recognition: an employer must bargain with a union holding at least this density (%) of its workers;
+	# 100 = no statutory duty (the employer may refuse talks).
+	{"id": "LAW_UNION_RECOGNITION", "owner": "law", "legislative": true, "type": "NUMBER", "range": [10, 100], "default": 100,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": -0.1, "ECON_ROLE": -0.03},
+		"concerns": {"FAIRNESS": -12, "JOBS": 4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Liability for unlawful strikes: % of the employer's losses a court may award against the union fund; 0 = immunity.
+	{"id": "LAW_STRIKE_LIABILITY", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 50,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": -0.08, "INSTITUTIONS": 0.04},
+		"concerns": {"INFRASTRUCTURE": 6, "FAIRNESS": -8},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Political levy: 0 = dues fund politics freely, 1 = members may opt out, 2 = members must opt in.
+	{"id": "LAW_POLITICAL_LEVY", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 2], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": -4, "AUTONOMY": 3},
+		"concerns": {"FAIRNESS": 4},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
 	# ---- MEDIA v1 press law (planning/spec-media-v1.md section 8). Read by sim/media/media_ops.gd.
 	{"id": "LAW_PRESS_LICENSING", "owner": "law", "type": "ENUM", "values": ["NONE", "REGISTER", "LICENCE"], "default": "NONE",

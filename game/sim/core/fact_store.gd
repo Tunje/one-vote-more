@@ -24,6 +24,10 @@ func add(month: int, fact: Dictionary) -> String:
 		share_sum += float(r["share"])
 	assert(fact["responsible"].is_empty() or absf(share_sum - 1.0) < 0.001, "responsible shares must sum to 1")
 	var f := fact.duplicate(true)
+	# Shares are kept to 1/1000 as canonical doubles (integer / 1000.0), so they print and parse back to the very
+	# same value: a save/load/continue run stays bit-identical (v4: 0.7361665900000001 drifted after loading).
+	for r in f["responsible"]:
+		r["share"] = float(roundi(float(r["share"]) * 1000.0)) / 1000.0
 	f["id"] = "F%d" % _next
 	_next += 1
 	f["month"] = month

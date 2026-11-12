@@ -114,7 +114,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"ECON_LAYOFFS_MASS":
 			s = "%s laid off %d workers (%d%% of its staff)%s" % [org(w, d.get("org", "")), int(d.get("persons", 0)), int(d.get("share_pct", 0)), ", and is closing" if d.get("closing", false) else ""]
 		"ECON_STRIKE": s = "%d %s workers at %s are on strike over %s" % [int(d.get("persons", 0)), _kind(d.get("occupation", "")), org(w, d.get("org", "")), _kind(d.get("cause", "pay"))]
-		"ECON_ARBITRATION": s = "An arbitrator settled the %s dispute at %s: %d workers kept working and won a %.1f%% rise" % [_kind(d.get("cause", "pay")), org(w, d.get("org", "")), int(d.get("persons", 0)), float(d.get("award_pm", 0)) / 10.0]
+		"ECON_ARBITRATION": s = "An arbitrator settled the %s dispute at %s: %d workers kept working and won a %.1f%% rise" % [_kind(d.get("cause", "pay")), "the public service" if String(d.get("org", "")) == "gov" else org(w, d.get("org", "")), int(d.get("persons", 0)), float(d.get("award_pm", 0)) / 10.0]
 		"ECON_LOCKOUT": s = "%s locked out %d workers" % [org(w, d.get("org", "")), int(d.get("persons", 0))]
 		"COMP_LIQUIDATED": s = "%s has gone out of business" % _subject_org(w, f)
 		"COMP_INSOLVENCY": s = "%s is insolvent (%d employees)" % [_subject_org(w, f), int(d.get("employees", 0))]
@@ -190,6 +190,9 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"HOME_INSPECTION_REPORT": s = "The home world's inspector %s" % (("found %d cases of quota evasion or smuggling" % int(d.get("found", 0))) if int(d.get("found", 0)) > 0 else "found nothing amiss")
 		"POL_CHARTER_VOTE": s = "Parliament %s a %s (%d–%d)" % ["passed" if d.get("passed", false) else "rejected", {"PETITION": "petition to the home world", "REFUSAL": "refusal of the quota", "INDEPENDENCE": "declaration of independence"}.get(String(d.get("what", "")), "charter motion"), int(d.get("yes", 0)), int(d.get("no", 0))]
 		"STAFF_OVERSIGHT_REPORT": s = "An oversight report on the %s found %d faults" % [_kind(d.get("domain", "administration")), int(d.get("findings", 0))]
+		"LAW_CHARTER_EXPORT_RESERVED": s = ("The home world reserves the colony's %s for its own buyer, at the charter price" if d.get("reserved", true) else "The home world lifts its claim on the colony's %s") % _kind(d.get("good", "goods"))
+		"LAW_CHARTER_DEFIANCE": s = "[color=#ff8a65]The colony defies the home world[/color]: %s" % {"REFUSE_EXPORT_TERMS": "it refuses the charter's export terms", "REFUSE_QUOTA": "it refuses the quota"}.get(String(d.get("act", "")), "it breaks the charter")
+		"LAW_CHARTER_COMPLIANCE_RESUMED": s = "The colony returns to the charter's %s" % {"EXPORT_TERMS": "export terms", "QUOTA": "quota"}.get(String(d.get("act", "")), "terms")
 		"LAW_PETITION_SENT": s = "Parliament sent a petition to the home world asking for better terms"
 		"POL_ELECTION_HELD": s = "[b]Election held[/b]"
 		"POL_GOVERNMENT_FORMED": s = "[b]New government[/b]: %s" % ", ".join(d.get("members", []).map(func(p): return party(w, p)))

@@ -30,7 +30,7 @@ static func edition(world: WorldState, out_id: String, month: int) -> Dictionary
 		var fr: Dictionary = r["frame"]
 		stories.append({"report": rid, "fact": r["fact"], "kind": r["kind"], "rank": int(r["rank"]),
 			"head_actor": fr.get("blame_actor", {}).duplicate(), "angle": fr.get("angle", "NEUTRAL"),
-			"slant": float(fr.get("slant", 0.0)), "gov_share": float(fr.get("gov_share", 0.0)),
+			"slant": float(fr.get("slant", 0)) / 1000.0, "gov_share": float(fr.get("gov_share", 0)) / 1000.0,
 			"corrected": String(r.get("corrected_by", "")) != "", "exposed": bool(r.get("exposed", false)),
 			"also": r.get("also", []).duplicate()})
 	var o: Dictionary = world.peek("outlet").get(out_id, {})
@@ -66,14 +66,14 @@ static func campaign_tilt(world: WorldState, leaf: Dictionary, party_id: String)
 		var o: Dictionary = ot.get(id, {})
 		if o.is_empty():
 			continue
-		t += float(diet[id]) / 1000.0 * float(trust.get(id, 50000)) / 100000.0 * float(o.get("party_tilt", {}).get(party_id, 0.0))
+		t += float(diet[id]) / 1000.0 * float(trust.get(id, 50000)) / 100000.0 * float(o.get("party_tilt", {}).get(party_id, 0)) / 1000.0
 	return clampf(1.0 + TILT_K * t, 0.7, 1.3)
 
 
 ## Same, averaged over a district's readers (computed monthly by Media.run).
 static func campaign_tilt_district(world: WorldState, district: String, party_id: String) -> float:
 	var td: Dictionary = world.peek("media").get("s", {}).get("tilt_district", {})
-	return clampf(1.0 + TILT_K * float(td.get(district, {}).get(party_id, 0.0)), 0.7, 1.3)
+	return clampf(1.0 + TILT_K * float(td.get(district, {}).get(party_id, 0)) / 1000.0, 0.7, 1.3)
 
 
 ## The news vector of a voter group (what PoliticsProvider applies; spec §7).
