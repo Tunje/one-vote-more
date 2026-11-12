@@ -82,10 +82,17 @@ func _my_campaign(w: WorldState, c: Dictionary, pp: String) -> void:
 	var own: Dictionary = w.peek("party")[pp].get("ownership", {})
 	var cs: Array = PolDefs.CONCERNS.duplicate()
 	cs.sort_custom(func(a, b): return int(own.get(a, 0)) > int(own.get(b, 0)))
-	for cn in cs.slice(0, 6):
+	var hs := HotIssues.heat(w)
+	var shown: Array = cs.slice(0, 6)
+	for cn in cs.slice(6):
+		if HotIssues.issue_for(hs, cn) != "":
+			shown.append(cn)   # a hot issue is always on the menu
+	for cn in shown:
 		var concern: String = cn
 		var on: bool = e["themes"].has(concern)
-		Kit.button(row, ("✓ " if on else "") + "%s (%d)" % [concern.capitalize(), int(own.get(concern, 0))], func(): _toggle_theme(concern))
+		var iss := HotIssues.issue_for(hs, concern)
+		var hot := (" · hot: " + HotIssues.label(iss)) if iss != "" else ""
+		Kit.button(row, ("✓ " if on else "") + "%s (%d)%s" % [concern.capitalize(), int(own.get(concern, 0)), hot], func(): _toggle_theme(concern))
 	# tone & target
 	Kit.label(body, "Tone: %s%s. Going negative hurts the target but costs you with voters who value civility (institution- and stability-minded)." % [
 		String(e["tone"]).to_lower(), (" · target " + _pname(w, e["target"])) if String(e["target"]) != "" else ""], 13)
@@ -162,8 +169,11 @@ func _debate_night(w: WorldState, c: Dictionary, pp: String) -> void:
 			var q: Dictionary = prep["questions"][i]
 			var topic: String = q["topic"]
 			var chosen := String(prep["answers"].get(str(i), ""))
+			var about := topic.capitalize()
+			if String(q.get("issue", "")) != "":
+				about = "%s (%s)" % [HotIssues.label(String(q["issue"])), topic.capitalize()]
 			Kit.label(body, "%d. %s asks about %s. Colony satisfaction %d%%, how much people care %s, your ownership %d%s." % [i + 1,
-				"The moderator" if q["asker"] == "MODERATOR" else "Someone in the audience", topic.capitalize(),
+				"The moderator" if q["asker"] == "MODERATOR" else "Someone in the audience", about,
 				int(cs[0][topic]) / 1000, "high" if int(cs[1][topic]) > 130 else ("low" if int(cs[1][topic]) < 90 else "average"),
 				int(own.get(topic, 0)), " · you govern: it's your record" if members.has(pp) else ""], 13)
 			var row := Kit.hbox(body)

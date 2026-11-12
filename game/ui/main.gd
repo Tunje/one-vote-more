@@ -48,6 +48,7 @@ func _build_ui() -> void:
 	chk_auto.button_pressed = true
 	chk_auto.toggled.connect(func(on): session.set_autoplay(on))
 	bar.add_child(chk_auto)
+	_settings_button(bar)
 	_button(bar, "Save", _on_save)
 	_button(bar, "Load", _on_load)
 	_button(bar, "+12 months", func(): _advance(12))
@@ -128,6 +129,8 @@ func _load_extra_panels() -> void:
 		p.setup(session)
 		extra_panels.append(p)
 		_make_window(p)
+		if p.has_signal("outside_requested"):   # the office window looks out over the colony
+			p.outside_requested.connect(func(): windows[String(p.name)].hide(); _show_planet(false); map.overlay = "TERRAIN"; map.refresh())
 	_build_toolbar()
 
 
@@ -461,3 +464,28 @@ static func _lean_text(v: float) -> String:
 	if v < -15: return "clearly right"
 	if v < -5: return "centre-right"
 	return "centre"
+
+
+
+# ---------------------------------------------------------------- user settings (not in the world)
+
+## ⚙ Settings: the player's own preferences, saved in user://settings.cfg (UserSettings).
+func _settings_button(parent: Node) -> void:
+	var mb := MenuButton.new()
+	mb.text = "⚙ Settings"
+	mb.flat = false
+	var pm := mb.get_popup()
+	pm.add_radio_check_item("Office as tabs", 0)
+	pm.add_radio_check_item("Office as a drawn desk", 1)
+	var sync := func():
+		pm.set_item_checked(0, UserSettings.office_view() == "TABS")
+		pm.set_item_checked(1, UserSettings.office_view() == "OFFICE")
+	sync.call()
+	pm.id_pressed.connect(func(id: int):
+		UserSettings.set_office_view("TABS" if id == 0 else "OFFICE")
+		sync.call()
+		for p in extra_panels:
+			if "at_desk" in p:
+				p.at_desk = true
+		refresh_all())
+	parent.add_child(mb)

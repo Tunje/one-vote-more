@@ -16,6 +16,11 @@ var visited := {}   # tab -> month it was last opened (UI only; dims tabs alread
 var bar: HBoxContainer
 var body: VBoxContainer
 var status: Label
+## Drawn desk view (A44 §O4, Terra): with the setting ui.office_view = OFFICE the panel opens on OfficeDesk; clicking
+## an object shows that tab here, and "◀ Desk" goes back. The window object asks the main screen to show the colony.
+signal outside_requested
+var desk: OfficeDesk
+var at_desk := true
 
 
 func panel_title() -> String:
@@ -25,6 +30,12 @@ func panel_title() -> String:
 func setup(s) -> void:
 	session = s
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
+	desk = OfficeDesk.new()
+	desk.session = s
+	desk.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	desk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	desk.object_clicked.connect(_on_desk)
+	add_child(desk)
 	bar = HBoxContainer.new()
 	add_child(bar)
 	body = Kit.scroll_body(self)
@@ -34,8 +45,17 @@ func refresh() -> void:
 	if session == null or body == null:
 		return
 	var w: WorldState = session.world()
+	var desk_mode := UserSettings.office_view() == "OFFICE"
+	desk.visible = desk_mode and at_desk
+	bar.visible = not desk.visible
+	body.get_parent().visible = not desk.visible
+	if desk.visible:
+		desk.refresh()
+		return
 	for c in bar.get_children():
 		c.queue_free()
+	if desk_mode:
+		Kit.button(bar, "◀ Desk", func(): at_desk = true; refresh())
 	visited[tab] = w.month
 	for t in TABS:
 		var n := _count(w, t)
@@ -269,3 +289,14 @@ func _hire(w: WorldState, iid: String) -> void:
 	if status != null:
 		status.text = "Offer accepted." if r.get("ok", false) else "✗ " + String(r.get("reason", "failed"))
 	get_tree().call_group("pcs_refresh", "refresh_all")
+
+
+
+## A click on the drawn desk: open that tab here (or look out of the window).
+func _on_desk(what: String) -> void:
+	if what == "Outside":
+		outside_requested.emit()
+		return
+	tab = what
+	at_desk = false
+	refresh()
