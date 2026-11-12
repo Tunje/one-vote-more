@@ -340,6 +340,7 @@ static func essentials(world: WorldState) -> Dictionary:
 		units += int(dr.get("units", 0))
 		hhs += int(dr.get("households", 0))
 	out["HOUSING"] = {"units": float(units) / S, "households": float(hhs) / S, "occupancy_pct": int(round(100.0 * hhs / maxf(1.0, units)))}
+	out["SKILLS"] = EconTraining.summary(world)  # E114
 	return out
 
 

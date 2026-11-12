@@ -152,6 +152,20 @@ static func fiscal_room(world: WorldState) -> float:
 
 ## Pick the clauses an actor with position `pos` would propose.
 ## allowed: "COMMANDER" (founding-era ordinances) or "PARLIAMENT".
+const TRAINING_LEVERS := ["ECON_TRAINING_SUBSIDY", "ECON_BUDGET_TRAINING"]
+
+
+## How badly skilled posts go unfilled (0..2): skilled and specialist vacancies beyond the unemployed of that tier
+## (Bob's E114 EconQuery.essentials()["SKILLS"]). A parliament under such a gap sees a case for training money;
+## ideology still decides who backs it.
+static func _skill_gap(world: WorldState) -> float:
+	if not world.table("econ").has("s"):
+		return 0.0
+	var k: Dictionary = EconTraining.summary(world)
+	var gap := maxf(0.0, float(k.get("vacancies_S", 0)) - float(k.get("unemployed_S", 0))) / 20.0 		+ maxf(0.0, float(k.get("vacancies_Sp", 0)) - float(k.get("unemployed_Sp", 0))) / 6.0
+	return clampf(gap, 0.0, 2.0)
+
+
 ## pork (0..1, election year; Ella/Campaign.pork_pressure): crowd-pleasing relief counts more, ideology less.
 ## stats (optional, written by the caller's state): {"guard_blocked": n} clauses the fiscal guard kept out.
 static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Dictionary, agreement: Array, allowed: String, stress: float = 0.0, crisis: bool = false, exclude: Dictionary = {}, pork: float = 0.0, stats: Dictionary = {}) -> Array:
@@ -160,6 +174,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	var room := fiscal_room(world)
 	var step_fraction := CRISIS_STEP_FRACTION if crisis else STEP_FRACTION
 	var mem := _bill_memory(world) if allowed == "PARLIAMENT" else {"defeated": {}, "moved": {}}
+	var skill_gap := _skill_gap(world) if allowed == "PARLIAMENT" else 0.0
 	var ids := world.lever_defs.keys()
 	ids.sort()
 	for lid in ids:
@@ -194,6 +209,8 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			if mem["moved"].has("%s|%d" % [lid, -int(signf(delta))]):
 				continue  # this government moved it the other way recently: no flip-flopping
 			var sc := (1.0 - 0.3 * pork) * ideo_alignment(def, delta, pos) + 3.0 * (1.0 + 0.5 * pork) * relief(def, delta, sat, sal, stress, room, cur)
+			if skill_gap > 0.0 and delta > 0.0 and lid in TRAINING_LEVERS:
+				sc += skill_gap  # E114: firms cannot fill skilled posts; training money and the subsidy go together
 			for a in agreement:
 				if a["lever"] == lid:
 					sc += 6.0 if signf(delta) == a["dir"] else -6.0

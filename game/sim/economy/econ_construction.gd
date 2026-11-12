@@ -121,6 +121,8 @@ static func bid_round(world: WorldState) -> void:
 			for t in EconData.ORGS.get(o["key"], ["", "", 0, 0, 0, 0, 0, 0, {"G": 30}])[8]:
 				base_crew += EconData.ORGS.get(o["key"], ["", "", 0, 0, 0, 0, 0, 0, {"G": 30}])[8][t]
 			var k := maxi(maxi(capacity(world, oid), base_crew * S * 9 / 10), S)
+			if not EconUtil.off(world, "E113") and o["contracts"].any(func(q): return world.table("project")[q]["status"] == "ACTIVE"):
+				k = maxi(capacity(world, oid), S)  # E113: a busy builder is judged by the crew it has, not its founding size
 			var window := maxi(p["min_months"], 12)
 			var load := float(committed(world, oid) + tentative.get(oid, 0) + p["wu_total"]) / float(k * window)
 			var allowance := 1.0 + 0.5 * float(o["ceo"]["risk"]) / 100.0
@@ -139,6 +141,15 @@ static func bid_round(world: WorldState) -> void:
 			var dur := maxi(p["min_months"], int(ceil(est_wu / (0.6 * float(k)))))
 			p["bids"].append({"org": oid, "price": int(cost * (1.0 + margin)), "duration": dur, "reliability": o["reliability"]})
 			tentative[oid] = tentative.get(oid, 0) + p["wu_total"]
+
+
+## E113: does `owner` already have a project of `ftype` in tender or under way?
+static func has_open_project(world: WorldState, owner: String, ftype: String) -> bool:
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["owner"] == owner and p["type"] == ftype and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+			return true
+	return false
 
 
 static func _private_builder_alive(world: WorldState) -> bool:

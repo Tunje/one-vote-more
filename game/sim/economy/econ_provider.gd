@@ -40,6 +40,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 		TickPhase.COMPANY_AI:
 			LawBridge.revalidate(world)
 			FirmAI.run(world)
+			EconTraining.monthly(world)  # E114: on-the-job training into skilled vacancies
 			EconUnions.industrial_action(world)
 			EconPop.realign(world)  # M10: workplaces that changed owner this month relabel their staff's occupation
 			EconPop.sync(world)

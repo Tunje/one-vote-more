@@ -121,6 +121,20 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 			f["low_util_m"] = 0
 
 
+## E112: monthly input requirement of `good` by the org's own running plants at their current targets.
+static func _own_input_need(world: WorldState, oid: String, good: String) -> float:
+	var need := 0.0
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f2: Dictionary = world.table("facility")[fid]
+		if f2["org"] != oid or f2["mothball"]:
+			continue
+		var r2: Dictionary = EconData.RECIPES.get(f2["type"], {})
+		if r2.is_empty() or not r2["in"].has(good):
+			continue
+		need += float(r2["in"][good]) * S * float(f2["T"]) / 1000.0 * EconUtil.fscale(f2) * EconUtil.tier_in(f2)
+	return need
+
+
 static func _producer_target(world: WorldState, f: Dictionary, o: Dictionary, good: String) -> float:
 	var caps := _org_outputs(world, f["org"])
 	var cap: float = float(caps.get(good, 1))
@@ -132,6 +146,10 @@ static func _producer_target(world: WorldState, f: Dictionary, o: Dictionary, go
 		all_cap += float(_org_outputs(world, oid2).get(good, 0))
 	var wanted_share := float(ms.get("wanted", 0)) * cap / maxf(1.0, all_cap)
 	ema = maxf(ema, 0.5 * (ema + wanted_share))
+	# E112: inputs the firm's own downstream plants draw internally (E93 pooling) are not market sales — without
+	# this, CPW's mines saw no demand while its own smelters starved (mines at the 20% floor, materials at 10×).
+	if not EconUtil.off(world, "E112"):
+		ema += _own_input_need(world, f["org"], good)
 	var sigma := 0.20 * (1.0 - float(o["ceo"]["mgmt"]) / 100.0)
 	var expected := ema * (1.0 + EconUtil.normal(world, "comp.forecast", sigma))
 	# if everything offered was sold, demand was rationed: aim for capacity
@@ -369,6 +387,8 @@ static func _investment(world: WorldState) -> void:
 			var good: String = EconData.RECIPES[ftype]["out"][0]
 			if not all_high or float(s["prices"][good]) < 1.10 * unit_cost(world, ftype):
 				continue
+			if not EconUtil.off(world, "E113") and EconConstruction.has_open_project(world, oid, ftype):
+				continue  # E113: one open project per owner and plant type
 			var est := EconConstruction.estimate(ftype)
 			var cash := world.ledger.balance(EconUtil.acct(oid))
 			if cash < est * 3 / 10:
