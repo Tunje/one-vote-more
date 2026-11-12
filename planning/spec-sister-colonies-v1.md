@@ -26,6 +26,10 @@ Order: after A47. Integer state; deterministic from seed and expedition choices;
   may carry its own orders faster.
 - **Trade** suits durable, valuable goods (minerals, fine goods, preserved food), not perishables; the light model
   carries cargo in transit (goods leave stock on departure and arrive months later).
+- **The home world is the farthest point** (user): the 18–30 months between home-world ships IS the voyage. Everything
+  from the home world (orders, answers, sanctions, news) is as old as the voyage, and the home world reacts to the
+  colony as the previous ship reported it, not to this month's state (Wilma: HomeWorld reacts to the snapshot taken
+  when the last ship left). Sisters at 8–12 months are nearer than home; routes can call at several colonies.
 - Routes: a ship's route through several colonies takes the sum of legs; colonies on short legs trade and talk more
   — distance shapes alliances.
 
