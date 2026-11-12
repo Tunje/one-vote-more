@@ -362,6 +362,36 @@ static func check_change(world: WorldState, lever: String, value, level: String)
 	return errs
 
 
+## A constitutional amendment (CONSTITUTIONAL-level levers, e.g. LAW_PERSONAL_MANDATE): needs the constitution in
+## force and 2/3 of the Assembly (AMEND_SEATS of PROCEDURES.parliament_seats) voting yes. Politics runs the vote and
+## calls this; the change takes effect at once. PUBLIC LAW_CONSTITUTION_AMENDED, or LAW_AMENDMENT_FAILED.
+static func amend_constitution(world: WorldState, lever: String, value, yes_seats: int) -> Dictionary:
+	var def: Dictionary = world.lever_defs.get(lever, {})
+	if def.is_empty() or String(def.get("legalLevel", "")) != "CONSTITUTIONAL":
+		return {"ok": false, "reason": "not a constitutional lever"}
+	if not state(world)["constitution"]:
+		return {"ok": false, "reason": "there is no constitution to amend yet"}
+	var r: Array = def.get("range", [0, 1])
+	if String(def["type"]) == "NUMBER" and (float(value) < float(r[0]) or float(value) > float(r[1])):
+		return {"ok": false, "reason": "value outside lever range"}
+	var needed := amend_seats()
+	var parl := {"kind": "PARLIAMENT", "id": "parliament"}
+	var from = world.levers.get(lever, def.get("default"))
+	if yes_seats < needed:
+		law_fact(world, "LAW_AMENDMENT_FAILED", "PUBLIC", [parl], [], {}, 45,
+			{"lever": lever, "value": value, "from": from, "yes": yes_seats, "needed": needed})
+		return {"ok": false, "reason": "needs a 2/3 vote of the Assembly (%d of %d seats)" % [needed, int(L.PROCEDURES["parliament_seats"])]}
+	world.levers[lever] = value
+	law_fact(world, "LAW_CONSTITUTION_AMENDED", "PUBLIC", [parl], [{"actor": parl, "share": 1.0}], {}, 70,
+		{"lever": lever, "value": value, "from": from, "yes": yes_seats, "needed": needed})
+	return {"ok": true, "reason": ""}
+
+
+## Seats needed to amend the constitution: 2/3 of the Assembly, rounded up (101 of 151).
+static func amend_seats() -> int:
+	return int(ceil(float(L.PROCEDURES["parliament_seats"]) * 2.0 / 3.0 - 0.0001))
+
+
 static func _delegated(world: WorldState, lever: String, value, level: String) -> bool:
 	if level != "REGULATION":
 		return false

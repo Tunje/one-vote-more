@@ -901,8 +901,8 @@ static func process_recruitment(world: WorldState) -> void:
 	var recs := world.table("recruitment")
 	for rid in Det.ordered(recs):
 		var rec: Dictionary = recs[rid]
-		if rec["status"] != "OPEN":
-			continue
+		if rec["status"] != "OPEN" or String(rec.get("kind", "CIVIL")) != "CIVIL":
+			continue      # party recruitment drives (A51 B1) are sim/staff/bench.gd's
 		if rec["picked"] < 0 and autopilot(world, GOV):
 			pick_candidate(world, rid, _best_candidate(rec))
 		if rec["picked"] >= 0 and world.month >= int(rec["hire_month"]):

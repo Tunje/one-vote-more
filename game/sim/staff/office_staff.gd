@@ -609,6 +609,10 @@ static func hire_from_interview(world: WorldState, iid: String) -> Dictionary:
 	var iv: Dictionary = world.table("interview").get(iid, {})
 	if iv.is_empty():
 		return {"ok": false, "reason": "no such interview"}
+	if String(world.table("recruitment").get(String(iv["recruitment"]), {}).get("kind", "CIVIL")) == "PARTY":
+		var cand0: Dictionary = world.table("recruitment")[iv["recruitment"]]["shortlist"][int(iv["idx"])]
+		cand0["known"] = iv["hr_note"].duplicate(true)
+		return load("res://sim/staff/bench.gd").pick(world, String(iv["recruitment"]), int(iv["idx"]))   # A51: onto the bench
 	var r := Ops.pick_candidate(world, String(iv["recruitment"]), int(iv["idx"]))
 	if r.get("ok", false):
 		var cand: Dictionary = world.table("recruitment")[iv["recruitment"]]["shortlist"][int(iv["idx"])]

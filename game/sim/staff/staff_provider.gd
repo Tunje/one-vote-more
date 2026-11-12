@@ -3,6 +3,7 @@ extends PicProvider
 
 const Ops := preload("res://sim/staff/staff_ops.gd")
 const OfficeStaff := preload("res://sim/staff/office_staff.gd")
+const Bench := preload("res://sim/staff/bench.gd")
 
 
 func owner_id() -> String:
@@ -51,6 +52,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			preload("res://sim/staff/traffic_reports.gd").start_studies(world)
 			OfficeStaff.fill_roles(world)
 			OfficeStaff.resolve_references(world)
+			Bench.ai_recruit(world)
 			_auto_staff_all(world)
 		TickPhase.STAFF:
 			Ops.state(world)["flags"] = {}
@@ -67,6 +69,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			Ops.sync_politics(world)
 			OfficeStaff.run_delegation(world)
 			OfficeStaff.check_buried(world)
+			Bench.monthly(world)        # A51 B2: ambitions, grievances, challenges, defections, leaks, retirements
 		TickPhase.RECORD:
 			Ops.make_reports(world)
 			if not Ops.autopilot(world, Ops.GOV):

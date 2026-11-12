@@ -523,6 +523,15 @@ const LEVERS := [
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"SOVEREIGNTY": -8, "REDISTRIBUTION": -4, "ECON_ROLE": -3},
 		"concerns": {"FAIRNESS": -6, "COLONIAL_BURDEN": -5, "JOBS": 3},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# A51 B2 (sim/staff/bench.gd), user decision: 1 = the FREE MANDATE (a defecting member keeps their Assembly seat,
+	# as an independent or in the party they join, until the next election), 0 = anti-defection (the seat stays with
+	# the party and is refilled from its list). CONSTITUTIONAL: only LawOps.amend_constitution (2/3 of the Assembly,
+	# 101 of 151) changes it. Civil-liberty and local-autonomy minds defend the free mandate; order and discipline
+	# (INSTITUTIONS −) want it gone. Stability (GOVERNANCE) against the members' freedom (FAIRNESS).
+	{"id": "LAW_PERSONAL_MANDATE", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 1], "default": 1,
+		"legalLevel": "CONSTITUTIONAL", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": 6, "AUTONOMY": 5},
+		"concerns": {"GOVERNANCE": -5, "FAIRNESS": 6},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ADMIN"},
 	# ---- A45 W6 waste law (planning/spec-waste-v1.md W6). Read through sim/law/waste_law.gd. NUMBER, drafted by AI.
 	# Waste standard: disposal-rule strictness, 0 = anything goes (cheap, dirty) .. 100 = lined, sealed, monitored.
 	# Sets the environmental inspection rate and dumping fines (DISCHARGE_WASTE) and Bob's disposal cost/pollution.

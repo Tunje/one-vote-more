@@ -199,7 +199,7 @@ static func recruitments(world: WorldState) -> Array:
 	var out: Array = []
 	for rid in Det.ordered(world.table("recruitment")):
 		var r: Dictionary = world.table("recruitment")[rid]
-		if r["status"] == "OPEN":
+		if r["status"] == "OPEN" and String(r.get("kind", "CIVIL")) == "CIVIL":
 			out.append({"id": rid, "spec": r["spec"], "opened_month": r["opened_month"], "picked": r["picked"],
 				"hire_month": r["hire_month"], "shortlist": r["shortlist"].map(func(p): return {"name": p["name"],
 				"skills": p["skills"].duplicate(), "talents": p["talents"].duplicate(), "work_speed": p["work_speed"],
