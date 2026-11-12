@@ -17,7 +17,7 @@ static func outlets(world: WorldState, include_closed: bool = false) -> Array:
 
 
 ## One paper's edition: {outlet, month, circulation, stories: [{report, fact, kind, rank, head_actor, angle, slant,
-## gov_share, corrected}]}. The truth class is hidden (companies §15.5); `exposed` marks reports shown false later.
+## gov_share, corrected, exposed, also}]}. `also`: more facts of the same type grouped under this story. The truth class is hidden (companies §15.5); `exposed` marks reports shown false later.
 static func edition(world: WorldState, out_id: String, month: int) -> Dictionary:
 	var ed: Dictionary = world.peek("edition").get("%s|%d" % [out_id, month], {})
 	if ed.is_empty():
@@ -31,7 +31,8 @@ static func edition(world: WorldState, out_id: String, month: int) -> Dictionary
 		stories.append({"report": rid, "fact": r["fact"], "kind": r["kind"], "rank": int(r["rank"]),
 			"head_actor": fr.get("blame_actor", {}).duplicate(), "angle": fr.get("angle", "NEUTRAL"),
 			"slant": float(fr.get("slant", 0.0)), "gov_share": float(fr.get("gov_share", 0.0)),
-			"corrected": String(r.get("corrected_by", "")) != "", "exposed": bool(r.get("exposed", false))})
+			"corrected": String(r.get("corrected_by", "")) != "", "exposed": bool(r.get("exposed", false)),
+			"also": r.get("also", []).duplicate()})
 	var o: Dictionary = world.peek("outlet").get(out_id, {})
 	return {"outlet": out_id, "name": o.get("name", out_id), "owner": o.get("owner", {}).duplicate(), "month": month,
 		"circulation": int(ed.get("circulation", 0)), "stories": stories}

@@ -266,16 +266,33 @@ static func _cluster(keys: Array, start: String) -> Array:
 
 
 static func _name(world: WorldState, tile: Vector2i, kind: String) -> String:
-	var base := "Landing"
-	var near := nearest_area(world, tile)
-	if near != "":
-		base = String(get_area(world, near)["name"]).get_slice(" ", 0)
-	var terr := Terrain.at(world, tile.x, tile.y)
-	var r := world.rng.stream("map.names")
-	match kind:
-		"CAMP": return "%s Camp" % ("Ore" if terr in ["h", "k", "o"] else base)
-		"VILLAGE": return "%s Village" % ("River" if terr in ["f", "r"] else base)
-		"ENCLAVE": return "%s %s" % [base, ["Heights", "Park", "Ridge"][r.randi_range(0, 2)]]
 	if world.peek("area").is_empty():
 		return "Landing"
-	return "%s %s" % [base, NAME_PARTS[r.randi_range(0, NAME_PARTS.size() - 1)]]
+	var terr := Terrain.at(world, tile.x, tile.y)
+	var r := world.rng.stream("map.names")
+	# compass direction from the landing site gives every place its own name
+	var l := Terrain.landing(world)
+	var d := Vector2(tile - l)
+	var dir := ""
+	if d.length() >= 4.0:
+		dir = ["East", "Southeast", "South", "Southwest", "West", "Northwest", "North", "Northeast"][int(round(fposmod(atan2(d.y, d.x), TAU) / (TAU / 8.0))) % 8]
+	var feature := "River" if terr in ["f", "r"] else ("Ridge" if terr in ["h", "k"] else ("Ore" if terr in ["o", "x"] else ""))
+	var base := ""
+	match kind:
+		"CAMP": base = "%s Camp" % (feature if feature != "" else (dir if dir != "" else "Landing"))
+		"VILLAGE": base = "%s Village" % (feature if feature != "" else (dir if dir != "" else "Landing"))
+		"ENCLAVE": base = "%s %s" % [dir if dir != "" else "Landing", ["Heights", "Park", "Gardens"][r.randi_range(0, 2)]]
+		_: base = "%s %s" % [dir if dir != "" else "Landing", NAME_PARTS[r.randi_range(0, NAME_PARTS.size() - 1)]]
+	var taken := {}
+	for a in world.peek("area").values():
+		taken[String(a["name"])] = true
+	if not taken.has(base):
+		return base
+	var n := 2
+	while taken.has("%s %s" % [base, _roman(n)]):
+		n += 1
+	return "%s %s" % [base, _roman(n)]
+
+
+static func _roman(n: int) -> String:
+	return ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"][n] if n <= 10 else str(n)

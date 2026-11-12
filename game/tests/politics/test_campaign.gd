@@ -129,6 +129,17 @@ func test_voter_utility_combines_segment_momentum_and_backfire_with_cap() -> voi
 	check(Campaign.voter_utility({}, v).is_empty(), "no campaign, no effect")
 
 
+func test_media_tilt_scales_good_news_not_backfire() -> void:
+	var parties := {"p1": {"persuasion": {"d1|INDUSTRY": 200}, "momentum": 0, "backfire": {"*": -100}, "mob": 0},
+		"p2": {"persuasion": {"d1|INDUSTRY": -200}, "momentum": 0, "backfire": {}, "mob": 0}}
+	var v := {"district": "d1", "vocc": "INDUSTRY", "cohort": "LABOR"}
+	var plain := Campaign.voter_utility({"parties": parties, "tilt": {}}, v)
+	var tilted := Campaign.voter_utility({"parties": parties, "tilt": {"d1": {"p1": 1.3, "p2": 0.7}}}, v)
+	check(absf(float(plain["p1"]) - 0.1) < 0.0001, "untilted: 200-100")
+	check(absf(float(tilted["p1"]) - 0.16) < 0.0001, "friendly papers amplify good news only: 260-100 (%s)" % str(tilted))
+	check(absf(float(tilted["p2"]) - float(plain["p2"])) < 0.0001, "bad news is not dampened or amplified")
+
+
 func test_opposition_research_finds_secret_donations_first() -> void:
 	var sim := _sim()
 	var w := sim.world

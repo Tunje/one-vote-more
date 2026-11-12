@@ -397,8 +397,8 @@ static func _edition(world: WorldState, o: Dictionary, cands: Array, rng: Random
 	var by_score := func(a, b): return a["score"] > b["score"] or (a["score"] == b["score"] and String(a["f"]["id"]) < String(b["f"]["id"]))
 	scored.sort_custom(by_score)
 	bench.sort_custom(by_score)
-	var picked: Array = scored.slice(0, k)
-	var neutral: Array = bench.slice(0, k)
+	var picked := _top_by_type(scored, k)
+	var neutral := _top_by_type(bench, k)
 	var reps: Array = []
 	var agg := {"blame": {}, "bias": {}, "agenda": {}}
 	for i in picked.size():
@@ -406,7 +406,7 @@ static func _edition(world: WorldState, o: Dictionary, cands: Array, rng: Random
 		var fr := frame(world, o, f, float(picked[i]["stance"]), rng, cache)
 		var rid := world.new_id("rep")
 		world.table("report")[rid] = {"id": rid, "outlet": o["id"], "month": world.month, "fact": f["id"], "kind": "NEWS",
-			"rank": i + 1, "frame": fr, "truth": fr["truth"], "corrected_by": ""}
+			"rank": i + 1, "frame": fr, "truth": fr["truth"], "corrected_by": "", "also": picked[i]["also"]}
 		reps.append(rid)
 		for c in f["impact"]:
 			var imp := float(f["impact"][c])
@@ -423,6 +423,24 @@ static func _edition(world: WorldState, o: Dictionary, cands: Array, rng: Random
 	o["agg"] = agg
 	world.table("edition")["%s|%d" % [o["id"], world.month]] = {"outlet": o["id"], "month": world.month, "reports": reps,
 		"circulation": int(o.get("circulation", 0))}
+
+
+## The best k stories, one per fact type: repeats of a type are grouped under its best story ("also").
+static func _top_by_type(sorted: Array, k: int) -> Array:
+	var out: Array = []
+	var at := {}
+	for x in sorted:
+		var t: String = x["f"]["type"]
+		if at.has(t):
+			out[at[t]]["also"].append(x["f"]["id"])
+			continue
+		if out.size() >= k:
+			continue
+		var y: Dictionary = x.duplicate()
+		y["also"] = []
+		at[t] = out.size()
+		out.append(y)
+	return out
 
 
 ## Frame for one printed fact: {truth, gov_share, amp, blame: [{actor, share}], blame_actor, angle}. Never edits f.
@@ -479,6 +497,9 @@ static func frame(world: WorldState, o: Dictionary, f: Dictionary, st: float, rn
 ## Per party: -1 (hostile paper) .. +1 (friendly). Read by campaign_tilt.
 static func _party_tilt(world: WorldState, o: Dictionary) -> void:
 	var t := {}
+	if neutral_public(world, o):
+		o["party_tilt"] = t
+		return
 	for pid in Det.ordered(world.peek("party")):
 		var p: Dictionary = world.peek("party")[pid]
 		if String(p.get("status", "ACTIVE")) != "ACTIVE":

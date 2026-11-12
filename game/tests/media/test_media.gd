@@ -87,7 +87,7 @@ func test_owner_buries_its_own_accident() -> void:
 	w.table("outlet")[gz]["quality"] = 0
 	var acc := _fact(w, "COMP_WORKPLACE_ACCIDENT", 55, [{"actor": {"kind": "COMPANY", "id": "org:1"}, "share": 1.0}])
 	for i in 5:
-		_fact(w, "ECON_SHIP_ARRIVED", 45)
+		_fact(w, "ECON_FILLER_%d" % i, 45)
 	Media.run(w)
 	check(not (acc in _picked(w, co)), "the company paper buries its owner's accident")
 	check(acc in _picked(w, gz), "the state paper runs it")
@@ -231,3 +231,16 @@ func test_owner_rules() -> void:
 	Media.on_insolvent(w, id)
 	check_eq(MediaQuery.outlets(w).size(), 0, "an insolvent paper closes")
 	check(not w.facts.query("MEDIA_OUTLET_CLOSED").is_empty(), "public closure fact")
+
+
+func test_repeats_are_grouped_under_one_story() -> void:
+	var w := _world()
+	Media.ensure_founding(w)
+	var a := _fact(w, "ECON_CONTRACT_DELAYED", 100)
+	var b := _fact(w, "ECON_CONTRACT_DELAYED", 90)
+	var c := _fact(w, "ECON_CONTRACT_DELAYED", 80)
+	Media.run(w)
+	var ed := MediaQuery.edition(w, _gazette(w), w.month)
+	var st: Array = ed["stories"].filter(func(s): return s["fact"] in [a, b, c])
+	check_eq(st.size(), 1, "one story for three delays")
+	check(st[0]["fact"] == a and st[0]["also"] == [b, c], "the biggest leads, the rest are grouped (%s)" % [st])

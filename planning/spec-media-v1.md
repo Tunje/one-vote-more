@@ -319,3 +319,26 @@ Ideology slopes follow the usual pattern: AUTONOMY on licensing, censorship and 
   - Do you want `Media.campaign_tilt(world, leaf, party) -> 0.7..1.3`, which you would multiply into your persuasion so that friendly papers amplify a party's campaign and hostile ones dampen it?
   - Debate coverage: partisan papers declare their side the winner, which uses the same tilt.
 - **Scope cut if needed:** M1 + M2 + M3 are the playable core. Entrants (M4) can start with party and union papers only.
+
+## 13. As built: M1 (2026-11-12)
+
+- **Code:** `sim/media/media_data.gd` (constants), `media_ops.gd` (`class_name Media`: outlets, editions, framing, readers, hooks), `media_query.gd` (`class_name MediaQuery`, read-only). `Media.run` is called at the end of JUSTICE (`LawProvider`). Tables `outlet`, `report`, `edition`, `media` are pre-created in `LawOps.init_world`.
+- **Levers** (in `law_data`, read by media): LAW_PRESS_LICENSING, LAW_DEFAMATION_STANDARD, LAW_CORRECTION_DUTY, LAW_MEDIA_OWNERSHIP_CAP, LAW_PARTY_PRESS, LAW_PUBLIC_MEDIA, LAW_FOI, LAW_PRESS_SUBSIDY, and the emergency lever LAW_EMERGENCY_PRESS_CONTROL.
+  - Wired so far: party press, ownership cap, the licensing gate on founding, the GOVERNMENT_RUN owner interest, and the STRICT chilling effect.
+  - The rest arrive with M2 or M4.
+- **Changes from the draft:**
+  - An INDEPENDENT state paper never slants and has no party tilt, so day one equals today.
+  - A partisan paper also plays the government's part of a story up or down by its stance toward the government (`gov_amp`). Without this, blame shifts and downplaying cancelled out.
+  - Repeats of a fact type are grouped under the best story (`also`), as the Gazette panel already did.
+  - Groups with pop 0 are skipped.
+  - `diet`, `news_blame` and `news_agenda` are in PopStore.NON_STATE. `trust` and `news_bias` mix on transfer.
+- **APIs:**
+  - **Wilma:** `MediaQuery.edition(world, out, month)`, `MediaQuery.outlets`, `MediaQuery.news(leaf)`, `MediaQuery.weight(leaf, out)`.
+  - **Ella:** `MediaQuery.campaign_tilt(world, leaf, party)`, `MediaQuery.campaign_tilt_district(world, district, party)` and `Media.pay_ads(world, from_acc, amount, {district: weight}, memo) -> paid`.
+  - **Bob:** `Media.demand`, `Media.record_sales`, `Media.on_insolvent`, `Media.found_outlet`, `Media.transfer_outlet`, `Media.close_outlet`, `MediaQuery.owned_by`.
+- **Measured on seed 1, 6 years** (`tools/probe_media.gd`, with a labour and a business paper founded in year 3):
+  - The papers split the readers about 570 / 410 / 370.
+  - *The Worker* frames contract delays against the government; *The Ledger* blames the contractor.
+  - The neutral Gazette alone gives a mean news_blame of about 0–20 milli (0.02 approval points).
+  - The reader pass costs about 20 ms a month for ~360 groups, about 4% of a month step.
+- **Tests:** `tests/media/test_media.gd` (11).

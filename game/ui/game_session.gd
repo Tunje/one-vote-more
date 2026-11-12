@@ -78,7 +78,9 @@ func next_election_month() -> int:
 func district_politics() -> Dictionary:
 	var out := {}
 	for c in PolVoters.all(sim.world):
-		var d: String = c["district"]
+		var d := String(c.get("district", ""))
+		if d == "":
+			continue  # a new game's people get their voter fields at the first politics phase
 		if not out.has(d):
 			out[d] = {"pop": 0.0, "approval": 0.0, "lean": 0.0}
 		var p := float(c["pop"])

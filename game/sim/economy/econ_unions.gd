@@ -348,7 +348,8 @@ static func donation_offers(world: WorldState) -> void:
 		var o: Dictionary = world.table("org")[oid]
 		if not (o["type"] in ["PRIVATE", "COOPERATIVE"]) or o["status"] != "ACTIVE":
 			continue
-		var profit := EconFinance.profit(o["pl"])
+		var pl_m: Dictionary = o["pl_last"] if not o.get("pl_last", {}).is_empty() else o["pl"]  # last closed month (the current one is still being booked)
+		var profit := EconFinance.profit(pl_m)
 		if profit <= 0:
 			continue
 		var exp := exposure(world, oid)

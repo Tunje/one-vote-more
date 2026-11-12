@@ -148,7 +148,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	_decay(c)
 	if to_go == SHORT_CAMPAIGN or (bool(c["extra"]) and to_go == WINDOW_EXTRA):
 		_replan_tone(world, st, c)
-	var spend := _spend(world, c, to_go)
+	var spend := _spend(world, c, to_go, seg)
 	_ads(world, c, seg, spend)
 	_ground(world, c, spend)
 	_themes(world, st, c, spend)
@@ -364,7 +364,7 @@ static func quality(world: WorldState, st: Dictionary, p: Dictionary) -> int:
 # ======================================================================= money
 
 ## Spending this month per party {pid: {ad, ground, oppo}} (milli-credits), paid to households (closed economy).
-static func _spend(world: WorldState, c: Dictionary, to_go: int) -> Dictionary:
+static func _spend(world: WorldState, c: Dictionary, to_go: int, seg: Dictionary = {}) -> Dictionary:
 	var rate := SPEND_SHORT if (to_go <= SHORT_CAMPAIGN or bool(c["extra"])) else SPEND_LONG
 	var out := {}
 	for pid in Det.ordered(c["parties"]):
@@ -379,13 +379,28 @@ static func _spend(world: WorldState, c: Dictionary, to_go: int) -> Dictionary:
 		var oppo := amt * int(e["split"]["oppo"]) / 1000 if to_go >= 1 else 0
 		var ground := amt * int(e["split"]["ground"]) / 1000
 		var ad := amt - oppo - ground
-		if amt > 0:
-			PartyLife._household_receive(world, acc, amt, "CAMPAIGN")
+		if ad > 0 and not seg.is_empty():
+			# ads are bought from the papers read where the party targets (Anni's media; the rest reaches households)
+			Media.pay_ads(world, acc, ad, _district_weights(c, p, seg), "CAMPAIGN_ADS")
+		elif ad > 0:
+			PartyLife._household_receive(world, acc, ad, "CAMPAIGN")
+		if ground + oppo > 0:
+			PartyLife._household_receive(world, acc, ground + oppo, "CAMPAIGN")   # canvassers, huts, researchers
 		e["spent"] = int(e["spent"]) + amt
 		e["ad"] = int(e["ad"]) + ad
 		e["ground"] = int(e["ground"]) + ground
 		e["oppo"] = int(e["oppo"]) + oppo
 		out[pid] = {"ad": ad, "ground": ground, "oppo": oppo}
+	return out
+
+
+## {district: weight}: where the party's ads go (targeting weight × segment population).
+static func _district_weights(c: Dictionary, p: Dictionary, seg: Dictionary) -> Dictionary:
+	var w := _targeting(c, p, seg)
+	var out := {}
+	for k in w:
+		var d := String(k).get_slice("|", 0)
+		out[d] = float(out.get(d, 0.0)) + float(w[k]) * float(seg[k]["pop"])
 	return out
 
 
@@ -1053,7 +1068,20 @@ static func vote_cache(world: WorldState) -> Dictionary:
 	var c := current(world)
 	if c.is_empty():
 		return {}
-	return c
+	# media tilt per district (Anni's MediaQuery, read-only, precomputed monthly): friendly papers amplify a
+	# party's good campaign news, hostile ones dampen it
+	var tilt := {}
+	for v in PolVoters.all(world):
+		var d := String(v.get("district", ""))
+		if tilt.has(d):
+			continue
+		var row := {}
+		for pid in c["parties"]:
+			var t := MediaQuery.campaign_tilt_district(world, d, pid)
+			if t != 1.0:
+				row[pid] = t
+		tilt[d] = row
+	return {"parties": c["parties"], "tilt": tilt}
 
 
 ## {party_id: utility} for one voter (persuasion in the voter's segment + momentum + civility backfire), capped.
@@ -1066,6 +1094,8 @@ static func voter_utility(cache: Dictionary, v: Dictionary) -> Dictionary:
 	for pid in cache["parties"]:
 		var e: Dictionary = cache["parties"][pid]
 		var u := int(e["persuasion"].get(k, 0)) + int(e["momentum"])
+		if u > 0:
+			u = int(round(float(u) * float(cache.get("tilt", {}).get(String(v.get("district", "")), {}).get(pid, 1.0))))
 		u += int(e["backfire"].get(co, e["backfire"].get("*", 0)))
 		if u != 0:
 			out[pid] = float(clampi(u, -CAMPAIGN_U_CAP, CAMPAIGN_U_CAP)) / 1000.0
