@@ -27,3 +27,4 @@
    - Ad spend routed to outlets.
    - Firm AI founds, sells or closes papers through Anni's `found_outlet` / `transfer_outlet` / `close_outlet`.
 10. **Population follow-ups (Wilma's notes, M12(2))**: ship volume driven by home-world demand for colonial goods and by colony attractiveness (wages, housing, food); emigration when the colony can't feed or house people.
+11. **Policy fork harness** (Wilma, 2026-11-13): run a seed to month M, save, continue the same world N years with a lever forced on/off; the difference isolates the policy (6-seed A/Bs diverge politically and swamp 3–5 point effects — E117 A/B). Reusable for any lever.

@@ -42,6 +42,8 @@ static func validate(world: WorldState, id: String, p: Dictionary) -> String:
 	match id:
 		"ECON_OFFER_INCENTIVE":
 			return EconEssentials.validate_offer(world, p)
+		"ECON_ANSWER_UNION_DEMAND":
+			return UnionDisputes.validate_answer(world, p)  # U2: the government (player) answers a public-sector demand
 		"ECON_UPGRADE_FACILITY":
 			var fid: String = p.get("facility", "")
 			if not world.peek("facility").has(fid):
@@ -154,6 +156,8 @@ static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 	match id:
 		"ECON_OFFER_INCENTIVE":
 			return EconEssentials.apply_offer(world, p)
+		"ECON_ANSWER_UNION_DEMAND":
+			return UnionDisputes.apply_answer(world, p)
 		"ECON_UPGRADE_FACILITY":
 			EconConstruction.create_upgrade(world, p["facility"], "gov", p.get("line", "ECON_BUDGET_INFRASTRUCTURE"))
 			return true

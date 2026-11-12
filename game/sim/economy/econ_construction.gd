@@ -76,7 +76,10 @@ static func estimate(ftype: String) -> int:
 ## Contractor monthly capacity in WU (mu).
 static func capacity(world: WorldState, oid: String) -> int:
 	var o: Dictionary = world.table("org")[oid]
-	return int(float(EconLabor.staff_total(o["crew"])) * (0.9 + 0.002 * float(o["ceo"]["mgmt"])))
+	var cap := int(float(EconLabor.staff_total(o["crew"])) * (0.9 + 0.002 * float(o["ceo"]["mgmt"])))
+	if int(o.get("stop_until", -1)) >= world.month:  # U2: a builders' strike or lockout (the crew works at the stoppage rate)
+		cap = int(float(cap) * (EconUnions.LOCKOUT_WORK if o.get("stop_kind", "") == "LOCKOUT" else EconUnions.STRIKE_WORK))
+	return cap
 
 
 static func committed(world: WorldState, oid: String) -> int:

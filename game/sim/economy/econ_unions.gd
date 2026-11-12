@@ -194,6 +194,7 @@ static func industrial_action(world: WorldState) -> void:
 		var oid: String = k.split("|")[0]
 		laid[oid] = laid.get(oid, 0) + int(layoffs[k])
 	var started := 0
+	var u2 := not EconUtil.off(world, "UNIONS_U2") and not EconUtil.off(world, "UNIONS_U1")
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		var o: Dictionary = world.table("org")[oid]
 		o["union_pm"] = maxi(0, int(o.get("union_pm", 0)) - UNION_PM_DECAY)
@@ -216,6 +217,8 @@ static func industrial_action(world: WorldState) -> void:
 			continue
 		if world.month - int(un["last_strike"].get(oid, -99)) < 12:
 			continue  # a workforce does not strike twice within a year
+		if u2:
+			continue  # U2 (A41): strikes follow from failed talks (UnionDisputes), not a random roll
 		# ---- strike decision: the org's dominant occupation sets density and grievances ----
 		var occ := _dominant(occ_n)
 		if not BASE_DENSITY.has(occ):
@@ -238,6 +241,7 @@ static func industrial_action(world: WorldState) -> void:
 		elif g_lay >= g_wage:
 			cause = "LAYOFFS"
 		_strike(world, oid, wf, occ, staff, cause, rng)
+	UnionDisputes.monthly(world)  # U2: demands, talks, strikes (replaces the random roll above)
 
 
 static func _dominant(occ_n: Dictionary) -> String:
@@ -317,6 +321,8 @@ static func work_factor(world: WorldState, f: Dictionary) -> float:
 		return 1.0
 	if f.get("stop_min", false):
 		return maxf(STRIKE_WORK, MIN_SERVICE_SHARE)  # LAW_ESSENTIAL_SERVICES = MIN_SERVICE
+	if f.get("stop_kind", "") == "GENERAL":
+		return UnionDisputes.GENERAL_WORK  # U2: a one-month general strike, all sectors partial
 	return LOCKOUT_WORK if f.get("stop_kind", "") == "LOCKOUT" else STRIKE_WORK
 
 
