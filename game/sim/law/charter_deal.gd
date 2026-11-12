@@ -36,6 +36,7 @@ const AUTONOMY_PER_HOME := -50
 const AUTONOMY_STATUS_AT := 60       # autonomy ≥ this: the colony starts in AUTONOMY (softer charter)
 const PRIVILEGE_PM := 150            # an investor with ≥ 15% of the money gets a privilege in its sector …
 const COUNCIL_SEAT_PM := 250         # … and ≥ 25% a seat on the colony council
+const PRIVILEGE_LICENCE_SURCHARGE_PCT := 25   # Bob: a rival entering a privileged sector pays this much more licence
 
 
 ## Shares in ‰ of the charter-relevant money (HOME_GOV + INVESTORS + COLONISTS). All-zero: the reference.
@@ -108,10 +109,15 @@ static func deal(world: WorldState) -> Dictionary:
 	return world.peek("law_state").get("s", {}).get("sovereignty", {}).get("deal", {})
 
 
-## The investor holding a charter privilege in this sector ("" if none). While the charter binds, Bob's licensing
-## of a rival in that sector may refuse or charge it (his call); after independence privileges lapse.
+## Privileges and seats stand while the charter binds and parliament keeps them (LAW_INVESTOR_PRIVILEGES = 1).
+static func privileges_active(world: WorldState) -> bool:
+	return CO.is_colonial(world) and int(world.levers.get("LAW_INVESTOR_PRIVILEGES", 1)) != 0
+
+
+## The investor holding a charter privilege in this sector ("" if none). Bob: its company gets first refusal on new
+## plants (state concessions) in the sector, rivals entering it pay PRIVILEGE_LICENCE_SURCHARGE_PCT more licence.
 static func privilege_holder(world: WorldState, sector: String) -> String:
-	if not CO.is_colonial(world):
+	if not privileges_active(world):
 		return ""
 	for p in deal(world).get("privileges", []):
 		if String(p.get("sector", "")) == sector:
@@ -119,8 +125,39 @@ static func privilege_holder(world: WorldState, sector: String) -> String:
 	return ""
 
 
+## Investors consulted on bills touching their sector (Wilma's office); [] once abolished or independent.
 static func council_seats(world: WorldState) -> Array:
-	return deal(world).get("council_seats", []) if CO.is_colonial(world) else []
+	return deal(world).get("council_seats", []) if privileges_active(world) else []
+
+
+## DECISIONS (after the pipeline): the month parliament abolishes the privileges, a PUBLIC fact names the investors
+## who lose them and whether the home world backed the expedition (home share ≥ the reference). Restoring the law
+## re-arms it.
+static func check_revocation(world: WorldState) -> void:
+	var d := deal(world)
+	if d.is_empty() or (d.get("privileges", []).is_empty() and d.get("council_seats", []).is_empty()):
+		return
+	var abolished := int(world.levers.get("LAW_INVESTOR_PRIVILEGES", 1)) == 0
+	if not abolished:
+		d["revoked_month"] = -1
+		return
+	if int(d.get("revoked_month", -1)) >= 0 or not CO.is_colonial(world):
+		return
+	d["revoked_month"] = world.month
+	var inv := {}
+	for p in d.get("privileges", []):
+		inv[String(p["investor"])] = true
+	for i in d.get("council_seats", []):
+		inv[String(i)] = true
+	var subj: Array = []
+	for i in inv.keys():
+		subj.append({"kind": "COMPANY", "id": i})
+	var home_backed := int(d.get("shares", {}).get("HOME_GOV", 0)) >= int(REF["HOME_GOV"])
+	if home_backed:
+		subj.append(CO.HOME)
+	world.add_fact({"type": "LAW_INVESTOR_PRIVILEGES_REVOKED", "owner": "law", "subjects": subj,
+		"responsible": [{"actor": CO.GOVERNMENT, "share": 1.0}], "impact": {"FAIRNESS": 3, "COLONIAL_BURDEN": 2},
+		"magnitude": 55, "visibility": "PUBLIC", "data": {"investors": inv.keys(), "home_backed": home_backed}})
 
 
 static func autonomy(world: WorldState) -> int:

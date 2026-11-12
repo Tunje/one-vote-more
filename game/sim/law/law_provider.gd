@@ -7,6 +7,7 @@ const L := preload("res://sim/law/law_data.gd")
 const Vis := preload("res://sim/law/visibility.gd")
 const PF := preload("res://sim/law/party_finance.gd")
 const CO := preload("res://sim/law/charter_ops.gd")
+const CD := preload("res://sim/law/charter_deal.gd")
 const DL := preload("res://sim/law/districting.gd")
 const Land := preload("res://sim/law/land_law.gd")
 
@@ -68,6 +69,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			Vis.note_government(world)
 			Ops.maybe_adopt_constitution(world)
 			Ops.run_pipeline(world)
+			CD.check_revocation(world)
 		TickPhase.JUSTICE:
 			Ops.process_permits(world)
 			Ops.discover(world)

@@ -64,3 +64,21 @@ func test_signing_sets_the_charter_once() -> void:
 func test_old_games_have_no_deal() -> void:
 	var w := _world()
 	check(CD.deal(w).is_empty() and CD.privilege_holder(w, "MINING") == "" and CD.autonomy(w) == CD.AUTONOMY_BASE, "nothing changes")
+
+
+func test_parliament_can_abolish_privileges_and_seats() -> void:
+	var w := _world()
+	check(bool(w.lever_defs["LAW_INVESTOR_PRIVILEGES"]["legislative"]) and String(w.lever_defs["LAW_INVESTOR_PRIVILEGES"]["type"]) == "NUMBER", "draftable")
+	CD.sign(w, CD.terms({"HOME_GOV": 500, "INVESTORS": 500, "COLONISTS": 0, "investors": [{"id": "org:3", "sector": "MINING", "amount": 300}]}))
+	CD.check_revocation(w)
+	check(w.facts.query("LAW_INVESTOR_PRIVILEGES_REVOKED").is_empty(), "nothing while the law stands")
+	check_eq(CD.council_seats(w), ["org:3"], "a seat")
+	w.levers["LAW_INVESTOR_PRIVILEGES"] = 0
+	check(CD.privilege_holder(w, "MINING") == "" and CD.council_seats(w).is_empty(), "abolished: no privilege, no seat")
+	CD.check_revocation(w)
+	CD.check_revocation(w)
+	var f: Array = w.facts.query("LAW_INVESTOR_PRIVILEGES_REVOKED")
+	check_eq(f.size(), 1, "one public fact")
+	check(bool(f[0]["data"]["home_backed"]) and f[0]["data"]["investors"] == ["org:3"], "names the investor; the home world backed them (%s)" % [f[0]["data"]])
+	w.levers["LAW_INVESTOR_PRIVILEGES"] = 1
+	check_eq(CD.privilege_holder(w, "MINING"), "org:3", "restored by a later parliament")
