@@ -53,6 +53,12 @@ static func months(n: int) -> String:
 	return "%d month%s" % [n, "" if n == 1 else "s"]
 
 
+## The colony's large council (user naming 2026-11-13): the Colonial Assembly; the National Assembly after independence.
+static func assembly(w: WorldState) -> String:
+	var st: String = String(preload("res://sim/law/law_query.gd").sovereignty(w).get("status", "COLONY"))
+	return "The National Assembly" if st == "INDEPENDENT" else "The Colonial Assembly"
+
+
 static func cap1(s: String) -> String:
 	return s if s.is_empty() else s.substr(0, 1).to_upper() + s.substr(1)
 
@@ -188,7 +194,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 				s = "The %s ordered an upgrade of %s to Mk %s" % [who_s, facility(w, d.get("facility", "")), ["I", "II", "III"][clampi(int(d.get("to_tier", 2)) - 1, 0, 2)]]
 			else:
 				s = "The %s ordered a new %s in %s" % [who_s, _kind(d.get("type", "")), district(w, d.get("district", ""))]
-		"POL_DISTRICTING_VOTE": s = "Parliament %s a new district map (%d districts%s)" % ["passed" if d.get("passed", false) else "rejected", int(d.get("districts", 0)), ", to fix an unbalanced map" if d.get("why", "") == "REMEDY" else ""]
+		"POL_DISTRICTING_VOTE": s = "%s %s a new district map (%d districts%s)" % [assembly(w), "passed" if d.get("passed", false) else "rejected", int(d.get("districts", 0)), ", to fix an unbalanced map" if d.get("why", "") == "REMEDY" else ""]
 		"POP_AREA_FOUNDED": s = "A new settlement was founded: %s" % d.get("name", "")
 		"POP_AREA_SPLIT": s = "%s has grown apart: a new area split off (%s)" % [String(w.peek("area").get(d.get("area", ""), {}).get("name", "An area")), "a wealthy enclave" if d.get("reason", "") == "ENCLAVE" else "too big"]
 		"LAND_SOLD": s = "State land in %s was sold to %s%s" % [String(w.peek("area").get(d.get("area", ""), {}).get("name", "the colony")), org(w, d.get("to", "")) if d.get("to_kind", "") == "COMPANY" else "local households", (" at a %d%% discount" % int(d.get("discount_pct", 0))) if int(d.get("discount_pct", 0)) > 0 else ""]
@@ -205,27 +211,27 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"LAW_CHARTER_AMENDED": s = "The home world amended the colony's charter (%s: %s → %s)" % [_kind(String(d.get("lever", "")).trim_prefix("LAW_CHARTER_")), str(d.get("from", "?")), str(d.get("to", "?"))]
 		"HOME_PETITION_ANSWERED", "LAW_PETITION_ANSWERED": s = "The home world %s the colony's petition" % ("granted" if d.get("accepted", false) else "rejected")
 		"HOME_INSPECTION_REPORT": s = "The home world's inspector %s" % (("found %d cases of quota evasion or smuggling" % int(d.get("found", 0))) if int(d.get("found", 0)) > 0 else "found nothing amiss")
-		"POL_CHARTER_VOTE": s = "Parliament %s a %s (%d–%d)" % ["passed" if d.get("passed", false) else "rejected", {"PETITION": "petition to the home world", "REFUSAL": "refusal of the quota", "INDEPENDENCE": "declaration of independence"}.get(String(d.get("what", "")), "charter motion"), int(d.get("yes", 0)), int(d.get("no", 0))]
+		"POL_CHARTER_VOTE": s = "%s %s a %s (%d–%d)" % [assembly(w), "passed" if d.get("passed", false) else "rejected", {"PETITION": "petition to the home world", "REFUSAL": "refusal of the quota", "INDEPENDENCE": "declaration of independence"}.get(String(d.get("what", "")), "charter motion"), int(d.get("yes", 0)), int(d.get("no", 0))]
 		"STAFF_OVERSIGHT_REPORT": s = "An oversight report on the %s found %d faults" % [_kind(d.get("domain", "administration")), int(d.get("findings", 0))]
 		"LAW_CHARTER_EXPORT_RESERVED": s = ("The home world reserves the colony's %s for its own buyer, at the charter price" if d.get("reserved", true) else "The home world lifts its claim on the colony's %s") % _kind(d.get("good", "goods"))
 		"LAW_CHARTER_DEFIANCE": s = "[color=#ff8a65]The colony defies the home world[/color]: %s" % {"REFUSE_EXPORT_TERMS": "it refuses the charter's export terms", "REFUSE_QUOTA": "it refuses the quota"}.get(String(d.get("act", "")), "it breaks the charter")
 		"LAW_CHARTER_COMPLIANCE_RESUMED": s = "The colony returns to the charter's %s" % {"EXPORT_TERMS": "export terms", "QUOTA": "quota"}.get(String(d.get("act", "")), "terms")
 		"LAW_CHARTER_SIGNED": s = "[b]The colonial charter is signed[/b]: the colony owes %d%% of its colonial goods at %d%% of their value%s%s" % [int(d.get("LAW_CHARTER_QUOTA_SHARE", d.get("quota", 0))), int(d.get("LAW_CHARTER_PRICE_PCT", d.get("price", 0))), (", plus a %d%% export levy" % int(d.get("LAW_CHARTER_EXPORT_LEVY", d.get("levy", 0)))) if int(d.get("LAW_CHARTER_EXPORT_LEVY", d.get("levy", 0))) > 0 else "", "; a home-world governor holds a veto" if d.get("governor", false) else ""]
-		"LAW_PETITION_SENT": s = "Parliament sent a petition to the home world asking for better terms"
+		"LAW_PETITION_SENT": s = "%s sent a petition to the home world asking for better terms" % assembly(w)
 		"POL_ELECTION_HELD": s = "[b]Election held[/b]"
-		"POL_GOVERNMENT_FORMED": s = "[b]New government[/b]: %s" % ", ".join(d.get("members", []).map(func(p): return party(w, p)))
-		"POL_BILL_PASSED": s = "Parliament passed a bill (%d–%d)" % [int(d.get("yes", 0)), int(d.get("no", 0))]
-		"POL_BILL_DEFEATED": s = "Parliament [b]defeated[/b] a government bill (%d–%d)" % [int(d.get("yes", 0)), int(d.get("no", 0))]
+		"POL_GOVERNMENT_FORMED": s = "[b]New Cabinet[/b]: %s" % ", ".join(d.get("members", []).map(func(p): return party(w, p)))
+		"POL_BILL_PASSED": s = "%s passed a bill (%d–%d)" % [assembly(w), int(d.get("yes", 0)), int(d.get("no", 0))]
+		"POL_BILL_DEFEATED": s = "%s [b]defeated[/b] a Cabinet bill (%d–%d)" % [assembly(w), int(d.get("yes", 0)), int(d.get("no", 0))]
 		"POL_PARTY_FOUNDED": s = "New party: [b]%s[/b]" % party(w, d.get("party", ""))
 		"POL_PARTY_SPLIT": s = "%d MPs left %s to form [b]%s[/b]" % [int(d.get("mps", 0)), party(w, d.get("party", "")), party(w, d.get("splinter", ""))]
 		"POL_PARTIES_MERGED": s = "%s merged into %s" % [party(w, d.get("absorbed", "")), party(w, d.get("into", ""))]
 		"POL_LEADER_CHANGED": s = "%s has a new leader: %s" % [party(w, d.get("party", "")), d.get("new", "")]
 		"POL_SCANDAL_REVEALED": s = "[color=#ff8a65]Scandal[/color]: %s, %s" % [party(w, d.get("party", "")), d.get("leader", "")]
-		"POL_NO_CONFIDENCE_PASSED": s = "[color=#ff5252][b]The government lost a vote of no confidence[/b][/color]"
-		"POL_NO_CONFIDENCE_FAILED": s = "The government survived a vote of no confidence"
-		"POL_SUPPORT_WITHDRAWN": s = "%s withdrew its support from the government" % party(w, d.get("party", ""))
-		"POL_PARTNER_LEFT": s = "%s left the government" % party(w, d.get("party", ""))
-		"POL_EMERGENCY_VOTE": s = "Parliament %s the state of emergency" % ("approved" if d.get("passed", false) else "rejected")
+		"POL_NO_CONFIDENCE_PASSED": s = "[color=#ff5252][b]The Cabinet lost a vote of no confidence[/b][/color]"
+		"POL_NO_CONFIDENCE_FAILED": s = "The Cabinet survived a vote of no confidence"
+		"POL_SUPPORT_WITHDRAWN": s = "%s withdrew its support from the Cabinet" % party(w, d.get("party", ""))
+		"POL_PARTNER_LEFT": s = "%s left the Cabinet" % party(w, d.get("party", ""))
+		"POL_EMERGENCY_VOTE": s = "%s %s the state of emergency" % [assembly(w), "approved" if d.get("passed", false) else "rejected"]
 		"HOME_SHIP_CALLED": s = "A ship from the home world called"
 		"HOME_DEMAND_RAISED": s = "[color=#ff8a65]The home world raised its demands[/color]"
 		"HOME_SANCTION": s = "The home world imposed a sanction: %s" % _kind(d.get("kind", ""))
@@ -284,7 +290,7 @@ const GROUPED := {
 	"ECON_SHORTAGE": "%d shortages",
 	"ECON_UTILITY_OUTAGE": "%d power or water outages",
 	"ECON_STRIKE": "%d strikes",
-	"POL_BILL_PASSED": "Parliament passed %d bills",
+	"POL_BILL_PASSED": "The Colonial Assembly passed %d bills",
 }
 
 

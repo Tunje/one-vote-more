@@ -63,7 +63,7 @@ func refresh() -> void:
 		Kit.label(body, can["error"], 14, Color(0.8, 0.8, 0.8))
 	else:
 		Kit.label(body, "You legislate as %s: %s." % [can["as"].to_lower(),
-			"commander ordinances take effect without a vote" if can["as"] == "COMMANDER" else "bills go to a vote in parliament (76 of 151 seats)"], 13)
+			"commander ordinances take effect without a vote" if can["as"] == "COMMANDER" else "bills go to a vote in the Colonial Assembly (76 of 151 seats)"], 13)
 		if can["as"] == "COMMANDER":
 			var left: int = session.next_election_month() - w.month
 			if left <= 4:
@@ -227,7 +227,7 @@ func _pipeline(w: WorldState, c: Dictionary) -> void:
 func _decrees(w: WorldState, c: Dictionary) -> void:
 	Kit.sep(body)
 	Kit.header(body, "Government decision (decree)")
-	Kit.label(body, "Regulation- and admin-level levers can be set by decree; parliament-level ones only by law.", 12, Color(0.75, 0.75, 0.75))
+	Kit.label(body, "Regulation- and admin-level levers can be set by decree; Assembly-level ones only by law.", 12, Color(0.75, 0.75, 0.75))
 	var levers: Array = LQ.lever_catalog(w, "REGULATION").filter(func(l): return l["pending"].is_empty())
 	var row := Kit.hbox(body)
 	var opt := OptionButton.new()

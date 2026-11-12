@@ -44,7 +44,7 @@ static func summary(sim: Simulation) -> String:
 	var g: Dictionary = st["government"]
 	if not g.is_empty():
 		var names: Array = g["members"].map(func(pid): return w.table("party")[pid]["name"])
-		lines.append("  Government: %s, PM %s, %d seats (support: %d parties)" % [" + ".join(names), w.table("party")[g["pm_party"]]["name"], g["yes"], g["support"].size()])
+		lines.append("  Cabinet: %s, First Minister's party %s, %d seats (support: %d parties)" % [" + ".join(names), w.table("party")[g["pm_party"]]["name"], g["yes"], g["support"].size()])
 	var passed := 0
 	var failed := 0
 	for b in w.table("bill").values():

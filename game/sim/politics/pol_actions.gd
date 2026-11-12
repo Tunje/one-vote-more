@@ -221,7 +221,7 @@ static func player_call_extra_election(world: WorldState) -> Dictionary:
 	var st := _st(world)
 	var g: Dictionary = st["government"]
 	if g.is_empty() or g.get("pm_party", "") != st.get("player_party", ""):
-		return {"ok": false, "error": "Only the prime minister can call an extra election."}
+		return {"ok": false, "error": "Only the First Minister can call an extra election."}
 	var chk: Dictionary = LQ.extra_election_allowed(world)
 	if not chk.get("ok", false):
 		return {"ok": false, "error": chk.get("reason", "An extra election is not allowed now.")}

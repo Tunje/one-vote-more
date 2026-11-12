@@ -145,7 +145,7 @@ func _load_extra_panels() -> void:
 const WINDOW_GROUPS := [
 	["Read", ["Office", "Gazette"]],
 	["Govern", ["Legislate", "Personnel", "Staff briefing"]],
-	["Politics", ["Parliament", "Parties", "My Party", "Campaign", "Opposition", "Unions"]],
+	["Politics", ["Colonial Assembly", "Parties", "My Party", "Campaign", "Opposition", "Unions"]],
 	["Economy", ["Budget", "Projects", "Companies", "Trade"]],
 	["Help", ["Why?"]],
 ]
@@ -441,7 +441,7 @@ func _panel_laws() -> String:
 		var cl: Array = b["clauses"].map(func(c): return "%s %s→%s" % [String(c["lever"]).trim_prefix("ECON_").replace("_", " ").to_lower(), c["from"], c["to"]])
 		t += "• m%d [b]%s[/b] (%d–%d): %s\n" % [b["month"], b["status"], b["yes"], b["no"], ", ".join(cl)]
 	if bills.is_empty():
-		t += "[i]No parliamentary bills yet.[/i]\n"
+		t += "[i]No bills in the Colonial Assembly yet.[/i]\n"
 	t += "\n[b]Decided policy changes[/b] (ordinances, laws, decisions)\n"
 	var rows: Array = w.peek("enactment").values()
 	rows.reverse()

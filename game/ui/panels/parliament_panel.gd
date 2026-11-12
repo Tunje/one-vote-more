@@ -13,7 +13,7 @@ var body: VBoxContainer
 
 
 func panel_title() -> String:
-	return "Parliament"
+	return "Colonial Assembly"
 
 
 func setup(s) -> void:
@@ -34,7 +34,7 @@ func refresh() -> void:
 	var st: Dictionary = w.peek("pol").get("state", {})
 	var c := Kit.ctx(session)
 	if String(st.get("era", "FOUNDING")) == "FOUNDING":
-		Kit.label(body, "There is no parliament yet: the first election is in month %d (%s)." % [session.next_election_month(),
+		Kit.label(body, "There is no Colonial Assembly yet: the first election is in month %d (%s)." % [session.next_election_month(),
 			"parties form in Year 3" if c["party_id"] == "" else "parties are campaigning"], 14)
 	var parties: Dictionary = w.peek("party")
 	var ids: Array = parties.keys().filter(func(p): return int(parties[p].get("seats", 0)) > 0)
@@ -98,7 +98,7 @@ func refresh() -> void:
 	Kit.header(body, "Procedures")
 	Kit.label(body, "No-confidence: moved by at least %d members; topples the government with %d votes against the PM. " % [LQ.movers_needed(),
 		int(p["no_confidence"]["topple_votes"])] + "Extra elections: called by the government, not within %d months of an election, never by a caretaker; " % \
-		int(p["extra_election"]["blocked_months_after_election"]) + "the ordinary 4-year calendar continues. %d failed PM votes force an extra election." % int(p["pm_votes"]["max_failed"]), 12)
+		int(p["extra_election"]["blocked_months_after_election"]) + "the ordinary 4-year calendar continues. %d failed First Minister votes force an extra election." % int(p["pm_votes"]["max_failed"]), 12)
 	if c["party_id"] != "" and LawOps_in_force(p):
 		var nc: Dictionary = LQ.can_move_no_confidence(w, c["party_id"])
 		Kit.label(body, "Your party %s move a no-confidence motion alone%s." % ["can" if nc["ok"] else "cannot",

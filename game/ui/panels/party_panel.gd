@@ -103,7 +103,7 @@ func _parliament_section(w: WorldState) -> void:
 	var g: Dictionary = st.get("government", {})
 	var me: String = st.get("player_party", "")
 	if st.has("formation"):
-		Kit.label(body, "Government formation in progress: PM vote round %d of %d." % [int(st["formation"]["round"]) + 1, PolDefs.MAX_FORMATION_ROUNDS], 13, Color("#ffcc66"))
+		Kit.label(body, "Government formation in progress: First Minister vote round %d of %d." % [int(st["formation"]["round"]) + 1, PolDefs.MAX_FORMATION_ROUNDS], 13, Color("#ffcc66"))
 	if st.has("extra_election_month"):
 		Kit.label(body, "An extra election is scheduled for month %d." % st["extra_election_month"], 13, Color("#ffcc66"))
 	if g.is_empty():
@@ -122,7 +122,7 @@ func _parliament_section(w: WorldState) -> void:
 		var chk2: Dictionary = preload("res://sim/law/law_query.gd").can_move_no_confidence(w, me)
 		Kit.button(row, "Move a motion of no confidence", func():
 			var r := PolActions.player_move_no_confidence(session.world())
-			_after(r, "Motion %s: %d votes against the PM (76 needed)." % ["PASSED, the government falls" if r.get("passed", false) else "failed", r.get("against", 0)]),
+			_after(r, "Motion %s: %d votes against the First Minister (76 needed)." % ["PASSED, the Cabinet falls" if r.get("passed", false) else "failed", r.get("against", 0)]),
 			not chk2.get("ok", false))
 		if not chk2.get("ok", false):
 			Kit.label(row, String(chk2.get("reason", "")), 12, Color("#aaaaaa"))

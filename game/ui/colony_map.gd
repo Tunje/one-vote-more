@@ -862,13 +862,13 @@ func submit_plan() -> Dictionary:
 	var w := _world()
 	var st := session.pol_state()
 	if st.get("government", {}).is_empty():
-		return {"ok": false, "message": "There is no parliamentary government to vote on a districting bill yet."}
+		return {"ok": false, "message": "There is no Cabinet yet to put a districting bill to the Colonial Assembly."}
 	var p := clean_plan()
 	var pv: Dictionary = LQ.districting_preview(w, p, "LAW")
 	if not pv["ok"]:
 		return {"ok": false, "message": "The map is not valid: " + "; ".join(pv["errors"] + ([pv["reason"]] if not pv["allowed_now"] else []))}
 	var r: Dictionary = DistrictPolitics.vote_and_enact(w, st, p, DistrictPolitics.current_plan(w), "PLAYER")
-	var msg := "Parliament %s the districting bill, %d–%d." % ["passed" if r["passed"] else "rejected", r["yes"], r["no"]]
+	var msg := "The Colonial Assembly %s the districting bill, %d–%d." % ["passed" if r["passed"] else "rejected", r["yes"], r["no"]]
 	if r["passed"]:
 		msg += " It takes effect after the transition." if r["enacted"] else " The law rejected it."
 	return {"ok": bool(r["passed"]) and bool(r["enacted"]), "message": msg}

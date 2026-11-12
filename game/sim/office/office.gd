@@ -99,7 +99,8 @@ static func answer(world: WorldState, id: String, option_id: String, by: String 
 	var r := _do(world, opt.get("action", {}))
 	if not r.get("ok", false):
 		return r
-	o["status"] = "ANSWERED" if by == "PLAYER" else "DELEGATED"
+	o["status"] = "ANSWERED" if by in ["PLAYER", "AI"] else "DELEGATED"
+	o["answered_by"] = by
 	o["answer"] = option_id
 	o["answered_month"] = world.month
 	return {"ok": true, "error": ""}

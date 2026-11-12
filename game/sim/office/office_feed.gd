@@ -15,12 +15,45 @@ static func player_office(world: WorldState) -> bool:
 	return not world.table("econ").has("s") or EconEssentials.human_governs(world)
 
 
+## Every government governs through the office (user, 2026-11-13: "the AI parties in game need to use the cabinet
+## too"): items are posted whoever governs; when the AI holds the office, its First Minister answers them the same
+## month on the responsible minister's advice, overruling it only when it runs strongly against the government's
+## ideology. A weak or partisan minister gives the AI the same bad advice it would give the player.
 static func monthly(world: WorldState) -> void:
-	if not player_office(world):
-		return
 	_union_demands(world)
-	_decisions(world)
-	_calendar(world)
+	if player_office(world):
+		_decisions(world)
+		_calendar(world)
+	else:
+		ai_answer(world)
+
+
+## The AI First Minister answers open EMAILs and CALLs: the minister's recommendation unless the government's
+## ideology strongly favours another option (lean · centre).
+static func ai_answer(world: WorldState) -> void:
+	var g: Dictionary = world.table("pol")["state"].get("government", {})
+	if g.is_empty():
+		return
+	var centre: Dictionary = g.get("center", {})
+	for o in Office.items(world, ["EMAIL", "CALL"]):
+		var opts: Array = o.get("options", [])
+		if opts.is_empty():
+			continue
+		var rec := String(o.get("recommendation", ""))
+		var hid: Dictionary = o.get("hidden", {}).get("options", {})
+		var best := ""
+		var best_v := -INF
+		for x in opts:
+			var oid := String(x.get("id", ""))
+			var v := (1.0 if oid == rec else 0.0)
+			var lean: Dictionary = hid.get(oid, {}).get("lean", {})
+			for ax in lean:
+				v += float(lean[ax]) / 1000.0 * float(centre.get(ax, 0)) / 100000.0 * 2.0
+			if v > best_v or (v == best_v and oid < best):
+				best_v = v
+				best = oid
+		if best != "":
+			Office.answer(world, String(o["id"]), best, "AI")
 
 
 ## Office hours left this month (meetings, interviews and some answers spend them).
