@@ -39,6 +39,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			EconUnions.donation_offers(world)
 		TickPhase.COMPANY_AI:
 			LawBridge.revalidate(world)
+			EconTrade.monthly(world)  # D1 (A42): home prices, export consignments — before the firms post sale offers
 			FirmAI.run(world)
 			EconTraining.monthly(world)  # E114: on-the-job training into skilled vacancies
 			EconPublicJobs.monthly(world)  # E117b: public employment scheme (budget line set by parliament)
@@ -49,4 +50,5 @@ func run_phase(phase: int, world: WorldState) -> void:
 			EconHouseholds.social(world)
 			EconIndicators.publish(world)
 			EconUnions.publish_density(world)
+			EconTrade.publish(world)  # D1: trade balance indicator
 			Unions.monthly(world)  # U1 (A41): unions as organisations: members, dues, mood, leaders, mergers, breakaways

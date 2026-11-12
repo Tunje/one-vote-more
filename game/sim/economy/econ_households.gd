@@ -640,8 +640,10 @@ static func _ships(world: WorldState) -> void:
 	var quota := int(EconUtil.lever(world, "ECON_IMMIGRATION_QUOTA", 60))
 	var cap := mini(EconData.SHIP_CAPACITY, int(float(quota) * float(interval) / 3.0 * EconData.SHIP_QUOTA_SHARE))
 	var migrants := _ship_migrants(world, cap, false)
+	var trade := EconTrade.on_ship(world)  # D1: exports loaded, merchants' imports unloaded
 	EconFacts.emit(world, "ECON_SHIP_ARRIVED", "d:1", [["EXTERNAL", "home_world"]], [["EXTERNAL", "home_world", 1.0]], {}, 40, "PUBLIC",
-		{"interval": interval, "migrants": migrants, "cargo": {}, "quota_delivered": {}})
+		{"interval": interval, "migrants": migrants, "cargo": trade["cargo"], "quota_delivered": trade["quota_delivered"],
+		"export_value": trade["export_value"], "imports": trade["imports"], "import_value": trade["import_value"]})
 	s["ship_last"] = world.month
 	s["ship_next"] = world.month + rng.randi_range(EconData.SHIP_INTERVAL[0], EconData.SHIP_INTERVAL[1])
 

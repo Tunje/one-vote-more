@@ -102,6 +102,11 @@ static func _clear(world: WorldState, good: String, tariff: int) -> void:
 		if stock > 0 and scarce:
 			var q := mini(stock, maxi(int(s.get("unmet_last", {}).get(good, 0)) / 2, 10 * S))
 			offers.append({"seller": "gov", "acct": EconUtil.TREASURY, "district": "d:1", "good": good, "qty": q, "ask": int(s["prices"][good])})
+	# D1: goods the merchants brought on the last ship, at their landed price
+	if not EconUtil.off(world, "D1"):
+		var io := EconTrade.import_offer(world, good)
+		if not io.is_empty():
+			offers.append(io)
 	var bids: Array = s["orders"].filter(func(b): return b["good"] == good and b["qty"] > 0)
 	var price: int = s["prices"][good]
 	var supply := 0
@@ -214,6 +219,8 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 			pass
 		elif o["seller"] == "gov":
 			EconFinance._gov_rev(world, goods_cost)  # reserve sales are public revenue
+		elif o["seller"] == EconTrade.IMPORTER:
+			EconTrade.note_import(world, goods_cost)  # D1: paid to the home world (EXTERNAL); trade balance
 		else:
 			EconFinance.pl_add(world, o["seller"], "rev", goods_cost)
 			EconFinance.pl_add(world, o["seller"], "cogs", EconUtil.val(take, wac))

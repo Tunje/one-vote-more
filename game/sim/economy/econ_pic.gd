@@ -29,6 +29,7 @@ static func indicators() -> Array:
 		["ECON_PROJECT_DELIVERY", "%", [0, 100], "COLONY", 1, {"GOVERNANCE": 0.5, "INFRASTRUCTURE": 0.3}, 90, 40, "PUBLIC", 1],
 		["ECON_COMPANY_FAILURES", "count", [0, 50], "COLONY", -1, {"JOBS": 0.2, "GOVERNANCE": 0.1}, 0, 4, "PUBLIC", 0],
 		["ECON_IMPORT_DEPENDENCY", "%", [0, 100], "COLONY", -1, {"COST_OF_LIVING": 0.1, "GOVERNANCE": 0.1}, 5, 50, "PUBLIC", 3],
+		["ECON_TRADE_BALANCE", "credits", [-10000000, 10000000], "COLONY", 1, {"JOBS": 0.1, "GOVERNANCE": 0.05}, 0, -50000, "PUBLIC", 0],  # D1: export earnings − imports bought, last 12 months
 		["ECON_PUBLIC_DEBT_RATIO", "%", [0, 1000], "COLONY", -1, {"GOVERNANCE": 0.4}, 0, 150, "PUBLIC", 2],
 		["ECON_BUDGET_BALANCE", "%", [-500, 100], "COLONY", 1, {"GOVERNANCE": 0.3}, 5, -40, "PUBLIC", 2],
 		["ECON_TREASURY_RUNWAY", "months", [0, 240], "COLONY", 1, {"GOVERNANCE": 0.2}, 24, 3, "OFFICIAL", 0],
