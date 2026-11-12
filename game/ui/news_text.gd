@@ -220,6 +220,9 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"LAW_PETITION_SENT": s = "%s sent a petition to the home world asking for better terms" % assembly(w)
 		"POL_ELECTION_HELD": s = "[b]Election held[/b]"
 		"POL_GOVERNMENT_FORMED": s = "[b]New Cabinet[/b]: %s" % ", ".join(d.get("members", []).map(func(p): return party(w, p)))
+		"STAFF_CABINET_FORMED":
+			var mins: Array = d.get("ministers", []).filter(func(m): return m.get("minister", false))
+			s = "[b]The new Cabinet[/b]: " + "; ".join(mins.slice(0, 5).map(func(m): return "%s, %s (%s)" % [String(m.get("name", "?")), String(m.get("title", "")), String(m.get("party_name", ""))])) + ("; and %d more" % (mins.size() - 5) if mins.size() > 5 else "")
 		"POL_BILL_PASSED": s = "%s passed a bill (%d–%d)" % [assembly(w), int(d.get("yes", 0)), int(d.get("no", 0))]
 		"POL_BILL_DEFEATED": s = "%s [b]defeated[/b] a Cabinet bill (%d–%d)" % [assembly(w), int(d.get("yes", 0)), int(d.get("no", 0))]
 		"POL_PARTY_FOUNDED": s = "New party: [b]%s[/b]" % party(w, d.get("party", ""))

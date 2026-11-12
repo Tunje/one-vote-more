@@ -12,6 +12,7 @@ extends RefCounted
 
 const Det := preload("res://sim/staff/det.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
+const Names := preload("res://sim/law/names.gd")
 
 const LINK_TILES := 8.0
 const BALANCE_TOLERANCE := 0.5
@@ -79,7 +80,7 @@ static func _connected(members: Array, graph: Dictionary) -> bool:
 # =====================================================================================  validity
 
 ## Preview a map: {ok, errors, districts: {name: {areas, residents, deviation_pct, contiguous}}, allowed_now, reason}.
-## Pure (no writes). level = "LAW" (parliament) or "ORDINANCE" (commander, founding era).
+## Pure (no writes). level = "LAW" (the Assembly) or "ORDINANCE" (commander, founding era).
 static func preview(world: WorldState, plan: Dictionary, level: String = "LAW") -> Dictionary:
 	var errors: Array = []
 	var ids := _active_ids(world)
@@ -166,7 +167,7 @@ static func allowed_now(world: WorldState, level: String) -> Dictionary:
 	if level == "ORDINANCE":
 		return {"ok": era == "FOUNDING", "reason": "" if era == "FOUNDING" else "ordinances end with the founding era"}
 	if level != "LAW":
-		return {"ok": false, "reason": "districts are drawn by law (parliament), never by government decree"}
+		return {"ok": false, "reason": "districts are drawn by law (%s), never by Cabinet decree" % Names.assembly(world)}
 	if current_unbalanced(world):
 		return {"ok": true, "reason": "remedy: the current map is out of balance"}
 	var since := world.month - int(_st(world)["last_act_month"])

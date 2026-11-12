@@ -10,6 +10,7 @@ extends RefCounted
 
 const Ops := preload("res://sim/staff/staff_ops.gd")
 const Vis := preload("res://sim/law/visibility.gd")
+const Names := preload("res://sim/law/names.gd")
 const Det := preload("res://sim/staff/det.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 
@@ -182,7 +183,7 @@ static func options(world: WorldState, pid: String, shared: Dictionary = {}) -> 
 			continue
 		var e: Dictionary = world.peek("enactment")[eid]
 		challenges.append({"kind": "DECREE_ULTRA_VIRES", "target_fact": "", "target_enactment": eid, "p_win_est": P_DECREE,
-			"grievance": false, "label": "Challenge the decree on %s: only parliament may set it" % e["lever"]})
+			"grievance": false, "label": "Challenge the decree on %s: only %s may set it" % [e["lever"], Names.assembly(world)]})
 	for c in party.get("commitments", []):
 		for eid in shared["recent_enactments"]:
 			var e: Dictionary = world.peek("enactment")[eid]

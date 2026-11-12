@@ -307,7 +307,7 @@ static func can_declare_independence(world: WorldState, referendum_yes: int, ref
 	if not is_colonial(world):
 		return {"ok": false, "reason": "the colony is not under the charter"}
 	if v.is_empty() or not v["passed"] or world.month - int(v["month"]) > REFERENDUM_MONTHS:
-		return {"ok": false, "reason": "needs a 2/3 parliament vote (101 seats) in the last 3 months"}
+		return {"ok": false, "reason": "needs a 2/3 vote of the Colonial Assembly (101 of 151 seats) in the last 3 months"}
 	var cast := referendum_yes + referendum_no
 	if eligible <= 0 or float(cast) / float(eligible) < REFERENDUM_MIN_TURNOUT:
 		return {"ok": false, "reason": "referendum turnout below 50% of eligible voters"}

@@ -5,6 +5,7 @@ extends TestCase
 const F := preload("res://tests/support/staff_fixture.gd")
 const Ops := preload("res://sim/staff/staff_ops.gd")
 const OFS := preload("res://sim/staff/office_staff.gd")
+const Det := preload("res://sim/staff/det.gd")
 
 const MARKET := {"ECON_ROLE": -80000}
 const STATE := {"ECON_ROLE": 80000}
@@ -161,3 +162,54 @@ func test_beliefs_converge_through_work() -> void:
 	for i in 24:
 		OFS.update_known(w)
 	check(int(p["known"]["PRIMARY"][0]) >= 76 and int(p["known"]["PRIMARY"][1]) < 5, "work shows the truth (%s)" % [p["known"]])
+
+
+## The Cabinet (A48 names): the coalition's political appointees take the portfolios, shared by party; civil
+## servants keep the civil roles and act where no minister sits; a new coalition reshuffles.
+func _cabinet_world() -> WorldState:
+	var w := F.bare_world()
+	w.table("party")["party:1"] = {"id": "party:1", "name": "Equal Share", "status": "ACTIVE", "positions": {"ECON_ROLE": 80000, "REDISTRIBUTION": 80000, "SOVEREIGNTY": 0}}
+	w.table("party")["party:2"] = {"id": "party:2", "name": "Free Market", "status": "ACTIVE", "positions": {"ECON_ROLE": -80000, "REDISTRIBUTION": -60000, "SOVEREIGNTY": 0}}
+	for i in 6:
+		F.add(w, "POLITICAL", {"ECON": 40 + i * 5, "NEGO": 70 - i * 5, "PUBS": 50}, 50, 100, "party:1")
+	for i in 3:
+		F.add(w, "POLITICAL", {"ENG": 60 + i * 5, "ENV": 55, "LAW": 50}, 50, 100, "party:2")
+	for i in 6:
+		F.add(w, "CIVIL", {"ADMIN": 60 + i, "POLI": 50, "COMM": 60, "ECON": 90})
+	return w
+
+
+func test_ministers_take_the_portfolios_shared_by_party() -> void:
+	var w := _cabinet_world()
+	OFS.fill_roles(w)
+	var by_party := {}
+	for c in OFS.cabinet(w):
+		if c["role"] in OFS.PORTFOLIOS:
+			check(c["minister"], "%s is held by a minister" % c["role"])
+			by_party[c["party"]] = int(by_party.get(c["party"], 0)) + 1
+		else:
+			check(not c["minister"], "%s stays with the civil service" % c["role"])
+	check(int(by_party.get("party:1", 0)) == 6 and int(by_party.get("party:2", 0)) == 3, "shared by party size (%s)" % [by_party])
+	check(String(OFS.holder(w, "FINANCE").get("party_id", "")) != "", "a civil servant with ECON 90 does not outrank a minister for Finance")
+	var lab := OFS.minister_label(w, "LABOUR_LIAISON")
+	check(lab.begins_with("the Minister of Labour (") and lab.ends_with(")"), "named with the party: %s" % lab)
+	check_eq(w.facts.query("STAFF_CABINET_FORMED").size(), 1, "the Cabinet is announced")
+	var fin := OFS.holder(w, "FINANCE")
+	if String(fin.get("party_id", "")) == "party:1":
+		check(int(fin["lean"]["ECON_ROLE"]) > 20000, "an Equal Share minister leans their party's way")
+
+
+func test_a_new_coalition_reshuffles_a_replacement_does_not() -> void:
+	var w := _cabinet_world()
+	OFS.fill_roles(w)
+	var before := OFS.cabinet(w).map(func(c): return c["person"])
+	OFS.fill_roles(w)
+	check_eq(OFS.cabinet(w).map(func(c): return c["person"]), before, "a quiet month: nobody moves")
+	check_eq(w.facts.query("STAFF_CABINET_FORMED").size(), 1, "no second announcement")
+	for pid in Det.ordered(w.table("person")):     # party:2 leaves the coalition
+		if String(w.table("person")[pid]["party_id"]) == "party:2":
+			w.table("person")[pid]["pool"] = ""
+	OFS.fill_roles(w)
+	check_eq(w.facts.query("STAFF_CABINET_FORMED").size(), 2, "a new Cabinet")
+	var acting := OFS.cabinet(w).filter(func(c): return c["role"] in OFS.PORTFOLIOS and not c["minister"])
+	check_eq(acting.size(), 3, "civil servants act in the portfolios no minister holds")

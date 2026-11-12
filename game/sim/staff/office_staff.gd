@@ -4,7 +4,7 @@ extends RefCounted
 ## Wilma's Office (sim/office/office.gd) calls author_item(world, item) before storing each new item; the rest runs
 ## from the staff provider. Everything the UI must not see lives in item.hidden.
 ##
-## Tables: office_role {role: {role, person, since, by AUTO|PLAYER}}, office_delegation {category: {category, role,
+## Tables: office_role {role: {role, person, since, by AUTO|PLAYER|CABINET, party}}, office_cabinet {sig, month}, office_delegation {category: {category, role,
 ## since}}, interview {id: {...}}. Person traits added here (derived once, deterministically): lean {ECON_ROLE,
 ## REDISTRIBUTION, SOVEREIGNTY} milli, loyalty 0..100, temper 0..100; known {trait: [est, sd]} = what the player
 ## believes (from interviews), converging on the truth while the person works.
@@ -79,9 +79,21 @@ static func role_skill(p: Dictionary, role: String) -> int:
 
 # ===================================================================================== roles
 
-## DECISIONS: fill empty or vacated roles from the government pool by best fit (one role per person).
+## DECISIONS: the Cabinet. The coalition's political appointees (GOV_POLITICAL, the 10 seats) have first claim on
+## the PORTFOLIOS, shared by party (Sainte-Laguë over each party's appointees; each turn the party puts its best
+## person in the portfolio they fit best). Civil servants hold the civil roles (Chief of Staff, HR, Press) and act
+## in portfolios no minister holds. The Cabinet is reshuffled when the parties' shares change (a new coalition);
+## a replacement minister just takes the empty portfolio. The player's own picks are kept.
 static func fill_roles(world: WorldState) -> void:
 	var t := world.table("office_role")
+	var ministers := _appointees(world)
+	var cab := world.table("office_cabinet")
+	var counts := {}
+	for pid in ministers:
+		var pty := String(Ops.person(world, pid)["party_id"])
+		counts[pty] = int(counts.get(pty, 0)) + 1
+	var sig := ",".join(Det.ordered(counts).map(func(k): return "%s:%d" % [k, int(counts[k])]))   # a new coalition, not a replacement
+	var reshuffle := String(cab.get("sig", "")) != sig
 	var taken := {}
 	for role in ROLE_ORDER:
 		var r: Dictionary = t.get(role, {})
@@ -89,9 +101,16 @@ static func fill_roles(world: WorldState) -> void:
 		var p := Ops.person(world, pid)
 		if pid != "" and (p.is_empty() or p["pool"] != "GOV" or not Ops.is_alive_active(p)):
 			pid = ""
+		var by := String(r.get("by", "AUTO"))
+		if reshuffle and pid != "" and by != "PLAYER" and role in PORTFOLIOS:
+			pid = ""          # a new Cabinet: portfolios are dealt out again
+		if pid != "" and not (role in PORTFOLIOS) and by != "PLAYER" and _is_minister(p):
+			pid = ""          # civil roles are the civil service's
 		if pid != "":
 			taken[pid] = true
-		t[role] = {"role": role, "person": pid, "since": int(r.get("since", world.month)), "by": String(r.get("by", "AUTO"))}
+		t[role] = {"role": role, "person": pid, "since": int(r.get("since", world.month)) if pid != "" else world.month,
+			"by": by if pid != "" else "AUTO", "party": String(r.get("party", "")) if pid != "" else ""}
+	_deal_portfolios(world, t, ministers, taken)
 	for role in ROLE_ORDER:
 		if String(t[role]["person"]) != "":
 			continue
@@ -99,7 +118,7 @@ static func fill_roles(world: WorldState) -> void:
 		var best_s := -1
 		for pid in Det.ordered(world.table("person")):
 			var p: Dictionary = world.table("person")[pid]
-			if p["pool"] != "GOV" or not Ops.is_alive_active(p) or taken.has(pid):
+			if p["pool"] != "GOV" or not Ops.is_alive_active(p) or taken.has(pid) or _is_minister(p):
 				continue
 			var sc := role_skill(p, role)
 			if sc > best_s:
@@ -107,7 +126,128 @@ static func fill_roles(world: WorldState) -> void:
 				best = pid
 		if best != "":
 			taken[best] = true
-			t[role] = {"role": role, "person": best, "since": world.month, "by": "AUTO"}
+			t[role] = {"role": role, "person": best, "since": world.month, "by": "AUTO", "party": ""}
+	if reshuffle:
+		cab["sig"] = sig
+		cab["month"] = world.month
+		if not ministers.is_empty():
+			var rows: Array = cabinet(world).filter(func(c): return bool(c["minister"]))
+			world.add_fact({"type": "STAFF_CABINET_FORMED", "owner": "staff", "subjects": [Ops.GOV], "responsible": [],
+				"impact": {}, "magnitude": 30, "visibility": "PUBLIC", "data": {"ministers": rows}})
+
+
+## Ministerial portfolios (the rest of ROLE_ORDER is the civil service's).
+const PORTFOLIOS := ["FINANCE", "ECON_ADVISER", "LABOUR_LIAISON", "ENGINEER", "HOME_LIAISON", "SERVICES", "ENVIRONMENT",
+	"LEGAL", "PARTY_WHIP"]
+const MINISTER_TITLES := {"FINANCE": "Minister of Finance", "ECON_ADVISER": "Minister of the Economy",
+	"LABOUR_LIAISON": "Minister of Labour", "ENGINEER": "Minister of Infrastructure",
+	"HOME_LIAISON": "Minister for Home-World Affairs", "SERVICES": "Minister of Public Services",
+	"ENVIRONMENT": "Minister of the Environment", "LEGAL": "Minister of Justice", "PARTY_WHIP": "Leader of the Assembly"}
+## Civil-service titles: the civil roles, and a civil servant acting in a portfolio.
+const CIVIL_TITLES := {"CHIEF_OF_STAFF": "Chief of Staff", "HR": "Head of Personnel", "PRESS": "Press Secretary",
+	"FINANCE": "Finance Secretary", "ECON_ADVISER": "Economic Adviser", "LABOUR_LIAISON": "Labour Liaison",
+	"ENGINEER": "Chief Engineer", "HOME_LIAISON": "Home-World Liaison", "SERVICES": "Services Secretary",
+	"ENVIRONMENT": "Environment Secretary", "LEGAL": "Legal Counsel", "PARTY_WHIP": "Assembly Liaison"}
+const MINISTER_LEAN_PARTY := 0.6     # a minister's lean: this share of the party line, the rest their own
+
+
+static func _is_minister(p: Dictionary) -> bool:
+	return not p.is_empty() and p.get("roles", []).has("GOV_POLITICAL") and String(p.get("party_id", "")) != ""
+
+
+## The coalition's political appointees in the government pool, in id order.
+static func _appointees(world: WorldState) -> Array:
+	var out: Array = []
+	for pid in Det.ordered(world.table("person")):
+		var p: Dictionary = world.table("person")[pid]
+		if p["pool"] == "GOV" and Ops.is_alive_active(p) and _is_minister(p):
+			out.append(String(pid))
+	return out
+
+
+static func _deal_portfolios(world: WorldState, t: Dictionary, ministers: Array, taken: Dictionary) -> void:
+	var open: Array = PORTFOLIOS.filter(func(r): return String(t[r]["person"]) == "" or not _is_minister(Ops.person(world, String(t[r]["person"]))) and String(t[r]["by"]) != "PLAYER")
+	var by_party := {}
+	var size := {}
+	for pid in ministers:
+		var pty := String(Ops.person(world, pid)["party_id"])
+		size[pty] = int(size.get(pty, 0)) + 1
+		if not taken.has(pid):
+			if not by_party.has(pty):
+				by_party[pty] = []
+			by_party[pty].append(pid)
+	# Sainte-Laguë turn order over the parties' appointee counts (ties: party id)
+	var q: Array = []
+	for pty in Det.ordered(size):
+		for k in int(size[pty]):
+			q.append([float(size[pty]) / float(2 * k + 1), String(pty)])
+	q.sort_custom(func(a, b): return a[0] > b[0] or (a[0] == b[0] and a[1] < b[1]))
+	for turn in q:
+		if open.is_empty():
+			break
+		var pty: String = turn[1]
+		var pool: Array = by_party.get(pty, [])
+		if pool.is_empty():
+			continue
+		var best_pid := ""
+		var best_role := ""
+		var best_s := -1
+		for pid in pool:
+			var p := Ops.person(world, pid)
+			for role in open:
+				var sc := role_skill(p, role)
+				if sc > best_s:
+					best_s = sc
+					best_pid = pid
+					best_role = role
+		var old := String(t[best_role]["person"])
+		if old != "":
+			taken.erase(old)       # an acting civil servant steps back
+		pool.erase(best_pid)
+		open.erase(best_role)
+		taken[best_pid] = true
+		_party_lean(world, Ops.person(world, best_pid))
+		t[best_role] = {"role": best_role, "person": best_pid, "since": world.month, "by": "CABINET", "party": pty}
+
+
+## A minister's advice leans toward their party's line (once per party: a defector keeps their adopted lean).
+static func _party_lean(world: WorldState, p: Dictionary) -> void:
+	var pty := String(p.get("party_id", ""))
+	if String(p.get("lean_party", "")) == pty:
+		return
+	var own: Dictionary = traits(p)["lean"]
+	var line: Dictionary = world.peek("party").get(pty, {}).get("positions", {})
+	var lean := {}
+	for ax in LEAN_AXES:
+		lean[ax] = int(round(MINISTER_LEAN_PARTY * float(line.get(ax, 0)) + (1.0 - MINISTER_LEAN_PARTY) * float(own.get(ax, 0))))
+	p["lean"] = lean
+	p["lean_party"] = pty
+
+
+## The Cabinet as the UI and the news show it: [{role, title, person, name, party, party_name, minister}] in
+## ROLE_ORDER (portfolios first). Pure read.
+static func cabinet(world: WorldState) -> Array:
+	var out: Array = []
+	var roles: Array = PORTFOLIOS + ROLE_ORDER.filter(func(r): return not (r in PORTFOLIOS))
+	for role in roles:
+		var r: Dictionary = world.peek("office_role").get(role, {})
+		var p := Ops.person(world, String(r.get("person", "")))
+		if p.is_empty():
+			continue
+		var minister: bool = _is_minister(p) and role in PORTFOLIOS
+		var pty := String(p.get("party_id", "")) if minister else ""
+		out.append({"role": role, "title": String(MINISTER_TITLES[role]) if minister else String(CIVIL_TITLES.get(role, role)),
+			"person": String(r["person"]), "name": String(p.get("name", "")), "party": pty,
+			"party_name": String(world.peek("party").get(pty, {}).get("name", "")), "minister": minister})
+	return out
+
+
+## "the Minister of Labour (Equal Share)" / "the Finance Secretary" / "" if the role is empty.
+static func minister_label(world: WorldState, role: String) -> String:
+	for c in cabinet(world):
+		if c["role"] == role:
+			return "the %s (%s)" % [c["title"], c["party_name"]] if c["minister"] and c["party_name"] != "" else "the " + String(c["title"])
+	return ""
 
 
 ## The player puts someone in a role (the previous holder of that person's role is cleared).

@@ -4,6 +4,7 @@ extends RefCounted
 
 const L := preload("res://sim/law/law_data.gd")
 const RE := preload("res://sim/law/rules_engine.gd")
+const Names := preload("res://sim/law/names.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 const J := preload("res://sim/law/justice_ops.gd")
 const Staff := preload("res://sim/staff/staff_ops.gd")
@@ -136,7 +137,7 @@ static func decree_check(world: WorldState, lever: String, value, viewer: Dictio
 	var structural := errs.filter(func(e): return not String(e).begins_with("no authority") and not String(e).contains("cannot change"))
 	if res["result"] != "PROHIBITED" or not structural.is_empty():
 		return {"allowed": false, "lawful": false, "result": res["result"], "warning": "", "errors": errs}
-	var why := "only parliament can change %s (a %s-level lever)" % [lever, d.get("legalLevel", "")]
+	var why := "only %s can change %s (a %s-level lever)" % [Names.assembly(world), lever, d.get("legalLevel", "")]
 	return {"allowed": true, "lawful": false, "result": "PROHIBITED", "warning": DECREE_WARNING % why,
 		"errors": errs, "trace": res["trace"].map(func(r): return rule_view(world, r))}
 
@@ -376,11 +377,11 @@ static func can_move_no_confidence(world: WorldState, party_id, joint: Array = [
 		seats += int(world.peek("party").get(pid, {}).get("seats", 0))
 	var out := {"ok": false, "reason": "", "seats": seats, "needed": needed, "topple_votes": int(L.PROCEDURES["no_confidence"]["topple_votes"])}
 	if not LawOps.state(world)["constitution"] or String(st.get("era", "FOUNDING")) == "FOUNDING":
-		out["reason"] = "There is no parliament yet."
+		out["reason"] = "There is no Colonial Assembly yet."
 	elif st.get("government", {}).is_empty() or bool(st.get("caretaker", false)):
 		out["reason"] = "There is no regular government to vote out (caretaker)."
 	elif seats < needed:
-		out["reason"] = "A motion needs at least %d members (one tenth of parliament); you have %d." % [needed, seats]
+		out["reason"] = "A motion needs at least %d members (one tenth of %s); you have %d." % [needed, Names.assembly(world), seats]
 	else:
 		out["ok"] = true
 	return out
