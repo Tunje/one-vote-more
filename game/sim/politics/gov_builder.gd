@@ -46,6 +46,8 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	var runway := float(world.indicators.read("ECON_TREASURY_RUNWAY", "COLONY", 240000)) / 1000.0
 	var can_build := runway >= 12.0 - 6.0 * spend
 	_essentials(world, st, busy, who, state, spend, can_build)
+	if can_build:
+		_port_depot(world, st, busy, who, state, spend)
 	if not can_build:
 		return  # not enough cash and credit for new capital projects (a spending government accepts less)
 	var services_owner := float(who.get("own_services", 0)) / 100.0
@@ -244,3 +246,18 @@ static func _count(world: WorldState, ftype: String) -> int:
 		if f["type"] == ftype and not f.get("mothball", false):
 			n += 1
 	return n
+
+
+## The port keeps filling before the ships come (v5 review: exports capped at 40% of the warehouse per good): a
+## government that wants the trade builds another depot at the landing. Market-minded ones leave it to the trade.
+static func _port_depot(world: WorldState, st: Dictionary, busy: Dictionary, who: Dictionary, state: float, spend: float) -> void:
+	if state + spend < -0.3:
+		return
+	var full := world.facts.query("ECON_PORT_FULL", world.month - 30, world.month).size()
+	if full < 2:
+		return
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["type"] == "DEPOT" and p["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
+			return
+	_order(world, st, busy, who, "DEPOT", "d:1", "")

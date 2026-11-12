@@ -701,6 +701,18 @@ static func merge(world: WorldState, st: Dictionary, big: Dictionary, small: Dic
 		g["members"].erase(small["id"])
 		if not (big["id"] in g["members"]):
 			g["members"].append(big["id"])
+	if not g.is_empty():
+		# v5 review: merged parties lingered in cabinet records — the PM's party and outside support follow too
+		if String(g.get("pm_party", "")) == String(small["id"]):
+			g["pm_party"] = big["id"]
+		var sup: Array = g.get("support", [])
+		if small["id"] in sup:
+			sup.erase(small["id"])
+			if not (big["id"] in sup) and not (big["id"] in g["members"]):
+				sup.append(big["id"])
+		for d in g.get("deals", []):
+			if String(d.get("party", "")) == String(small["id"]):
+				d["party"] = big["id"]
 	_refresh_government(world, st)
 	world.add_fact({"type": "POL_PARTIES_MERGED", "owner": "pol", "subjects": [{"kind": "PARTY", "id": big["id"]}, {"kind": "PARTY", "id": small["id"]}],
 		"responsible": [], "impact": {}, "magnitude": 55, "visibility": "PUBLIC", "data": {"into": big["id"], "absorbed": small["id"], "reason": reason}})

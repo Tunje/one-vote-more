@@ -11,6 +11,7 @@ extends RefCounted
 const LawOps := preload("res://sim/law/law_ops.gd")
 const STEP_FRACTION := 0.10          # one clause moves a lever by 10% of its range
 const MAX_CLAUSES := 2
+const TINKER_COST := 1.5           # score cost of moving a lever again the same way (no endless small steps)
 const IMPLEMENTATION_MONTHS_STUB := 2  # placeholder until staff implementation tasks exist (M3)
 const IDEOLOGY_VOTE_WEIGHT := 2.5    # substance over role: ideology dominates floor votes (tuning knob)
 const FISCAL_STRESS_GAIN := 6.0      # how hard fiscal stress amplifies the budget value of clauses (tuning knob)
@@ -175,6 +176,10 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	var step_fraction := CRISIS_STEP_FRACTION if crisis else STEP_FRACTION
 	var mem := _bill_memory(world) if allowed == "PARLIAMENT" else {"defeated": {}, "moved": {}}
 	var skill_gap := _skill_gap(world) if allowed == "PARLIAMENT" else 0.0
+	var owed := {}   # "lever|dir" of confidence-and-supply prices still owed: a commitment, not a whim
+	for a in agreement:
+		if a.get("deal", false):
+			owed["%s|%d" % [a["lever"], int(a["dir"])]] = true
 	var ids := world.lever_defs.keys()
 	ids.sort()
 	for lid in ids:
@@ -195,7 +200,8 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			var delta := to - cur
 			if delta == 0.0:
 				continue
-			if guarded and float(def.get("concerns", {}).get("GOVERNANCE", 0)) * delta < 0.0:
+			var owes: bool = owed.has("%s|%d" % [lid, int(signf(delta))])
+			if guarded and not owes and float(def.get("concerns", {}).get("GOVERNANCE", 0)) * delta < 0.0:
 				stats["guard_blocked"] = int(stats.get("guard_blocked", 0)) + 1
 				continue  # fiscal guard: no new spending / tax cuts while the books are weak (pork never overrides it)
 			if _recently_rejected(world, lid, signf(delta)):
@@ -204,9 +210,9 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			if not LawOps.check_change(world, lid, int(to), level).is_empty():
 				continue  # the government's lawyers screen proposals before drafting
 			var dk := "%s|%d" % [lid, int(signf(delta))]
-			if mem["defeated"].has(dk):
+			if mem["defeated"].has(dk) and not owes:
 				continue  # parliament threw this out and its make-up hasn't changed: don't table it again
-			if mem["moved"].has("%s|%d" % [lid, -int(signf(delta))]):
+			if mem["moved"].has("%s|%d" % [lid, -int(signf(delta))]) and not owes:
 				continue  # this government moved it the other way recently: no flip-flopping
 			var ia := ideo_alignment(def, delta, pos)
 			var rl := relief(def, delta, sat, sal, stress, room, cur)
@@ -219,6 +225,14 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			var sc := (1.0 - 0.3 * pork) * ia + 3.0 * (1.0 + 0.5 * pork) * rl
 			if skill_gap > 0.0 and delta > 0.0 and lid in TRAINING_LEVERS:
 				sc += skill_gap  # E114: firms cannot fill skilled posts; training money and the subsidy go together
+			# v5 review (433 bills in one run): no endless tinkering. Moving the same lever again the same way within
+			# the government's memory needs a stronger case, unless it is the programme (agreement) or an owed price.
+			var programme := false
+			for a in agreement:
+				if a["lever"] == lid and signf(delta) == a["dir"]:
+					programme = true
+			if mem["moved"].has(dk) and not programme and not owes:
+				sc -= TINKER_COST
 			var is_deal := false
 			for a in agreement:
 				if a["lever"] == lid:
@@ -226,12 +240,13 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 					sc += w if signf(delta) == a["dir"] else -w
 					if a.get("deal", false) and signf(delta) == a["dir"]:
 						is_deal = true
-			if sc > 1.0:
+			if sc > 1.0 or is_deal:
 				var cl := {"lever": lid, "from": int(cur), "to": int(to), "score": int(round(sc * 100.0))}
 				if is_deal:
 					cl["deal"] = true
 				scored.append(cl)
-	scored.sort_custom(func(a, b): return a["score"] > b["score"] or (a["score"] == b["score"] and a["lever"] < b["lever"]))
+	# owed prices first (the deal is the government's survival), then by score
+	scored.sort_custom(func(a, b): return (a.get("deal", false) and not b.get("deal", false)) or (a.get("deal", false) == b.get("deal", false) and (a["score"] > b["score"] or (a["score"] == b["score"] and a["lever"] < b["lever"]))))
 	var out: Array = []
 	var used := {}
 	var gov: Dictionary = world.table("pol")["state"].get("government", {}) if allowed == "PARLIAMENT" else {}
