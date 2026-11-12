@@ -160,7 +160,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	if to_go == 2 or to_go == 1:
 		prepare_debate(world, c, to_go - 1)   # next debate's questions are known a month ahead (debate night prep)
 	_oppo(world, c, spend, to_go)
-	_dirt(world, st, c, to_go)
+	_dirt(world, st, c, to_go, seg)
 	_pork(world, st, c)
 	# legacy hook: the old spend counter (UI/chronicle readers)
 	var spent := {}
@@ -621,6 +621,7 @@ static func _debate(world: WorldState, st: Dictionary, c: Dictionary, final: boo
 		prep = prepare_debate(world, c, 0)
 	c.erase("debate_prep")
 	var qs: Array = prep["questions"]
+	var cs := colony_concerns(world)   # once per debate (a full pass over the voters)
 	var answers := {}
 	var perf := {}
 	var gaffes: Array = []
@@ -631,8 +632,8 @@ static func _debate(world: WorldState, st: Dictionary, c: Dictionary, final: boo
 		var sum_fit := 0.0
 		for i in qs.size():
 			var topic: String = qs[i]["topic"]
-			var stance := _chosen_stance(world, st, c, p, topic, prep.get("answers", {}).get(str(i), ""), r)
-			var f := stance_fit(world, st, c, p, topic, stance)
+			var stance := _chosen_stance(world, st, c, p, topic, prep.get("answers", {}).get(str(i), ""), r, cs)
+			var f := stance_fit(world, st, c, p, topic, stance, cs)
 			sum_fit += f
 			row.append({"topic": topic, "stance": stance, "fit": int(round(f * 1000.0))})
 		perf[pid] += DEBATE_FIT_WEIGHT * sum_fit
@@ -710,8 +711,9 @@ static func prepare_debate(world: WorldState, c: Dictionary, at_to_go: int) -> D
 
 
 ## How well a stance on `topic` suits this audience (≈ −0.6..0.8). See spec §8.
-static func stance_fit(world: WorldState, st: Dictionary, c: Dictionary, p: Dictionary, topic: String, stance: String) -> float:
-	var cs := colony_concerns(world)
+static func stance_fit(world: WorldState, st: Dictionary, c: Dictionary, p: Dictionary, topic: String, stance: String, cs: Array = []) -> float:
+	if cs.is_empty():
+		cs = colony_concerns(world)
 	var sat := float(cs[0].get(topic, 50000)) / 100000.0
 	var unmet := 1.0 - sat
 	var salr := float(cs[1].get(topic, 111)) / 111.0
@@ -742,13 +744,13 @@ static func stance_fit(world: WorldState, st: Dictionary, c: Dictionary, p: Dict
 
 ## The stance a leader takes: the human player's answer if given, else the best fit, misjudged more often by
 ## less competent leaders.
-static func _chosen_stance(world: WorldState, st: Dictionary, c: Dictionary, p: Dictionary, topic: String, given: String, r: RandomNumberGenerator) -> String:
+static func _chosen_stance(world: WorldState, st: Dictionary, c: Dictionary, p: Dictionary, topic: String, given: String, r: RandomNumberGenerator, cs: Array = []) -> String:
 	if given != "" and STANCES.has(given):
 		return given
 	var best := "DEFEND"
 	var bf := -INF
 	for s in STANCES:
-		var f := stance_fit(world, st, c, p, topic, s)
+		var f := stance_fit(world, st, c, p, topic, s, cs)
 		if f > bf:
 			bf = f
 			best = s
@@ -837,7 +839,7 @@ static func _find_dirt(world: WorldState, c: Dictionary, pid: String, tgt: Strin
 
 ## Release or hold. Honest leaders release at once; strategists hold for a late hit in the final weeks,
 ## at the risk of it leaking that they sat on it. Exposed smears backfire (and go to court when law allows).
-static func _dirt(world: WorldState, st: Dictionary, c: Dictionary, to_go: int) -> void:
+static func _dirt(world: WorldState, st: Dictionary, c: Dictionary, to_go: int, seg: Dictionary = {}) -> void:
 	var r := world.rng.stream("pol.campaign.dirt")
 	for pid in Det.ordered(c["parties"]):
 		var e: Dictionary = c["parties"][pid]
@@ -857,13 +859,13 @@ static func _dirt(world: WorldState, st: Dictionary, c: Dictionary, to_go: int) 
 				hold = false     # a player who never pulled the trigger: it comes out on election day anyway
 			if hold:
 				if not bool(e["manual"]) and r.randf() < float(LEAK_P) / 1000.0:
-					release(world, c, pid, d, true)
+					release(world, c, pid, d, true, seg)
 				continue
-			release(world, c, pid, d, false)
+			release(world, c, pid, d, false, seg)
 
 
 ## Release one piece of dirt (also the player's action). leaked: it came out that the holder sat on it.
-static func release(world: WorldState, c: Dictionary, pid: String, d: Dictionary, leaked: bool = false) -> void:
+static func release(world: WorldState, c: Dictionary, pid: String, d: Dictionary, leaked: bool = false, seg: Dictionary = {}) -> void:
 	d["released"] = world.month
 	var tgt: String = d["target"]
 	var tp: Dictionary = world.table("party")[tgt]
@@ -875,7 +877,8 @@ static func release(world: WorldState, c: Dictionary, pid: String, d: Dictionary
 		if not tl.is_empty():
 			tl["popularity"] = clampi(int(tl["popularity"]) - int(d["sev"]) / 3, 0, 100)
 	_momentum(c, tgt, -int(d["sev"]) * 5)
-	var seg := segments(world)
+	if seg.is_empty():
+		seg = segments(world)
 	_backfire(c, pid, seg, float(d["sev"]) * 0.5 * _total_pop(seg))
 	if leaked:
 		_momentum(c, pid, SAT_ON_IT)
