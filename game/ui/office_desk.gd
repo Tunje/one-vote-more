@@ -1,6 +1,6 @@
 class_name OfficeDesk
 extends Control
-## Terra (A44 §O3–O4): the office as a drawn scene, the governor's desk seen from the chair. Clickable objects:
+## Terra (A44 §O3–O4): the office as a drawn scene, the First Minister's desk seen from the chair. Clickable objects:
 ## newspaper (Paper), in-tray (Reports), PC (Inbox), red phone (Calls), wall calendar (Calendar), door (Visitors) and
 ## the window (the colony outside). Presentation only: reads the office channel (Office, OfficeFeed) and the staff
 ## queries; clicking emits `object_clicked(tab)` and the office panel shows that tab's content.
@@ -90,7 +90,7 @@ func _notification(what: int) -> void:
 ## What the desk shows, as plain data (tests read this too).
 func gather() -> Dictionary:
 	var d := {"reports_new": 0, "reports": 0, "inbox": 0, "urgent": 0, "calls": 0, "visitors": 0, "hours": 0,
-		"headline": "", "masthead": "THE GAZETTE", "marks": {}, "election": -1, "month": 0, "role": "Governor", "status": "COLONY"}
+		"headline": "", "masthead": "THE GAZETTE", "marks": {}, "election": -1, "month": 0, "role": "First Minister", "status": "COLONY"}
 	if session == null:
 		return d
 	var w: WorldState = session.world()
@@ -122,7 +122,7 @@ func gather() -> Dictionary:
 	if session.has_method("next_election_month"):
 		d["election"] = int(session.next_election_month())
 	var era := String(session.pol_state().get("era", "")) if session.has_method("pol_state") else ""
-	d["role"] = "Commander" if era == "FOUNDING" else ("Governor" if OfficeFeed.player_office(w) else "Party leader")
+	d["role"] = "Commander" if era == "FOUNDING" else ("First Minister" if OfficeFeed.player_office(w) else "Party leader")
 	return d
 
 
@@ -514,7 +514,7 @@ func _draw_phone() -> void:
 
 
 func _draw_plate() -> void:
-	var role := String(_data.get("role", "Governor"))
+	var role := String(_data.get("role", "First Minister"))
 	var r := Rect2(W * 0.5 - 140, H - 34, 280, 30)
 	draw_rect(r, Color("#3a2a1a"))
 	draw_rect(r.grow(-3), Color("#c9a34e"))

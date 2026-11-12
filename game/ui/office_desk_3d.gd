@@ -1,6 +1,6 @@
 class_name OfficeDesk3D
 extends SubViewportContainer
-## Terra (A44, user: a 3D office): the governor's office in 3D, seen from the chair. PLACEHOLDER primitives in the
+## Terra (A44, user: a 3D office): the First Minister's office in 3D, seen from the chair. PLACEHOLDER primitives in the
 ## layout and scale of the "Modern Office 3D PBR" pack (1 unit = 1 m), every object a named node, so the OBJ models
 ## (game/assets/office3d) replace the meshes later without touching the logic.
 ## The same objects as the 2D desk (OfficeDesk), the same data (OfficeDesk.gather) and the same signal: clicking emits
@@ -331,7 +331,7 @@ func _desk() -> void:
 	_box(desk, "PedestalLeft", Vector3(0.42, 0.72, 0.78), Vector3(-0.62, 0.36, 0), Color("#8a5d36"))
 	_box(desk, "PedestalRight", Vector3(0.42, 0.72, 0.78), Vector3(0.62, 0.36, 0), Color("#8a5d36"))
 	var plate := _node("NamePlate", Vector3(0, 0.79, 0.12))
-	_box(plate, "Plate", Vector3(0.3, 0.05, 0.02), Vector3.ZERO, Color("#c9a34e"), 0.3).rotation_degrees = Vector3(-20, 0, 0)
+	_box(plate, "Plate", Vector3(0.4, 0.05, 0.02), Vector3.ZERO, Color("#c9a34e"), 0.3).rotation_degrees = Vector3(-20, 0, 0)
 	var pl := Label3D.new()
 	pl.name = "Role"
 	pl.position = Vector3(0, 0.002, 0.013)
@@ -423,7 +423,7 @@ func _update_objects() -> void:
 	(_scene.get_node("WallClock/HoursLeft") as Label3D).text = "%d hours left" % int(d.get("hours", 0))
 	var hand: Node3D = _scene.get_node("WallClock/Hand")
 	hand.rotation_degrees = Vector3(0, 0, -30.0 * float(posmod(int(d.get("hours", 0)), 12)))
-	(_scene.get_node("NamePlate/Role") as Label3D).text = String(d.get("role", "Governor")).to_upper()
+	(_scene.get_node("NamePlate/Role") as Label3D).text = String(d.get("role", "First Minister")).to_upper()
 
 
 func _set_badge(path: String, n: int) -> void:
