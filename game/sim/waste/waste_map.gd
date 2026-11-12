@@ -12,7 +12,7 @@ extends RefCounted
 ## World tables (integers and strings only):
 ##   "waste_sites": {fid: {id, kind, tiles: [tile ints], built, fill (‰, landfill), burials (cemetery)}}
 ##   "river": {"load": {"<tile>": load this month (units)}, "poll": {"<tile>": pollution (units)}}
-## Units: 1 000 load units ≈ the untreated sewage of 1 000 people for a month. Tile = y*64+x (Transport.tile_int).
+## Units: 1 000 load units ≈ the untreated sewage of 1 000 people for a month. Tile = y*W+x (Transport.tile_int).
 
 const LQ := preload("res://sim/law/law_query.gd")
 const KINDS := ["LANDFILL", "INCINERATOR", "RECYCLING", "TREATMENT", "CEMETERY", "CREMATORIUM"]
@@ -40,7 +40,7 @@ static var _flow_cache := {}
 
 ## River flow of the colony map: {"down": {tile: next tile downstream (-1 at the mouth)}, "order": [tiles, upstream
 ## first], "dist": {tile: steps to the mouth}}. The river leaves the map at its mouth (grid "mouth": the sea or the
-## edge towards the globe's downstream hex; old maps: the south edge); the tributary flows into it. Cached per terrain.
+## edge towards the globe's downstream hex); the tributary flows into it. Cached per terrain.
 static func flow(world: WorldState) -> Dictionary:
 	if not Terrain.ready(world):
 		return {"down": {}, "order": [], "dist": {}}
@@ -51,23 +51,10 @@ static func flow(world: WorldState) -> Dictionary:
 	var H := Terrain.H
 	var dist := {}
 	var q: Array = []
-	var mo: Array = world.peek("map")["grid"].get("mouth", [-1, -1])   # maps derived from the globe store their mouth
+	var mo: Array = world.peek("map")["grid"].get("mouth", [-1, -1])   # where the river leaves the map (Terrain.derive)
 	if Terrain.at(world, int(mo[0]), int(mo[1])) == "r":
 		dist[int(mo[1]) * W + int(mo[0])] = 0
 		q.append(int(mo[1]) * W + int(mo[0]))
-	var old_map := q.is_empty()   # old maps: the mouth is the river's tiles on the south edge (else the southernmost ones)
-	for x in W:
-		if old_map and Terrain.at(world, x, H - 1) == "r":
-			dist[(H - 1) * W + x] = 0
-			q.append((H - 1) * W + x)
-	if q.is_empty():
-		for y in range(H - 1, -1, -1):
-			for x2 in W:
-				if Terrain.at(world, x2, y) == "r":
-					dist[y * W + x2] = 0
-					q.append(y * W + x2)
-			if not q.is_empty():
-				break
 	var down := {}
 	for t in q:
 		down[t] = -1

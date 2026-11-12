@@ -1,6 +1,7 @@
 extends SceneTree
 ## Terra (A5): render the colony map to a PNG (needs a window, not --headless).
-## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1] [bridge|waste|siting]
+## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1] [bridge|waste|siting|whole]
+## "whole": the whole map at once (the opening view frames the landing site)
 ## fixture 1 builds a few areas (Landing, a mining camp, a farm village, a private enclave) with residents, as the
 ## economy will once A2/A3 land, so the area tools can be seen today.
 const DL := preload("res://sim/law/districting.gd")
@@ -9,6 +10,7 @@ var _frames := 0
 var _out := "user://colony.png"
 var _mode := "INSPECT"
 var _bridge := false
+var _whole := false
 var _waste := ""       # arg 6 = "waste": a demo landfill, cemetery and sewage in the river; "siting": the landfill siting study   # arg 6 = "bridge": zoom in on the first river crossing and open its link panel
 
 
@@ -21,6 +23,7 @@ func _init() -> void:
 		_mode = args[2]
 	var months := int(args[3]) if args.size() > 3 else 40
 	_bridge = args.size() > 5 and args[5] == "bridge"
+	_whole = args.size() > 5 and args[5] == "whole"
 	_waste = args[5] if args.size() > 5 and args[5] in ["waste", "siting"] else ""
 	var s := GameSession.new()
 	s.new_game(seed_v, true)
@@ -120,6 +123,11 @@ func _process(_d: float) -> bool:
 			_view._build_pick.select(ColonyMap.BUILD_TYPES.find("LANDFILL"))
 			_view._refresh_siting()
 			_view._update_panel()
+		if _whole:
+			_view._zoom = 1.0
+			_view._pan = Vector2.ZERO
+			_view._user_view = true
+			_view.queue_redraw()
 		if _bridge:
 			for l in Transport.network(w)["links"]:
 				if not l.get("spans", []).is_empty():

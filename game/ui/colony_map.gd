@@ -249,6 +249,22 @@ func set_mode(m: String) -> void:
 	refresh()
 
 
+## The landing hex's border (the map holds the whole hex; its corners show the neighbouring hexes of the globe).
+func _draw_hex_border(w: WorldState, t: float) -> void:
+	var hx := Planet.tile_hexes(w)
+	var li := Planet.landing(w)
+	var col := Color(1.0, 0.92, 0.6, 0.55)
+	var wd := maxf(1.0, t * 0.15)
+	for y in Terrain.H:
+		for x in Terrain.W:
+			var inside: bool = hx[y * Terrain.W + x] == li
+			var r := _tile_rect(x, y)
+			if x + 1 < Terrain.W and (hx[y * Terrain.W + x + 1] == li) != inside:
+				draw_line(Vector2(r.end.x, r.position.y), Vector2(r.end.x, r.end.y), col, wd)
+			if y + 1 < Terrain.H and (hx[(y + 1) * Terrain.W + x] == li) != inside:
+				draw_line(Vector2(r.position.x, r.end.y), Vector2(r.end.x, r.end.y), col, wd)
+
+
 # ======================================================================= display layout (static, pure reads)
 
 ## Layout (settlements, facility tiles) lives in the sim now (ColonyLayout), shared with the transport network.
@@ -405,6 +421,7 @@ func _draw() -> void:
 				else:
 					c = c.darkened(0.35)
 			draw_rect(Rect2(_tile_rect(x, y).position, Vector2(t - gap, t - gap)), c)
+	_draw_hex_border(w, t)
 	_draw_area_outlines(w, t)
 	if show_dist:
 		_draw_district_borders(t)

@@ -35,8 +35,7 @@ var _corner_h := PackedFloat32Array()   # display height per corner (geometry tr
 var _weather_mesh: MeshInstance3D
 var _weather_for := ""                  # month|planet the weather layer was built for
 const CLOUD_R := 1.0 + RELIEF * 100.0   # storms drift above the highest peaks
-## The colony on the globe: the 64x40 colony map (ui ColonyMap's terrain, areas, facilities) laid on the landing hex.
-const COLONY_FILL := Planet.COLONY_FILL   # half-width of the colony map, as a share of the hex's smallest centre-corner distance
+## The colony on the globe: the colony map (ui ColonyMap's terrain, areas, facilities) laid on the landing hex.
 const RIVER_COLOR := Color("#2f7fd0")
 const COLONY_LIFT := 0.0006    # above the terrain, below the gold rim
 const COLONY_PX := 4           # texture pixels per colony tile (facilities: the inner 2x2)
@@ -509,15 +508,12 @@ func _hex_frame(w: WorldState) -> Dictionary:
 	var ct: PackedInt32Array = geo["corner_tri"][li]
 	var pts := PackedVector2Array()
 	var rads := PackedFloat32Array()
-	var reach := INF
 	for k in poly.size():
-		var q := Vector2(poly[k].dot(east), poly[k].dot(north))
-		pts.append(q)
+		pts.append(Vector2(poly[k].dot(east), poly[k].dot(north)))
 		rads.append(_r(_corner_h[ct[k]]))
-		reach = minf(reach, q.length())
-	var hw := COLONY_FILL * reach
+	var fr := Planet.colony_frame(w)   # the map holds the whole hex; its corners (other hexes) are left transparent
 	return {"c": c, "east": east, "north": north, "pts": pts, "rads": rads, "rc": _r(maxf(Planet.height(w, li), 0.0)),
-		"hw": hw, "hh": hw * float(Terrain.H) / float(Terrain.W)}
+		"hw": float(fr["hw"]), "hh": float(fr["hh"])}
 
 
 ## Terrain radius at a tangent-plane point of the landing hex (barycentric in the fan triangle that holds it).
@@ -547,7 +543,8 @@ func colony_point(w: WorldState, g: Vector2, lift: float = COLONY_LIFT, f: Dicti
 	return dir * (_surface_r(f, q) + lift)
 
 
-## The colony map as a texture: terrain, areas by kind, facilities (ColonyMap's colours), a faint tile grid.
+## The colony map as a texture: terrain, areas by kind, facilities (ColonyMap's colours). Tiles outside the landing
+## hex (the map's corners) are transparent: there the globe shows the neighbouring hexes itself.
 static func colony_image(w: WorldState) -> Image:
 	var px := COLONY_PX
 	var img := Image.create(Terrain.W * px, Terrain.H * px, false, Image.FORMAT_RGBA8)
@@ -562,9 +559,13 @@ static func colony_image(w: WorldState) -> Image:
 		var an := ColonyMap.econ_anchors(w)
 		for d in an:
 			fac_col[Terrain.key(an[d].x, an[d].y)] = Color("#fff3b0")
+	var hexes := Planet.tile_hexes(w)
+	var li := Planet.landing(w)
 	for y in Terrain.H:
 		var row: String = rows[y]
 		for x in Terrain.W:
+			if hexes[y * Terrain.W + x] != li:
+				continue   # transparent (the image starts clear)
 			var c: Color = MapView.TERRAIN_COLORS.get(row.substr(x, 1), Color.GRAY)
 			var area := String(Terrain.use_at(w, x, y).get("area", ""))
 			if area != "":
@@ -585,8 +586,8 @@ func _build_colony(w: WorldState) -> void:
 		_colony_mesh.mesh = null
 		return
 	var f := _hex_frame(w)
-	var nx := 32
-	var ny := 20
+	var nx := 48
+	var ny := 48
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var grid: Array = []
@@ -611,6 +612,8 @@ func _build_colony(w: WorldState) -> void:
 	img.generate_mipmaps()
 	mat.albedo_texture = ImageTexture.create_from_image(img)
 	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	mat.alpha_scissor_threshold = 0.5
 	mat.roughness = 0.9
 	st.set_material(mat)
 	_colony_mesh.mesh = st.commit()

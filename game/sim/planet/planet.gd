@@ -1,7 +1,7 @@
 class_name Planet
 extends RefCounted
 ## The colony's planet (Terra): a globe of big hex regions (a Goldberg sphere: 12 pentagons, the rest hexagons),
-## each with an elevation level and a biome. The 64×40 colony grid (Terrain) lives INSIDE one region, the landing
+## each with an elevation level and a biome. The colony grid (Terrain, 96×96 tiles of 3 km) holds one region, the landing
 ## region. Generated per seed from its own RNG seed ("planet.terrain"), so it never moves other streams.
 ##
 ## World table "planet" is small: {"freq": int, "gen": int, "landing": int, "uses": {"<cell>": {...}}}.
@@ -36,8 +36,8 @@ const ARCHETYPES := {
 const ARCHETYPE_ORDER := ["TEMPERATE", "COOL", "WARM_WET", "DRY", "HIGHLAND"]
 ## Rivers on the globe: cells gathering at least this much rain (in cells of average rain) from upstream.
 const RIVER_MIN := 14.0
-## Half-width of the colony map on its hex, as a share of the hex's smallest centre-corner distance (PlanetView too).
-const COLONY_FILL := 0.7
+## Planet radius in km (one hex is ~210 km centre to centre, ~250 km corner to corner); PlanetSites uses it too.
+const RADIUS_KM := 6100
 
 static var _geo := {}           # freq -> {"centers", "corners", "corner_tri", "tris", "nbrs", "edge_nbr"}
 static var _cache := {}         # "seed|freq|gen" -> {"h", "bio", "landing"}
@@ -202,7 +202,7 @@ static func _data(world: WorldState) -> Dictionary:
 	var arch := String(world.peek("planet").get("arch", ""))
 	var key := "%d|%d|%d|%s" % [sd, fq, int(world.peek("planet").get("gen", GEN_VERSION)), arch]
 	if not _cache.has(key):
-		if _cache.size() >= 6:
+		if _cache.size() >= 12:
 			_cache.clear()
 		_cache[key] = _compute(sd, fq, arch)
 	return _cache[key]
@@ -577,25 +577,44 @@ static func _mix(a: int, b: int) -> int:
 
 
 ## The colony map's frame on the landing hex: tangent directions (east, north) at the landing centre and the map's
-## half-size in that plane (unit-sphere units). PlanetView lays the map texture with the same frame.
+## half-size in that plane (unit-sphere units): Terrain.W × Terrain.H tiles of Terrain.KM_PER_TILE, centred on the
+## landing centre, so the map holds the whole hex and its corners show the neighbours. PlanetView uses it too.
 static func colony_frame(world: WorldState) -> Dictionary:
 	var li := landing(world)
-	var geo := geometry(freq(world))
-	var c: Vector3 = geo["centers"][li]
+	var c: Vector3 = geometry(freq(world))["centers"][li]
 	var east := Vector3.UP.cross(c)
 	east = east.normalized() if east.length() > 0.0001 else Vector3.RIGHT
 	var north := c.cross(east).normalized()
-	var reach := INF
-	for q in geo["corners"][li]:
-		reach = minf(reach, Vector2(Vector3(q).dot(east), Vector3(q).dot(north)).length())
-	var hw := COLONY_FILL * reach
+	var hw := float(Terrain.W * Terrain.KM_PER_TILE) / 2.0 / float(RADIUS_KM)
 	return {"c": c, "east": east, "north": north, "hw": hw, "hh": hw * float(Terrain.H) / float(Terrain.W)}
 
 
-## Hex that holds a tile of the 64×40 colony grid (Terrain). The whole grid lies inside the landing hex today;
-## when settlements spread to other hexes, each gets its own grid and this maps grid → hex (agreed with Bob).
-static func hex_of_tile(world: WorldState, _tile: Vector2i) -> int:
-	return landing(world)
+## Direction from the planet centre to a point of the colony map (tile units: x east, y south; tile centres at +0.5).
+static func colony_dir(fr: Dictionary, g: Vector2) -> Vector3:
+	var q := Vector2((g.x / Terrain.W - 0.5) * 2.0 * float(fr["hw"]), (0.5 - g.y / Terrain.H) * 2.0 * float(fr["hh"]))
+	return (Vector3(fr["c"]) + Vector3(fr["east"]) * q.x + Vector3(fr["north"]) * q.y).normalized()
+
+
+## Hex that holds a tile of the colony map (the landing hex, or a neighbour in the map's corners). Pure; cached.
+static func hex_of_tile(world: WorldState, tile: Vector2i) -> int:
+	if tile.x < 0 or tile.y < 0 or tile.x >= Terrain.W or tile.y >= Terrain.H:
+		return -1
+	return tile_hexes(world)[tile.y * Terrain.W + tile.x]
+
+
+## The hex of every colony-map tile (index y * W + x). Shared, do not modify.
+static func tile_hexes(world: WorldState) -> PackedInt32Array:
+	var key := "hexes|%d|%d|%d" % [seed_of(world), landing(world), freq(world)]
+	if not _cache.has(key):
+		var fr := colony_frame(world)
+		var out := PackedInt32Array()
+		out.resize(Terrain.W * Terrain.H)
+		var li := landing(world)
+		for y in Terrain.H:
+			for x in Terrain.W:
+				out[y * Terrain.W + x] = cell_at(colony_dir(fr, Vector2(x + 0.5, y + 0.5)), freq(world), li)
+		_cache[key] = out
+	return _cache[key]
 
 
 ## Hexes with something on them (the colony, later outposts): weather facts are reported for these.

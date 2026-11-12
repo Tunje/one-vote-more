@@ -16,8 +16,8 @@ const KIND_NAMES := {
 	"CRYSTAL_CRAGS": "crystal crags", "WATERFALL": "waterfall", "CANYON": "canyon",
 	"GLOWING_FIELD": "glowing field (alien)", "AURORA_PLAIN": "aurora plain", "TIDAL_BORE": "twin-moon tidal bore",
 	"SUMMIT": "summit"}
-## Planet radius (km): one hex step at frequency 32 is ~210 km. The colony map (64×40) lies inside one hex.
-const RADIUS_KM := 6100
+## Planet radius (km): one hex step at frequency 32 is ~210 km. The colony map holds the whole landing hex.
+const RADIUS_KM := Planet.RADIUS_KM
 const KM_PER_TRAVEL_DAY := 400      # overland/air trip, for the travel cost (Bob prices it)
 const REGION_STEPS := 8             # within this many hex steps a site is "REGION", beyond it "GLOBE"
 const SPACING := 4                  # two sites of a kind keep at least this many hex steps apart

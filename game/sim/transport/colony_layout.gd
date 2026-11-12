@@ -1,6 +1,6 @@
 class_name ColonyLayout
 extends RefCounted
-## Terra: where things stand on the 64×40 colony map, a pure read of the world.
+## Terra: where things stand on the colony map (Terrain.W × Terrain.H), a pure read of the world.
 ## - Settlements: the areas (AreaStore) once they exist; before A2, one display settlement per economic district,
 ##   on suitable terrain around the landing site (d:1 at the landing site).
 ## - Facilities: their own tile once A2 gives them one (f["tile"]); before that, a free tile of suitable terrain

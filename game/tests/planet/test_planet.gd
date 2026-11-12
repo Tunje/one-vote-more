@@ -83,9 +83,16 @@ func test_colony_lies_on_its_hex() -> void:
 	check_eq(img.get_size(), Vector2i(Terrain.W, Terrain.H) * PlanetView.COLONY_PX, "one block of pixels per colony tile")
 	check_eq(img.get_data(), PlanetView.colony_image(w).get_data(), "deterministic")
 	var li := Planet.landing(w)
+	# the map holds the whole hex: its middle is the landing hex, its corners lie in the neighbours (left clear)
+	var nbs := Array(Planet.neighbors(w, li))
 	for g in [Vector2(0, 0), Vector2(Terrain.W, 0), Vector2(0, Terrain.H), Vector2(Terrain.W, Terrain.H), Vector2(Terrain.landing(w))]:
 		var p := v.colony_point(w, g)
-		check_eq(Planet.cell_at(p.normalized(), Planet.freq(w), li), li, "colony map point %s stays inside the landing hex" % g)
+		var c := Planet.cell_at(p.normalized(), Planet.freq(w), li)
+		if g == Vector2(Terrain.landing(w)):
+			check_eq(c, li, "the landing site lies in the landing hex")
+		else:
+			check(c in nbs or c == li, "corner %s lies in the landing hex or a neighbour (%d)" % [g, c])
+			check_eq(img.get_pixelv(Vector2i(mini(int(g.x), Terrain.W - 1), mini(int(g.y), Terrain.H - 1)) * PlanetView.COLONY_PX).a == 0.0, c != li, "outside the hex the map is clear")
 		check(p.length() > 1.0 and p.length() < 1.0 + PlanetView.RELIEF * 100.0, "on the surface")
 	check_eq(PlanetView.colony_hits(w), [], "calm weather: no hits")
 	check(not v._alert_mesh.visible, "no warning rim")

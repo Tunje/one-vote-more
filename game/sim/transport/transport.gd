@@ -7,7 +7,7 @@ extends RefCounted
 ##
 ## State (world table "transport", integers and strings only):
 ##   {"links": {lid: link}, "bases": {bid: {id, kind: ROVER_BASE|MAST, tile, owner}}, "seq": int}
-##   colony link: {id, kind: TRACK|ROAD|PAVED, path: [tile ints, y*64+x], bridges, cond 0..1000, traffic, built, globe: 0}
+##   colony link: {id, kind: TRACK|ROAD|PAVED, path: [tile ints, y*W+x], bridges, cond 0..1000, traffic, built, globe: 0}
 ##   globe link:  {id, kind, cells: [hex ints from the landing hex], site, cond, traffic, built, globe: 1}
 ## Until the first NATURE tick writes the table, every query sees the founding network (tracks joining the first
 ## settlements, and spurs to the founding plants that stand outside a town), so queries stay pure.
@@ -17,7 +17,10 @@ extends RefCounted
 
 const KINDS := ["TRACK", "ROAD", "PAVED"]
 const KIND_NAMES := {"TRACK": "dirt track", "ROAD": "road", "PAVED": "paved road"}
-const KM_PER_TILE := 3            # the landing hex (~210 km) holds the 64-tile-wide colony map
+const KM_PER_TILE := Terrain.KM_PER_TILE   # the colony map holds the whole landing hex
+## Path search heap keys: cost << TILE_BITS | tile (the map has fewer than 2^14 tiles).
+const TILE_BITS := 14
+const TILE_MASK := (1 << TILE_BITS) - 1
 const KM_PER_HEX := 210
 ## Speeds (km a day, loading and stops included) and cost (cost_index per 100 km; 100 = 100 km on a sound road).
 const SPEED := {"TRACK": 80, "ROAD": 200, "PAVED": 400, "STREET": 120, "ROVER": 60, "AIRSHIP": 900}
@@ -286,11 +289,11 @@ static func plan_path(world: WorldState, a: Vector2i, b: Vector2i, reuse: Dictio
 	prev.fill(-1)
 	var rows: Array = world.peek("map")["grid"]["rows"]
 	dist[src] = 0
-	var heap: Array = [src]   # keys: cost << 12 | tile
+	var heap: Array = [src]   # keys: cost << TILE_BITS | tile
 	while not heap.is_empty():
 		var top: int = _hpop(heap)
-		var c := top & 4095
-		var dc := top >> 12
+		var c := top & TILE_MASK
+		var dc := top >> TILE_BITS
 		if dc > dist[c]:
 			continue
 		if c == dst:
@@ -323,7 +326,7 @@ static func plan_path(world: WorldState, a: Vector2i, b: Vector2i, reuse: Dictio
 				if nd < dist[ni]:
 					dist[ni] = nd
 					prev[ni] = c
-					_hpush(heap, (nd << 12) | ni)
+					_hpush(heap, (nd << TILE_BITS) | ni)
 	if prev[dst] < 0 and src != dst:
 		return []
 	var path: Array = [dst]
