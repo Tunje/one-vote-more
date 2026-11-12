@@ -172,14 +172,20 @@ static func _essentials(world: WorldState, st: Dictionary, busy: Dictionary, who
 	for pid in world.table("project"):
 		var p: Dictionary = world.table("project")[pid]
 		if p["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
-			pending[p["type"]] = true
+			pending[p["type"]] = int(pending.get(p["type"], 0)) + 1
 	for good in ["FOOD", "ENERGY", "WATER", "MATERIAL", "COMPONENT"]:
-		var e: Dictionary = ess.get(good, {})
-		if e.is_empty() or float(e.get("demand", 0)) <= 0.0 or not _worried(good, e, state):
-			continue
+		var e: Dictionary = (ess.get(good, {}) as Dictionary).duplicate()
 		var ftype: String = ESS_PLANT[good]
-		if pending.has(ftype):
-			continue  # something is already being built; wait for it
+		if e.is_empty() or float(e.get("demand", 0)) <= 0.0:
+			continue
+		# count plants already being built as if they were running: act only if they will not close the gap
+		var n_pending := int(pending.get(ftype, 0))
+		if n_pending > 0:
+			var per_plant := float(e["capacity"]) / float(maxi(1, _count(world, ftype)))
+			e["margin_pct"] = int(100.0 * ((float(e["capacity"]) + per_plant * n_pending) / float(e["demand"]) - 1.0))
+			e["trend"] = 0
+		if not _worried(good, e, state):
+			continue
 		var survival: bool = good in ["FOOD", "ENERGY", "WATER"] and int(e["margin_pct"]) < 0
 		if float(e.get("labour_fill", 1.0)) < 0.5 and not survival:
 			continue  # nobody to staff it
@@ -200,3 +206,12 @@ static func _home(world: WorldState, ftype: String) -> String:
 		if f["type"] == ftype:
 			return String(f["district"])
 	return ESS_HOME.get(ftype, "d:2")
+
+
+static func _count(world: WorldState, ftype: String) -> int:
+	var n := 0
+	for fid in world.table("facility"):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] == ftype and not f.get("mothball", false):
+			n += 1
+	return n

@@ -31,4 +31,12 @@ func _init() -> void:
 					farms += 1
 			print("Y%d pop=%d farms=%d food_margin=%d%% famine_months=%d  %s" % [(m + 1) / 12, PopStore.total(w), farms, int(e["FOOD"]["margin_pct"]), famine, str(c)])
 			famine = 0
+			var pst: Dictionary = w.table("pol")["state"]
+			var g: Dictionary = pst.get("government", {})
+			var fp := []
+			for pid in w.table("project"):
+				var pr: Dictionary = w.table("project")[pid]
+				if pr["type"] == "FARM" and pr["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
+					fp.append("%s:%s:%s:start%d:%d%%:contractor=%s:unpaid=%d" % [pid, pr["status"], pr.get("owner", "?"), int(pr.get("start_month", -1)), int(100.0 * float(pr.get("wu_done", 0)) / maxf(1.0, float(pr.get("wu_total", 1)))), pr.get("contractor", ""), int(pr.get("unpaid_m", 0))])
+			print("    era=%s gov=%s ECON_ROLE=%s actor=%s farm_projects=%s offers=%s" % [pst.get("era", ""), g.get("members", []), g.get("center", {}).get("ECON_ROLE", "?"), not GovBuilder._actor(w, pst).is_empty(), fp, EconEssentials.offers(w).keys()])
 	quit()

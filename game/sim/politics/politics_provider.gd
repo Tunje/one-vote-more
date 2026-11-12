@@ -180,29 +180,20 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 	var honeymoon := 0.0
 	if not g0.is_empty() and g0.has("formed_month"):
 		honeymoon = HONEYMOON * maxf(0.0, 1.0 - float(world.month - int(g0["formed_month"])) / 12.0)
+	var sat_memo := {}
 	for cell in PolVoters.all(world):
 		if cell["pop"] <= 0:
 			continue
-		# 1. satisfaction per concern from indicators
-		var num := {}
-		var den := {}
-		for id in ind.defs:
-			var d: Dictionary = ind.defs[id]
-			if d["concerns"].is_empty():
-				continue
-			var key := _cell_indicator_key(cell, d["granularity"])
-			if not ind.values[id].has(key):
-				continue
-			var nv := ind.normalized(id, ind.read_perceived(id, key, world.month))
-			if d.get("exceptionOnly", false) and nv >= 100000:
-				continue  # pic-core §3: exception-only indicators weigh in only when something is wrong
-			for c in d["concerns"]:
-				num[c] = num.get(c, 0.0) + float(d["concerns"][c]) * nv
-				den[c] = den.get(c, 0.0) + float(d["concerns"][c])
+		# 1. satisfaction per concern from indicators (the same for every voter with the same district and census
+		#    key, so computed once per key per month)
+		var sat_key: String = String(cell["district"]) + "#" + String(cell.get("census_key", cell["key"]))
+		var actual_sat: Dictionary = sat_memo.get(sat_key, {})
+		if actual_sat.is_empty():
+			actual_sat = _indicator_sat(world, ind, cell)
+			sat_memo[sat_key] = actual_sat
 		var nb: Dictionary = cell.get("news_bias", {})
 		for c in PolDefs.CONCERNS:
-			var actual := int(round(num[c] / den[c])) if den.get(c, 0.0) > 0.0 else 50000
-			cell["sat"][c] = clampi(actual + int(nb.get(c, 0)), 0, 100000)   # media: perceived = actual + bias (facts unchanged)
+			cell["sat"][c] = clampi(int(actual_sat[c]) + int(nb.get(c, 0)), 0, 100000)   # media: perceived = actual + bias (facts unchanged)
 		# 2. salience: occupation base x (1 + 2 x unmet), renormalised to 1000
 		var occ_sal: Array = PolDefs.OCC_SALIENCE[PolVoters.vocc(cell)]
 		var na: Dictionary = cell.get("news_agenda", {})   # media: what your papers cover
@@ -267,6 +258,29 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 		cell["approval"] = clampi(int(round(0.85 * cell["approval"] + 0.15 * target)), 0, 100000)
 		# Expectations adapt slowly: a government is judged against what voters have got used to.
 		cell["expect"] = int(round(float(cell.get("expect", 50000)) + (float(cell["approval"]) - float(cell.get("expect", 50000))) / EXPECTATION_MONTHS))
+
+
+## Satisfaction per concern (0..100000) from the indicators a voter sees (colony, district and census-key level).
+func _indicator_sat(world: WorldState, ind, cell: Dictionary) -> Dictionary:
+	var num := {}
+	var den := {}
+	for id in ind.defs:
+		var d: Dictionary = ind.defs[id]
+		if d["concerns"].is_empty():
+			continue
+		var key := _cell_indicator_key(cell, d["granularity"])
+		if not ind.values[id].has(key):
+			continue
+		var nv: int = ind.normalized(id, ind.read_perceived(id, key, world.month))
+		if d.get("exceptionOnly", false) and nv >= 100000:
+			continue  # pic-core §3: exception-only indicators weigh in only when something is wrong
+		for c in d["concerns"]:
+			num[c] = num.get(c, 0.0) + float(d["concerns"][c]) * nv
+			den[c] = den.get(c, 0.0) + float(d["concerns"][c])
+	var out := {}
+	for c in PolDefs.CONCERNS:
+		out[c] = int(round(num[c] / den[c])) if den.get(c, 0.0) > 0.0 else 50000
+	return out
 
 
 ## This month's public facts with government/commander responsibility (blame/credit).
