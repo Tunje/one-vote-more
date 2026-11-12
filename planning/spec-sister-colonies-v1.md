@@ -12,6 +12,23 @@ Owners: **Wilma** C1, C3, C4, C6 (sister-colony politics, diplomacy, the League,
 star map / home-world view), **Anni** C4 law (treaties, a League or federation charter), **Wilma + Anni** news.
 Order: after A47. Integer state; deterministic from seed and expedition choices; saved with the world.
 
+## C0. Distance and travel time (user, 2026-11-13)
+
+"It should be one year to eight months minimum travel time to the nearest colony, one way."
+- Each pair of colonies (and each colony and the home world) has a **one-way travel time**: the nearest sister at
+  least **8–12 months**, farther ones longer (by Terra's star positions); a round trip is twice that plus port time.
+- **Everything between colonies travels by ship and arrives late**: goods, migrants, letters, treaties, aid, and
+  **news** — the papers report a sister's election or famine only when the ship carrying the news arrives, a year
+  or more after it happened ("dispatches from Kepler Reach, written last spring"). Our picture of the others is
+  always out of date; a treaty proposal may meet a government that has since fallen.
+- **Diplomacy is slow**: an offer and its answer take a round trip; urgent aid (famine relief) arrives too late
+  unless sent ahead; a joint independence needs months of coordination by letter — and the home world's ships
+  may carry its own orders faster.
+- **Trade** suits durable, valuable goods (minerals, fine goods, preserved food), not perishables; the light model
+  carries cargo in transit (goods leave stock on departure and arrive months later).
+- Routes: a ship's route through several colonies takes the sum of legs; colonies on short legs trade and talk more
+  — distance shapes alliances.
+
 ## C1. The sister colonies (Wilma)
 
 Each sister colony is a record `colony_sister[id]`: name, planet summary (from Terra's candidate), founding
