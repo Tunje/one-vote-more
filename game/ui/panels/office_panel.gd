@@ -168,7 +168,8 @@ func _author(w: WorldState, o: Dictionary) -> void:
 	if String(fr.get("kind", "")) == "STAFF_ROLE" or (fr.is_empty() and role != ""):
 		Kit.label(body, "From: (%s — post vacant: nobody briefed you)" % role, 12, Color("#ff8a65"))
 	elif not fr.is_empty():
-		Kit.label(body, "From: %s, %s" % [String(fr.get("name", fr.get("id", "?"))), role], 12, Color("#aaaaaa"))
+		var title := String(OStaff.minister_label(w, String(fr.get("role", o.get("role", "")))))
+		Kit.label(body, "From: %s, %s" % [String(fr.get("name", fr.get("id", "?"))), title if title != "" else role], 12, Color("#aaaaaa"))
 
 
 func _answer(w: WorldState, id: String, oid: String) -> void:
