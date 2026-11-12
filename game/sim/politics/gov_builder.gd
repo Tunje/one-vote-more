@@ -64,6 +64,9 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 			worst = d
 	if worst != "":
 		orders += _order(world, st, busy, who, "HOUSING", worst, "")
+	# 1b. housing ahead of the wave (A46 S6): households forming over the planning horizon against free homes.
+	#     State-minded governments plan further ahead and build; market-minded ones offer developers a grant.
+	orders += _housing_ahead(world, st, busy, who, state)
 	# 3. schools and clinics where access is poor; egalitarian and service-owning governments set a higher bar
 	var bar := clampf(650.0 + 150.0 * maxf(equality, services_owner), 500.0, 850.0)
 	var needs: Array = []
@@ -261,3 +264,40 @@ static func _port_depot(world: WorldState, st: Dictionary, busy: Dictionary, who
 		if p["type"] == "DEPOT" and p["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
 			return
 	_order(world, st, busy, who, "DEPOT", "d:1", "")
+
+
+static func _housing_ahead(world: WorldState, st: Dictionary, busy: Dictionary, who: Dictionary, state: float) -> int:
+	var f: Dictionary = EconQuery.demography(world)
+	if f.is_empty():
+		return 0
+	var units := float(f.get("housing_units", 0))
+	var occ := float(f.get("occupancy_pct", 0)) / 100.0
+	var forming := float(f.get("households_forming_12m", 0))
+	var horizon := 1.0 + 2.0 * clampf(state + 0.3, 0.0, 1.0)            # 1 to 3 years ahead
+	var free := units * (1.0 - occ)
+	var needed := forming * horizon - free
+	if needed <= 0.0 or units <= 0.0:
+		return 0
+	var per_block := units / float(maxi(1, _count(world, "HOUSING")))
+	if state > -0.15:
+		var best := ""
+		var best_v := -1.0
+		for d in EconUtil.sorted_keys(world.table("district")):
+			var o := float(world.table("district")[d].get("occupancy", 0))
+			if o > best_v and not busy.has("HOUSING|" + d):
+				best_v = o
+				best = d
+		if best == "":
+			return 0
+		var n := mini(2, int(ceil(needed / maxf(1.0, per_block))))
+		var done := 0
+		for _i in n:
+			done += _order(world, st, busy, who, "HOUSING", best, "")
+			if done == 0:
+				break
+		return done
+	if EconEssentials.offers(world).has("HOUSING"):
+		return 0
+	var cap := int(float(EconConstruction.estimate("HOUSING")) / float(EconUtil.S) * 0.3 * 1.5)
+	EconActions.enqueue(world, "ECON_OFFER_INCENTIVE", {"type": "HOUSING", "grant_pct": 30, "months": 24, "cap": maxi(1, cap)})
+	return 0
