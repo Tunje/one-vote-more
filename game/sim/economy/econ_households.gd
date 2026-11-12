@@ -135,6 +135,7 @@ static func _consume(world: WorldState) -> void:
 		EconUtil.qflow(world, "CONSUMER", "burned", cons)
 		if g["bought"].has("MEDICAL"):
 			EconUtil.qflow(world, "MEDICAL", "burned", g["bought"]["MEDICAL"])
+		EconConsumer.absorb(world, g)  # D2: durables into the home stock (which wears), fine food eaten
 	s["food_shortfall"] = int(1000.0 * float(short_food) / maxf(1.0, float(need_food)))
 	s["shortfall_d"] = {}
 	for d in need_d:
@@ -437,6 +438,8 @@ static func _post_orders(world: WorldState) -> void:
 		if extra > 0:
 			s["orders"].append({"buyer": gid + "~d", "acct": EconUtil.hh_acct(gid), "district": g["district"], "good": "CONSUMER",
 				"qty": extra, "limit": pc * 11 / 10 + 3 * int(EconUtil.lever(world, "ECON_FREIGHT_TARIFF", 5)) * S, "class": EconMarket.C_HH_DISC, "kind": "hh", "group": gid})
+		# D2: the rest of the goods budget (it used to sit idle above the CONSUMER cap) buys clothing, furnishings, fine food
+		EconConsumer.post_orders(world, gid, g, disc - EconUtil.val(extra, pc_eff))
 
 
 static func _housing(world: WorldState) -> void:

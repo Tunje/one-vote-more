@@ -21,9 +21,9 @@ extends RefCounted
 
 const S := EconUtil.S
 const CO := preload("res://sim/law/charter_ops.gd")
-const EXPORT_GOODS := ["MINERAL", "MATERIAL", "COMPONENT", "CONSUMER", "MEDICAL"]
-const HOME_MULT := {"MINERAL": 1.4, "MATERIAL": 1.3, "COMPONENT": 1.3, "CONSUMER": 1.2, "MEDICAL": 1.5, "LUXURY": 1.6}
-const FREIGHT_SHARE := {"MINERAL": 0.45, "MATERIAL": 0.35, "COMPONENT": 0.15, "CONSUMER": 0.2, "MEDICAL": 0.1, "LUXURY": 0.08}
+const EXPORT_GOODS := ["MINERAL", "MATERIAL", "COMPONENT", "CONSUMER", "MEDICAL", "CLOTHING", "FURNISHINGS", "FINE_FOOD"]  # D2 goods too
+const HOME_MULT := {"MINERAL": 1.4, "MATERIAL": 1.3, "COMPONENT": 1.3, "CONSUMER": 1.2, "MEDICAL": 1.5, "CLOTHING": 1.3, "FURNISHINGS": 1.3, "FINE_FOOD": 1.2}
+const FREIGHT_SHARE := {"MINERAL": 0.45, "MATERIAL": 0.35, "COMPONENT": 0.15, "CONSUMER": 0.2, "MEDICAL": 0.1, "CLOTHING": 0.12, "FURNISHINGS": 0.25, "FINE_FOOD": 0.15}
 const HOME_BAND := [600, 1500]  # ‰ of the starting home price
 const HOME_NOISE := 0.015  # monthly σ of the home price
 const TREND_STEP := 300  # ppm/month: the trend's own random walk step
@@ -51,7 +51,15 @@ static func _t(world: WorldState) -> Dictionary:
 			trend[g] = 0
 		s["trade"] = {"home": home, "home0": home.duplicate(), "trend_ppm": trend, "last_year": home.duplicate(), "ships": [],
 			"imports_bought": 0, "exported_total": 0, "balance_hist": []}
-	return s["trade"]
+	var tr: Dictionary = s["trade"]
+	for g in EXPORT_GOODS:  # goods added later (D2) in older worlds
+		if not tr["home"].has(g):
+			var h0 := int(float(EconData.BASE_PRICE[g]) * S * float(HOME_MULT[g]))
+			tr["home"][g] = h0
+			tr["home0"][g] = h0
+			tr["trend_ppm"][g] = 0
+			tr["last_year"][g] = h0
+	return tr
 
 
 # ------------------------------------------------------------------ queries (Trade window)
@@ -257,6 +265,8 @@ static func on_ship(world: WorldState) -> Dictionary:
 		q = EconUtil.inv_take(world, oid, g, PORT, q)
 		EconUtil.qflow(world, g, "burned", q)  # left the colony
 		var pay := EconUtil.val(q, px[g]["net"])
+		if g in EconConsumer.GOODS:
+			pay = int(float(pay) * (0.6 + 0.008 * float(EconConsumer.rep_of(world, oid, g))))  # D2: the home world pays for quality
 		var tax := EconUtil.val(q, px[g]["tax"])
 		if pay > 0:
 			world.ledger.transfer(Ledger.EXTERNAL, EconUtil.acct(oid), pay, "EXPORT_SALE", world.month)
@@ -330,6 +340,8 @@ static func note_import(world: WorldState, amount: int) -> void:
 static func publish(world: WorldState) -> void:
 	if EconUtil.off(world, "D1"):
 		return
+	if not world.indicators.defs.has("ECON_TRADE_BALANCE"):
+		return  # worlds built without the economy's indicator rows (some test setups)
 	world.set_indicator("econ", "ECON_TRADE_BALANCE", "COLONY", balance(world)["balance_24m"])
 
 

@@ -165,8 +165,8 @@ static func _media_owners(world: WorldState) -> void:
 		willing += MEDIA_COVER_PROFIT_SHARE * float(maxi(0, profit))
 		var spare := world.ledger.balance(EconUtil.acct(oid)) - MEDIA_RESERVE_MONTHS * maxi(1, EconFinance._monthly_costs(o))
 		# the owner's reasoning, kept on the outlet for the papers' finance view and probes (W_ref)
-		out["owner_decision"] = {"month": world.month, "short": float(short) / wref, "willing": willing / wref,
-			"spare": float(spare) / wref, "status": o["status"]}
+		out["owner_decision"] = {"month": world.month, "short_mw": int(round(1000.0 * float(short) / wref)), "willing_mw": int(round(1000.0 * willing / wref)),
+			"spare_mw": int(round(1000.0 * float(spare) / wref)), "status": o["status"]}  # milli-W_ref (integer state)
 		if o["status"] == "ACTIVE" and float(short) <= willing and spare >= short:
 			world.ledger.transfer(EconUtil.acct(oid), acc, short, "MEDIA_COVER", world.month)
 			o["media_cover_12m"] = int(o.get("media_cover_12m", 0)) + short
@@ -656,7 +656,7 @@ static func _small_business(world: WorldState) -> void:
 ## commissions a new plant, financed from cash, a bank loan (70%), or for a public enterprise a treasury request.
 ## At most one new plant per type every NEW_PLANT_GAP months.
 const PLANT_FOR := {"FOOD": "FARM", "MINERAL": "MINE", "MATERIAL": "PROCESSING", "COMPONENT": "COMPONENTS", "CONSUMER": "CONSUMERF",
-	"MEDICAL": "MEDWORKS", "ENERGY": "POWER", "WATER": "WATERWORKS"}
+	"MEDICAL": "MEDWORKS", "ENERGY": "POWER", "WATER": "WATERWORKS", "CLOTHING": "TEXTILE", "FURNISHINGS": "FURNITURE", "FINE_FOOD": "BAKERY"}
 
 
 static func _new_plants(world: WorldState) -> void:
@@ -833,6 +833,9 @@ static func _essentials_planner(world: WorldState) -> void:
 ## builder is founded with capital from the richest household pool (the construction sector otherwise died for good
 ## after the founding boom and every expansion stalled).
 const STALE_TENDER_M := 3  # E117a: months a tender sits without a bid before it counts as unmet construction demand
+const MAX_FORMING := 3  # D2: new companies being set up at once (was 1; the consumer industries waited years in line)
+const D2_ENTRY_UNEMP := 0.06
+const D2_ENTRY_MONTH := 24  # the founding years build essentials first
 
 
 static func _builder_entry(world: WorldState) -> void:
@@ -891,38 +894,65 @@ static func _builder_entry(world: WorldState) -> void:
 static func _entry(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var hist: Dictionary = s.get("entry_signal", {})
-	var candidate := ""
-	for ftype in ["FARM", "CONSUMERF", "SERVICEHUB", "PROCESSING", "MINE"]:
+	var hot_list: Array = []  # [ftype, price / unit cost]
+	for ftype in ["FARM", "CONSUMERF", "SERVICEHUB", "PROCESSING", "MINE", "TEXTILE", "FURNITURE", "BAKERY"]:  # D2: consumer workshops
 		var good: String = EconData.RECIPES[ftype]["out"][0]
 		var price := float(s["svc_price"]["d:1"]) if good == "SERVICES" else float(s["prices"].get(good, 0))
-		var hot := price >= 1.25 * unit_cost(world, ftype)
+		var uc := unit_cost(world, ftype)
+		var hot := price >= 1.25 * uc
 		hist[ftype] = hist.get(ftype, 0) + 1 if hot else 0
-		if hist[ftype] >= 2 and candidate == "":
-			candidate = ftype
+		if hist[ftype] >= 2:
+			hot_list.append([ftype, price / maxf(1.0, uc)])
 	s["entry_signal"] = hist
-	if candidate == "":
+	if hot_list.is_empty():
 		return
+	var forming := 0
+	var forming_types := {}  # sectors with an entrant already being set up
 	for oid in world.table("org"):
 		if world.table("org")[oid]["status"] == "FORMING":
-			return  # E77: one entrant at a time (each needs a builder and a market)
-	var est := EconConstruction.estimate(candidate)
+			for pid in world.table("project"):
+				if world.table("project")[pid]["owner"] == oid:
+					forming_types[world.table("project")[pid]["type"]] = true
+			forming += 1
+	var u_now := colony_unemployment(world)
+	var max_forming := mini(MAX_FORMING, 1 + (1 if u_now >= 0.08 else 0) + (1 if u_now >= 0.12 else 0))  # more entrants only with idle hands
+	if forming >= max_forming:
+		return  # E77: a few entrants at a time (each needs a builder and a market); D2: was one
 	# founder capital from the richest high-income household pool with an adult outside the labour force
 	var best := ""
 	var best_cash := 0
 	for gid in EconUtil.sorted_keys(world.table("hh")):
-		var g: Dictionary = world.table("hh")[gid]
-		if g["band"] in ["I4", "I5"] and g["nonpart"] >= S:
+		var g0: Dictionary = world.table("hh")[gid]
+		if g0["band"] in ["I4", "I5"] and g0["nonpart"] >= S:
 			var c := world.ledger.balance(EconUtil.hh_acct(gid))
 			if c > best_cash:
 				best_cash = c
 				best = gid
-	if best == "" or best_cash < est * 4 / 10:
+	if best == "":
 		return
 	var g: Dictionary = world.table("hh")[best]
-	var district: String = g["district"]
-	if candidate == "MINE":
-		district = "d:3"
-	if not LawBridge.allowed(world, "new", "BUILD_FACILITY", {"facility_type": candidate, "district": district, "owner_kind": "COMPANY", "value_wref": 0}):
+	# D2: try every hot sector, the most profitable first (a blocked one no longer stops the others)
+	hot_list.sort_custom(func(a, b): return float(a[1]) > float(b[1]) or (float(a[1]) == float(b[1]) and str(a[0]) < str(b[0])))
+	var candidate := ""
+	var district := ""
+	var est := 0
+	for row in hot_list:
+		var ft: String = row[0]
+		if ft in ["TEXTILE", "FURNITURE", "BAKERY"] and (world.month < D2_ENTRY_MONTH or colony_unemployment(world) < D2_ENTRY_UNEMP):
+			continue  # D2: consumer workshops start once there are idle hands (not while the farms still need every worker)
+		if forming_types.has(ft):
+			continue
+		var e := EconConstruction.estimate(ft)
+		var d: String = "d:3" if ft == "MINE" else g["district"]
+		if best_cash < e * 4 / 10:
+			continue
+		if not LawBridge.allowed(world, "new", "BUILD_FACILITY", {"facility_type": ft, "district": d, "owner_kind": "COMPANY", "value_wref": 0}):
+			continue
+		candidate = ft
+		district = d
+		est = e
+		break
+	if candidate == "":
 		return
 	var id := world.new_id("org")
 	var mgmt := int(clampf(50.0 + EconUtil.normal(world, "comp.entry", 15.0), 10.0, 95.0))

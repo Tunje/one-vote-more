@@ -83,7 +83,7 @@ func test_query_layer_for_ui() -> void:
 	check(EconQuery.companies(w).size() >= 15, "company directory")
 	var oid: String = EconQuery.companies(w)[0]["id"]
 	check(EconQuery.company_profile(w, oid).has("facilities"), "company profile")
-	check(EconQuery.market_overview(w).size() == 8, "market overview")
+	check(EconQuery.market_overview(w).size() == EconData.MARKET_GOODS.size() + 2, "market overview: every market good plus energy and water")
 	check(EconQuery.district_economy(w, "d:4").has("ECON_POLLUTION_INDEX"), "district economy")
 	var fid: String = EconUtil.sorted_keys(w.table("facility"))[0]
 	check(EconQuery.explain_facility(w, fid).has("causes"), "facility explainer")

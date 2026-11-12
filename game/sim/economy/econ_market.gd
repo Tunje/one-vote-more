@@ -4,7 +4,7 @@ extends RefCounted
 
 const S := EconUtil.S
 enum { C_CONTRACT, C_HH_ESS, C_INSTITUTION, C_GOV, C_FIRM, C_CONSTRUCTION, C_HH_DISC }
-const CLEAR_ORDER := ["FOOD", "MEDICAL", "MINERAL", "MATERIAL", "COMPONENT", "CONSUMER"]
+const CLEAR_ORDER := ["FOOD", "MEDICAL", "MINERAL", "MATERIAL", "COMPONENT", "CONSUMER", "CLOTHING", "FURNISHINGS", "FINE_FOOD"]
 
 
 static func trade(world: WorldState) -> void:
@@ -150,7 +150,11 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 	var ranked := offers.duplicate()
 	ranked.sort_custom(func(a, b):
 		var pa: int = a["ask"] + EconUtil.hops(a["district"], bid["district"]) * tariff
+		if bid["kind"] == "hh":
+			pa = pa * EconConsumer.choice_factor(a) / 1000  # D2: households weigh reputation
 		var pb: int = b["ask"] + EconUtil.hops(b["district"], bid["district"]) * tariff
+		if bid["kind"] == "hh":
+			pb = pb * EconConsumer.choice_factor(b) / 1000
 		return pa < pb or (pa == pb and a["seller"] < b["seller"]))
 	var got := 0
 	var left := want
@@ -184,8 +188,8 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 		if o["seller"] == "origin" and not EconUtil.off(world, "E85"):
 			h = 0  # E85: origin backstop cargo comes on the origin's own shuttle, to the buyer's district (no colony freight)
 		var unit: int = o["ask"] + h * tariff
-		if unit > bid["limit"]:
-			break
+		if unit > bid["limit"]:  # D2: offers are sorted by price × reputation for households, so a later one may still fit
+			continue
 		var take := mini(left, o["qty"])
 		if h > 0:
 			var fcap: int = s["freight_cap"] - s["freight_used"]
@@ -237,6 +241,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 		if bid["kind"] == "hh":
 			var g: Dictionary = world.table("hh")[bid.get("group", bid["buyer"])]
 			g["bought"][good] = g["bought"].get(good, 0) + take
+			EconConsumer.on_hh_purchase(world, g, bid["acct"], o, take, goods_cost)  # D2: quality bought, luxury tax
 			g["spent_goods"] += goods_cost + freight
 			var vpaid := EconUtil.pay_upto(world, bid["acct"], EconUtil.TREASURY, int(float(goods_cost) * float(EconUtil.lever(world, "ECON_SALES_TAX", 0)) / 100.0), "SALES_TAX")
 			EconFinance._gov_rev(world, vpaid)

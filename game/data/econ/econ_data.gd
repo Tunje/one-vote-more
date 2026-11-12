@@ -7,13 +7,14 @@ extends RefCounted
 const SCALE := 1000
 
 # ---------- commodities (spec §2.1) ----------
-const MARKET_GOODS: Array[String] = ["FOOD", "MEDICAL", "MINERAL", "MATERIAL", "COMPONENT", "CONSUMER"]
+const MARKET_GOODS: Array[String] = ["FOOD", "MEDICAL", "MINERAL", "MATERIAL", "COMPONENT", "CONSUMER", "CLOTHING", "FURNISHINGS", "FINE_FOOD"]  # D2: consumer industries
 const NETWORK_GOODS: Array[String] = ["ENERGY", "WATER"]
-const SPOILAGE_PERMILLE := {"FOOD": 20, "MEDICAL": 5}          # per month (Knob)
-const CARGO_MASS := {"FOOD": 1, "MEDICAL": 1, "MINERAL": 2, "MATERIAL": 2, "COMPONENT": 1, "CONSUMER": 1}
+const SPOILAGE_PERMILLE := {"FOOD": 20, "MEDICAL": 5, "FINE_FOOD": 100}          # per month (Knob); D2: fine food keeps a few months
+const CARGO_MASS := {"FOOD": 1, "MEDICAL": 1, "MINERAL": 2, "MATERIAL": 2, "COMPONENT": 1, "CONSUMER": 1, "CLOTHING": 1, "FURNISHINGS": 2, "FINE_FOOD": 1}
 
 # ---------- month-1 prices, credits/unit (spec §3.3, E5) ----------
-const BASE_PRICE := {"FOOD": 115, "MEDICAL": 250, "MINERAL": 120, "MATERIAL": 400, "COMPONENT": 1800, "CONSUMER": 115}
+const BASE_PRICE := {"FOOD": 115, "MEDICAL": 250, "MINERAL": 120, "MATERIAL": 400, "COMPONENT": 1800, "CONSUMER": 115,
+	"CLOTHING": 220, "FURNISHINGS": 700, "FINE_FOOD": 260}  # D2
 const BASE_SERVICES_PRICE := 30
 const WAGE := {"G": 800, "S": 1200, "Sp": 1800}
 const TIERS: Array[String] = ["Sp", "S", "G"]                  # matching order high -> low
@@ -125,6 +126,10 @@ const RECIPES := {
 	"PROCESSING": {"labor": {"G": 12, "S": 12}, "in": {"MINERAL": 300, "ENERGY": 80}, "out": ["MATERIAL", 220], "upkeep": 4, "poll": 8, "acc": 5, "hazard": "HIGH", "licence": "LICENCE_HAZARD", "occ": "MANUFACTURING"},
 	"COMPONENTS": {"labor": {"G": 6, "S": 12, "Sp": 3}, "in": {"MATERIAL": 50, "ENERGY": 50}, "out": ["COMPONENT", 45], "upkeep": 3, "poll": 4, "acc": 3, "hazard": "MEDIUM", "licence": "", "occ": "MANUFACTURING"},
 	"CONSUMERF": {"labor": {"G": 35, "S": 12}, "in": {"MATERIAL": 75, "ENERGY": 60}, "out": ["CONSUMER", 850], "upkeep": 2, "poll": 3, "acc": 3, "hazard": "LOW", "licence": "", "occ": "MANUFACTURING"},
+	# D2 (A42): consumer industries — textile mills and tailors, furniture works, bakeries and delicatessens
+	"TEXTILE":  {"labor": {"G": 30, "S": 8, "Sp": 2}, "in": {"MATERIAL": 30, "ENERGY": 40}, "out": ["CLOTHING", 300], "upkeep": 1, "poll": 2, "acc": 2, "hazard": "LOW", "licence": "", "occ": "MANUFACTURING"},
+	"FURNITURE": {"labor": {"G": 25, "S": 10, "Sp": 3}, "in": {"MATERIAL": 60, "COMPONENT": 4, "ENERGY": 40}, "out": ["FURNISHINGS", 120], "upkeep": 1, "poll": 2, "acc": 3, "hazard": "LOW", "licence": "", "occ": "MANUFACTURING"},
+	"BAKERY":   {"labor": {"G": 20, "S": 6, "Sp": 1}, "in": {"FOOD": 250, "ENERGY": 30, "WATER": 20}, "out": ["FINE_FOOD", 300], "upkeep": 1, "poll": 1, "acc": 1, "hazard": "LOW", "licence": "", "occ": "SERVICES"},
 	"MEDWORKS": {"labor": {"S": 5, "Sp": 5}, "in": {"COMPONENT": 4, "ENERGY": 20, "WATER": 10}, "out": ["MEDICAL", 120], "upkeep": 2, "poll": 1, "acc": 2, "hazard": "MEDIUM", "licence": "", "occ": "MANUFACTURING"},
 	"SERVICEHUB": {"labor": {"G": 25, "S": 5}, "in": {"ENERGY": 30, "CONSUMER": 10}, "out": ["SERVICES", 1200], "upkeep": 1, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "SERVICES"},
 	"CLINIC":   {"labor": {"G": 5, "S": 10, "Sp": 15}, "in": {"MEDICAL": 100, "ENERGY": 40, "WATER": 30}, "out": ["HEALTH", 2500], "upkeep": 2, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "PUBLIC_SECTOR"},
@@ -147,6 +152,7 @@ const BUILD := {
 	"COMPONENTS": [700, 600, 120, 8], "CONSUMERF": [500, 500, 60, 6], "MEDWORKS": [400, 300, 80, 6],
 	"SERVICEHUB": [200, 200, 10, 3], "CLINIC": [450, 400, 30, 6], "SCHOOL": [450, 450, 15, 6],
 	"DEPOT": [300, 250, 40, 4], "ROAD": [300, 300, 10, 4],
+	"TEXTILE": [400, 300, 40, 5], "FURNITURE": [400, 350, 50, 5], "BAKERY": [250, 200, 20, 4],  # D2 workshops
 }
 const WU_COST_EST := 1050           # credits per WU, used for book values / estimates
 

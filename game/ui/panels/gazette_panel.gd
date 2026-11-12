@@ -318,6 +318,7 @@ static func headline(w: WorldState, f: Dictionary) -> String:
 		"UNION_STRIKE_COLLAPSED": h = "%s STRIKE CRUMBLES" % String(d.get("name", "")).to_upper()
 		"ECON_EXPORTS_SOLD": h = "SHIP SAILS WITH %d CREDITS OF COLONY GOODS" % int(d.get("value", 0))
 		"ECON_HOME_PRICE_SWING": h = "%s PRICES %s ON THE HOME WORLD" % [String(d.get("good", "")).to_upper().replace("_", " "), "SOAR" if int(d.get("pct", 0)) > 0 else "SLUMP"]
+		"ECON_QUALITY_SCANDAL": h = "SHODDY %s SCANDAL AT %s" % [String(d.get("good", "GOODS")).to_upper().replace("_", " "), NewsText.org(w, d.get("org", "")).to_upper()]
 		"POL_SCANDAL_REVEALED": h = "SCANDAL ROCKS %s" % pn.call(d.get("party", ""))
 		"POL_LEADER_CHANGED": h = "%s CHANGES LEADER" % pn.call(d.get("party", ""))
 		"POL_BILL_DEFEATED": h = "GOVERNMENT DEFEATED IN PARLIAMENT"

@@ -30,11 +30,14 @@ const LAPSE_KEEP := 0.3
 const LAPSE_MONTHS := 12
 const ELECTION_M := 48
 const STRIKE_PAY_SHARE := 0.5  # strike pay per striking member-month, share of the General wage (U2 pays it)
+const RESERVE_WEEKS := 4.0  # strike pay kept back before a union gives money away (8 left most unions unable to donate)
 const MERGE_MAX := 40  # persons: both unions below this to merge
 const MERGE_P := 1.0 / 120.0
 const MERGE_MAX_SECTORS := 2
 const EMPTY_DISSOLVE_M := 24
 const RELIEF_M := 24  # months over which a settlement's relief fades
+const DRIFT_PER_YEAR := 5.0  # mood points a year without a settlement (wage-round pressure)
+const DRIFT_MAX := 25.0
 const MERGE_GAP_M := 120
 const SPLIT_MOOD := 70
 const SPLIT_AFTER_M := 24
@@ -117,14 +120,14 @@ static func strike_weeks(world: WorldState, id: String) -> float:
 	return 4.33 * float(fund(world, id)) / maxf(1.0, per_month)
 
 
-## What a union can give away (donations, a paper) without touching its strike reserve (8 weeks of strike pay).
+## What a union can give away (donations, a paper) without touching its strike reserve (RESERVE_WEEKS of strike pay).
 static func spare_fund(world: WorldState, id: String) -> int:
 	var u := get_union(world, id)
 	if u.is_empty():
 		return 0
 	var reserve := 0
 	if not u["federation"]:
-		reserve = int(8.0 / 4.33 * float(u["members"]) / S * float(strike_pay(world)))
+		reserve = int(RESERVE_WEEKS / 4.33 * float(u["members"]) / S * float(strike_pay(world)))
 	return maxi(0, fund(world, id) - reserve)
 
 
@@ -301,6 +304,8 @@ static func _mood(world: WorldState) -> void:
 		target -= float(u.get("relief", 0)) * maxf(0.0, 1.0 - float(world.month - int(u.get("relief_m", -9999))) / float(RELIEF_M))
 		if u["sectors"].size() > 0 and u["sectors"][0] in MODERATE:
 			target *= 0.75  # the professions are slower to anger
+		# wage-round pressure: the longer since the last settlement, the more members expect a new one
+		target += minf(DRIFT_MAX, DRIFT_PER_YEAR * float(world.month - int(u.get("relief_m", u["founded"]))) / 12.0)
 		if u["last_strike_result"] == "LOST":
 			target += 10.0
 		u["mood"] = clampi(int(round(float(u["mood"]) + (clampf(target, 0.0, 100.0) - float(u["mood"])) / 6.0)), 0, 100)
