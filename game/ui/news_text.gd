@@ -170,6 +170,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 			top.sort_custom(func(a, b): return int(gs[a]) > int(gs[b]) or (gs[a] == gs[b] and String(a) < String(b)))
 			s = "Exports worth [b]%d credits[/b] sold on the home world (%s)%s" % [int(d.get("value", 0)), ", ".join(top.slice(0, 3).map(func(g): return _kind(g))),
 				("; the biggest exporter was %s" % org(w, d.get("top_exporter", ""))) if String(d.get("top_exporter", "")) != "" else ""]
+		"ECON_PORT_FULL": s = "Goods pile up at the port: the warehouses are full (%d units) with the next ship still to come" % int(d.get("units", 0))
 		"ECON_HOME_PRICE_SWING": s = "%s prices on the home world %s %d%% this year" % [cap1(_kind(d.get("good", "goods"))), "rose" if int(d.get("pct", 0)) > 0 else "fell", absi(int(d.get("pct", 0)))]
 		"ECON_IMPORT_ARRIVED": s = "Imports arrived: %d %s" % [int(d.get("qty", 0)) / 1000, _kind(d.get("good", "goods"))]
 		"POL_PROJECT_ORDERED":

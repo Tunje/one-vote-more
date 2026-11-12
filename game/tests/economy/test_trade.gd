@@ -17,6 +17,7 @@ func test_ship_pays_exporters_and_brings_imports() -> void:
 	var w := sim.world
 	var cpw := _force_port(w)
 	var cash0 := w.ledger.balance(EconUtil.acct(cpw))
+	EconUtil.st(w)["prices"]["CONSUMER"] = 1000 * EconUtil.S  # a consumer-goods shortage: imports would sell
 	var res := EconTrade.on_ship(w)
 	check(int(res["cargo"].get("COMPONENT", 0)) >= 49, "the ship loads the consigned components: %s" % [res["cargo"]])
 	check(w.ledger.balance(EconUtil.acct(cpw)) > cash0, "the exporter is paid")

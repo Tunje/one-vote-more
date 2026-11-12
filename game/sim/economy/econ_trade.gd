@@ -34,6 +34,7 @@ const PORT_PER_DEPOT := 1000
 const PORT_GOOD_SHARE := 0.4  # at most this share of the port per good
 const IMPORT_SHARE := 0.3
 const IMPORT_MIX := {"CONSUMER": 700, "MEDICAL": 300}  # ‰ of the import value
+const IMPORT_SHELF_M := 18  # unsold imports are written off after this many months
 const IMPORT_MARKUP := 1.3  # imported goods sell at a premium: they fill shortages rather than undercut local plants
 const PORT := "port"  # inventory location of consigned export stock
 const IMPORTER := "import"  # inventory owner of imported stock (sold for EXTERNAL)
@@ -131,6 +132,8 @@ static func monthly(world: WorldState) -> void:
 	var t := _t(world)
 	_walk_prices(world, t)
 	_consign(world, t)
+	_clear_old_imports(world, t)
+	_port_full(world, t)
 	var hist: Array = t["balance_hist"]
 	hist.append(int(t.get("imports_m", 0)))
 	t["imports_m"] = 0
@@ -277,9 +280,13 @@ static func on_ship(world: WorldState) -> Dictionary:
 		# merchants bring less while their last cargo is still unsold
 		var unsold := EconUtil.val(EconUtil.inv_get(world, IMPORTER, g, "d:1"), landed)
 		var q := int(float(maxi(0, int(float(budget) * float(IMPORT_MIX[g]) / 1000.0) - unsold)) * S / float(maxi(1, landed)))
+		# only what would sell: the local price must reach the landed price with the merchants' markup
+		if float(EconUtil.st(world)["prices"].get(g, 0)) < float(landed) * IMPORT_MARKUP:
+			q = 0
 		if q <= 0:
 			continue
 		EconUtil.inv_add(world, IMPORTER, g, "d:1", q, landed)
+		t["import_landed"] = world.month
 		EconUtil.qflow(world, g, "imported", q)
 		imports[g] = q / S
 		import_value += EconUtil.val(q, landed)
@@ -305,8 +312,11 @@ static func import_offer(world: WorldState, good: String) -> Dictionary:
 	var q := EconUtil.inv_get(world, IMPORTER, good, "d:1")
 	if q <= 0:
 		return {}
+	# unsold imports are marked down 5% a month after landing (to 70% of the landed price)
+	var age := world.month - int(EconUtil.peek_st(world).get("trade", {}).get("import_landed", world.month))
+	var mark := maxf(0.7, IMPORT_MARKUP - 0.05 * float(age))
 	return {"seller": IMPORTER, "acct": Ledger.EXTERNAL, "district": "d:1", "good": good, "qty": q,
-		"ask": int(float(EconUtil.inv_wac(world, IMPORTER, good, "d:1")) * IMPORT_MARKUP)}
+		"ask": int(float(EconUtil.inv_wac(world, IMPORTER, good, "d:1")) * mark)}
 
 
 ## Market hook: an import was bought (paid to EXTERNAL); counts toward the trade balance.
@@ -321,3 +331,28 @@ static func publish(world: WorldState) -> void:
 	if EconUtil.off(world, "D1"):
 		return
 	world.set_indicator("econ", "ECON_TRADE_BALANCE", "COLONY", balance(world)["balance_24m"])
+
+
+## Imports still unsold IMPORT_SHELF_M months after landing are written off (the merchants dump them).
+static func _clear_old_imports(world: WorldState, t: Dictionary) -> void:
+	if world.month - int(t.get("import_landed", world.month)) < IMPORT_SHELF_M:
+		return
+	for g in IMPORT_MIX:
+		var q := EconUtil.inv_take(world, IMPORTER, g, "d:1", EconUtil.inv_get(world, IMPORTER, g, "d:1"))
+		if q > 0:
+			EconUtil.qflow(world, g, "burned", q)
+
+
+## News when the port store is (nearly) full: goods pile up waiting for the ship (once per ship cycle).
+static func _port_full(world: WorldState, t: Dictionary) -> void:
+	var held := 0
+	for g in EXPORT_GOODS:
+		for oid in world.peek("org"):
+			held += EconUtil.inv_get(world, oid, g, PORT)
+	var cap := port_capacity(world) * S
+	if held < cap * 95 / 100 or int(t.get("port_full_month", -999)) > int(EconUtil.peek_st(world).get("ship_last", 0)):
+		return
+	t["port_full_month"] = world.month
+	EconFacts.emit(world, "ECON_PORT_FULL", "d:1", [["GOVERNMENT", "government"]], [["GOVERNMENT", "government", 0.5], ["NATURE", "market", 0.5]],
+		{"INFRASTRUCTURE": -5, "JOBS": -3}, 25, "PUBLIC", {"units": held / S, "capacity": cap / S, "depots": (port_capacity(world) - PORT_BASE) / PORT_PER_DEPOT,
+		"next_ship": next_ship(world)})
