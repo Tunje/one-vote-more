@@ -232,7 +232,7 @@ func _summary(L: PackedStringArray) -> void:
 			rej += 1
 	L.append("- Enactments rejected by legal review: %d" % rej)
 	L.append("- Lever changes: %d · no-confidence votes passed: %d · extra elections: %d · strikes: %d · insolvencies: %d" % [lever_log.size(),
-		tot.get("POL_NO_CONFIDENCE_PASSED", 0), tot.get("POL_EXTRA_ELECTION_CALLED", 0), tot.get("ECON_STRIKE", 0), tot.get("COMP_INSOLVENCY", 0)])
+		tot.get("POL_NO_CONFIDENCE_PASSED", 0), tot.get("POL_EXTRA_ELECTION_CALLED", 0), int(tot.get("ECON_STRIKE", 0)) + int(tot.get("UNION_STRIKE_CALLED", 0)), tot.get("COMP_INSOLVENCY", 0)])
 	L.append("")
 	L.append("Party codes used in tables:")
 	L.append("")

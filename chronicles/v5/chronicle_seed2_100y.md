@@ -19541,7 +19541,7 @@ These chronicles (v5, seeds 1–3) ran on the build of 2026-11-13 (commit a2acc0
 - **Unemployment** averages 14.3%.
 - **Real income** drifts from 184 down to 81 by Year 100, with 15.7% inflation in the final year.
 - **Exports are the strongest of the three runs**: 48 ships, 77 million credits.
-- **Unions**: 23 strikes.
+- **Unions**: 26 strikes.
 - **Parties**: 10 founded, 8 at the end.
 - **Plants mothballed**: 113 over the century (high, being checked).
 
@@ -19552,8 +19552,9 @@ These chronicles (v5, seeds 1–3) ran on the build of 2026-11-13 (commit a2acc0
 - **The consumer industries don't take hold**: by Year 100 seeds 1 and 2 have no textile mill, furniture works or
   bakery at all, and seed 3 has one bakery and one mothballed furniture works. Meanwhile 48–63 service hubs exist
   (plus about 20 mothballed), so new demand ends up there instead. Bob is tracing it.
-- **Rival newspapers don't last**: 14–24 papers are founded per century, but every one except the state Gazette
-  has closed by Year 100, and the union paper is refounded every decade or so. Anni is reworking the papers'
+- **Rival newspapers rarely last**: 15–29 papers are founded per century, but most close (51 of 60 across the three
+  runs); 2–4 papers are active at Year 100, and seed 3's Founders' Party Herald survives from Year 19 to the end.
+  The union paper is refounded every decade or so. (Corrected after review.) Anni is reworking the papers'
   economics. 228–442 false or misleading reports are exposed per century, which is probably too many.
 - **Busy parliaments**: 216–433 bills and 388–845 law changes per century (v4: about 200). Many new laws can now
   be tabled (unions, trade, transport, retirement), but it may be too hyperactive; to watch.
