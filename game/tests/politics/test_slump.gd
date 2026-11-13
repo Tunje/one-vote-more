@@ -55,3 +55,23 @@ func test_no_cuts_to_the_jobs_schemes_in_a_deep_slump() -> void:
 			ex[lid] = true
 	for c in Legislature.propose(w, g["center"], cs[0], cs[1], g.get("agreement", []), "PARLIAMENT", 0.0, false, ex):
 		check(float(c["to"]) > 3000.0, "even alone on the agenda, only raises: %s" % str(c))
+
+
+func test_hunger_protects_food_assistance_and_the_benefit_floor() -> void:
+	var w := _world()
+	for lid in Legislature.HUNGER_LEVERS:
+		w.levers[lid] = 50
+	_set_unemp(w, 5)
+	EconUtil.st(w)["food_shortfall"] = 300   # 30% of household food need unmet
+	check(absf(Legislature.hunger(w) - 0.3) < 0.001, "reads the shortfall")
+	check(Legislature.protected_levers(w).has("ECON_FOOD_ASSISTANCE"), "food assistance is protected")
+	var g: Dictionary = w.table("pol")["state"]["government"]
+	var cs := PoliticsProvider.new().colony_concerns(w)
+	var ex := {}
+	for lid in w.lever_defs:
+		if not (lid in Legislature.HUNGER_LEVERS):
+			ex[lid] = true
+	for c in Legislature.propose(w, g["center"], cs[0], cs[1], g.get("agreement", []), "PARLIAMENT", 0.0, false, ex):
+		check(float(c["to"]) > 50.0, "no cuts to food help while people go hungry: %s" % str(c))
+	EconUtil.st(w)["food_shortfall"] = 0
+	check(not Legislature.protected_levers(w).has("ECON_FOOD_ASSISTANCE"), "no protection without hunger")

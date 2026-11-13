@@ -216,6 +216,36 @@ static func _slump(world: WorldState) -> float:
 	return clampf((unemployment(world) - SLUMP_FROM) / 10.0, 0.0, 2.0)
 
 
+## Hunger amid plenty (Bob, v7 follow-up): households priced out of food while governments cut food assistance and
+## the benefit floor. Share of household food need unmet (econ food_shortfall, milli). From 10% the support levers
+## gain a case; from 15% they are protected like the jobs levers in a deep slump.
+const HUNGER_LEVERS := ["ECON_FOOD_ASSISTANCE", "ECON_BENEFIT_FLOOR"]
+const HUNGER_FROM := 0.10
+const HUNGER_DEEP := 0.15
+
+
+static func hunger(world: WorldState) -> float:
+	if not world.table("econ").has("s"):
+		return 0.0
+	return float(EconUtil.peek_st(world).get("food_shortfall", 0)) / 1000.0
+
+
+## Per protected lever: [strength 0..2, deep]. Deep = no cuts, past the fiscal guard, judged without fiscal stress.
+static func protected_levers(world: WorldState) -> Dictionary:
+	var out := {}
+	var u := unemployment(world)
+	var sl := _slump(world)
+	if sl > 0.0:
+		for lid in COUNTER_CYCLICAL:
+			out[lid] = [sl, u >= SLUMP_GUARD_OFF]
+	var h := hunger(world)
+	var hs := clampf((h - HUNGER_FROM) / 0.10, 0.0, 2.0)
+	if hs > 0.0:
+		for lid in HUNGER_LEVERS:
+			out[lid] = [hs, h >= HUNGER_DEEP]
+	return out
+
+
 ## pork (0..1, election year; Ella/Campaign.pork_pressure): crowd-pleasing relief counts more, ideology less.
 ## stats (optional, written by the caller's state): {"guard_blocked": n} clauses the fiscal guard kept out.
 static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Dictionary, agreement: Array, allowed: String, stress: float = 0.0, crisis: bool = false, exclude: Dictionary = {}, pork: float = 0.0, stats: Dictionary = {}) -> Array:
@@ -227,7 +257,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	var skill_gap := _skill_gap(world) if allowed == "PARLIAMENT" else 0.0
 	var believer := String(world.peek("pol").get("state", {}).get("government", {}).get("pm_party", "")) if allowed == "PARLIAMENT" else ""
 	var labour_need := _labour_need(world) if allowed == "PARLIAMENT" else 0.0
-	var slump := _slump(world) if allowed == "PARLIAMENT" else 0.0
+	var protect := protected_levers(world) if allowed == "PARLIAMENT" else {}
 	var tinker := TINKER_COST * Learn.mult(world.peek("party").get(believer, {}), "G_PACE", -0.6)   # A53: legislative pace
 	var owed := {}   # "lever|dir" of confidence-and-supply prices still owed: a commitment, not a whim
 	for a in agreement:
@@ -254,10 +284,11 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			if delta == 0.0:
 				continue
 			var owes: bool = owed.has("%s|%d" % [lid, int(signf(delta))])
-			var slump_lever: bool = slump > 0.0 and lid in COUNTER_CYCLICAL
-			if slump_lever and delta < 0.0 and unemployment(world) >= SLUMP_GUARD_OFF:
+			var slump_lever: bool = protect.has(lid)
+			var deep: bool = slump_lever and bool(protect[lid][1])
+			if deep and delta < 0.0:
 				continue   # no government cuts the jobs schemes with a fifth of the colony out of work
-			if guarded and not owes and float(def.get("concerns", {}).get("GOVERNANCE", 0)) * delta < 0.0 and not (slump_lever and unemployment(world) >= SLUMP_GUARD_OFF):
+			if guarded and not owes and float(def.get("concerns", {}).get("GOVERNANCE", 0)) * delta < 0.0 and not deep:
 				stats["guard_blocked"] = int(stats.get("guard_blocked", 0)) + 1
 				continue  # fiscal guard: no new spending / tax cuts while the books are weak (pork never overrides it)
 			if _recently_rejected(world, lid, signf(delta)):
@@ -272,7 +303,6 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 				continue  # this government moved it the other way recently: no flip-flopping
 			var ia := ideo_alignment(def, delta, pos)
 			# in a deep slump (20%+) the jobs levers are judged as jobs, not as budget repair (no fiscal-stress weight)
-			var deep: bool = slump_lever and unemployment(world) >= SLUMP_GUARD_OFF
 			var rl := relief(def, delta, sat, sal, 0.0 if deep else stress, room, cur, Intel.belief(world, believer, lid) if believer != "" else 1.0)
 			# Conviction: a government believes its own remedies work. Relief from a change that goes against its
 			# ideology is discounted (a market government does not see a jobs scheme as the cure, a left one does not
@@ -284,7 +314,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			if labour_need > 0.0 and lid == "LAW_IMMIGRATION":
 				sc += labour_need * signf(delta)   # v6 review: an ageing colony with unfilled jobs needs newcomers
 			if slump_lever:
-				sc += 4.0 * slump * signf(delta)   # v7 review: in a slump, jobs first; cutting them is costly
+				sc += 4.0 * float(protect[lid][0]) * signf(delta)   # v7 review: jobs in a slump, food aid in hunger; cuts are costly
 			if skill_gap > 0.0 and delta > 0.0 and lid in TRAINING_LEVERS:
 				sc += skill_gap  # E114: firms cannot fill skilled posts; training money and the subsidy go together
 			# v5 review (433 bills in one run): no endless tinkering. Moving the same lever again the same way within
@@ -392,11 +422,11 @@ static func _pending_for(world: WorldState, lever_id: String) -> bool:
 static func party_vote(party: Dictionary, clauses: Array, world: WorldState, gov: Dictionary, sat: Dictionary, sal: Dictionary, draft_quality: int = 50, noise: float = 0.0) -> String:
 	var s := (float(draft_quality) - 50.0) / 10.0 + noise  # well-drafted bills inspire confidence; sloppy ones lose votes
 	var member: bool = party["id"] in gov.get("members", [])
-	var deep_slump := unemployment(world) >= SLUMP_GUARD_OFF
+	var protect := protected_levers(world)
 	for c in clauses:
 		var def: Dictionary = world.lever_defs[c["lever"]]
 		var delta := clause_delta(def, c)
-		var stress_c := 0.0 if deep_slump and String(c["lever"]) in COUNTER_CYCLICAL else fiscal_stress(world)   # v7: jobs judged as jobs
+		var stress_c := 0.0 if protect.has(String(c["lever"])) and bool(protect[String(c["lever"])][1]) else fiscal_stress(world)   # v7: jobs judged as jobs
 		s += IDEOLOGY_VOTE_WEIGHT * ideo_alignment(def, delta, party["positions"]) + 1.5 * relief(def, delta, sat, sal, stress_c, fiscal_room(world), ordinal(def, c["from"]), Intel.belief(world, String(party.get("id", "")), String(c["lever"])))
 		for cm in party["commitments"]:
 			if cm["lever"] == c["lever"]:
