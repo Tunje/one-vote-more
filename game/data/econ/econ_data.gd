@@ -147,6 +147,7 @@ const RECIPES := {
 	"HQOFFICE": {"labor": {"S": 1}, "in": {}, "out": ["HQWORK", 0], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "SERVICES"},  # part B: party and union headquarters (EconHQ); scale = posts × 1000 (one-person units: these bodies are small)
 	"NEWSROOM": {"labor": {"S": 1}, "in": {}, "out": ["NEWSWORK", 0], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "SERVICES"},  # part B: a paper's journalists and editors (EconHQ); scale = posts × 1000
 	"BIZSVC":   {"labor": {"G": 1}, "in": {}, "out": ["BIZWORK", 0], "upkeep": 0, "poll": 0, "acc": 2, "hazard": "LOW", "licence": "", "occ": "SERVICES"},  # part C: cleaning, catering, couriers, office supplies (EconBizSvc); one-person units, scale = posts × 1000
+	"POLICE_STATION": {"labor": {"Sp": 1, "S": 8, "G": 1}, "in": {}, "out": ["POLICEWORK", 0], "upkeep": 0, "poll": 0, "acc": 3, "hazard": "MEDIUM", "licence": "", "occ": "PUBLIC_SECTOR"},  # P1b (EconPolice): detectives, officers, community officers; scale = officers × 100
 	"OFFICE":   {"labor": {"G": 5, "S": 4, "Sp": 1}, "in": {}, "out": ["OFFICEWORK", 0], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "SERVICES"},  # support economy A: an organisation's office staff (admin, cleaning, reception, logistics); scale = posts × 100
 	"HOUSING":  {"labor": {"G": 1}, "in": {}, "out": ["HOUSING", 50], "upkeep": 2, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "SERVICES"},
 }

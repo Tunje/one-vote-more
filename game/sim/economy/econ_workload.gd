@@ -22,14 +22,14 @@ const LawOps := preload("res://sim/law/law_ops.gd")
 const LEAN_PM := 150
 const PLEDGE_M := 24
 ## Public services under a staffing ratio (Anni's WK.RATIOS); CARE and CHILDCARE join when those services exist.
-const PUBLIC_RATIO_SERVICE := {"CLINIC": "HEALTH", "ELDERCARE": "CARE", "CHILDCARE": "CHILDCARE"}
+const PUBLIC_RATIO_SERVICE := {"CLINIC": "HEALTH", "ELDERCARE": "CARE", "CHILDCARE": "CHILDCARE", "POLICE_STATION": "POLICE"}
 const SICK_PM := 150
 const QUALITY_PM := 300
 const OVERLOAD_PM := 800
 const STRESS_RISE := 6  # months to close the gap upward
 const STRESS_FALL := 12  # months to recover
 const SERVICE_TAG := {"CLINIC": "HEALTH", "SCHOOL": "EDUCATION", "SANITATION": "SANITATION", "TRANSIT": "TRANSPORT",
-	"ELDERCARE": "CARE", "CHILDCARE": "CHILDCARE"}
+	"ELDERCARE": "CARE", "CHILDCARE": "CHILDCARE", "POLICE_STATION": "POLICE"}
 
 
 static func active(world: WorldState) -> bool:
@@ -53,6 +53,8 @@ static func quality_mult(f: Dictionary) -> float:
 static func _clients(world: WorldState, f: Dictionary) -> int:
 	if f["type"] in ["ELDERCARE", "CHILDCARE"]:
 		return EconCare.site_clients(f)  # part E: the enrolled
+	if f["type"] == "POLICE_STATION":
+		return int(f.get("covered_pop", 0))  # P1b: the residents a station covers (WK.RATIOS POLICE 500 per officer)
 	var d: String = f["district"]
 	var n := 0
 	for fid in world.table("facility"):
@@ -71,6 +73,8 @@ static func _clients(world: WorldState, f: Dictionary) -> int:
 
 static func workload_pm(world: WorldState, f: Dictionary) -> int:
 	var staff := EconLabor.staff_total(f["staff"])
+	if f["type"] == "POLICE_STATION":
+		return EconPolice.workload_pm(f)
 	if f["type"] in ["ELDERCARE", "CHILDCARE"]:
 		var e := EconCare.site_clients(f)
 		if e <= 0:

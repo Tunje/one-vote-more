@@ -424,3 +424,93 @@ static func commuting(world: WorldState) -> Array:
 ## empty while the WORKLOAD step is off). Peek-only, integers (Ella's hot issues, Wilma's WORKING_LIFE concern).
 static func workload(world: WorldState) -> Dictionary:
 	return EconWorkload.view(world)
+
+
+## Crime drivers per district for Anni's crime model (design-p1-crime-police §7; crime.gd reads it by name):
+## {district: {pop, unemployed_pm, hunger_pm, homeless_pm, youth_pm, ineq_x1000, stock_wref, firms}} — integers.
+##   hunger_pm   the colony food shortfall ‰ (food is one market)
+##   homeless_pm households without a home (S7 when on, else households above housing units), ‰ of households
+##   youth_pm    residents aged 15–24, ‰ (-1 before the district's age histogram exists)
+##   ineq_x1000  disposable income per person, richest band ÷ poorest band (×1000; 1000 with one band)
+##   stock_wref  goods held in the district at market prices ÷ W_ref (theft targets: warehouses, shops, stockpiles)
+##   firms       private and co-operative organisations with a workplace in the district
+static func crime_drivers(world: WorldState) -> Dictionary:
+	var s := EconUtil.peek_st(world)
+	var out := {}
+	var inc := {}
+	for gid in EconUtil.sorted_keys(world.peek("hh")):
+		var g: Dictionary = world.peek("hh")[gid]
+		var d: String = g["district"]
+		var e: Dictionary = out.get(d, {"pop": 0, "lf": 0, "emp": 0})
+		e["pop"] = int(e["pop"]) + EconHouseholds.persons(g) / int(S)
+		e["lf"] = int(e["lf"]) + int(g["lf"])
+		e["emp"] = int(e["emp"]) + EconLabor.employed(g)
+		out[d] = e
+		var bd: Dictionary = inc.get(d, {})
+		var b: Array = bd.get(String(g.get("band", "I2")), [0, 0])
+		b[0] = int(b[0]) + EconHouseholds.disposable(g)
+		b[1] = int(b[1]) + EconHouseholds.persons(g)
+		bd[String(g.get("band", "I2"))] = b
+		inc[d] = bd
+	var hunger := int(s.get("food_shortfall", 0))
+	var wref := maxi(1, int(world.values.get("ECON_W_REF", 1200 * int(S))))
+	var stock := {}
+	for k in world.peek("inv"):
+		var parts: PackedStringArray = String(k).split("|")
+		if parts.size() < 3:
+			continue
+		var price := int(s.get("prices", {}).get(parts[1], 0))
+		stock[parts[2]] = int(stock.get(parts[2], 0)) + int(float(int(world.peek("inv")[k]["q"])) / S * float(price))
+	var firms := {}
+	for fid in world.peek("facility"):
+		var f: Dictionary = world.peek("facility")[fid]
+		var o: Dictionary = world.peek("org").get(f["org"], {})
+		if not o.is_empty() and o["type"] in ["PRIVATE", "COOPERATIVE"] and not (o["status"] in ["LIQUIDATION", "DISSOLVED"]):
+			var fd: Dictionary = firms.get(f["district"], {})
+			fd[f["org"]] = true
+			firms[f["district"]] = fd
+	var cohorts: Dictionary = s.get("cohorts", {})
+	for d in EconUtil.sorted_keys(out):
+		var e: Dictionary = out[d]
+		var lf := int(e["lf"])
+		e["unemployed_pm"] = 0 if lf <= 0 else maxi(0, lf - int(e["emp"])) * 1000 / lf
+		e["hunger_pm"] = hunger
+		var dr: Dictionary = world.peek("district").get(d, {})
+		var hhs := int(dr.get("households", 0))
+		if EconInformal.active(world):
+			e["homeless_pm"] = int(1000.0 * EconInformal.homeless_share(world, d))
+		else:
+			e["homeless_pm"] = 0 if hhs <= 0 else maxi(0, hhs - int(dr.get("units", hhs))) * 1000 / hhs
+		var h: Array = cohorts.get(d, [])
+		if h.is_empty():
+			e["youth_pm"] = -1
+		else:
+			var y := 0
+			var all := 0
+			for a in h.size():
+				all += int(h[a])
+				if a >= 15 and a <= 24:
+					y += int(h[a])
+			e["youth_pm"] = 0 if all <= 0 else y * 1000 / all
+		var lo := -1.0
+		var hi := -1.0
+		for band in inc[d]:
+			var b: Array = inc[d][band]
+			if int(b[1]) <= 0:
+				continue
+			var pc := float(b[0]) / float(b[1])
+			lo = pc if lo < 0.0 else minf(lo, pc)
+			hi = maxf(hi, pc)
+		e["ineq_x1000"] = 1000 if lo <= 0.0 else int(round(1000.0 * hi / lo))
+		e["stock_wref"] = int(stock.get(d, 0)) / wref
+		e["firms"] = (firms.get(d, {}) as Dictionary).size()
+		e.erase("lf")
+		e.erase("emp")
+	return out
+
+
+## Police stations (P1b; Anni's opened/closed diff and staffing reports key on "id", Terra draws them):
+## {stations: [{id, district, covers, covered_pop, officers_target, staff, workload_pm, stress_pm, sick_pm}]}
+## ([] while POLICE is off).
+static func police(world: WorldState) -> Dictionary:
+	return {"stations": EconPolice.stations(world) if EconPolice.active(world) else []}

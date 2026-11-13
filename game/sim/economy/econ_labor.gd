@@ -112,7 +112,7 @@ static func post_vacancies(world: WorldState) -> void:
 		var req := required(f)
 		# labor hoarding (E49): keep ≥ 70% of a full crew unless under-used (< 70%) for 3 months
 		f["under_m"] = f.get("under_m", 0) + 1 if f["T"] < 700 else 0
-		var hoard: bool = not f["mothball"] and f["under_m"] < 3 and org["status"] == "ACTIVE"
+		var hoard: bool = not f["mothball"] and f["under_m"] < 3 and org["status"] == "ACTIVE" and not f.get("no_hoard", false)  # P1b: police cuts bite
 		# E103: a plant without power/water for 3+ months keeps only a core crew (30%) instead of a full idle payroll;
 		# the core crew restarts it when supply returns, and it rehires as output recovers
 		var dark: bool = int(f.get("dark_m", 0)) >= 3 and not EconUtil.off(world, "E103")
