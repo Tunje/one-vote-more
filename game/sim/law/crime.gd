@@ -414,7 +414,7 @@ static func rate_10k_y(row: Dictionary, kind: String) -> int:
 
 
 ## {THEFT, VIOLENCE, FRAUD: reported per 10k per year} for a district ("" = colony, population-weighted). Pure read;
-## {} while the crime model is off or has not run.
+## {} while the crime model is off or has not run; zeros for a district without residents.
 static func crime_rate(world: WorldState, district: String = "") -> Dictionary:
 	var cs := _peek_state(world)
 	var rows: Dictionary = cs.get("d", {})
@@ -423,7 +423,9 @@ static func crime_rate(world: WorldState, district: String = "") -> Dictionary:
 	var out := {}
 	if district != "":
 		if not rows.has(district):
-			return {}
+			for k in KINDS:      # a district nobody lives in (yet): no crime, not "no data" (Terra's map)
+				out[k] = 0
+			return out
 		for k in KINDS:
 			out[k] = rate_10k_y(rows[district], k)
 		return out
