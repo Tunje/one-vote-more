@@ -38,3 +38,26 @@ func test_breakdowns_leave_commuters_stranded() -> void:
 	check(EconPop.check(w).is_empty(), "jobs still equal people: %s" % [EconPop.check(w)])
 	check_eq(w.ledger.total(), 0, "ledger closed")
 	check(EconReport.goods_errors(w).is_empty(), "goods conserved: %s" % [EconReport.goods_errors(w)])
+
+
+func test_budget_line_funds_parts_and_cut_is_blamed() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["SUPPORT_T", "FLEET"]
+	w.levers["ECON_BUDGET_PUBLIC_TRANSPORT"] = 600
+	sim.run(14)
+	check(int(EconUtil.st(w)["spent_ytd"].get("ECON_BUDGET_PUBLIC_TRANSPORT", 0)) + int(EconUtil.st(w).get("fleet_fare_part", 0)) > 0, "the fleet was funded")
+	w.levers["ECON_BUDGET_PUBLIC_TRANSPORT"] = 0
+	sim.run(3)
+	var c := EconFleet.budget_cause(w)
+	check_eq(int(c["transport_budget_peak"]), 600, "the peak is remembered")
+	check_eq(int(c["budget_cut_pm"]), 1000, "the full cut shows")
+	check(int(c["budget_cut_months_ago"]) >= 3 and bool(c["fares_only"]), "when and how far: %s" % [c])
+	for bid in w.table("bus"):
+		w.table("bus")[bid]["repair_m"] = 3
+	sim.run(1)
+	var news := w.facts.query("ECON_COMMUTE_DISRUPTION")
+	if not news.is_empty():
+		var cause: Dictionary = news[news.size() - 1]["data"]["cause"]
+		check(cause.has("transport_budget_peak") and int(cause["budget_cut_pm"]) == 1000, "the disruption names the cut: %s" % [cause])
+	check_eq(w.ledger.total(), 0, "ledger closed")

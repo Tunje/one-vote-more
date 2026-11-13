@@ -12,7 +12,10 @@ extends RefCounted
 ##   ABSENCE: riders above LOAD_CAP_PM of the seats in service cannot get to work; the share absent per work district
 ##     cuts every workplace's effective crew there (EconProduction) — an essential plant short of crew trips an outage.
 ##   BLAME: ECON_COMMUTE_DISRUPTION names the employers hit, and carries the causes (breakdowns, fleet condition,
-##     months the depot was starved) so the press and the parties can trace "the blackout started with a bus".
+##     months the depot was starved, the public-transport budget against its 3-year peak) so the press and the parties
+##     can trace "the blackout started with a bus — and the bus with the budget cut".
+##   FUNDING: a fifth of the fares plus ECON_BUDGET_PUBLIC_TRANSPORT (the state reimburses parts bought beyond the
+##     fares' share, up to the line's month). Buses retire at RETIRE_M months, so a cut line shows years later.
 ## OPT-IN until its A/B (world.meta["on"] has "FLEET"; needs SUPPORT_T for the riders).
 
 const S := EconUtil.S
@@ -26,6 +29,9 @@ const CRASH_PM := 0.3  # ‰ per bus-month at full condition on a normal road
 const LOAD_CAP_PM := 1300
 const PART_PM := 200  # milli-COMPONENT per bus-month of maintenance
 const FLEET_SHARE := 0.2  # of the fare revenue, spent on parts and new buses (the rest pays the TRANSIT crew)
+const LINE := "ECON_BUDGET_PUBLIC_TRANSPORT"
+const RETIRE_M := 180
+const HIST_M := 36
 
 
 static func active(world: WorldState) -> bool:
@@ -38,12 +44,58 @@ static func post_parts_order(world: WorldState, cta: String, fare_ema: int) -> v
 	var price := int(s["prices"].get("COMPONENT", 0))
 	if price <= 0:
 		return
-	var budget := int(float(fare_ema) * FLEET_SHARE)
+	var fare_part := int(float(fare_ema) * FLEET_SHARE)
+	s["fleet_fare_part"] = fare_part
+	var budget := fare_part + line_month(world)
 	var qty := int(float(budget) * S / float(price))
+	# no hoarding: stock for a year of maintenance and two new buses is enough
+	var stock_cap := world.table("bus").size() * PART_PM * 12 + 2 * BUS_PARTS * S
+	qty = mini(qty, maxi(0, stock_cap - EconUtil.inv_get(world, cta, "COMPONENT", "d:1")))
 	if qty <= 0:
 		return
 	s["orders"].append({"buyer": cta, "acct": EconUtil.acct(cta), "district": "d:1", "good": "COMPONENT", "qty": qty,
 		"limit": price * 3 / 2, "class": EconMarket.C_FIRM, "kind": "org"})
+
+
+## The public-transport line's monthly amount (milli).
+static func line_month(world: WorldState) -> int:
+	return int(EconUtil.lever(world, LINE, 0)) * 1000 * S / 12
+
+
+## The state pays CTA for the parts it bought last month beyond the fares' share, up to the line's month.
+static func _reimburse(world: WorldState, cta: String) -> void:
+	var s := EconUtil.st(world)
+	var stock := EconUtil.inv_get(world, cta, "COMPONENT", "d:1")
+	var bought := maxi(0, stock - int(s.get("fleet_stock_after", stock)))
+	var spent := int(float(bought) / float(S) * float(int(s["prices"].get("COMPONENT", 0))))
+	var due := mini(line_month(world), maxi(0, spent - int(s.get("fleet_fare_part", 0))))
+	due = mini(due, maxi(0, EconActions.headroom(world, LINE)))
+	if due > 0:
+		var paid := EconFinance.gov_pay(world, EconUtil.acct(cta), due, "TRANSPORT_SUBSIDY")
+		EconFinance._spend_line(world, LINE, paid)
+		EconFinance.pl_add(world, cta, "subsidy", paid)
+	var h: Array = s.get("pt_budget_hist", [])
+	h.append(int(EconUtil.lever(world, LINE, 0)))
+	while h.size() > HIST_M:
+		h.pop_front()
+	s["pt_budget_hist"] = h
+
+
+## The budget line now against its peak over the last HIST_M months (for the blame chain).
+static func budget_cause(world: WorldState) -> Dictionary:
+	var h: Array = EconUtil.peek_st(world).get("pt_budget_hist", [])
+	var now := int(EconUtil.lever(world, LINE, 0))
+	var peak := now
+	var since := 0
+	for i in h.size():
+		if int(h[i]) > peak:
+			peak = int(h[i])
+	for i in range(h.size() - 1, -1, -1):  # months since the line last stood at its peak
+		if int(h[i]) >= peak:
+			break
+		since += 1
+	return {"transport_budget": now, "transport_budget_peak": peak, "budget_cut_pm": (peak - now) * 1000 / maxi(1, peak),
+		"budget_cut_months_ago": since if now < peak else 0, "fares_only": now == 0}
 
 
 ## Share (‰) of a work district's commuters who could not get to work this month (0 when off).
@@ -63,6 +115,7 @@ static func step(world: WorldState, cta: String, pairs: Array, transit: Dictiona
 	var s := EconUtil.st(world)
 	var buses := _buses(world)
 	var rng := world.rng.stream("econ.buses")
+	_reimburse(world, cta)
 	# maintenance level: mechanics (the TRANSIT crew's fill) and parts in stock (PART_PM components per bus-month)
 	var req := 0
 	for t in EconLabor.required(transit):
@@ -77,9 +130,13 @@ static func step(world: WorldState, cta: String, pairs: Array, transit: Dictiona
 	var starved := util < 0.5
 	s["depot_starved_m"] = int(s.get("depot_starved_m", 0)) + 1 if starved else 0
 	var broke := 0
+	var broken: Array = []
 	for bid in EconUtil.sorted_keys(buses):
 		var b: Dictionary = buses[bid]
 		b["age_m"] = int(b["age_m"]) + 1
+		if int(b["age_m"]) >= RETIRE_M:
+			buses.erase(bid)  # scrapped; the assembly below replaces it if the parts are there
+			continue
 		var c := int(b["cond"]) - DECAY_PM * (3 if starved else 1) + int(float(REPAIR_PM) * util)
 		b["cond"] = clampi(c, 0, 1000)
 		if int(b["repair_m"]) > 0:
@@ -90,6 +147,7 @@ static func step(world: WorldState, cta: String, pairs: Array, transit: Dictiona
 		if rng.randf() < p:
 			b["repair_m"] = rng.randi_range(1, 3)
 			broke += 1
+			broken.append(bid)
 	# riders and seats
 	var riders := 0
 	for p in pairs:
@@ -100,19 +158,21 @@ static func step(world: WorldState, cta: String, pairs: Array, transit: Dictiona
 		s["fleet_founded"] = true
 		for _i in (riders * 1000 / LOAD_CAP_PM + SEATS - 1) / SEATS + 1:
 			var fid0 := world.new_id("bus")
-			buses[fid0] = {"id": fid0, "age_m": 0, "cond": 900, "repair_m": 0}
+			buses[fid0] = {"id": fid0, "age_m": rng.randi_range(0, RETIRE_M * 2 / 3), "cond": 900, "repair_m": 0}  # mixed ages
 	var in_service := 0
 	for bid in buses:
 		if int(buses[bid]["repair_m"]) <= 0:
 			in_service += 1
 	# assemble new buses from CTA's components while seats fall short
 	var hq := "d:1"
-	while in_service * SEATS * LOAD_CAP_PM / 1000 < riders and EconUtil.inv_get(world, cta, "COMPONENT", hq) >= BUS_PARTS * S:
+	# plan for a seat per rider (LOAD_CAP_PM is the crush limit, not the plan): pairs share seats unevenly
+	while in_service * SEATS < riders and EconUtil.inv_get(world, cta, "COMPONENT", hq) >= BUS_PARTS * S:
 		EconUtil.inv_take(world, cta, "COMPONENT", hq, BUS_PARTS * S)
 		EconUtil.qflow(world, "COMPONENT", "burned", BUS_PARTS * S)
 		var nid := world.new_id("bus")
 		buses[nid] = {"id": nid, "age_m": 0, "cond": 1000, "repair_m": 0}
 		in_service += 1
+	s["fleet_stock_after"] = EconUtil.inv_get(world, cta, "COMPONENT", hq)
 	# share seats over pairs by riders; absence where a pair's load passes the cap
 	var out := {}
 	var absent_d := {}
@@ -135,6 +195,18 @@ static func step(world: WorldState, cta: String, pairs: Array, transit: Dictiona
 	# crashes (Terra places them where a map exists)
 	var crashes := 0
 	var has_map := not (world.peek("map").get("grid", {}) as Dictionary).is_empty()
+	# breakdowns as facts with a place on the map (Terra draws the marks from data.tile)
+	for bid in broken:
+		if not buses.has(bid):
+			continue
+		var site0 := {}
+		if has_map and not pairs.is_empty():
+			var p0: Dictionary = pairs[rng.randi_range(0, pairs.size() - 1)]
+			site0 = Transport.incident_site(world, p0["from_d"], p0["to_d"], rng.randi(), "BREAKDOWN")
+		EconFacts.emit(world, "BUS_BREAKDOWN", "d:1", [["COMPANY", cta]], [["COMPANY", cta, 0.6], ["GOVERNMENT", "government", 0.4]],
+			{"INFRASTRUCTURE": -3}, 10, "PUBLIC",
+			{"bus": bid, "condition": int(buses[bid]["cond"]) / 10, "age_m": int(buses[bid]["age_m"]), "repair_m": int(buses[bid]["repair_m"]),
+			"tile": site0.get("tile", -1), "link": site0.get("link", ""), "depot_starved_m": int(s["depot_starved_m"])})
 	for bid in EconUtil.sorted_keys(buses):
 		var b2: Dictionary = buses[bid]
 		if int(b2["repair_m"]) > 0:
@@ -153,7 +225,7 @@ static func step(world: WorldState, cta: String, pairs: Array, transit: Dictiona
 			EconFacts.emit(world, "BUS_CRASH", "d:1", [["COMPANY", cta]], [["COMPANY", cta, 0.6], ["GOVERNMENT", "government", 0.4]],
 				{"SAFETY": -20, "INFRASTRUCTURE": -10}, 30 + 5 * hurt, "PUBLIC",
 				{"bus": bid, "injured": hurt, "condition": int(b2["cond"]) / 10, "tile": site.get("tile", -1), "link": site.get("link", ""),
-				"depot_starved_m": int(s["depot_starved_m"])})
+				"depot_starved_m": int(s["depot_starved_m"]), "budget": budget_cause(world)})
 	# disruption news: employers in the districts commuters could not reach
 	for d in EconUtil.sorted_keys(hit):
 		if int(abs_pm.get(d, 0)) < 50:
@@ -166,9 +238,11 @@ static func step(world: WorldState, cta: String, pairs: Array, transit: Dictiona
 		var avg := 0
 		for bid in buses:
 			avg += int(buses[bid]["cond"])
+		var cause := {"breakdowns_m": broke, "fleet_condition": avg / maxi(1, buses.size()) / 10, "buses": buses.size(),
+			"in_service": in_service, "depot_starved_m": int(s["depot_starved_m"])}
+		cause.merge(budget_cause(world))
 		EconFacts.emit(world, "ECON_COMMUTE_DISRUPTION", d, [["COMPANY", cta]], [["COMPANY", cta, 0.4], ["GOVERNMENT", "government", 0.6]],
 			{"INFRASTRUCTURE": -15, "JOBS": -5}, 30 + int(abs_pm[d]) / 20, "PUBLIC",
 			{"district": d, "absent_pm": int(abs_pm[d]), "employers": EconUtil.sorted_keys(employers),
-			"cause": {"breakdowns_m": broke, "fleet_condition": avg / maxi(1, buses.size()) / 10, "buses": buses.size(),
-				"in_service": in_service, "depot_starved_m": int(s["depot_starved_m"])}}, {"districts": [d]})
+			"cause": cause}, {"districts": [d]})
 	return {"pairs": out, "breakdowns": broke, "crashes": crashes}

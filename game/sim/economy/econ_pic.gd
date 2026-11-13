@@ -147,6 +147,9 @@ static func levers() -> Array:
 		["ECON_BUDGET_PUBLIC_EMPLOYMENT", [0, 5000], 0, "LAW", {"ECON_ROLE": 0.008, "FISCAL": 0.008, "LABOR": 0.006}, {"JOBS": 40, "FAIRNESS": 5, "GOVERNANCE": -20}, "STAFF_T_IMPL_PROGRAM", 1, false],
 		# E117b: the Public Employment Service hires the unemployed at 80% of the General wage for upkeep work (EconPublicJobs)
 		["ECON_PE_EXPANSION", [0, 1], 1, "REGULATION", {"ECON_ROLE": 10.0}, {"JOBS": 10, "INFRASTRUCTURE": 10, "GOVERNANCE": -5}, "STAFF_T_IMPL_ADMIN", 1, false],
+		# §8c (Wilma): the state's subsidy to the bus fleet (parts and new buses, on top of the fares' fifth); spent only
+		# while FLEET is on. Default ≈ a normal fleet's maintenance and renewal (~16 buses × ~9k credits a year).
+		["ECON_BUDGET_PUBLIC_TRANSPORT", [0, 2000], 150, "LAW", {"ECON_ROLE": 0.01, "FISCAL": 0.01}, {"INFRASTRUCTURE": 30, "JOBS": 8, "GOVERNANCE": -6}, P, 1, false],
 		["ECON_BUDGET_SUBSIDIES", [0, 3000], 0, "LAW", {"ECON_ROLE": 0.03, "FISCAL": 0.01}, {"JOBS": 25, "FAIRNESS": -5, "GOVERNANCE": -8}, P, 1, false],
 		["ECON_BUDGET_RESERVE_PURCHASES", [0, 2000], 200, "LAW", {"ECON_ROLE": 0.01, "AUTONOMY": 0.01}, {"COST_OF_LIVING": 10, "GOVERNANCE": -5}, F, 1, false],
 	]
@@ -176,6 +179,7 @@ static func levers() -> Array:
 		"ECON_BUDGET_INFRASTRUCTURE": {"from": 1500, "concerns": {"INFRASTRUCTURE": 60, "JOBS": 30}},
 		"ECON_BUDGET_HEALTH": {"from": 500, "concerns": {"PUBLIC_SERVICES": 50}},
 		"ECON_BUDGET_EDUCATION": {"from": 350, "concerns": {"PUBLIC_SERVICES": 40}},
+		"ECON_BUDGET_PUBLIC_TRANSPORT": {"from": 75, "concerns": {"INFRASTRUCTURE": 40, "JOBS": 15}},
 	}
 	var out: Array = []
 	for r in rows:

@@ -64,6 +64,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			t = EconUtil.prof(world, "FirmAI.run", t)
 			EconConduct.monthly(world)  # E132 (opt-in): firms' corner-cutting, reported to the law
 			t = EconUtil.prof(world, "EconConduct.monthly", t)
+			EconVictims.monthly(world)  # (opt-in with CONDUCT): the victim fund paid out to the victims' households
 			EconWorkload.monthly(world)  # 27-W (opt-in): workload, hours, stress, lean staffing, overload news
 			t = EconUtil.prof(world, "EconWorkload.monthly", t)
 			EconConsumer.decorate_offers(world)  # D2: quality and reputation on consumer-goods offers
