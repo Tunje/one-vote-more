@@ -10,7 +10,7 @@ extends RefCounted
 ## OPT-IN until its A/B (world.meta["on"] has "SUPPORT_D").
 
 const S := EconUtil.S
-const MARGIN_PM := {"FOOD": 50, "CONSUMER": 200, "CLOTHING": 200, "FURNISHINGS": 200, "FINE_FOOD": 200}
+const MARGIN_PM := {"FOOD": 0, "CONSUMER": 200, "CLOTHING": 200, "FURNISHINGS": 200, "FINE_FOOD": 200}  # FOOD 0 after the A/B (shortfall 38–73‰ at 5%)
 const WAGE_SHARE := 0.7
 const POSTS_PER_UNIT := 5  # RETAIL recipe labour per 1000 scale (4 G + 1 S)
 const EMA_KEEP := 0.8  # monthly smoothing of margin revenue

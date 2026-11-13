@@ -15,7 +15,7 @@ func test_shops_take_a_margin_and_hire() -> void:
 	sim.world.meta["on"] = ["SUPPORT_D"]
 	sim.run(8)
 	var w := sim.world
-	check_eq(EconRetail.margin_pm(w, "FOOD"), 50, "a 5% grocer margin on food")
+	check_eq(EconRetail.margin_pm(w, "FOOD"), 0, "no margin on food for now (food trap)")
 	check_eq(EconRetail.margin_pm(w, "CONSUMER"), 200, "20% on goods")
 	var sm := EconRetail.summary(w)
 	check(not sm.is_empty(), "district shops opened (%s)" % [sm])

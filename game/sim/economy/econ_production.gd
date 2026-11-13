@@ -120,8 +120,9 @@ static func produce(world: WorldState) -> void:
 		elif good == "FREIGHT":
 			freight += out_qty
 		var red := float(EconUtil.lever(world, "ECON_EMISSION_REDUCTION", 0)) / 100.0
-		emissions[f["district"]] = emissions.get(f["district"], 0.0) + float(r["poll"]) * act * (1.0 - red)
+		emissions[f["district"]] = emissions.get(f["district"], 0.0) + float(r["poll"]) * act * (1.0 - red) * EconConduct.emission_mult(f)
 		_accidents(world, f, act)
+		EconConduct.major_accident(world, f)  # E132 (opt-in)
 	s["freight_cap"] = freight
 	s["emissions"] = {}
 	for d in emissions:
@@ -368,7 +369,7 @@ static func _accidents(world: WorldState, f: Dictionary, act: float) -> void:
 	var std: String = str(EconUtil.lever(world, "LAW_SAFETY_STANDARD", "BASIC"))
 	var sm := 0.7 if std == "STANDARD" else (0.45 if std == "STRICT" else 1.0)
 	var v := 1.5 if not f["licensed"] else 1.0
-	var p := workers * float(r["acc"]) / 12.0 / 1000.0 * (1.0 + (100.0 - float(f["condition"]) / S) / 100.0) * sm * v
+	var p := workers * float(r["acc"]) / 12.0 / 1000.0 * (1.0 + (100.0 - float(f["condition"]) / S) / 100.0) * sm * v * EconConduct.accident_mult(f)
 	var rng := world.rng.stream("econ.accident")
 	var k := int(floor(p))
 	if rng.randf() < p - floor(p):
@@ -380,7 +381,8 @@ static func _accidents(world: WorldState, f: Dictionary, act: float) -> void:
 		EconFacts.emit(world, "COMP_WORKPLACE_ACCIDENT", f["district"], [["COMPANY", f["org"]]],
 			EconFacts.company_blame(world, f["org"], 0.7), {"SAFETY": -mini(30, 5 * affected)}, 15 + 10 * affected, "PUBLIC",
 			{"facility": f["id"], "district": f["district"], "operator": f["org"], "workers_affected": affected, "hazard_class": r["hazard"],
-			"in_violation": not f["licensed"]}, {"districts": [f["district"]], "occupations": [EconLabor.occupation_of(world, f["org"], f["type"])]})
+			"in_violation": not f["licensed"], "hazard": EconConduct.hazard_key(f["id"]), "cause_records": EconConduct.causes_at(world, f["id"])},
+			{"districts": [f["district"]], "occupations": [EconLabor.occupation_of(world, f["org"], f["type"])]})
 
 
 ## Health/education access per district (spec §7.5): pooled capacity, 0.7 weight outside the host district.

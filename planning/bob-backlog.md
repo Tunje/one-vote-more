@@ -217,3 +217,21 @@ projects." — clarified: "I did not mean a bostadsrätt (co-op), I meant owning
    share_after_pm, jobs, invest}) → {id, status CLEARED|REVIEW, due}; CL.takeover_status(world, id) → {status
    REVIEW|CLEARED|CONDITIONS|BLOCKED, conditions {divest, price_cap_months: 24}, recommendation, decision}. Complete on
    CLEARED or CONDITIONS (apply the conditions), drop on BLOCKED.
+29. **CONDUCT PASS (E132) — Anni's finding, Wilma's priority: right after the support A/Bs, before more support pieces.**
+   No economy code calls LawOps.record_greed: violation_track stays empty, the whole M11 company-misconduct chain
+   (SAFETY/ENV/MARKET inspections, fines, licence suspension, escalation, whistleblowers, leniency, crisis-inquiry
+   causes, press investigations of companies) is dormant. LawBridge._misconduct (spec §9.5: profitable and (risk ≥ 70,
+   distressed, or risk ≥ 45 with ≤ 4 inspectors)) exists but only gates unlicensed operation.
+   FirmAI decides misconduct by CEO risk, cash pressure and expected penalty; each kind saves real money and raises real
+   risk: DEFERRED_UPKEEP (skip E116 upkeep → condition decays → hazards), SAFETY_CORNERS (accident chance up; workshops'
+   quality cut at econ_consumer.gd:64 already), CONTRACT_CORNERS (builders: less supervision/quality), DUMPING (pollution
+   up, WL disposal cost saved) first; then GOUGING (ask well above unit cost AND stock to spare, never the market
+   ratchet); later OVERWORK / UNDERSTAFFING (27-W), CARTEL and the rivalry kinds (28). Call:
+   LawOps.record_greed(world, org, {kind, facility, good, district, saving (mcr this month), since_month, ...}) monthly
+   while it lasts; LawOps.greed_stop(world, fid) when it ends (record_greed returns the track id).
+   **29 linking keys (Anni):** every COMP_WORKPLACE_ACCIDENT carries data.operator (org id; JO._accident_reveals then
+   reveals that operator's open violations) + data.facility, and data.cause_records = [track ids] from my per-facility
+   {kind → track id} map when conduct is active there. A crisis-size accident (data.crisis = true, magnitude ≥ 50) opens
+   an inquiry that links by cause_records / data.hazard (vs record.hazard_ids) / data.facility → LAW_CRISIS_CAUSE_REVEALED
+   + TORT. On record_greed: always rec.facility; rec.hazard_ids = the E116 HAZARD ids the conduct raises
+   (DEFERRED_UPKEEP and SAFETY_CORNERS on hazardous plants); record_greed merges new hazard_ids.

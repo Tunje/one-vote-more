@@ -21,6 +21,8 @@ func _init() -> void:
 		on.append("SUPPORT_E")
 	if v.contains("D"):
 		on.append("SUPPORT_D")
+	if v.contains("C"):
+		on.append("CONDUCT")
 	w.meta["on"] = on
 	var failed := 0
 	var seen_dead := {}
@@ -53,6 +55,20 @@ func _init() -> void:
 		var shops := 0
 		for d in EconRetail.summary(w):
 			shops += int(EconRetail.summary(w)[d]["posts"])
+		var vt := w.peek("violation_track")
+		var v_all := vt.size()
+		var v_unl := 0
+		var v_rev := 0
+		for k in vt:
+			if bool(vt[k].get("unlawful", false)):
+				v_unl += 1
+			if bool(vt[k].get("revealed", false)):
+				v_rev += 1
+		var majors := 0
+		for fx in w.facts.query("COMP_WORKPLACE_ACCIDENT"):
+			if bool(fx["data"].get("crisis", false)):
+				majors += 1
+		print("   conduct: records %d unlawful %d revealed %d | major accidents %d" % [v_all, v_unl, v_rev, majors])
 		print("%s seed %d Y%d pop %d lf %d u %.1f%% | offices %d sanit %d shops %d | real income %.2f | firms alive %d failed %d | food short %d‰ | default %s" % [
 			v, sd, y + 1, PopStore.total(w), int(lab["labour_force"]), float(lab["rate_pct"]),
 			int(EconOffice.summary(w)["posts_held"]), int(EconSanitation.summary(w)["posts"]), shops, real,

@@ -19,6 +19,21 @@ static func occupation_of(world: WorldState, org_id: String, ftype: String) -> S
 
 ## Workforce slots required now (mu per tier) for a facility.
 static func required(f: Dictionary) -> Dictionary:
+	if f["type"] == "OFFICE" and f.has("office_req"):
+		var oreq: Dictionary = {}  # support economy A (split): the posts the organisation's plants moved to its office
+		for t in f["office_req"]:
+			oreq[t] = 0 if f["mothball"] else int(f["office_req"][t])
+		return oreq
+	var out := required_full(f)
+	var share := int(f.get("off_share_pm", 0))
+	if share > 0:
+		for t in out:
+			out[t] = int(out[t]) * (1000 - share) / 1000  # the office share works at the organisation's OFFICE
+	return out
+
+
+## The recipe crew before any office split (EconOffice reads it to size the office).
+static func required_full(f: Dictionary) -> Dictionary:
 	var out := {}
 	var r: Dictionary = EconData.RECIPES[f["type"]]
 	var repair_crew: bool = f["mothball"] and f.get("closed_unsafe", false)  # E104: closed plants keep a repair crew

@@ -329,7 +329,9 @@ static func progress(world: WorldState) -> void:
 			var wu := mini(int(float(alloc[i]) * sup), mini(p["wu_total"] / maxi(1, p["min_months"]), p["wu_total"] - p["wu_done"]))
 			if wu <= 0:
 				continue
-			var mat_need := int(float(p["mat_total"]) * wu / p["wu_total"])
+			var mat_need := int(float(p["mat_total"]) * wu / p["wu_total"] * (EconConduct.CONTRACT_MAT if bool(o.get("c_contract", false)) else 1.0))
+			if bool(o.get("c_contract", false)):
+				p["corners"] = true  # E132: the builder skimped on material
 			var comp_need := int(float(p["comp_total"]) * wu / p["wu_total"])
 			var hq: String = o["hq"]
 			var um := 1.0
@@ -388,7 +390,9 @@ static func _progress_fill(world: WorldState, oid: String, o: Dictionary, active
 		if left <= 0:
 			continue
 		var wu := mini(int(float(left) * sup), cap_p)
-		var mat_need := int(float(p["mat_total"]) * wu / p["wu_total"])
+		var mat_need := int(float(p["mat_total"]) * wu / p["wu_total"] * (EconConduct.CONTRACT_MAT if bool(o.get("c_contract", false)) else 1.0))
+		if bool(o.get("c_contract", false)):
+			p["corners"] = true  # E132: the builder skimped on material
 		var comp_need := int(float(p["comp_total"]) * wu / p["wu_total"])
 		var um := 1.0
 		if mat_need > 0:
@@ -460,6 +464,8 @@ static func _complete(world: WorldState, p: Dictionary) -> void:
 			uf["book"] += p["price"]
 	else:
 		fid = EconSetup.add_facility(world, p["type"], p["operator"], p["district"], false)
+		if bool(p.get("corners", false)):
+			world.table("facility")[fid]["condition"] = EconConduct.CONTRACT_CONDITION * S  # E132: a skimped build starts worn
 		if p.has("size_pm"):
 			world.table("facility")[fid]["scale"] = int(p["size_pm"])  # E120: a lot builds part of a block
 		world.table("facility")[fid]["book"] = p["price"]

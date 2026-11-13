@@ -392,14 +392,14 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 			if g in EconData.MARKET_GOODS:
 				var k := "%s|%s|%s" % [f["org"], g, f["district"]]
 				needs[k] = needs.get(k, 0) + int(float(r["in"][g]) * S * t * EconUtil.fscale(f) * EconUtil.tier_in(f))
-		if r["upkeep"] > 0:
+		if r["upkeep"] > 0 and not bool(f.get("c_defer", false)):  # E132: a firm deferring upkeep orders none
 			var k2 := "%s|MATERIAL|%s" % [f["org"], f["district"]]
 			var q2 := int(float(r["upkeep"]) * S * EconUtil.fscale(f))
 			needs[k2] = needs.get(k2, 0) + q2
 			upkeep_val[f["org"]] = int(upkeep_val.get(f["org"], 0)) + EconUtil.val(q2, s["prices"]["MATERIAL"] * 2)
 			upkeep_qty[k2] = int(upkeep_qty.get(k2, 0)) + q2
 		var uc: int = EconData.UPKEEP_COMPONENT.get(f["type"], 0)
-		if uc > 0:
+		if uc > 0 and not bool(f.get("c_defer", false)):
 			var k3 := "%s|COMPONENT|%s" % [f["org"], f["district"]]
 			var q3 := int(float(uc) * S * EconUtil.fscale(f))
 			needs[k3] = needs.get(k3, 0) + q3
@@ -478,6 +478,8 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 				var cover := float(_org_stock(world, oid, good)) / maxf(1.0, ema)
 				var m := 1.05 if cover < 0.5 else (1.0 if cover <= 2.0 else (0.95 if cover <= 4.0 else 0.90))
 				var ask := int(float(s["prices"][good]) * m)
+				if (o.get("c_gouge", {}) as Dictionary).has(good):
+					ask = maxi(ask, int(float(s["prices"][good]) * EconConduct.GOUGE_MULT))  # E132: gouging in a shortage
 				# floor: full unit cost (labor included), 90% when active, 70% when distressed; never below material cost
 				var ftype := _type_of_output(world, oid, good)
 				var full := unit_cost(world, ftype) if ftype != "" else 0.0

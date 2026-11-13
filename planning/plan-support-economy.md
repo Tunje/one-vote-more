@@ -189,3 +189,50 @@ Terra (cc): road condition / traffic factor per district pair, and later the T3 
   bus_commuters, taxi_users, buses_in_service, seats, load_pm, breakdowns_m, crashes_m; plus fleet totals); T7 reads
   vehicle counts from it (buses × trips, taxis ≈ users / 1.5). T3: I consume Terra's Transport.commutes(world) →
   [{from_d, to_d, n, fid}] (from staff keys incl. builder crews), area-level later with the same shape.
+
+## 9. Warehouses: stock needs space (USER question via Wilma, 2026-11-13; with the LOGISTICS part)
+
+User: "Where are reserves kept, considering we have had issues with reserves being stockpiled? Do they buy
+warehouses? Do they then have workers?" Today stock is a number: no space, staff, running cost or shrinkage (only food
+and medical spoilage; only the port store is limited, by DEPOTs). Holding and hoarding are free.
+
+Numbers (proposal):
+- **WAREHOUSE facility**: capacity 2,000 units (goods units, any good); build like a DEPOT (≈ BUILD [300, 250, 40, 4]),
+  upkeep like other buildings, a site (Terra draws it). Cold storage variant for FOOD/MEDICAL: +10 ENERGY per 1,000
+  units held.
+- **Staff scale with stock held**: 1 G per 200 units held + 1 guard (G) per warehouse (min 2 staff); ≈ 100–150 jobs at
+  today's colony inventories (Sweden ≈ 100 per 10k in warehousing).
+- **Space rule**: each organisation keeps a free buffer of 1 month of its own sales (shop floor / plant yard); stock
+  above it must sit in owned or rented space. The government's strategic reserve has no free buffer. Without space new
+  stock cannot be bought or kept: excess above capacity is offered for sale at a discount, then spoils/shrinks at 3%
+  a month.
+- **Rent** (B2B LOGISTICS market, warehouse firms can enter): 0.6% of the good's base price per unit-month (Swedish
+  storage ≈ 6–10% of value a year). Owners pay upkeep + staff instead of rent.
+- **Shrinkage**: 0.2% a month in a warehouse (damage, theft), 1% outside one; food spoilage halved in cold storage, ×1.5
+  without. Theft above a threshold is a crime fact for Anni later.
+- **Effects**: hoarding gets a real holding cost (HOARDING greed becomes a decision with a price); the reserve becomes
+  visible jobs and a visible yearly cost ("money rotting in warehouses" — ECON_BUDGET_RESERVE_PURCHASES now also pays
+  storage); firms keep leaner stocks, which tightens markets a little (watch food).
+Build with LOGISTICS (part C), after the conduct pass. Opt-in with its own A/B.
+§9 APPROVED (Wilma). Condition: farms' FOOD stock must not hit "no space → discount sale → shrink" during a harvest
+glut in a way that feeds the food trap — a forced discount is fine, destroying food while households go hungry is not.
+If the A/B shows food shortfall rising, FOOD gets a larger free buffer (e.g. 3 months of sales).
+
+## 10. A/B result (b25aabc, 3 seeds × 50 years, 2026-11-13) — offices as added cost FAIL
+
+Y50 pop / unemployment / food shortfall ‰ / real income (baskets per person per month):
+| | seed 1 | seed 2 | seed 3 |
+|---|---|---|---|
+| off | 9,638 / 26.8% / 1 / 3.10 | 9,898 / 21.2% / 1 / 3.87 | 9,401 / 20.6% / 21 / 3.06 |
+| A offices | 5,774 / 26.4% / 266 / 1.53 | 6,491 / 24.9% / 190 / 1.13 | 7,247 / 12.1% / 6 / 4.66 |
+| E sanitation + upkeep | 7,661 / 32.8% / 111 / 1.98 | 9,847 / 27.4% / 27 / 3.23 | 10,223 / 15.5% / 1 / 3.89 |
+| D retail | 10,121 / 27.5% / 50 / 3.22 | 9,188 / 26.3% / 38 / 3.41 | 9,454 / 27.1% / 73 / 2.48 |
+| AED | 6,701 / 37.7% / 256 / 1.16 | 5,877 / 57.5% / 197 / 0.43 | 6,748 / 25.0% / 305 / 1.22 (default) |
+
+Offices added as a pure cost layer on calibrated recipes raise price floors, halve real income on two seeds, revive
+the food trap and shrink the population; unemployment does not fall (the extra wages chase the same, dearer goods).
+In a demand-limited economy added cost does not add net jobs.
+Redesign (proposed): A cost-neutral — offices SPLIT the existing crews (a share of each recipe's staff becomes office /
+cleaning / reception staff at the org's OFFICE), same total cost and prices; net new jobs only from new demand (§8b
+income-driven services, E public services funded by taxes, later productivity growth). D: food margin 0 for now
+(38–73‰ shortfall on all seeds), 20% on CONSUMER/D2, re-test real income. E: re-test after the food-trap/fiscal work.
