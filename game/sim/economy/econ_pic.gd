@@ -150,6 +150,9 @@ static func levers() -> Array:
 		["ECON_BUDGET_PUBLIC_EMPLOYMENT", [0, 5000], 0, "LAW", {"ECON_ROLE": 0.008, "FISCAL": 0.008, "LABOR": 0.006}, {"JOBS": 40, "FAIRNESS": 5, "GOVERNANCE": -20}, "STAFF_T_IMPL_PROGRAM", 1, false],
 		# E117b: the Public Employment Service hires the unemployed at 80% of the General wage for upkeep work (EconPublicJobs)
 		["ECON_PE_EXPANSION", [0, 1], 1, "REGULATION", {"ECON_ROLE": 10.0}, {"JOBS": 10, "INFRASTRUCTURE": 10, "GOVERNANCE": -5}, "STAFF_T_IMPL_ADMIN", 1, false],
+		# E137 (Wilma): who expands the economy — 0 MARKET (private investors; public assets sold at 40%), 1 MIXED (private
+		# first, the public operator after 2 quarters), 2 STATE (the public operator expands; nothing re-privatised)
+		["ECON_PUBLIC_OWNERSHIP_POLICY", [0, 2], 1, "LAW", {"ECON_ROLE": 8.0}, {"JOBS": 8, "GOVERNANCE": -10}, R, 3, false],
 		# part E (EconCare): elder care and childcare buy posts (4 G + 1 S / 3 G + 2 S); spent only while CARE is on.
 		# Defaults ≈ 10 / 45 posts (whole units of 5; a post ≈ 15–17k credits a year): ~60–80% / ~50% coverage around
 		# years 10–20, falling as the colony ages and grows unless parliament raises them.
@@ -188,6 +191,7 @@ static func levers() -> Array:
 		"ECON_BUDGET_HEALTH": {"from": 500, "concerns": {"PUBLIC_SERVICES": 50}},
 		"ECON_BUDGET_EDUCATION": {"from": 350, "concerns": {"PUBLIC_SERVICES": 40}},
 		"ECON_BUDGET_PUBLIC_TRANSPORT": {"from": 75, "concerns": {"INFRASTRUCTURE": 40, "JOBS": 15}},
+		"ECON_PUBLIC_OWNERSHIP_POLICY": {"from": 1, "concerns": {"GOVERNANCE": -10, "FAIRNESS": 15}},
 		"ECON_BUDGET_ELDER_CARE": {"from": 100, "concerns": {"PUBLIC_SERVICES": 50, "SAFETY": 10}},
 		"ECON_BUDGET_CHILDCARE": {"from": 425, "concerns": {"PUBLIC_SERVICES": 40, "JOBS": 20}},
 	}

@@ -30,6 +30,15 @@ static func econ_role(world: WorldState) -> float:
 	return float((st.get("government", {}).get("center", {}) as Dictionary).get("ECON_ROLE", 0)) / 100000.0
 
 
+## Utilities stay public in v1 (Wilma): a private power or water plant has no buyer but the public grid.
+const PUBLIC_ONLY := ["POWER", "WATERWORKS"]
+
+
+## The policy for one plant type (utilities always "STATE").
+static func policy_for(world: WorldState, ftype: String) -> String:
+	return "STATE" if ftype in PUBLIC_ONLY else policy(world)
+
+
 ## "MARKET" | "MIXED" | "STATE" ("STATE" = the old behaviour when E137 is off).
 static func policy(world: WorldState) -> String:
 	if not active(world):
