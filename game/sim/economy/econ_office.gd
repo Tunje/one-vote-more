@@ -117,6 +117,10 @@ static func monthly(world: WorldState) -> void:
 		f["office_req"] = req
 		f["scale"] = 1000
 		f["T"] = 1000
+		# an office is sized by its plants, never by the recipe: no E49 hoarding, and a firm whose plants are all gone
+		# closes its office (diagnosis: such zombie offices paid ~8k a month of wages with no revenue until the firm died)
+		f["no_hoard"] = true
+		f["mothball"] = total <= 0
 
 
 ## Fill (0..1) of an organisation's office this month: production at its split plants cannot outrun its office —

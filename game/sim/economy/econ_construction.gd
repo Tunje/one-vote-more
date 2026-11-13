@@ -276,6 +276,7 @@ static func award(world: WorldState, pid: String, org_id: String) -> bool:
 	p["esc_mat_cost"] = EconUtil.val(p["mat_total"], st["prices"]["MATERIAL"])
 	p["esc_comp_cost"] = EconUtil.val(p["comp_total"], st["prices"]["COMPONENT"])
 	world.table("org")[org_id]["contracts"].append(pid)
+	world.table("org")[org_id]["won_any"] = int(world.table("org")[org_id].get("won_any", 0)) + 1  # E138
 	_pay(world, p, p["price"] / 10)
 	EconFacts.emit(world, "ECON_CONTRACT_AWARDED", p["district"], [["GOVERNMENT", "government"], ["COMPANY", org_id]],
 		[["GOVERNMENT", "government", 1.0]] if p["owner"] == "gov" else [["COMPANY", p["owner"], 1.0]], {},
@@ -600,13 +601,21 @@ static func contractor_plans(world: WorldState) -> void:
 		var target_n := need_wu / S / (0.9 + 0.002 * float(o["ceo"]["mgmt"]))
 		# growth limits: ≤ +25%/month, ≤ 2× founding crew, no growth while material-blocked last month
 		var max_mult := 3.0 if o["type"] == "PUBLIC_ENTERPRISE" and not _private_builder_alive(world) else 2.0  # E86: sole builder
+		# E138 (opt-in; private-firm diagnosis 5, Terra's road waits): the colony's main builder sat at 2× its founding crew
+		# (160) with 5–15 projects, so every build crawled and tenders found nobody; crews may now grow to 5× with the backlog
+		var e138: bool = (world.meta.get("on", []) as Array).has("E138") and not EconUtil.off(world, "E138")
+		if e138:
+			max_mult = maxf(max_mult, 5.0)
 		var cap_n := minf(maxf(cur * 1.25, cur + 5.0), max_mult * float(base_n))
 		if o.get("blocked_last", false) and not strategic:
 			cap_n = cur * 0.85  # blocked crews shrink (E95: not while building strategic input capacity)
 		target_n = minf(target_n, cap_n)
 		if not o["contracts"].is_empty():
 			target_n = maxf(target_n, 0.6 * cur)
-		target_n = maxf(target_n, 0.3 * float(base_n))  # core crew kept between contracts
+		var core := 0.3
+		if e138 and o["contracts"].is_empty() and int(o.get("won_any", 0)) == 0:
+			core = 0.0  # E138: a new builder hires when it wins its first contract (idle founding crews drained 30k of equity)
+		target_n = maxf(target_n, core * float(base_n))  # core crew kept between contracts
 		for t in base:
 			o["crew_target"][t] = int(round(target_n * float(base[t]) / float(base_n)))
 		var hq: String = o["hq"]

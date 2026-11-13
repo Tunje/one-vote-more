@@ -798,6 +798,16 @@ static func _new_plants(world: WorldState) -> void:
 		var best := ""
 		var best_cash := -1
 		var district := ""
+		# E137: under a market or mixed government, private and co-op investors get the expansion first
+		var pol := EconOwnership.policy(world)
+		if pol != "STATE":
+			var pinv := EconOwnership.private_investor(world, EconConstruction.estimate(ftype))
+			if pinv != "":
+				best = pinv
+				best_cash = world.ledger.balance(EconUtil.acct(pinv))
+				district = String(world.table("org")[pinv]["hq"])
+			elif pol == "MARKET" or int(sig[good]) < quarters + EconOwnership.EXTRA_Q:
+				continue  # no private taker yet: a market government waits; a mixed one lets the public operator in later
 		for fid in EconUtil.sorted_keys(world.table("facility")):
 			var f: Dictionary = world.table("facility")[fid]
 			if f["type"] != ftype:
@@ -805,6 +815,8 @@ static func _new_plants(world: WorldState) -> void:
 			var o: Dictionary = world.table("org").get(f["org"], {})
 			if o.is_empty() or o["status"] != "ACTIVE" or o["type"] == "PUBLIC_INSTITUTION":
 				continue
+			if best != "" and pol != "STATE":
+				break  # E137: the private investor chosen above
 			var c := world.ledger.balance(EconUtil.acct(f["org"]))
 			if c > best_cash:
 				best_cash = c
@@ -890,6 +902,13 @@ static func _essentials_planner(world: WorldState) -> void:
 				"WATERWORKS": demand = float(s.get("util_demand", {}).get("W", 0))
 				_: demand = float(s.get("wanted_ema", {}).get(good, 0))
 		if demand <= 0.0 or cap >= demand * (1.0 + EconData.ESSENTIAL_SPARE):
+			continue
+		# E137: a market government leaves expansion to private investors (FirmAI._new_plants); a mixed one lets the
+		# utility pre-build only after EXTRA_Q quarters of scarcity with no private taker
+		var opol := EconOwnership.policy(world)
+		if opol == "MARKET":
+			continue
+		if opol == "MIXED" and int(s.get("scarce_q", {}).get(good, 0)) < EconData.NEW_PLANT_QUARTERS + EconOwnership.EXTRA_Q:
 			continue
 		# E110: no plant that cannot be staffed — unless a survival good is in outright deficit
 		if e110 and EconEssentials.labour_fill(world, ftype) < EconEssentials.MIN_LABOUR_FILL 				and not (good in ["FOOD", "ENERGY", "WATER"] and cap < demand):

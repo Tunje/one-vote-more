@@ -23,7 +23,7 @@ static func obligations(world: WorldState, oid: String) -> int:
 	var f: int = pl.get("wages", 0) + pl.get("interest", 0)
 	for lid in world.table("loan"):
 		var l: Dictionary = world.table("loan")[lid]
-		if l["borrower"] == oid and l["term_left"] > 0:
+		if l["borrower"] == oid and l["term_left"] > 0 and world.month >= int(l.get("grace_until", -1)):  # E136: no principal in grace
 			f += l["principal"] / maxi(1, l["term_left"])
 	for lid in world.table("liability"):
 		var li: Dictionary = world.table("liability")[lid]
@@ -278,7 +278,10 @@ static func reprivatize(world: WorldState) -> void:
 			continue
 		if not EconUtil.off(world, "E118") and (f["mothball"] or f.get("abandoned", false)):
 			continue  # E118: a closed plant is not passed on to a buyer who cannot run it either
-		var reserve := int(f["book"] * EconData.LIQUIDATION_RESERVE)
+		var opol := EconOwnership.policy(world)
+		if EconOwnership.active(world) and opol == "STATE":
+			continue  # E137: a state-leaning government keeps what it holds
+		var reserve := int(f["book"] * (EconOwnership.REPRIV_MARKET if opol == "MARKET" else EconData.LIQUIDATION_RESERVE))
 		var buyer := _find_buyer(world, pe, f, reserve)
 		if buyer == "":
 			continue

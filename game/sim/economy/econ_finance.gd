@@ -25,6 +25,8 @@ static func profit(pl: Dictionary) -> int:
 
 # ---------- loans (spec §12) ----------
 
+const START_GRACE_M := 24  # E136: build months plus a first year of trading
+
 ## Records a loan. If move_cash, the bank pays the principal to the borrower (returns false if the bank lacks cash).
 static func new_loan(world: WorldState, borrower: String, amount: int, rate_ppm: int, move_cash: bool = false) -> bool:
 	var to := EconUtil.TREASURY if borrower == "gov" else EconUtil.acct(borrower)
@@ -44,6 +46,10 @@ static func new_loan(world: WorldState, borrower: String, amount: int, rate_ppm:
 	var lid := world.new_id("loan")
 	world.table("loan")[lid] = {"id": lid, "borrower": borrower, "principal": amount, "rate_ppm": rate_ppm,
 		"term_left": 0 if borrower == "gov" else 60, "missed": 0}
+	# E136 (opt-in; private-firm diagnosis: new mines, processing plants and workshops died at 8–13 months under a build
+	# loan they could not yet service): a firm still FORMING borrows interest-only for START_GRACE_M months
+	if (world.meta.get("on", []) as Array).has("E136") and not EconUtil.off(world, "E136") and world.table("org").has(borrower) 			and world.table("org")[borrower]["status"] == "FORMING":
+		world.table("loan")[lid]["grace_until"] = world.month + START_GRACE_M
 	return true
 
 
@@ -475,12 +481,16 @@ static func _loan_service(world: WorldState) -> void:
 		var n := maxi(1, l["term_left"])
 		var annuity: int = int(l["principal"] * r / (1.0 - pow(1.0 + r, -n))) if r > 0 else l["principal"] / n
 		var principal_part := clampi(annuity - interest, 0, l["principal"])
+		var grace: bool = world.month < int(l.get("grace_until", -1))
+		if grace:
+			principal_part = 0  # E136: interest only while the new firm finds its feet
 		var acc := EconUtil.acct(l["borrower"])
 		var due := interest + principal_part
 		if world.ledger.balance(acc) >= due:
 			world.ledger.transfer(acc, EconUtil.BANK, due, "LOAN_SERVICE", world.month)
 			l["principal"] -= principal_part
-			l["term_left"] = maxi(0, l["term_left"] - 1)
+			if not grace:
+				l["term_left"] = maxi(0, l["term_left"] - 1)
 			l["missed"] = 0
 			s["bank_profit_ytd"] += interest
 			pl_add(world, l["borrower"], "interest", interest)
