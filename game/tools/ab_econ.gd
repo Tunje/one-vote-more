@@ -19,6 +19,10 @@ func _init() -> void:
 		on.append("E134")
 	if arm.contains("payout"):
 		on.append("PAYOUT")
+	if arm.contains("commute"):
+		on.append("SUPPORT_T")
+	if arm.contains("workload"):
+		on.append("WORKLOAD")
 	w.meta["on"] = on
 	var money := arm.contains("money")
 	var u_sum := 0.0

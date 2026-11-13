@@ -416,3 +416,9 @@ static func labour(world: WorldState) -> Dictionary:
 ## buses_in_service, seats, load_pm, breakdowns_m, crashes_m}] — last month's rows ([] while SUPPORT_T is off).
 static func commuting(world: WorldState) -> Array:
 	return (EconUtil.peek_st(world).get("commute_rows", []) as Array).duplicate(true)
+
+
+## 27-W: workload stress ‰ by sector, colony-wide and per district ({colony: {sector: ‰}, districts: {d: {sector: ‰}}};
+## empty while the WORKLOAD step is off). Peek-only, integers (Ella's hot issues, Wilma's WORKING_LIFE concern).
+static func workload(world: WorldState) -> Dictionary:
+	return EconWorkload.view(world)

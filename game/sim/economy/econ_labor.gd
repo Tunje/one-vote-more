@@ -29,6 +29,10 @@ static func required(f: Dictionary) -> Dictionary:
 	if share > 0:
 		for t in out:
 			out[t] = int(out[t]) * (1000 - share) / 1000  # the office share works at the organisation's OFFICE
+	var lean := int(f.get("lean_pm", 0))
+	if lean > 0:
+		for t in out:
+			out[t] = int(out[t]) * (1000 - lean) / 1000  # 27-W: a lean employer posts fewer than the norm
 	return out
 
 

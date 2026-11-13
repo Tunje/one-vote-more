@@ -114,9 +114,9 @@ static func produce(world: WorldState) -> void:
 		elif good == "SERVICES":
 			f["svc_cap"] = out_qty
 		elif good == "HEALTH":
-			health[f["district"]] = health.get(f["district"], 0) + out_qty
+			health[f["district"]] = health.get(f["district"], 0) + int(float(out_qty) * EconWorkload.quality_mult(f))  # 27-W
 		elif good == "EDUCATION":
-			edu[f["district"]] = edu.get(f["district"], 0) + out_qty
+			edu[f["district"]] = edu.get(f["district"], 0) + int(float(out_qty) * EconWorkload.quality_mult(f))  # 27-W
 		elif good == "FREIGHT":
 			freight += out_qty
 		var red := float(EconUtil.lever(world, "ECON_EMISSION_REDUCTION", 0)) / 100.0
@@ -204,6 +204,7 @@ static func _plan(world: WorldState, f: Dictionary) -> Dictionary:
 	var t := 0.0 if f["mothball"] else float(f["T"]) / 1000.0
 	var lab := 1.0
 	var floor_share := float(1000 - int(f.get("off_share_pm", 0))) / 1000.0  # support economy A: part of the crew works at the office
+	floor_share *= float(1000 - int(f.get("lean_pm", 0))) / 1000.0  # 27-W: a lean crew does the same work (more workload)
 	for tier in r["labor"]:
 		var req := float(r["labor"][tier]) * S * t * floor_share
 		if req > 0.0:
@@ -213,6 +214,7 @@ static func _plan(world: WorldState, f: Dictionary) -> Dictionary:
 	if int(f.get("off_share_pm", 0)) > 0:
 		lab = minf(lab, EconOffice.office_fill(world, f["org"]))  # support economy A: the office must be staffed too
 	lab *= EconUnions.work_factor(world, f)  # M9: strike / lockout
+	lab *= EconWorkload.sick_mult(f)  # 27-W: stressed crews take sick days (1.0 when off)
 	var mi := 1.0
 	var soft_f := 1.0
 	var soft: Array = EconData.SOFT_INPUTS.get(f["type"], [])
@@ -372,7 +374,7 @@ static func _accidents(world: WorldState, f: Dictionary, act: float) -> void:
 	var std: String = str(EconUtil.lever(world, "LAW_SAFETY_STANDARD", "BASIC"))
 	var sm := 0.7 if std == "STANDARD" else (0.45 if std == "STRICT" else 1.0)
 	var v := 1.5 if not f["licensed"] else 1.0
-	var p := workers * float(r["acc"]) / 12.0 / 1000.0 * (1.0 + (100.0 - float(f["condition"]) / S) / 100.0) * sm * v * EconConduct.accident_mult(f)
+	var p := workers * float(r["acc"]) / 12.0 / 1000.0 * (1.0 + (100.0 - float(f["condition"]) / S) / 100.0) * sm * v * EconConduct.accident_mult(f) * EconWorkload.accident_mult(f)
 	var rng := world.rng.stream("econ.accident")
 	var k := int(floor(p))
 	if rng.randf() < p - floor(p):
@@ -384,7 +386,8 @@ static func _accidents(world: WorldState, f: Dictionary, act: float) -> void:
 		EconFacts.emit(world, "COMP_WORKPLACE_ACCIDENT", f["district"], [["COMPANY", f["org"]]],
 			EconFacts.company_blame(world, f["org"], 0.7), {"SAFETY": -mini(30, 5 * affected)}, 15 + 10 * affected, "PUBLIC",
 			{"facility": f["id"], "district": f["district"], "operator": f["org"], "workers_affected": affected, "hazard_class": r["hazard"],
-			"in_violation": not f["licensed"], "hazard": EconConduct.hazard_key(f["id"]), "cause_records": EconConduct.causes_at(world, f["id"])},
+			"in_violation": not f["licensed"], "hazard": EconConduct.hazard_key(f["id"]), "cause_records": EconConduct.causes_at(world, f["id"]),
+			"workload": int(f.get("workload_pm", 1000))},
 			{"districts": [f["district"]], "occupations": [EconLabor.occupation_of(world, f["org"], f["type"])]})
 
 
