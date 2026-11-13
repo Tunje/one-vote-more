@@ -502,6 +502,20 @@ const LEVERS := [
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 0.6, "SOVEREIGNTY": 0.2},
 		"concerns": {"JOBS": -30, "GOVERNANCE": 25},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# A61 (money): the home-world bank's yearly profit remittance (EconFinance._bank_remit, Bob). Remitted = profit ×
+	# (1 − retention); the tax takes its share of that for the treasury. Lawful over the whole range: no charter clause
+	# protects the bank's profits (the PROPERTY right covers expropriation of assets, not taxing what leaves). The home
+	# world fights it politically instead (Wilma's home_world.gd may answer with its charter sanctions).
+	{"id": "LAW_REMITTANCE_TAX", "owner": "law", "legislative": true, "is_tax": true, "type": "NUMBER", "range": [0, 50], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"SOVEREIGNTY": 0.6, "ECON_ROLE": 0.3, "REDISTRIBUTION": 0.2},
+		"concerns": {"GOVERNANCE": 15, "JOBS": -4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# % of the bank's yearly profit that must stay in the colony as bank capital (50 = today). A prudential rule, not a
+	# tax: no revenue, more capital for lending once bank credit (M2) lands.
+	{"id": "LAW_BANK_RETENTION", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 50,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"SOVEREIGNTY": 0.3, "ECON_ROLE": 0.15},
+		"concerns": {"JOBS": 3},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
 	{"id": "LAW_LUXURY_TAX", "owner": "law", "legislative": true, "is_tax": true, "type": "NUMBER", "range": [0, 50], "default": 0,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"REDISTRIBUTION": 1.2, "ECON_ROLE": 0.3},
 		"concerns": {"FAIRNESS": 20, "JOBS": -10, "GOVERNANCE": 20},

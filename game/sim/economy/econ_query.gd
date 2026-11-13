@@ -410,3 +410,9 @@ static func labour(world: WorldState) -> Dictionary:
 		emp += EconLabor.employed(world.peek("hh")[gid])
 	return {"labour_force": lf / S, "employed": emp / S, "unemployed": maxi(0, lf - emp) / S,
 		"rate_pct": 0.0 if lf <= 0 else 100.0 * float(lf - emp) / float(lf), "public_posts": EconPublicJobs.posts(world)}
+
+
+## Commuting per district pair (Terra's bus lines and traffic): [{from_d, to_d, commuters, bus_commuters, taxi_users,
+## buses_in_service, seats, load_pm, breakdowns_m, crashes_m}] — last month's rows ([] while SUPPORT_T is off).
+static func commuting(world: WorldState) -> Array:
+	return (EconUtil.peek_st(world).get("commute_rows", []) as Array).duplicate(true)

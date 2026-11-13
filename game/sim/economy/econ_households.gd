@@ -48,7 +48,7 @@ static func essentials_cost(world: WorldState, g: Dictionary) -> int:
 	var e := p * EconData.NEED["FOOD"] * float(s["prices"]["FOOD"]) + p * EconData.NEED["CONSUMER_MIN"] * float(s["prices"]["CONSUMER"]) \
 		+ p * EconData.NEED["ENERGY"] * float(EconUtil.lever(world, "ECON_UTILITY_TARIFF_ENERGY", 40)) * S \
 		+ p * EconData.NEED["WATER"] * float(EconUtil.lever(world, "ECON_UTILITY_TARIFF_WATER", 20)) * S \
-		+ float(households(g)) / S * float(EconFinance.district_rent(world, g["district"]))
+		+ float(households(g)) / S * float(EconFinance.district_rent(world, g["district"])) 		+ float(EconLabor.employed(g)) / S * float(EconCommute.fare_per_worker(world, g["district"]))  # §8b fares (0 when off)
 	return int(e)
 
 

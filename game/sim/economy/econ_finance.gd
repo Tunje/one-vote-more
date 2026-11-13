@@ -664,11 +664,20 @@ static func _depreciation(world: WorldState) -> void:
 		o["profit_q"] += profit(o["pl"])
 
 
+## A61 (Anni's levers): the home-world bank sends home (100 − LAW_BANK_RETENTION)% of its year profit (default 50, as
+## before); LAW_REMITTANCE_TAX % of that goes to the treasury instead. The retained part stays as bank capital.
 static func _bank_remit(world: WorldState) -> void:
 	var s := EconUtil.st(world)
-	var r := int(s["bank_profit_ytd"] * 0.5)
+	var profit := int(s["bank_profit_ytd"])
+	var retention := clampi(int(EconUtil.lever(world, "LAW_BANK_RETENTION", 50)), 0, 100)
+	var rtax := clampi(int(EconUtil.lever(world, "LAW_REMITTANCE_TAX", 0)), 0, 100)
+	var r := profit * (100 - retention) / 100
 	if r > 0:
-		EconUtil.pay_upto(world, EconUtil.BANK, Ledger.EXTERNAL, r, "REMITTANCE")
+		var tax := EconUtil.pay_upto(world, EconUtil.BANK, EconUtil.TREASURY, r * rtax / 100, "REMITTANCE_TAX")
+		_gov_rev(world, tax)
+		var sent := EconUtil.pay_upto(world, EconUtil.BANK, Ledger.EXTERNAL, r - tax, "REMITTANCE")
+		EconFacts.emit(world, "ECON_REMITTANCE", "d:1", [["EXTERNAL", "home_world"]], [["EXTERNAL", "home_world", 1.0]], {}, 20, "PUBLIC",
+			{"amount": sent / S, "taxed": tax / S, "retained": (profit - r) / S, "profit": profit / S, "retention_pct": retention, "tax_pct": rtax})
 	s["bank_profit_ytd"] = 0
 
 

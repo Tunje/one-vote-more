@@ -44,6 +44,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			t = EconUtil.prof(world, "LawBridge.revalidate", t)
 			EconTrade.monthly(world)  # D1 (A42): home prices, export consignments — before the firms post sale offers
 			t = EconUtil.prof(world, "EconTrade.monthly", t)
+			EconCommute.monthly(world)  # §8b (opt-in): commuting fares to CTA, buses staffed from them
 			EconComfort.monthly(world)  # §8b (opt-in): cafés, takeaway, hairdressers staffed from comfort spending
 			EconRetail.monthly(world)  # support economy D (opt-in): shop staff from the retail margin
 			EconSanitation.monthly(world)  # support economy E (opt-in): the Sanitation Department, sized to the population
