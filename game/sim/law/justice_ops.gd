@@ -885,9 +885,12 @@ static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, am
 		if to_ref["kind"] == "VICTIMS":
 			_award(world, to_ref, paid)
 	if amount - paid > 0 and from.begins_with("co:"):
+		# Insolvency pays a creditor id into co:<id>. Only a company creditor has one: anyone else (victims, a party, a
+		# paper, a union) is owed through creditor_acct (Bob reads it; until then "gov" keeps the payment from failing).
 		var lid := world.new_id("liability")
+		var co_creditor := to.begins_with("co:")
 		world.table("liability")[lid] = {"id": lid, "debtor": String(from_ref["id"]),
-			"creditor": "gov" if to == "gov:treasury" else String(to_ref["id"]), "amount": amount - paid,
+			"creditor": String(to_ref["id"]) if co_creditor else "gov", "creditor_acct": to, "amount": amount - paid,
 			"due_month": world.month + 1, "kind": "COMPENSATION", "status": "OPEN"}
 	return paid
 
