@@ -575,6 +575,7 @@ static func unit_cost(world: WorldState, ftype: String) -> float:
 	for t in r["labor"]:
 		c += float(r["labor"][t]) * float(s["wage"][t])
 	c *= EconOffice.cost_factor(world, ftype)  # support economy A: office staff ride on every production post (1.0 when off)
+	c *= EconBizSvc.cost_factor(world)  # part C: cleaners, caterers and couriers bought per worker (1.0 when off)
 	for g in r["in"]:
 		if g in EconData.MARKET_GOODS:
 			c += float(r["in"][g]) * float(s["prices"][g])

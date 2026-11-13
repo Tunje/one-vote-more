@@ -58,6 +58,8 @@ func run_phase(phase: int, world: WorldState) -> void:
 			t = EconUtil.prof(world, "EconRetail.monthly", t)
 			EconSanitation.monthly(world)  # support economy E (opt-in): the Sanitation Department, sized to the population
 			t = EconUtil.prof(world, "EconSanitation.monthly", t)
+			EconBizSvc.monthly(world)  # part C (opt-in): business services bought per worker
+			t = EconUtil.prof(world, "EconBizSvc.monthly", t)
 			EconHQ.monthly(world)  # part B (opt-in): party and union headquarters, newsrooms
 			t = EconUtil.prof(world, "EconHQ.monthly", t)
 			EconCare.monthly(world)  # part E (opt-in): elder care and childcare from their budget lines
