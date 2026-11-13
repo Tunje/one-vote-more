@@ -5,6 +5,7 @@ extends TestCase
 const F := preload("res://tests/support/staff_fixture.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 const JO := preload("res://sim/law/justice_ops.gd")
+const Det := preload("res://sim/staff/det.gd")
 
 
 func _world() -> WorldState:
@@ -42,3 +43,54 @@ func test_old_convictions_lapse_and_severe_repeats_suspend_longer() -> void:
 	w.month += 6
 	JO._fine(w, "org:1", "SEVERE", "v:3")
 	check_eq(int(w.peek("licence")["lic:1"]["suspended_until"]), w.month + 2 * JO.SUSPEND_MONTHS, "SEVERE repeat: twice as long")
+
+
+func _private_orgs(w: WorldState) -> Array:
+	var out: Array = []
+	for oid in Det.ordered(w.table("org")):
+		var o: Dictionary = w.table("org")[oid]
+		if not (o["type"] in EconData.PUBLIC_TYPES) and String(o["status"]) == "ACTIVE":
+			out.append(oid)
+	return out
+
+
+## v8: the third conviction within 5 years revokes the licences and the court winds the firm up.
+func test_third_conviction_winds_the_firm_up() -> void:
+	var w := EconSim.make(3, "BALANCED", {}, true).world
+	var orgs := _private_orgs(w)
+	check(orgs.size() >= 2, "private firms to test with")
+	if orgs.size() < 2:
+		return
+	var a := String(orgs[0])
+	JO._repeat_ladder(w, a)
+	w.month += 10
+	JO._repeat_ladder(w, a)
+	check(String(w.table("org")[a]["status"]) != "LIQUIDATION", "two convictions: still trading")
+	w.month += 10
+	JO._repeat_ladder(w, a)
+	check_eq(String(w.table("org")[a]["status"]), "LIQUIDATION", "the third: wound up")
+	check_eq(w.facts.query("LAW_LICENCE_REVOKED", 0, w.month).size(), 1, "licences revoked")
+	var b := String(orgs[1])
+	w.levers["LAW_REVOKE_AFTER_CONVICTIONS"] = 0
+	for i in 5:
+		JO._repeat_ladder(w, b)
+	check(String(w.table("org")[b]["status"]) != "LIQUIDATION", "0 = never")
+
+
+## v8: a fine more than a year past due brings a creditor petition and a court liquidation.
+func test_unpaid_fines_bring_a_petition() -> void:
+	var w := EconSim.make(3, "BALANCED", {}, true).world
+	var orgs := _private_orgs(w)
+	if orgs.is_empty():
+		check(false, "no private firm")
+		return
+	var a := String(orgs[0])
+	var lid := w.new_id("liability")
+	w.table("liability")[lid] = {"id": lid, "debtor": a, "creditor": "gov", "amount": 5000, "due_month": w.month - 6,
+		"kind": "FINE", "status": "OPEN"}
+	JO._petitions(w)
+	check(String(w.table("org")[a]["status"]) != "LIQUIDATION", "6 months late: not yet")
+	w.month += 7
+	JO._petitions(w)
+	check_eq(String(w.table("org")[a]["status"]), "LIQUIDATION", "13 months late: wound up")
+	check_eq(w.facts.query("LAW_LIQUIDATION_PETITION", 0, w.month).size(), 1, "the petition is news")

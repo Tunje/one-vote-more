@@ -499,6 +499,18 @@ const LEVERS := [
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 0.002, "FISCAL": 0.0005},
 		"concerns": {"FAIRNESS": 8, "GOVERNANCE": 3},
 		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 3, "scope": "COLONY", "domain": "LAW"},
+	# P2a: how punitive sentences are (0..100; 40 = Nordic-leaning: mostly fines and community service, prison for serious
+	# violence and major fraud). Order-minded parties push it up, liberty-minded down (Wilma's ruling).
+	{"id": "LAW_SENTENCING", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 40,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": -0.3},
+		"concerns": {"SAFETY": 6, "FAIRNESS": -4, "GOVERNANCE": -2},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	# v8: the conviction (any kind, within 5 years) at which a firm's licences are revoked and the court winds it up.
+	# 0 = never. Business-minded parties want more chances, order-minded ones fewer.
+	{"id": "LAW_REVOKE_AFTER_CONVICTIONS", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 10], "default": 3,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": -0.8},
+		"concerns": {"FAIRNESS": -5, "JOBS": 3},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
 	{"id": "LAW_WHISTLEBLOWER_PROTECTION", "owner": "law", "type": "BOOL", "default": false,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 8, "LABOR": 6},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},

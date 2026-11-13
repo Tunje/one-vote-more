@@ -105,3 +105,23 @@ func test_a_growing_district_is_not_a_wave() -> void:
 	_hh(w, "hb:1|MID", "d:1", "MID", 12000, 12000 - 480, 8000, 3000)    # the district doubles, same unemployment
 	_run(w, 6)
 	check(w.facts.query("LAW_CRIME_WAVE", 0, w.month).is_empty(), "more people, same rate: no wave")
+
+
+## v8: lasting high crime is news once a year (a wave only measures a district against its own past).
+func test_lasting_high_crime_stays_news() -> void:
+	var w := _world()
+	var row := {"pop": 10000, "hist": {"THEFT": [], "VIOLENCE": [], "FRAUD": []}}
+	for i in 12:
+		(row["hist"]["THEFT"] as Array).append(90)       # 1,080 reported a year per 10k
+		(row["hist"]["VIOLENCE"] as Array).append(12)    # 144
+	CR._high_crime(w, "d:1", row)
+	check_eq(w.facts.query("LAW_HIGH_CRIME", 0, w.month).size(), 1, "index 1,512 vs base 600: news")
+	w.month += 6
+	CR._high_crime(w, "d:1", row)
+	check_eq(w.facts.query("LAW_HIGH_CRIME", 0, w.month).size(), 1, "not again within the year")
+	var calm := {"pop": 10000, "hist": {"THEFT": [], "VIOLENCE": [], "FRAUD": []}}
+	for i in 12:
+		(calm["hist"]["THEFT"] as Array).append(40)
+		(calm["hist"]["VIOLENCE"] as Array).append(5)
+	CR._high_crime(w, "d:2", calm)
+	check_eq(w.facts.query("LAW_HIGH_CRIME", 0, w.month).size(), 1, "normal crime is not")

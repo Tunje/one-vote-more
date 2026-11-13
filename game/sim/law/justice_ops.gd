@@ -57,6 +57,8 @@ static func js(world: WorldState) -> Dictionary:
 		t["s"] = {}
 	if not t["s"].has("justice"):
 		t["s"]["justice"] = {"warnings": {}, "filed": {}, "sanctioned": {}, "contract_filed": {}}
+	if not t["s"]["justice"].has("gov_owed"):
+		t["s"]["justice"]["gov_owed"] = []
 	return t["s"]["justice"]
 
 
@@ -252,6 +254,7 @@ static func run(world: WorldState) -> void:
 	_settlements(world)
 	_process_courts(world)
 	_pay_victims(world)
+	_petitions(world)
 
 
 static func _reactivate_licences(world: WorldState) -> void:
@@ -507,6 +510,8 @@ static func _process_courts(world: WorldState) -> void:
 	for court_id in Det.ordered(world.table("court")):
 		var court: Dictionary = world.table("court")[court_id]
 		var cap := int(round(capacity(world, court) * 1000.0))
+		if load("res://sim/law/criminal.gd").on(world):     # P2a: the criminal docket was heard first
+			cap = cap * (1000 - int(world.peek("law_state").get("s", {}).get("criminal", {}).get("cp_share_pm", 0))) / 1000
 		for cid in Det.ordered(cases):
 			if cap <= 0:
 				break
@@ -587,23 +592,36 @@ static func _final(world: WorldState, c: Dictionary, claimant_wins: bool) -> voi
 				if not v.is_empty():
 					v["sanctioned_month"] = world.month
 					js(world)["sanctioned"][v["company"]] = world.month
+				_repeat_ladder(world, String(c["respondent"]["id"]))
 				if String(c["data"].get("class", "")) == "SEVERE":
 					var org: Dictionary = world.table("org").get(c["respondent"]["id"], {})
 					var ceo = org.get("ceo", {})
 					var cref := {"kind": "COMPANY", "id": c["respondent"]["id"]}
+					var ceo_name: String = String(ceo.get("name", "")) if ceo is Dictionary else str(ceo)
+					var Crim = load("res://sim/law/criminal.gd")
+					var jail := int(Crim.named_months(world))      # P2a: 0 unless PRISONS is on and the sentence is prison
 					fact(world, "LAW_MANAGER_CONVICTED", "PUBLIC", [cref], [{"actor": cref, "share": 1.0}], {"FAIRNESS": 3}, 40,
-						{"org": c["respondent"]["id"], "ceo": ceo.get("name", "") if ceo is Dictionary else str(ceo),
-						"violation": c["data"]["violation"], "case": c["id"]})
+						{"org": c["respondent"]["id"], "ceo": ceo_name,
+						"violation": c["data"]["violation"], "case": c["id"], "prison_months": jail})
+					if jail > 0:
+						var nm := ceo_name if ceo_name != "" else "the chief executive of " + String(org.get("name", c["respondent"]["id"]))
+						Crim.imprison_named(world, "CEO", jail, {"name": nm, "org": String(c["respondent"]["id"]), "case": c["id"],
+							"district": String(org.get("hq", "d:1"))})
 			"TORT":
 				var claim := int(c["data"].get("claim", 0))
 				var gov_share := float(c["data"].get("gov_share", 0.0))
 				var by_gov := int(round(float(claim) * gov_share))
-				_pay(world, c["respondent"], c["claimant"], claim - by_gov, "COMPENSATION")
-				if by_gov > 0:
-					_pay(world, GOVERNMENT, c["claimant"], by_gov, "COMPENSATION")
+				var resp_gov: bool = String(c["respondent"].get("kind", "")) in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"]
+				var paid_resp := _pay(world, c["respondent"], c["claimant"], claim - by_gov, "COMPENSATION")
+				var paid_gov := _pay(world, GOVERNMENT, c["claimant"], by_gov, "COMPENSATION") if by_gov > 0 else 0
 				data["remedy"] = "COMPENSATION"
 				data["amount"] = claim
-				data["gov_paid"] = by_gov
+				# v8 fix: gov_paid is what the treasury actually paid now (all of it when the government is the respondent);
+				# gov_owed is the rest, kept and paid as the treasury allows (_pay_gov_owed), not lost
+				data["gov_share_amount"] = by_gov + (claim - by_gov if resp_gov else 0)
+				data["gov_paid"] = paid_gov + (paid_resp if resp_gov else 0)
+				data["gov_owed"] = int(data["gov_share_amount"]) - int(data["gov_paid"])
+				data["paid"] = paid_resp + paid_gov
 			"DEFAMATION":
 				var dmg := int(round(float(c["data"].get("severity", 0)) * DEFAMATION_DAMAGES_WREF * float(w_ref(world))))
 				data["paid"] = _pay(world, c["respondent"], c["claimant"], dmg, "DAMAGES")
@@ -662,13 +680,19 @@ static func _party_fine(world: WorldState, c: Dictionary) -> int:
 		var ld = world.peek("party").get(pid, {}).get("leader", {})
 		var person := String(ld.get("person", "")) if typeof(ld) == TYPE_DICTIONARY and String(ld.get("name", "")) == leader else ""
 		var until := world.month + ban * 12 if ban > 0 else -1
+		var Crim = load("res://sim/law/criminal.gd")
+		var jail := int(Crim.named_months(world))      # P2a: an imprisoned leader loses the leadership at once (Wilma)
+		if jail > 0:
+			can = false
 		var t := world.table("law_state")
 		if t.has("s") and t["s"].has("party_finance"):
 			t["s"]["party_finance"]["convictions"].append({"leader": leader, "person": person, "party": pid, "month": world.month,
 				"case": c["id"], "barred_until": until})
 		fact(world, "LAW_LEADER_CONVICTED", "PUBLIC", [pref], [{"actor": pref, "share": 1.0}], {"GOVERNANCE": -3}, 60,
 			{"party": pid, "leader": leader, "person": person, "case": c["id"], "can_hold_office": can, "must_step_down": not can,
-				"barred_until": until})
+				"barred_until": until, "prison_months": jail})
+		if jail > 0:
+			Crim.imprison_named(world, "LEADER", jail, {"name": leader, "party": pid, "person": person, "case": c["id"]})
 	return amount
 
 
@@ -764,8 +788,97 @@ static func _award(world: WorldState, victims: Dictionary, amount: int) -> void:
 
 
 ## Placeholder until 88's pool payout exists: nothing to do here (awards wait in law:victim_fund).
-static func _pay_victims(_world: WorldState) -> void:
-	pass
+static func _pay_victims(world: WorldState) -> void:
+	_pay_gov_owed(world)
+
+
+## v8 repeat offenders (Wilma, Bob E135): the LAW_REVOKE_AFTER_CONVICTIONS-th conviction of a firm (any kind) within
+## REPEAT_WINDOW months revokes its licences and the court winds it up (EconInsolvency.court_liquidation, reason
+## LICENCE_REVOKED). 0 = never. Public bodies are refused by the economy (they cannot be wound up).
+static func _repeat_ladder(world: WorldState, org_id: String) -> void:
+	var n_max := clampi(int(world.levers.get("LAW_REVOKE_AFTER_CONVICTIONS", 3)), 0, 10)
+	if js(world).get("wound_up", {}).has(org_id):
+		return
+	if not js(world).has("convictions"):
+		js(world)["convictions"] = {}
+	var log: Array = (js(world)["convictions"].get(org_id, []) as Array).filter(func(m): return world.month - int(m) <= REPEAT_WINDOW)
+	log.append(world.month)       # this conviction (warnings for MINOR conduct are not convictions)
+	js(world)["convictions"][org_id] = log
+	var n := log.size()
+	if n_max <= 0 or n < n_max:
+		return
+	if not _liquidate(world, org_id, "LICENCE_REVOKED"):
+		return
+	for l in world.table("licence").values():
+		if String(l["holder_id"]) == org_id and String(l["status"]) == "ACTIVE":
+			l["status"] = "REVOKED"
+	var cref := {"kind": "COMPANY", "id": org_id}
+	fact(world, "LAW_LICENCE_REVOKED", "PUBLIC", [cref], [{"actor": cref, "share": 1.0}], {"FAIRNESS": 4, "JOBS": -3}, 50,
+		{"org": org_id, "convictions": n, "window_months": REPEAT_WINDOW, "wound_up": true})
+
+
+## v8 unpaid fines and awards: a FINE or COMPENSATION liability more than PETITION_MONTHS past due makes the creditor
+## (the state, the victims' fund or the firm owed) petition the court, which winds the firm up (UNPAID_FINES).
+const PETITION_MONTHS := 12
+
+
+static func _petitions(world: WorldState) -> void:
+	var liab := world.peek("liability")
+	for lid in Det.ordered(liab):
+		var li: Dictionary = liab[lid]
+		if String(li["status"]) != "OPEN" or not (String(li["kind"]) in ["FINE", "COMPENSATION"]):
+			continue
+		if world.month - int(li["due_month"]) < PETITION_MONTHS:
+			continue
+		var org := String(li["debtor"])
+		if js(world).get("wound_up", {}).has(org):
+			continue
+		var owed := 0
+		for li2 in liab.values():
+			if String(li2["debtor"]) == org and String(li2["status"]) == "OPEN":
+				owed += int(li2["amount"])
+		if _liquidate(world, org, "UNPAID_FINES"):
+			var cref := {"kind": "COMPANY", "id": org}
+			fact(world, "LAW_LIQUIDATION_PETITION", "PUBLIC", [cref], [{"actor": cref, "share": 1.0}], {"FAIRNESS": 3, "JOBS": -3}, 45,
+				{"org": org, "owed": owed, "kind": String(li["kind"]), "months_overdue": world.month - int(li["due_month"]),
+				"creditor": String(li.get("creditor_acct", li.get("creditor", "gov")))})
+
+
+static func _liquidate(world: WorldState, org_id: String, reason: String) -> bool:
+	if not world.table("org").has(org_id):
+		return false
+	var ok := bool(load("res://sim/companies/insolvency.gd").court_liquidation(world, org_id, reason))
+	if ok:
+		if not js(world).has("wound_up"):
+			js(world)["wound_up"] = {}
+		js(world)["wound_up"][org_id] = {"month": world.month, "reason": reason}
+	return ok
+
+
+## Court-ordered government payments the treasury could not make: paid oldest first as the balance allows.
+static func _pay_gov_owed(world: WorldState) -> void:
+	var owed: Array = js(world)["gov_owed"]
+	if owed.is_empty() or not world.ledger.has_account("gov:treasury"):
+		return
+	var keep: Array = []
+	for o in owed:
+		var bal := maxi(0, world.ledger.balance("gov:treasury"))
+		var amt := int(o["amount"])
+		var pay := mini(amt, bal)
+		if pay > 0:
+			amt -= _pay(world, GOVERNMENT, o["to"], pay, String(o["memo"]))     # pay <= balance: paid in full, nothing re-owed
+		if amt > 0:
+			o["amount"] = amt
+			keep.append(o)
+	js(world)["gov_owed"] = keep
+
+
+## Total the government owes on court orders it has not paid yet (milli-credits).
+static func gov_owed(world: WorldState) -> int:
+	var n := 0
+	for o in world.peek("law_state").get("s", {}).get("justice", {}).get("gov_owed", []):
+		n += int(o["amount"])
+	return n
 
 
 ## Defamation (Ella, spec-election-year-v1): an exposed smear (a dirt attack with no real fact behind it). The victim
@@ -893,6 +1006,10 @@ static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, am
 		world.ledger.transfer(from, to, paid, memo, world.month)
 		if to_ref["kind"] == "VICTIMS":
 			_award(world, to_ref, paid)
+	if amount - paid > 0 and from == "gov:treasury":
+		# The treasury cannot go negative: what it could not pay stays owed (paid monthly by _pay_gov_owed).
+		(js(world)["gov_owed"] as Array).append({"to": to_ref.duplicate(true), "amount": amount - paid, "memo": memo,
+			"month": world.month})
 	if amount - paid > 0 and from.begins_with("co:"):
 		# Insolvency pays a creditor id into co:<id>. Only a company creditor has one: anyone else (victims, a party, a
 		# paper, a union) is owed through creditor_acct (Bob reads it; until then "gov" keeps the payment from failing).

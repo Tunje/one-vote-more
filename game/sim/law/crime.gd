@@ -50,6 +50,9 @@ const CLEAR_EMA := 0.1                  # monthly weight of this month's clearan
 const WAVE_FACTOR := 1.5                # 3-month rate ≥ this × the district's 24-month mean …
 const WAVE_ABOVE_BASE := 1.3            # … and ≥ this × the reported base rate
 const WAVE_GAP := 12                    # months between waves in one district
+const HIGH_CRIME_X := 2.0               # v8: a district whose 12-month index (theft + 3 × violence) is ≥ this × the
+const HIGH_CRIME_GAP := 12              # reported base is news once a year (a wave is measured against the district's
+                                        # own past, so lasting high crime stopped being news)
 const P_VIOLENT_STORY := 0.2            # chance a month with violent crime gives one LAW_VIOLENT_CRIME story
 const WAVE_SIGMA := 3.0                 # … and ≥ this many Poisson deviations above what the mean rate predicts
 const P_RING := 0.08                    # chance a solved fraud is a ring (LAW_FRAUD_RING_BUSTED)
@@ -199,6 +202,8 @@ static func monthly(world: WorldState) -> void:
 	var Police = load("res://sim/law/police.gd")
 	var powers_clear := float(Police.powers_clearance(world))       # P1c LAW_POLICE_POWERS
 	var police_on := bool(Police.on(world))
+	var Crim = load("res://sim/law/criminal.gd")
+	var crim_on := bool(Crim.on(world))
 	if not cs.has("ineq_ref"):       # inequality counts as it changes from the colony's first measured month
 		var sw := 0.0
 		for d in drv:
@@ -235,6 +240,8 @@ static func monthly(world: WorldState) -> void:
 			var last_patrol := float(row.get("patrol_pm", 1000)) / 1000.0
 			var presence := clampf(pow(maxf(0.05, last_patrol), PRESENCE_EXP), PRESENCE_MIN, PRESENCE_MAX) if k != "FRAUD" else 1.0
 			var exp_m := float(BASE_10K_Y[k]) * float(pop) / 10000.0 / 12.0 * 1000.0 * driver_mult(dr, k, int(cs["ineq_ref"])) * deter * presence
+			if crim_on:
+				exp_m += float(Crim.reoffending_milli(world, d, k))     # P2a recent offenders who reoffend
 			var n := _draw(rng, exp_m)
 			var rep := _draw(rng, float(n) * minf(1000.0, float(REPORT_PM[k]) * coop))
 			m[k] = [n, rep, 0]
@@ -260,6 +267,7 @@ static func monthly(world: WorldState) -> void:
 		row["m"] = m
 		row["month"] = world.month
 		_wave(world, d, row)
+		_high_crime(world, d, row)
 		var rings := 0
 		for i in int(m["FRAUD"][2]):
 			if rng.randf() < P_RING:
@@ -373,6 +381,29 @@ static func _unpatrolled(world: WorldState, cs: Dictionary, cov: int) -> void:
 # =================================================================================== readers
 
 ## Reported offences per 10k residents per year over the last 12 months (fewer months early on, annualised).
+## v8: lasting high crime stays visible. LAW_HIGH_CRIME (PUBLIC) at most once a year per district while its 12-month
+## reported index is ≥ HIGH_CRIME_X × the base index; blame on the government by police underfunding (as a wave).
+static func _high_crime(world: WorldState, d: String, row: Dictionary) -> void:
+	if (row["hist"]["THEFT"] as Array).size() < 12 or world.month - int(row.get("last_high", -999)) < HIGH_CRIME_GAP:
+		return
+	var idx := float(rate_10k_y(row, "THEFT") + 3 * rate_10k_y(row, "VIOLENCE"))
+	var base := float(BASE_10K_Y["THEFT"]) * float(REPORT_PM["THEFT"]) / 1000.0 		+ 3.0 * float(BASE_10K_Y["VIOLENCE"]) * float(REPORT_PM["VIOLENCE"]) / 1000.0
+	if idx < HIGH_CRIME_X * base:
+		return
+	row["last_high"] = world.month
+	var cov := int(_peek_state(world).get("coverage_pm", 1000))
+	var gov_share := clampf(1.0 - float(cov) / 1000.0, 0.0, 1.0)
+	var resp: Array = []
+	if gov_share > 0.0:
+		resp.append({"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": gov_share})
+		if gov_share < 1.0:
+			resp.append({"actor": {"kind": "OFFENDERS", "id": "offenders"}, "share": 1.0 - gov_share})
+	world.add_fact({"type": "LAW_HIGH_CRIME", "owner": "law", "subjects": [{"kind": "DISTRICT", "id": d}],
+		"responsible": resp, "impact": {"SAFETY": -4}, "magnitude": 40, "visibility": "PUBLIC",
+		"data": {"district": d, "theft": rate_10k_y(row, "THEFT"), "violence": rate_10k_y(row, "VIOLENCE"),
+			"times_base": snappedf(idx / base, 0.1), "coverage_pm": cov}})
+
+
 static func rate_10k_y(row: Dictionary, kind: String) -> int:
 	var h: Array = row.get("hist", {}).get(kind, [])
 	var pop := int(row.get("pop", 0))
