@@ -22,8 +22,18 @@ static func active(world: WorldState) -> bool:
 	return world.meta.has("on") and (world.meta["on"] as Array).has("SUPPORT_S") and not EconUtil.off(world, "SUPPORT_S")
 
 
+const PAYOUT_KEEP_M := 3  # months of wages kept as a cushion before the margin goes to the owners
+const DEAD := ["LIQUIDATION", "DISSOLVED", "ADMINISTRATION"]
+
+
+## The district's live comfort company ("" if none). A failed one keeps its key but is skipped, so a new one is founded
+## (v8 full-game check, Wilma: households kept paying dissolved companies — a money sink of millions a decade).
 static func company_of(world: WorldState, d: String) -> String:
-	return EconFinance.org_by_key(world, "COMFORT|" + d)
+	for oid in EconUtil.sorted_keys(world.peek("org")):
+		var o: Dictionary = world.peek("org")[oid]
+		if o["key"] == "COMFORT|" + d and not (o["status"] in DEAD):
+			return oid
+	return ""
 
 
 static func _found(world: WorldState, d: String) -> String:
@@ -91,7 +101,7 @@ static func monthly(world: WorldState) -> void:
 	var ema: Dictionary = s.get("comfort_rev_ema", {})
 	for d in EconUtil.sorted_keys(world.table("district")):
 		var oid := company_of(world, d)
-		if oid == "" or world.table("org")[oid]["status"] in ["LIQUIDATION", "DISSOLVED"]:
+		if oid == "":
 			continue
 		ema[d] = int(EMA_KEEP * float(ema.get(d, rm.get(d, 0))) + (1.0 - EMA_KEEP) * float(rm.get(d, 0)))
 		var f := _site(world, oid)
@@ -99,8 +109,12 @@ static func monthly(world: WorldState) -> void:
 			continue
 		_pay_out(world, oid, f)
 		var posts := int(float(ema[d]) * WAGE_SHARE / float(maxi(1, int(s["wage"]["G"]))))
+		# whole units: a site keeps 70% of a unit's crew however small (E49 labour hoarding), so a district earning
+		# less than one unit's wages ran at a loss and failed (v8 full-game check) — below one unit it closes for now
+		posts = posts / POSTS_PER_UNIT * POSTS_PER_UNIT
 		f["scale"] = posts * 1000 / POSTS_PER_UNIT
 		f["T"] = 1000
+		f["mothball"] = posts <= 0
 	s["comfort_rev_ema"] = ema
 	s["comfort_rev_m"] = {}
 
@@ -114,7 +128,7 @@ static func _pay_out(world: WorldState, oid: String, f: Dictionary) -> void:
 	var bill := 0
 	for t in EconData.RECIPES[f["type"]]["labor"]:
 		bill += int(EconData.RECIPES[f["type"]]["labor"][t]) * int(f.get("scale", 0)) / 1000 * EconFinance.wage_for(world, oid, t)
-	var spare := world.ledger.balance(EconUtil.acct(oid)) - bill
+	var spare := world.ledger.balance(EconUtil.acct(oid)) - bill * PAYOUT_KEEP_M
 	if spare <= 0:
 		return
 	world.ledger.transfer(EconUtil.acct(oid), EconUtil.hh_acct(o["owner_group"]), spare, "DIVIDEND", world.month)

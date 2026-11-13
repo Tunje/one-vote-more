@@ -219,6 +219,8 @@ static func _buy_media(world: WorldState) -> void:
 static func pay_media_wages(world: WorldState, from_acct: String, amount: int, district: String) -> int:
 	if amount <= 0:
 		return 0
+	if EconHQ.active(world):
+		return EconHQ.pay_newsroom(world, from_acct, amount)  # part B: the paper's own journalists
 	var amt := mini(amount, maxi(0, world.ledger.balance(from_acct)))
 	var gids: Array = []
 	var w: Array = []
