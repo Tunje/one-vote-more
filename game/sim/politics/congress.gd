@@ -21,6 +21,7 @@ const MOTION_DEADLINE := 2           # months for the player to answer
 const OUTSIDER_POLL_DROP := 3000     # polling 3 pp under the last election: an outsider joins the race
 const NARROW := 0.10                 # vote-share margin that makes a defeat bitter
 const PA := preload("res://sim/politics/pol_actions.gd")
+const LQ := preload("res://sim/law/law_query.gd")
 
 
 ## world.meta["congress"] = false: the old instant contests, no congresses (A/B measurement).
@@ -44,7 +45,12 @@ static func open_race(world: WorldState, st: Dictionary, p: Dictionary, reason: 
 		return
 	PartyLife.ensure_factions(p)
 	var inc := int(p["leader"]["faction"])
-	var cands: Array = [{"leader": p["leader"].duplicate(), "faction": inc, "incumbent": true, "hustings": 0}]
+	var cands: Array = []
+	if may_stand(world, p["leader"]):
+		cands.append({"leader": p["leader"].duplicate(), "faction": inc, "incumbent": true, "hustings": 0})
+	else:
+		# a convicted leader barred from office (Anni's LAW_CONVICTION_BAN_YEARS) cannot defend: the wing fields another
+		cands.append({"leader": PartyLife.make_leader(world, inc), "faction": inc, "incumbent": false, "hustings": 0})
 	cands.append({"leader": PartyLife.make_leader(world, 1 - inc), "faction": 1 - inc, "incumbent": false, "hustings": 0})
 	var poll := PartyLife.latest_poll_shares(world)
 	var last := int(st.get("last_result", {}).get(p["id"], p["support"]))
@@ -65,6 +71,11 @@ static func open_race(world: WorldState, st: Dictionary, p: Dictionary, reason: 
 		_resolve(world, st, race)
 
 
+## May this leader stand for (or keep) the party leadership? Not while convicted and barred (LQ.may_hold_office).
+static func may_stand(world: WorldState, leader: Dictionary) -> bool:
+	return LQ.may_hold_office(world, String(leader.get("name", "")), String(leader.get("person", "")))
+
+
 ## Hustings: halfway through, each candidate's showing among members (charisma + luck).
 static func _hustings(world: WorldState, race: Dictionary) -> void:
 	var r := world.rng.stream("pol.congress")
@@ -81,6 +92,11 @@ static func _resolve(world: WorldState, st: Dictionary, race: Dictionary) -> voi
 		return
 	PartyLife.ensure_factions(p)
 	var fs: Array = p["factions"]
+	# convicted and barred since the race opened: off the ballot
+	race["candidates"] = race["candidates"].filter(func(c): return may_stand(world, c["leader"]))
+	if race["candidates"].is_empty():
+		var fi := int(p["leader"]["faction"])
+		race["candidates"].append({"leader": PartyLife.make_leader(world, fi), "faction": fi, "incumbent": false, "hustings": 0})
 	var r := world.rng.stream("pol.congress")
 	var scores: Array = []
 	var tot := 0.0

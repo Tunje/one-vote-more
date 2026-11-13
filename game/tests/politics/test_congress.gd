@@ -130,3 +130,41 @@ func test_congress_deterministic_and_save_load() -> void:
 	check_eq(SaveIO.load_into(loaded, save_path("congress.sav")), OK, "load")
 	loaded.run(30)
 	check_eq(loaded.world.state_hash(), ref.world.state_hash(), "save/load/continue identical")
+
+
+func _bar(w: WorldState, leader_name: String) -> void:
+	PF_.pf_state(w)["convictions"].append({"leader": leader_name, "month": w.month, "barred_until": w.month + 72})
+
+
+const PF_ := preload("res://sim/law/party_finance.gd")
+
+
+func test_a_barred_convicted_leader_cannot_defend() -> void:
+	var w := _sim().world
+	var st := _st(w)
+	var p := _ai_party(w)
+	var name := String(p["leader"]["name"])
+	_bar(w, name)
+	check(not Congress.may_stand(w, p["leader"]), "barred")
+	Congress.open_race(w, st, p, "ELECTION_LOSS")
+	var race := Congress.race_of(w, p["id"])
+	check(not race.is_empty(), "race opened")
+	check(race["candidates"].size() >= 2, "still a contest")
+	check(not race["candidates"].any(func(c): return String(c["leader"]["name"]) == name), "the convicted leader is off the ballot")
+	check(not race["candidates"].any(func(c): return bool(c["incumbent"])), "no incumbent")
+
+
+func test_a_conviction_during_the_race_takes_the_candidate_off_the_ballot() -> void:
+	var w := _sim().world
+	var st := _st(w)
+	var p := _ai_party(w)
+	Congress.open_race(w, st, p, "ELECTION_LOSS")
+	var race := Congress.race_of(w, p["id"])
+	var name := String(p["leader"]["name"])
+	_bar(w, name)
+	w.month += 1
+	Congress.monthly(w, st)
+	w.month += 1
+	Congress.monthly(w, st)
+	check(Congress.race_of(w, p["id"]).is_empty(), "decided")
+	check(String(w.table("party")[p["id"]]["leader"]["name"]) != name, "the convicted incumbent did not win")
