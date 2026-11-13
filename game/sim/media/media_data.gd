@@ -148,8 +148,11 @@ const REVIVE_KEEP_MONTHS := 132       # revival rows kept this long (state.reviv
 # revivals have a reason the chronicle can name at about the same total (≈ 1 a decade).
 # v2 probe: 25 revivals (18 triggered, 16 of them CAMPAIGN: campaign months are a bigger share of the term than
 # assumed). v3: base 0.0015, CAMPAIGN ×4 → about 15 per 150 seed-years, about two thirds with a reason.
-const REVIVE_P := 0.0015              # per paper × scandal-month × (0.5 + sens) × hostility × (0.5 + invest W_ref) × triggers
-const REVIVE_TRIGGERS := {"SIMILAR": 6.0, "PERSON": 6.0, "VERDICT": 6.0, "CAMPAIGN": 4.0, "ANNIVERSARY": 4.0, "SLOW_NEWS": 3.0}
+# v4 (v8 chronicles: 6 in 300 seed-years; the full feature set leaves papers 0–0.3 W_ref of investment, so v3 ran at
+# ~0.4 a decade). Trials, 3 seeds × 50 y with the v8 switches: 0.004/×4 → 14 (5 CAMPAIGN); 0.0025/×6 → 10 (5);
+# 0.003/×6 → 12 (7 CAMPAIGN). Ella: revivals only feed attack ads near an election, so steer by the campaign trigger.
+const REVIVE_P := 0.003               # per paper × scandal-month × (0.5 + sens) × hostility × (0.5 + invest W_ref) × triggers
+const REVIVE_TRIGGERS := {"SIMILAR": 6.0, "PERSON": 6.0, "VERDICT": 6.0, "CAMPAIGN": 6.0, "ANNIVERSARY": 4.0, "SLOW_NEWS": 3.0}
 const REVIVE_LIST_TOP := 3            # PERSON: a scandal figure moves to leader, minister or the top of a party list
 const REVIVE_ANNIVERSARY_MONTHS := 3  # ANNIVERSARY: the first months of each fifth year
 const REVIVE_TRIGGER_ORDER := ["SIMILAR", "PERSON", "VERDICT", "CAMPAIGN", "ANNIVERSARY", "SLOW_NEWS"]   # ties: first wins
