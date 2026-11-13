@@ -70,9 +70,15 @@ static func district_node(world: WorldState, d: String) -> Dictionary:
 
 ## The commute between two districts: {ok (a road exists), hops (links on the route; 0 within a district), km,
 ## minutes, links: [lid], factor ‰ (route_factor)}. Without a road: cross-country (ok false, factor NO_ROAD_F).
-## Peek-only, memoised per month and network revision.
+## Peek-only. The route (hops, km, minutes, links) is memoised across months while the network's shape
+## (Transport._struct_sig, worn-down kinds included) and the colony layout stay the same (Bob/Wilma 2026-11-13:
+## commuting asks every month); the factor (condition, traffic, this month's closures) is worked out on each call.
 static func commute_d(world: WorldState, from_d: String, to_d: String) -> Dictionary:
-	return Transport._memoised(world, "commute|%s|%s" % [from_d, to_d], func(): return _commute_d(world, from_d, to_d))
+	var r: Dictionary = Transport._memoised(world, "commute|%s|%s" % [from_d, to_d], func(): return _commute_d(world, from_d, to_d), false)
+	var out := r.duplicate()
+	if r["ok"] and not (r["links"] as Array).is_empty():
+		out["factor"] = _factor(world, {"links": r["links"]})
+	return out
 
 
 static func _commute_d(world: WorldState, from_d: String, to_d: String) -> Dictionary:
@@ -172,7 +178,8 @@ static func incident_site(world: WorldState, from_d: String, to_d: String, salt:
 ## Bus lines to draw, from Bob's EconQuery.commuting rows ({from_d, to_d, bus_commuters, buses_in_service, seats,
 ## load_pm, breakdowns_m, crashes_m, ...}): one line per pair of districts (both directions together) over the road
 ## route. → [{id, a, b, links, stops: [tiles], depot (tile of the nearest DEPOT, -1 if none), commuters, buses,
-## seats, load_pm (the fuller direction), breakdowns_m, crashes_m}]. Pairs within one district have no line.
+## seats, load_pm (the fuller direction), breakdowns_m, crashes_m, path (route tiles in order from the first stop),
+## bus_tiles, incidents (display placement, see _place)}]. Pairs within one district have no line.
 static func bus_lines(world: WorldState, pairs: Array) -> Array:
 	var by := {}
 	for p in pairs:
@@ -222,8 +229,60 @@ static func bus_lines(world: WorldState, pairs: Array) -> Array:
 					bd = dd
 					dep = Transport.tile_int(t)
 		ln2["depot"] = dep
+		ln2["path"] = route_path(world, cd["links"], stops[0] if not stops.is_empty() else -1)
+		_place(world, ln2)
 		out.append(ln2)
 	return out
+
+
+## The road route's tiles in order from `start` (the first stop): each link turned to continue where the last ended.
+static func route_path(world: WorldState, lids: Array, start: int) -> Array:
+	var links := Transport._links(world)
+	var out: Array = []
+	var at := start
+	for lid in lids:
+		if not links.has(lid):
+			continue
+		var p: Array = (links[lid]["path"] as Array).duplicate()
+		if p.is_empty():
+			continue
+		var tail := at
+		if not out.is_empty():
+			tail = int(out[out.size() - 1])
+		if tail >= 0:
+			var tv := Vector2(Transport.int_tile(tail))
+			if tv.distance_to(Vector2(Transport.int_tile(int(p[p.size() - 1])))) < tv.distance_to(Vector2(Transport.int_tile(int(p[0])))):
+				p.reverse()
+		for ti in p:
+			if out.is_empty() or int(out[out.size() - 1]) != int(ti):
+				out.append(int(ti))
+	return out
+
+
+const SHOW_BUSES := 12      # buses drawn on a line at most (one mark each)
+const SHOW_INCIDENTS := 6   # breakdowns and crashes drawn per line and kind at most
+
+## Display only (pure, no RNG stream): where this month's buses are along the line ("bus_tiles"), and where last
+## month's breakdowns and crashes happened ("incidents": [{kind, tile, link, junction}], Commuting.incident_site with a
+## salt from the month and the line).
+static func _place(world: WorldState, ln: Dictionary) -> void:
+	var path: Array = ln["path"]
+	var h := String(ln["id"]).hash()
+	var buses: Array = []
+	if path.size() >= 2:
+		var n := mini(int(ln["buses"]), SHOW_BUSES)
+		for i in n:   # spread along the line, shifted a little each month
+			var f := (float(i) + float(Planet._mix(world.month * 131 + i, h) % 1000) / 1000.0) / float(maxi(1, n))
+			buses.append(int(path[clampi(roundi(f * float(path.size() - 1)), 0, path.size() - 1)]))
+	ln["bus_tiles"] = buses
+	var inc: Array = []
+	for kind in ["BREAKDOWN", "CRASH"]:
+		var cnt := mini(int(ln["breakdowns_m" if kind == "BREAKDOWN" else "crashes_m"]), SHOW_INCIDENTS)
+		for k in cnt:
+			var s := incident_site(world, String(ln["a"]), String(ln["b"]), Planet._mix(world.month * 7 + k, h ^ kind.hash()), kind)
+			s["kind"] = kind
+			inc.append(s)
+	ln["incidents"] = inc
 
 
 ## The only write: the commuters' vehicle trips this month go onto the roads (T7 counts, congestion, wear). Bob calls

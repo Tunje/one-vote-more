@@ -24,14 +24,28 @@ const TOWN_R := 4   # a display settlement (pre-A2) spreads this many tiles arou
 static var _cache := {}
 
 
-## Changes whenever the layout may change (month, facilities, areas, map uses).
+## Changes whenever the layout may change: the terrain, the facilities (which ones), the areas (status, district,
+## name, size) and the map uses. Not the month (Bob/Wilma 2026-11-13: the commuting step asks every month, and
+## rebuilding the layout cost seconds a month).
 static func key(w: WorldState) -> String:
-	return "%d|%d|%d|%d|%d|%d" % [w.get_instance_id(), w.rng.derive_seed("map.terrain"), w.month, w.peek("facility").size(), w.peek("area").size(),
-		w.peek("map").get("uses", {}).size()]
+	var fac: Dictionary = w.peek("facility")
+	return "%s|%d|%d" % [_land_key(w), fac.size(), hash(fac.keys())]
 
 
-static func _cached(w: WorldState, what: String, fn: Callable) -> Variant:
-	var k := what + "|" + key(w)
+## The part without the facilities: what the settlements depend on (terrain, areas, map uses).
+static func _land_key(w: WorldState) -> String:
+	var asig := 0
+	var areas: Dictionary = w.peek("area")
+	for id in areas:
+		var a: Dictionary = areas[id]
+		asig = hash([asig, String(id), String(a.get("status", "")), String(a.get("district", "")), String(a.get("name", "")),
+			(a.get("tiles", []) as Array).size()])
+	return "%d|%d|%d|%d|%d|%d" % [w.get_instance_id(), w.rng.derive_seed("map.terrain"), hash(w.peek("map").get("grid", {}).get("rows", [])),
+		areas.size(), asig, w.peek("map").get("uses", {}).size()]
+
+
+static func _cached(w: WorldState, what: String, fn: Callable, land_only: bool = false) -> Variant:
+	var k := what + "|" + (_land_key(w) if land_only else key(w))
 	if not _cache.has(k):
 		if _cache.size() >= 16:
 			_cache.clear()
@@ -41,7 +55,7 @@ static func _cached(w: WorldState, what: String, fn: Callable) -> Variant:
 
 ## Settlements of the six economic districts (display, until areas exist). Deterministic in the terrain.
 static func econ_anchors(w: WorldState) -> Dictionary:
-	return _cached(w, "anchors", func(): return _econ_anchors(w))
+	return _cached(w, "anchors", func(): return _econ_anchors(w), true)
 
 
 static func _econ_anchors(w: WorldState) -> Dictionary:
@@ -93,7 +107,7 @@ static func near_code(w: WorldState, t: Vector2i, code: String, r: int) -> bool:
 ## Settlements: [{id, name, tile (Vector2i), tiles ([Vector2i] the town covers), district}], sorted by id.
 ## Areas once they exist (every kind: settlements, camps, villages, enclaves...), else the display settlements.
 static func settlements(w: WorldState) -> Array:
-	return _cached(w, "settlements", func(): return _settlements(w))
+	return _cached(w, "settlements", func(): return _settlements(w), true)
 
 
 static func _settlements(w: WorldState) -> Array:
@@ -180,16 +194,24 @@ static func as_tile(v) -> Vector2i:
 	return Vector2i(-1, -1)
 
 
-## Nearest tile to `a` (ring by ring, rows then columns: deterministic) of one of `codes` that is not taken.
+## Nearest tile to `a` of one of `codes` that is not taken; ties go to the first in rows-then-columns order.
+## Deterministic. Searched ring by ring and stopped once no nearer tile can come (the same answer as a full scan).
 static func nearest_untaken(w: WorldState, a: Vector2i, codes: Array, taken: Dictionary, reach: int) -> Vector2i:
 	var best := Vector2i(-1, -1)
 	var bd := INF
-	for yy in range(maxi(0, a.y - reach), mini(Terrain.H, a.y + reach + 1)):
-		for xx in range(maxi(0, a.x - reach), mini(Terrain.W, a.x + reach + 1)):
-			if taken.has(Terrain.key(xx, yy)) or not (Terrain.at(w, xx, yy) in codes):
+	for r in reach + 1:
+		if float(r) > bd:   # every tile of this ring and beyond is at least r away
+			break
+		for yy in range(a.y - r, a.y + r + 1):
+			if yy < 0 or yy >= Terrain.H:
 				continue
-			var d := Vector2(xx - a.x, yy - a.y).length()
-			if d < bd:
-				bd = d
-				best = Vector2i(xx, yy)
+			var step := 1 if absi(yy - a.y) == r else 2 * r
+			var xx := a.x - r
+			while xx <= a.x + r:
+				if xx >= 0 and xx < Terrain.W and not taken.has(Terrain.key(xx, yy)) and Terrain.at(w, xx, yy) in codes:
+					var d := Vector2(xx - a.x, yy - a.y).length()
+					if d < bd or (d == bd and (yy < best.y or (yy == best.y and xx < best.x))):
+						bd = d
+						best = Vector2i(xx, yy)
+				xx += maxi(1, step)
 	return best

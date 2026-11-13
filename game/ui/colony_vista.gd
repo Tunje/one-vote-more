@@ -114,6 +114,13 @@ static func gather(w: WorldState) -> Dictionary:
 		if int(l.get("globe", 0)) == 0:
 			links.append({"path": l["path"], "kind": String(l["effective"])})
 	d["links"] = links
+	var vehicles: Array = []   # buses on the commuter lines this month, and last month's breakdowns and crashes
+	for ln in Transport.bus_lines(w, EconQuery.commuting(w)):
+		for bt in ln["bus_tiles"]:
+			vehicles.append({"kind": "BUS", "tile": Transport.int_tile(int(bt)), "fid": ""})
+		for inc in ln["incidents"]:
+			vehicles.append({"kind": "BUS_" + String(inc["kind"]), "tile": Transport.int_tile(int(inc["tile"])), "fid": ""})
+	d["vehicles"] = vehicles
 	var waste := {}
 	for ws in WasteMap.sites(w):
 		for ti in ws["tiles"]:
@@ -314,7 +321,7 @@ func _draw_roads(w: WorldState, W: float, H: float, hy: float) -> void:
 ## smoke, waterworks, depots, farm barns, public buildings), cemetery graves.
 func _draw_things(w: WorldState, W: float, H: float, hy: float) -> void:
 	var items: Array = []
-	for t in _d.get("things", []):
+	for t in _d.get("things", []) + _d.get("vehicles", []):
 		var p := Vector2(t["tile"]) + Vector2(0.5, 0.5)
 		var dist := _fwd_side(p).x
 		if dist >= 2.0 and dist <= MAX_DIST:
@@ -358,6 +365,22 @@ func _draw_things(w: WorldState, W: float, H: float, hy: float) -> void:
 			"CLINIC", "SCHOOL", "ADMIN", "SERVICEHUB":
 				draw_rect(Rect2(p.x - s * 0.5, p.y - s * 0.55, s, s * 0.55), haze.call(Color("#f2ede1")))
 				draw_rect(Rect2(p.x - s * 0.55, p.y - s * 0.62, s * 1.1, s * 0.09), haze.call(Color("#8a8a8a")))
+			"BUS", "BUS_BREAKDOWN", "BUS_CRASH":   # a commuter bus on the road; broken down (hazard sign) or crashed (tipped, flash)
+				var bw := s * 0.55
+				var bh := s * 0.22
+				var body := Color("#ff9f43")
+				if t["kind"] == "BUS_CRASH":
+					draw_set_transform(p, 0.35, Vector2.ONE)
+					draw_rect(Rect2(-bw * 0.5, -bh, bw, bh), haze.call(body.darkened(0.2)))
+					draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+					for k in 6:
+						draw_line(p + Vector2(0, -bh), p + Vector2(0, -bh) + Vector2.from_angle(TAU * float(k) / 6.0) * s * 0.25, Color("#ff3030"), maxf(1.0, s * 0.03))
+				else:
+					draw_rect(Rect2(p.x - bw * 0.5, p.y - bh, bw, bh), haze.call(body))
+					draw_rect(Rect2(p.x - bw * 0.42, p.y - bh * 0.8, bw * 0.84, bh * 0.3), haze.call(Color("#cfe6f5")))   # windows
+					if t["kind"] == "BUS_BREAKDOWN":
+						var q := p + Vector2(bw * 0.75, 0)
+						draw_colored_polygon(PackedVector2Array([q + Vector2(0, -bh * 1.3), q + Vector2(bh * 0.6, 0), q + Vector2(-bh * 0.6, 0)]), Color("#f4d03f"))
 			"GRAVES":
 				for k in 3:
 					var g := p + Vector2((float(k) - 1.0) * s * 0.35, -s * 0.05)

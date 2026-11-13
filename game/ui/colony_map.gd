@@ -86,6 +86,8 @@ var _road_kind_pick: OptionButton
 var _site_cands: Array = []      # BUILD (waste kinds): the siting study's shortlist
 var _site_pick := -1             # index of the chosen candidate
 var _waste_at := {}              # tile int -> waste site id
+var _bus_lines: Array = []       # Transport.bus_lines of last month's commuting (Bob's EconQuery.commuting)
+var _bus_at := {}                # tile int -> [bus line index]
 
 var _info: RichTextLabel
 var _mode_buttons := {}
@@ -429,6 +431,7 @@ func _draw() -> void:
 		_draw_network(w, t)
 	if not show_dist:
 		_draw_waste_sites(w, t)
+		_draw_buses(t)
 	_draw_facilities(w, t)
 	_label_rects.clear()
 	if not show_dist:
@@ -700,6 +703,8 @@ func hover_text(w: WorldState, t: Vector2i) -> String:
 		s += " · " + String(FAC_NAMES.get(String(w.peek("facility")[fid]["type"]), "facility"))
 	for lid in _link_at.get(Transport.tile_int(t), []):
 		s += " · " + String(Transport.KIND_NAMES[_link(lid).get("kind", "TRACK")])
+	for i in _bus_at.get(Transport.tile_int(t), []):
+		s += " · bus line " + bus_line_name(_bus_lines[i])
 	if mode == "BUILD" and build_type == "ROAD":
 		s += "\n" + ("Click: the link starts here" if road_a.x < 0 or road_b.x >= 0 else "Click: the link ends here")
 	elif mode == "BUILD":
@@ -1280,6 +1285,13 @@ func _refresh_network(w: WorldState) -> void:
 	_reach.clear()
 	for r in Transport.reachable_sites(w):
 		_reach[String(r["id"])] = r
+	_bus_lines = Transport.bus_lines(w, EconQuery.commuting(w))
+	_bus_at.clear()
+	for i in _bus_lines.size():
+		for ti in _bus_lines[i]["path"]:
+			if not _bus_at.has(int(ti)):
+				_bus_at[int(ti)] = []
+			_bus_at[int(ti)].append(i)
 
 
 func _link(lid: String) -> Dictionary:
@@ -1386,8 +1398,101 @@ func _network_summary(_w: WorldState) -> String:
 	for sid in _reach:
 		var m := String(_reach[sid]["mode"])
 		by[m] = int(by.get(m, 0)) + 1
-	t += "Sights: %d by road, %d by rover, %d by airship, %d unreachable\n\n" % [int(by.get("ROAD", 0)), int(by.get("ROVER", 0)),
+	t += "Sights: %d by road, %d by rover, %d by airship, %d unreachable\n" % [int(by.get("ROAD", 0)), int(by.get("ROVER", 0)),
 		int(by.get("AIRSHIP", 0)), int(by.get("UNREACHABLE", 0))]
+	if not _bus_lines.is_empty():
+		var riders := 0
+		var buses := 0
+		var bd := 0
+		var cr := 0
+		for ln in _bus_lines:
+			riders += int(ln["commuters"])
+			buses += int(ln["buses"])
+			bd += int(ln["breakdowns_m"])
+			cr += int(ln["crashes_m"])
+		t += "[color=#%s]Buses[/color]: %d line%s, %d bus%s, %d commuters%s%s\n" % [BUS_COLOR.to_html(false), _bus_lines.size(),
+			"" if _bus_lines.size() == 1 else "s", buses, "" if buses == 1 else "es", riders,
+			(" · %d breakdown%s" % [bd, "" if bd == 1 else "s"]) if bd > 0 else "", (" · [color=#ef5350]%d crash%s[/color]" % [cr, "" if cr == 1 else "es"]) if cr > 0 else ""]
+	return t + "\n"
+
+
+# ------------------------------------------------------------------ bus lines (T3 + §8c, Bob's EconQuery.commuting)
+
+const BUS_COLOR := Color("#ff9f43")
+const OVERCROWDED_PM := 1300   # Bob §8c: riders per seat-trip above this is overcrowded
+
+
+func bus_line_name(ln: Dictionary) -> String:
+	return "%s – %s" % [String(EconData.DISTRICTS.get(String(ln["a"]), {}).get("name", ln["a"])),
+		String(EconData.DISTRICTS.get(String(ln["b"]), {}).get("name", ln["b"]))]
+
+
+## Bus lines along their roads (orange, side by side where several share a road; red-tinged when overcrowded), their
+## stops (white squares), the buses this month (small orange boxes) and last month's breakdowns (yellow triangles) and
+## crashes (red stars).
+func _draw_buses(t: float) -> void:
+	var shared := {}   # tile int -> lines drawn there so far (offset)
+	for ln in _bus_lines:
+		var path: Array = ln["path"]
+		if path.size() < 2:
+			continue
+		var col := BUS_COLOR
+		if int(ln["load_pm"]) > OVERCROWDED_PM:
+			col = col.lerp(Color("#ef5350"), 0.6)
+		var off := 0
+		for ti in path:
+			off = maxi(off, int(shared.get(int(ti), 0)))
+		for ti in path:
+			shared[int(ti)] = off + 1
+		var pts := PackedVector2Array()
+		for ti in path:
+			pts.append(_tile_center(Transport.int_tile(int(ti))))
+		var d := maxf(1.2, t * 0.13) * float(off % 4 + 1)   # side by side next to the road, at most four apart
+		var shifted := PackedVector2Array()
+		for i in pts.size():
+			var a := pts[maxi(0, i - 1)]
+			var b := pts[mini(pts.size() - 1, i + 1)]
+			var nrm := (b - a).orthogonal().normalized() if a != b else Vector2.ZERO
+			shifted.append(pts[i] + nrm * d)
+		draw_polyline(shifted, Color(0, 0, 0, 0.6), maxf(1.5, t * 0.12) + 1.5)
+		draw_polyline(shifted, col, maxf(1.2, t * 0.12))
+		var ss := maxf(3.0, t * 0.32)
+		for s in ln["stops"]:
+			var p := _tile_center(Transport.int_tile(int(s)))
+			draw_rect(Rect2(p - Vector2(ss, ss) * 0.5, Vector2(ss, ss)), Color.WHITE)
+			draw_rect(Rect2(p - Vector2(ss, ss) * 0.5, Vector2(ss, ss)), col, false, maxf(1.0, t * 0.06))
+		var bs := maxf(5.0, t * 0.55)
+		for bt in ln["bus_tiles"]:
+			var i := path.find(int(bt))
+			var p := shifted[i] if i >= 0 else _tile_center(Transport.int_tile(int(bt)))
+			draw_rect(Rect2(p - Vector2(bs, bs * 0.6) * 0.5, Vector2(bs, bs * 0.6)), col.lightened(0.2))
+			draw_rect(Rect2(p - Vector2(bs, bs * 0.6) * 0.5, Vector2(bs, bs * 0.6)), Color.BLACK, false, 1.0)
+		for inc in ln["incidents"]:
+			var p2 := _tile_center(Transport.int_tile(int(inc["tile"])))
+			var r := maxf(4.0, t * 0.45)
+			if String(inc["kind"]) == "CRASH":
+				for k in 4:
+					var ang := PI / 4.0 * float(k)
+					draw_line(p2 - Vector2.from_angle(ang) * r, p2 + Vector2.from_angle(ang) * r, Color("#ff3030"), maxf(2.0, t * 0.12))
+			else:
+				var tri := PackedVector2Array([p2 + Vector2(0, -r), p2 + Vector2(r * 0.9, r * 0.6), p2 + Vector2(-r * 0.9, r * 0.6)])
+				draw_colored_polygon(tri, Color("#f4d03f"))
+				draw_polyline(tri + PackedVector2Array([tri[0]]), Color.BLACK, 1.0)
+
+
+## The bus lines that run over a link, for its panel.
+func _bus_text(lid: String) -> String:
+	var t := ""
+	for ln in _bus_lines:
+		if not lid in ln["links"]:
+			continue
+		var load := int(ln["load_pm"])
+		t += "\n[color=#%s]Bus line %s[/color]: %d bus%s, %d commuters, load %d%%%s" % [BUS_COLOR.to_html(false), bus_line_name(ln),
+			int(ln["buses"]), "" if int(ln["buses"]) == 1 else "es", int(ln["commuters"]), load / 10,
+			" · [color=#ef5350]overcrowded[/color]" if load > OVERCROWDED_PM else ""]
+		if int(ln["breakdowns_m"]) + int(ln["crashes_m"]) > 0:
+			t += "\n  last month: %d breakdown%s, %d crash%s" % [int(ln["breakdowns_m"]), "" if int(ln["breakdowns_m"]) == 1 else "s",
+				int(ln["crashes_m"]), "" if int(ln["crashes_m"]) == 1 else "es"]
 	return t
 
 
@@ -1410,6 +1515,7 @@ func link_text(w: WorldState, lid: String) -> String:
 		t += "\nRecent accidents: %d" % int(l["acc"])
 	if String(l["closed"]) != "":
 		t += "\n[color=#ef5350]Closed this month: %s[/color]" % ("storm" if l["closed"] == "STORM" else "mud after heavy rain")
+	t += _bus_text(lid)
 	t += "\n\n" + _fixes_text(w, "LINK:" + lid)
 	return t
 

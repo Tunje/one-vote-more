@@ -1,6 +1,6 @@
 extends SceneTree
 ## Terra (A5): render the colony map to a PNG (needs a window, not --headless).
-## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1] [bridge|waste|siting|whole]
+## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1] [bridge|waste|siting|whole|buses]
 ## "whole": the whole map at once (the opening view frames the landing site)
 ## fixture 1 builds a few areas (Landing, a mining camp, a farm village, a private enclave) with residents, as the
 ## economy will once A2/A3 land, so the area tools can be seen today.
@@ -11,6 +11,7 @@ var _out := "user://colony.png"
 var _mode := "INSPECT"
 var _bridge := false
 var _whole := false
+var _buses := false     # arg 6 = "buses": SUPPORT_T on, the bus lines with a demo breakdown and crash
 var _waste := ""       # arg 6 = "waste": a demo landfill, cemetery and sewage in the river; "siting": the landfill siting study   # arg 6 = "bridge": zoom in on the first river crossing and open its link panel
 
 
@@ -27,8 +28,17 @@ func _init() -> void:
 	_waste = args[5] if args.size() > 5 and args[5] in ["waste", "siting"] else ""
 	var s := GameSession.new()
 	s.new_game(seed_v, true)
+	_buses = args.size() > 5 and args[5] == "buses"
+	if _buses:   # Bob's commuting step (opt-in SUPPORT_T) on, so the bus lines show
+		s.world().meta["on"] = ["SUPPORT_T"]
 	for _m in months:
 		s.end_month()
+	if _buses:   # demo: a breakdown and a crash on the first line between districts (0 until Bob's §8c)
+		for r in EconUtil.st(s.world()).get("commute_rows", []):
+			if r["from_d"] != r["to_d"]:
+				r["breakdowns_m"] = 1
+				r["crashes_m"] = 1
+				break
 	if args.size() > 4 and args[4] == "1":
 		fixture(s.world())
 	if _waste == "waste":
@@ -127,6 +137,17 @@ func _process(_d: float) -> bool:
 			_view._zoom = 1.0
 			_view._pan = Vector2.ZERO
 			_view._user_view = true
+			_view.queue_redraw()
+		if _buses and not _view._bus_lines.is_empty():   # zoom in on the first line between districts
+			var ln: Dictionary = _view._bus_lines[0]
+			var tl := Transport.int_tile(int(ln["path"][ln["path"].size() / 2])) if not ln["path"].is_empty() else Terrain.landing(w)
+			_view._zoom = 3.0
+			_view._user_view = true
+			_view._pan = Vector2.ZERO
+			_view._pan = _view._map_rect().get_center() - _view._tile_center(tl)
+			if not ln["links"].is_empty():
+				_view.selected = {"kind": "LINK", "id": ln["links"][0], "tile": tl}
+				_view._update_panel()
 			_view.queue_redraw()
 		if _bridge:
 			for l in Transport.network(w)["links"]:

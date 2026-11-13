@@ -61,14 +61,34 @@ static var _memo := {}
 
 
 ## Memoised pure reads: valid while the month, the network revision and the colony layout stay the same.
-static func _memoised(world: WorldState, what: String, fn: Callable) -> Variant:
-	var k := "%s|%d|%d|%d|%s|%d" % [what, world.rng.derive_seed("map.terrain"), world.month, int(world.peek("transport").get("rev", 0)),
-		ColonyLayout.key(world), hash(world.peek("planet").get("storms", []))]
+## monthly false (Bob/Wilma 2026-11-13, commuting cost): kept across months while the network's shape (_struct_sig)
+## and the colony layout stay the same (the nodes, the commute routes); `extra` adds what else the read depends on.
+static func _memoised(world: WorldState, what: String, fn: Callable, monthly: bool = true, extra: String = "") -> Variant:
+	var k := "%s|%d|%s|%s|%s|%s" % [what, world.rng.derive_seed("map.terrain"), str(world.month) if monthly else "-",
+		str(int(world.peek("transport").get("rev", 0))) if monthly else str(_struct_sig(world)), ColonyLayout.key(world),
+		str(hash(world.peek("planet").get("storms", []))) if monthly else extra]
 	if not _memo.has(k):
-		if _memo.size() >= 32:
+		if _memo.size() >= 256:
 			_memo.clear()
 		_memo[k] = fn.call()
 	return _memo[k]
+
+
+## The network's shape, without the monthly wear and traffic (the revision goes up every month): each link's id, kind,
+## worn-down kind, lanes, bridge lanes and path length, the junction types and the bases. Keys the memos kept across
+## months.
+static func _struct_sig(world: WorldState) -> int:
+	var parts: Array = []
+	var links := _links(world)
+	for lid in links:
+		var l: Dictionary = links[lid]
+		parts.append("%s%s%s%d%d%d" % [lid, String(l["kind"]).substr(0, 1), effective_kind(l).substr(0, 1), int(l.get("lanes", 1)),
+			int(l.get("bridge_lanes", 1)), (l.get("path", l.get("cells", [])) as Array).size()])
+	var jt: Dictionary = world.peek("transport").get("junctions", {})
+	for jid in jt:
+		parts.append("%s%s" % [jid, String(jt[jid].get("type", ""))])
+	parts.append(str(_bases(world).keys()))
+	return hash(parts)
 
 
 static func _bump(world: WorldState) -> void:
@@ -436,15 +456,24 @@ static func closures(world: WorldState) -> Dictionary:
 ## Every node: [{id, kind: SETTLEMENT|PORT|PLANT|SITE|BASE, name, tile (int, -1 off the colony map), cell, town}].
 ## town = the settlement whose streets reach it ("" = none).
 static func nodes(world: WorldState) -> Array:
-	return _memoised(world, "nodes", func(): return _nodes(world))
+	return _memoised(world, "nodes", func(): return _nodes(world), false, _nodes_extra(world))
 
 
 static func node(world: WorldState, id: String) -> Dictionary:
-	return _memoised(world, "node_index", func():
-		var ix := {}
-		for n in nodes(world):
-			ix[n["id"]] = n
-		return ix).get(id, {})
+	var ix: Dictionary = _memoised(world, "node_index", func(): return _node_index(world), false, _nodes_extra(world))
+	return ix.get(id, {})
+
+
+static func _node_index(world: WorldState) -> Dictionary:
+	var ix := {}
+	for n in nodes(world):
+		ix[n["id"]] = n
+	return ix
+
+
+## What the nodes depend on beyond the network revision and the colony layout: the founders' cemetery as a sight.
+static func _nodes_extra(world: WorldState) -> String:
+	return str(WasteMap.founders_sight_tile(world))
 
 
 static func _nodes(world: WorldState) -> Array:

@@ -109,8 +109,17 @@ an operator buying rovers or an airship is a real investment.
 - `Transport.add_commute_traffic(world, rows)`: the only write. Buses in service × 4 trips and taxis (users / 1.5)
   × 2 trips, over 22 working days, go onto the route's links and junctions (T7 counts). Bob calls it after his
   commuting step. The NATURE reset keeps `traffic_last` on links and junctions.
-- Next (after Bob's EconQuery.commuting exists): the map draws the lines by load, the buses, and a mark at each
-  breakdown or crash tile; the vista shows buses on the roads.
+- Drawn (Terra, 2026-11-13, from Bob's `EconQuery.commuting`, d3f3e43; opt-in SUPPORT_T, so the default game
+  shows none). `bus_lines` also gives `path` (the route's tiles in order), `bus_tiles` (up to 12 buses spread
+  along the line, shifting each month) and `incidents` (up to 6 of each kind, placed by `incident_site` with a
+  salt from the month and the line). All are display-only and pure. Colony map: orange lines beside the road,
+  side by side where lines share it, red-tinged above 1300‰ load (overcrowded, §8c); white stop squares; bus
+  boxes; yellow triangles for breakdowns and red stars for crashes. The hover text names the lines; the link panel
+  lists each line's buses, commuters, load and last month's incidents; the network summary counts lines, buses
+  and commuters. Vista: buses on the roads, a hazard sign at a broken-down bus, a tipped bus with a flash at a
+  crash. `tools/shot_colony.gd … buses` renders it with a demo breakdown and crash.
+- When §8c puts data.tile on BUS_BREAKDOWN / BUS_CRASH facts, the marks should read those tiles instead of
+  placing their own.
 
 ## T4. Tourism transport (Bob, with Terra's sites)
 
