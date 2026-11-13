@@ -8,7 +8,7 @@ const Gazette := preload("res://ui/panels/gazette_panel.gd")
 const EVENTS := {"UNION_FOUNDED": "founded", "UNION_LEADER_ELECTED": "new leader", "UNION_MERGED": "merger",
 	"UNION_SPLIT": "breakaway", "UNION_DEMAND": "demand", "UNION_SETTLED": "settled", "UNION_TALKS_FAILED": "talks failed",
 	"UNION_STRIKE_CALLED": "strike", "UNION_STRIKE_COLLAPSED": "strike collapsed", "UNION_ENDORSEMENT_WITHDRAWN": "endorsement withdrawn"}
-const KIND_TEXT := {"WAGE": "a pay rise", "SAFETY": "safer workplaces", "JOBS": "no job cuts", "RECOGNITION": "recognition"}
+const KIND_TEXT := {"WAGE": "a pay rise", "SAFETY": "safer workplaces", "JOBS": "no job cuts", "RECOGNITION": "recognition", "STAFFING": "more staff"}
 
 var session
 var body: VBoxContainer

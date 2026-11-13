@@ -319,6 +319,24 @@ static func _fed_rebate(world: WorldState, fed: Dictionary, cap: int) -> void:
 
 
 ## U1 baseline grievance 0..100 (smoothed): real wages, labour law, layoffs in the union's sectors. U2 adds disputes.
+## A57/27-W staffing grievance (0..2) for an occupation: workplace stress in the sector (Bob's EconQuery.workload; 0
+## unless WORKLOAD runs) plus an overload incident in the sector in the last 12 months. Anni's triggers (Wilma, 2026-11-13).
+const STAFFING_FROM_PM := 300
+const STAFFING_SPAN_PM := 400
+
+
+static func staffing_grievance(world: WorldState, occ: String) -> float:
+	var col: Dictionary = EconQuery.workload(world).get("colony", {})
+	if col.is_empty():
+		return 0.0
+	var g := clampf(float(int(col.get(occ, 0)) - STAFFING_FROM_PM) / float(STAFFING_SPAN_PM), 0.0, 1.5)
+	for f in world.facts.query("ECON_OVERLOAD_INCIDENT", world.month - 11, world.month):
+		if str(f.get("data", {}).get("sector", "")) == occ:
+			g += 0.5
+			break
+	return minf(g, 2.0)
+
+
 static func _mood(world: WorldState) -> void:
 	var lay := {}
 	var s := EconUtil.st(world)
@@ -345,7 +363,7 @@ static func _mood(world: WorldState) -> void:
 		var laid := 0.0
 		var base := 0.0
 		for occ in u["sectors"]:
-			g = maxf(g, EconUnions.wage_grievance(world, occ) + EconUnions.law_grievance(world, occ))
+			g = maxf(g, EconUnions.wage_grievance(world, occ) + EconUnions.law_grievance(world, occ) + staffing_grievance(world, occ))
 			laid += float(lay.get(occ, 0))
 			base += float(emp.get(occ, 0))
 		var target := 20.0 + 25.0 * g + 300.0 * laid / maxf(1.0, base)

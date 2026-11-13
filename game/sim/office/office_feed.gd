@@ -6,7 +6,7 @@ extends RefCounted
 ## staff reports (REPORT), and the calendar. Other systems post through Office.post themselves as they migrate.
 
 const SQ := preload("res://sim/staff/staff_query.gd")
-const KIND_TXT := {"WAGE": "a pay rise", "SAFETY": "safer workplaces", "JOBS": "no job cuts", "RECOGNITION": "recognition"}
+const KIND_TXT := {"WAGE": "a pay rise", "SAFETY": "safer workplaces", "JOBS": "no job cuts", "RECOGNITION": "recognition", "STAFFING": "more staff"}
 const HOURS_PER_MONTH := 40
 
 

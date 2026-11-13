@@ -20,6 +20,7 @@ const S := EconUtil.S
 const WK := preload("res://sim/law/work_law.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 const LEAN_PM := 150
+const PLEDGE_M := 24
 const SICK_PM := 150
 const QUALITY_PM := 300
 const OVERLOAD_PM := 800
@@ -96,7 +97,8 @@ static func monthly(world: WorldState) -> void:
 		# lean: reckless or distressed private firms staff below the norm
 		var lean := 0
 		if not o.is_empty() and o["type"] in ["PRIVATE", "COOPERATIVE"] and not o["is_contractor"]:
-			if int(o["ceo"].get("risk", 50)) >= 70 or o["status"] == "DISTRESSED":
+			# a settled staffing dispute (union STAFFING demand) binds the firm to full crews for PLEDGE_M months
+			if (int(o["ceo"].get("risk", 50)) >= 70 or o["status"] == "DISTRESSED") and world.month - int(o.get("staffing_pledge_m", -999)) >= PLEDGE_M:
 				lean = LEAN_PM
 		f["lean_pm"] = lean
 		var wl := workload_pm(world, f)

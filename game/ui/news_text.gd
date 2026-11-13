@@ -134,7 +134,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"UNION_LEADER_ELECTED": s = ("%s re-elects %s as leader" % [d.get("name", "?"), d.get("leader", "?")]) if d.get("re_elected", false) else ("%s elects a %s leader, %s%s" % [d.get("name", "?"), "militant" if int(d.get("militancy", 50)) >= 70 else ("moderate" if int(d.get("militancy", 50)) < 45 else "new"), d.get("leader", "?"), (" (replacing %s)" % d.get("previous", "")) if String(d.get("previous", "")) != "" else ""])
 		"UNION_MERGED": s = "%s merges into the %s" % [d.get("absorbed_name", "A union"), d.get("name", "?")]
 		"UNION_SPLIT": s = "[color=#ff8a65]Rank-and-file revolt[/color]: militants break away from the %s to form the %s" % [d.get("from_name", "?"), d.get("name", "?")]
-		"UNION_DEMAND": s = "The %s demands %s from %s" % [d.get("name", "?"), {"WAGE": "a pay rise", "SAFETY": "safer workplaces", "JOBS": "a stop to job cuts", "RECOGNITION": "recognition"}.get(String(d.get("kind", "")), "a deal"), "the government" if String(d.get("employer", "")) == "gov" else org(w, d.get("employer", ""))]
+		"UNION_DEMAND": s = "The %s demands %s from %s" % [d.get("name", "?"), {"WAGE": "a pay rise", "SAFETY": "safer workplaces", "JOBS": "a stop to job cuts", "RECOGNITION": "recognition", "STAFFING": "more staff"}.get(String(d.get("kind", "")), "a deal"), "the government" if String(d.get("employer", "")) == "gov" else org(w, d.get("employer", ""))]
 		"UNION_SETTLED":
 			var who := "the government" if String(d.get("employer", "")) == "gov" else String(d.get("employer_name", org(w, d.get("employer", ""))))
 			var oc := String(d.get("outcome", ""))

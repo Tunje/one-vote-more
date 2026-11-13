@@ -4,7 +4,7 @@ extends RefCounted
 ## (EconUnions keeps mass layoffs, union_pm decay, stoppage effects and the essential-services law).
 ##
 ## Table "union_demand" (ids "udemand:N"):
-##   {id, union, employer (org id | "gov" for the public sector), employer_name, occ, kind WAGE|SAFETY|JOBS|RECOGNITION,
+##   {id, union, employer (org id | "gov" for the public sector), employer_name, occ, kind WAGE|SAFETY|JOBS|RECOGNITION|STAFFING,
 ##    size_pm, made, deadline, status OPEN|STRIKE|SETTLED|FAILED, answer, counter_pm, player_answer, outcome
 ##    (ACCEPTED|COUNTER|WON|COMPROMISE|LOST|ARBITRATED|STOOD_DOWN), award_pm, strike_start, strike_months, persons,
 ##    losses (milli), unlawful, reasons, lockout, ended}
@@ -25,6 +25,7 @@ extends RefCounted
 
 const S := EconUtil.S
 const UL := preload("res://sim/law/union_law.gd")
+const WK := preload("res://sim/law/work_law.gd")
 const DEMAND_MOOD := 55.0  # mood a moderate-average leader (militancy 50) needs to table a demand
 const DEMAND_COOLDOWN_M := 12
 const MAX_NEW_DEMANDS := 2
@@ -139,6 +140,9 @@ static func _kind(world: WorldState, u: Dictionary) -> String:
 	var occ: String = u["sectors"][0]
 	var wage_g := EconUnions.wage_grievance(world, occ)
 	var law_g := EconUnions.law_grievance(world, occ)
+	var staff_g := Unions.staffing_grievance(world, occ)
+	if staff_g > wage_g and staff_g >= law_g:
+		return "STAFFING"  # overworked and short-staffed: the demand is more hands, not more pay (27-W)
 	if law_g > wage_g:
 		var hits: Array = EconUtil.peek_st(world).get("union", {}).get("law_hits", [])
 		if not hits.is_empty():
@@ -277,6 +281,11 @@ static func _talks_failed(world: WorldState, d: Dictionary, u: Dictionary, rng: 
 		yes = clampi(int(float(u["mood"]) * 10.0 * (0.7 + 0.6 * mil)), 0, 1000)
 	var chk: Dictionary = UL.strike_check(world, u["id"], d["employer"], d["occ"], yes)
 	d["reasons"] = chk["reasons"].duplicate()
+	# a strike against an unlawful staffing shortfall (binding ratios) is lawful even where public strikes are banned
+	if d["kind"] == "STAFFING" and WK.strike_lawful_staffing(world, d["occ"]) and "PUBLIC_SECTOR_BAN" in chk["reasons"]:
+		chk["reasons"].erase("PUBLIC_SECTOR_BAN")
+		chk["lawful"] = chk["reasons"].is_empty()
+		d["reasons"] = chk["reasons"].duplicate()
 	if not chk["lawful"]:
 		if "PUBLIC_SECTOR_BAN" in chk["reasons"]:
 			_arbitrate(world, d, u)  # the ban sends public-sector disputes to arbitration
@@ -500,6 +509,8 @@ static func _settle(world: WorldState, d: Dictionary, u: Dictionary, outcome: St
 		# against the last settlement, not against the slump
 		u["relief"] = clampi(10 + award / 2, 10, 50) if d["kind"] == "WAGE" else 15  # mood points (int: saved state holds no floats)
 		u["relief_m"] = world.month
+	if d["kind"] == "STAFFING" and outcome in ["ACCEPTED", "COUNTER", "WON", "COMPROMISE", "ARBITRATED"] 			and world.table("org").has(d["employer"]):
+		world.table("org")[d["employer"]]["staffing_pledge_m"] = world.month   # full crews again (EconWorkload.PLEDGE_M)
 	if award > 0:
 		for oid in _struck_orgs(world, d):
 			var o: Dictionary = world.table("org")[oid]
