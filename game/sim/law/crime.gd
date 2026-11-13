@@ -303,7 +303,12 @@ static func _wave(world: WorldState, d: String, row: Dictionary) -> void:
 	row["last_wave"] = world.month
 	var cov := int(_peek_state(world).get("coverage_pm", 1000))
 	var gov_share := clampf(1.0 - float(cov) / 1000.0, 0.0, 1.0)
-	var resp: Array = [] if gov_share <= 0.0 else [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": gov_share}]
+	var resp: Array = []
+	if gov_share > 0.0:
+		# shares must sum to 1 (FactStore): the rest of the blame falls on the offenders, whom politics ignores
+		resp.append({"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": gov_share})
+		if gov_share < 1.0:
+			resp.append({"actor": {"kind": "OFFENDERS", "id": "offenders"}, "share": 1.0 - gov_share})
 	world.add_fact({"type": "LAW_CRIME_WAVE", "owner": "law", "subjects": [{"kind": "DISTRICT", "id": d}],
 		"responsible": resp, "impact": {"SAFETY": -5}, "magnitude": 45, "visibility": "PUBLIC",
 		"data": {"district": d, "monthly": int(round(recent)), "mean": int(round(mean)), "coverage_pm": cov}})
