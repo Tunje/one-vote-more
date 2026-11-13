@@ -487,7 +487,9 @@ const LEVERS := [
 	# Bob's budget line prices it as value × REF_COST × population (crime.gd police_cost).
 	{"id": "LAW_POLICE_BUDGET", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 2000], "default": 1000,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": -0.0015, "FISCAL": 0.0025, "ECON_ROLE": 0.001},
-		"concerns": {"SAFETY": 8, "GOVERNANCE": -5},
+		# v8 follow-up (Wilma): SAFETY 8 was tiny beside other services (health PUBLIC_SERVICES 60), so any fiscal stress cut
+		# the police to 0 for good. Now weighed like a public service, and deep cuts hurt more (concernsLow).
+		"concerns": {"SAFETY": 45, "GOVERNANCE": -10}, "concernsLow": {"from": 500, "concerns": {"SAFETY": 50}},
 		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 3, "scope": "COLONY", "domain": "LAW"},
 	# P1c: search, detention and surveillance powers (0..100, 40 = today). Above 40 clearance rises (up to +40% at 100)
 	# and so does misconduct (up to 3x); liberty-minded voters lose trust in the police, order-minded ones gain it.
@@ -498,7 +500,7 @@ const LEVERS := [
 	# P1c: the independent police complaints authority, milli-W_ref a month (1 investigation per OVERSIGHT_CASE_COST).
 	{"id": "LAW_POLICE_OVERSIGHT", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 20000], "default": 2000,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 0.002, "FISCAL": 0.0005},
-		"concerns": {"FAIRNESS": 8, "GOVERNANCE": 3},
+		"concerns": {"FAIRNESS": 8, "GOVERNANCE": -4},   # GOVERNANCE is the budget sign: oversight costs money (was +3)
 		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 3, "scope": "COLONY", "domain": "LAW"},
 	# P2a: how punitive sentences are (0..100; 40 = Nordic-leaning: mostly fines and community service, prison for serious
 	# violence and major fraud). Order-minded parties push it up, liberty-minded down (Wilma's ruling).
