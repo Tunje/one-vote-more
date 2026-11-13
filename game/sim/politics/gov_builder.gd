@@ -159,6 +159,8 @@ static func _order(world: WorldState, st: Dictionary, busy: Dictionary, who: Dic
 	var params := {"type": ftype, "district": d}
 	if line != "":
 		params["line"] = line
+	if EconActions.validate(world, "ECON_COMMISSION_PROJECT", params) != "":
+		return 0   # can't be paid for now: don't announce an order that would fail at execution (Terra's road trace)
 	var r: Dictionary = EconActions.enqueue(world, "ECON_COMMISSION_PROJECT", params)
 	if not r.get("ok", false):
 		return 0
