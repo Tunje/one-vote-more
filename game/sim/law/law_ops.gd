@@ -893,6 +893,15 @@ static func write_indicators(world: WorldState) -> void:
 		var parts: PackedStringArray = String(key).split("|")
 		if parts.size() >= 3:
 			world.set_indicator("law", "LAW_TRUST_IN_JUSTICE", key, int(s["trust"][parts[1]]))
+	# Crime (P1a, opt-in CRIME): district crime index (theft + 3 x violence) -> SAFETY, fraud rate -> FAIRNESS (A60).
+	var Crime := preload("res://sim/law/crime.gd")
+	if Crime.on(world):
+		for d in districts:
+			var cr: Dictionary = Crime.crime_rate(world, d)
+			if cr.is_empty():
+				continue
+			world.set_indicator("law", "LAW_CRIME_INDEX", d, (int(cr.get("THEFT", 0)) + 3 * int(cr.get("VIOLENCE", 0))) * 1000)
+			world.set_indicator("law", "LAW_FRAUD_RATE", d, int(cr.get("FRAUD", 0)) * 1000)
 	# Workplace safety (district): published only when the real economy runs (it publishes ECON_W_REF);
 	# under the stub world STUB_ACCIDENTS already covers SAFETY and a second, lever-only series would dilute it.
 	# Uses accident facts once any exist, else the lever-based expected rate.

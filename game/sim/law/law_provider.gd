@@ -35,6 +35,9 @@ func indicator_defs() -> Array:
 			L.INDICATOR_TUNING["LAW_WORKPLACE_SAFETY"], 1),
 		_ind("LAW_ENFORCEMENT_CONSISTENCY", "%", "COLONY", 1, L.INDICATOR_TUNING["LAW_ENFORCEMENT_CONSISTENCY"], 3),
 		_ind("LAW_COURT_DURATION", "months", "COLONY", -1, L.INDICATOR_TUNING["LAW_COURT_DURATION"], 3),
+		_ind("LAW_CRIME_INDEX", "reported theft + 3 x violence per 10k a year", "DISTRICT", -1,
+			L.INDICATOR_TUNING["LAW_CRIME_INDEX"], 1),
+		_ind("LAW_FRAUD_RATE", "reported frauds per 10k a year", "DISTRICT", -1, L.INDICATOR_TUNING["LAW_FRAUD_RATE"], 1),
 	]
 
 
