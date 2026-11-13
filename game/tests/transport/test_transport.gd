@@ -202,3 +202,51 @@ func test_bridges_cross_straight_and_old_links_are_replanned() -> void:
 		check(not Transport.bad_crossing(w2, l2["path"]), "re-planned straight: %s" % str(l2["path"]))
 		check(l2.has("spans"), "spans recorded")
 		check_eq(int(t["planner"]), Transport.PLANNER, "only once")
+
+
+## Wilma 2026-11-13: road_needs lists congested and worn links with the fix that cures them (a need-driven road
+## programme orders spec); auto_job upgrades a worn link that is also congested instead of repairing it.
+func test_road_needs_and_congested_worn_links_are_upgraded() -> void:
+	var sim := _game(1)
+	sim.step()
+	var w := sim.world
+	var links: Dictionary = w.table("transport")["links"]
+	var ids: Array = EconUtil.sorted_keys(links).filter(func(l): return int(links[l].get("globe", 0)) == 0 and links[l]["kind"] == "TRACK")
+	check(ids.size() >= 2, "two founding tracks")
+	for lid in links:
+		links[lid]["cond"] = 1000
+		links[lid]["traffic"] = 0
+		links[lid]["traffic_last"] = 0
+	for jid in w.table("transport").get("junctions", {}):
+		w.table("transport")["junctions"][jid]["traffic"] = 0
+		w.table("transport")["junctions"][jid]["traffic_last"] = 0
+	Transport._bump(w)
+	check(Transport.road_needs(w).is_empty(), "a good, quiet network needs nothing")
+	var busy: String = ids[0]
+	var worn: String = ids[1]
+	links[busy]["cond"] = 200
+	links[busy]["traffic_last"] = Transport.link_capacity(links[busy]) * 2   # last month: twice its capacity
+	links[worn]["cond"] = 400
+	Transport._bump(w)
+	var h := w.state_hash()
+	var needs := Transport.road_needs(w)
+	check_eq(w.state_hash(), h, "pure")
+	var by := {}
+	for n in needs:
+		by[n["key"]] = n
+	check(by.has("LINK:" + busy) and by.has("LINK:" + worn), "both links listed: %s" % str(by.keys()))
+	var nb: Dictionary = by.get("LINK:" + busy, {})
+	check(nb.get("why") == "BOTH" and nb.get("fix") == "ROAD" and nb.get("spec", {}).get("upgrade", "") == busy and int(nb.get("load_pm", 0)) == 2000,
+		"congested and worn: upgrade to a road %s" % str(nb))
+	var nw: Dictionary = by.get("LINK:" + worn, {})
+	check(nw.get("why") == "WORN" and nw.get("fix") == "REPAIR" and nw.get("spec", {}).get("repair", "") == worn, "worn only: repair %s" % str(nw))
+	check(String(needs[0]["key"]) == "LINK:" + busy, "the most severe first")
+	for n in needs:
+		check(String(n["district"]).begins_with("d:") and int(n["cost"]) > 0 and int(n["months"]) > 0, "a full row %s" % str(n))
+	check_eq(var_to_str(needs), var_to_str(Transport.road_needs(w)), "deterministic")
+	# a finished ROAD project in the busy link's district upgrades it (it was repaired forever before)
+	var job := Transport.auto_job(w, String(nb["district"]))
+	check(job.get("upgrade", "") == busy, "auto_job upgrades the congested worn track: %s" % str(job))
+	# a commission with the need's spec does that job
+	check_eq(Transport.complete_road(w, {"district": nb["district"], "link": nb["spec"]}), busy, "the ordered fix is built")
+	check(links[busy]["kind"] == "ROAD" and int(links[busy]["cond"]) == 1000, "now a new road")

@@ -1170,22 +1170,26 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 			continue
 		if worst == "" or int(l["cond"]) < int(links[worst]["cond"]):
 			worst = lid
-		if l["kind"] == "TRACK" and (busiest == "" or int(l["traffic"]) > int(links[busiest]["traffic"])):
+		if l["kind"] == "TRACK" and (busiest == "" or traffic_load(l) > traffic_load(links[busiest])):
 			busiest = lid
 	if worst != "" and int(links[worst]["cond"]) < 600:
+		# Wilma 2026-11-13: a worn link that is also congested is upgraded (which renews it too), not just repaired —
+		# a repaired track at twice its capacity wore out again within a few years, and nothing was ever upgraded
+		if String(links[worst]["kind"]) != "PAVED" and traffic_load(links[worst]) * 10 > link_capacity(links[worst]) * 8:
+			return {"upgrade": worst}
 		return {"repair": worst}
 	# T7: the busiest bottleneck first (above 80% of capacity): a junction, a bridge, a second lane
 	var jt := junctions(world)
 	for jid in EconUtil.sorted_keys(jt):
 		var j: Dictionary = jt[jid]
 		var ji: int = JUNCTION_TYPES.find(String(j["type"]))
-		if mine.call(int_tile(int(j["tile"]))) and ji < 2 and int(j["traffic"]) * 10 > junction_capacity(world, j) * 8:
+		if mine.call(int_tile(int(j["tile"]))) and ji < 2 and traffic_load(j) * 10 > junction_capacity(world, j) * 8:
 			return {"junction": jid, "type": "ROUNDABOUT" if ji == 1 or int(j["branches"]) >= 4 else "PRIORITY"}
 	for lid3 in EconUtil.sorted_keys(links):
 		var l3: Dictionary = links[lid3]
 		if int(l3.get("globe", 0)) == 1 or not ours.call(l3):
 			continue
-		if int(l3["traffic"]) * 10 > link_capacity(l3) * 8:
+		if traffic_load(l3) * 10 > link_capacity(l3) * 8:
 			if int(l3["bridges"]) > 0 and int(l3.get("bridge_lanes", 1)) < 2 and int(l3.get("lanes", 1)) == 2:
 				return {"bridge": lid3}
 			if l3["kind"] != "TRACK" and int(l3.get("lanes", 1)) == 1:
@@ -1199,6 +1203,12 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 		if int(l2.get("globe", 0)) == 0 and l2["kind"] != "PAVED" and ours.call(l2):
 			return {"upgrade": lid2}
 	return {}
+
+
+## Traffic a link or junction carries a month: this month's count so far, or last month's when that was higher
+## (the monthly reset zeroes the count before the month's trips are added).
+static func traffic_load(x: Dictionary) -> int:
+	return maxi(int(x.get("traffic", 0)), int(x.get("traffic_last", 0)))
 
 
 static func _nearest_link_tile(world: WorldState, links: Dictionary, t: Vector2i) -> Vector2i:
@@ -1361,6 +1371,97 @@ static func remove_base(world: WorldState, bid: String) -> void:
 ##   spec: the ROAD project's "link" params that order this fix (ECON_COMMISSION_PROJECT {type: "ROAD", link: spec})
 static func traffic_fixes(world: WorldState) -> Dictionary:
 	return _memoised(world, "fixes", func(): return _traffic_fixes(world))
+
+
+## Road needs (Wilma 2026-11-13, for a need-driven road programme and congestion as a political issue): every colony
+## link or junction that is congested (over NEED_LOAD_PM of its capacity) or worn (condition under NEED_COND), with
+## the cheapest fix that cures it. → [{key ("LINK:<id>" | "NODE:<jid>", as traffic_fixes), district (the district
+## of its middle, nearest settlement), why: CONGESTED | WORN | BOTH, load_pm (trips ÷ capacity ‰, traffic_load),
+## cond (‰; 1000 for junctions), fix (ROAD | PAVE | LANES_2 | BRIDGE_2 | REPAIR | PRIORITY | ROUNDABOUT |
+## SIGNALS), spec (the ROAD project's "link" params: ECON_COMMISSION_PROJECT {type: "ROAD", district, link: spec}),
+## cost (as EconConstruction.estimate), months, severity}], most severe first (then by key).
+## severity = (load_pm − NEED_LOAD_PM, if over) + (NEED_COND − cond, if under): ‰ points, unbounded (a junction at
+## 6× its capacity scores 5200; a worn-out quiet track 600).
+## Fix choice: congested → the cheapest option that brings the load to NEED_LOAD_PM or under, else the biggest
+## capacity gain; when also worn, only an upgrade (it renews the link); worn only → REPAIR. Pure, monthly memo.
+const NEED_LOAD_PM := 800
+const NEED_COND := 600
+
+
+static func road_needs(world: WorldState) -> Array:
+	return _memoised(world, "needs", func(): return _road_needs(world))
+
+
+static func _road_needs(world: WorldState) -> Array:
+	var out: Array = []
+	var fixes := traffic_fixes(world)
+	var setl := ColonyLayout.settlements(world)
+	var links := _links(world)
+	for lid in EconUtil.sorted_keys(links):
+		var l: Dictionary = links[lid]
+		if int(l.get("globe", 0)) == 1:
+			continue
+		var cap := maxi(1, link_capacity(l))
+		var lpm := traffic_load(l) * 1000 / cap
+		var cond := int(l["cond"])
+		var congested := lpm > NEED_LOAD_PM
+		var worn := cond < NEED_COND
+		if not congested and not worn:
+			continue
+		var opt := {}
+		if congested:
+			var opts: Array = fixes.get("LINK:" + lid, {}).get("options", []).filter(func(o):
+				return o["fix"] != "BYPASS" and (not worn or o["fix"] in ["ROAD", "PAVE"]))
+			opt = _cheapest_cure(opts, lpm)
+		if opt.is_empty() and worn:
+			var spec := {"repair": lid}
+			var plan := plan_link(world, spec)
+			if plan["ok"]:
+				opt = {"fix": "REPAIR", "spec": spec, "cost": int(plan["cost"]), "months": int(plan["months"])}
+		if opt.is_empty():
+			continue
+		var mid := int_tile(int(l["path"][l["path"].size() / 2]))
+		out.append({"key": "LINK:" + lid, "district": _district_near(setl, mid), "why": "BOTH" if congested and worn else ("CONGESTED" if congested else "WORN"),
+			"load_pm": lpm, "cond": cond, "fix": String(opt["fix"]), "spec": opt["spec"], "cost": int(opt["cost"]), "months": int(opt["months"]),
+			"severity": maxi(0, lpm - NEED_LOAD_PM) + maxi(0, NEED_COND - cond)})
+	var jt := junctions(world)
+	for jid in EconUtil.sorted_keys(jt):
+		var j: Dictionary = jt[jid]
+		var lpm2 := traffic_load(j) * 1000 / maxi(1, junction_capacity(world, j))
+		if lpm2 <= NEED_LOAD_PM:
+			continue
+		var opt2 := _cheapest_cure(fixes.get("NODE:" + jid, {}).get("options", []), lpm2)
+		if opt2.is_empty():
+			continue
+		out.append({"key": "NODE:" + jid, "district": _district_near(setl, int_tile(int(j["tile"]))), "why": "CONGESTED", "load_pm": lpm2,
+			"cond": 1000, "fix": String(opt2["fix"]), "spec": opt2["spec"], "cost": int(opt2["cost"]), "months": int(opt2["months"]),
+			"severity": lpm2 - NEED_LOAD_PM})
+	out.sort_custom(func(a, b): return int(a["severity"]) > int(b["severity"]) or (a["severity"] == b["severity"] and String(a["key"]) < String(b["key"])))
+	return out
+
+
+## The cheapest option whose capacity brings load_pm to NEED_LOAD_PM or under; else the one with the biggest gain.
+static func _cheapest_cure(opts: Array, load_pm: int) -> Dictionary:
+	var best := {}
+	var big := {}
+	for o in opts:
+		if load_pm * 1000 / maxi(1, int(o["cap_pm"])) <= NEED_LOAD_PM and (best.is_empty() or int(o["cost"]) < int(best["cost"])):
+			best = o
+		if big.is_empty() or int(o["cap_pm"]) > int(big["cap_pm"]) or (o["cap_pm"] == big["cap_pm"] and int(o["cost"]) < int(big["cost"])):
+			big = o
+	return best if not best.is_empty() else big
+
+
+## The district of the settlement nearest a tile ("" if there are none).
+static func _district_near(setl: Array, t: Vector2i) -> String:
+	var best := ""
+	var bd := INF
+	for s in setl:
+		var d := Vector2(s["tile"]).distance_to(Vector2(t))
+		if d < bd:
+			bd = d
+			best = String(s["district"])
+	return best
 
 
 ## The project params for one fix ({} if that fix is not on offer).

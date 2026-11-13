@@ -78,6 +78,11 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	needs.sort_custom(func(a, b): return a[0] < b[0] or (a[0] == b[0] and a[2] < b[2]))
 	for n in needs.slice(0, 2):
 		orders += _order(world, st, busy, who, n[1], n[2], "")
+	# 3b. roads by need (Terra's Transport.road_needs, v8 follow-up): congested or worn links and junctions get their
+	#     cheapest fix on the infrastructure line, whatever unemployment is. Spending- and state-minded governments act
+	#     sooner (lower bar) and fix more per quarter; austere ones wait until the jam is bad. Each link or junction is
+	#     ordered at most once per ROAD_NEED_GAP months.
+	_road_needs(world, st, busy, who, state, spend)
 	# 4. fabrication kits (A38): development- and spending-minded governments upgrade the colony's own
 	#    workshop and smelter sooner; austere governments wait until the gain is large
 	var dev := -float(pos.get("ENVIRONMENT", 0)) / 100000.0   # development-first = negative environment axis
@@ -134,6 +139,35 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 		st["pw_roads"] = roads
 
 
+const ROAD_NEED_BAR := 300.0
+const ROAD_NEED_GAP := 36
+
+
+static func _road_needs(world: WorldState, st: Dictionary, busy: Dictionary, who: Dictionary, state: float, spend: float) -> int:
+	var needs: Array = Transport.road_needs(world)
+	if needs.is_empty():
+		return 0
+	var bar := clampf(ROAD_NEED_BAR - 200.0 * spend - 100.0 * state, 100.0, 800.0)
+	var n_max := 1 + (1 if spend + state > 0.3 else 0)
+	var done_keys: Dictionary = st.get("road_need_keys", {})
+	var line := "ECON_BUDGET_INFRASTRUCTURE"
+	var done := 0
+	for r in needs:
+		if done >= n_max or float(r.get("severity", 0)) < bar:
+			break
+		var key := str(r["key"])
+		if world.month - int(done_keys.get(key, -9999)) < ROAD_NEED_GAP:
+			continue
+		var cost := int(r.get("cost", 0))
+		if EconActions.headroom(world, line) < cost * 11 / 10:
+			continue
+		if _order(world, st, busy, who, "ROAD", str(r["district"]), line, {"link": r["spec"]}) > 0:
+			done_keys[key] = world.month
+			done += 1
+	st["road_need_keys"] = done_keys
+	return done
+
+
 ## Who decides: the AI government in parliament, or the commander in the founding era when the player's
 ## persona is on autoplay. Nobody when the human player governs.
 static func _actor(world: WorldState, st: Dictionary) -> Dictionary:
@@ -152,11 +186,12 @@ static func _actor(world: WorldState, st: Dictionary) -> Dictionary:
 		"own_housing": int(pm.get("ownership", {}).get("HOUSING", 0))}
 
 
-static func _order(world: WorldState, st: Dictionary, busy: Dictionary, who: Dictionary, ftype: String, d: String, line: String) -> int:
+static func _order(world: WorldState, st: Dictionary, busy: Dictionary, who: Dictionary, ftype: String, d: String, line: String, extra: Dictionary = {}) -> int:
 	if busy.has(ftype + "|" + d):
 		return 0
 	busy[ftype + "|" + d] = true
 	var params := {"type": ftype, "district": d}
+	params.merge(extra)
 	if line != "":
 		params["line"] = line
 	if EconActions.validate(world, "ECON_COMMISSION_PROJECT", params) != "":
