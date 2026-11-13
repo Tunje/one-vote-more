@@ -44,6 +44,10 @@ func run_phase(phase: int, world: WorldState) -> void:
 			t = EconUtil.prof(world, "LawBridge.revalidate", t)
 			EconTrade.monthly(world)  # D1 (A42): home prices, export consignments — before the firms post sale offers
 			t = EconUtil.prof(world, "EconTrade.monthly", t)
+			EconRetail.monthly(world)  # support economy D (opt-in): shop staff from the retail margin
+			EconSanitation.monthly(world)  # support economy E (opt-in): the Sanitation Department, sized to the population
+			EconOffice.monthly(world)  # support economy A (opt-in): size each organisation's office before vacancies are posted
+			t = EconUtil.prof(world, "EconOffice.monthly", t)
 			FirmAI.run(world)
 			t = EconUtil.prof(world, "FirmAI.run", t)
 			EconConsumer.decorate_offers(world)  # D2: quality and reputation on consumer-goods offers

@@ -60,6 +60,8 @@ func run_phase(phase: int, world: WorldState) -> void:
 	match phase:
 		TickPhase.DECISIONS:
 			Ops.ensure_m11_rules(world)
+			Ops.ensure_work_rules(world)
+			Ops.ensure_competition_rules(world)
 			CO.ensure_m12(world)
 			Land.ensure_rules(world)
 			Media.ensure_rules(world)
@@ -70,6 +72,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			Ops.maybe_adopt_constitution(world)
 			Ops.run_pipeline(world)
 			CD.check_revocation(world)
+			preload("res://sim/law/competition_law.gd").monthly(world)     # merger reviews that are due
 		TickPhase.JUSTICE:
 			Ops.process_permits(world)
 			Ops.discover(world)

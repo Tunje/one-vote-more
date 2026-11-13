@@ -200,8 +200,11 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 				dd[bid["district"]] = dd.get(bid["district"], 0) + left
 				break
 		var cash := world.ledger.balance(bid["acct"])
-		if unit > 0:
-			take = mini(take, int(float(cash) * S / float(unit)))
+		var unit_pay := unit
+		if bid["kind"] == "hh":
+			unit_pay = unit + unit * EconRetail.margin_pm(world, good) / 1000  # support economy D: the shop's margin on top
+		if unit_pay > 0:
+			take = mini(take, int(float(cash) * S / float(unit_pay)))
 		if take <= 0:
 			break
 		var goods_cost := EconUtil.val(take, o["ask"])
@@ -246,6 +249,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 			g["spent_goods"] += goods_cost + freight
 			var vpaid := EconUtil.pay_upto(world, bid["acct"], EconUtil.TREASURY, int(float(goods_cost) * float(EconUtil.lever(world, "ECON_SALES_TAX", 0)) / 100.0), "SALES_TAX")
 			EconFinance._gov_rev(world, vpaid)
+			g["spent_goods"] += EconRetail.on_sale(world, bid["district"], bid["acct"], good, goods_cost)  # support economy D
 		else:
 			EconUtil.inv_add(world, bid["buyer"], good, bid["district"], take, unit)
 			if good == "FOOD" and bid["kind"] == "org":  # D2: who besides households eats into the food supply (for the papers)

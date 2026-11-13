@@ -30,8 +30,10 @@ const BETA_ATTACK := 55              # attack-ad utility loss for the target per
 const PERSUASION_DECAY := 750        # per-mille kept each month
 const PERSUASION_CAP := 500
 const BACKFIRE_RATE := 450           # per-mille of an attack's damage that lands on the attacker among civil voters
-const CIVILITY := {"INSTITUTION": 1000, "STABILITY": 1000, "LIBERTY": 500, "ENVIRONMENT": 400,
-	"TRAD": 800, "PRAG": 600, "PROG": 400}
+## Civility by value cohort (voter cells carry TRAD/PRAG/PROG). A54 bias audit: equal across cohorts, so going negative
+## costs a party the same among its own base whichever side it is on (was TRAD 800 / PROG 400, which made attacks
+## dearer for traditional-leaning parties; the population mean stays 600). Philosophy keys never matched a cell.
+const CIVILITY := {"TRAD": 600, "PRAG": 600, "PROG": 600}
 const CIVILITY_DEFAULT := 300
 const CAMPAIGN_U_CAP := 800          # total campaign utility per party per voter, ±
 # ---- ground game ----
@@ -55,6 +57,13 @@ const AGENDA_CAP := 300
 # ---- dirt ----
 const OPPO_P := 80                   # per-mille chance per month to find something, at average spend and quality 1
 const OPPO_P_MAX := 250
+# ---- press scandals draw fire (Wilma/Anni review: 1 of 4 press-hit parties drew an attack ad) ----
+const SCANDAL_WINDOW := 24           # months a revealed scandal (DONATION or FAVOUR) keeps drawing fire, fading linearly
+const SCANDAL_SEV_UNIT := 50.0       # severity that counts as 1.0 heat (severity runs 20..100)
+const SCANDAL_HEAT_CAP := 2.0
+const SCANDAL_TARGET_W := 1.0        # heat 1 (a fresh severity-50 scandal) outweighs the default target's claim
+const SCANDAL_OPPO := 0.5            # oppo research digs up more on a party under fire (x 1 + this at heat 1)
+const SCANDAL_VULN := 0.2            # attacks stick better (vulnerability + this at heat 1)
 const LEAK_P := 60                   # held dirt leaks per month ("they sat on it")
 const SMEAR_P := 300                 # a desperate low-integrity campaign fabricates something
 const SMEAR_MAX_INTEGRITY := 35
@@ -336,21 +345,52 @@ static func pick_themes(world: WorldState, st: Dictionary, p: Dictionary, seg: D
 
 
 ## Who to fight: the opposition goes after the PM's party; governing parties after the largest opposition party.
+## A party in a fresh press scandal draws fire from anyone (scandal_heat), symmetric: any party hit, any attacker;
+## only a governing party spares its own coalition partners.
 static func pick_target(world: WorldState, st: Dictionary, p: Dictionary) -> String:
 	var gov: Dictionary = st.get("government", {})
 	var members: Array = gov.get("members", [])
 	var pm := String(gov.get("pm_party", ""))
-	if pm != "" and not members.has(p["id"]) and world.table("party").has(pm) and world.table("party")[pm]["status"] == "ACTIVE":
-		return pm
-	var best := ""
-	var best_s := -1
+	var base := ""
+	if pm != "" and not members.has(p["id"]) and world.peek("party").has(pm) and world.peek("party")[pm]["status"] == "ACTIVE":
+		base = pm
+	else:
+		var best_s := -1
+		for q in PartyLife.active(world):
+			if q["id"] == p["id"] or members.has(q["id"]):
+				continue
+			if int(q["support"]) > best_s:
+				best_s = int(q["support"])
+				base = q["id"]
+	var heat := scandal_heat(world)
+	if heat.is_empty():
+		return base
+	var mine := members.has(p["id"])
+	var best := base
+	var best_score := (1.0 + SCANDAL_TARGET_W * float(heat.get(base, 0.0))) if base != "" else -1.0
 	for q in PartyLife.active(world):
-		if q["id"] == p["id"] or members.has(q["id"]):
+		var qid := String(q["id"])
+		if qid == p["id"] or qid == base or not heat.has(qid) or (mine and members.has(qid)):
 			continue
-		if int(q["support"]) > best_s:
-			best_s = int(q["support"])
-			best = q["id"]
+		var sc := SCANDAL_TARGET_W * float(heat[qid])
+		if sc > best_score:
+			best_score = sc
+			best = qid
 	return best
+
+
+## {pid: 0..SCANDAL_HEAT_CAP}: revealed scandals (POL_SCANDAL_REVEALED, DONATION or FAVOUR) in the last
+## SCANDAL_WINDOW months, severity / SCANDAL_SEV_UNIT each, fading linearly. Read-only; parties with none are absent.
+static func scandal_heat(world: WorldState) -> Dictionary:
+	var out := {}
+	for f in world.facts.query("POL_SCANDAL_REVEALED", world.month - SCANDAL_WINDOW + 1):
+		var pid := String(f["data"].get("party", ""))
+		var age := world.month - int(f["month"])
+		if pid == "" or age < 0:
+			continue
+		var h := float(f["data"].get("severity", 30)) / SCANDAL_SEV_UNIT * float(SCANDAL_WINDOW - age) / float(SCANDAL_WINDOW)
+		out[pid] = minf(SCANDAL_HEAT_CAP, float(out.get(pid, 0.0)) + h)
+	return out
 
 
 ## Tone: trailing parties go negative, the opposition a bit more, high-integrity leaders resist.
@@ -510,11 +550,12 @@ static func _ads(world: WorldState, c: Dictionary, seg: Dictionary, spend: Dicti
 			attack_share = 0.0
 		var w := _targeting(c, p, seg)
 		var hit := 0.0
+		var vul := vulnerability(world.table("party")[tgt], float(scandal_heat(world).get(tgt, 0.0))) if attack_share > 0.0 else 1.0
 		for k in w:
 			var inc := float(BETA_AD) * power * (1.0 - attack_share) * float(w[k])
 			_add(e["persuasion"], k, inc, PERSUASION_CAP)
 			if attack_share > 0.0:
-				var dmg := float(BETA_ATTACK) * power * attack_share * float(w[k]) * vulnerability(world.table("party")[tgt])
+				var dmg := float(BETA_ATTACK) * power * attack_share * float(w[k]) * vul
 				_add(c["parties"][tgt]["persuasion"], k, -dmg, PERSUASION_CAP)
 				hit += dmg * float(seg[k]["pop"])
 		if hit > 0.0:
@@ -524,12 +565,13 @@ static func _ads(world: WorldState, c: Dictionary, seg: Dictionary, spend: Dicti
 				_event(world, c, "POL_ATTACK_AD", "AD", [pid, tgt], 40, {"party": pid, "target": tgt, "tone": e["tone"]})
 
 
-## 0.6..1.2: low credibility (broken promises) and an unpopular leader make attacks stick.
-static func vulnerability(p: Dictionary) -> float:
+## 0.6..1.4: low credibility (broken promises), an unpopular leader and a fresh scandal (`heat`, scandal_heat)
+## make attacks stick.
+static func vulnerability(p: Dictionary, heat: float = 0.0) -> float:
 	var v := 0.6 + 0.4 * (1.0 - float(p.get("credibility", 50)) / 100.0)
 	if PartyLife.leader_popularity(p) < 40:
 		v += 0.2
-	return v
+	return v + SCANDAL_VULN * minf(1.0, heat)
 
 
 ## Voters who prize civility punish the attacker: per-cohort utility loss.
@@ -702,7 +744,7 @@ static func _debate(world: WorldState, st: Dictionary, c: Dictionary, final: boo
 	var killer := ""
 	if tgt != "" and c["parties"].has(tgt) and tgt != winner and world.table("party")[tgt]["status"] == "ACTIVE":
 		killer = tgt
-		_momentum(c, tgt, int(round(float(KILLER_LINE) * vulnerability(world.table("party")[tgt]))))
+		_momentum(c, tgt, int(round(float(KILLER_LINE) * vulnerability(world.table("party")[tgt], float(scandal_heat(world).get(tgt, 0.0))))))
 	for pid in gaffes:
 		_momentum(c, pid, GAFFE_MOMENTUM)
 		var l: Dictionary = world.table("party")[pid]["leader"] if typeof(world.table("party")[pid].get("leader")) == TYPE_DICTIONARY else {}
@@ -794,7 +836,7 @@ static func stance_fit(world: WorldState, st: Dictionary, c: Dictionary, p: Dict
 				f = -0.3
 			else:
 				var tgt_gov := 1.0 if members.has(tgt) else 0.5
-				f = unmet * vulnerability(world.table("party")[tgt]) * tgt_gov * 1.2 - 0.15
+				f = unmet * vulnerability(world.table("party")[tgt], float(scandal_heat(world).get(tgt, 0.0))) * tgt_gov * 1.2 - 0.15
 				if members.has(tgt) and cs.size() > 2:
 					f += HotIssues.ATTACK_BONUS * float(cs[2].get(topic, 0)) / 1000.0   # the government is blamed for it
 		"DEFEND":
@@ -852,6 +894,7 @@ static func _oppo(world: WorldState, c: Dictionary, spend: Dictionary, to_go: in
 	if to_go < 1:
 		return
 	var r := world.rng.stream("pol.campaign.oppo")
+	var heat := scandal_heat(world)
 	for pid in Det.ordered(spend):
 		var e: Dictionary = c["parties"][pid]
 		var tgt := String(e["target"])
@@ -860,7 +903,8 @@ static func _oppo(world: WorldState, c: Dictionary, spend: Dictionary, to_go: in
 		var rel := _rel(spend, pid, "oppo")
 		var found := false
 		if rel > 0.0:
-			var pf := minf(float(OPPO_P_MAX), float(OPPO_P) * sqrt(minf(rel, 4.0)) * float(e["quality"]) / 1000.0) / 1000.0
+			var under_fire := 1.0 + SCANDAL_OPPO * minf(1.0, float(heat.get(tgt, 0.0)))   # the press is digging too
+			var pf := minf(float(OPPO_P_MAX), float(OPPO_P) * sqrt(minf(rel, 4.0)) * float(e["quality"]) / 1000.0 * under_fire) / 1000.0
 			if r.randf() < pf:
 				found = _find_dirt(world, c, pid, tgt, r)
 		var me := _leader(world.table("party")[pid])

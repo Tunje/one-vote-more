@@ -114,3 +114,22 @@ func test_crisis_runs_deterministic() -> void:
 	a.run(150)
 	b.run(150)
 	check_eq(a.world.state_hash(), b.world.state_hash(), "deterministic with crisis mechanics")
+
+
+## v7 review: a replacement government formed without the parties that ousted the last one must still count their
+## seats as opposition (they were dropped from the count, letting a government pass that a majority opposed).
+func test_excluded_parties_still_count_as_opposition() -> void:
+	var parties := {}
+	var specs := [["A", 60, 0], ["B", 30, 10000], ["C", 61, 90000]]
+	for sp in specs:
+		var pos := PolDefs.zero_axes()
+		for ax in pos:
+			pos[ax] = int(sp[2])
+		parties[sp[0]] = {"id": sp[0], "seats": int(sp[1]), "positions": pos, "commitments": [], "ownership": {}}
+	var r := Coalition.form_round(parties, 0, ["C"])
+	if r.is_empty():
+		return   # nobody can govern: also acceptable
+	check(not ("C" in r["members"]), "the excluded party is not in the government")
+	check(int(r["no"]) < PolDefs.MAJORITY, "a government that forms has no majority against it, counting C")
+	var e := Coalition.evaluate(r["members"], parties, 45.0)
+	check_eq(int(r["no"]), int(e["no"]), "the opposition count includes the excluded party's seats")

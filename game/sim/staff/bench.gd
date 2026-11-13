@@ -261,6 +261,47 @@ static func ai_recruit(world: WorldState) -> void:
 		pick(world, d["rid"], best)
 
 
+# ===================================================================================== bench strength (B3 links)
+
+const LIST_TOP := 5          # list_strength weighs the top names of the list
+
+
+## How strong a party's public faces are, 0..100 (for a small candidate-quality term in polling). The top LIST_TOP
+## of its list (list_rank 1.., else by standing), weighted 5..1: charisma-like skill (COMM, POLI), integrity, minus
+## scandals and defections. A thin bench (fewer than LIST_TOP names) scores the missing places at 20.
+static func list_strength(world: WorldState, party: String) -> int:
+	var ms := members(world, party)
+	ms.sort_custom(func(x, y):
+		var rx := int(Ops.person(world, x).get("list_rank", 9999))
+		var ry := int(Ops.person(world, y).get("list_rank", 9999))
+		if rx != ry:
+			return rx < ry
+		return _face(Ops.person(world, x)) > _face(Ops.person(world, y)))
+	var num := 0.0
+	var den := 0.0
+	for i in LIST_TOP:
+		var wt := float(LIST_TOP - i)
+		num += wt * (float(_face(Ops.person(world, ms[i]))) if i < ms.size() else 20.0)
+		den += wt
+	return clampi(int(round(num / den)), 0, 100)
+
+
+static func _face(p: Dictionary) -> int:
+	var sk: Dictionary = p.get("skills", {})
+	var v := 0.4 * float(sk.get("COMM", 0)) + 0.3 * float(sk.get("POLI", 0)) + 0.3 * float(p.get("integrity", 50))
+	return clampi(int(round(v)) - 10 * int(p.get("scandals", 0)) - 5 * int(p.get("defected", 0)), 0, 100)
+
+
+## A party's best analyst, 0..100: the highest 0.6 ECON + 0.4 POLI among its members (for Intel.quality: a party
+## with a strong researcher reads the colony better). 0 for a party with nobody.
+static func research_skill(world: WorldState, party: String) -> int:
+	var best := 0
+	for pid in members(world, party):
+		var sk: Dictionary = Ops.person(world, pid).get("skills", {})
+		best = maxi(best, int(round(0.6 * float(sk.get("ECON", 0)) + 0.4 * float(sk.get("POLI", 0)))))
+	return best
+
+
 # ===================================================================================== B2: ambitions
 
 ## Ambition and cause, derived once from the person (no RNG stream disturbed): the young want office, the old peace.

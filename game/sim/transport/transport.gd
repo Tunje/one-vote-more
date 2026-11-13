@@ -1213,6 +1213,7 @@ static func step_month(world: WorldState) -> void:
 		var cap := link_capacity(l)
 		var over := maxi(0, int(l["traffic"]) - cap) * 10 / maxi(1, cap)
 		l["cond"] = clampi(int(l["cond"]) - int(WEAR[k]) - over - int(STORM_WEAR[k]) * s, 0, 1000)
+		l["traffic_last"] = int(l.get("traffic", 0))   # last month's count (read during the month, before new trips)
 		l["traffic"] = 0
 		var why := closed_reason(world, l)
 		if why != "":
@@ -1220,6 +1221,7 @@ static func step_month(world: WorldState) -> void:
 			reasons[why] = true
 	var jt: Dictionary = world.table("transport").get("junctions", {})
 	for jid in jt:
+		jt[jid]["traffic_last"] = int(jt[jid].get("traffic", 0))
 		jt[jid]["traffic"] = 0
 	if posmod(world.month, 12) == 0:   # accident counts are "recent": they halve every year
 		for lid2 in links:
@@ -1252,6 +1254,38 @@ static func add_accident(world: WorldState, id: String, n: int = 1) -> void:
 		t["links"][id]["acc"] = int(t["links"][id].get("acc", 0)) + n
 	elif t.get("junctions", {}).has(id):
 		t["junctions"][id]["acc"] = int(t["junctions"][id].get("acc", 0)) + n
+
+
+# ================================================================== commuting (Commuting, agreed with Bob)
+
+## Who works where: [{from_d, to_d, n, fid}] (Commuting.commutes).
+static func commutes(world: WorldState) -> Array:
+	return Commuting.commutes(world)
+
+
+## The commute between two districts: {ok, hops, km, minutes, links, factor} (Commuting.commute_d).
+static func commute_d(world: WorldState, from_d: String, to_d: String) -> Dictionary:
+	return Commuting.commute_d(world, from_d, to_d)
+
+
+## Road condition / traffic factor ‰ between two districts (1000 = good; Commuting.route_factor).
+static func route_factor(world: WorldState, from_d: String, to_d: String) -> int:
+	return Commuting.route_factor(world, from_d, to_d)
+
+
+## Where a bus breakdown or crash happens on a commute: {link, junction, tile} (Commuting.incident_site).
+static func incident_site(world: WorldState, from_d: String, to_d: String, salt: int, kind: String = "BREAKDOWN") -> Dictionary:
+	return Commuting.incident_site(world, from_d, to_d, salt, kind)
+
+
+## Bus lines to draw from Bob's EconQuery.commuting rows (Commuting.bus_lines).
+static func bus_lines(world: WorldState, pairs: Array) -> Array:
+	return Commuting.bus_lines(world, pairs)
+
+
+## The commuters' bus and taxi trips onto the roads this month (Commuting.add_commute_traffic).
+static func add_commute_traffic(world: WorldState, pairs: Array) -> void:
+	Commuting.add_commute_traffic(world, pairs)
 
 
 ## Junctions a route passes (for counting traffic there): ids, in no particular order.

@@ -90,6 +90,28 @@ static func init_world(world: WorldState) -> void:
 
 
 ## M11 crisis rules (L.m11_rules), added once; older saves get them on their next DECISIONS phase.
+static func ensure_competition_rules(world: WorldState) -> void:
+	var s := state(world)
+	if s.get("competition_rules", false):
+		return
+	s["competition_rules"] = true
+	for r in L.competition_rules():
+		r["effective_month"] = world.month
+		add_rule(world, r)
+	bump_rules_version(world)
+
+
+static func ensure_work_rules(world: WorldState) -> void:
+	var s := state(world)
+	if s.get("work_rules", false):
+		return
+	s["work_rules"] = true
+	for r in L.work_rules():
+		r["effective_month"] = world.month
+		add_rule(world, r)
+	bump_rules_version(world)
+
+
 static func ensure_m11_rules(world: WorldState) -> void:
 	var s := state(world)
 	if s.get("m11_rules", false):
@@ -122,6 +144,7 @@ static func record_greed(world: WorldState, org: String, rec: Dictionary) -> Str
 	var spec: Dictionary = L.GREED_KINDS[kind]
 	var actor := {"kind": "COMPANY", "id": org}
 	var params := {"facility": rec.get("facility", ""), "good": rec.get("good", ""), "food": rec.get("food", false),
+		"dominant": rec.get("dominant", false), "market": rec.get("market", ""), "rival": rec.get("rival", ""),
 		"buyer": rec.get("buyer", "OTHER"),
 		"district": rec.get("district", ""), "project": rec.get("project", ""), "members": rec.get("members", [])}
 	var unlawful: bool = validate(world, actor, spec["action"], params)["result"] == "PROHIBITED"
@@ -147,7 +170,7 @@ static func record_greed(world: WorldState, org: String, rec: Dictionary) -> Str
 	for h in rec.get("hazard_ids", []):
 		if not v["hazard_ids"].has(h):
 			v["hazard_ids"].append(h)
-	if v["class"] != "SEVERE" and ((spec["channel"] in ["SAFETY", "ENV"] and world.month - int(v["since_month"]) >= GREED_SEVERE_MONTHS)
+	if v["class"] != "SEVERE" and ((spec["channel"] in ["SAFETY", "ENV", "WORK"] and world.month - int(v["since_month"]) >= GREED_SEVERE_MONTHS)
 			or float(v["saving"]) >= GREED_SEVERE_SAVING_WREF * float(Staff.w_ref_milli(world))):
 		v["class"] = "SEVERE"
 	return fid

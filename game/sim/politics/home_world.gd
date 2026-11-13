@@ -24,6 +24,7 @@ const SHIP_MAX := 30
 const PETITION_GAP := 24          # months between petitions
 const INDEPENDENCE_SEATS := 101
 const REFERENDUM_DELAY := 2
+const REFERENDUM_RETRY_MONTHS := 48   # a failed referendum is not re-run for four years
 
 
 # ======================================================================= state & reads
@@ -251,8 +252,11 @@ static func _colony_politics(world: WorldState, st: Dictionary, h: Dictionary, r
 	# referendum after a successful independence vote in parliament
 	if int(h["referendum_month"]) >= 0 and world.month >= int(h["referendum_month"]):
 		h["referendum_month"] = -1
+		h["last_referendum"] = world.month
 		_referendum(world, st, h)
 		return
+	if int(h["referendum_month"]) >= 0:
+		return   # v7 review: parliament has voted; wait for the referendum (was: re-voted monthly, pushing it back)
 	if status == "INDEPENDENCE_DECLARED":
 		return
 	# 1. petition for better terms
@@ -270,7 +274,8 @@ static func _colony_politics(world: WorldState, st: Dictionary, h: Dictionary, r
 			h["refused_month"] = world.month
 		return
 	# 3. independence: a strongly independence-minded government and a colony leaning that way
-	if gov_sov > 35.0 and mood > 10.0 and (bool(sv.get("refusal", false)) or int(h["rejected_petitions"]) >= 2):
+	if gov_sov > 35.0 and mood > 10.0 and (bool(sv.get("refusal", false)) or int(h["rejected_petitions"]) >= 2) 			and world.month - int(h.get("last_referendum", -1000)) >= REFERENDUM_RETRY_MONTHS 			and world.month - int(h.get("last_indep_vote", -1000)) >= 12:
+		h["last_indep_vote"] = world.month   # a failed vote waits a year
 		var v := _parliament_vote(world, st, "INDEPENDENCE", 20.0)
 		var rec: Dictionary = CO.record_independence_vote(world, int(v["yes"]))
 		if rec.get("ok", false):

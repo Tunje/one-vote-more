@@ -14,6 +14,10 @@ const ACTIONS := ["ZONE_DISTRICT", "BUILD_FACILITY", "DEMOLISH_FACILITY", "OPERA
 	# M11 (spec-events-v1): company greed conduct, emergency powers
 	"DEFER_SAFETY_UPKEEP", "SAFETY_CORNERS", "DISCHARGE_WASTE", "HOARD", "PRICE_GOUGE", "EXPORT_GOODS", "CARTEL",
 	"CUT_CONTRACT_CORNERS", "DECLARE_EMERGENCY", "REQUISITION",
+	# workload law (sim/law/work_law.gd): lean staffing as conduct
+	"EXCEED_WORKING_HOURS", "UNDERSTAFF_SERVICE",
+	# company rivalry (sim/law/competition_law.gd)
+	"PRICE_BELOW_COST", "ABUSE_DOMINANT_POSITION", "EXCLUSIVE_CONTRACT", "LOBBY_UNREGISTERED", "CLOSE_BLOCKED_TAKEOVER",
 	# M12 (spec-colony-v1): colonial charter, home-world sanctions, breaking away
 	"SELL_COLONIAL_GOOD", "WITHHOLD_QUOTA", "OBSTRUCT_QUOTA", "REFUSE_QUOTA", "PETITION_HOME", "DECLARE_INDEPENDENCE",
 	"REFUSE_EXPORT_TERMS",
@@ -31,6 +35,14 @@ const GREED_KINDS := {
 	"SAFETY_CORNERS": {"action": "SAFETY_CORNERS", "channel": "SAFETY", "class": "SERIOUS"},
 	"CONTRACT_CORNERS": {"action": "CUT_CONTRACT_CORNERS", "channel": "SAFETY", "class": "SERIOUS"},
 	"DUMPING": {"action": "DISCHARGE_WASTE", "channel": "ENV", "class": "SERIOUS"},
+	# workload law: Bob reports while it lasts; the work-environment authority (channel WORK) inspects
+	"OVERWORK": {"action": "EXCEED_WORKING_HOURS", "channel": "WORK", "class": "SERIOUS"},
+	"UNDERSTAFFING": {"action": "UNDERSTAFF_SERVICE", "channel": "WORK", "class": "SERIOUS"},
+	# company rivalry: Bob's firm AI reports while it lasts; the competition authority (channel MARKET) inspects
+	"PREDATORY_PRICING": {"action": "PRICE_BELOW_COST", "channel": "MARKET", "class": "SERIOUS"},
+	"ABUSE_DOMINANCE": {"action": "ABUSE_DOMINANT_POSITION", "channel": "MARKET", "class": "SERIOUS"},
+	"EXCLUSIVE_DEALING": {"action": "EXCLUSIVE_CONTRACT", "channel": "MARKET", "class": "MINOR"},
+	"UNREGISTERED_LOBBYING": {"action": "LOBBY_UNREGISTERED", "channel": "MARKET", "class": "MINOR"},
 	"HOARDING": {"action": "HOARD", "channel": "MARKET", "class": "MINOR"},
 	"GOUGING": {"action": "PRICE_GOUGE", "channel": "MARKET", "class": "MINOR"},
 	"EXPORT_IN_SHORTAGE": {"action": "EXPORT_GOODS", "channel": "MARKET", "class": "SERIOUS"},
@@ -90,6 +102,33 @@ static func charter_rules() -> Array:
 	out.append(_r("AUTHORIZE", "BORROW", [{"field": "actor.kind", "op": "IN", "value": ["GOVERNMENT", "COMMANDER"]}],
 		[{"field": "p.automatic_liquidity", "op": "EQ", "value": true}]))
 	return out
+
+
+## Workload rules, added once by LawOps.ensure_work_rules (new games and older saves alike): hours over the legal
+## maximum are always unlawful for a company (Bob reports only when over it); understaffing only under binding ratios.
+static func work_rules() -> Array:
+	var co := [{"field": "actor.kind", "op": "EQ", "value": "COMPANY"}]
+	var law := {"level": "LAW", "source": "WORK_LAW"}
+	return [_r("PROHIBIT", "EXCEED_WORKING_HOURS", co, [], law),
+		_r("PROHIBIT", "UNDERSTAFF_SERVICE", co, [{"field": "lever.LAW_STAFFING_RATIOS", "op": "EQ", "value": 2}], law)]
+
+
+## Company-rivalry rules, added once by LawOps.ensure_competition_rules. Predation and abuse are unlawful for a
+## DOMINANT firm (params.dominant, from CL.dominant) under any competition law (LAW_COMPETITION ≠ NONE); exclusive
+## dealing per LAW_EXCLUSIVE_DEALING; lobbying without registration under LAW_LOBBY_REGISTER ≥ 1; closing a blocked
+## takeover always.
+static func competition_rules() -> Array:
+	var co := [{"field": "actor.kind", "op": "EQ", "value": "COMPANY"}]
+	var law := {"level": "LAW", "source": "COMPETITION_LAW"}
+	var comp := {"field": "lever.LAW_COMPETITION", "op": "NEQ", "value": "NONE"}
+	var dom := {"field": "p.dominant", "op": "EQ", "value": true}
+	return [
+		_r("PROHIBIT", "PRICE_BELOW_COST", co, [comp, dom], law),
+		_r("PROHIBIT", "ABUSE_DOMINANT_POSITION", co, [comp, dom], law),
+		_r("PROHIBIT", "EXCLUSIVE_CONTRACT", co, [{"field": "lever.LAW_EXCLUSIVE_DEALING", "op": "EQ", "value": 2}], law),
+		_r("PROHIBIT", "EXCLUSIVE_CONTRACT", co, [{"field": "lever.LAW_EXCLUSIVE_DEALING", "op": "EQ", "value": 1}, dom], law),
+		_r("PROHIBIT", "LOBBY_UNREGISTERED", co, [{"field": "lever.LAW_LOBBY_REGISTER", "op": "GTE", "value": 1}], law),
+		_r("PROHIBIT", "CLOSE_BLOCKED_TAKEOVER", co, [], law)]
 
 
 ## M11 rules (spec-events-v1 3-4). Added once by LawOps.ensure_m11_rules (new games and older saves alike).
@@ -367,11 +406,51 @@ const LEVERS := [
 	{"id": "LAW_COMPETITION", "owner": "law", "type": "ENUM", "values": ["NONE", "CARTEL_BAN", "CARTEL_BAN_MERGER_REVIEW"],
 		"default": "CARTEL_BAN", "legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"REDISTRIBUTION": 5, "ECON_ROLE": 3},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	# ---- company rivalry (user ruling; sim/law/competition_law.gd). NUMBER, legislative. No effect until Bob's
+	# rivalry pass reports conduct and takeovers.
+	# Dominance: a firm with at least this % of its market is dominant (predation and abuse rules apply). Lower = a
+	# stricter authority: consumers and small rivals gain, investors are chilled (JOBS −).
+	{"id": "LAW_DOMINANCE_SHARE", "owner": "law", "legislative": true, "type": "NUMBER", "range": [30, 70], "default": 50,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": -0.1, "REDISTRIBUTION": -0.05},
+		"concerns": {"JOBS": 5, "COST_OF_LIVING": -6, "FAIRNESS": -4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	# Merger control: a takeover leaving the buyer above this % of the market needs approval (100 = no review).
+	{"id": "LAW_MERGER_THRESHOLD", "owner": "law", "legislative": true, "type": "NUMBER", "range": [20, 100], "default": 100,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": -0.08, "REDISTRIBUTION": -0.04},
+		"concerns": {"JOBS": 5, "COST_OF_LIVING": -5, "FAIRNESS": -3},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	# Exclusive dealing: 0 allowed, 1 banned for dominant firms, 2 banned.
+	{"id": "LAW_EXCLUSIVE_DEALING", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 2], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 4, "REDISTRIBUTION": 2},
+		"concerns": {"COST_OF_LIVING": 4, "FAIRNESS": 3, "JOBS": -3},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	# Lobbying: 0 none, 1 lobbyists must register, 2 register and disclose meetings and requests.
+	{"id": "LAW_LOBBY_REGISTER", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 2], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 6, "REDISTRIBUTION": 2},
+		"concerns": {"GOVERNANCE": 4, "FAIRNESS": 4, "JOBS": -2},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
 	{"id": "LAW_COMPETITION_BUDGET", "owner": "law", "type": "NUMBER", "range": [0, 50000], "default": 4000,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 0.0003, "INSTITUTIONS": 0.0002},
 		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
 	{"id": "LAW_ENV_INSPECTORATE_BUDGET", "owner": "law", "type": "NUMBER", "range": [0, 100000], "default": 4000,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ENVIRONMENT": 0.0005, "ECON_ROLE": 0.0002},
+		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# ---- workload and stress (user ruling; sim/law/work_law.gd). No effect until Bob reports workload (step 2).
+	# Max working hours: above it is overwork (conduct OVERWORK). Fewer hours protect workers (LABOR +) but cost jobs
+	# and output (JOBS −): the market side has its argument.
+	{"id": "LAW_MAX_WORKING_HOURS", "owner": "law", "legislative": true, "type": "NUMBER", "range": [40, 70], "default": 60,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": -0.15, "ECON_ROLE": -0.05},
+		"concerns": {"JOBS": 8, "PUBLIC_SERVICES": -6, "SAFETY": -4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 3, "scope": "COLONY", "domain": "ECON"},
+	# Staffing ratios for health, care and childcare: 0 none, 1 guidance (shortfalls public), 2 binding (unlawful).
+	{"id": "LAW_STAFFING_RATIOS", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 2], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": 5, "FISCAL": 3},
+		"concerns": {"PUBLIC_SERVICES": 10, "SAFETY": 4, "COST_OF_LIVING": -6, "GOVERNANCE": -4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 6, "scope": "COLONY", "domain": "ECON"},
+	# The work-environment authority (milli-W_ref a month): inspections of overwork and understaffing (channel WORK).
+	{"id": "LAW_WORK_INSPECTORATE_BUDGET", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 20000], "default": 3000,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": 0.0006, "ECON_ROLE": 0.0003},
+		"concerns": {"SAFETY": 6, "PUBLIC_SERVICES": 3, "GOVERNANCE": -5},
 		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
 	{"id": "LAW_WHISTLEBLOWER_PROTECTION", "owner": "law", "type": "BOOL", "default": false,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 8, "LABOR": 6},

@@ -243,6 +243,8 @@ static func _leader_integrity(world: WorldState, party: String) -> int:
 ## 0..100: how bad the violation is (hidden gift +20, cap breach up to +60 by excess relative to the cap).
 static func severity(world: WorldState, t: Dictionary) -> int:
 	var s := 20
+	if String(t.get("kind", "")) == "FAVOUR":
+		s += 30 + (20 if bool(t.get("bribe", false)) else 0)   # money for a decision: worse than a hidden gift
 	if t["undisclosed"]:
 		s += 20
 	if int(t["excess"]) > 0:
@@ -271,6 +273,7 @@ static func _scandal(world: WorldState, fid: String, by: Dictionary, channel: St
 	Justice.fact(world, "POL_SCANDAL_REVEALED", "PUBLIC", [pref], [{"actor": pref, "share": 1.0}],
 		{"GOVERNANCE": -int(round(sev / 10.0)), "FAIRNESS": -int(round(sev / 20.0))}, clampi(40 + sev / 2, 40, 90),
 		{"party": party, "leader": leader, "severity": sev, "donation": fid, "donor": t["donor"], "amount": t["amount"],
+			"kind": String(t.get("kind", "DONATION")), "request": t.get("request", {}),
 			"excess": t["excess"], "undisclosed": t["undisclosed"], "channel": channel, "leader_charged": charged}, causes)
 	_donor_strike(world, String(t["donor"]), fid)
 	Justice.file_case(world, "PARTY_FINANCE", PROSECUTOR, pref, true,

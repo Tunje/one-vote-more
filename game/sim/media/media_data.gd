@@ -66,6 +66,11 @@ const CRED_GOV_RUN_SLANT := 300       # per month a government-run paper slants
 const CORRECTION_ACCEPT := 0.6        # share of the remaining false belief a correction reverses (× trust)
 const INVEST_P_PER_WREF := 0.08       # p(find) per W_ref of investigation budget, capped
 const INVEST_P_MAX := 0.4
+## Investigation target weights (v7 review: 117 of 121 investigations went into rival papers' lies, so the press
+## policed itself instead of holding power to account). × (1 + opposition to the target) for donations and violations.
+const INVEST_W_DONATION := 6.0
+const INVEST_W_VIOLATION := 4.0
+const INVEST_W_LIE := 0.5
 const FOI_TRANSPARENCY := 1.0
 const NO_FOI_TRANSPARENCY := 0.6
 const SCOOP_BONUS := 40.0

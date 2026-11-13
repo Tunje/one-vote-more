@@ -231,7 +231,17 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 			var unmet := 1.0 - float(cell["sat"][c]) / 100000.0
 			if unmet > 0.5:
 				for ax in PolDefs.CONCERN_PULL[c]:
-					var sign := -1.0 if cell["base"][ax] < -20 * S else 1.0
+					# A52/A54 (bias audit): committed groups radicalise in their own direction; the undecided middle
+					# (base within ±20) blames the incumbent and drifts against the government's position on that axis.
+					# (Was: the middle always drifted +, toward state, labour and redistribution: the audit's main bias.)
+					var sign := 0.0
+					if cell["base"][ax] < -20 * S:
+						sign = -1.0
+					elif cell["base"][ax] > 20 * S:
+						sign = 1.0
+					elif not g0.is_empty() and g0.has("center"):
+						var gc := int(g0["center"].get(ax, 0))
+						sign = -1.0 if gc > 5 * S else (1.0 if gc < -5 * S else 0.0)
 					if c == "COLONIAL_BURDEN":
 						sign = 1.0  # the charter's burden always pushes toward independence
 					cell["ideology"][ax] += int(round(sign * PolDefs.CONCERN_PULL[c][ax] * (unmet - 0.5) * 2.0 * 0.5 * S))

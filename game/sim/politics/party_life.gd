@@ -503,7 +503,11 @@ static func _found_single_issue(world: WorldState, st: Dictionary, parties: Arra
 		for ax in PolDefs.AXES:
 			pos[ax] = int(round(pos[ax] / maxf(1.0, w)))
 		for ax in PolDefs.CONCERN_PULL[c]:
-			pos[ax] = clampi(pos[ax] + 25 * S, -100 * S, 100 * S)
+			# A54 (bias audit): the movement sharpens the leaning of the people who care (was: always +25, i.e. left)
+			var dir := -1 if pos[ax] < 0 else 1
+			if c == "COLONIAL_BURDEN":
+				dir = 1
+			pos[ax] = clampi(pos[ax] + dir * 25 * S, -100 * S, 100 * S)
 		var np := _new_party(world, st, pos, "SINGLE_ISSUE", issue_name(world, c))
 		np["issue"] = c
 		np["ownership"][c] = SINGLE_ISSUE_OWNERSHIP

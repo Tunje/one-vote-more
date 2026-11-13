@@ -1161,16 +1161,16 @@ static func _investigate(world: WorldState) -> void:
 		for fid in Det.ordered(world.peek("donation_track")):
 			var t: Dictionary = world.peek("donation_track")[fid]
 			if not bool(t.get("revealed", true)):
-				targets.append(["DONATION", fid, 1.0 + maxf(0.0, _opp_cached(world, o, {"kind": "PARTY", "id": t.get("party", "")}, cache))])
+				targets.append(["DONATION", fid, MD.INVEST_W_DONATION * (1.0 + maxf(0.0, _opp_cached(world, o, {"kind": "PARTY", "id": t.get("party", "")}, cache)))])
 		for fid in Det.ordered(world.peek("violation_track")):
 			var v: Dictionary = world.peek("violation_track")[fid]
 			if bool(v.get("unlawful", true)) and not bool(v.get("revealed", false)) and bool(v.get("active", true)) \
 					and String(v.get("company", "")) != String(o["owner"]["id"]):
-				targets.append(["VIOLATION", fid, 1.0 + maxf(0.0, _opp_cached(world, o, {"kind": "COMPANY", "id": v.get("company", "")}, cache))])
+				targets.append(["VIOLATION", fid, MD.INVEST_W_VIOLATION * (1.0 + maxf(0.0, _opp_cached(world, o, {"kind": "COMPANY", "id": v.get("company", "")}, cache)))])
 		for fid in Det.ordered(world.peek("media_lie")):
 			var l: Dictionary = world.peek("media_lie")[fid]
 			if not l["revealed"] and String(l["outlet"]) != id:
-				targets.append(["LIE", fid, 1.5])
+				targets.append(["LIE", fid, MD.INVEST_W_LIE])
 		if targets.is_empty():
 			continue
 		var tot := 0.0

@@ -18,6 +18,7 @@ func _propose(w: WorldState) -> Array:
 
 
 func _set_unemp(w: WorldState, pct: int) -> void:
+	w.meta["test_unemployment"] = pct
 	var v: Dictionary = w.indicators.values["ECON_UNEMPLOYMENT_RATE"]
 	for k in v.keys():
 		v[k] = pct * 1000
@@ -46,7 +47,7 @@ func test_no_cuts_to_the_jobs_schemes_in_a_deep_slump() -> void:
 		w.levers[lid] = 3000
 	_set_unemp(w, 40)
 	for c in _jobs_moves(_propose(w)):
-		check(float(c["to"]) > 3000.0, "never cut at 40%%: %s" % str(c))
+		check(float(c["to"]) > 3000.0, "an ordinary government does not cut at 40%% (strong pressure, not a ban): %s" % str(c))
 	var g: Dictionary = w.table("pol")["state"]["government"]
 	var cs := PoliticsProvider.new().colony_concerns(w)
 	var ex := {}

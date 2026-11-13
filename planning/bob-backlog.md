@@ -67,7 +67,17 @@ projects." — clarified: "I did not mean a bostadsrätt (co-op), I meant owning
    map drawing with Terra once S1 areas land. Political choice (clear / legalise+upgrade / build) is Wilma's; Bob gives
    actions + hooks (clearance under Anni's eviction rules; upgrade as S3 renovation lots).
 
-18. **S7 fix (opt-in now, 2026-11-13):** with S7 on, seed 1 stalled at ~5.5k by Y50 (farms frozen at 20 for 30 years,
+18. **S7 fix (opt-in now, 2026-11-13). Findings so far:** S7 itself barely acts (few shacks); it is a small perturbation
+   that tips seed 1 into a FOOD TRAP that other perturbations (big PES, a materials advance) also trigger. The trap at
+   Y30: farms hold 12k food unsold (state farms idle on full stores) while households order 4.2k at price 633 = 3.8×
+   unit cost and buy 93% of that — need unmet ~30% (unaffordable). Market rule: unfilled orders (buyers out of money)
+   count as shortage → price UP while stock piles; a construction side-trap: builders without cash or credit cannot buy
+   material at spiking prices (CWD: 0 material, farm 41/250 WU for 18 years).
+   Tried and REVERTED: E126 materials advance (owners prepay builders) and E127 "no shortage when supply ≥ orders" —
+   each made seed 1 worse (E127: famine by Y5–10, farms stuck at 10; falling food prices kill the farm-building signal).
+   Needed: a design that separates "scarce" (price up, build farms) from "unaffordable" (food assistance / benefits /
+   price falls for unsold perishables WITHOUT killing investment — e.g. investment reads wanted_ema/need, not price).
+   Original notes: with S7 on, seed 1 stalled at ~5.5k by Y50 (farms frozen at 20 for 30 years,
    ≥50% household food unmet in every income band incl. the rich, price 4–5× base, nameplate capacity "sufficient").
    Measure per year: farm output vs nameplate (labour fill, inputs, targets), other FOOD buyers (D2 bakeries, D1
    consignments, reserves, spoilage), FirmAI farm investment/entry signals, GovBuilder farm commissions + fiscal guard.
@@ -86,3 +96,124 @@ projects." — clarified: "I did not mean a bostadsrätt (co-op), I meant owning
    "big PES → hunger" effect is understood (seed 1: PES at 20M/yr from Y20; taxes maxed, benefit floor cut to 0).
 22. **Labour lever hints vs delivery** (audit, low priority): hints overpromise ~30% on both sides; 30–54% of evidence
    judgements are exactly 0; pro-labour changes deliver 0.73 of their hints vs 0.62 for the opposite — recalibrate.
+23. **Late housing decay (v7 outside review, low priority after jobs/demand):** seed 3, Y81–100: 192 blocks fell into
+   disrepair vs ~38 renovations while the market could still build. Check long-run maintenance economics: do owners
+   (CHO, private landlords) stop renovating because of rents (rent_factor falls with condition — a trap?), credit
+   (landlord must pay a third and borrow the rest), or the ECON_BUDGET_HOUSING line being cut (CHO renovates only with
+   headroom)? EconHousing quarterly owner decision is the place.
+24. **E129 public-enterprise cash sweep** (Wilma-agreed, after the food trap): yearly, a public enterprise's cash above
+   12 months of costs plus its pending investment (E105 plant estimates) goes to the treasury. Today ECON_PE_DIVIDEND_RATE
+   only takes a share of quarterly profit; the accumulated stock (CPW 4.7M at Y30, seed 1) never moves.
+25. **Menial and public-service labour pass** (user question via Wilma, after backlog 18; plan sent 2026-11-13, awaiting
+   OK): jobs that grow with the population, sized by client group (Swedish-like full coverage): elder care 1 per 9
+   retirees; childcare 1 per 5.5 children aged 1–5; sanitation ~30 per 10k (W1 of spec-waste, jobs only); building
+   upkeep 1 per 150 homes × age factor (in the HOUSING recipe, paid by the owner); funerals/cemeteries 1 per ~20 deaths
+   a year. ≈ 280–320 jobs per 10k at the colony pyramid. Public institutions on the PES pattern (facility scale =
+   posts) with budget lines ECON_BUDGET_ELDER_CARE / CHILDCARE / SANITATION; default coverage elder 60%, child 50%,
+   sanitation and cemetery full. Effects: elder care → retiree mortality and carer re-entry; childcare → parents'
+   re-entry and fertility; sanitation shortfall → mortality, pollution, concern; no cemetery capacity → concern.
+   Order: sanitation + upkeep → elder/childcare → cemetery, each with a 3-seed A/B.
+   APPROVED by Wilma 2026-11-13. Notes: lever politics weights from the start (care: REDISTRIBUTION + and ECON_ROLE +,
+   small and scaled by range as for PES; concerns PUBLIC_SERVICES + / FAIRNESS + / GOVERNANCE −; sanitation:
+   ENVIRONMENT + and SAFETY + concerns) — Wilma reviews the rows before the A/B; effects measurable in the chronicle
+   (coverage %, retiree mortality, parents' re-entry) for the next audit.
+26. **Private care providers** (later; a privatisation fight): care companies under contract as an alternative to the
+   public Care / Childcare Services.
+27. **SUPPORT ECONOMY pass** (USER correction via Wilma, 2026-11-13; TOP economy priority after the food trap;
+   supersedes and folds in item 25). User: "you have completely missed the support workers ... cleaners, janitors in
+   every place, people in the lobby, office workers ... who pushes the papers at a power plant ... where do parties
+   sit, where is the union HQ, who buys cookies for them, who delivers things, where are the pizza places ... who
+   drives it to you?" Recipes count only direct production crews; Sweden: ~15% farming/mining/manufacturing.
+   A. Overhead staff on every organisation (office/admin, management/planning, cleaning/janitors, reception,
+      sales/logistics), a sector ratio per production worker (~0.3–0.6; heavier for utilities, admin, health, school;
+      lighter for farms), working at an OFFICE (a building type: construction, upkeep, a site; on the map later, Terra).
+   B. Non-production organisations employ people: party HQs (party money), union HQs (dues), newsrooms, ministries
+      (is ADMIN scaled?), company HQs — with Anni: her staff system's party/government staff become real PopStore jobs
+      paid from the org's account.
+   C. Business services bought by organisations in proportion to their staff: cleaning companies, catering, couriers,
+      office supplies — a B2B services market firms can enter.
+   D. Household services driven by income: restaurants, cafés, takeaway, delivery drivers, taxis, retail, hairdressers —
+      split SERVICEHUB or scale by spending categories so more income means more of these jobs.
+   E. Item 25 (care, sanitation, upkeep, cemetery) stays as part of this.
+   Calibration: employment structure near Sweden's for a 10k colony (industry + primary ~20–25% given the export base,
+   services the rest). Check the money (overhead is real wages: prices and profits must still work); watch overshoot
+   into labour shortage (fine if immigration responds). Short plan with jobs per 10k by category first, then build in
+   steps with 3-seed A/Bs.
+   **27-W. Workload and stress** (USER ruling via Wilma, 2026-11-13; fold into the 27 plan, a workload section):
+   User: "workers stress when few are doing it should be a thing; an employer can earn more by making them do more
+   but the industry suffers and the work becomes high stress; ... healthcare with five doctors for 1,500 people on a
+   new planet. That's high stress if I ever saw one."
+   1. WORKLOAD per facility = work demanded / (staff × normal capacity per worker) — production: target output vs crew;
+      services (clinic, school, care, sanitation, offices): clients per staff (patients per doctor, children per carer).
+   2. Running lean is a real FirmAI choice by firm type (greedy owners, squeezed public budgets run leaner): fewer staff
+      than the ratio, more output per head, lower wage bill, short-run profit.
+   3. STRESS builds with sustained workload above ~1.1; slow recovery. Effects: sick days (lower effective crew),
+      errors/accidents (quality, reputation, accident facts), higher quits and burnout (leave job, sector or colony),
+      harder hiring (sector reputation), worse service quality (a stressed clinic treats worse → health, mortality).
+   4. Unions: staffing levels as a grievance and strike reason (union_disputes), esp. health, care, utilities.
+   5. Visible: indicators (workload/stress by sector and district), news facts ("nurses at breaking point"), office items.
+   6. Healthcare check: clinic capacity per staff today, clinics/doctors per 1,500 at founding — the founding colony
+      should show a stressed health service unless the commander builds more (a real early choice).
+   Anni: staffing-ratio and working-hours laws, the work-environment authority.
+   **27-W data contract** (Wilma, for Ella / Wilma / Anni): (1) EconQuery.workload(world): peek-only, integers,
+   {sector: stress milli 0..1000} colony-wide + per district (Ella: hot issues; Wilma: WORKING_LIFE concern).
+   (2) per facility/org monthly: workload ‰ (1000 = normal), avg hours/week, staff, clients served, service tag
+   (HEALTH, CARE, CHILDCARE, ...), saving from running lean (Anni: ratios, hours, fines).
+   (3) facts: ECON_OVERLOAD_INCIDENT PUBLIC {sector, facility, district, owner_kind PUBLIC|PRIVATE, owner id, severity
+   0..100, persons affected, workload ‰} — responsible: the Cabinet for public facilities, the company for private;
+   weaker sick-day and quit-wave facts per sector; COMP_WORKPLACE_ACCIDENT gains data.workload;
+   LawOps.record_greed(... OVERWORK / UNDERSTAFFING ...) monthly while it lasts (Anni's plan).
+   Healthcare check done: CLINIC = 30 staff (5 G, 10 S, 15 Sp) serving 2,500; founding = 2 clinics (d:1 + the d:4
+   founding project) ≈ 30 Sp for ~2,000 colonists = 15 doctors per 1,000 (Sweden ~4.3) — the founding health service is
+   OVERstaffed, not stressed. Field-clinic idea CANCELLED (Wilma, 2026-11-13: the user's "five doctors" reacted to a
+   misleading summary of hers). Keep CLINIC/SCHOOL staffing and the founding clinics; workload and stress arise only
+   naturally (population growth, closures, lean employers or budgets) — no founding-scenario balance changes.
+   **27-W law readers (Anni, in tree):** sim/law/work_law.gd (preload as WK, no class_name); levers LAW_MAX_WORKING_HOURS
+   (40–70, default 60), LAW_STAFFING_RATIOS (0 none / 1 guidance / 2 binding, default 0), LAW_WORK_INSPECTORATE_BUDGET.
+   WK.max_hours, WK.overtime(world, hours); WK.required_staff(world, service, clients); WK.staffing_check(world, service,
+   clients, staff) → {mode, required, short, unlawful} (ratios: HEALTH 300 clients/worker, CARE 10, CHILDCARE 8);
+   WK.stress_accident(workload_pm) true at ≥ 1300‰. Conduct: hours > max → LawOps.record_greed(world, org, {kind:
+   "OVERWORK", facility, saving}); staffing_check unlawful → record_greed kind "UNDERSTAFFING" (Anni adds both GREED_KINDS,
+   channel WORK, and the WORK inspection channel BEFORE I wire it). Stress facts carry data.workload ‰.
+   Anni's staff persons (party/union/media/government) as real jobs: she suggests her persons table exposes the employer
+   org/account per person and the labour market counts them in PopStore — my plan decides.
+   **27-W record_greed READY (Anni):** OVERWORK and UNDERSTAFFING GREED_KINDS are in (channel WORK, SERIOUS → SEVERE
+   after 6 months); WORK inspection channel via WK.inspections(world). Rules via LawOps.ensure_work_rules (law DECISIONS
+   phase, new and old saves). OVERWORK: call only while avg hours > WK.max_hours(world) (always unlawful for a company).
+   UNDERSTAFFING: report whenever WK.staffing_check(...).short > 0 (unlawful only at LAW_STAFFING_RATIOS = 2, otherwise
+   lawful-harmful, inquiry-only). Rec fields as DUMPING: {kind, facility, saving}. Tests: tests/law/test_work_law.gd.
+28. **COMPANY RIVALRY pass** (USER ruling via Wilma, 2026-11-13; plan first; after the support economy): "Do we have
+   company rivalry, where they try to drive each other out or use market tactics to force each other out? Or undercut
+   the competition? This should cause clashes with politics." Today firms price cost-plus; no undercutting or price
+   wars; Anni's CARTEL / GOUGING / HOARDING greed kinds, MARKET channel, LAW_COMPETITION_BUDGET and leniency exist but
+   no economy code records them.
+   1. Market share as a goal: firms in the same good/service and district see each other.
+   2. Tactics by CEO temperament and cash: undercutting; price war (below cost for a while, funded by cash/loans, to
+      drive a weaker rival into insolvency, then raise prices); poaching key staff with higher wages; exclusive
+      supplier/buyer contracts; hostile takeover offers to a struggling rival; buying a rival's plant from liquidation;
+      cartel (agreed prices, CARTEL kind); gouging in shortages. Illegal ones via LawOps.record_greed.
+   3. Consequences: concentration (market share / HHI indicator per good; ECON_MARKET_CONCENTRATION exists at COLONY
+      level), monopoly prices; consumers pay; workers lose jobs when a rival dies; a news fact naming who drove it out.
+   4. Politics hooks (Wilma): lobbying (donations with a request: subsidy, tariff, blocking a rival's licence, public
+      contract); firms in a price war ask the government for help; monopoly prices as a voter concern.
+   **28-early (Wilma-approved, right after the food trap):** (a) per-good, per-district market share and HHI;
+   (b) GOUGING records — only when a SELLER sets its ask well above unit cost AND has stock to spare, never when the
+   market price ratchets by itself (the food-trap price rule is not seller intent).
+   **28 data contract (Anni's competition law, approved; builds after my data shape):** markets (good or sector) and
+   monthly market shares ‰ per org; per firm and market: price and unit cost (predation); rival harm (share lost or
+   exit, and by whom); exclusive contracts {supplier, buyer, good}; takeovers via CL.request_takeover(world, buyer,
+   target, market, share_after_pm) {buyer, target, market, shares before/after, promised jobs and investment}, then
+   CL.takeover_status to complete or cancel (closing a blocked deal = gun jumping, SEVERE); lobbying via
+   CL.lobby(world, org, target_party_or_gov, request) with request {lever, dir} | {contract} | subsidy | tariff | block a
+   rival (FirmAI decides what a firm wants, Wilma's Legislature weighs it); conduct via record_greed: PREDATORY_PRICING,
+   ABUSE_DOMINANCE, EXCLUSIVE_DEALING, GOUGING, CARTEL.
+   **28 competition law step 1 IN TREE (Anni):** LawOps.record_greed(world, org, {kind, market, rival, dominant:
+   CL.dominant(world, share_pm), saving}) while conduct lasts. MARKET-channel kinds: PREDATORY_PRICING, ABUSE_DOMINANCE
+   (SERIOUS, unlawful only when dominant), EXCLUSIVE_DEALING (MINOR, by lever), UNREGISTERED_LOBBYING (MINOR), plus
+   CARTEL, GOUGING, HOARDING. CL = sim/law/competition_law.gd: dominance_pm, dominant(world, share_pm),
+   needs_review(world, share_after_pm), exclusive_allowed. Merger review (request_takeover / takeover_status) is her
+   step 2, before my takeovers land.
+   **28 merger review IN TREE (Anni, 6/6 tests):** CL.request_takeover(world, {buyer, target, market, share_before_pm,
+   share_after_pm, jobs, invest}) → {id, status CLEARED|REVIEW, due}; CL.takeover_status(world, id) → {status
+   REVIEW|CLEARED|CONDITIONS|BLOCKED, conditions {divest, price_cap_months: 24}, recommendation, decision}. Complete on
+   CLEARED or CONDITIONS (apply the conditions), drop on BLOCKED.

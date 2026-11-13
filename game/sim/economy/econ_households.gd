@@ -418,14 +418,14 @@ static func _post_orders(world: WorldState) -> void:
 		var rent_res := int(float(households(g)) / S * float(EconFinance.district_rent(world, g["district"])))
 		var util_res := int(float(p) / S * (EconData.NEED["ENERGY"] * float(EconUtil.lever(world, "ECON_UTILITY_TARIFF_ENERGY", 40)) * S
 			+ EconData.NEED["WATER"] * float(EconUtil.lever(world, "ECON_UTILITY_TARIFF_WATER", 20)) * S))
-		var pf_eff := int(float(pf) * 1.1 * tax_m)
+		var pf_eff := int(float(pf) * 1.1 * tax_m * (1.0 + float(EconRetail.margin_pm(world, "FOOD")) / 1000.0))  # D: shop margin
 		var food_q := int(p * EconData.NEED["FOOD"])
 		var food_cost := EconUtil.val(food_q, pf_eff)
 		if food_cost > budget:
 			food_q = int(float(budget) * S / float(pf_eff))
 			food_cost = budget
 		budget = maxi(0, budget - food_cost - util_res)
-		var pc_eff := int(float(pc) * 1.1 * tax_m)
+		var pc_eff := int(float(pc) * 1.1 * tax_m * (1.0 + float(EconRetail.margin_pm(world, "CONSUMER")) / 1000.0))  # D: shop margin
 		var cmin := int(p * EconData.NEED["CONSUMER_MIN"])
 		var cmin_cost := mini(EconUtil.val(cmin, pc_eff), budget)
 		cmin = int(float(cmin_cost) * S / float(maxi(1, pc_eff)))

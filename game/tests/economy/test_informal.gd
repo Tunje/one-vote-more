@@ -50,7 +50,7 @@ func test_no_material_means_homeless_and_families_leave() -> void:
 	var w := sim.world
 	var d := _crowded(w)
 	_squeeze(w, d, 250)
-	EconUtil.st(w)["base"]["MATERIAL"] = 1  # material counts as unaffordable scrap: nobody can build a shack
+	w.meta["s7_no_material"] = true  # no scrap material anywhere: nobody can build a shack
 	sim.run(3)
 	check_eq(EconInformal.shacks(w, d), 0, "no material, no shacks")
 	check(EconInformal.homeless(w, d) > 0, "households are homeless (%d)" % [EconInformal.homeless(w, d) / EconUtil.S])

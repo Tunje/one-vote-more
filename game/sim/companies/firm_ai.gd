@@ -564,6 +564,7 @@ static func unit_cost(world: WorldState, ftype: String) -> float:
 	var c := 0.0
 	for t in r["labor"]:
 		c += float(r["labor"][t]) * float(s["wage"][t])
+	c *= EconOffice.cost_factor(world, ftype)  # support economy A: office staff ride on every production post (1.0 when off)
 	for g in r["in"]:
 		if g in EconData.MARKET_GOODS:
 			c += float(r["in"][g]) * float(s["prices"][g])
@@ -919,6 +920,37 @@ static func _essentials_planner(world: WorldState) -> void:
 ## after the founding boom and every expansion stalled).
 const LATE_CONTRACT_M := 6  # months past its bid duration before a running contract counts as overload
 const STALE_TENDER_M := 3  # E117a: months a tender sits without a bid before it counts as unmet construction demand
+## E128 (backlog 20; Wilma's bias audit: market-minded Cabinets saw unemployment +2.2 pts/yr with no channel by which
+## market policy creates jobs). Firm founding scales with the workforce, learns from failures, ignores price illusions
+## in thin consumer markets, and responds to the business climate (profit tax, minimum wage).
+const ENTRY_MARGIN := 1.25  # price / unit cost that makes a sector attractive at a neutral climate
+const ENTRY_FAIL_COOL_M := 36  # months a sector stays unattractive after an entrant there failed
+const ENTRY_D2_FILL := 900  # ‰: consumer workshops are founded only while buyers get less than this share of their orders
+const ENTRY_LF_PER_SLOT := 2000.0  # workers per extra founding slot
+const ENTRY_MAX_FORMING := 6
+
+
+## Business climate 0.5..1.5 (1.0 at the default profit tax 20% and the minimum wage floor): lower profit tax and a
+## lower minimum wage make founding easier — more founding slots and a lower margin founders need.
+static func business_climate(world: WorldState) -> float:
+	var pt := float(EconUtil.lever(world, "ECON_PROFIT_TAX_RATE", 20))
+	var mw := float(EconUtil.lever(world, "ECON_MIN_WAGE", 40))
+	return clampf(1.0 + (20.0 - pt) / 40.0 - (mw - 40.0) / 220.0, 0.5, 1.5)
+
+
+## E128: month of the last entrant failure per sector (an entrant in LIQUIDATION or DISSOLVED), noted once per firm.
+static func _note_entry_failures(world: WorldState) -> Dictionary:
+	var s := EconUtil.st(world)
+	var fails: Dictionary = s.get("entry_fail", {})
+	for oid in EconUtil.sorted_keys(world.table("org")):
+		var o: Dictionary = world.table("org")[oid]
+		if o.has("entry_type") and not o.get("entry_fail_noted", false) and o["status"] in ["LIQUIDATION", "DISSOLVED"]:
+			fails[o["entry_type"]] = world.month
+			o["entry_fail_noted"] = true
+	s["entry_fail"] = fails
+	return fails
+
+
 const MAX_FORMING := 3  # D2: new companies being set up at once (was 1; the consumer industries waited years in line)
 const ADMIN_INPUT_SHARE := 0.6  # E119: share of last month's revenue an administrator spends on inputs
 const BAKERY_YIELD := 1.2  # D2: fine food made per unit of food (BAKERY recipe 300 out / 250 in)
@@ -990,6 +1022,9 @@ static func _entry(world: WorldState) -> void:
 	var hist: Dictionary = s.get("entry_signal", {})
 	var hot_list: Array = []  # [ftype, price / unit cost]
 	var svc_district := "d:1"
+	var e128 := not EconUtil.off(world, "E128")
+	var climate := business_climate(world) if e128 else 1.0
+	var fails: Dictionary = _note_entry_failures(world) if e128 else {}
 	for ftype in ["FARM", "CONSUMERF", "SERVICEHUB", "PROCESSING", "MINE", "TEXTILE", "FURNITURE", "BAKERY"]:  # D2: consumer workshops
 		var good: String = EconData.RECIPES[ftype]["out"][0]
 		var price := float(s["prices"].get(good, 0))
@@ -1003,6 +1038,16 @@ static func _entry(world: WorldState) -> void:
 					svc_district = dd
 		var uc := unit_cost(world, ftype)
 		var hot := price >= 1.25 * uc
+		if e128:
+			# E128: a better business climate (low profit tax, low minimum wage) lowers the margin founders need
+			hot = price >= (ENTRY_MARGIN + 0.25 * (1.0 - climate)) * uc
+			# founders see failures: a sector where an entrant failed recently is cooled for ENTRY_FAIL_COOL_M
+			if world.month - int(fails.get(ftype, -9999)) < ENTRY_FAIL_COOL_M:
+				hot = false
+			# consumer workshops need real unmet demand, not just a high price on a thin market (141 of 198 entrants in
+			# 60 years were workshops, almost all failed or were never built, crowding out the farms that lasted)
+			if ftype in ["TEXTILE", "FURNITURE", "BAKERY"] and int(s.get("fill_last", {}).get(good, 1000)) >= ENTRY_D2_FILL:
+				hot = false
 		hist[ftype] = hist.get(ftype, 0) + 1 if hot else 0
 		if hist[ftype] >= 2:
 			hot_list.append([ftype, price / maxf(1.0, uc)])
@@ -1019,6 +1064,11 @@ static func _entry(world: WorldState) -> void:
 			forming += 1
 	var u_now := colony_unemployment(world)
 	var max_forming := mini(MAX_FORMING, 1 + (1 if u_now >= 0.08 else 0) + (1 if u_now >= 0.12 else 0))  # more entrants only with idle hands
+	if e128:
+		# E128: entry scales with the workforce (one more founding slot per ENTRY_LF_PER_SLOT workers) and the climate
+		var lf := int(EconQuery.labour(world)["labour_force"])
+		var slots := 1.0 + float(lf) / ENTRY_LF_PER_SLOT + (1.0 if u_now >= 0.08 else 0.0) + (1.0 if u_now >= 0.12 else 0.0)
+		max_forming = clampi(int(round(slots * climate)), 1, ENTRY_MAX_FORMING)
 	if forming >= max_forming:
 		return  # E77: a few entrants at a time (each needs a builder and a market); D2: was one
 	# founder capital from the richest high-income household pool with an adult outside the labour force
@@ -1065,6 +1115,7 @@ static func _entry(world: WorldState) -> void:
 		"crew": {}, "crew_target": {}, "premium_m": {"G": 0, "S": 0, "Sp": 0}, "tax_loss_cf": 0, "profit_q": 0, "pl": EconFinance.empty_pl(),
 		"pl_last": {}, "missed_streak": 0, "ok_streak": 0, "low_cash_streak": 0, "distress_months": 0, "admin_months": 0, "liq_months": 0,
 		"missed_this_month": false, "owner_group": best, "sales_ema": {}, "contracts": [], "dividends_ytd": 0, "sold": {}}
+	world.table("org")[id]["entry_type"] = candidate  # E128: founders remember which sectors failed
 	world.ledger.open_account(EconUtil.acct(id))
 	world.ledger.transfer(EconUtil.hh_acct(best), EconUtil.acct(id), est * 4 / 10, "EQUITY", world.month)
 	EconPop.make_owner(world, g["hb"], g["band"])

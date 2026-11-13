@@ -93,10 +93,12 @@ static func evaluate(members: Array, parties: Dictionary, tolerance: float) -> D
 ## Run up to MAX_FORMATION_ROUNDS speaker rounds. Each failed round, parties grow more tolerant.
 ## Returns {government: {...} or {}, rounds: int, attempts: [..]}.
 ## One speaker round (one PM vote). Parties grow more tolerant each failed round. {} if no candidate survives.
-static func form_round(parties: Dictionary, round_i: int) -> Dictionary:
+## exclude: parties that may not join this government; they still sit in the Assembly and count as opposition
+## (v7 review: removing them from `parties` also removed their seats from the vote count).
+static func form_round(parties: Dictionary, round_i: int, exclude: Array = []) -> Dictionary:
 	var seated: Array = []
 	for pid in parties:
-		if parties[pid]["seats"] > 0:
+		if parties[pid]["seats"] > 0 and not (pid in exclude):
 			seated.append(pid)
 	seated.sort()
 	var tol := BASE_TOLERANCE + 10.0 * round_i

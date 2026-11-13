@@ -254,3 +254,17 @@ func test_fifty_years_of_bench_life_without_traits() -> void:
 	for pid in B.members(w):
 		check(Ops.person(w, pid).has("lean") and Ops.person(w, pid).has("ambition"), "%s has its traits after 50 years" % pid)
 	check(String(Ops.person(w, orphan)["party_id"]) != "party:3", "the orphan moved on")
+
+
+func test_bench_strength_reads_the_people() -> void:
+	var w := _world()
+	for i in 6:
+		_member(w, "party:1", {"COMM": 80, "POLI": 75, "ECON": 85}, LEFT)
+	_member(w, "party:2", {"COMM": 40, "POLI": 35, "ECON": 30}, RIGHT)
+	check(B.list_strength(w, "party:1") > B.list_strength(w, "party:2") + 20, "a deep, able bench beats a thin, weak one (%d vs %d)" % [B.list_strength(w, "party:1"), B.list_strength(w, "party:2")])
+	check(B.research_skill(w, "party:1") >= 80 and B.research_skill(w, "party:2") < 40, "the best analyst")
+	var star: String = B.members(w, "party:1")[0]
+	var before := B.list_strength(w, "party:1")
+	Ops.person(w, star)["scandals"] = 3
+	Ops.person(w, star)["list_rank"] = 1
+	check(B.list_strength(w, "party:1") < before, "a scandal-hit name at the top costs")

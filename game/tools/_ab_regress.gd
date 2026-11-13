@@ -8,6 +8,15 @@ func _init() -> void:
 	var w := sim.world
 	if v in ["noE124", "noBoth"]:
 		w.meta["off"] = ["E124"]
+	if v in ["s7on", "s7on_noE126"]:
+		w.meta["on"] = ["S7"]
+	if v == "s7on_noE126":
+		w.meta["off"] = ["E126"]
+	if v == "s7on_noE130":
+		w.meta["on"] = ["S7"]
+		w.meta["off"] = ["E130"]
+	if v == "base_noE130":
+		w.meta["off"] = ["E130"]
 	if v in ["noS7", "noS7b"]:
 		w.meta["off"] = ["S7"]
 	if v in ["noE124b", "noBoth", "noS7b"]:

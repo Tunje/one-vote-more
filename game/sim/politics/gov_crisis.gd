@@ -303,16 +303,11 @@ static func _form_respecting(parties: Dictionary, round_i: int, ousted: Dictiona
 	if not same and not tainted:
 		return best
 	# 1) the ousted PM party may try again, but without the parties that voted it down
-	var without_hostile := parties.duplicate()
-	for h in hostile:
-		without_hostile.erase(h)
-	var alt := Coalition.form_round(without_hostile, round_i)
+	var alt := Coalition.form_round(parties, round_i, hostile)   # hostile parties can't join, but still vote
 	if not alt.is_empty() and not (String(alt.get("pm_party", "")) == pm and _same_set(alt.get("members", []), ousted.get("members", []))):
 		return alt
 	# 2) otherwise someone else must lead: the ousted PM party cannot head the next government
-	var without_pm := parties.duplicate()
-	without_pm.erase(pm)
-	return Coalition.form_round(without_pm, round_i)
+	return Coalition.form_round(parties, round_i, [pm])
 
 
 static func _same_set(a: Array, b: Array) -> bool:

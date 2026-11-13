@@ -406,6 +406,8 @@ static func _colony_indicators(world: WorldState) -> void:
 	_w(world, "ECON_OPERATING_BALANCE", "COLONY", clampf(100.0 * (rev_actual - (spend12 - capex12)) / maxf(1.0, rev_actual), -500.0, 100.0))
 	var monthly := maxf(1.0, spend12 / maxf(1.0, float(sh.size())))
 	var runway := (float(world.ledger.balance(EconUtil.TREASURY)) + float(EconFinance.gov_credit_headroom(world))) / monthly
+	if not EconUtil.off(world, "E131"):
+		runway -= float(int(s.get("gov_missed_wages", 0)) + int(s.get("gov_missed_debt", 0)))  # E131: arrears, a month each
 	_w(world, "ECON_TREASURY_RUNWAY", "COLONY", clampf(runway, 0.0, 240.0))
 	_w(world, "ECON_MARKET_CONCENTRATION", "COLONY", _hhi(world))
 

@@ -45,6 +45,8 @@ static func homeless_share(world: WorldState, d: String) -> float:
 
 
 static func _materials_ok(world: WorldState) -> bool:
+	if bool(world.meta.get("s7_no_material", false)):
+		return false  # tests: no scrap anywhere (prices alone cannot guarantee it — they are clamped to 0.25–4× base)
 	var s := EconUtil.st(world)
 	var base := int(s.get("base", {}).get("MATERIAL", 0))
 	return base <= 0 or int(s["prices"].get("MATERIAL", 0)) < MAT_SCARCE * base

@@ -112,7 +112,8 @@ func test_attack_ads_hurt_the_target_and_backfire_among_civil_voters() -> void:
 		csum += int(base[k])
 	check(bsum < csum, "attacked party gains less than an unattacked one (%d vs %d)" % [bsum, csum])
 	var bf: Dictionary = c["parties"][a]["backfire"]
-	check(int(bf.get("INSTITUTION", 0)) < int(bf.get("*", 0)), "civility voters punish harder (%s)" % str(bf))
+	check(int(bf.get("TRAD", 0)) < 0 and int(bf.get("TRAD", 0)) == int(bf.get("PROG", 0)) and int(bf.get("PRAG", 0)) == int(bf.get("PROG", 0)),
+		"every value cohort punishes the attacker alike, whichever side it is on (A54) (%s)" % str(bf))
 	check(int(bf.get("*", 0)) < 0, "everyone punishes a little")
 	check_eq(w.facts.query("POL_ATTACK_AD").size(), 1, "attack fact once")
 

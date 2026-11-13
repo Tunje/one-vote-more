@@ -108,7 +108,13 @@ static func relief(def: Dictionary, delta: float, sat: Dictionary, sal: Dictiona
 
 ## Fiscal stress 0..1 = worst badness over indicators that declare `fiscalStress {good, bad}` (pic-core §3 v1.2).
 ## Read from current (official) values: the government sees its own books before voters do.
+static func in_default(world: WorldState) -> bool:
+	return world.table("econ").has("s") and bool(EconUtil.peek_st(world).get("sovereign_default", false))
+
+
 static func fiscal_stress(world: WorldState) -> float:
+	if in_default(world):
+		return 1.0   # a defaulting state is under full stress whatever the runway reads
 	var worst := 0.0
 	for id in world.indicators.defs:
 		var fs: Dictionary = world.indicators.defs[id].get("fiscalStress", {})
@@ -125,6 +131,8 @@ static func fiscal_stress(world: WorldState) -> float:
 ## Fiscal guard (pic-core §3 v1.3): true if any indicator declaring `fiscalGuard {floor}` is below its floor.
 ## While guarded, actors don't PROPOSE budget-worsening clauses (GOVERNANCE hint x delta < 0). They can still cut.
 static func fiscal_guard(world: WorldState) -> bool:
+	if in_default(world):
+		return true
 	for id in world.indicators.defs:
 		var fg: Dictionary = world.indicators.defs[id].get("fiscalGuard", {})
 		if fg.is_empty() or not world.indicators.values[id].has("COLONY"):
@@ -197,9 +205,15 @@ static func _labour_need(world: WorldState) -> float:
 const COUNTER_CYCLICAL := ["ECON_BUDGET_PUBLIC_EMPLOYMENT", "ECON_BUDGET_PUBLIC_WORKS"]
 const SLUMP_FROM := 15.0
 const SLUMP_GUARD_OFF := 20.0
+const SLUMP_PENALTY := 8.0   # score cost of a pro-cyclical move in a deep slump (a strong case, not a ban)
 
 
 static func unemployment(world: WorldState) -> float:
+	# the colony-wide rate (Bob's EconQuery.labour), not the worst district (fixed 2026-11-13)
+	if world.meta.has("test_unemployment"):
+		return float(world.meta["test_unemployment"])   # test seam
+	if world.table("econ").has("s"):
+		return float(EconQuery.labour(world).get("rate_pct", 0.0))
 	var id := "ECON_UNEMPLOYMENT_RATE"
 	if not world.indicators.values.has(id):
 		return 0.0
@@ -210,6 +224,37 @@ static func unemployment(world: WorldState) -> float:
 	for k in EconUtil.sorted_keys(v):
 		u = maxf(u, float(v[k]) / 1000.0)
 	return u
+
+
+static func _runway(world: WorldState) -> float:
+	var id := "ECON_TREASURY_RUNWAY"
+	if not world.indicators.values.has(id) or not world.indicators.values[id].has("COLONY"):
+		return 99.0
+	return float(world.indicators.read(id, "COLONY")) / 1000.0
+
+
+## A58 lobbying (Anni's CL.open_asks): a party that took money from an org leans toward granting its asks. Bigger for
+## more money and a less honest leader, smaller when lobbying must be registered or disclosed (a disclosed favour is
+## riskier). Score points for moving `lid` in direction `dir`; asks against the move count negative. Capped.
+const LOBBY_K := 2.0
+const LOBBY_CAP := 4.0
+const CL := preload("res://sim/law/competition_law.gd")
+
+
+static func lobby_tilt(world: WorldState, party: Dictionary, lid: String, dir: float) -> float:
+	if party.is_empty() or not world.peek("lobby") is Dictionary or world.peek("lobby").is_empty():
+		return 0.0
+	var integrity := float(party.get("leader", {}).get("integrity", 55)) if typeof(party.get("leader")) == TYPE_DICTIONARY else 55.0
+	var mode := float(int(world.levers.get("LAW_LOBBY_REGISTER", 0)))
+	var wref := float(maxi(1, int(world.values.get("ECON_W_REF", 1200000))))
+	var t := 0.0
+	for a in CL.open_asks(world, String(party.get("id", ""))):
+		var req: Dictionary = a.get("request", {})
+		if String(req.get("lever", "")) != lid:
+			continue
+		var w := LOBBY_K * float(a.get("donated_24m", 0)) / wref * (1.0 - integrity / 100.0) * (1.0 - 0.3 * mode)
+		t += w if signf(float(req.get("dir", 0))) == signf(dir) else -w
+	return clampf(t, -LOBBY_CAP, LOBBY_CAP)
 
 
 static func _slump(world: WorldState) -> float:
@@ -233,6 +278,12 @@ static func hunger(world: WorldState) -> float:
 ## Per protected lever: [strength 0..2, deep]. Deep = no cuts, past the fiscal guard, judged without fiscal stress.
 static func protected_levers(world: WorldState) -> Dictionary:
 	var out := {}
+	if in_default(world):
+		# a bankrupt state cannot fund job schemes: only food aid keeps a (non-deep) case, so it is cut last
+		var h0 := hunger(world)
+		if h0 >= HUNGER_FROM:
+			out["ECON_FOOD_ASSISTANCE"] = [clampf((h0 - HUNGER_FROM) / 0.10, 0.0, 2.0), false]
+		return out
 	var u := unemployment(world)
 	var sl := _slump(world)
 	if sl > 0.0:
@@ -286,8 +337,18 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			var owes: bool = owed.has("%s|%d" % [lid, int(signf(delta))])
 			var slump_lever: bool = protect.has(lid)
 			var deep: bool = slump_lever and bool(protect[lid][1])
+			# A55 (v7 follow-up): no tax rises in a deep slump while the treasury still holds 3+ months of spending; a
+			# slump is fought with demand (a market Cabinet cuts taxes, a state Cabinet spends), not with austerity.
+			# User (2026-11-13): governments must stay free to make things worse. These are strong pressures, not bans:
+			# an austerity-minded government can still raise taxes or cut the schemes in a slump if its convictions
+			# outweigh the cost.
+			var against_slump := 0.0
+			# only above the lever's normal level: restoring a tax cut back toward its default is never penalised
+			# (fixed: the penalty ratcheted taxes to 0 in long slumps)
+			if bool(def.get("is_tax", false)) and delta > 0.0 and cur >= float(def.get("default", 0)) 					and unemployment(world) >= SLUMP_GUARD_OFF and _runway(world) >= 3.0 and not in_default(world):
+				against_slump += SLUMP_PENALTY   # raising taxes in a slump while holding reserves
 			if deep and delta < 0.0:
-				continue   # no government cuts the jobs schemes with a fifth of the colony out of work
+				against_slump += SLUMP_PENALTY   # cutting the jobs schemes / food help in a deep slump or hunger
 			if guarded and not owes and float(def.get("concerns", {}).get("GOVERNANCE", 0)) * delta < 0.0 and not deep:
 				stats["guard_blocked"] = int(stats.get("guard_blocked", 0)) + 1
 				continue  # fiscal guard: no new spending / tax cuts while the books are weak (pork never overrides it)
@@ -313,6 +374,8 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			var sc := (1.0 - 0.3 * pork) * ia + 3.0 * (1.0 + 0.5 * pork) * rl
 			if labour_need > 0.0 and lid == "LAW_IMMIGRATION":
 				sc += labour_need * signf(delta)   # v6 review: an ageing colony with unfilled jobs needs newcomers
+			sc -= against_slump
+			sc += lobby_tilt(world, world.peek("party").get(believer, {}), lid, delta)   # A58: the donors' asks
 			if slump_lever:
 				sc += 4.0 * float(protect[lid][0]) * signf(delta)   # v7 review: jobs in a slump, food aid in hunger; cuts are costly
 			if skill_gap > 0.0 and delta > 0.0 and lid in TRAINING_LEVERS:
@@ -427,6 +490,7 @@ static func party_vote(party: Dictionary, clauses: Array, world: WorldState, gov
 		var def: Dictionary = world.lever_defs[c["lever"]]
 		var delta := clause_delta(def, c)
 		var stress_c := 0.0 if protect.has(String(c["lever"])) and bool(protect[String(c["lever"])][1]) else fiscal_stress(world)   # v7: jobs judged as jobs
+		s += lobby_tilt(world, party, String(c["lever"]), delta)   # A58
 		s += IDEOLOGY_VOTE_WEIGHT * ideo_alignment(def, delta, party["positions"]) + 1.5 * relief(def, delta, sat, sal, stress_c, fiscal_room(world), ordinal(def, c["from"]), Intel.belief(world, String(party.get("id", "")), String(c["lever"])))
 		for cm in party["commitments"]:
 			if cm["lever"] == c["lever"]:

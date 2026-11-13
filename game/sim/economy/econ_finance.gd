@@ -72,7 +72,14 @@ static func gov_revenue_12m(world: WorldState) -> int:
 
 
 static func gov_credit_headroom(world: WorldState) -> int:
-	return maxi(0, int(EconData.BANK_GOV_LIMIT * gov_revenue_12m(world)) - debt_of(world, "gov"))
+	var h := maxi(0, int(EconData.BANK_GOV_LIMIT * gov_revenue_12m(world)) - debt_of(world, "gov"))
+	if not EconUtil.off(world, "E131"):
+		# E131 (Wilma): credit that is not really there does not count — none while in sovereign default, and never more
+		# than the bank can lend (a credit freeze). Before, a bankrupt state read 13–20 months of runway.
+		if bool(EconUtil.peek_st(world).get("sovereign_default", false)):
+			return 0
+		h = mini(h, maxi(0, world.ledger.balance(EconUtil.BANK) - EconData.BANK_MIN_CASH * S))
+	return h
 
 
 ## Government borrowing (ECON_BORROW or automatic liquidity draw). Returns amount drawn.
@@ -376,19 +383,15 @@ static func _rent(world: WorldState) -> void:
 	EconUtil.st(world)["rent_arrears"] = arrears
 
 
-static func _benefits(world: WorldState) -> void:
+## E63 food assistance (demand floor): top up groups whose cash cannot buy their food need at current prices.
+static func _food_assistance(world: WorldState) -> void:
 	var s := EconUtil.st(world)
-	var wg: int = s["wage"]["G"]
-	var brate := float(EconUtil.lever(world, "ECON_UNEMPLOYMENT_BENEFIT_RATE", 40)) / 100.0
-	var dur := maxi(1, int(EconUtil.lever(world, "ECON_BENEFIT_DURATION", 12)))
-	var prate := float(EconUtil.lever(world, "ECON_PENSION_RATE", 35)) / 100.0
-	# E63 food assistance (demand floor): top up groups whose cash cannot buy their food need at current prices
 	var fa := float(EconUtil.lever(world, "ECON_FOOD_ASSISTANCE", 100)) / 100.0
+	if fa <= 0.0:
+		return
 	var food_price := float(s["prices"]["FOOD"]) * 1.1 * (1.0 + float(EconUtil.lever(world, "ECON_SALES_TAX", 0)) / 100.0)
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
-		if fa <= 0.0:
-			break
 		var need := int(float(EconHouseholds.persons(g)) / S * EconData.NEED["FOOD"] * food_price * fa)
 		var gap := need - world.ledger.balance(EconUtil.hh_acct(gid))
 		if gap > 0:
@@ -396,6 +399,15 @@ static func _benefits(world: WorldState) -> void:
 			g["income"]["benefit"] += paid
 			EconPop.credit_status(world, gid, "", paid, "benefit")
 			s["gov_spend_m"] = s.get("gov_spend_m", 0) + paid
+
+
+static func _benefits(world: WorldState) -> void:
+	var s := EconUtil.st(world)
+	var wg: int = s["wage"]["G"]
+	var brate := float(EconUtil.lever(world, "ECON_UNEMPLOYMENT_BENEFIT_RATE", 40)) / 100.0
+	var dur := maxi(1, int(EconUtil.lever(world, "ECON_BENEFIT_DURATION", 12)))
+	var prate := float(EconUtil.lever(world, "ECON_PENSION_RATE", 35)) / 100.0
+	_food_assistance(world)
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
 		var unemp := maxi(0, g["lf"] - EconLabor.employed(g))

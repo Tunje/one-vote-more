@@ -128,7 +128,9 @@ static func ownership(pos: Dictionary) -> Dictionary:
 		var s := 0.0
 		for ax in PolDefs.CONCERN_PULL[c]:
 			s += PolDefs.CONCERN_PULL[c][ax] * float(pos[ax]) / 1000.0
-		var v := clampi(int(round(s * 1.6)), 0, 100)
+		# A54 (bias audit): a party is credible on a concern from either side of its axes (a market party on jobs
+		# through growth, a state party through public work); was: only the + side owned concerns.
+		var v := clampi(int(round(absf(s) * 1.6)), 0, 100)
 		if v > 0:
 			own[c] = v
 	if pos["ECON_ROLE"] < -20000:  # market parties are trusted on growth & management

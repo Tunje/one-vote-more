@@ -88,10 +88,12 @@ static func indicators() -> Array:
 			"exceptionOnly": EXCEPTION_ONLY.has(r[0])})
 	# pic-core §3 v1.2: fiscal-stress signals for the government (current values, no perception lag) — E57
 	# budget balance is NOT a stress input: founding-era capex from the charter treasury reads as a huge "deficit" (E57)
-	var stress := {"ECON_TREASURY_RUNWAY": {"good": 36000, "bad": 12000}, "ECON_PUBLIC_DEBT_RATIO": {"good": 60000, "bad": 150000}}
+	# v7 follow-up (Wilma, A55): a treasury of 24 months of real reserves (no phantom credit in a default, E131) is comfortable, 6 is stressed (was 36 / 12:
+	# governments maxed taxes in a slump while holding 2-3 years of spending in reserve, draining household demand)
+	var stress := {"ECON_TREASURY_RUNWAY": {"good": 24000, "bad": 6000}, "ECON_PUBLIC_DEBT_RATIO": {"good": 60000, "bad": 150000}}
 	# pic-core v1.3 soft brake: no budget-worsening proposals while below floor (E59). The operating balance excludes
 	# capital spending, so charter-funded founding construction does not trip it.
-	var guard := {"ECON_TREASURY_RUNWAY": {"floor": 24000}, "ECON_OPERATING_BALANCE": {"floor": -15000}}
+	var guard := {"ECON_TREASURY_RUNWAY": {"floor": 9000}, "ECON_OPERATING_BALANCE": {"floor": -15000}}   # A55: was 24 months, briefly 6
 	for d in out:
 		if stress.has(d["id"]):
 			d["fiscalStress"] = stress[d["id"]]

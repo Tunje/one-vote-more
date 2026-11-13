@@ -270,6 +270,7 @@ static func detect_ctx(world: WorldState) -> Dictionary:
 		"ENV": float(world.levers.get("LAW_ENV_INSPECTORATE_BUDGET", 4000)) / float(ENV_INSPECTION_COST_WREF) \
 			* WasteLaw.inspection_factor(world),     # W6: LAW_WASTE_STANDARD (×1 at the default)
 		"MARKET": float(world.levers.get("LAW_COMPETITION_BUDGET", 4000)) / float(MARKET_CASE_COST_WREF),
+		"WORK": load("res://sim/law/work_law.gd").inspections(world),     # the work-environment authority
 		# M12: colony customs chase charter evasion only while the colony enforces the charter (home inspector: CharterOps)
 		"HOME": float(world.levers.get("LAW_COMPETITION_BUDGET", 4000)) / float(MARKET_CASE_COST_WREF) \
 			if bool(world.levers.get("LAW_ENFORCE_CHARTER", true)) and String(world.peek("law_state").get("s", {}) \
