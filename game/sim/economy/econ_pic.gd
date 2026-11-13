@@ -6,7 +6,7 @@ extends RefCounted
 ## pic-core v1.1 exceptionOnly: these count toward a concern only while something is wrong. S7's shack and homeless
 ## shares sit at 0 almost everywhere; as ordinary indicators they added "perfect" weight to HOUSING, SAFETY and FAIRNESS
 ## in every district (concerns are weighted averages), diluting the real housing signal even with S7 switched off.
-const EXCEPTION_ONLY := ["ECON_INFORMAL_HOUSING", "ECON_HOMELESSNESS"]
+const EXCEPTION_ONLY := ["ECON_INFORMAL_HOUSING", "ECON_HOMELESSNESS", "ECON_ELDER_CARE_ACCESS", "ECON_CHILDCARE_ACCESS"]
 
 
 static func indicators() -> Array:
@@ -26,6 +26,9 @@ static func indicators() -> Array:
 		# S7: households in self-built shacks / homeless, % of the district's households
 		["ECON_INFORMAL_HOUSING", "%", [0, 100], "DISTRICT", -1, {"HOUSING": 0.5, "SAFETY": 0.2, "FAIRNESS": 0.2}, 0, 15, "PUBLIC", 1],
 		["ECON_HOMELESSNESS", "%", [0, 100], "DISTRICT", -1, {"HOUSING": 0.6, "FAIRNESS": 0.3, "SAFETY": 0.2}, 0, 5, "PUBLIC", 0],
+		# part E (EconCare, opt-in CARE): the share of the retired / of children aged 1–5 actually cared for
+		["ECON_ELDER_CARE_ACCESS", "%", [0, 100], "DISTRICT", 1, {"PUBLIC_SERVICES": 0.4, "FAIRNESS": 0.1}, 80, 30, "PUBLIC", 1],
+		["ECON_CHILDCARE_ACCESS", "%", [0, 100], "DISTRICT", 1, {"PUBLIC_SERVICES": 0.3, "JOBS": 0.1, "COST_OF_LIVING": 0.1}, 70, 25, "PUBLIC", 1],
 		["ECON_UTILITY_RELIABILITY", "%", [0, 100], "DISTRICT", 1, {"INFRASTRUCTURE": 0.6, "PUBLIC_SERVICES": 0.3}, 100, 85, "PUBLIC", 0],
 		["ECON_INFRA_CONDITION", "index", [0, 100], "DISTRICT", 1, {"INFRASTRUCTURE": 0.6, "SAFETY": 0.1}, 90, 50, "PUBLIC", 3],
 		["ECON_LOGISTICS_DELAY", "%", [0, 100], "DISTRICT", -1, {"INFRASTRUCTURE": 0.5, "COST_OF_LIVING": 0.1}, 0, 20, "PUBLIC", 1],
@@ -147,6 +150,11 @@ static func levers() -> Array:
 		["ECON_BUDGET_PUBLIC_EMPLOYMENT", [0, 5000], 0, "LAW", {"ECON_ROLE": 0.008, "FISCAL": 0.008, "LABOR": 0.006}, {"JOBS": 40, "FAIRNESS": 5, "GOVERNANCE": -20}, "STAFF_T_IMPL_PROGRAM", 1, false],
 		# E117b: the Public Employment Service hires the unemployed at 80% of the General wage for upkeep work (EconPublicJobs)
 		["ECON_PE_EXPANSION", [0, 1], 1, "REGULATION", {"ECON_ROLE": 10.0}, {"JOBS": 10, "INFRASTRUCTURE": 10, "GOVERNANCE": -5}, "STAFF_T_IMPL_ADMIN", 1, false],
+		# part E (EconCare): elder care and childcare buy posts (4 G + 1 S / 3 G + 2 S); spent only while CARE is on.
+		# Defaults ≈ 10 / 45 posts (whole units of 5; a post ≈ 15–17k credits a year): ~60–80% / ~50% coverage around
+		# years 10–20, falling as the colony ages and grows unless parliament raises them.
+		["ECON_BUDGET_ELDER_CARE", [0, 1500], 200, "LAW", {"REDISTRIBUTION": 0.02, "ECON_ROLE": 0.01, "FISCAL": 0.01}, {"PUBLIC_SERVICES": 40, "FAIRNESS": 10, "JOBS": 5, "GOVERNANCE": -8}, F, 1, false],
+		["ECON_BUDGET_CHILDCARE", [0, 3000], 850, "LAW", {"REDISTRIBUTION": 0.012, "ECON_ROLE": 0.008, "FISCAL": 0.008}, {"PUBLIC_SERVICES": 30, "JOBS": 15, "COST_OF_LIVING": 10, "FAIRNESS": 10, "GOVERNANCE": -12}, F, 1, false],
 		# §8c (Wilma): the state's subsidy to the bus fleet (parts and new buses, on top of the fares' fifth); spent only
 		# while FLEET is on. Default ≈ a normal fleet's maintenance and renewal (~16 buses × ~9k credits a year).
 		["ECON_BUDGET_PUBLIC_TRANSPORT", [0, 2000], 150, "LAW", {"ECON_ROLE": 0.01, "FISCAL": 0.01}, {"INFRASTRUCTURE": 30, "JOBS": 8, "GOVERNANCE": -6}, P, 1, false],
@@ -180,6 +188,8 @@ static func levers() -> Array:
 		"ECON_BUDGET_HEALTH": {"from": 500, "concerns": {"PUBLIC_SERVICES": 50}},
 		"ECON_BUDGET_EDUCATION": {"from": 350, "concerns": {"PUBLIC_SERVICES": 40}},
 		"ECON_BUDGET_PUBLIC_TRANSPORT": {"from": 75, "concerns": {"INFRASTRUCTURE": 40, "JOBS": 15}},
+		"ECON_BUDGET_ELDER_CARE": {"from": 100, "concerns": {"PUBLIC_SERVICES": 50, "SAFETY": 10}},
+		"ECON_BUDGET_CHILDCARE": {"from": 425, "concerns": {"PUBLIC_SERVICES": 40, "JOBS": 20}},
 	}
 	var out: Array = []
 	for r in rows:
@@ -194,7 +204,7 @@ static func levers() -> Array:
 			d["concernsLow"] = low[r[0]]
 		if r[0] in ["ECON_EMISSION_REDUCTION"]:
 			d["domain"] = "ENV"
-		if r[0] in ["ECON_BUDGET_HEALTH", "ECON_BUDGET_EDUCATION", "ECON_HEALTH_FEE", "ECON_SCHOOL_FEE"]:
+		if r[0] in ["ECON_BUDGET_HEALTH", "ECON_BUDGET_EDUCATION", "ECON_HEALTH_FEE", "ECON_SCHOOL_FEE", "ECON_BUDGET_ELDER_CARE", "ECON_BUDGET_CHILDCARE"]:
 			d["domain"] = "PUBS"
 		out.append(d)
 	out.append({"id": "ECON_ENERGY_PRIORITY", "owner": "econ", "type": "ENUM", "values": ["HOUSEHOLDS_FIRST", "INDUSTRY_FIRST"],

@@ -142,6 +142,8 @@ const RECIPES := {
 	"RETAIL":   {"labor": {"G": 4, "S": 1}, "in": {}, "out": ["RETAILWORK", 0], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "SERVICES"},  # support economy D: a district's shops (staffed from the retail margin); scale = posts × 200
 	"SANITATION": {"labor": {"G": 4, "S": 1}, "in": {}, "out": ["SANITWORK", 0], "upkeep": 0, "poll": 0, "acc": 2, "hazard": "MEDIUM", "licence": "", "occ": "PUBLIC_SECTOR"},  # support economy E: refuse collection, street cleaning, sewage works; scale = posts × 200
 	"WAREHOUSE": {"labor": {"G": 4, "S": 1}, "in": {}, "out": ["STORAGEWORK", 0], "upkeep": 0, "poll": 0, "acc": 2, "hazard": "LOW", "licence": "", "occ": "LOGISTICS"},  # §9 warehouses: CTA's storage halls, staffed from storage rent; scale = posts × 200
+	"ELDERCARE": {"labor": {"G": 4, "S": 1}, "in": {}, "out": ["ELDERWORK", 0], "upkeep": 0, "poll": 0, "acc": 2, "hazard": "LOW", "licence": "", "occ": "PUBLIC_SECTOR"},  # part E: care homes and home help (EconCare); scale = posts × 200
+	"CHILDCARE": {"labor": {"G": 3, "S": 2}, "in": {}, "out": ["CHILDWORK", 0], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "PUBLIC_SECTOR"},  # part E: nurseries for ages 1–5 (EconCare); scale = posts × 200
 	"OFFICE":   {"labor": {"G": 5, "S": 4, "Sp": 1}, "in": {}, "out": ["OFFICEWORK", 0], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "SERVICES"},  # support economy A: an organisation's office staff (admin, cleaning, reception, logistics); scale = posts × 100
 	"HOUSING":  {"labor": {"G": 1}, "in": {}, "out": ["HOUSING", 50], "upkeep": 2, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "SERVICES"},
 }

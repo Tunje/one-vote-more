@@ -22,13 +22,14 @@ const LawOps := preload("res://sim/law/law_ops.gd")
 const LEAN_PM := 150
 const PLEDGE_M := 24
 ## Public services under a staffing ratio (Anni's WK.RATIOS); CARE and CHILDCARE join when those services exist.
-const PUBLIC_RATIO_SERVICE := {"CLINIC": "HEALTH"}
+const PUBLIC_RATIO_SERVICE := {"CLINIC": "HEALTH", "ELDERCARE": "CARE", "CHILDCARE": "CHILDCARE"}
 const SICK_PM := 150
 const QUALITY_PM := 300
 const OVERLOAD_PM := 800
 const STRESS_RISE := 6  # months to close the gap upward
 const STRESS_FALL := 12  # months to recover
-const SERVICE_TAG := {"CLINIC": "HEALTH", "SCHOOL": "EDUCATION", "SANITATION": "SANITATION", "TRANSIT": "TRANSPORT"}
+const SERVICE_TAG := {"CLINIC": "HEALTH", "SCHOOL": "EDUCATION", "SANITATION": "SANITATION", "TRANSIT": "TRANSPORT",
+	"ELDERCARE": "CARE", "CHILDCARE": "CHILDCARE"}
 
 
 static func active(world: WorldState) -> bool:
@@ -50,6 +51,8 @@ static func quality_mult(f: Dictionary) -> float:
 
 ## Clients a service facility serves this month (patients / pupils), its district's people shared over its sites.
 static func _clients(world: WorldState, f: Dictionary) -> int:
+	if f["type"] in ["ELDERCARE", "CHILDCARE"]:
+		return EconCare.site_clients(f)  # part E: the enrolled
 	var d: String = f["district"]
 	var n := 0
 	for fid in world.table("facility"):
@@ -68,6 +71,11 @@ static func _clients(world: WorldState, f: Dictionary) -> int:
 
 static func workload_pm(world: WorldState, f: Dictionary) -> int:
 	var staff := EconLabor.staff_total(f["staff"])
+	if f["type"] in ["ELDERCARE", "CHILDCARE"]:
+		var e := EconCare.site_clients(f)
+		if e <= 0:
+			return 0
+		return clampi(int(1000.0 * float(e) / maxf(1.0, float(staff) / S * EconCare.normal_for(f["type"]))), 0, 2000)
 	if f["type"] in ["CLINIC", "SCHOOL"]:
 		var r: Dictionary = EconData.RECIPES[f["type"]]
 		var crew := 0

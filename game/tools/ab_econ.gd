@@ -25,6 +25,8 @@ func _init() -> void:
 		on.append("WORKLOAD")
 	if arm.contains("fleet"):
 		on.append("FLEET")
+	if arm.contains("care"):
+		on.append("CARE")
 	if arm.contains("warehouse"):
 		on.append("WAREHOUSE")
 	w.meta["on"] = on

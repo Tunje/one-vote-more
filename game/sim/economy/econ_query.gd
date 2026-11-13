@@ -11,6 +11,7 @@ const LINE_LABELS := {
 	"ECON_BUDGET_TRAINING": "Training", "ECON_BUDGET_INFRASTRUCTURE": "Infrastructure", "ECON_BUDGET_HOUSING": "Public housing",
 	"ECON_BUDGET_SUBSIDIES": "Subsidies", "ECON_BUDGET_PUBLIC_WORKS": "Public works (counter-cyclical)", "ECON_BUDGET_PUBLIC_EMPLOYMENT": "Public employment scheme", "ECON_BUDGET_RESERVE_PURCHASES": "Strategic reserve",
 	"ECON_BUDGET_PUBLIC_TRANSPORT": "Public transport",
+	"ECON_BUDGET_ELDER_CARE": "Elder care", "ECON_BUDGET_CHILDCARE": "Childcare",
 }
 
 

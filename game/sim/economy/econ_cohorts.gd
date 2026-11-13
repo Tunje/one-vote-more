@@ -148,12 +148,15 @@ static func _deaths(world: WorldState, d: String, pools: Array, h: Array, rem: D
 		# S7: shacks have no water or sewage; the homeless sleep in doorways and the old landing shelters
 		crowd += SHACK_MORT * EconInformal.shack_share(world, d) + HOMELESS_MORT * EconInformal.homeless_share(world, d)
 	var total_d := 0
+	var care_m := EconCare.elder_mort_mult(world, d)
 	var n := {"c": 0, "w": 0, "o": 0}
 	for a in AGES:
 		var k := int(h[a])
 		if k <= 0:
 			continue
 		var q := mortality(a, hacc) * crowd  # slums: crowding raises mortality
+		if a >= ra:
+			q *= care_m  # part E: elder care coverage (1.0 when off)
 		if famine:
 			q += 0.03 if a < 5 or a >= ra else 0.012
 		var dd := mini(k, _whole(rem, "d%d" % a, float(k) * q / 12.0))
@@ -342,7 +345,7 @@ static func _reentry(world: WorldState, pools: Array) -> void:
 		var g: Dictionary = world.table("hh")[gid]
 		var rem: Dictionary = g.get("demo_rem", {})
 		g["demo_rem"] = rem
-		var n := EconHouseholds._whole(rem, "reentry", int(float(g["nonpart"]) * rate))
+		var n := EconHouseholds._whole(rem, "reentry", int(float(g["nonpart"]) * rate * EconCare.reentry_mult(world, g["district"])))  # part E: childcare
 		if n > 0:
 			PopStore.move_group(world, {"hb": g["hb"], "inc": g["band"], "status": "NOT_IN_LF", "occ": "NONE"}, n, {"status": "UNEMPLOYED"}, "REENTRY")
 
