@@ -61,3 +61,34 @@ func test_budget_line_funds_parts_and_cut_is_blamed() -> void:
 		var cause: Dictionary = news[news.size() - 1]["data"]["cause"]
 		check(cause.has("transport_budget_peak") and int(cause["budget_cut_pm"]) == 1000, "the disruption names the cut: %s" % [cause])
 	check_eq(w.ledger.total(), 0, "ledger closed")
+
+
+func test_dead_fleet_recovers_and_absence_fades() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["SUPPORT_T", "FLEET"]
+	sim.run(6)
+	w.table("bus").clear()  # every bus scrapped, no components anywhere
+	var cta := EconFinance.org_by_key(w, "CTA")
+	EconUtil.inv_take(w, cta, "COMPONENT", "d:1", EconUtil.inv_get(w, cta, "COMPONENT", "d:1"))
+	w.ledger.transfer(EconUtil.TREASURY, EconUtil.acct(cta), 2000000000, "TEST", w.month)  # the money returns
+	EconUtil.st(w)["fleet_fund"] = 2000000000  # … and was saved for buses
+	sim.run(1)
+	check(not w.table("bus").is_empty(), "buses imported when no parts exist")
+	# a district without buses: absence fades as people adapt
+	var s := EconUtil.st(w)
+	w.table("bus").clear()
+	w.ledger.transfer(EconUtil.acct(cta), EconUtil.TREASURY, w.ledger.balance(EconUtil.acct(cta)), "TEST", w.month)
+	var first := 0
+	var last := 0
+	for m in 8:
+		sim.run(1)
+		var worst := 0
+		for d in s.get("commute_absent_pm", {}):
+			worst = maxi(worst, int(s["commute_absent_pm"][d]))
+		if m == 0:
+			first = worst
+		last = worst
+	check(first <= EconFleet.ABSENT_CAP, "absence capped: %d" % first)
+	check(last < first or first == 0, "absence fades as commuters adapt (%d → %d)" % [first, last])
+	check_eq(w.ledger.total(), 0, "ledger closed")

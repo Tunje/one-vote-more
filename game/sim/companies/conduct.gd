@@ -65,9 +65,16 @@ static func _deterred(world: WorldState, key: String, o: Dictionary) -> bool:
 	var t := _tracks(world)
 	if t.has(key):
 		var v: Dictionary = world.table("violation_track").get(str(t[key]), {})
-		if bool(v.get("revealed", false)) and int(o["ceo"].get("risk", 50)) < RECKLESS_RISK:
-			cool[key] = world.month + CAUGHT_COOL_M
-			_stop(world, key)
+		if bool(v.get("revealed", false)):
+			# E135b (v8 chronicles: one firm convicted 161 times): each catch doubles the pause (24 → 48 → 96, ≤ 120
+			# months); a reckless CEO ignores the first catch only
+			var caught: Dictionary = s.get("conduct_caught_n", {})
+			s["conduct_caught_n"] = caught
+			var n := int(caught.get(key, 0)) + 1
+			caught[key] = n
+			if int(o["ceo"].get("risk", 50)) < RECKLESS_RISK or n >= 2:
+				cool[key] = world.month + mini(120, CAUGHT_COOL_M * int(pow(2.0, float(mini(n, 4) - 1))))
+				_stop(world, key)
 	return world.month < int(cool.get(key, -1))
 
 

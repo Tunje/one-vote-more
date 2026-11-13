@@ -5,6 +5,14 @@ extends RefCounted
 ## Public enterprises are never liquidated: distress triggers an automatic support transfer + funding-request fact (E44).
 
 const BUYOUT_GAP_M := 60  # E121: months before a plant can be rescued by its workers again
+## E135 (v8 chronicles, Wilma: the same firm insolvent every ~5 months for decades — 97 times in seed 3): a workout cut
+## the bank debt but left unpaid fines and other liabilities due, so the firm missed them again at once. Now a
+## restructuring puts open liabilities on a PLAN_M-month payment plan (fines are not written off), and a firm entering
+## administration ZOMBIE_N times within ZOMBIE_M months gets no further workout: it is liquidated (its strategic plants
+## still pass to the public operator, E47).
+const PLAN_M := 12
+const ZOMBIE_N := 3
+const ZOMBIE_M := 36
 const S := EconUtil.S
 
 
@@ -104,7 +112,8 @@ static func _step(world: WorldState, oid: String) -> void:
 			o["admin_months"] += 1
 			if o["admin_months"] == 3:
 				_rescue_strategic(world, oid)
-			if EconFinance.profit(o["pl"]) > 0 and cash >= f and o["missed_streak"] == 0:
+			var zombie: bool = bool(o.get("no_workout", false)) and not EconUtil.off(world, "E135")
+			if not zombie and EconFinance.profit(o["pl"]) > 0 and cash >= f and o["missed_streak"] == 0:
 				for lid in EconUtil.sorted_keys(world.table("loan")):
 					var l: Dictionary = world.table("loan")[lid]
 					if l["borrower"] == oid:
@@ -112,9 +121,10 @@ static func _step(world: WorldState, oid: String) -> void:
 						l["missed"] = 0
 				o["status"] = "ACTIVE"
 				o["admin_months"] = 0
+				_payment_plan(world, oid)
 				EconFacts.emit(world, "COMP_RESTRUCTURED", o["hq"], [["COMPANY", oid]], [["COMPANY", oid, 0.8], ["GOVERNMENT", "government", 0.2]],
 					{"JOBS": 5}, 20, "PUBLIC")
-			elif o["admin_months"] >= 2 and _operating_surplus(o) >= 0 and EconFinance.debt_of(world, oid) > 0:
+			elif not zombie and o["admin_months"] >= 2 and _operating_surplus(o) >= 0 and EconFinance.debt_of(world, oid) > 0:
 				# E77 debt workout: the business covers its running costs, only the debt kills it → the bank writes
 				# debt down to what ~24 months of surplus can carry (at least the normal haircut) and the firm continues
 				var surplus := _operating_surplus(o)
@@ -130,6 +140,7 @@ static func _step(world: WorldState, oid: String) -> void:
 				o["admin_months"] = 0
 				o["missed_streak"] = 0
 				o["low_cash_streak"] = 0
+				_payment_plan(world, oid)
 				EconFacts.emit(world, "COMP_RESTRUCTURED", o["hq"], [["COMPANY", oid]], [["COMPANY", oid, 0.8], ["NATURE", "market", 0.2]],
 					{"JOBS": 5}, 25, "PUBLIC", {"debt_before": debt / S, "debt_after": keep / S, "workout": true})
 			elif o["admin_months"] >= 6:
@@ -137,6 +148,36 @@ static func _step(world: WorldState, oid: String) -> void:
 				o["liq_months"] = 0
 				if o["is_contractor"]:
 					EconConstruction.fail_contracts(world, oid)
+
+
+## Court-ordered liquidation (Anni's justice side: a revoked licence for a repeat offender, or a creditor petition over
+## unpaid fines): the firm goes straight to LIQUIDATION; its plants then follow the normal path (same-sector buyer,
+## workers' co-op, public operator for strategic plants, or closure). Public bodies are never liquidated. -> done?
+static func court_liquidation(world: WorldState, oid: String, reason: String) -> bool:
+	var o: Dictionary = world.table("org").get(oid, {})
+	if o.is_empty() or o["type"] in EconData.PUBLIC_TYPES or o["status"] in ["LIQUIDATION", "DISSOLVED"]:
+		return false
+	if o["status"] != "ADMINISTRATION":
+		_enter_administration(world, oid)
+	o["status"] = "LIQUIDATION"
+	o["liq_months"] = 0
+	o["no_workout"] = true
+	if o["is_contractor"]:
+		EconConstruction.fail_contracts(world, oid)
+	EconFacts.emit(world, "COMP_COURT_LIQUIDATION", o["hq"], [["COMPANY", oid]], [["COMPANY", oid, 1.0]], {"FAIRNESS": 5, "JOBS": -5}, 45,
+		"PUBLIC", {"reason": reason}, {"districts": [o["hq"]]})
+	return true
+
+
+## E135: a restructured firm's open liabilities (fines, awards, union and party claims) fall due over PLAN_M months
+## instead of all at once — rescheduled, not forgiven.
+static func _payment_plan(world: WorldState, oid: String) -> void:
+	if EconUtil.off(world, "E135"):
+		return
+	for lid in EconUtil.sorted_keys(world.table("liability")):
+		var li: Dictionary = world.table("liability")[lid]
+		if li["debtor"] == oid and li["status"] == "OPEN" and int(li["due_month"]) <= world.month:
+			li["due_month"] = world.month + PLAN_M
 
 
 ## E47: strategic facilities of a firm 3 months in administration pass to the public operator at 40% of book.
@@ -185,6 +226,14 @@ static func _enter_administration(world: WorldState, oid: String) -> void:
 	var o: Dictionary = world.table("org")[oid]
 	o["status"] = "ADMINISTRATION"
 	o["admin_months"] = 0
+	# E135: count recent administrations; the ZOMBIE_N-th within ZOMBIE_M months ends the workouts
+	var hist: Array = []
+	for m in o.get("admin_hist", []):
+		if world.month - int(m) < ZOMBIE_M:
+			hist.append(int(m))
+	hist.append(world.month)
+	o["admin_hist"] = hist
+	o["no_workout"] = hist.size() >= ZOMBIE_N
 	var employees := 0
 	for fid in world.table("facility"):
 		var f: Dictionary = world.table("facility")[fid]

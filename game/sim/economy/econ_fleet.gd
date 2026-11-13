@@ -32,6 +32,13 @@ const FLEET_SHARE := 0.2  # of the fare revenue, spent on parts and new buses (t
 const LINE := "ECON_BUDGET_PUBLIC_TRANSPORT"
 const RETIRE_M := 180
 const HIST_M := 36
+## v8 chronicles (Wilma): seeds 1–2 lost the fleet for good (budget cut to 0; the component works gone) and every
+## month after showed the same disruptions and power cuts for 40–70 years. Recovery and adaptation:
+const IMPORT_MULT := 2.5  # a bus from the home world costs BUS_PARTS × the COMPONENT base price × this
+const ADAPT_UP := 150  # ‰ a month: stranded commuters find other ways (walking, shared rides, moving nearer work)
+const ADAPT_DOWN := 50  # ‰ a month back once the buses run again
+const ADAPT_MAX := 1000  # long-run: everyone stranded finds another way (seed 2 kept 10% absent for 30 years at 900)
+const ABSENT_CAP := 300  # ‰ of a district's commuters at most
 
 
 static func active(world: WorldState) -> bool:
@@ -67,7 +74,10 @@ static func _reimburse(world: WorldState, cta: String) -> void:
 	var s := EconUtil.st(world)
 	var stock := EconUtil.inv_get(world, cta, "COMPONENT", "d:1")
 	var bought := maxi(0, stock - int(s.get("fleet_stock_after", stock)))
-	var spent := int(float(bought) / float(S) * float(int(s["prices"].get("COMPONENT", 0))))
+	var parts_spent := int(float(bought) / float(S) * float(int(s["prices"].get("COMPONENT", 0))))
+	s["fleet_parts_spent_m"] = parts_spent
+	var spent := parts_spent + int(s.get("fleet_import_spent", 0))
+	s["fleet_import_spent"] = 0
 	var due := mini(line_month(world), maxi(0, spent - int(s.get("fleet_fare_part", 0))))
 	due = mini(due, maxi(0, EconActions.headroom(world, LINE)))
 	if due > 0:
@@ -172,6 +182,20 @@ static func step(world: WorldState, cta: String, pairs: Array, transit: Dictiona
 		var nid := world.new_id("bus")
 		buses[nid] = {"id": nid, "age_m": 0, "cond": 1000, "repair_m": 0}
 		in_service += 1
+	# no parts on the market (the component works gone): import a bus from the home world while CTA can pay — a dead
+	# fleet comes back when the money does (fares, or the line reimbursing the import next month)
+	# the fleet fund: the fares' fleet share not spent on parts (no parts to buy) is kept for buses — before, it leaked
+	# out of CTA's account as public-enterprise dividends and a dead fleet never came back (seed 2, v8)
+	var spent_now := int(s.get("fleet_parts_spent_m", 0))
+	s["fleet_fund"] = clampi(int(s.get("fleet_fund", 0)) + int(s.get("fleet_fare_part", 0)) - spent_now, 0, 1000000000000)
+	var imp_cost := int(float(BUS_PARTS) * float(int(s.get("base", {}).get("COMPONENT", 0))) * IMPORT_MULT)
+	while in_service * SEATS < riders and imp_cost > 0 and int(s["fleet_fund"]) >= imp_cost and world.ledger.balance(EconUtil.acct(cta)) >= imp_cost:
+		s["fleet_fund"] = int(s["fleet_fund"]) - imp_cost
+		world.ledger.transfer(EconUtil.acct(cta), Ledger.EXTERNAL, imp_cost, "BUS_IMPORT", world.month)
+		s["fleet_import_spent"] = int(s.get("fleet_import_spent", 0)) + imp_cost
+		var iid := world.new_id("bus")
+		buses[iid] = {"id": iid, "age_m": 0, "cond": 1000, "repair_m": 0}
+		in_service += 1
 	s["fleet_stock_after"] = EconUtil.inv_get(world, cta, "COMPONENT", hq)
 	# share seats over pairs by riders; absence where a pair's load passes the cap
 	var out := {}
@@ -189,8 +213,19 @@ static func step(world: WorldState, cta: String, pairs: Array, transit: Dictiona
 	var commuters_d := {}
 	for p in pairs:
 		commuters_d[p["to_d"]] = int(commuters_d.get(p["to_d"], 0)) + int(p["commuters"])
-	for d in absent_d:
-		abs_pm[d] = int(absent_d[d]) * 1000 / maxi(1, int(commuters_d.get(d, 0)))
+	# adaptation: the longer the buses fail a district, the more of its commuters get there another way
+	var adapt: Dictionary = s.get("commute_adapt", {})
+	for d in EconUtil.sorted_keys(commuters_d):
+		var raw := int(absent_d.get(d, 0)) * 1000 / maxi(1, int(commuters_d.get(d, 0)))
+		var a := int(adapt.get(d, 0))
+		a = mini(ADAPT_MAX, a + ADAPT_UP) if raw > 0 else maxi(0, a - ADAPT_DOWN)
+		adapt[d] = a
+		var eff := mini(ABSENT_CAP, raw * (1000 - a) / 1000)
+		if eff > 0:
+			abs_pm[d] = eff
+		else:
+			hit.erase(d)
+	s["commute_adapt"] = adapt
 	s["commute_absent_pm"] = abs_pm
 	# crashes (Terra places them where a map exists)
 	var crashes := 0
