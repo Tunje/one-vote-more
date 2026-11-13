@@ -218,6 +218,29 @@ Build with LOGISTICS (part C), after the conduct pass. Opt-in with its own A/B.
 glut in a way that feeds the food trap — a forced discount is fine, destroying food while households go hungry is not.
 If the A/B shows food shortfall rising, FOOD gets a larger free buffer (e.g. 3 months of sales).
 
+§9 v1 BUILT (Bob, 2026-11-13; sim/economy/econ_warehouse.gd, opt-in "WAREHOUSE", tests/economy/test_warehouse.gd):
+- Free buffer 1 month of the org's own sales (FOOD 3 months from the start, per the condition); inputs a firm does not
+  make stay free (v1); the reserve ("gov") has none.
+- CTA runs the halls (2,000 units each; founding halls sized to the stock held at the start). Space is shared pro rata
+  when short.
+- Rent is 0.6% of the current market price per unit-month, holder → CTA; the reserve pays from
+  ECON_BUDGET_RESERVE_PURCHASES. A holder that cannot pay gets no space for that part.
+- Staff are paid from 80% of the smoothed rent. 20% buys MATERIAL; a new hall costs 300 MATERIAL once the halls are
+  over 90% full.
+- Shrinkage: stored 0.2% a month; no space 3% (FOOD 1%). ECON_STORAGE_SHORTAGE news at most once a year.
+- Not in v1: cold storage (energy, halved spoilage), the discount sale for unhoused stock, rival warehouse firms (part C),
+  theft as crime, inputs needing space.
+- Jobs: rent at 0.6% pays only 4–17 posts at today's stocks (~5–15k units held), not the 100–150 estimated; the
+  estimate assumed 1 post per 200 units, which this rent cannot fund.
+- Econ-only A/B, 5 seeds × 30 years (Y10–30 means):
+
+  | Arm | Mean unemployment | Food shortfall |
+  |---|---|---|
+  | base | 35.3% | 13‰ |
+  | WAREHOUSE | 35.5% | 8‰ |
+
+  Neutral on unemployment and better on food. The food condition holds.
+
 ## 10. A/B result (b25aabc, 3 seeds × 50 years, 2026-11-13) — offices as added cost FAIL
 
 Y50 pop / unemployment / food shortfall ‰ / real income (baskets per person per month):

@@ -25,10 +25,13 @@ func _init() -> void:
 		on.append("WORKLOAD")
 	if arm.contains("fleet"):
 		on.append("FLEET")
+	if arm.contains("warehouse"):
+		on.append("WAREHOUSE")
 	w.meta["on"] = on
 	var money := arm.contains("money")
 	var u_sum := 0.0
 	var u_n := 0
+	var f_sum := 0
 	for m in years * 12:
 		w.levers["ECON_INCOME_TAX_RATE"] = 10 if money else 24
 		w.levers["ECON_SALES_TAX"] = 0 if money else 8
@@ -37,6 +40,7 @@ func _init() -> void:
 		if m >= 120:
 			u_sum += float(lab["rate_pct"])
 			u_n += 1
+			f_sum += int(EconUtil.st(w).get("food_shortfall", 0))
 		if (m + 1) % 60 != 0:
 			continue
 		var hub_staff := 0
@@ -61,5 +65,5 @@ func _init() -> void:
 		print("%s seed %d Y%d u %.1f%% employed %d | hubs %d T %d staff %d | hh money %dM | real income %.2f" % [arm, sd, (m + 1) / 12,
 			float(lab["rate_pct"]), int(lab["employed"]), hubs, hub_t / maxi(1, hubs), hub_staff / S, hh / 1000000,
 			float(disp) / maxf(1.0, float(persons) / float(S) * basket)])
-	print("%s seed %d MEAN_U %.1f END ledger %d jobs %d" % [arm, sd, u_sum / maxf(1.0, float(u_n)), w.ledger.total(), EconPop.check(w).size()])
+	print("%s seed %d MEAN_U %.1f FOOD_SHORT %d‰ END ledger %d jobs %d" % [arm, sd, u_sum / maxf(1.0, float(u_n)), f_sum / maxi(1, u_n), w.ledger.total(), EconPop.check(w).size()])
 	quit()
