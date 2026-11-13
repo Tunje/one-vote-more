@@ -30,6 +30,8 @@ const LAPSE_KEEP := 0.3
 const LAPSE_MONTHS := 12
 const ELECTION_M := 48
 const STRIKE_PAY_SHARE := 0.5  # strike pay per striking member-month, share of the General wage (U2 pays it)
+const FUND_CAP_WEEKS := 12.0  # E133: a fund above this many weeks of strike pay rebates the excess to its members
+const MAINT_DUES_SHARE := 0.25  # E133: dues charged while a fund is at its cap (of the full dues)
 const RESERVE_WEEKS := 4.0  # strike pay kept back before a union gives money away (8 left most unions unable to donate)
 const MERGE_MAX := 40  # persons: both unions below this to merge
 const MERGE_P := 1.0 / 120.0
@@ -251,23 +253,69 @@ static func _dissolve(world: WorldState, u: Dictionary, fed: Dictionary) -> void
 
 ## Dues: per employed member, from the household pools whose people hold those jobs; affiliates pass FED_SHARE on.
 static func _dues(world: WorldState) -> void:
-	var due := int(float(EconUtil.st(world)["wage"]["G"]) * DUES_SHARE)
+	var full_due := int(float(EconUtil.st(world)["wage"]["G"]) * DUES_SHARE)
 	var fed := federation(world)
+	var e133 := not EconUtil.off(world, "E133")
+	var cap_sum := 0
 	for u in active(world):
 		if u["federation"]:
 			continue
+		# E133 (money-stock check, seed 1: union funds grew 0.2 → 6.4M, ≈ 1.6 months of all household spending, money
+		# taken out of circulation for good): a fund above FUND_CAP_WEEKS of strike pay charges maintenance dues only and
+		# rebates the excess to its members' households. Strike strength is unchanged (U2 reads up to 8 weeks).
+		var cap := int(FUND_CAP_WEEKS / 4.33 * float(u["members"]) / S * float(strike_pay(world)))
+		cap_sum += cap
+		var due := full_due
+		if e133 and fund(world, u["id"]) >= cap:
+			due = int(float(full_due) * MAINT_DUES_SHARE)
 		u["dues_pm"] = due
 		var got := 0
+		var weights := {}
 		for gid in EconUtil.sorted_keys(world.table("hh")):
 			var e: Dictionary = world.table("hh")[gid].get("emp", {})
 			var n := 0.0
 			for occ in u["sectors"]:
 				n += float(e.get(occ, 0)) * float(EconUnions.density(world, occ)) / 100000.0 * float(u["share"].get(occ, 1000)) / 1000.0
+			if n > 0.0:
+				weights[gid] = n
 			var amt := int(n / S * float(due))
 			if amt > 0:
 				got += EconUtil.pay_upto(world, EconUtil.hh_acct(gid), u["acct"], amt, "UNION_DUES")
 		if not fed.is_empty() and u["affiliated_to"] == fed["id"] and got > 0:
 			EconUtil.pay_upto(world, u["acct"], fed["acct"], int(float(got) * FED_SHARE), "UNION_AFFILIATION")
+		if e133:
+			_rebate(world, u, cap, weights)
+	if e133 and not fed.is_empty():
+		_fed_rebate(world, fed, cap_sum / 2)
+
+
+## E133: a union fund above its cap rebates the excess to its members' households (by membership).
+static func _rebate(world: WorldState, u: Dictionary, cap: int, weights: Dictionary) -> void:
+	var excess := fund(world, u["id"]) - cap
+	if excess <= 0 or weights.is_empty():
+		return
+	var keys := EconUtil.sorted_keys(weights)
+	var parts := EconUtil.split_lr(excess, keys.map(func(k): return float(weights[k])))
+	for i in keys.size():
+		if int(parts[i]) > 0:
+			world.ledger.transfer(String(u["acct"]), EconUtil.hh_acct(keys[i]), int(parts[i]), "UNION_REBATE", world.month)
+
+
+## E133: the federation keeps at most half of its affiliates' caps; the excess goes back to the affiliates equally.
+static func _fed_rebate(world: WorldState, fed: Dictionary, cap: int) -> void:
+	var excess := world.ledger.balance(String(fed["acct"])) - cap
+	if excess <= 0:
+		return
+	var aff: Array = []
+	for u in active(world):
+		if not u["federation"] and u["affiliated_to"] == fed["id"]:
+			aff.append(u)
+	if aff.is_empty():
+		return
+	var each := excess / aff.size()
+	for u in aff:
+		if each > 0:
+			world.ledger.transfer(String(fed["acct"]), String(u["acct"]), each, "UNION_AFFILIATION_REBATE", world.month)
 
 
 ## U1 baseline grievance 0..100 (smoothed): real wages, labour law, layoffs in the union's sectors. U2 adds disputes.
