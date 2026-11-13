@@ -31,13 +31,19 @@ func init_world(world: WorldState) -> void:
 func run_phase(phase: int, world: WorldState) -> void:
 	match phase:
 		TickPhase.TRADE:
+			var t0 := Time.get_ticks_usec()
 			EconConsumer.ensure(world)  # D2: prices for the consumer goods in older worlds
 			EconMarket.trade(world)
+			EconUtil.prof(world, "phase TRADE", t0)
 		TickPhase.PRODUCTION:
+			var t1 := Time.get_ticks_usec()
 			EconProduction.produce(world)
+			EconUtil.prof(world, "phase PRODUCTION", t1)
 		TickPhase.SETTLEMENT:
+			var t2 := Time.get_ticks_usec()
 			EconFinance.settle(world)
 			EconUnions.donation_offers(world)
+			EconUtil.prof(world, "phase SETTLEMENT", t2)
 		TickPhase.COMPANY_AI:
 			var t := Time.get_ticks_usec()
 			LawBridge.revalidate(world)
@@ -45,9 +51,13 @@ func run_phase(phase: int, world: WorldState) -> void:
 			EconTrade.monthly(world)  # D1 (A42): home prices, export consignments — before the firms post sale offers
 			t = EconUtil.prof(world, "EconTrade.monthly", t)
 			EconCommute.monthly(world)  # §8b (opt-in): commuting fares to CTA, buses staffed from them
+			t = EconUtil.prof(world, "EconCommute.monthly", t)
 			EconComfort.monthly(world)  # §8b (opt-in): cafés, takeaway, hairdressers staffed from comfort spending
+			t = EconUtil.prof(world, "EconComfort.monthly", t)
 			EconRetail.monthly(world)  # support economy D (opt-in): shop staff from the retail margin
+			t = EconUtil.prof(world, "EconRetail.monthly", t)
 			EconSanitation.monthly(world)  # support economy E (opt-in): the Sanitation Department, sized to the population
+			t = EconUtil.prof(world, "EconSanitation.monthly", t)
 			EconOffice.monthly(world)  # support economy A (opt-in): size each organisation's office before vacancies are posted
 			t = EconUtil.prof(world, "EconOffice.monthly", t)
 			FirmAI.run(world)

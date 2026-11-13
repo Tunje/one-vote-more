@@ -44,6 +44,10 @@ static func _pay_liabilities(world: WorldState) -> void:
 			continue
 		var from := EconUtil.acct(li["debtor"])
 		var to: String = EconUtil.FINES if li["kind"] == "FINE" else (EconUtil.TREASURY if li["creditor"] == "gov" else EconUtil.acct(li["creditor"]))
+		# Anni: the law's rows name the real payee (law:victim_fund, party:, media:, union, treasury, co:)
+		var ca := String(li.get("creditor_acct", ""))
+		if ca != "" and world.ledger.has_account(ca):
+			to = ca
 		var paid := EconUtil.pay_upto(world, from, to, li["amount"], li["kind"])
 		li["amount"] -= paid
 		if li["amount"] <= 0:

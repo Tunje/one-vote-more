@@ -55,7 +55,10 @@ static func _has_map(world: WorldState) -> bool:
 static func _pairs(world: WorldState) -> Array:
 	var wage := int(EconUtil.st(world)["wage"]["G"])
 	var by := {}
-	for row in Transport.commutes(world):
+	var t := Time.get_ticks_usec()
+	var crows: Array = Transport.commutes(world)
+	t = EconUtil.prof(world, "Commute.Transport.commutes", t)
+	for row in crows:
 		var k := "%s>%s" % [row["from_d"], row["to_d"]]
 		if not by.has(k):
 			by[k] = {"from_d": row["from_d"], "to_d": row["to_d"], "commuters": 0}
@@ -68,6 +71,7 @@ static func _pairs(world: WorldState) -> Array:
 		p["bus_commuters"] = riders
 		p["fare"] = wage * FARE_PM / 1000 * (1000 + 500 * hops) / 1000
 		out.append(p)
+	EconUtil.prof(world, "Commute.hops", t)
 	return out
 
 
@@ -138,7 +142,9 @@ static func monthly(world: WorldState) -> void:
 			rows[0]["crashes_m"] = int(fr.get("crashes", 0))
 	s["commute_rows"] = rows
 	if _has_map(world):
+		var t2 := Time.get_ticks_usec()
 		Transport.add_commute_traffic(world, rows)
+		EconUtil.prof(world, "Commute.add_commute_traffic", t2)
 
 
 ## The rows of EconQuery.commuting / Terra's bus lines (agreed shape; taxis and breakdowns come with §8c).
