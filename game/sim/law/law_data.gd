@@ -25,7 +25,9 @@ const ACTIONS := ["ZONE_DISTRICT", "BUILD_FACILITY", "DEMOLISH_FACILITY", "OPERA
 	# M13 land law (spec-areas-v1 9.4, A37)
 	"SELL_LAND", "LEASE_LAND", "ZONE_LAND", "CLEAR_HOUSING", "EVICT", "BUILD_WITHOUT_TITLE",
 	# MEDIA v1 (spec-media-v1 8.3): suppressing a report (a restriction of expression)
-	"CENSOR_REPORT"]
+	"CENSOR_REPORT",
+	# P1c police (sim/law/police.gd): misconduct by the police, and arresting the government's opponents
+	"DETAIN_UNLAWFULLY", "USE_EXCESSIVE_FORCE", "SEARCH_UNLAWFULLY", "TAKE_BRIBE", "POLITICAL_ARREST"]
 
 ## M11 greed conduct (88 reports it with LawOps.record_greed). action = the rules-engine action that decides legality;
 ## channel = who can detect it (SAFETY inspectorate, ENV inspectorate, MARKET competition/consumer authority);
@@ -53,7 +55,14 @@ const GREED_KINDS := {
 	# M13 land: building on land without a title; evicting or clearing without rehousing or a court order
 	"SQUATTING_BUILD": {"action": "BUILD_WITHOUT_TITLE", "channel": "SAFETY", "class": "MINOR"},
 	"ILLEGAL_EVICTION": {"action": "EVICT", "channel": "HOUSING", "class": "SERIOUS"},
+	# P1c police misconduct (sim/law/police.gd reports it per station while it lasts; channel OVERSIGHT: the
+	# complaints authority LAW_POLICE_OVERSIGHT, victims' complaints and whistleblowers)
+	"UNLAWFUL_DETENTION": {"action": "DETAIN_UNLAWFULLY", "channel": "OVERSIGHT", "class": "SERIOUS"},
+	"EXCESSIVE_FORCE": {"action": "USE_EXCESSIVE_FORCE", "channel": "OVERSIGHT", "class": "SERIOUS"},
+	"IMPROPER_SEARCH": {"action": "SEARCH_UNLAWFULLY", "channel": "OVERSIGHT", "class": "MINOR"},
+	"POLICE_CORRUPTION": {"action": "TAKE_BRIBE", "channel": "OVERSIGHT", "class": "SERIOUS"},
 }
+const POLICE_KINDS := ["UNLAWFUL_DETENTION", "EXCESSIVE_FORCE", "IMPROPER_SEARCH", "POLICE_CORRUPTION"]
 ## Emergency levers: settable only while a state of emergency is in force; revert to default when it ends.
 const EMERGENCY_LEVERS := ["LAW_RATIONING", "LAW_PRICE_CONTROL", "LAW_FOOD_EXPORT_BAN", "LAW_REQUISITION",
 	"LAW_EMERGENCY_PRESS_CONTROL"]
@@ -81,7 +90,7 @@ static func charter_rules() -> Array:
 	var out: Array = []
 	# Rights as prohibitions on public actors.
 	for a in ["POSTPONE_ELECTION", "RESTRICT_ASSOCIATION", "RESTRICT_ASSEMBLY", "RESTRICT_EXPRESSION",
-			"INSTRUCT_AUTHORITY_DECISION"]:
+			"INSTRUCT_AUTHORITY_DECISION", "POLITICAL_ARREST"]:
 		out.append(_r("PROHIBIT", a, PUBLIC_SUBJECT, [], {"right": a}))
 	# Property: expropriation needs full compensation (and a specific authorization; default-deny covers that).
 	out.append(_r("REQUIRE", "EXPROPRIATE", PUBLIC_SUBJECT, [], {"requirement": {"compensation_pct_min": 100}, "right": "PROPERTY"}))
@@ -101,6 +110,17 @@ static func charter_rules() -> Array:
 	# The automatic liquidity draw in SETTLEMENT is charter-pre-authorized (88, E-spec).
 	out.append(_r("AUTHORIZE", "BORROW", [{"field": "actor.kind", "op": "IN", "value": ["GOVERNMENT", "COMMANDER"]}],
 		[{"field": "p.automatic_liquidity", "op": "EQ", "value": true}]))
+	return out
+
+
+## P1c police conduct, added once by Police.ensure_rules: misconduct is unlawful for the police whatever the powers
+## law says (the powers lever changes how often it happens, not whether it is lawful).
+static func police_rules() -> Array:
+	var any := [{"field": "actor.kind", "op": "IN", "value": ["COMPANY", "AUTHORITY", "GOVERNMENT", "INSTITUTION"]}]
+	var law := {"level": "LAW", "source": "POLICE_LAW"}
+	var out: Array = []
+	for a in ["DETAIN_UNLAWFULLY", "USE_EXCESSIVE_FORCE", "SEARCH_UNLAWFULLY", "TAKE_BRIBE"]:
+		out.append(_r("PROHIBIT", a, any, [], law))
 	return out
 
 
@@ -467,6 +487,17 @@ const LEVERS := [
 	{"id": "LAW_POLICE_BUDGET", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 2000], "default": 1000,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": -0.0015, "FISCAL": 0.0025, "ECON_ROLE": 0.001},
 		"concerns": {"SAFETY": 8, "GOVERNANCE": -5},
+		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 3, "scope": "COLONY", "domain": "LAW"},
+	# P1c: search, detention and surveillance powers (0..100, 40 = today). Above 40 clearance rises (up to +40% at 100)
+	# and so does misconduct (up to 3x); liberty-minded voters lose trust in the police, order-minded ones gain it.
+	{"id": "LAW_POLICE_POWERS", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 100], "default": 40,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": -0.45},
+		"concerns": {"SAFETY": 6, "FAIRNESS": -6},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},
+	# P1c: the independent police complaints authority, milli-W_ref a month (1 investigation per OVERSIGHT_CASE_COST).
+	{"id": "LAW_POLICE_OVERSIGHT", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 20000], "default": 2000,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 0.002, "FISCAL": 0.0005},
+		"concerns": {"FAIRNESS": 8, "GOVERNANCE": 3},
 		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 3, "scope": "COLONY", "domain": "LAW"},
 	{"id": "LAW_WHISTLEBLOWER_PROTECTION", "owner": "law", "type": "BOOL", "default": false,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 8, "LABOR": 6},

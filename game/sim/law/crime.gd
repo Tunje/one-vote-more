@@ -31,6 +31,9 @@ const DRIVER_MAX := 4.0
 # police strength (P1a: from the budget lever only; P1b replaces it with stations and staff)
 const OFFICERS_PER_10K := 20
 const OFFICER_HOURS := 130              # per officer-month on duty
+const COOP_BASE := 0.7                   # P1c: reporting and clearance × (0.7 + 0.3 × trust / start trust)
+const COOP_MIN := 0.6
+const COOP_MAX := 1.15
 const PATROL_HOURS_PER_10K := 1100      # patrol need per 10k residents per month (≈ 42% of reference hours). Tuned on
                                         # Bob's stations: base crime ≈ 650‰ workload, slumps ≈ 1000‰, cuts to the cap
 const REF_COST_PER_10K := 26000         # milli-W_ref/month at full strength: 20 officers + support staff (Bob's budget line)
@@ -193,6 +196,9 @@ static func monthly(world: WorldState) -> void:
 		pop_total += int(drv[d].get("pop", 0))
 	var cov := coverage_pm(world, pop_total)
 	var station_hours = _station_hours()
+	var Police = load("res://sim/law/police.gd")
+	var powers_clear := float(Police.powers_clearance(world))       # P1c LAW_POLICE_POWERS
+	var police_on := bool(Police.on(world))
 	if not cs.has("ineq_ref"):       # inequality counts as it changes from the colony's first measured month
 		var sw := 0.0
 		for d in drv:
@@ -218,6 +224,8 @@ static func monthly(world: WorldState) -> void:
 		# police hours: cases first, the rest patrols. With Bob's stations (opt-in POLICE) the officers on duty there.
 		var hours := police_hours(pop, cov) if station_hours == null else int(station_hours.call(world, d))
 		var patrol_need := int(round(float(PATROL_HOURS_PER_10K) * float(pop) / 10000.0))
+		# P1c cooperation: trust in the police moves reporting and witnesses (not the true crime rate)
+		var coop := 1.0 if not police_on else clampf(COOP_BASE + (1.0 - COOP_BASE) * float(Police.trust_pm(world, d)) 			/ float(Police.TRUST_START), COOP_MIN, COOP_MAX)
 		var m := {}
 		var reported := {}
 		var case_hours := 0
@@ -228,7 +236,7 @@ static func monthly(world: WorldState) -> void:
 			var presence := clampf(pow(maxf(0.05, last_patrol), PRESENCE_EXP), PRESENCE_MIN, PRESENCE_MAX) if k != "FRAUD" else 1.0
 			var exp_m := float(BASE_10K_Y[k]) * float(pop) / 10000.0 / 12.0 * 1000.0 * driver_mult(dr, k, int(cs["ineq_ref"])) * deter * presence
 			var n := _draw(rng, exp_m)
-			var rep := _draw(rng, float(n) * float(REPORT_PM[k]))
+			var rep := _draw(rng, float(n) * minf(1000.0, float(REPORT_PM[k]) * coop))
 			m[k] = [n, rep, 0]
 			reported[k] = rep
 			case_hours += rep * int(HOURS_PER_CASE[k])
@@ -240,7 +248,7 @@ static func monthly(world: WorldState) -> void:
 		row["hours"] = hours
 		row["patrol_pm"] = 1000 if patrol_need <= 0 else clampi(int(round(1000.0 * float(maxi(0, hours - case_hours)) / float(patrol_need))), 0, 3000)
 		for k in KINDS:
-			var clear := float(BASE_CLEAR_PM[k]) * sqrt(cap_ratio)
+			var clear := minf(1000.0, float(BASE_CLEAR_PM[k]) * sqrt(cap_ratio) * sqrt(coop) * powers_clear)
 			var solved := _draw(rng, float(int(reported[k])) * clear)
 			m[k][2] = solved
 			var rep_k := int(reported[k])

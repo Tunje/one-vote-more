@@ -33,6 +33,8 @@ const ACTION_DEFS := [
 	{"id": "LAW_RESTART_IMPLEMENTATION", "owner": "law", "actors": ["PLAYER_GOV", "AI_GOV", "COMMANDER"], "cost": {}, "legalAction": "INTERNAL", "args": ["source_bill"]},
 	{"id": "LAW_DECLARE_EMERGENCY", "owner": "law", "actors": ["PLAYER_GOV", "AI_GOV", "COMMANDER"], "cost": {}, "legalAction": "DECLARE_EMERGENCY", "args": ["kind (FOOD|HEALTH|POWER|GENERAL)"]},
 	{"id": "LAW_END_EMERGENCY", "owner": "law", "actors": ["PLAYER_GOV", "AI_GOV", "COMMANDER"], "cost": {}, "legalAction": "INTERNAL", "args": []},
+	# P1c: refer an opponent to the police (lawful); with force, order the arrest anyway (POLITICAL_ARREST, unlawful)
+	{"id": "LAW_ORDER_INVESTIGATION", "owner": "law", "actors": ["PLAYER_GOV", "AI_GOV", "COMMANDER"], "cost": {}, "legalAction": "POLITICAL_ARREST", "args": ["target {kind PARTY|PERSON, id}", "reason", "force"]},
 ]
 
 
@@ -158,6 +160,11 @@ static func _apply(world: WorldState, action: Dictionary) -> Dictionary:
 				LawOps.end_emergency(world, "ENDED_BY_GOVERNMENT")
 				return {"ok": true}
 			return _wrap(LawOps.declare_emergency(world, String(a.get("kind", "GENERAL")), actor))
+		"LAW_ORDER_INVESTIGATION":
+			if not (actor.get("kind", "") in ["GOVERNMENT", "COMMANDER"]):
+				return _err("only the government (or the commander) can refer someone to the police")
+			return _wrap(load("res://sim/law/police.gd").order_investigation(world, actor, a.get("target", {}),
+				String(a.get("reason", "")), bool(a.get("force", false))))
 		"LAW_RESTART_IMPLEMENTATION":
 			LawOps.restart_implementation(world, a["source_bill"])
 			return {"ok": true}

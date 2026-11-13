@@ -10,6 +10,7 @@ const Staff := preload("res://sim/staff/staff_ops.gd")
 const RG := preload("res://sim/staff/roster_gen.gd")
 const Vis := preload("res://sim/law/visibility.gd")
 const WK := preload("res://sim/law/work_law.gd")
+const L := preload("res://sim/law/law_data.gd")
 
 const GOVERNMENT := {"kind": "GOVERNMENT", "id": "government"}
 const STATE := {"kind": "INSTITUTION", "id": "inspectorate"}
@@ -278,6 +279,7 @@ static func detect_ctx(world: WorldState) -> Dictionary:
 			* WasteLaw.inspection_factor(world),     # W6: LAW_WASTE_STANDARD (×1 at the default)
 		"MARKET": float(world.levers.get("LAW_COMPETITION_BUDGET", 4000)) / float(MARKET_CASE_COST_WREF),
 		"WORK": load("res://sim/law/work_law.gd").inspections(world),     # the work-environment authority
+		"OVERSIGHT": load("res://sim/law/police.gd").oversight_cases(world),  # P1c the police complaints authority
 		# M12: colony customs chase charter evasion only while the colony enforces the charter (home inspector: CharterOps)
 		"HOME": float(world.levers.get("LAW_COMPETITION_BUDGET", 4000)) / float(MARKET_CASE_COST_WREF) \
 			if bool(world.levers.get("LAW_ENFORCE_CHARTER", true)) and String(world.peek("law_state").get("s", {}) \
@@ -298,6 +300,9 @@ static func detect_p(ctx: Dictionary, v: Dictionary) -> Dictionary:
 	var p_insp := 0.0
 	if ch == "HOUSING":
 		p_insp = P_TENANT_COMPLAINT     # evicted tenants complain: no inspectorate or evidence trail needed
+	elif ch == "OVERSIGHT":
+		# P1c: the complaints authority watches one institution (the police), not the market: no n_reg dilution
+		p_insp = minf(1.0, float(load("res://sim/law/police.gd").p_find(float(ctx.get("OVERSIGHT", 0.0)))) * ev)
 	else:
 		p_insp = minf(1.0, float(ctx.get(ch, 0.0)) / float(ctx["n_reg"]) * risk) * float(ctx["p_find"]) * ev
 	var lp := P_LENIENCY if ctx["leniency"] and v.get("kind", "") == "CARTEL" else 0.0
@@ -382,6 +387,10 @@ static func _reveal_violation(world: WorldState, fid: String, by: Dictionary, ch
 	world.table("revealed_fact")[fid] = true
 	var rid := world.facts.reveal(world.month, fid, [by])
 	v["revealed_fact"] = rid
+	if String(v.get("kind", "")) in L.POLICE_KINDS:
+		v["sanctioned_month"] = world.month    # handled by the police chain (no fine on public money, no enforcement case)
+		load("res://sim/law/police.gd").misconduct_revealed(world, fid, v, rid, channel)
+		return
 	if not v.get("unlawful", true):
 		return   # harmful but lawful conduct: public, nothing to prosecute
 	if channel != "INSPECTION":
