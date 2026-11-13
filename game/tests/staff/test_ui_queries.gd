@@ -193,3 +193,15 @@ func test_failed_actions_in_briefing_not_findings() -> void:
 	Ops.complete_task(w, Ops.task(w, t))
 	var rep: Array = w.facts.query("STAFF_OVERSIGHT_REPORT")
 	check_eq(int(rep[-1]["data"]["findings"]), 0, "a refused order is not an inquiry finding")
+
+
+func test_named_posts_counts_working_pooled_persons() -> void:
+	var w := WorldState.new(1)
+	var ppl := w.table("person")
+	ppl["p1"] = {"pool": "GOV", "status": "ACTIVE"}
+	ppl["p2"] = {"pool": "GOV", "status": "UNAVAILABLE"}
+	ppl["p3"] = {"pool": "PARTY:party:1", "status": "ACTIVE"}
+	ppl["p4"] = {"pool": "", "bench_party_id": "party:1", "status": "ACTIVE"}
+	ppl["p5"] = {"pool": "GOV", "status": "RETIRED"}
+	var n: Dictionary = preload("res://sim/staff/staff_query.gd").named_posts(w)
+	check_eq(n, {"GOVERNMENT": 2, "PARTY:party:1": 1}, "working pooled persons by employer; bench and retired excluded")

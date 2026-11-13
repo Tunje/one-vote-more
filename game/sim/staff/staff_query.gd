@@ -318,3 +318,19 @@ static func named_headcount(world: WorldState) -> Dictionary:
 			out["judges"] += 1
 	out["public"] = out["political"] + out["civil"] + out["judges"]
 	return out
+
+
+## Named staff persons holding a post, by employer (Bob's part B: his anonymous posts per org are at least this many;
+## the named ones count as Sp). {"GOVERNMENT": n, "PARTY:<id>": n}. Working persons only (ACTIVE, UNAVAILABLE), pooled
+## only: a party's bench (pool "", bench_party_id) is reserve, not employment. Unions and newsrooms have no named staff.
+static func named_posts(world: WorldState) -> Dictionary:
+	var out := {}
+	var people := world.peek("person")
+	for pid in people:
+		var p: Dictionary = people[pid]
+		var pool := String(p.get("pool", ""))
+		if pool == "" or not (String(p.get("status", "")) in ["ACTIVE", "UNAVAILABLE"]):
+			continue
+		var key := "GOVERNMENT" if pool == "GOV" else pool
+		out[key] = int(out.get(key, 0)) + 1
+	return out

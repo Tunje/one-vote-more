@@ -9,7 +9,7 @@ extends RefCounted
 ##   LAW_WORK_INSPECTORATE_BUDGET 0–20000 milli-W_ref/month (3000 default): the work-environment authority
 
 ## Clients per worker at the legal ratio, by service tag (Bob's facility tag).
-const RATIOS := {"HEALTH": 300, "CARE": 10, "CHILDCARE": 8}
+const RATIOS := {"HEALTH": 300, "CARE": 10, "CHILDCARE": 8, "POLICE": 500}   # POLICE: residents covered per officer
 const RATIO_MODES := ["NONE", "GUIDANCE", "BINDING"]
 const WORK_INSPECTION_COST := 1500      # milli-W_ref per workplace inspection (as the environmental inspectorate)
 const STRESS_ACCIDENT_FROM := 1300      # workload ‰ at or above which an accident is a stress accident (TORT)

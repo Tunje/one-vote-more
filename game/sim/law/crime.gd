@@ -31,7 +31,8 @@ const DRIVER_MAX := 4.0
 # police strength (P1a: from the budget lever only; P1b replaces it with stations and staff)
 const OFFICERS_PER_10K := 20
 const OFFICER_HOURS := 130              # per officer-month on duty
-const PATROL_HOURS_PER_10K := 1700      # patrol need per 10k residents per month (≈ 65% of reference hours)
+const PATROL_HOURS_PER_10K := 1100      # patrol need per 10k residents per month (≈ 42% of reference hours). Tuned on
+                                        # Bob's stations: base crime ≈ 650‰ workload, slumps ≈ 1000‰, cuts to the cap
 const REF_COST_PER_10K := 26000         # milli-W_ref/month at full strength: 20 officers + support staff (Bob's budget line)
 const DEFAULT_BUDGET := 1000            # LAW_POLICE_BUDGET: ‰ of the reference strength per resident
 const PRESENCE_EXP := -0.3
@@ -80,6 +81,25 @@ static func drivers(world: WorldState) -> Dictionary:
 		if String(m["name"]) == "crime_drivers":
 			return eq.call("crime_drivers", world)
 	return _fallback_drivers(world)
+
+
+## Bob's EconPolice.hours(world, district) (officers on duty × OFFICER_HOURS, sick share removed) while the police
+## stations run (meta["on"] "POLICE"); null otherwise, and police_hours models strength from the lever.
+static func _station_hours():
+	if not ResourceLoader.exists("res://sim/economy/econ_police.gd"):
+		return null
+	var ep = load("res://sim/economy/econ_police.gd")
+	var has_on := false
+	var has_hours := false
+	for m in ep.get_script_method_list():
+		has_on = has_on or String(m["name"]) == "active"
+		has_hours = has_hours or String(m["name"]) == "hours"
+	if not has_hours:
+		return null
+	return func(w: WorldState, d: String) -> int:
+		if has_on and not bool(ep.call("active", w)):
+			return police_hours(int(state(w)["d"].get(d, {}).get("pop", 0)), coverage_pm(w))
+		return int(ep.call("hours", w, d))
 
 
 static func _fallback_drivers(world: WorldState) -> Dictionary:
@@ -172,6 +192,7 @@ static func monthly(world: WorldState) -> void:
 	for d in drv:
 		pop_total += int(drv[d].get("pop", 0))
 	var cov := coverage_pm(world, pop_total)
+	var station_hours = _station_hours()
 	if not cs.has("ineq_ref"):       # inequality counts as it changes from the colony's first measured month
 		var sw := 0.0
 		for d in drv:
@@ -194,8 +215,8 @@ static func monthly(world: WorldState) -> void:
 			cs["d"][d] = row
 		row["pop"] = pop
 		_push(row["pop_hist"], pop)
-		# police hours: cases first, the rest patrols
-		var hours := police_hours(pop, cov)
+		# police hours: cases first, the rest patrols. With Bob's stations (opt-in POLICE) the officers on duty there.
+		var hours := police_hours(pop, cov) if station_hours == null else int(station_hours.call(world, d))
 		var patrol_need := int(round(float(PATROL_HOURS_PER_10K) * float(pop) / 10000.0))
 		var m := {}
 		var reported := {}
@@ -215,6 +236,8 @@ static func monthly(world: WorldState) -> void:
 		var work_pm := 1000 if need <= 0 else int(round(1000.0 * float(need) / maxf(1.0, float(hours))))
 		var cap_ratio := 1.0 if need <= 0 else minf(1.0, float(hours) / float(need))
 		row["workload_pm"] = work_pm
+		row["need_h"] = need          # Bob's station workload ‰ = Σ need_h of its districts ÷ (staff × OFFICER_HOURS)
+		row["hours"] = hours
 		row["patrol_pm"] = 1000 if patrol_need <= 0 else clampi(int(round(1000.0 * float(maxi(0, hours - case_hours)) / float(patrol_need))), 0, 3000)
 		for k in KINDS:
 			var clear := float(BASE_CLEAR_PM[k]) * sqrt(cap_ratio)
@@ -381,12 +404,13 @@ static func base_rate(kind: String) -> int:
 	return int(BASE_10K_Y[kind]) * int(REPORT_PM[kind]) / 1000
 
 
-## UI / probes: per district {pop, workload_pm, patrol_pm, clearance_pm {kind}, month {kind: [offences, reported, solved]}}.
+## UI / probes: per district {pop, workload_pm, patrol_pm, need_h, hours, clearance_pm {kind}, month {kind: [offences, reported, solved]}}.
 static func stats(world: WorldState) -> Dictionary:
 	var out := {}
 	var rows: Dictionary = _peek_state(world).get("d", {})
 	for d in rows:
 		var r: Dictionary = rows[d]
 		out[d] = {"pop": int(r.get("pop", 0)), "workload_pm": int(r.get("workload_pm", 0)), "patrol_pm": int(r.get("patrol_pm", 0)),
+			"need_h": int(r.get("need_h", 0)), "hours": int(r.get("hours", 0)),
 			"clearance_pm": r.get("clear_ema", {}).duplicate(), "month": r.get("m", {}).duplicate(true)}
 	return out

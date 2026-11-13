@@ -48,7 +48,7 @@ func test_reference_rates_are_swedish_level() -> void:
 		check(absf(float(r[k]) - float(base)) <= 0.3 * float(base) + 6.0, "%s near the reported base (%d vs %d)" % [k, r[k], base])
 	check_eq(CR.crime_rate(w)["THEFT"], r["THEFT"], "colony = the only district")
 	var st: Dictionary = CR.stats(w)["d:1"]
-	check(int(st["workload_pm"]) > 700 and int(st["workload_pm"]) < 1100, "reference police near capacity (%d‰)" % int(st["workload_pm"]))
+	check(int(st["workload_pm"]) > 500 and int(st["workload_pm"]) < 850, "reference police with slack for surges (%d‰)" % int(st["workload_pm"]))
 
 
 func test_a_slump_raises_theft_and_violence() -> void:
