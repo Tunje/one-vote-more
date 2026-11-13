@@ -41,14 +41,18 @@ func test_off_by_default() -> void:
 
 func test_reference_rates_are_swedish_level() -> void:
 	var w := _world()
-	_run(w, 24)
+	_run(w, 12)
+	var wl_sum := 0
+	for i in 12:                  # a single month's workload is noisy (fraud cases are 40 hours each): average a year
+		_run(w, 1)
+		wl_sum += int(CR.stats(w)["d:1"]["workload_pm"])
 	var r := CR.crime_rate(w, "d:1")
 	for k in CR.KINDS:
 		var base := CR.base_rate(k)
 		check(absf(float(r[k]) - float(base)) <= 0.3 * float(base) + 6.0, "%s near the reported base (%d vs %d)" % [k, r[k], base])
 	check_eq(CR.crime_rate(w)["THEFT"], r["THEFT"], "colony = the only district")
-	var st: Dictionary = CR.stats(w)["d:1"]
-	check(int(st["workload_pm"]) > 500 and int(st["workload_pm"]) < 850, "reference police with slack for surges (%d‰)" % int(st["workload_pm"]))
+	var wl := wl_sum / 12
+	check(wl > 500 and wl < 950, "reference police with slack for surges (%d‰ a month on average)" % wl)
 
 
 func test_a_slump_raises_theft_and_violence() -> void:
