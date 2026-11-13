@@ -42,6 +42,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 		TickPhase.SETTLEMENT:
 			var t2 := Time.get_ticks_usec()
 			EconFinance.settle(world)
+			EconBank.monthly(world)  # M2 (opt-in): bank failure, credit crunch, the money stock
 			EconUnions.donation_offers(world)
 			EconUtil.prof(world, "phase SETTLEMENT", t2)
 		TickPhase.COMPANY_AI:

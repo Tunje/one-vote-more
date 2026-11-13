@@ -253,6 +253,8 @@ static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 			return true
 		"ECON_BORROW":
 			return EconFinance.gov_borrow(world, int(p["amount"]) * S) > 0
+		"ECON_BANK_BAILOUT":
+			return EconBank.bailout(world, int(p["amount"]) * S) > 0  # M2: recapitalise a failed or crunched bank
 		"ECON_REPAY_DEBT":
 			var amt := mini(int(p["amount"]) * S, world.ledger.balance(EconUtil.TREASURY))
 			for lid in EconUtil.sorted_keys(world.table("loan")):

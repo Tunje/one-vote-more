@@ -28,12 +28,19 @@ static func profit(pl: Dictionary) -> int:
 ## Records a loan. If move_cash, the bank pays the principal to the borrower (returns false if the bank lacks cash).
 static func new_loan(world: WorldState, borrower: String, amount: int, rate_ppm: int, move_cash: bool = false) -> bool:
 	var to := EconUtil.TREASURY if borrower == "gov" else EconUtil.acct(borrower)
+	var m2 := EconBank.active(world)
 	if move_cash:
-		if world.ledger.balance(EconUtil.BANK) - amount < EconData.BANK_MIN_CASH * S:
+		if m2:
+			EconBank.ensure(world)
+			if amount > EconBank.room(world):
+				return false  # M2: the bank's capital limits what it can create
+		elif world.ledger.balance(EconUtil.BANK) - amount < EconData.BANK_MIN_CASH * S:
 			return false
 		world.ledger.transfer(EconUtil.BANK, to, amount, "LOAN_DRAW", world.month)
 	if rate_ppm == 0:
 		rate_ppm = int(EconData.BANK_GOV_RATE_PM * 1000000) if borrower == "gov" else int(EconData.BANK_FIRM_BASE_PM * 1000000)
+		if m2:
+			rate_ppm = EconBank.rate_ppm(world, rate_ppm)  # M2: dearer as the bank nears its limit
 	var lid := world.new_id("loan")
 	world.table("loan")[lid] = {"id": lid, "borrower": borrower, "principal": amount, "rate_ppm": rate_ppm,
 		"term_left": 0 if borrower == "gov" else 60, "missed": 0}
@@ -78,7 +85,10 @@ static func gov_credit_headroom(world: WorldState) -> int:
 		# than the bank can lend (a credit freeze). Before, a bankrupt state read 13–20 months of runway.
 		if bool(EconUtil.peek_st(world).get("sovereign_default", false)):
 			return 0
-		h = mini(h, maxi(0, world.ledger.balance(EconUtil.BANK) - EconData.BANK_MIN_CASH * S))
+		if EconBank.active(world):
+			h = mini(h, EconBank.room(world))  # M2: the bank's capital, not its cash
+		else:
+			h = mini(h, maxi(0, world.ledger.balance(EconUtil.BANK) - EconData.BANK_MIN_CASH * S))
 	return h
 
 
@@ -86,9 +96,14 @@ static func gov_credit_headroom(world: WorldState) -> int:
 static func gov_borrow(world: WorldState, amount: int) -> int:
 	var s := EconUtil.st(world)
 	var amt := mini(amount, gov_credit_headroom(world))
-	amt = mini(amt, maxi(0, world.ledger.balance(EconUtil.BANK) - EconData.BANK_MIN_CASH * S))
+	var m2 := EconBank.active(world)
+	if m2:
+		EconBank.ensure(world)
+		amt = mini(amt, EconBank.room(world))
+	else:
+		amt = mini(amt, maxi(0, world.ledger.balance(EconUtil.BANK) - EconData.BANK_MIN_CASH * S))
 	if amt <= 0:
-		if not s.get("bank_freeze_noted", false) and world.ledger.balance(EconUtil.BANK) < EconData.BANK_MIN_CASH * S:
+		if not m2 and not s.get("bank_freeze_noted", false) and world.ledger.balance(EconUtil.BANK) < EconData.BANK_MIN_CASH * S:
 			s["bank_freeze_noted"] = true
 			EconFacts.emit(world, "ECON_BANK_CREDIT_FREEZE", null, [], [["EXTERNAL", "bank", 0.7], ["GOVERNMENT", "government", 0.3]], {"JOBS": -5}, 50, "PUBLIC")
 		return 0
