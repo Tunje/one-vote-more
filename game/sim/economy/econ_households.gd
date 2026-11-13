@@ -292,6 +292,9 @@ static func _buy_services(world: WorldState) -> void:
 			left -= take
 			sold_d[f["district"]] = sold_d.get(f["district"], 0) + take
 			g["spent_goods"] = g.get("spent_goods", 0) + cost
+	for fid2 in hubs_by_d.values().reduce(func(acc, l): return acc + l, []):
+		var hf: Dictionary = world.table("facility")[fid2]
+		hf["svc_spare"] = int(hf["svc_cap"])  # E134: capacity left unsold this month (0 = sold out, demand was rationed)
 	_self_employed_sales(world, demand_d)
 	# district service prices (alpha rule on local supply/demand)
 	var supply_d := {}
@@ -645,7 +648,7 @@ static func _ships(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var rng := world.rng.stream("econ.ship")
 	if not s.has("ship_next"):
-		s["ship_next"] = world.month + rng.randi_range(EconData.SHIP_INTERVAL[0], EconData.SHIP_INTERVAL[1])
+		s["ship_next"] = world.month + rng.randi_range(int(EconTrade.ship_interval(world)[0]), int(EconTrade.ship_interval(world)[1]))
 		s["ship_last"] = 0
 	if world.month < int(s["ship_next"]):
 		return
@@ -669,7 +672,7 @@ static func _ships(world: WorldState) -> void:
 		{"interval": interval, "migrants": migrants, "emigrants": departed, "cargo": trade["cargo"], "quota_delivered": trade["quota_delivered"],
 		"export_value": trade["export_value"], "imports": trade["imports"], "import_value": trade["import_value"]})
 	s["ship_last"] = world.month
-	s["ship_next"] = world.month + rng.randi_range(EconData.SHIP_INTERVAL[0], EconData.SHIP_INTERVAL[1])
+	s["ship_next"] = world.month + rng.randi_range(int(EconTrade.ship_interval(world)[0]), int(EconTrade.ship_interval(world)[1]))
 
 
 ## Migrants into the district with the most vacant housing; returns persons landed.

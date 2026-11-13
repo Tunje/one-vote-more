@@ -159,6 +159,14 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 			var cap2 := float(r["out"][1]) * S * EconUtil.fscale(f)
 			var sold := float(f.get("svc_sold", cap2))  # services sold last month
 			t = clampf(1.1 * sold / cap2 + 0.05, 0.3, 1.0)
+			# E134 (demand-cap check, Wilma): a hub whose capacity was sold out had rationed customers — sales alone
+			# cannot show that (sales ≤ output), so hubs sat at the 0.3 floor, sold out every month, while households
+			# held unspendable service budgets. Like the goods rule "no stock left → aim for capacity": step up.
+			# (only with idle hands, like expansion and workshop entry: in a labour-short colony the farms come first)
+			# OPT-IN (meta on "E134"): alone it cost ~10% population (3 seeds) — it needs household money to spend, i.e.
+			# a treasury idle-money rule alongside; tested together with it
+			if (world.meta.get("on", []) as Array).has("E134") and int(f.get("out_last", 0)) > 0 and int(f.get("svc_spare", 1)) * 20 <= int(f.get("out_last", 0)) 					and colony_unemployment(world) >= D2_ENTRY_UNEMP:
+				t = maxf(t, minf(1.0, float(f["T"]) / 1000.0 + HUB_STEP))
 		_:
 			if good in EconData.MARKET_GOODS:
 				t = _producer_target(world, f, o, good)
@@ -953,6 +961,7 @@ static func _note_entry_failures(world: WorldState) -> Dictionary:
 	return fails
 
 
+const HUB_STEP := 0.15  # E134: a sold-out hub raises its target by this much a month
 const MAX_FORMING := 3  # D2: new companies being set up at once (was 1; the consumer industries waited years in line)
 const ADMIN_INPUT_SHARE := 0.6  # E119: share of last month's revenue an administrator spends on inputs
 const BAKERY_YIELD := 1.2  # D2: fine food made per unit of food (BAKERY recipe 300 out / 250 in)

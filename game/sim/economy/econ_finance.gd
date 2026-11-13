@@ -506,6 +506,26 @@ static func _royalty(world: WorldState) -> void:
 	s["mineral_sales_by"] = {}
 
 
+## OPT-IN "PAYOUT" (money-stock check, Wilma): a private firm pays its owners every quarter the cash above
+## PAYOUT_KEEP_MONTHS of its costs plus what it still owes on its own projects (the investment reserve), instead of 50%
+## of profit only above 3 months of costs — firm cash otherwise idles while households run short.
+const PAYOUT_KEEP_MONTHS := 2
+
+
+static func _payout_surplus(world: WorldState, oid: String, o: Dictionary, monthly_costs: int) -> void:
+	var owed := 0
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["owner"] == oid and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+			owed += (int(p["price"]) - int(p["paid"])) if p["status"] == "ACTIVE" else int(p.get("est_cost", 0))
+	var spare := world.ledger.balance(EconUtil.acct(oid)) - PAYOUT_KEEP_MONTHS * monthly_costs - owed
+	if spare <= 0:
+		return
+	world.ledger.transfer(EconUtil.acct(oid), EconUtil.hh_acct(o["owner_group"]), spare, "DIVIDEND", world.month)
+	world.table("hh")[o["owner_group"]]["income"]["dividend"] += spare
+	EconPop.credit_status(world, o["owner_group"], "NOT_IN_LF", spare, "dividend", "BUSINESS_OWNER")
+
+
 static func _profit_tax_and_dividends(world: WorldState) -> void:
 	var rate := float(EconUtil.lever(world, "ECON_PROFIT_TAX_RATE", 20)) / 100.0
 	var pe_div := float(EconUtil.lever(world, "ECON_PE_DIVIDEND_RATE", 50)) / 100.0
@@ -534,6 +554,8 @@ static func _profit_tax_and_dividends(world: WorldState) -> void:
 			if d > 0:
 				world.ledger.transfer(acc, EconUtil.TREASURY, d, "DIVIDEND", world.month)
 				_gov_rev(world, d)
+		elif o["type"] == "PRIVATE" and o["owner_group"] != "" and (world.meta.get("on", []) as Array).has("PAYOUT"):
+			_payout_surplus(world, oid, o, monthly_costs)  # money-stock check: idle firm cash goes back to the owners
 		elif o["type"] == "PRIVATE" and o["owner_group"] != "":
 			if world.ledger.balance(acc) >= 3 * monthly_costs:
 				var d := int(after * 0.5)

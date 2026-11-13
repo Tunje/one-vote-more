@@ -68,6 +68,25 @@ static func _t(world: WorldState) -> Dictionary:
 ## (CharterOps.export_terms): a good the home world has reserved sells only to its charter buyer at charter_price_pct %
 ## of the home price (freight on the buyer); otherwise the home world takes levy_pct of the revenue (it never leaves
 ## EXTERNAL) and the colony's export tax goes to the treasury.
+## A61 (Wilma's treaty / sanction side): months between home-world ships [min, max]; default EconData.SHIP_INTERVAL,
+## overridden by world.values["SHIP_INTERVAL"] (an Array of two ints) when a treaty or a sanction sets it.
+static func ship_interval(world: WorldState) -> Array:
+	var v = world.values.get("SHIP_INTERVAL", null)
+	if typeof(v) == TYPE_ARRAY and (v as Array).size() == 2:
+		return [int(v[0]), maxi(int(v[0]), int(v[1]))]
+	return [int(EconData.SHIP_INTERVAL[0]), int(EconData.SHIP_INTERVAL[1])]
+
+
+## A61: export cargo a ship can carry (units); default EconData.SHIP_CARGO, overridden by world.values["SHIP_HOLD"].
+static func ship_hold(world: WorldState) -> int:
+	return maxi(0, int(world.values.get("SHIP_HOLD", EconData.SHIP_CARGO)))
+
+
+## A61: a home-world tariff on the colony's exports (‰ cut on export income; 0 = none), world.values["HOME_TARIFF"].
+static func home_tariff(world: WorldState) -> int:
+	return clampi(int(world.values.get("HOME_TARIFF", 0)), 0, 1000)
+
+
 static func prices(world: WorldState) -> Dictionary:
 	var t: Dictionary = EconUtil.peek_st(world).get("trade", {})
 	var out := {}
@@ -78,6 +97,7 @@ static func prices(world: WorldState) -> Dictionary:
 		var gross := maxi(0, home - fr)
 		if bool(terms.get("reserved", false)):
 			gross = int(float(home) * float(terms.get("charter_price_pct", 35)) / 100.0)
+		gross = gross * (1000 - home_tariff(world)) / 1000  # A61: a home-world tariff cuts what the colony is paid
 		var levy := int(float(gross) * float(terms.get("levy_pct", 0)) / 100.0)
 		var tx := int(float(gross - levy) * float(terms.get("export_tax_pct", 0)) / 100.0)
 		out[g] = {"home": home, "freight": fr, "levy": levy, "tax": tx, "net": maxi(0, gross - levy - tx),
@@ -253,7 +273,7 @@ static func on_ship(world: WorldState) -> Dictionary:
 			if q > 0:
 				held[oid + "|" + g] = q
 				total += q
-	var cap := EconData.SHIP_CARGO * S
+	var cap := ship_hold(world) * S
 	var f := 1.0 if total <= cap else float(cap) / float(total)
 	var cargo := {}
 	var value := 0
