@@ -65,6 +65,8 @@ All indicators are finalized in `SOCIAL` unless stated otherwise. Normalize is l
 | ECON_RENT_BURDEN | % of disposable income on rent | 0–200 | VOTER_CELL | −1 | HOUSING 0.6 · COST_OF_LIVING 0.3 | 20 / 45 | SOCIAL | PUBLIC | 0 | Rent eating the paycheck |
 | ECON_OVERCROWDING | households per dwelling unit | 0.5–3.0 | DISTRICT | −1 | HOUSING 1.0 | 0.95 / 1.30 | SOCIAL | PUBLIC | 0 | Families doubled up; no room for newcomers |
 | ECON_HOUSING_CONDITION | average housing-block condition | 0–100 | DISTRICT | +1 | HOUSING 0.4 | 80 / 40 | SOCIAL | PUBLIC | 2 | Homes run down or renovated (S3; v6 review: renovations did not register) |
+| ECON_INFORMAL_HOUSING | households in self-built shacks | 0–100 % | DISTRICT | −1 | HOUSING 0.5, SAFETY 0.2, FAIRNESS 0.2 | 0 / 15 | SOCIAL | PUBLIC | 1 | S7: shantytowns beyond the doubling-up ceiling |
+| ECON_HOMELESSNESS | households with no home and no shack | 0–100 % | DISTRICT | −1 | HOUSING 0.6, FAIRNESS 0.3, SAFETY 0.2 | 0 / 5 | SOCIAL | PUBLIC | 0 | S7: no land or material for a shack |
 | ECON_UTILITY_RELIABILITY | % of household energy + water demand served (3-month avg) | 0–100 | DISTRICT | +1 | INFRASTRUCTURE 0.6 · PUBLIC_SERVICES 0.3 | 100 / 85 | PRODUCTION | PUBLIC | 0 | Blackouts and dry taps |
 | ECON_INFRA_CONDITION | avg condition of road links and utility plants serving the district | 0–100 | DISTRICT | +1 | INFRASTRUCTURE 0.6 · SAFETY 0.1 | 90 / 50 | SOCIAL | PUBLIC | 3 | Visible decay of roads and plants |
 | ECON_LOGISTICS_DELAY | % of deliveries into the district deferred for capacity (3-month avg) | 0–100 | DISTRICT | −1 | INFRASTRUCTURE 0.5 · COST_OF_LIVING 0.1 | 0 / 20 | TRADE | PUBLIC | 1 | Late goods, congested roads |

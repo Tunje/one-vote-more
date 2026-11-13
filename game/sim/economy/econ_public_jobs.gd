@@ -75,6 +75,10 @@ static func monthly(world: WorldState) -> void:
 	var held := posts(world)
 	var w := maxi(1, EconFinance.wage_for(world, oid, "G"))
 	var budget_m := mini(annual / 12, maxi(0, EconActions.headroom(world, LINE)))
+	if not EconUtil.off(world, "E124"):
+		# E124: wages already paid into the scheme's account count too — before, a month with the line's headroom near 0
+		# (spent ahead) set the target to 0 and laid off the whole scheme, which was rehired the month after (seed 1, Y31/Y32)
+		budget_m = mini(annual / 12, maxi(0, EconActions.headroom(world, LINE)) + maxi(0, world.ledger.balance(EconUtil.acct(oid))))
 	var free := PopStore.count(world, {"status": "UNEMPLOYED"}, "skill:G") + PopStore.count(world, {"status": "UNEMPLOYED"}, "skill:S")
 	var target := mini(budget_m / w, free + held)
 	target = (target / CREW_UNIT) * CREW_UNIT

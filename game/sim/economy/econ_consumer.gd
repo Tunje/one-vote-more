@@ -170,8 +170,8 @@ static func update_confidence(world: WorldState) -> void:
 	var target := 600.0 - 2500.0 * du + 12.0 * EconUnions.real_wage_growth(world) - 150.0 * maxf(0.0, u - 0.15) * 10.0
 	if not world.facts.query("UNION_STRIKE_CALLED", world.month - 3, world.month).is_empty():
 		target -= 80.0
-	if bool(s.get("famine", false)):
-		target -= 250.0
+	if bool(s.get("famine", false) if EconUtil.off(world, "E125") else s.get("famine_now", false)):
+		target -= 250.0  # E125: during the famine
 	var c := int(s.get("confidence", 600))
 	s["confidence"] = clampi(c + int(round((clampf(target, 100.0, 1000.0) - float(c)) / 4.0)), 100, 1000)
 

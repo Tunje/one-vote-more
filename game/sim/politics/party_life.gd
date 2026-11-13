@@ -62,6 +62,8 @@ static func make_leader(world: WorldState, faction: int, boost_charisma: int = 0
 	var used := {}
 	for q in world.table("party").values():
 		used[leader_name(q)] = true
+	for c in world.peek("law_state").get("s", {}).get("party_finance", {}).get("convictions", []):
+		used[String(c.get("leader", ""))] = true   # a new leader never shares a convicted leader's name (bars match by name)
 	var nm := PartyGen.leader_name(world.rng.stream("pol.names"))
 	for _i in 20:
 		if not used.has(nm):
@@ -847,7 +849,12 @@ const DONATION_MIN_FIT := 10.0   # points of alignment before a company backs a 
 ##   legal, below threshold -> SECRET (lawful)
 ##   over the cap / disclosure required -> the party takes it secretly only if its leader's integrity allows
 ## Secret illegal gifts are what a9's leaks, tips and investigations turn into scandals.
+## After a donation scandal the party cleans up (Ella, v7 seed-3 scandal loop): it refuses that donor for
+## CLEANUP_REFUSE_MONTHS and takes nothing secret or illegal for CLEANUP_PLEDGE_MONTHS × its scandals in the last
+## decade (max 3). Derived from POL_SCANDAL_REVEALED facts each month; no saved state.
 static func _book_donations(world: WorldState) -> void:
+	var clean := cleanup_state(world)
+	_announce_cleanups(world, clean)
 	var offers: Dictionary = world.peek("donation_offer")
 	if offers.is_empty():
 		return
@@ -864,6 +871,8 @@ static func _book_donations(world: WorldState) -> void:
 		var cands: Array = []
 		var top := DONATION_MIN_FIT
 		for q in parties:
+			if int(clean.get(q["id"], {}).get("refuse", {}).get(String(o["from"]), -1)) >= world.month:
+				continue   # this donor got the party into a scandal: the money goes back
 			var fit := 0.0
 			for ax in o.get("prefers", {}):
 				fit += float(o["prefers"][ax]) * float(q["positions"][ax]) / 1000.0
@@ -894,6 +903,8 @@ static func _book_donations(world: WorldState) -> void:
 				continue
 			chk = LQ.donation_allowed(world, amount, o["from"])
 		var integrity := float(best["leader"]["integrity"])
+		if int(clean.get(best["id"], {}).get("pledge", -1)) >= world.month:
+			integrity = 800.0   # under a clean pledge: (100 - integrity)/800 < 0, nothing hidden, nothing illegal
 		var vis := "SECRET"
 		if not chk.get("ok", true):
 			# most donors give what the law allows; a few parties take the rest under the table
@@ -916,6 +927,56 @@ static func _book_donations(world: WorldState) -> void:
 			"responsible": [{"actor": {"kind": "PARTY", "id": best["id"]}, "share": 1.0}], "impact": {},
 			"magnitude": 20, "visibility": vis,
 			"data": {"donor": o["from"], "party": best["id"], "amount": amount, "lawful": chk.get("ok", true) and not (vis == "SECRET" and chk.get("disclose", false)), "cap": int(chk.get("cap", -1))}})
+
+
+const CLEANUP_REFUSE_MONTHS := 60    # a donor behind a scandal is refused for 5 years
+const CLEANUP_PLEDGE_MONTHS := 48    # full disclosure, no illegal gifts: 4 years per scandal in the last decade (max 3)
+
+
+## {pid: {pledge: until month, refuse: {donor: until month}, n: scandals in 10 y, last: month}} from donation scandals.
+## Read-only.
+static func cleanup_state(world: WorldState) -> Dictionary:
+	var out := {}
+	for f in world.facts.query("POL_SCANDAL_REVEALED", world.month - 120):
+		var d: Dictionary = f["data"]
+		var donor := String(d.get("donor", ""))
+		if donor == "" or int(f["month"]) >= world.month:
+			continue
+		var pid := String(d.get("party", ""))
+		var e: Dictionary = out.get(pid, {"pledge": -1, "refuse": {}, "n": 0, "last": -1})
+		e["n"] = int(e["n"]) + 1
+		e["last"] = maxi(int(e["last"]), int(f["month"]))
+		e["refuse"][donor] = maxi(int(e["refuse"].get(donor, -1)), int(f["month"]) + CLEANUP_REFUSE_MONTHS)
+		out[pid] = e
+	for pid in out:
+		var e: Dictionary = out[pid]
+		e["pledge"] = int(e["last"]) + CLEANUP_PLEDGE_MONTHS * mini(3, int(e["n"]))
+	return out
+
+
+## The month after a donation scandal the party announces its clean-up (public): who forced it — the leader, or the
+## reform wing when the leader is the kind who took the money.
+static func _announce_cleanups(world: WorldState, clean: Dictionary) -> void:
+	for f in world.facts.query("POL_SCANDAL_REVEALED", world.month - 1, world.month - 1):
+		var d: Dictionary = f["data"]
+		var pid := String(d.get("party", ""))
+		if String(d.get("donor", "")) == "" or not world.table("party").has(pid) or not clean.has(pid):
+			continue
+		var p: Dictionary = world.table("party")[pid]
+		if p.get("status", "") != "ACTIVE":
+			continue
+		var integ := int(p["leader"]["integrity"]) if typeof(p.get("leader")) == TYPE_DICTIONARY else 50
+		var forced := "LEADER" if integ >= 50 else "REFORM_WING"
+		if forced == "REFORM_WING":
+			ensure_factions(p)
+			var fs: Array = p["factions"]
+			var fi := 1 - int(p["leader"]["faction"])
+			fs[fi]["discontent"] = mini(100, int(fs[fi]["discontent"]) + 10)   # the wing that forced it remembers
+		world.add_fact({"type": "POL_PARTY_CLEANUP", "owner": "pol", "subjects": [{"kind": "PARTY", "id": pid}],
+			"responsible": [{"actor": {"kind": "PARTY", "id": pid}, "share": 1.0}], "impact": {}, "magnitude": 35,
+			"visibility": "PUBLIC", "data": {"party": pid, "donor": String(d["donor"]), "forced_by": forced,
+				"pledge_until": int(clean[pid]["pledge"]), "refuse_until": int(clean[pid]["refuse"].get(String(d["donor"]), -1)),
+				"scandals_10y": int(clean[pid]["n"]), "channel": "PARTY"}})
 
 
 ## Interest-group endorsements for the vote model:
@@ -965,3 +1026,108 @@ static func campaign_monthly(world: WorldState, st: Dictionary) -> void:
 
 static func campaign_ctx(_world: WorldState, _st: Dictionary) -> Dictionary:
 	return {}
+
+
+# ======================= A51 B3: independents and election lists (Wilma) =======================
+
+## A member who leaves their party under the free mandate and keeps the seat sits as an INDEPENDENT: a one-seat row
+## with status "INDEPENDENT" (not ACTIVE, so polls, campaigns, formation and votes skip it; its seat still exists).
+## Called by Bench.defect(world, pid, ""); returns the row id. The seat ends at the next election.
+static func make_independent(world: WorldState, person: Dictionary) -> String:
+	var from: Dictionary = world.peek("party").get(String(person.get("party_id", "")), {})
+	var id := world.new_id("party")
+	world.table("party")[id] = {
+		"id": id, "name": "%s (Independent)" % String(person.get("name", "?")), "color": "#7f8c8d", "is_player": false,
+		"founded_month": world.month, "positions": from.get("positions", {}).duplicate(), "ownership": {},
+		"commitments": [], "leader": {"name": String(person.get("name", "?")), "person": String(person.get("id", "")), "faction": 0},
+		"seats": 1, "kind": "INDEPENDENT", "support": 0, "credibility": 50, "agenda": [], "trust_in_player": 50,
+		"status": "INDEPENDENT", "low_since": -1, "factions": [], "person": String(person.get("id", "")),
+		"left_party": String(person.get("party_id", "")),
+	}
+	var lean: Dictionary = person.get("lean", {})
+	for ax in ["ECON_ROLE", "REDISTRIBUTION", "SOVEREIGNTY"]:   # they left because they did not fit: their own line
+		if lean.has(ax):
+			world.table("party")[id]["positions"][ax] = int(lean[ax])
+	return id
+
+
+## Before an election's seats are handed out: independents' seats end (they stood on no list).
+static func end_independents(world: WorldState) -> void:
+	for pid in EconUtil.sorted_keys(world.table("party")):
+		var p: Dictionary = world.table("party")[pid]
+		if p.get("status", "") != "INDEPENDENT":
+			continue
+		p["status"] = "ENDED"
+		p["seats"] = 0
+		var who: Dictionary = world.table("person").get(String(p.get("person", "")), {})
+		if not who.is_empty():
+			who["assembly_seat"] = false
+			who["list_rank"] = -1
+
+
+## After seats are allocated: each party ranks its people as its list (leader first, then by standing: POLI and COMM,
+## with a little for loyalty) and the top `seats` names hold its Assembly seats (spec-bench B3).
+static func election_lists(world: WorldState) -> void:
+	var people := world.table("person")
+	var by_party := {}
+	for pid in EconUtil.sorted_keys(people):
+		var q: Dictionary = people[pid]
+		q["assembly_seat"] = false
+		q["list_rank"] = -1
+		var pty := String(q.get("party_id", ""))
+		if pty == "" or not (q["status"] == "ACTIVE" or q["status"] == "UNAVAILABLE"):
+			continue
+		if q.get("roles", {}).has("CIVIL_SERVANT"):
+			continue
+		var party: Dictionary = world.peek("party").get(pty, {})
+		if party.get("status", "") != "ACTIVE":
+			continue
+		var sk: Dictionary = q.get("skills", {})
+		var lead := String(party.get("leader", {}).get("person", "")) == String(pid)
+		var standing := 10000 if lead else int(sk.get("POLI", 0)) * 2 + int(sk.get("COMM", 0)) * 2 + int(q.get("loyalty", 50)) 			- 10 * int(q.get("defected", 0)) - int(q.get("grievance", 0)) / 5 - (15 if bool(q.get("restless", false)) else 0) 			- 15 * int(q.get("scandals", 0))   # turncoats, the aggrieved and the scandal-hit are riskier faces
+		if not by_party.has(pty):
+			by_party[pty] = []
+		by_party[pty].append([standing, String(pid)])
+	for pty in EconUtil.sorted_keys(by_party):
+		var lst: Array = by_party[pty]
+		lst.sort_custom(func(a, b): return a[0] > b[0] or (a[0] == b[0] and a[1] < b[1]))
+		var seats := int(world.peek("party")[pty].get("seats", 0))
+		for i in lst.size():
+			var q: Dictionary = people[lst[i][1]]
+			q["list_rank"] = i + 1
+			q["assembly_seat"] = i < seats
+
+
+## A51 B3: the personal mandate is constitutional (LAW_PERSONAL_MANDATE, 1 = free mandate, 0 = the seat belongs to
+## the party). Each January the Assembly may vote on it: parties that lost seats to defectors in the last four years
+## want the seat bound to the party; parties that gained seats from defectors want it free; the rest follow their
+## standing (a party that never lost or gained abstains). It passes only with 2/3 of the Assembly (LawOps).
+static func mandate_vote(world: WorldState) -> void:
+	if not world.lever_defs.has("LAW_PERSONAL_MANDATE"):
+		return
+	var net := {}
+	for f in world.facts.query("STAFF_DEFECTED", world.month - 48, world.month):
+		var d: Dictionary = f.get("data", {})
+		if String(d.get("seat", "")) != "CARRIED":
+			continue
+		net[String(d["from"])] = int(net.get(String(d["from"]), 0)) - 1
+		net[String(d["to"])] = int(net.get(String(d["to"]), 0)) + 1
+	var cur := int(world.levers.get("LAW_PERSONAL_MANDATE", 1))
+	var want := 0 if cur == 1 else 1
+	var yes := 0
+	var lost := 0
+	for p in active(world):
+		var n := int(net.get(p["id"], 0))
+		if n < 0:
+			lost += -n
+		if (want == 0 and n < 0) or (want == 1 and n > 0):
+			yes += int(p["seats"])
+	# only table it when it is live: at least 3 seats moved, and the sponsors could plausibly reach 2/3
+	var law_ops: Script = load("res://sim/law/law_ops.gd")
+	if lost < 3 or yes * 2 < int(law_ops.call("amend_seats")):
+		return
+	var st: Dictionary = world.table("pol")["state"]
+	if world.month - int(st.get("mandate_vote_month", -1000)) < 48:
+		return   # at most once a term or so
+	st["mandate_vote_month"] = world.month
+	law_ops.call("amend_constitution", world, "LAW_PERSONAL_MANDATE", want, yes)

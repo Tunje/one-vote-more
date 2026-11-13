@@ -96,6 +96,9 @@ static func beliefs(world: WorldState, occ: String, status: String, inc: String,
 	ideo["FISCAL"] += int(bs[2]) * S
 	for ax in ideo:
 		ideo[ax] = clampi(ideo[ax], -100 * S, 100 * S)
+	if bool(world.meta.get("mirror", false)):   # A52 bias audit: the whole political space mirrored (default off)
+		for ax in ideo:
+			ideo[ax] = -int(ideo[ax])
 	return {"ideology": ideo, "base": ideo.duplicate(), "commitment": 50, "openness": 50, "engagement": 50}
 
 

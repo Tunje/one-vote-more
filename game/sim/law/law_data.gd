@@ -350,6 +350,13 @@ const LEVERS := [
 	{"id": "LAW_PUBLIC_PARTY_FUNDING", "owner": "law", "type": "NUMBER", "range": [0, 1000], "default": 0,
 		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": 0.06, "FISCAL": 0.05, "REDISTRIBUTION": 0.03},
 		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# v7 seed 3 (a party convicted 68 times, its leaders staying on): a conviction bars the person from party
+	# leadership and the Cabinet for this many years (0 = no bar; then LAW_CONVICTED_CAN_HOLD_OFFICE alone decides
+	# whether they must step down). Rule of law and clean politics (INSTITUTIONS +) against party machines.
+	{"id": "LAW_CONVICTION_BAN_YEARS", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 10], "default": 6,
+		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": 0.6},
+		"concerns": {"GOVERNANCE": 6, "FAIRNESS": 4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 0, "scope": "COLONY", "domain": "LAW"},
 	{"id": "LAW_CONVICTED_CAN_HOLD_OFFICE", "owner": "law", "type": "BOOL", "default": true,
 		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"INSTITUTIONS": -12},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 0, "scope": "COLONY", "domain": "LAW"},

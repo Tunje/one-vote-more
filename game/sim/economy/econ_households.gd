@@ -64,6 +64,7 @@ static func social(world: WorldState) -> void:
 	EconLabor.recount(world)
 	_post_orders(world)
 	_housing(world)
+	EconInformal.monthly(world)  # S7: doubling-up ceiling, shacks, homelessness (before births, deaths and the ship)
 	_demography(world)
 	if EconUtil.support(world):
 		if (world.month + 1) % 3 == 0:
@@ -743,6 +744,10 @@ static func _famine_check(world: WorldState) -> void:
 		s["food_short_streak"] += 1
 	else:
 		s["food_short_streak"] = 0
+	# E125: "famine" latches (a famine has happened: reports, history); "famine_now" is the current state, true while
+	# the shortfall streak lasts. E120 attractiveness and D2 confidence read the latch as current, so one famine cut
+	# immigration to 30% for the rest of the game (seed 1: a single famine at Y15–Y30 and the colony stalled for decades).
+	s["famine_now"] = s["food_short_streak"] >= 3
 	if s["food_short_streak"] >= 3 and not s["famine"]:
 		s["famine"] = true
 		var big := food_buyers(world)

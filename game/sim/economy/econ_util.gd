@@ -98,6 +98,16 @@ static func off(world: WorldState, key: String) -> bool:
 	return world.meta.has("off") and (world.meta["off"] as Array).has(key)
 
 
+## Profiling for tools only: when world.meta["prof"] (a Dictionary) is set, adds the microseconds since `t0` under
+## `key` and returns a fresh timestamp. Never set in play; it does not touch simulation state.
+static func prof(world: WorldState, key: String, t0: int) -> int:
+	var now := Time.get_ticks_usec()
+	if world.meta.has("prof"):
+		var pd: Dictionary = world.meta["prof"]
+		pd[key] = int(pd.get(key, 0)) + now - t0
+	return now
+
+
 static func lever(world: WorldState, id: String, default_value = 0):
 	return world.levers.get(id, default_value)
 

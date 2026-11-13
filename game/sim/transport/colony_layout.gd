@@ -14,7 +14,7 @@ const BUILD_TERRAIN := [".", "f", "L", "n", "h"]
 ## how far from the landing site, in which direction.
 const ECON_ANCHORS := {
 	"d:2": {"want": [".", "f"], "near": "r", "dist": 9.0, "dir": Vector2(1, -0.4)},     # Riverside
-	"d:3": {"want": ["h", "k", "o"], "near": "", "dist": 13.0, "dir": Vector2(-1, 0.6)},  # Redrock
+	"d:3": {"want": ["h", "k", "o"], "near": "", "dist": 13.0, "dir": Vector2(-1, 0.6), "ore": true},  # Redrock: at its ore
 	"d:4": {"want": [".", "h"], "near": "", "dist": 6.0, "dir": Vector2(-1, -0.2)},     # Foundry
 	"d:5": {"want": ["h", "."], "near": "", "dist": 10.0, "dir": Vector2(0.6, 1)},      # Greenhill
 	"d:6": {"want": ["f", "."], "near": "", "dist": 11.0, "dir": Vector2(-0.2, -1)},    # Northfield
@@ -58,6 +58,10 @@ static func _econ_anchors(w: WorldState) -> Dictionary:
 					continue
 				var off := Vector2(x - l.x, y - l.y)
 				var s := absf(off.length() - float(spec["dist"])) + 6.0 * (1.0 - off.normalized().dot(dir))
+				if spec.get("ore", false):   # a mining town stands at its ore, at the foot of the hills, a little further out
+					s = absf(off.length() - float(spec["dist"])) * 0.6 + 3.0 * (1.0 - off.normalized().dot(dir))
+					s += 6.0 * (1.0 - minf(1.0, float(count_near(w, Vector2i(x, y), ["h", "k", "o", "x"], 3)) / 10.0))
+					s += 0.0 if count_near(w, Vector2i(x, y), ["o", "x"], 3) > 0 else 25.0   # above any distance cost within Terrain.ORE_NEAR
 				if String(spec["near"]) != "" and not near_code(w, Vector2i(x, y), String(spec["near"]), 2):
 					s += 8.0
 				for o in out.values():
@@ -68,6 +72,14 @@ static func _econ_anchors(w: WorldState) -> Dictionary:
 					best = Vector2i(x, y)
 		out[d] = best
 	return out
+
+
+static func count_near(w: WorldState, t: Vector2i, codes: Array, r: int) -> int:
+	var n := 0
+	for yy in range(t.y - r, t.y + r + 1):
+		for xx in range(t.x - r, t.x + r + 1):
+			n += 1 if Terrain.at(w, xx, yy) in codes else 0
+	return n
 
 
 static func near_code(w: WorldState, t: Vector2i, code: String, r: int) -> bool:

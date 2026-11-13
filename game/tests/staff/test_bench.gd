@@ -193,3 +193,64 @@ func test_no_independents_until_politics_provides_them() -> void:
 	Ops.person(w, pid)["assembly_seat"] = true
 	w.levers["LAW_PERSONAL_MANDATE"] = 0
 	check(not B.defect(w, pid, "")["ok"], "anti-defection: the seat is the party's")
+
+
+func test_orphans_find_a_new_party_or_retire() -> void:
+	var w := _world()
+	_party(w, "party:3", "Gone", LEFT, 0)
+	var a := _member(w, "party:3", {"POLI": 60}, LEFT)
+	var b := _member(w, "party:3", {"POLI": 60}, {"ECON_ROLE": 0, "REDISTRIBUTION": 0, "SOVEREIGNTY": 100000})
+	w.table("party")["party:3"]["status"] = "DISSOLVED"
+	B.monthly(w)
+	check_eq(String(Ops.person(w, a)["party_id"]), "party:1", "a left member of a dissolved party joins the left party")
+	check_eq(String(Ops.person(w, a)["bench_party_id"]), "party:1", "on its bench")
+	check_eq(String(Ops.person(w, b)["status"]), "RETIRED", "nobody fits a lone sovereigntist: they retire")
+	check_eq(w.facts.query("STAFF_BENCH_JOINED").size(), 1, "the move is public")
+
+
+func test_scandals_stick_to_the_person() -> void:
+	var w := _world()
+	var off := _member(w, "party:1", {"POLI": 60}, LEFT)
+	var lead := _member(w, "party:2", {"POLI": 60}, RIGHT)
+	w.table("party")["party:2"]["leader"] = B.as_leader(w, lead)
+	var sec := w.add_fact({"type": "LAW_UNLAWFUL_ACT", "owner": "law", "subjects": [], "visibility": "SECRET", "impact": {}, "magnitude": 40,
+		"responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 0.8}, {"actor": Ops.official_ref(off), "share": 0.2}], "data": {}})
+	w.facts.reveal(w.month, sec, [])
+	w.add_fact({"type": "POL_SCANDAL_REVEALED", "owner": "pol", "subjects": [{"kind": "PARTY", "id": "party:2"}], "responsible": [],
+		"impact": {}, "magnitude": 60, "visibility": "PUBLIC", "data": {}})
+	B.monthly(w)
+	check_eq(int(Ops.person(w, off).get("scandals", 0)), 1, "the official who carried it out")
+	check_eq(int(Ops.person(w, lead).get("scandals", 0)), 1, "the leader whose party took the money")
+	B.monthly(w)
+	check_eq(int(Ops.person(w, off).get("scandals", 0)), 1, "counted once")
+
+
+## Regression (Bob's Y50→Y70 run): a person with loyalty but no lean crashed OFS.traits. Fifty years of monthly
+## bench life with founders that never had traits derived, a party dissolving, scandals and defeats.
+func test_fifty_years_of_bench_life_without_traits() -> void:
+	var w := _world()
+	var raw := F.add(w, "POLITICAL", {"POLI": 60}, 50, 100, "party:2")
+	Ops.person(w, raw)["pool"] = ""
+	Ops.person(w, raw)["bench_party_id"] = "party:2"
+	Ops.person(w, raw)["loyalty"] = 40                 # loyalty without lean: the crash
+	check(OFS.traits(Ops.person(w, raw)).has("lean"), "traits backfills the lean")
+	for i in 12:
+		var pid := F.add(w, "POLITICAL", {"POLI": 40 + i * 4, "COMM": 50}, 50, 100, "party:1" if i % 2 == 0 else "party:2")
+		Ops.person(w, pid)["pool"] = ""
+		Ops.person(w, pid)["bench_party_id"] = Ops.person(w, pid)["party_id"]
+	_party(w, "party:3", "Short-lived", LEFT, 5)
+	var orphan := F.add(w, "POLITICAL", {"POLI": 50}, 50, 100, "party:3")
+	Ops.person(w, orphan)["pool"] = ""
+	Ops.person(w, orphan)["bench_party_id"] = "party:3"
+	Ops.person(w, orphan)["loyalty"] = 50
+	for m in 600:
+		if m == 120:
+			w.table("party")["party:3"]["status"] = "DISSOLVED"
+		if m % 48 == 0:
+			w.add_fact({"type": "POL_SCANDAL_REVEALED", "owner": "pol", "subjects": [{"kind": "PARTY", "id": "party:2"}],
+				"responsible": [], "impact": {}, "magnitude": 60, "visibility": "PUBLIC", "data": {}})
+		B.monthly(w)
+		w.month += 1
+	for pid in B.members(w):
+		check(Ops.person(w, pid).has("lean") and Ops.person(w, pid).has("ambition"), "%s has its traits after 50 years" % pid)
+	check(String(Ops.person(w, orphan)["party_id"]) != "party:3", "the orphan moved on")

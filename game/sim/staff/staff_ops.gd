@@ -602,6 +602,8 @@ static func appoint_political(world: WorldState, sid: String, pid: String) -> Di
 		return {"ok": false, "reason": "seat not vacant"}
 	if p.is_empty() or p["status"] != "ACTIVE" or p["pool"] != "" or p["bench_party_id"] != seat["party_id"]:
 		return {"ok": false, "reason": "not on this party's bench"}
+	if load("res://sim/law/party_finance.gd").is_barred(world, String(p.get("name", "")), pid):
+		return {"ok": false, "reason": "barred from office by a conviction"}
 	seat["person_id"] = pid
 	p["pool"] = "GOV"
 	p["party_id"] = seat["party_id"]

@@ -261,6 +261,8 @@ static func _district_indicators(world: WorldState, cls: Array) -> void:
 		_w(world, "ECON_LOCAL_PRICE_INDEX", d, 100.0 * _local_price(world, d) / maxf(1.0, price_col))
 		_w(world, "ECON_OVERCROWDING", d, float(pop[d]) / EconData.HOUSEHOLD_SIZE / maxf(1.0, float(units.get(d, 0))))
 		_w(world, "ECON_HOUSING_CONDITION", d, float(EconHousing.district_condition(world, d)))
+		_w(world, "ECON_INFORMAL_HOUSING", d, 100.0 * EconInformal.shack_share(world, d))
+		_w(world, "ECON_HOMELESSNESS", d, 100.0 * EconInformal.homeless_share(world, d))
 		var sv: Array = s.get("util_served_hh", {}).get(d, [1.0, 1.0])
 		_w(world, "ECON_UTILITY_RELIABILITY", d, 100.0 * (float(sv[0]) + float(sv[1])) / 2.0)
 		_w(world, "ECON_INFRA_CONDITION", d, _infra(world, d))

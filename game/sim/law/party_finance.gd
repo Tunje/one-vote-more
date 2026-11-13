@@ -17,6 +17,11 @@ const P_TIP := 0.04                       # per month per hidden violation: a ti
 const INVESTIGATION_MONTHS := 4
 const P_FIND_BASE := 0.6                  # + 0.3 x legal-service quality / 100 (as the inspectorate)
 const P_FIND_Q := 0.3
+## v7 seed 3: a firm behind DONOR_REPEAT illegal donations (revealed) within DONOR_REPEAT_MONTHS is fined and may not
+## donate for DONOR_BAN_MONTHS (donation_allowed says no; honest parties stop taking its money).
+const DONOR_REPEAT := 2
+const DONOR_REPEAT_MONTHS := 60
+const DONOR_BAN_MONTHS := 60
 
 
 static func pf_state(world: WorldState) -> Dictionary:
@@ -79,6 +84,10 @@ static func donor_total(world: WorldState, donor, month: int, before_id: String 
 
 ## May `donor` give `amount` now? disclose = the donation must be PUBLIC by law (a SECRET one is a violation).
 static func donation_allowed(world: WorldState, amount: int, donor) -> Dictionary:
+	var banned_until := donor_banned_until(world, donor)
+	if banned_until > world.month:
+		return {"ok": false, "disclose": true, "cap": cap_amount(world), "given": donor_total(world, donor, world.month), "remaining": 0,
+			"banned_until": banned_until, "reason": "banned from donating until month %d (repeat illegal donations)" % banned_until}
 	var cap := cap_amount(world)
 	var given := donor_total(world, donor, world.month)
 	var ok := cap < 0 or given + amount <= cap
@@ -263,6 +272,7 @@ static func _scandal(world: WorldState, fid: String, by: Dictionary, channel: St
 		{"GOVERNANCE": -int(round(sev / 10.0)), "FAIRNESS": -int(round(sev / 20.0))}, clampi(40 + sev / 2, 40, 90),
 		{"party": party, "leader": leader, "severity": sev, "donation": fid, "donor": t["donor"], "amount": t["amount"],
 			"excess": t["excess"], "undisclosed": t["undisclosed"], "channel": channel, "leader_charged": charged}, causes)
+	_donor_strike(world, String(t["donor"]), fid)
 	Justice.file_case(world, "PARTY_FINANCE", PROSECUTOR, pref, true,
 		{"fact": fid, "party": party, "excess": int(t["excess"]), "undisclosed": t["undisclosed"],
 			"leader": leader, "leader_charged": charged}, [800])
@@ -277,6 +287,52 @@ static func reveal_by_rival(world: WorldState, fid: String, by_party: String) ->
 		return false
 	_scandal(world, fid, {"kind": "PARTY", "id": by_party}, "OPPO_RESEARCH")
 	return true
+
+
+## A revealed illegal donation counts against its donor; the DONOR_REPEAT-th within DONOR_REPEAT_MONTHS brings a
+## SERIOUS fine (companies) and a DONOR_BAN_MONTHS donation ban. PUBLIC LAW_DONOR_BANNED.
+static func _donor_strike(world: WorldState, donor: String, fid: String) -> void:
+	if donor == "":
+		return
+	var st := pf_state(world)
+	if not st.has("donor_record"):
+		st["donor_record"] = {}
+	var rec: Dictionary = st["donor_record"]
+	var months: Array = rec.get(donor, [])
+	months = months.filter(func(m): return world.month - int(m) < DONOR_REPEAT_MONTHS)
+	months.append(world.month)
+	rec[donor] = months
+	if months.size() < DONOR_REPEAT or donor_banned_until(world, donor) > world.month:
+		return
+	var until := world.month + DONOR_BAN_MONTHS
+	if not st.has("donor_bans"):
+		st["donor_bans"] = {}
+	st["donor_bans"][donor] = until
+	var fine := 0
+	if world.peek("org").has(donor):
+		fine = Justice._fine(world, donor, "SERIOUS", "")
+	var dref := {"kind": "COMPANY", "id": donor}
+	Justice.fact(world, "LAW_DONOR_BANNED", "PUBLIC", [dref], [{"actor": dref, "share": 1.0}], {"FAIRNESS": 3}, 50,
+		{"donor": donor, "until": until, "strikes": months.size(), "fine": fine, "donation": fid})
+
+
+static func donor_banned_until(world: WorldState, donor) -> int:
+	return int(world.peek("law_state").get("s", {}).get("party_finance", {}).get("donor_bans", {}).get(donor_id(donor), -1))
+
+
+## Barred from party leadership and the Cabinet by a conviction (LAW_CONVICTION_BAN_YEARS)? By person id when the
+## leader was a bench person, else by name (synthetic leaders). Returns the month the bar ends, or -1.
+static func barred_until(world: WorldState, name: String, person: String = "") -> int:
+	var until := -1
+	for c in world.peek("law_state").get("s", {}).get("party_finance", {}).get("convictions", []):
+		var hit: bool = (person != "" and String(c.get("person", "")) == person) or (person == "" and name != "" and String(c.get("leader", "")) == name)
+		if hit:
+			until = maxi(until, int(c.get("barred_until", -1)))
+	return until
+
+
+static func is_barred(world: WorldState, name: String, person: String = "") -> bool:
+	return barred_until(world, name, person) > world.month
 
 
 ## After a conviction: may the convicted leader stay? (LAW_CONVICTED_CAN_HOLD_OFFICE)

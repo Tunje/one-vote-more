@@ -3,6 +3,12 @@ extends RefCounted
 ## PIC definitions for econ (planning/pic-economy.md §1, §3, §4). Indicator normalize values are ×1000 of display units.
 
 
+## pic-core v1.1 exceptionOnly: these count toward a concern only while something is wrong. S7's shack and homeless
+## shares sit at 0 almost everywhere; as ordinary indicators they added "perfect" weight to HOUSING, SAFETY and FAIRNESS
+## in every district (concerns are weighted averages), diluting the real housing signal even with S7 switched off.
+const EXCEPTION_ONLY := ["ECON_INFORMAL_HOUSING", "ECON_HOMELESSNESS"]
+
+
 static func indicators() -> Array:
 	# id, unit, [min,max], granularity, polarity, concerns, good, bad, visibility, perceptionLag
 	var rows := [
@@ -17,6 +23,9 @@ static func indicators() -> Array:
 		["ECON_OVERCROWDING", "households/unit", [0, 3], "DISTRICT", -1, {"HOUSING": 1.0}, 0.95, 1.30, "PUBLIC", 0],
 		# S3 (v6 review): the state of the homes (average block condition, 0–100) — renovations show up in housing concern
 		["ECON_HOUSING_CONDITION", "index", [0, 100], "DISTRICT", 1, {"HOUSING": 0.4}, 80, 40, "PUBLIC", 2],
+		# S7: households in self-built shacks / homeless, % of the district's households
+		["ECON_INFORMAL_HOUSING", "%", [0, 100], "DISTRICT", -1, {"HOUSING": 0.5, "SAFETY": 0.2, "FAIRNESS": 0.2}, 0, 15, "PUBLIC", 1],
+		["ECON_HOMELESSNESS", "%", [0, 100], "DISTRICT", -1, {"HOUSING": 0.6, "FAIRNESS": 0.3, "SAFETY": 0.2}, 0, 5, "PUBLIC", 0],
 		["ECON_UTILITY_RELIABILITY", "%", [0, 100], "DISTRICT", 1, {"INFRASTRUCTURE": 0.6, "PUBLIC_SERVICES": 0.3}, 100, 85, "PUBLIC", 0],
 		["ECON_INFRA_CONDITION", "index", [0, 100], "DISTRICT", 1, {"INFRASTRUCTURE": 0.6, "SAFETY": 0.1}, 90, 50, "PUBLIC", 3],
 		["ECON_LOGISTICS_DELAY", "%", [0, 100], "DISTRICT", -1, {"INFRASTRUCTURE": 0.5, "COST_OF_LIVING": 0.1}, 0, 20, "PUBLIC", 1],
@@ -75,7 +84,8 @@ static func indicators() -> Array:
 	for r in rows:
 		out.append({"id": r[0], "owner": "econ", "unit": r[1], "range": [int(r[2][0] * 1000), int(r[2][1] * 1000)],
 			"granularity": r[3], "polarity": r[4], "concerns": r[5], "normalize": {"good": int(r[6] * 1000), "bad": int(r[7] * 1000)},
-			"phase": TickPhase.SOCIAL, "visibility": r[8], "perceptionLag": r[9], "history": true})
+			"phase": TickPhase.SOCIAL, "visibility": r[8], "perceptionLag": r[9], "history": true,
+			"exceptionOnly": EXCEPTION_ONLY.has(r[0])})
 	# pic-core §3 v1.2: fiscal-stress signals for the government (current values, no perception lag) — E57
 	# budget balance is NOT a stress input: founding-era capex from the charter treasury reads as a huge "deficit" (E57)
 	var stress := {"ECON_TREASURY_RUNWAY": {"good": 36000, "bad": 12000}, "ECON_PUBLIC_DEBT_RATIO": {"good": 60000, "bad": 150000}}
@@ -130,6 +140,8 @@ static func levers() -> Array:
 		["ECON_BUDGET_INFRASTRUCTURE", [0, 15000], 3000, "LAW", {"FISCAL": 0.0056, "ECON_ROLE": 0.0028}, {"INFRASTRUCTURE": 50, "JOBS": 20, "GOVERNANCE": -40}, F, 0, false],
 		["ECON_BUDGET_HOUSING", [0, 10000], 2100, "LAW", {"REDISTRIBUTION": 0.0125, "ECON_ROLE": 0.0125, "FISCAL": 0.006}, {"HOUSING": 60, "JOBS": 10, "GOVERNANCE": -27}, F, 0, false],
 		["ECON_BUDGET_PUBLIC_WORKS", [0, 5000], 1500, "LAW", {"ECON_ROLE": 0.008, "FISCAL": 0.008}, {"JOBS": 35, "INFRASTRUCTURE": 15, "HOUSING": 10, "GOVERNANCE": -20}, "STAFF_T_IMPL_PROGRAM", 1, false],
+		# E124b (range [0, 20000]) reverted 2026-11-13: at the max the AI held 20M/yr from Y20 and households went hungry
+		# with spare food capacity (seed 1); the range returns with the slump rule's cap on posts (Wilma)
 		["ECON_BUDGET_PUBLIC_EMPLOYMENT", [0, 5000], 0, "LAW", {"ECON_ROLE": 0.008, "FISCAL": 0.008, "LABOR": 0.006}, {"JOBS": 40, "FAIRNESS": 5, "GOVERNANCE": -20}, "STAFF_T_IMPL_PROGRAM", 1, false],
 		# E117b: the Public Employment Service hires the unemployed at 80% of the General wage for upkeep work (EconPublicJobs)
 		["ECON_PE_EXPANSION", [0, 1], 1, "REGULATION", {"ECON_ROLE": 10.0}, {"JOBS": 10, "INFRASTRUCTURE": 10, "GOVERNANCE": -5}, "STAFF_T_IMPL_ADMIN", 1, false],

@@ -161,7 +161,11 @@ and greenhouse warming are Terra's physical model; Bob reads them. Politics read
     landing hex's high ground. It leaves toward `Planet.downstream(landing)`, into the sea when that is the sea.
     There is one mouth and no forks: a tributary (the second inflow, else a hill stream) joins it. The grid stores
     `"mouth"`.
-  - Deposits: each hex's own, as patches on its hills, plus at least 5 ore and 2 rare.
+  - Deposits: each hex's own, as patches on its hills, plus at least 5 ore and 2 rare. If there is no ore within
+    `ORE_NEAR` = 30 tiles of the middle, a 3–5 tile ore patch goes into the largest hill range there, so a mining
+    town always has a site.
+  - Redrock (ColonyLayout d:3, `"ore": true`) stands at its ore: ore within 3 tiles at the foot of the hills, even
+    if that is further out (Wilma 2026-11-12: +0–10% road length is worth it).
   - Expedition worlds use the same derivation.
 - **Sea "~"**: nothing is built on it (every build whitelist excludes it), and roads cannot enter it or cut its
   corners. Waste flow starts at the stored mouth.

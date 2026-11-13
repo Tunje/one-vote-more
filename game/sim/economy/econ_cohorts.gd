@@ -144,6 +144,9 @@ static func monthly(world: WorldState) -> void:
 static func _deaths(world: WorldState, d: String, pools: Array, h: Array, rem: Dictionary, hacc: float, famine: bool, ra: int) -> void:
 	var occ := float(world.peek("district").get(d, {}).get("occupancy", 1000)) / 1000.0
 	var crowd := 1.0 + 2.0 * maxf(0.0, occ - SLUM_OCC)
+	if EconInformal.active(world):
+		# S7: shacks have no water or sewage; the homeless sleep in doorways and the old landing shelters
+		crowd += SHACK_MORT * EconInformal.shack_share(world, d) + HOMELESS_MORT * EconInformal.homeless_share(world, d)
 	var total_d := 0
 	var n := {"c": 0, "w": 0, "o": 0}
 	for a in AGES:
@@ -189,6 +192,9 @@ static func tfr(world: WorldState, d: String, edu: float) -> float:
 	var dens := clampf(n / 1500.0, 0.0, 1.0)
 	var occ := float(world.peek("district").get(d, {}).get("occupancy", 1000)) / 1000.0
 	var crowd := clampf(1.0 - 0.5 * maxf(0.0, occ - 1.0), 0.6, 1.0)
+	if EconInformal.active(world):
+		# S7: young adults with no home of their own put off starting a family
+		crowd *= clampf(1.0 - SHACK_FERT * EconInformal.shack_share(world, d) - HOMELESS_FERT * EconInformal.homeless_share(world, d), 0.4, 1.0)
 	var t := TFR_BASE * (1.0 - 0.35 * inc - 0.25 * edu - 0.15 * dens) * crowd * EconHouseholds.food_brake(world)  # early ≈ 3.4, a rich dense colony ≈ 2.5
 	return clampf(t, TFR_MIN, TFR_MAX)
 
@@ -280,24 +286,24 @@ static func _pending_moves(world: WorldState, d: String, pools: Array) -> void:
 
 
 ## n employed people of a housing block retire: their posts are released from the staff records (vacancies next month).
-static func retire_employed(world: WorldState, hb: String, n: int) -> int:
+static func retire_employed(world: WorldState, hb: String, n: int, to: Dictionary = {"status": "RETIRED", "occ": "NONE"}, reason: String = "RETIRE") -> int:
 	var left := n
 	var done := 0
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		if left <= 0:
 			break
 		var f: Dictionary = world.table("facility")[fid]
-		left -= _retire_from(world, f["org"], f["type"], f["staff"], hb, left)
+		left -= _retire_from(world, f["org"], f["type"], f["staff"], hb, left, to, reason)
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		if left <= 0:
 			break
 		var o: Dictionary = world.table("org")[oid]
 		if o["is_contractor"]:
-			left -= _retire_from(world, oid, "CREW", o["crew"], hb, left)
+			left -= _retire_from(world, oid, "CREW", o["crew"], hb, left, to, reason)
 	return n - left
 
 
-static func _retire_from(world: WorldState, org_id: String, ftype: String, staff: Dictionary, hb: String, want: int) -> int:
+static func _retire_from(world: WorldState, org_id: String, ftype: String, staff: Dictionary, hb: String, want: int, to: Dictionary = {"status": "RETIRED", "occ": "NONE"}, reason: String = "RETIRE") -> int:
 	var took := 0
 	for t in EconUtil.sorted_keys(staff):
 		var recs: Dictionary = staff[t]
@@ -312,7 +318,7 @@ static func _retire_from(world: WorldState, org_id: String, ftype: String, staff
 			if take <= 0:
 				continue
 			var occ := EconPop.person_occ(world, org_id, ftype, t)
-			var moved := PopStore.move_group(world, {"hb": hb, "status": "EMPLOYED", "occ": occ}, take, {"status": "RETIRED", "occ": "NONE"}, "RETIRE", "skill:" + str(p[1]))
+			var moved := PopStore.move_group(world, {"hb": hb, "status": "EMPLOYED", "occ": occ}, take, to, reason, "skill:" + str(p[1]))
 			if moved <= 0:
 				continue
 			recs[k] = int(recs[k]) - moved * S
@@ -396,6 +402,12 @@ const TL := preload("res://sim/law/trade_law.gd")
 const SHIP_PASSENGERS := 450  # settlers a home-world ship can carry (HomeWorld may scale it later)
 const EMIG_SHARE := 0.1  # of the unemployed young adults, × how unattractive the colony is
 const SLUM_OCC := 1.2
+const SHACK_MORT := 1.0  # S7: mortality × (1 + this × share of households in shacks)
+const HOMELESS_MORT := 2.5  # S7: ... + this × share homeless
+const SHACK_FERT := 0.3  # S7: fertility × (1 − this × shack share − HOMELESS_FERT × homeless share)
+const HOMELESS_FERT := 0.6
+const HOMELESS_EMIG := 0.3  # S7: share of homeless persons (whole families, workers too) leaving on a ship, × unattractiveness
+const SHACK_EMIG := 0.05  # S7: the same for shack dwellers
 
 
 ## 0..1: how attractive the colony looks to would-be settlers — jobs, real wages, food, housing.
@@ -412,8 +424,8 @@ static func attractiveness(world: WorldState) -> float:
 	var occ := float(hh) / maxf(1.0, float(units))
 	var housing := clampf(1.0 - maxf(0.0, occ - 1.0) / 0.4, 0.0, 1.0)
 	var a := 0.15 + 0.35 * jobs + 0.2 * wage + 0.15 * food + 0.15 * housing
-	if bool(EconUtil.peek_st(world).get("famine", false)):
-		a *= 0.3
+	if bool(EconUtil.peek_st(world).get("famine", false) if EconUtil.off(world, "E125") else EconUtil.peek_st(world).get("famine_now", false)):
+		a *= 0.3  # E125: while the famine lasts, not forever after
 	return clampf(a, 0.0, 1.0)
 
 
@@ -458,6 +470,9 @@ static func ship_migration(world: WorldState) -> Dictionary:
 			departed += int(parts[k])
 		var h2 := histogram(world, d)
 		_take_ages(h2, go, ADULT, 35)
+	# S7: families without a home leave too — workers and children, not only the jobless young
+	if EconInformal.active(world):
+		departed += _homeless_leave(world, a)
 	if departed > 0:
 		EconFacts.emit(world, "ECON_EMIGRATION", null, [], [["GOVERNMENT", "government", 0.8], ["NATURE", "market", 0.2]],
 			{"JOBS": -mini(40, departed / 5)}, clampi(20 + departed / 10, 20, 60), "PUBLIC", {"persons": departed, "attractiveness_pct": int(a * 100.0)})
@@ -466,6 +481,36 @@ static func ship_migration(world: WorldState) -> Dictionary:
 	s["arrivals_12m"] = _roll(s.get("arrivals_12m", []), arrived, world.month)
 	s["departures_12m"] = _roll(s.get("departures_12m", []), departed, world.month)
 	return {"arrived": arrived, "departed": departed, "district": best, "attractiveness_pm": int(a * 1000.0)}
+
+
+## S7: homeless and shack families leave on the ship (HOMELESS_EMIG / SHACK_EMIG of their persons × unattractiveness).
+## Workers among them quit their jobs first (the staff records are released), then the families depart. Returns persons.
+static func _homeless_leave(world: WorldState, attract: float) -> int:
+	var out := 0
+	for d in EconUtil.sorted_keys(world.peek("district")):
+		var persons := (float(EconInformal.homeless(world, d)) * HOMELESS_EMIG + float(EconInformal.shacks(world, d)) * SHACK_EMIG) 			/ float(S) * EconData.HOUSEHOLD_SIZE * (1.0 - attract)
+		var go := int(persons)
+		if go <= 0:
+			continue
+		var hb := EconPop.hb_of(d)
+		var total := PopStore.count(world, {"hb": hb})
+		if total <= 0:
+			continue
+		go = mini(go, total / 4)
+		var emp := PopStore.count(world, {"hb": hb, "status": "EMPLOYED"})
+		retire_employed(world, hb, go * emp / maxi(1, total), {"status": "UNEMPLOYED"}, "EMIGRATION")
+		var keys := PopStore.select(world, {"hb": hb}).filter(func(k): return world.peek("pop")[k].get("status", "") != "EMPLOYED")
+		if keys.is_empty():
+			continue
+		var parts := PopStore.split_over(go, keys, keys.map(func(k): return float(world.peek("pop")[k]["n"])))
+		var left := 0
+		for k in EconUtil.sorted_keys(parts):
+			var n := mini(int(parts[k]), int(world.peek("pop")[k]["n"]))
+			PopStore.depart(world, k, n, "EMIGRATION")
+			left += n
+		_take_ages(histogram(world, d), left, 0, 59)
+		out += left  # (the jobs the workers left are vacant now; EconLabor posts them again)
+	return out
 
 
 static func _take_ages(h: Array, n: int, lo: int, hi: int) -> void:

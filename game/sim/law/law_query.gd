@@ -422,11 +422,14 @@ static func party_finance(world: WorldState) -> Dictionary:
 		"convictions": st.get("convictions", []).duplicate(true)}
 
 
-## May a convicted leader (by name) hold a party leadership / office under current law?
-static func may_hold_office(world: WorldState, leader: String) -> bool:
+## May a convicted leader (by name, or by bench person id) hold a party leadership / office under current law?
+## No while a conviction's bar runs (LAW_CONVICTION_BAN_YEARS); after it, LAW_CONVICTED_CAN_HOLD_OFFICE decides.
+static func may_hold_office(world: WorldState, leader: String, person: String = "") -> bool:
+	if PF.is_barred(world, leader, person):
+		return false
 	var st: Dictionary = world.peek("law_state").get("s", {}).get("party_finance", {})
 	for c in st.get("convictions", []):
-		if c["leader"] == leader:
+		if c["leader"] == leader or (person != "" and String(c.get("person", "")) == person):
 			return PF.convicted_can_hold_office(world)
 	return true
 

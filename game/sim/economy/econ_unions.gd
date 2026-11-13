@@ -174,10 +174,11 @@ static func _adverse_size(world: WorldState, id: String, from_v, to_v) -> float:
 # ------------------------------------------------------------------ industrial action (COMPANY_AI)
 
 ## Workforce (mu) of an org by occupation, and its facilities.
-static func _org_workforce(world: WorldState, oid: String) -> Dictionary:
+static func _org_workforce(world: WorldState, oid: String, own: Variant = null) -> Dictionary:
 	var occ_n := {}
 	var facs: Array = []
-	for fid in EconUtil.sorted_keys(world.table("facility")):
+	# `own`: the org's facility ids in sorted order (perf: industrial_action indexes them once a month)
+	for fid in (own as Array if own != null else EconUtil.sorted_keys(world.table("facility"))):
 		var f: Dictionary = world.table("facility")[fid]
 		if f["org"] != oid:
 			continue
@@ -204,10 +205,22 @@ static func industrial_action(world: WorldState) -> void:
 		laid[oid] = laid.get(oid, 0) + int(layoffs[k])
 	var started := 0
 	var u2 := not EconUtil.off(world, "UNIONS_U2") and not EconUtil.off(world, "UNIONS_U1")
+	# perf (v6 review): each org's facilities indexed once (sorted order kept) instead of a full scan per org; an org
+	# that is not ACTIVE and laid nobody off this month needs no workforce count (neither check below can fire)
+	var perf := not EconUtil.off(world, "PERF1")
+	var by_org := {}
+	if perf:
+		for fid in EconUtil.sorted_keys(world.table("facility")):
+			var fo: String = world.table("facility")[fid]["org"]
+			if not by_org.has(fo):
+				by_org[fo] = []
+			by_org[fo].append(fid)
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		var o: Dictionary = world.table("org")[oid]
 		o["union_pm"] = maxi(0, int(o.get("union_pm", 0)) - UNION_PM_DECAY)
-		var wf := _org_workforce(world, oid)
+		if perf and o["status"] != "ACTIVE" and int(laid.get(oid, 0)) == 0:
+			continue
+		var wf := _org_workforce(world, oid, by_org.get(oid, []) if perf else null)
 		var occ_n: Dictionary = wf["occ"]
 		var staff := 0
 		for occ in occ_n:

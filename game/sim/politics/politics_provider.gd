@@ -107,6 +107,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 	if have_parties and world.month_of_year() == 1 and world.month > PolDefs.PARTY_FORMATION_MONTH:
 		_adapt_parties(world)
 		Learn.step(world)   # A53: the learning party (no-op unless meta.learning_party is set)
+		PartyLife.mandate_vote(world)   # A51 B3: free or party mandate (constitutional, 2/3)
 		var base := PartyLife.axis_baseline(world)   # (Ella) faction lines judged against the other parties
 		for p in PartyLife.active(world):
 			PartyLife.update_factions(world, p, base)
@@ -169,6 +170,9 @@ func _sync_cells(world: WorldState) -> void:
 				base["ECON_ROLE"] += bs[0] * S
 				base["REDISTRIBUTION"] += bs[1] * S
 				base["FISCAL"] += bs[2] * S
+				if bool(world.meta.get("mirror", false)):   # A52 bias audit: the whole political space mirrored (default off)
+					for ax in PolDefs.AXES:
+						base[ax] = clampi(-int(base[ax]), -100 * S, 100 * S)
 				var sal := {}
 				var sat := {}
 				for c in PolDefs.CONCERNS:
@@ -636,6 +640,7 @@ func run_election(world: WorldState, st: Dictionary, extra: bool = false) -> voi
 		votes[pid] = int(round(fvotes[pid]))
 		total += votes[pid]
 	var seats := VoteModel.allocate_seats(votes)
+	PartyLife.end_independents(world)   # A51 B3: independents stood on no list
 	# promise keeping for governing parties: did the levers move the way their agenda said?
 	_score_promises(world, st)
 	for pid in ids:
@@ -667,6 +672,7 @@ func run_election(world: WorldState, st: Dictionary, extra: bool = false) -> voi
 		shares[p["id"]] = int(p["support"])
 	PartyLife.check_dissolutions(world, st, shares)
 	Learn.step(world)   # A53: the learning party judges its trial genome on the result
+	PartyLife.election_lists(world)   # A51 B3: the top of each list takes its seats
 	var base := PartyLife.axis_baseline(world)
 	for p in PartyLife.active(world):
 		PartyLife.update_factions(world, p, base)

@@ -39,17 +39,29 @@ func run_phase(phase: int, world: WorldState) -> void:
 			EconFinance.settle(world)
 			EconUnions.donation_offers(world)
 		TickPhase.COMPANY_AI:
+			var t := Time.get_ticks_usec()
 			LawBridge.revalidate(world)
+			t = EconUtil.prof(world, "LawBridge.revalidate", t)
 			EconTrade.monthly(world)  # D1 (A42): home prices, export consignments — before the firms post sale offers
+			t = EconUtil.prof(world, "EconTrade.monthly", t)
 			FirmAI.run(world)
+			t = EconUtil.prof(world, "FirmAI.run", t)
 			EconConsumer.decorate_offers(world)  # D2: quality and reputation on consumer-goods offers
+			t = EconUtil.prof(world, "EconConsumer.decorate_offers", t)
 			EconConsumer.quality_monthly(world)  # D2: workshop quality, brand reputation, scandals
+			t = EconUtil.prof(world, "EconConsumer.quality_monthly", t)
 			EconTraining.monthly(world)  # E114: on-the-job training into skilled vacancies
+			t = EconUtil.prof(world, "EconTraining.monthly", t)
 			EconPublicJobs.monthly(world)  # E117b: public employment scheme (budget line set by parliament)
+			t = EconUtil.prof(world, "EconPublicJobs.monthly", t)
 			EconHousing.monthly(world)  # S3 (A46): housing ages on an S-curve; owners renovate or let it slide
+			t = EconUtil.prof(world, "EconHousing.monthly", t)
 			EconUnions.industrial_action(world)
+			t = EconUtil.prof(world, "EconUnions.industrial_action", t)
 			EconPop.realign(world)  # M10: workplaces that changed owner this month relabel their staff's occupation
+			t = EconUtil.prof(world, "EconPop.realign", t)
 			EconPop.sync(world)
+			t = EconUtil.prof(world, "EconPop.sync", t)
 		TickPhase.SOCIAL:
 			EconHouseholds.social(world)
 			EconIndicators.publish(world)

@@ -607,13 +607,19 @@ static func _party_fine(world: WorldState, c: Dictionary) -> int:
 	fact(world, "LAW_FINE_IMPOSED", "PUBLIC", [pref], [{"actor": pref, "share": 1.0}], {"FAIRNESS": 2},
 		mini(40, 10 + amount / maxi(1, w_ref(world))), {"amount": amount, "paid": paid, "class": "PARTY_FINANCE", "party": pid})
 	if c["data"].get("leader_charged", false):
-		var can := bool(world.levers.get("LAW_CONVICTED_CAN_HOLD_OFFICE", true))
+		var ban := clampi(int(world.levers.get("LAW_CONVICTION_BAN_YEARS", 6)), 0, 10)
+		var can := bool(world.levers.get("LAW_CONVICTED_CAN_HOLD_OFFICE", true)) and ban == 0
 		var leader := String(c["data"].get("leader", ""))
+		var ld = world.peek("party").get(pid, {}).get("leader", {})
+		var person := String(ld.get("person", "")) if typeof(ld) == TYPE_DICTIONARY and String(ld.get("name", "")) == leader else ""
+		var until := world.month + ban * 12 if ban > 0 else -1
 		var t := world.table("law_state")
 		if t.has("s") and t["s"].has("party_finance"):
-			t["s"]["party_finance"]["convictions"].append({"leader": leader, "party": pid, "month": world.month, "case": c["id"]})
+			t["s"]["party_finance"]["convictions"].append({"leader": leader, "person": person, "party": pid, "month": world.month,
+				"case": c["id"], "barred_until": until})
 		fact(world, "LAW_LEADER_CONVICTED", "PUBLIC", [pref], [{"actor": pref, "share": 1.0}], {"GOVERNANCE": -3}, 60,
-			{"party": pid, "leader": leader, "case": c["id"], "can_hold_office": can, "must_step_down": not can})
+			{"party": pid, "leader": leader, "person": person, "case": c["id"], "can_hold_office": can, "must_step_down": not can,
+				"barred_until": until})
 	return amount
 
 

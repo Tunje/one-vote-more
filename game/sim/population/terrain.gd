@@ -16,6 +16,8 @@ const H := 96
 const KM_PER_TILE := 3
 ## How far (tiles) hex borders wobble on the map, so coasts and land edges are not straight lines.
 const WARP := 2.5
+## A mining site near the colony: ore within this many tiles of the map's middle, else a patch in the hills (derive).
+const ORE_NEAR := 30
 const NAMES := {".": "plain", "f": "fertile land", "r": "river", "h": "hills", "k": "rock", "o": "ore deposit",
 	"x": "rare-mineral deposit", "n": "native-crop land", "L": "landing site", "~": "sea"}
 ## What each terrain allows (housing on plain/fertile/landing; farms on fertile/river edge; mines on deposits).
@@ -193,6 +195,10 @@ static func derive(world: WorldState) -> Dictionary:
 			continue
 		for _patch in (3 if int(c2) == li else 1):
 			dep_n[code] += _patch_on(g, r, code, cell_of, int(c2))
+	# a mining site near the colony: without ore within ORE_NEAR tiles of the middle, a patch goes into the largest
+	# hill range there (so a mining town has a real place to stand)
+	if not _has_near(g, "o", Vector2i(W / 2, H / 2), ORE_NEAR):
+		dep_n["o"] += _ore_in_hills(g, r, Vector2i(W / 2, H / 2))
 	while int(dep_n["o"]) < 5:
 		var got := _patch_on(g, r, "o", cell_of, li, 1)
 		if got == 0:
@@ -247,6 +253,59 @@ static func _spring(g: Array, hgt: Array, cell_of: PackedInt32Array, li: int, d:
 				bh = float(hgt[y][x])
 				best = Vector2i(x, y)
 	return best
+
+
+static func _has_near(g: Array, code: String, c: Vector2i, reach: int) -> bool:
+	for y in range(maxi(0, c.y - reach), mini(H, c.y + reach + 1)):
+		for x in range(maxi(0, c.x - reach), mini(W, c.x + reach + 1)):
+			if g[y][x] == code and Vector2(x - c.x, y - c.y).length() <= float(reach):
+				return true
+	return false
+
+
+## An ore patch (3–5 tiles) in the largest hill range (connected hills and rock, counting its tiles within ORE_NEAR of
+## `c`), at the tile nearest the middle of that part. Returns the tiles placed (0 if there are no hills near).
+static func _ore_in_hills(g: Array, r: RandomNumberGenerator, c: Vector2i) -> int:
+	var seen := {}
+	var best: Array = []
+	for y in H:
+		for x in W:
+			if seen.has(y * W + x) or not (g[y][x] in ["h", "k"]):
+				continue
+			var comp: Array = []
+			var stack: Array = [Vector2i(x, y)]
+			seen[y * W + x] = true
+			while not stack.is_empty():
+				var t: Vector2i = stack.pop_back()
+				if Vector2(t - c).length() <= float(ORE_NEAR):
+					comp.append(t)   # the part of the range within reach
+
+				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+					var u: Vector2i = t + d
+					if u.x >= 0 and u.y >= 0 and u.x < W and u.y < H and not seen.has(u.y * W + u.x) and g[u.y][u.x] in ["h", "k"]:
+						seen[u.y * W + u.x] = true
+						stack.append(u)
+			if comp.size() > best.size():
+				best = comp
+	if best.is_empty():
+		return 0
+	var mid := Vector2.ZERO
+	for t in best:
+		mid += Vector2(t)
+	mid /= float(best.size())
+	var at: Vector2i = best[0]
+	for t in best:
+		if Vector2(t).distance_to(mid) < Vector2(at).distance_to(mid):
+			at = t
+	var want := r.randi_range(3, 5)
+	var placed := 0
+	for t in [at, at + Vector2i(1, 0), at + Vector2i(0, 1), at + Vector2i(-1, 0), at + Vector2i(0, -1), at + Vector2i(1, 1), at + Vector2i(-1, -1)]:
+		if placed >= want:
+			break
+		if t.x >= 0 and t.y >= 0 and t.x < W and t.y < H and g[t.y][t.x] in ["h", "k"]:
+			g[t.y][t.x] = "o"
+			placed += 1
+	return placed
 
 
 static func _nz(sd: int, fq: float, octaves: int) -> FastNoiseLite:

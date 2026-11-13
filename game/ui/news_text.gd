@@ -229,6 +229,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"POL_PARTY_SPLIT": s = "%d MPs left %s to form [b]%s[/b]" % [int(d.get("mps", 0)), party(w, d.get("party", "")), party(w, d.get("splinter", ""))]
 		"POL_PARTIES_MERGED": s = "%s merged into %s" % [party(w, d.get("absorbed", "")), party(w, d.get("into", ""))]
 		"POL_LEADER_CHANGED": s = "%s has a new leader: %s" % [party(w, d.get("party", "")), d.get("new", "")]
+		"POL_PARTY_CLEANUP": s = "%s cleans house%s: it will take no more money from %s and pledges full disclosure" % [party(w, d.get("party", "")), " under pressure from its reform wing" if d.get("forced_by", "") == "REFORM_WING" else "", org(w, String(d.get("donor", "")))]
 		"POL_SCANDAL_REVEALED": s = "[color=#ff8a65]Scandal[/color]: %s, %s" % [party(w, d.get("party", "")), d.get("leader", "")]
 		"POL_NO_CONFIDENCE_PASSED": s = "[color=#ff5252][b]The Cabinet lost a vote of no confidence[/b][/color]"
 		"POL_NO_CONFIDENCE_FAILED": s = "The Cabinet survived a vote of no confidence"

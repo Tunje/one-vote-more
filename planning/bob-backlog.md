@@ -66,3 +66,23 @@ projects." — clarified: "I did not mean a bostadsrätt (co-op), I meant owning
    lower fertility under crowding; working families emigrate when no home. Informal AREA kind (AreaStore INFORMAL) +
    map drawing with Terra once S1 areas land. Political choice (clear / legalise+upgrade / build) is Wilma's; Bob gives
    actions + hooks (clearance under Anni's eviction rules; upgrade as S3 renovation lots).
+
+18. **S7 fix (opt-in now, 2026-11-13):** with S7 on, seed 1 stalled at ~5.5k by Y50 (farms frozen at 20 for 30 years,
+   ≥50% household food unmet in every income band incl. the rich, price 4–5× base, nameplate capacity "sufficient").
+   Measure per year: farm output vs nameplate (labour fill, inputs, targets), other FOOD buyers (D2 bakeries, D1
+   consignments, reserves, spoilage), FirmAI farm investment/entry signals, GovBuilder farm commissions + fiscal guard.
+   Then switch S7 on by default.
+19. **Emergency price control and rationing as real economics** (Wilma, low priority: after S7 and firm growth).
+   LAW_PRICE_CONTROL "ESSENTIALS": cap on the consumer price of essentials — queues (unfilled orders), black-market
+   leakage, weaker farm investment unless the state subsidises the gap. LAW_RATIONING "FOOD"/"FOOD_FUEL": per-person
+   cap that spreads scarce food evenly (fewer deaths among the poor, less for the rich). Politics already declares and
+   lifts them (EmergencyPolitics / LawOps.end_emergency); only the economic side is missing.
+20. **Firm-count growth** (Wilma-agreed, after S7; also a FAIRNESS issue per planning/audit-bias-report.md: market-minded
+   Cabinets see unemployment +2.2 pts/yr in office vs flat for state-minded — there is no channel by which market policy
+   creates jobs; add tax and regulation effects on firm entry): private firms stay at 16–25 while the labour force triples —
+   MAX_FORMING / entry vs labour-force size, survival of entrants; hub resale (liquidated hubs only to same-sector
+   buyers, no worker buyout) and the service-hub output trap (E123 attempt dropped: no jobs effect, mothball risk).
+21. **PES range back to [0, 20000]** together with Wilma's slump-rule cap (posts tied to unemployment), once the
+   "big PES → hunger" effect is understood (seed 1: PES at 20M/yr from Y20; taxes maxed, benefit floor cut to 0).
+22. **Labour lever hints vs delivery** (audit, low priority): hints overpromise ~30% on both sides; 30–54% of evidence
+   judgements are exactly 0; pro-labour changes deliver 0.73 of their hints vs 0.62 for the opposite — recalibrate.

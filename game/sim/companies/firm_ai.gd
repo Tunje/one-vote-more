@@ -9,33 +9,59 @@ const S := EconUtil.S
 
 static func run(world: WorldState) -> void:
 	var s := EconUtil.st(world)
+	var t := Time.get_ticks_usec()
+	if not EconUtil.off(world, "PERF1"):
+		_cache_build(world)  # perf (Wilma, v6): facility ownership/outputs indexed once; valid until the targets are set
 	_update_sales_ema(world)
+	t = EconUtil.prof(world, "FirmAI._update_sales_ema", t)
 	_ceo_turnover(world)
+	t = EconUtil.prof(world, "FirmAI._ceo_turnover", t)
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		_set_target(world, f)
-	_post_inputs_and_offers(world)
+	t = EconUtil.prof(world, "FirmAI._set_target", t)
+	_post_inputs_and_offers(world)  # (orders, offers and working-capital loans only: no facility changes owner here)
+	_cache_clear()
+	t = EconUtil.prof(world, "FirmAI._post_inputs_and_offers", t)
 	EconConstruction.contractor_plans(world)
+	t = EconUtil.prof(world, "FirmAI.EconConstruction.contractor_plans", t)
 	EconLabor.post_vacancies(world)
+	t = EconUtil.prof(world, "FirmAI.EconLabor.post_vacancies", t)
 	EconConstruction.bid_round(world)
+	t = EconUtil.prof(world, "FirmAI.EconConstruction.bid_round", t)
 	_auto_award(world)
+	t = EconUtil.prof(world, "FirmAI._auto_award", t)
 	EconInsolvency.liquidation_round(world)
+	t = EconUtil.prof(world, "FirmAI.EconInsolvency.liquidation_round", t)
 	EconInsolvency.forced_sale_round(world)
+	t = EconUtil.prof(world, "FirmAI.EconInsolvency.forced_sale_round", t)
 	if world.month % 6 == 0:
 		EconInsolvency.reprivatize(world)
+		t = EconUtil.prof(world, "FirmAI.EconInsolvency.reprivatize", t)
 	if not EconUtil.off(world, "E110"):
 		EconEssentials.record(world)
+		t = EconUtil.prof(world, "FirmAI.EconEssentials.record", t)
 	if world.month_of_year() % 3 == 0:
 		_investment(world)
+		t = EconUtil.prof(world, "FirmAI._investment", t)
 		_entry(world)
+		t = EconUtil.prof(world, "FirmAI._entry", t)
 		_builder_entry(world)
+		t = EconUtil.prof(world, "FirmAI._builder_entry", t)
 		_new_plants(world)
+		t = EconUtil.prof(world, "FirmAI._new_plants", t)
 		_essentials_planner(world)
+		t = EconUtil.prof(world, "FirmAI._essentials_planner", t)
 		_developers(world)  # E120: private housing where the colony is crowded
+		t = EconUtil.prof(world, "FirmAI._developers", t)
 	_expansion(world)
+	t = EconUtil.prof(world, "FirmAI._expansion", t)
 	_small_business(world)
+	t = EconUtil.prof(world, "FirmAI._small_business", t)
 	_media_owners(world)
+	t = EconUtil.prof(world, "FirmAI._media_owners", t)
 	EconLabor.update_wage_index(world)
+	t = EconUtil.prof(world, "FirmAI.EconLabor.update_wage_index", t)
 
 
 static func _update_sales_ema(world: WorldState) -> void:
@@ -48,10 +74,48 @@ static func _update_sales_ema(world: WorldState) -> void:
 			o["sales_ema"][good] = int(0.67 * prev + 0.33 * cur)
 
 
+## Perf cache (v6 review: COMPANY_AI grew cubically — every producer's target summed every org's outputs, each a
+## sorted scan of all facilities: 505 × 226 × 505 a month at Y50, 79 s a simulated year). Built at the start of
+## run(); facility ownership, type and scale do not change while sales EMAs, targets and offers are set, so cached outputs
+## equal the scans exactly (integer sums). Per-org facility lists keep the global sorted order, so live reads over
+## them (E112 own-input need) sum in the same order as before. Cleared before anything can change ownership.
+static var _c_on := false
+static var _c_fac: Dictionary = {}  # oid -> [fid, ...] in sorted fid order
+static var _c_out: Dictionary = {}  # oid -> {good: capacity}
+static var _c_all: Dictionary = {}  # good -> float sum over orgs
+
+
+static func _cache_build(world: WorldState) -> void:
+	_c_fac = {}
+	_c_out = {}
+	_c_all = {}
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var oid: String = world.table("facility")[fid]["org"]
+		if not _c_fac.has(oid):
+			_c_fac[oid] = []
+		_c_fac[oid].append(fid)
+	_c_on = true
+	for oid in EconUtil.sorted_keys(world.table("org")):
+		var outs := _org_outputs(world, oid)
+		_c_out[oid] = outs
+		for g in outs:
+			_c_all[g] = float(_c_all.get(g, 0.0)) + float(outs[g])
+	# (an org without plants adds 0.0 — the same as the old scan)
+
+
+static func _cache_clear() -> void:
+	_c_on = false
+	_c_fac = {}
+	_c_out = {}
+	_c_all = {}
+
+
 ## Output goods (market goods only) an org produces -> total full capacity (mu).
 static func _org_outputs(world: WorldState, oid: String) -> Dictionary:
+	if _c_on and _c_out.has(oid):
+		return _c_out[oid]
 	var out := {}
-	for fid in EconUtil.sorted_keys(world.table("facility")):
+	for fid in (_c_fac.get(oid, []) if _c_on else EconUtil.sorted_keys(world.table("facility"))):
 		var f: Dictionary = world.table("facility")[fid]
 		if f["org"] != oid:
 			continue
@@ -224,7 +288,7 @@ const PE_KEEP_IDLE_U := 0.12
 ## E112: monthly input requirement of `good` by the org's own running plants at their current targets.
 static func _own_input_need(world: WorldState, oid: String, good: String) -> float:
 	var need := 0.0
-	for fid in EconUtil.sorted_keys(world.table("facility")):
+	for fid in (_c_fac.get(oid, []) if _c_on else EconUtil.sorted_keys(world.table("facility"))):
 		var f2: Dictionary = world.table("facility")[fid]
 		if f2["org"] != oid or f2["mothball"]:
 			continue
@@ -242,8 +306,11 @@ static func _producer_target(world: WorldState, f: Dictionary, o: Dictionary, go
 	# demand signal: the firm's capacity share of everything buyers wanted last month (sees unfilled demand)
 	var ms: Dictionary = EconUtil.st(world).get("market_stats", {}).get(good, {})
 	var all_cap := 0.0
-	for oid2 in EconUtil.sorted_keys(world.table("org")):
-		all_cap += float(_org_outputs(world, oid2).get(good, 0))
+	if _c_on:
+		all_cap = float(_c_all.get(good, 0.0))
+	else:
+		for oid2 in EconUtil.sorted_keys(world.table("org")):
+			all_cap += float(_org_outputs(world, oid2).get(good, 0))
 	var wanted_share := float(ms.get("wanted", 0)) * cap / maxf(1.0, all_cap)
 	ema = maxf(ema, 0.5 * (ema + wanted_share))
 	# E112: inputs the firm's own downstream plants draw internally (E93 pooling) are not market sales — without

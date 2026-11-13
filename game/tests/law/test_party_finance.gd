@@ -127,7 +127,48 @@ func test_conviction_and_office_ban() -> void:
 	check(not LQ.may_hold_office(w, "Leader P3"), "convicted leader barred")
 	check(LQ.may_hold_office(w, "Leader P1"), "others unaffected")
 	w.levers["LAW_CONVICTED_CAN_HOLD_OFFICE"] = true
-	check(LQ.may_hold_office(w, "Leader P3"), "no ban: may stay")
+	check(not LQ.may_hold_office(w, "Leader P3"), "the conviction's bar still runs (LAW_CONVICTION_BAN_YEARS)")
+	check_eq(int(conv[0]["data"]["barred_until"]), w.month + 6 * 12, "barred for six years")
+	w.month += 6 * 12 + 1
+	check(LQ.may_hold_office(w, "Leader P3"), "bar served, no permanent ban: may hold office again")
+
+
+## v7 seed 3: with the default bar a convicted leader must step down even where LAW_CONVICTED_CAN_HOLD_OFFICE allows
+## office; with no bar the old rule applies.
+func test_conviction_bar_by_default() -> void:
+	var s := _world()
+	var w := s.world
+	w.ledger.open_account("party:P3")
+	if not w.ledger.has_account("gov:fines_revenue"):
+		w.ledger.open_account("gov:fines_revenue")
+	w.ledger.transfer(Ledger.EXTERNAL, "party:P3", 1000 * _wref(w), "seed", w.month)
+	var fid := _donate(w, "org:1", "P3", 100 * _wref(w), "SECRET")
+	s.step()
+	w.table("party")["P3"]["leader"]["integrity"] = 0
+	PF._scandal(w, fid, {"kind": "PRESS", "id": "press"}, "LEAK")
+	J._final(w, w.table("case").values().filter(func(x): return x["type"] == "PARTY_FINANCE")[0], true)
+	var conv: Array = w.facts.query("LAW_LEADER_CONVICTED")
+	check(conv[0]["data"]["must_step_down"] and not conv[0]["data"]["can_hold_office"], "default: steps down, barred")
+	check(PF.is_barred(w, "Leader P3"), "barred by name (a synthetic leader)")
+
+
+## A firm behind repeated illegal donations is fined and banned from donating; donation_allowed refuses it.
+func test_repeat_donor_is_banned() -> void:
+	var s := _world()
+	var w := s.world
+	var a := _donate(w, "org:7", "P2", 100 * _wref(w), "SECRET")
+	var b := _donate(w, "org:7", "P3", 100 * _wref(w), "SECRET")
+	s.step()
+	PF._scandal(w, a, {"kind": "PRESS", "id": "press"}, "LEAK")
+	check_eq(PF.donor_banned_until(w, "org:7"), -1, "one strike: not banned")
+	PF._scandal(w, b, {"kind": "PRESS", "id": "press"}, "LEAK")
+	var r := LQ.donation_allowed(w, _wref(w), "org:7")
+	check(not r["ok"] and r.has("banned_until") and int(r["remaining"]) == 0, "two strikes: banned (%s)" % [r])
+	var f: Array = w.facts.query("LAW_DONOR_BANNED")
+	check(f.size() == 1 and f[0]["data"]["donor"] == "org:7", "the ban is public")
+	check(LQ.donation_allowed(w, _wref(w), "org:8")["ok"], "other firms unaffected")
+	w.month += PF.DONOR_BAN_MONTHS + 1
+	check(not LQ.donation_allowed(w, _wref(w), "org:7").has("banned_until"), "the ban ends")
 
 
 func test_public_party_funding() -> void:

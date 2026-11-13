@@ -330,6 +330,8 @@ static func _portfolios(world: WorldState) -> Dictionary:
 ## EVENTS: read this month's record into grievances and loyalty, then let people act.
 static func monthly(world: WorldState) -> void:
 	var st := world.table("bench_state")
+	_rehome_orphans(world)
+	_count_scandals(world)
 	var ms := members(world)
 	for pid in ms:
 		_init_ambition(world, Ops.person(world, pid))
@@ -452,6 +454,82 @@ static func _act(world: WorldState, pid: String, p: Dictionary, rng: RandomNumbe
 	# leak
 	if g >= LEAK["grievance_from"] and int(p.get("integrity", 50)) < LEAK["integrity_below"] and rng.randf() < LEAK["p"]:
 		_leak(world, pid, p, rng)
+
+
+## People whose party is gone (dissolved, merged, or an independent's seat ended at the election): join the active
+## party that fits them best (fit ≥ ORPHAN_FIT_MIN) as a bench member, or retire. Civil servants are not affected.
+const ORPHAN_FIT_MIN := 50
+
+
+## p.scandals (Wilma's list standing reads it): +1 when a revealed wrong names them responsible (an official who
+## carried out an unlawful act: *_REVEALED facts with an OFFICIAL share), when their party's donation scandal breaks
+## while they lead it (POL_SCANDAL_REVEALED, leader linked by `person`), or when a leak unmasks them (_leak).
+static func _count_scandals(world: WorldState) -> void:
+	var st := world.table("bench_state")
+	if int(st.get("scandals_month", -1)) == world.month:
+		return      # once per month
+	st["scandals_month"] = world.month
+	var people := world.table("person")
+	for f in Det.recent_facts(world, "", world.month):
+		if int(f["month"]) != world.month:
+			continue
+		var t := String(f["type"])
+		var hit := {}
+		if t.ends_with("_REVEALED"):
+			for r in f.get("responsible", []):
+				var a: Dictionary = r.get("actor", {})
+				if String(a.get("kind", "")) == "OFFICIAL" and people.has(String(a.get("id", ""))):
+					hit[String(a["id"])] = true
+		if t == "POL_SCANDAL_REVEALED":
+			for sj in f.get("subjects", []):
+				if typeof(sj) == TYPE_DICTIONARY and String(sj.get("kind", "")) == "PARTY":
+					var l = world.peek("party").get(String(sj.get("id", "")), {}).get("leader", {})
+					if typeof(l) == TYPE_DICTIONARY and people.has(String(l.get("person", ""))):
+						hit[String(l["person"])] = true
+		for pid in Det.ordered(hit):
+			people[pid]["scandals"] = int(people[pid].get("scandals", 0)) + 1
+
+
+static func _rehome_orphans(world: WorldState) -> void:
+	var parties := world.peek("party")
+	for pid in Det.ordered(world.table("person")):
+		var p: Dictionary = world.table("person")[pid]
+		var pty := String(p.get("party_id", ""))
+		if pty == "" or p["status"] != "ACTIVE" or p["roles"].has("CIVIL_SERVANT"):
+			continue
+		var st := String(parties.get(pty, {}).get("status", "ACTIVE"))
+		if st == "ACTIVE" or st == "INDEPENDENT":
+			continue
+		var best := ""
+		var best_f := ORPHAN_FIT_MIN - 1
+		for q in Det.ordered(parties):
+			if not Ops.party_active(world, q):
+				continue
+			var f := fit(p.get("lean", {}), parties[q].get("positions", {}))
+			if f > best_f:
+				best_f = f
+				best = String(q)
+		if best == "":
+			_retire(world, String(pid), p, "PARTY_GONE")
+			continue
+		if p["pool"] == "GOV":
+			Ops._leave_government(world, String(pid), "PARTY_GONE")
+		elif p["pool"] != "":
+			if p["assignment_id"] != "":
+				Ops.unassign(world, String(pid), "PARTY_GONE")
+			p["pool"] = ""
+		_init_ambition(world, p)        # traits and ambition first: a never-initialised person gets their lean
+		p["party_id"] = best
+		p["bench_party_id"] = best
+		p["lean_party"] = best
+		p["assembly_seat"] = false
+		p["list_rank"] = -1
+		p["loyalty"] = 55
+		p["grievances"] = []
+		p["grievance"] = 0
+		world.add_fact({"type": "STAFF_BENCH_JOINED", "owner": "staff", "subjects": [Ops.official_ref(String(pid)), {"kind": "PARTY", "id": best}],
+			"responsible": [], "impact": {}, "magnitude": 25, "visibility": "PUBLIC",
+			"data": {"person": String(pid), "name": String(p.get("name", "")), "party": best, "from": pty}})
 
 
 static func _reasons(p: Dictionary) -> Array:
@@ -634,6 +712,8 @@ static func _leak(world: WorldState, pid: String, p: Dictionary, rng: RandomNumb
 	if target == "":
 		return
 	var named := rng.randf() < LEAK["named_p"]
+	if named:
+		p["scandals"] = int(p.get("scandals", 0)) + 1      # unmasked as the leaker
 	world.add_fact({"type": "STAFF_LEAKED", "owner": "staff", "subjects": [{"kind": "PARTY", "id": party}], "responsible": [],
 		"impact": {}, "magnitude": 45, "visibility": "PUBLIC",
 		"data": {"party": party, "fact": target, "person": pid if named else "", "name": String(p["name"]) if named else ""}})

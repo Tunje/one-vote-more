@@ -54,8 +54,10 @@ const QUESTION_ORDER := ["EXPERIENCE", "TECHNICAL", "POLITICAL", "WHY_LEFT", "ST
 # ===================================================================================== person traits
 
 ## lean / loyalty / temper, derived once from the person's name and birth (no RNG stream is disturbed).
+## Each trait is backfilled on its own: other code may set loyalty (Bench: defection, rehoming, contests) on a person
+## who never had traits derived, so "has loyalty" does not imply "has lean" (Y50+ crash, A51).
 static func traits(p: Dictionary) -> Dictionary:
-	if not p.has("loyalty"):
+	if not (p.has("lean") and p.has("loyalty") and p.has("temper")):
 		var r := RandomNumberGenerator.new()
 		r.seed = hash("%s|%d" % [String(p.get("name", "")), int(p.get("birth_month", 0))])
 		var civil: bool = p.get("roles", []).has("CIVIL_SERVANT")
@@ -63,9 +65,14 @@ static func traits(p: Dictionary) -> Dictionary:
 		var lean := {}
 		for ax in LEAN_AXES:
 			lean[ax] = r.randi_range(-span, span) * 1000
-		p["lean"] = lean
-		p["loyalty"] = r.randi_range(30, 95)
-		p["temper"] = r.randi_range(20, 95)
+		var loyalty := r.randi_range(30, 95)
+		var temper := r.randi_range(20, 95)
+		if not p.has("lean"):
+			p["lean"] = lean
+		if not p.has("loyalty"):
+			p["loyalty"] = loyalty
+		if not p.has("temper"):
+			p["temper"] = temper
 	return {"lean": p["lean"], "loyalty": int(p["loyalty"]), "temper": int(p["temper"])}
 
 
@@ -160,7 +167,8 @@ static func _appointees(world: WorldState) -> Array:
 	var out: Array = []
 	for pid in Det.ordered(world.table("person")):
 		var p: Dictionary = world.table("person")[pid]
-		if p["pool"] == "GOV" and Ops.is_alive_active(p) and _is_minister(p):
+		if p["pool"] == "GOV" and Ops.is_alive_active(p) and _is_minister(p) \
+				and not load("res://sim/law/party_finance.gd").is_barred(world, String(p.get("name", "")), String(pid)):
 			out.append(String(pid))
 	return out
 

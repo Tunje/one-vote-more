@@ -398,3 +398,15 @@ static func recent_econ_facts(world: WorldState, months: int = 6, min_mag: int =
 ## deaths_12m, arrivals_12m, departures_12m, households_forming_12m, housing_units, occupancy_pct, slums, attractiveness_pct}.
 static func demography(world: WorldState) -> Dictionary:
 	return EconCohorts.forecast(world)
+
+
+## Labour market in persons (Wilma's slump rule): labour force, employed, unemployed, rate, and the public employment
+## scheme's posts (counted as employed). Same sums as FirmAI.colony_unemployment.
+static func labour(world: WorldState) -> Dictionary:
+	var lf := 0
+	var emp := 0
+	for gid in world.peek("hh"):
+		lf += int(world.peek("hh")[gid]["lf"])
+		emp += EconLabor.employed(world.peek("hh")[gid])
+	return {"labour_force": lf / S, "employed": emp / S, "unemployed": maxi(0, lf - emp) / S,
+		"rate_pct": 0.0 if lf <= 0 else 100.0 * float(lf - emp) / float(lf), "public_posts": EconPublicJobs.posts(world)}
