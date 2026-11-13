@@ -41,7 +41,7 @@ static func _land_key(w: WorldState) -> String:
 		asig = hash([asig, String(id), String(a.get("status", "")), String(a.get("district", "")), String(a.get("name", "")),
 			(a.get("tiles", []) as Array).size()])
 	return "%d|%d|%d|%d|%d|%d" % [w.get_instance_id(), w.rng.derive_seed("map.terrain"), hash(w.peek("map").get("grid", {}).get("rows", [])),
-		areas.size(), asig, w.peek("map").get("uses", {}).size()]
+		areas.size(), asig, hash(w.peek("map").get("uses", {}).keys())]
 
 
 static func _cached(w: WorldState, what: String, fn: Callable, land_only: bool = false) -> Variant:

@@ -62,7 +62,9 @@ static var _memo := {}
 
 ## Memoised pure reads: valid while the month, the network revision and the colony layout stay the same.
 ## monthly false (Bob/Wilma 2026-11-13, commuting cost): kept across months while the network's shape (_struct_sig)
-## and the colony layout stay the same (the nodes, the commute routes); `extra` adds what else the read depends on.
+## and the colony layout stay the same; `extra` adds what else the read depends on. RULE (Wilma 2026-11-14): only for
+## reads that are a pure function of that key (the nodes): nothing that reads condition, traffic, weather or the
+## month, or a loaded game would differ from the continued one depending on which month filled the memo.
 static func _memoised(world: WorldState, what: String, fn: Callable, monthly: bool = true, extra: String = "") -> Variant:
 	var k := "%s|%d|%s|%s|%s|%s" % [what, world.rng.derive_seed("map.terrain"), str(world.month) if monthly else "-",
 		str(int(world.peek("transport").get("rev", 0))) if monthly else str(_struct_sig(world)), ColonyLayout.key(world),

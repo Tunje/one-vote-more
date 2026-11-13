@@ -70,11 +70,12 @@ static func district_node(world: WorldState, d: String) -> Dictionary:
 
 ## The commute between two districts: {ok (a road exists), hops (links on the route; 0 within a district), km,
 ## minutes, links: [lid], factor ‰ (route_factor)}. Without a road: cross-country (ok false, factor NO_ROAD_F).
-## Peek-only. The route (hops, km, minutes, links) is memoised across months while the network's shape
-## (Transport._struct_sig, worn-down kinds included) and the colony layout stay the same (Bob/Wilma 2026-11-13:
-## commuting asks every month); the factor (condition, traffic, this month's closures) is worked out on each call.
+## Peek-only. Memoised per month and network revision: the route and its minutes follow this month's condition, so
+## they must not be kept across months (Wilma 2026-11-14: a cross-month memo made a loaded game differ from the
+## continued one). The month's first call is cheap: the nodes and the colony layout behind it are kept across months
+## (pure in their keys). The factor (condition, traffic, this month's closures) is worked out on each call.
 static func commute_d(world: WorldState, from_d: String, to_d: String) -> Dictionary:
-	var r: Dictionary = Transport._memoised(world, "commute|%s|%s" % [from_d, to_d], func(): return _commute_d(world, from_d, to_d), false)
+	var r: Dictionary = Transport._memoised(world, "commute|%s|%s" % [from_d, to_d], func(): return _commute_d(world, from_d, to_d))
 	var out := r.duplicate()
 	if r["ok"] and not (r["links"] as Array).is_empty():
 		out["factor"] = _factor(world, {"links": r["links"]})

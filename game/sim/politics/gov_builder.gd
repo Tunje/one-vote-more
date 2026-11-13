@@ -161,7 +161,7 @@ static func _road_needs(world: WorldState, st: Dictionary, busy: Dictionary, who
 		var cost := int(r.get("cost", 0))
 		if EconActions.headroom(world, line) < cost * 11 / 10:
 			continue
-		if _order(world, st, busy, who, "ROAD", str(r["district"]), line, {"link": r["spec"]}) > 0:
+		if _order(world, st, busy, who, "ROAD", str(r["district"]), line, {"link": (r["spec"] as Dictionary).duplicate(true)}) > 0:
 			done_keys[key] = world.month
 			done += 1
 	st["road_need_keys"] = done_keys
