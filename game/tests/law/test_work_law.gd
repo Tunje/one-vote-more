@@ -53,3 +53,43 @@ func test_lean_running_is_conduct_the_authority_inspects() -> void:
 	var base := float(JO.detect_ctx(w)["WORK"])
 	w.levers["LAW_WORK_INSPECTORATE_BUDGET"] = 9000
 	check_eq(float(JO.detect_ctx(w)["WORK"]), 3.0 * base, "a bigger authority makes more inspections")
+
+
+func _accident(w: WorldState, org: String, workload: int) -> String:
+	return w.add_fact({"type": "COMP_WORKPLACE_ACCIDENT", "owner": "econ", "subjects": [{"kind": "COMPANY", "id": org}],
+		"responsible": [], "impact": {"SAFETY": -5}, "magnitude": 25, "visibility": "PUBLIC",
+		"data": {"facility": "fac:" + org, "district": "d:1", "operator": org, "workers_affected": 2, "workload": workload}})
+
+
+## Step 2: a stress accident (workload ≥ 1300‰) brings a damages suit; a calm workplace's accident does not.
+func test_stress_accidents_go_to_court() -> void:
+	var w := _world()
+	w.values["ECON_W_REF"] = 1000000
+	LawOps.ensure_m11_rules(w)
+	LawOps.ensure_work_rules(w)
+	w.table("org")["org:1"] = {"id": "org:1", "type": "PRIVATE"}
+	w.table("org")["org:2"] = {"id": "org:2", "type": EconData.PUBLIC_TYPES[0]}
+	JO.init_courts(w)
+	LawOps.record_greed(w, "org:1", {"kind": "OVERWORK", "facility": "fac:org:1", "saving": 1000})
+	var calm := []
+	for i in 20:
+		calm.append(_accident(w, "org:1", 1100))
+		_accident(w, "org:1", 1400)
+		_accident(w, "org:2", 1500)
+	JO._stress_torts(w)
+	JO._stress_torts(w)                       # once per accident
+	var priv := 0
+	var pub := 0
+	for c in w.table("case").values():
+		if c["type"] != "TORT":
+			continue
+		check(not calm.has(String(c["data"]["fact"])), "no suit for a calm workplace")
+		check(bool(c["data"]["stress"]), "marked as a stress claim")
+		if String(c["respondent"]["kind"]) == "GOVERNMENT":
+			pub += 1
+			check_eq(int(c["data"]["claim"]), int(2 * JO.STRESS_TORT_WREF * 1000000), "two injured")
+		else:
+			priv += 1
+			check(String(c["data"]["lean_record"]) != "", "the overwork record backs the claim")
+			check_eq(int(c["data"]["claim"]), int(2 * JO.STRESS_TORT_WREF * JO.STRESS_LEAN_MULT * 1000000), "lean running: larger claim")
+	check(priv >= 6 and priv <= 18 and pub >= 6 and pub <= 18, "most stress accidents are sued (%d private, %d public of 20 each)" % [priv, pub])

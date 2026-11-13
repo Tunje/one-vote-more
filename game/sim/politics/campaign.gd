@@ -58,7 +58,17 @@ const AGENDA_CAP := 300
 const OPPO_P := 80                   # per-mille chance per month to find something, at average spend and quality 1
 const OPPO_P_MAX := 250
 # ---- press scandals draw fire (Wilma/Anni review: 1 of 4 press-hit parties drew an attack ad) ----
-const SCANDAL_WINDOW := 24           # months a revealed scandal (DONATION or FAVOUR) keeps drawing fire, fading linearly
+const SCANDAL_WINDOW := 24           # months over which a revealed scandal (DONATION or FAVOUR) fades linearly...
+const SCANDAL_MEMORY := 48           # ...to a floor it keeps until this age ("remember the donation scandal"), then gone
+const SCANDAL_FLOOR := 0.3           # share of the heat a 2-4 year old scandal keeps
+const SCANDAL_TONE := 0.2            # the attacker's tone pressure + this x heat of its target (symmetric)
+const RECALL_LINE := -60             # momentum: an attack ad that names the target's old scandal (once per campaign)
+# ---- revived scandals (user ruling via Wilma; the press side is Anni's MEDIA_SCANDAL_REVIVED / _BURIED) ----
+const REVIVE_SHARE := 0.4            # a revival brings back 40%..60% of the original peak (+ 0.2 x the paper's strength)
+const REVIVE_STRENGTH := 0.2
+const REVIVE_ESCALATED := 1.2        # the digging found something new: hotter than the original
+const REVIVE_DIMINISH := [1.0, 0.7, 0.5]   # 1st, 2nd, 3rd revival of the same scandal (the press stops at 3)
+const BURY_MAX := 0.5                # friendly papers burying it at full strength halve a revival (never immunity)
 const SCANDAL_SEV_UNIT := 50.0       # severity that counts as 1.0 heat (severity runs 20..100)
 const SCANDAL_HEAT_CAP := 2.0
 const SCANDAL_TARGET_W := 1.0        # heat 1 (a fresh severity-50 scandal) outweighs the default target's claim
@@ -106,6 +116,18 @@ static func next_election(st: Dictionary, month: int) -> Dictionary:
 	if ord >= month:
 		return {"month": ord, "extra": false}
 	return {}
+
+
+## Months to the next scheduled election (0 in the election month), -1 when none is set. Read-only (Anni's press
+## reads it for the pre-election revival boost).
+static func months_to_election(world: WorldState) -> int:
+	var ne := next_election(world.peek("pol").get("state", {}), world.month)
+	return int(ne["month"]) - world.month if not ne.is_empty() else -1
+
+
+## Opt-in until its A/B: world.meta["on"] has "SCANDAL_REVIVAL" (meta["off"] still wins).
+static func revival_on(world: WorldState) -> bool:
+	return world.meta.has("on") and (world.meta["on"] as Array).has("SCANDAL_REVIVAL") and not EconUtil.off(world, "SCANDAL_REVIVAL")
 
 
 static func current(world: WorldState) -> Dictionary:
@@ -380,17 +402,74 @@ static func pick_target(world: WorldState, st: Dictionary, p: Dictionary) -> Str
 
 
 ## {pid: 0..SCANDAL_HEAT_CAP}: revealed scandals (POL_SCANDAL_REVEALED, DONATION or FAVOUR) in the last
-## SCANDAL_WINDOW months, severity / SCANDAL_SEV_UNIT each, fading linearly. Read-only; parties with none are absent.
+## SCANDAL_MEMORY months, severity / SCANDAL_SEV_UNIT each, fading linearly over SCANDAL_WINDOW months to
+## SCANDAL_FLOOR. Read-only; parties with none are absent. A/B: EconUtil.off(world, "SCANDAL_FIRE") -> {}.
 static func scandal_heat(world: WorldState) -> Dictionary:
 	var out := {}
-	for f in world.facts.query("POL_SCANDAL_REVEALED", world.month - SCANDAL_WINDOW + 1):
+	var mem := scandal_memory(world)
+	for pid in mem:
+		out[pid] = float(mem[pid]["heat"])
+	return out
+
+
+## {pid: {heat, fid, kind, month, at, outlet}}: scandal_heat plus the party's latest remembered scandal (for the
+## attack line): `month` of the original reveal, `at` of the last time it was news, `outlet` the paper that revived
+## it ("" for a plain reveal). A revival (MEDIA_SCANDAL_REVIVED, when revival_on) adds severity/50 x REVIVE_SHARE..
+## x REVIVE_DIMINISH[n-1] x (1 - BURY_MAX x buried), fading over SCANDAL_WINDOW like a fresh reveal (no floor).
+static func scandal_memory(world: WorldState) -> Dictionary:
+	var out := {}
+	if EconUtil.off(world, "SCANDAL_FIRE"):
+		return out
+	for f in world.facts.query("POL_SCANDAL_REVEALED", world.month - SCANDAL_MEMORY + 1):
 		var pid := String(f["data"].get("party", ""))
 		var age := world.month - int(f["month"])
 		if pid == "" or age < 0:
 			continue
-		var h := float(f["data"].get("severity", 30)) / SCANDAL_SEV_UNIT * float(SCANDAL_WINDOW - age) / float(SCANDAL_WINDOW)
-		out[pid] = minf(SCANDAL_HEAT_CAP, float(out.get(pid, 0.0)) + h)
+		var left := 1.0 - float(age) / float(SCANDAL_WINDOW)
+		if not EconUtil.off(world, "SCANDAL_FIRE_V2"):
+			left = maxf(left, SCANDAL_FLOOR)
+		if left <= 0.0:
+			continue
+		var h := float(f["data"].get("severity", 30)) / SCANDAL_SEV_UNIT * left
+		var e: Dictionary = out.get(pid, {"heat": 0.0})
+		out[pid] = {"heat": minf(SCANDAL_HEAT_CAP, float(e["heat"]) + h), "fid": String(f.get("id", "")),
+			"kind": String(f["data"].get("kind", "DONATION")), "month": int(f["month"]), "at": int(f["month"]), "outlet": ""}
+	if revival_on(world):
+		_add_revivals(world, out)
 	return out
+
+
+static func _add_revivals(world: WorldState, out: Dictionary) -> void:
+	var revs: Array = world.facts.query("MEDIA_SCANDAL_REVIVED", world.month - SCANDAL_WINDOW + 1)
+	if revs.is_empty():
+		return
+	var buried := {}
+	for b in world.facts.query("MEDIA_SCANDAL_BURIED", world.month - SCANDAL_WINDOW + 1):
+		var rid := String(b["data"].get("revival", ""))
+		buried[rid] = mini(1000, int(buried.get(rid, 0)) + int(b["data"].get("strength_pm", 0)))
+	for f in revs:
+		var d: Dictionary = f["data"]
+		var pid := String(d.get("party", ""))
+		var age := world.month - int(f["month"])
+		if pid == "" or age < 0 or not world.peek("party").has(pid):
+			continue
+		var orig: Dictionary = world.facts.get_fact(String(d.get("scandal", "")))
+		var od: Dictionary = orig.get("data", {})
+		var sev := float(od.get("severity", d.get("severity", 30)))
+		var n := clampi(int(d.get("n", 1)), 1, REVIVE_DIMINISH.size())
+		var share := REVIVE_ESCALATED if bool(d.get("escalated", false)) 			else REVIVE_SHARE + REVIVE_STRENGTH * clampf(float(d.get("strength_pm", 0)) / 1000.0, 0.0, 1.0)
+		share *= float(REVIVE_DIMINISH[n - 1]) * (1.0 - BURY_MAX * float(buried.get(String(f.get("id", "")), 0)) / 1000.0)
+		var h := sev / SCANDAL_SEV_UNIT * share * (1.0 - float(age) / float(SCANDAL_WINDOW))
+		var e: Dictionary = out.get(pid, {"heat": 0.0, "at": -1})
+		var ne := e.duplicate()
+		ne["heat"] = minf(SCANDAL_HEAT_CAP, float(e["heat"]) + h)
+		if int(f["month"]) >= int(e.get("at", -1)):
+			ne["fid"] = String(d.get("scandal", ""))
+			ne["kind"] = String(od.get("kind", d.get("kind", "DONATION")))
+			ne["month"] = int(orig.get("month", f["month"]))
+			ne["at"] = int(f["month"])
+			ne["outlet"] = String(d.get("outlet", ""))
+		out[pid] = ne
 
 
 ## Tone: trailing parties go negative, the opposition a bit more, high-integrity leaders resist.
@@ -406,6 +485,8 @@ static func _set_tone(world: WorldState, st: Dictionary, c: Dictionary, p: Dicti
 	var opp := 0.1 if not st.get("government", {}).get("members", []).has(p["id"]) else 0.0
 	var n := 0.2 + trailing + opp - integ / 200.0
 	n += GENE_NEGATIVE_TONE * (float(Learn.gene(p, "G_NEGATIVE")) - 500.0) / 500.0   # A53
+	if String(e["target"]) != "" and not EconUtil.off(world, "SCANDAL_FIRE_V2"):   # a target with a scandal invites attack
+		n += SCANDAL_TONE * minf(1.0, float(scandal_heat(world).get(String(e["target"]), 0.0)))
 	var tone := "NEGATIVE" if n > 0.15 else ("MIXED" if n > 0.0 else "POSITIVE")
 	if e["target"] == "":
 		tone = "POSITIVE"
@@ -550,7 +631,8 @@ static func _ads(world: WorldState, c: Dictionary, seg: Dictionary, spend: Dicti
 			attack_share = 0.0
 		var w := _targeting(c, p, seg)
 		var hit := 0.0
-		var vul := vulnerability(world.table("party")[tgt], float(scandal_heat(world).get(tgt, 0.0))) if attack_share > 0.0 else 1.0
+		var mem: Dictionary = scandal_memory(world).get(tgt, {}) if attack_share > 0.0 else {}
+		var vul := vulnerability(world.table("party")[tgt], float(mem.get("heat", 0.0))) if attack_share > 0.0 else 1.0
 		for k in w:
 			var inc := float(BETA_AD) * power * (1.0 - attack_share) * float(w[k])
 			_add(e["persuasion"], k, inc, PERSUASION_CAP)
@@ -562,7 +644,12 @@ static func _ads(world: WorldState, c: Dictionary, seg: Dictionary, spend: Dicti
 			e["attacks"] = int(e["attacks"]) + 1
 			_backfire(c, pid, seg, hit)
 			if int(e["attacks"]) == 1:
-				_event(world, c, "POL_ATTACK_AD", "AD", [pid, tgt], 40, {"party": pid, "target": tgt, "tone": e["tone"]})
+				var ad := {"party": pid, "target": tgt, "tone": e["tone"]}
+				if not mem.is_empty() and not EconUtil.off(world, "SCANDAL_FIRE_V2"):   # "remember the donation scandal"
+					ad["recalls"] = {"fid": mem["fid"], "kind": mem["kind"], "ago": world.month - int(mem["month"]),
+						"outlet": String(mem.get("outlet", "")), "revived_ago": world.month - int(mem.get("at", mem["month"]))}
+					_momentum(c, tgt, RECALL_LINE)
+				_event(world, c, "POL_ATTACK_AD", "AD", [pid, tgt], 40, ad)
 
 
 ## 0.6..1.4: low credibility (broken promises), an unpopular leader and a fresh scandal (`heat`, scandal_heat)

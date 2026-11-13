@@ -254,7 +254,15 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 			if not d.get("hot", []).is_empty():
 				s += "; everyone is talking about %s" % " and ".join(d["hot"].slice(0, 2).map(func(i): return HotIssues.label(String(i))))
 		"POL_CAMPAIGN_GOES_NEGATIVE": s = "%s goes negative: its ads now target %s" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
-		"POL_ATTACK_AD": s = "%s runs attack ads against %s" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
+		"POL_ATTACK_AD":
+			s = "%s runs attack ads against %s" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
+			var rc: Dictionary = d.get("recalls", {})
+			if not rc.is_empty():
+				var ago := int(rc.get("ago", 0))
+				s += ", reminding voters of its %s scandal %s" % ["lobbying-favour" if String(rc.get("kind", "")) == "FAVOUR" else "donation",
+					"this year" if ago < 12 else ("last year" if ago < 24 else "%d years ago" % (ago / 12))]
+				if String(rc.get("outlet", "")) != "":
+					s += ", which %s dug up again %s" % [outlet(w, rc["outlet"]), "this month" if int(rc.get("revived_ago", 0)) == 0 else "%s ago" % months(int(rc.get("revived_ago", 0)))]
 		"POL_POLITICS_WEEK": s = "Politics week: %s gave the speech of the summer; %s fell flat" % [party(w, d.get("best", "")), party(w, d.get("worst", ""))]
 		"POL_DEBATE_HELD":
 			var killer := (", landing a blow on %s" % party(w, d.get("killer_on", ""))) if String(d.get("killer_on", "")) != "" else ""

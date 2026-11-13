@@ -9,6 +9,7 @@ const WasteLaw := preload("res://sim/law/waste_law.gd")
 const Staff := preload("res://sim/staff/staff_ops.gd")
 const RG := preload("res://sim/staff/roster_gen.gd")
 const Vis := preload("res://sim/law/visibility.gd")
+const WK := preload("res://sim/law/work_law.gd")
 
 const GOVERNMENT := {"kind": "GOVERNMENT", "id": "government"}
 const STATE := {"kind": "INSTITUTION", "id": "inspectorate"}
@@ -44,6 +45,9 @@ const P_FILE_UNLAWFUL := 0.5
 const P_FILE_CONTRACT := 0.3
 const P_FILE_DENIAL_WRONG := 0.75
 const P_FILE_DENIAL_RIGHT := 0.10
+const P_FILE_STRESS := 0.6         # workload step 2: the injured (or their union) sue after a stress accident
+const STRESS_TORT_WREF := 4.0      # claim per injured worker, W_ref; ×1.5 when the workplace's lean running was on record
+const STRESS_LEAN_MULT := 1.5
 
 
 static func js(world: WorldState) -> Dictionary:
@@ -241,6 +245,7 @@ static func run(world: WorldState) -> void:
 	_reactivate_licences(world)
 	_inspect(world)
 	_accident_reveals(world)
+	_stress_torts(world)
 	_file_new_cases(world)
 	_crisis_inquiries(world)
 	_settlements(world)
@@ -335,6 +340,38 @@ static func _accident_reveals(world: WorldState) -> void:
 				t["revealed"] = true
 				world.table("revealed_fact")[fid] = true
 				world.facts.reveal(world.month, fid, [{"kind": "NATURE", "id": "accident"}])
+
+
+## Workload law step 2: an accident at a workplace running at or above WK.STRESS_ACCIDENT_FROM (Bob's data.workload,
+## opt-in WORKLOAD) is a stress accident. The injured sue the operator for damages (TORT, into the victim fund); a public
+## workplace's operator is the government. A recorded OVERWORK / UNDERSTAFFING at that facility makes the claim
+## stronger and larger. Major (crisis) accidents already reach court through the crisis inquiry. Once per accident.
+static func _stress_torts(world: WorldState) -> void:
+	var rng := world.rng.stream("law.stress_tort")
+	for f in Det.recent_facts(world, "COMP_WORKPLACE_ACCIDENT", world.month):
+		var d: Dictionary = f["data"]
+		var wl := int(d.get("workload", 1000))
+		if bool(d.get("crisis", false)) or not WK.stress_accident(wl) or js(world)["filed"].has("stress|" + String(f["id"])):
+			continue
+		js(world)["filed"]["stress|" + String(f["id"])] = true
+		if rng.randf() >= P_FILE_STRESS:
+			continue
+		var op := String(d.get("operator", ""))
+		var fac := String(d.get("facility", ""))
+		var lean := ""
+		for vid in Det.ordered(world.table("violation_track")):
+			var v: Dictionary = world.table("violation_track")[vid]
+			if String(v["company"]) == op and String(v.get("facility", "")) == fac and v["kind"] in ["OVERWORK", "UNDERSTAFFING"] 					and bool(v.get("active", false)):
+				lean = vid
+				break
+		var org: Dictionary = world.peek("org").get(op, {})
+		var public: bool = String(org.get("type", "")) in EconData.PUBLIC_TYPES
+		var resp: Dictionary = GOVERNMENT if public else {"kind": "COMPANY", "id": op}
+		var claim := int(round(float(maxi(1, int(d.get("workers_affected", 1)))) * STRESS_TORT_WREF * float(w_ref(world))
+			* (STRESS_LEAN_MULT if lean != "" else 1.0)))
+		file_case(world, "TORT", {"kind": "VICTIMS", "id": String(f["id"]), "scope": {"districts": [String(d.get("district", ""))]}},
+			resp, true, {"fact": String(f["id"]), "claim": claim, "gov_share": 0.0, "stress": true, "workload": wl,
+			"facility": fac, "operator": op, "public": public, "lean_record": lean}, [900] if lean != "" else [700])
 
 
 static func _reveal_violation(world: WorldState, fid: String, by: Dictionary, channel: String) -> void:
