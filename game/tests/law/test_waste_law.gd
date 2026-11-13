@@ -51,7 +51,7 @@ func test_the_standard_drives_env_inspections() -> void:
 
 func test_dumping_fines_follow_the_standard() -> void:
 	var w := _world()
-	w.table("org")["org:1"] = {"id": "org:1", "pl_last": {"rev": 0}}
+	w.table("org")["org:1"] = {"id": "org:1", "pl_last": {"rev": 10000000}}   # revenue: fines scale with it (v8)
 	w.table("violation_track")["v:d"] = {"kind": "DUMPING"}
 	w.table("violation_track")["v:s"] = {"kind": "SAFETY_CORNERS"}
 	var dump0 := JO._fine(w, "org:1", "SERIOUS", "v:d")

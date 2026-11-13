@@ -36,7 +36,14 @@ const PARTY_FINE_MULT := 2.0      # party-finance fine = 2 x the amount over the
 const THETA := 0.5
 const SETTLE_GAP := 0.15
 const APPEAL_IF_ABOVE := 0.4
-const FINE := {"MINOR": [0.01, 2.0], "SERIOUS": [0.04, 10.0], "SEVERE": [0.10, 30.0]}   # [share of annual revenue, min W_ref]
+# [share of annual revenue, floor W_ref]. v8 (Bob, Wilma): floors were 2/10/30 W_ref, so a 5-person bakery was fined like
+# the mining company and fines were the first killer of viable small firms. Now the share does the work: the floor only
+# keeps a fine for a firm with almost no revenue, and FINE_CAP_REV caps the whole fine (repeat ×2 included).
+const FINE := {"MINOR": [0.01, 0.5], "SERIOUS": [0.04, 2.0], "SEVERE": [0.10, 5.0]}
+const FINE_CAP_REV := 0.2                # a fine never exceeds this share of annual revenue (or the floor, if larger)
+const SMALL_FIRM_REV_WREF := 200.0       # annual revenue below this (W_ref): unpaid fines and awards go on a plan …
+const PLAN_MONTHS := 24                  # … paid in PLAN_PARTS instalments over this many months
+const PLAN_PARTS := 8
 const SUSPEND_MONTHS := 3
 const REPEAT_WINDOW := 60            # a prior conviction for the same kind of offence this recent makes a repeat offender …
 const REPEAT_FINE_MULT := 2.0        # … fined double; SERIOUS repeats suspend licences, SEVERE repeats suspend twice as long
@@ -926,13 +933,15 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 	var org: Dictionary = world.table("org").get(org_id, {})
 	var pl: Dictionary = org.get("pl_last", {})
 	var annual := float(pl.get("rev", 0)) * 12.0
-	var amount := int(round(maxf(float(spec[0]) * annual, float(spec[1]) * float(w_ref(world)))
-		* float(world.levers.get("LAW_FINE_SCALE", 1000)) / 1000.0))
+	var floor_amt := float(spec[1]) * float(w_ref(world))
+	var base := maxf(float(spec[0]) * annual, floor_amt)
 	if String(world.peek("violation_track").get(violation, {}).get("kind", "")) == "DUMPING":
-		amount = int(round(float(amount) * WasteLaw.dumping_fine_factor(world)))      # W6: LAW_WASTE_STANDARD
+		base *= WasteLaw.dumping_fine_factor(world)      # W6: LAW_WASTE_STANDARD
 	var repeat := repeat_offender(world, org_id, violation)
 	if repeat:
-		amount = int(round(float(amount) * REPEAT_FINE_MULT))
+		base *= REPEAT_FINE_MULT
+	base = minf(base, maxf(FINE_CAP_REV * annual, floor_amt))
+	var amount := int(round(base * float(world.levers.get("LAW_FINE_SCALE", 1000)) / 1000.0))
 	if world.peek("violation_track").has(violation):
 		world.table("violation_track")[violation]["fined_month"] = world.month
 	var acct := company_acct(org_id)
@@ -942,9 +951,7 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 		if paid > 0:
 			world.ledger.transfer(acct, "gov:fines_revenue", paid, "FINE", world.month)
 	if amount - paid > 0:
-		var lid := world.new_id("liability")
-		world.table("liability")[lid] = {"id": lid, "debtor": org_id, "creditor": "gov", "amount": amount - paid,
-			"due_month": world.month + 1, "kind": "FINE", "status": "OPEN"}
+		_owe(world, org_id, "gov", "", amount - paid, "FINE")
 	if cls == "SEVERE" or (repeat and cls == "SERIOUS"):
 		var months := SUSPEND_MONTHS * (2 if repeat and cls == "SEVERE" else 1)
 		for l in world.table("licence").values():
@@ -961,6 +968,28 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 
 ## The company was fined for the same kind of offence (greed kind, else the violated action) within REPEAT_WINDOW
 ## months, on another violation record (lasting: violation_track.fined_month).
+## A firm owes `amount` it could not pay now: one liability due next month, or for a small firm (annual revenue below
+## SMALL_FIRM_REV_WREF) PLAN_PARTS instalments over PLAN_MONTHS (v8: viable small firms died of lump sums). The economy
+## pays each row when due (EconInsolvency); the creditor petitions only 12 months past a missed row (_petitions).
+static func _owe(world: WorldState, debtor: String, creditor: String, creditor_acct: String, amount: int, kind: String) -> void:
+	var annual := float(world.peek("org").get(debtor, {}).get("pl_last", {}).get("rev", 0)) * 12.0
+	var small := annual < SMALL_FIRM_REV_WREF * float(w_ref(world))
+	var parts := PLAN_PARTS if small else 1
+	var left := amount
+	for i in parts:
+		var part := left if i == parts - 1 else amount / parts
+		left -= part
+		if part <= 0:
+			continue
+		var lid := world.new_id("liability")
+		var row := {"id": lid, "debtor": debtor, "creditor": creditor, "amount": part,
+			"due_month": world.month + 1 + (i * PLAN_MONTHS / parts if small else 0), "kind": kind, "status": "OPEN",
+			"plan": small}
+		if creditor_acct != "":
+			row["creditor_acct"] = creditor_acct
+		world.table("liability")[lid] = row
+
+
 static func repeat_offender(world: WorldState, org_id: String, violation: String) -> bool:
 	var track := world.peek("violation_track")
 	var k := _offence_kind(track.get(violation, {}))
@@ -1013,11 +1042,8 @@ static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, am
 	if amount - paid > 0 and from.begins_with("co:"):
 		# Insolvency pays a creditor id into co:<id>. Only a company creditor has one: anyone else (victims, a party, a
 		# paper, a union) is owed through creditor_acct (Bob reads it; until then "gov" keeps the payment from failing).
-		var lid := world.new_id("liability")
 		var co_creditor := to.begins_with("co:")
-		world.table("liability")[lid] = {"id": lid, "debtor": String(from_ref["id"]),
-			"creditor": String(to_ref["id"]) if co_creditor else "gov", "creditor_acct": to, "amount": amount - paid,
-			"due_month": world.month + 1, "kind": "COMPENSATION", "status": "OPEN"}
+		_owe(world, String(from_ref["id"]), String(to_ref["id"]) if co_creditor else "gov", to, amount - paid, "COMPENSATION")
 	return paid
 
 
