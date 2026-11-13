@@ -799,7 +799,7 @@ static func _new_plants(world: WorldState) -> void:
 		var best_cash := -1
 		var district := ""
 		# E137: under a market or mixed government, private and co-op investors get the expansion first
-		var pol := EconOwnership.policy(world)
+		var pol := EconOwnership.policy_for(world, ftype)
 		if pol != "STATE":
 			var pinv := EconOwnership.private_investor(world, EconConstruction.estimate(ftype))
 			if pinv != "":
@@ -905,7 +905,7 @@ static func _essentials_planner(world: WorldState) -> void:
 			continue
 		# E137: a market government leaves expansion to private investors (FirmAI._new_plants); a mixed one lets the
 		# utility pre-build only after EXTRA_Q quarters of scarcity with no private taker
-		var opol := EconOwnership.policy(world)
+		var opol := EconOwnership.policy_for(world, ftype)
 		if opol == "MARKET":
 			continue
 		if opol == "MIXED" and int(s.get("scarce_q", {}).get(good, 0)) < EconData.NEW_PLANT_QUARTERS + EconOwnership.EXTRA_Q:

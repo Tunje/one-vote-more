@@ -288,6 +288,7 @@ static func _spoilage(world: WorldState) -> void:
 
 static func _update_prices(world: WorldState) -> void:
 	var s := EconUtil.st(world)
+	var contest: bool = (world.meta.get("on", []) as Array).has("E139") and not EconUtil.off(world, "E139")
 	for good in CLEAR_ORDER:
 		var m: Dictionary = s["market_stats"].get(good, {})
 		var d := float(m.get("D", 0))
@@ -303,8 +304,40 @@ static func _update_prices(world: WorldState) -> void:
 		# unfilled demand wins over stock cover (otherwise asks above buyers' limits deadlock the market)
 		var x := shortage if shortage > 0.05 else -excess
 		var p2 := p * (1.0 + EconData.ALPHA * clampf(x, -1.0, 1.0))
+		# E139 (opt-in; private-firm diagnosis: a sole producer makes just what sells, so cover never passes 2 months and a
+		# price raised in a shortage never came down — CONSUMER ran at 2–6× its unit cost): in a fully supplied market the
+		# price drifts towards CONTEST_MARK × the cheapest active producer's full cost (the threat of entry and imports)
+		if contest and shortage <= 0.02 and not (good in CONTEST_EXEMPT):
+			var uc := _cheapest_cost(world, good)
+			if uc > 0.0 and p2 > CONTEST_MARK * uc:
+				p2 *= 1.0 - CONTEST_DRIFT * minf(1.0, p2 / (CONTEST_MARK * uc) - 1.0)
 		var base := float(s["base"][good])
 		s["prices"][good] = int(clampf(p2, base * EconData.PRICE_MIN_MULT, base * EconData.PRICE_MAX_MULT * wage_level(world)))
+
+
+const CONTEST_MARK := 1.5
+## E139 A/B (5 seeds × 30 years): with FOOD included the food shortfall rose 31 → 42‰ (thinner farm margins, slower farm
+## building) — Wilma's condition; food stays out (its price is political: reserves, assistance, the food trap rules)
+const CONTEST_EXEMPT := ["FOOD"]
+const CONTEST_DRIFT := 0.03
+
+
+## E139: the lowest full unit cost (mcr/unit) among the plant types with an active plant making this good (0 if none).
+static func _cheapest_cost(world: WorldState, good: String) -> float:
+	var best := 0.0
+	var seen := {}
+	for fid in world.table("facility"):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["mothball"] or seen.has(f["type"]):
+			continue
+		var r: Dictionary = EconData.RECIPES.get(f["type"], {})
+		if r.is_empty() or String(r["out"][0]) != good:
+			continue
+		seen[f["type"]] = true
+		var c := FirmAI.unit_cost(world, f["type"])
+		if c > 0.0 and (best <= 0.0 or c < best):
+			best = c
+	return best
 
 
 ## E100: price caps move with the wage level (skilled wage index vs founding), never below 1. Fixed caps let decades
