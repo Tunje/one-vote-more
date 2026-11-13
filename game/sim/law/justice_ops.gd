@@ -36,6 +36,8 @@ const SETTLE_GAP := 0.15
 const APPEAL_IF_ABOVE := 0.4
 const FINE := {"MINOR": [0.01, 2.0], "SERIOUS": [0.04, 10.0], "SEVERE": [0.10, 30.0]}   # [share of annual revenue, min W_ref]
 const SUSPEND_MONTHS := 3
+const REPEAT_WINDOW := 60            # a prior conviction for the same kind of offence this recent makes a repeat offender …
+const REPEAT_FINE_MULT := 2.0        # … fined double; SERIOUS repeats suspend licences, SEVERE repeats suspend twice as long
 const P_WHISTLE := 0.01
 const AGENCY_Q_DEFAULT := 60.0
 const P_FILE_UNLAWFUL := 0.5
@@ -769,6 +771,11 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 		* float(world.levers.get("LAW_FINE_SCALE", 1000)) / 1000.0))
 	if String(world.peek("violation_track").get(violation, {}).get("kind", "")) == "DUMPING":
 		amount = int(round(float(amount) * WasteLaw.dumping_fine_factor(world)))      # W6: LAW_WASTE_STANDARD
+	var repeat := repeat_offender(world, org_id, violation)
+	if repeat:
+		amount = int(round(float(amount) * REPEAT_FINE_MULT))
+	if world.peek("violation_track").has(violation):
+		world.table("violation_track")[violation]["fined_month"] = world.month
 	var acct := company_acct(org_id)
 	var paid := 0
 	if world.ledger.has_account(acct) and world.ledger.has_account("gov:fines_revenue"):
@@ -779,17 +786,39 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 		var lid := world.new_id("liability")
 		world.table("liability")[lid] = {"id": lid, "debtor": org_id, "creditor": "gov", "amount": amount - paid,
 			"due_month": world.month + 1, "kind": "FINE", "status": "OPEN"}
-	if cls == "SEVERE":
+	if cls == "SEVERE" or (repeat and cls == "SERIOUS"):
+		var months := SUSPEND_MONTHS * (2 if repeat and cls == "SEVERE" else 1)
 		for l in world.table("licence").values():
 			if l["holder_id"] == org_id and l["status"] == "ACTIVE":
 				l["status"] = "SUSPENDED"
-				l["suspended_until"] = world.month + SUSPEND_MONTHS
+				l["suspended_until"] = world.month + months
 		fact(world, "LAW_LICENCE_SUSPENDED", "PUBLIC", [{"kind": "COMPANY", "id": org_id}],
-			[{"actor": {"kind": "COMPANY", "id": org_id}, "share": 1.0}], {"JOBS": -2}, 20, {"months": SUSPEND_MONTHS})
+			[{"actor": {"kind": "COMPANY", "id": org_id}, "share": 1.0}], {"JOBS": -2}, 20, {"months": months, "repeat": repeat})
 	fact(world, "LAW_FINE_IMPOSED", "PUBLIC", [{"kind": "COMPANY", "id": org_id}],
 		[{"actor": {"kind": "COMPANY", "id": org_id}, "share": 1.0}], {"FAIRNESS": 3}, mini(40, 10 + amount / maxi(1, w_ref(world))),
-		{"amount": amount, "paid": paid, "class": cls, "violation": violation})
+		{"amount": amount, "paid": paid, "class": cls, "violation": violation, "repeat": repeat})
 	return amount
+
+
+## The company was fined for the same kind of offence (greed kind, else the violated action) within REPEAT_WINDOW
+## months, on another violation record (lasting: violation_track.fined_month).
+static func repeat_offender(world: WorldState, org_id: String, violation: String) -> bool:
+	var track := world.peek("violation_track")
+	var k := _offence_kind(track.get(violation, {}))
+	if k == "":
+		return false
+	for fid in Det.ordered(track):
+		var v: Dictionary = track[fid]
+		if fid != violation and String(v.get("company", "")) == org_id and int(v.get("fined_month", -1)) >= 0 \
+				and world.month - int(v["fined_month"]) <= REPEAT_WINDOW and _offence_kind(v) == k:
+			return true
+	return false
+
+
+static func _offence_kind(v: Dictionary) -> String:
+	if v.is_empty():
+		return ""
+	return String(v.get("kind", v.get("action", "")))
 
 
 ## Money between case parties through the ledger; an unpayable company debt becomes a COMPENSATION liability.

@@ -429,6 +429,7 @@ static func run(world: WorldState) -> void:
 	_found_ai(world)
 	_expose(world)
 	_investigate(world)
+	_revive(world)
 	var censored := censorship_active(world)
 	var mean := colony_mean(world)
 	var rng := world.rng.stream("media.cover")
@@ -1204,6 +1205,255 @@ static func _investigate(world: WorldState) -> void:
 		var tot_by: Dictionary = state(world).get("investigations", {})
 		tot_by[String(pick[0])] = int(tot_by.get(String(pick[0]), 0)) + 1
 		state(world)["investigations"] = tot_by
+
+
+# =================================================================================== M5: old scandals flare up
+
+## OPT-IN (world.meta["on"] has "SCANDAL_REVIVAL"; meta["off"] wins). Ella reads the facts for scandal heat.
+static func revival_on(world: WorldState) -> bool:
+	return world.meta.has("on") and (world.meta["on"] as Array).has("SCANDAL_REVIVAL") \
+		and not (world.meta.has("off") and (world.meta["off"] as Array).has("SCANDAL_REVIVAL"))
+
+
+## Hostile papers dig up old party scandals (POL_SCANDAL_REVEALED aged REVIVE_MIN_AGE..REVIVE_MAX_AGE months, at most
+## REVIVE_MAX_N times each): a PUBLIC MEDIA_SCANDAL_REVIVED fact {party, scandal, kind, outlet, age, n, trigger,
+## person, escalated, dragged, strength_pm}. Triggers (SIMILAR, PERSON, VERDICT, CAMPAIGN, ANNIVERSARY, SLOW_NEWS)
+## multiply the chance. Friendly papers may answer the same month with MEDIA_SCANDAL_BURIED. Digging up a stale
+## story, the same one again, or piling on costs the paper trust among the voters nearest the party; burying costs
+## credibility. Stream: media.revive. Lasting: state.revivals {fid: row}, state.revival_n {scandal: [n, month]}.
+static func _revive(world: WorldState) -> void:
+	if not revival_on(world):
+		return
+	var s := state(world)
+	if not s.has("revivals"):
+		s["revivals"] = {}
+		s["revival_n"] = {}
+	var rev: Dictionary = s["revivals"]
+	var rn: Dictionary = s["revival_n"]
+	for k in Det.ordered(rev):
+		if world.month - int(rev[k]["month"]) > MD.REVIVE_KEEP_MONTHS:
+			rev.erase(k)
+	for k in Det.ordered(rn):
+		if world.month - int(rn[k][1]) > MD.REVIVE_MAX_AGE:
+			rn.erase(k)
+	var parties := world.peek("party")
+	var cands: Array = []
+	for f in world.facts.query("POL_SCANDAL_REVEALED", world.month - MD.REVIVE_MAX_AGE, world.month - MD.REVIVE_MIN_AGE):
+		var pid := String(f["data"].get("party", ""))
+		if pid != "" and parties.has(pid) and int(rn.get(String(f["id"]), [0, 0])[0]) < MD.REVIVE_MAX_N:
+			cands.append(f)
+	if cands.is_empty():
+		return
+	var trig := _triggers(world, cands)
+	var rng := world.rng.stream("media.revive")
+	var tot_circ := maxf(1.0, _total_circ(world))
+	var fresh: Array = []
+	var done := {}
+	for id in outlets(world):
+		var o: Dictionary = world.table("outlet")[id]
+		if neutral_public(world, o):
+			continue
+		var cache := {}
+		for f in cands:
+			var fid0 := String(f["id"])
+			if done.has(fid0):
+				continue                    # one paper digs a given story up per month
+			var host := _opp_cached(world, o, {"kind": "PARTY", "id": String(f["data"]["party"])}, cache)
+			if host <= 0.0:
+				continue
+			var t: Dictionary = trig[fid0]
+			var p := MD.REVIVE_P * (0.5 + _sens(o)) * host * (0.5 + _inv(o)) * float(t["mult"])
+			if rng.randf() < p:
+				done[fid0] = true
+				fresh.append(_publish_revival(world, o, f, t, rng, tot_circ))
+				break                       # one revival per paper per month
+	for rid in fresh:
+		_bury(world, String(rid), rng, tot_circ)
+
+
+## Per candidate scandal: {mult (product of the present triggers), trigger (the strongest), person}.
+static func _triggers(world: WorldState, cands: Array) -> Dictionary:
+	var m := world.month
+	var new_scandal := {}
+	for f in world.facts.query("POL_SCANDAL_REVEALED", m, m):
+		new_scandal[String(f["data"].get("party", ""))] = true
+	var new_leaders := {}
+	for f in world.facts.query("POL_LEADER_CHANGED", m, m):
+		new_leaders[String(f["data"].get("new", ""))] = "party leader"
+	for f in world.facts.query("STAFF_CABINET_FORMED", m, m):
+		for r in f["data"].get("ministers", []):
+			if not new_leaders.has(String(r.get("name", ""))):
+				new_leaders[String(r.get("name", ""))] = String(r.get("title", "minister"))
+	var verdict_cases := {}
+	for t in ["LAW_RULING", "LAW_LEADER_CONVICTED"]:
+		for f in world.facts.query(t, m, m):
+			verdict_cases[String(f["data"].get("case", ""))] = true
+	var cases := world.peek("case")
+	var verdict_facts := {}
+	for cid in verdict_cases:
+		var c: Dictionary = cases.get(cid, {})
+		if String(c.get("type", "")) == "PARTY_FINANCE":
+			verdict_facts[String(c["data"].get("fact", ""))] = true
+	var mte := _months_to_election(world)
+	var campaign := mte >= 0 and mte <= MD.REVIVE_ELECTION_MONTHS
+	var slow := _news_count(world) < MD.REVIVE_SLOW_NEWS
+	var out := {}
+	for f in cands:
+		var d: Dictionary = f["data"]
+		var age := m - int(f["month"])
+		var leader := String(d.get("leader", ""))
+		var present := {
+			"SIMILAR": new_scandal.has(String(d.get("party", ""))),
+			"PERSON": leader != "" and new_leaders.has(leader),
+			"VERDICT": verdict_facts.has(String(d.get("donation", ""))),
+			"CAMPAIGN": campaign,
+			"ANNIVERSARY": age > 0 and age % 60 == 0,
+			"SLOW_NEWS": slow}
+		var mult := 1.0
+		var best := "NONE"
+		var best_m := 1.0
+		for k in MD.REVIVE_TRIGGER_ORDER:
+			if bool(present[k]):
+				var x := float(MD.REVIVE_TRIGGERS[k])
+				mult *= x
+				if x > best_m:
+					best_m = x
+					best = k
+		out[String(f["id"])] = {"mult": mult, "trigger": best, "person": leader if best == "PERSON" else "",
+			"post": String(new_leaders.get(leader, "")) if best == "PERSON" else ""}
+	return out
+
+
+static func _months_to_election(world: WorldState) -> int:
+	return int(load("res://sim/politics/campaign.gd").call("months_to_election", world))
+
+
+## Newsworthy PUBLIC facts this month so far (a slow news month invites old stories).
+static func _news_count(world: WorldState) -> int:
+	var fs: Array = world.facts.facts
+	var i := fs.size() - 1
+	var n := 0
+	while i >= 0 and int(fs[i]["month"]) >= world.month:
+		if newsworthy(fs[i]):
+			n += 1
+		i -= 1
+	return n
+
+
+static func _strength_pm(o: Dictionary, tot_circ: float) -> float:
+	return 1000.0 * float(o.get("circulation", 0)) / tot_circ * float(o["cred"]) / 100000.0
+
+
+static func _publish_revival(world: WorldState, o: Dictionary, f: Dictionary, t: Dictionary, rng: RandomNumberGenerator,
+		tot_circ: float) -> String:
+	var s := state(world)
+	var rev: Dictionary = s["revivals"]
+	var scandal := String(f["id"])
+	var pid := String(f["data"].get("party", ""))
+	var age := world.month - int(f["month"])
+	var repeat := false
+	var pile := 0
+	for k in Det.ordered(rev):
+		var r: Dictionary = rev[k]
+		if String(r["scandal"]) != scandal or world.month - int(r["month"]) >= MD.REVIVE_REPEAT_MONTHS:
+			continue
+		pile += 1
+		if String(r["outlet"]) == String(o["id"]):
+			repeat = true
+	var stale_years := maxi(0, age - MD.REVIVE_STALE_AGE) / 12
+	var piled := pile >= MD.REVIVE_PILE
+	if piled:
+		stale_years = maxi(1, stale_years)
+	var cost := MD.CRED_STALE * stale_years + (MD.CRED_REVIVE_REPEAT if repeat else 0)
+	var strength := _strength_pm(o, tot_circ) * (MD.REVIVE_PILE_FACTOR if piled else 1.0)
+	var spm := clampi(int(round(strength)), 0, 1000)
+	var n := int(s["revival_n"].get(scandal, [0, 0])[0]) + 1
+	s["revival_n"][scandal] = [n, int(f["month"])]
+	# the digging may turn up something new and name a further person: the party's current leader
+	var old_leader := String(f["data"].get("leader", ""))
+	var now_leader := String(PFN.leader_name(world, pid))
+	var escalated := false
+	var dragged := ""
+	if now_leader != "" and now_leader != old_leader \
+			and rng.randf() < minf(MD.REVIVE_ESCALATE_P_MAX, MD.REVIVE_ESCALATE_P_BASE + MD.REVIVE_ESCALATE_P_PER_WREF * _inv(o)):
+		escalated = true
+		dragged = now_leader
+	if cost > 0:
+		_trust_hit(world, String(o["id"]), pid, cost)
+	var sev := int(f["data"].get("severity", 30))
+	var gov := -maxi(1, int(round(float(sev) / 2.0 * float(spm) / 1000.0)))
+	var pref := {"kind": "PARTY", "id": pid}
+	var data := {"party": pid, "scandal": scandal, "kind": String(f["data"].get("kind", "DONATION")), "outlet": String(o["id"]),
+		"outlet_name": String(o["name"]), "scandal_month": int(f["month"]), "age": age, "n": n, "trigger": String(t["trigger"]),
+		"person": String(t["person"]), "post": String(t["post"]), "escalated": escalated, "dragged": dragged,
+		"old_leader": old_leader, "strength_pm": spm, "severity": sev, "cost": cost, "repeat": repeat, "piled": piled}
+	var fid := world.add_fact({"type": "MEDIA_SCANDAL_REVIVED", "owner": "law", "subjects": [{"kind": "OUTLET", "id": o["id"]}, pref],
+		"responsible": [{"actor": pref, "share": 1.0}], "impact": {"GOVERNANCE": gov}, "magnitude": MD.REVIVE_MAGNITUDE,
+		"visibility": "PUBLIC", "causes": [scandal], "data": data})
+	var row := data.duplicate()
+	row["fid"] = fid
+	row["month"] = world.month
+	row["buried_pm"] = 0
+	row["buriers"] = []
+	rev[fid] = row
+	o["revivals"] = int(o.get("revivals", 0)) + 1
+	var sc: Array = o["scoops"]
+	sc.append(fid)
+	return fid
+
+
+## Over-reviving costs a paper trust among the voters nearest the party it keeps hitting (they read it as a vendetta);
+## readers far from the party don't mind. trust -= cost × fit(group, party positions); it drifts back (TRUST_DRIFT).
+static func _trust_hit(world: WorldState, out_id: String, pid: String, cost: int) -> void:
+	var pos: Dictionary = world.peek("party").get(pid, {}).get("positions", {})
+	if pos.is_empty():
+		return
+	for c in PolVoters.all(world):
+		var tr: Dictionary = c.get("trust", {})
+		if not tr.has(out_id) or not c.has("ideology"):
+			continue
+		tr[out_id] = maxi(0, int(tr[out_id]) - int(round(float(cost) * _fit(c, pos))))
+
+
+## Friendly papers (the party's allies by line) may try to bury a fresh revival: each answers at most once.
+static func _bury(world: WorldState, rid: String, rng: RandomNumberGenerator, tot_circ: float) -> void:
+	var r: Dictionary = state(world)["revivals"][rid]
+	var pid := String(r["party"])
+	var convicted := _scandal_convicted(world, String(r["scandal"]))
+	for id in outlets(world):
+		var o: Dictionary = world.table("outlet")[id]
+		if id == String(r["outlet"]) or neutral_public(world, o) or int(r["buried_pm"]) >= 1000:
+			continue
+		var friend := -_opp_cached(world, o, {"kind": "PARTY", "id": pid}, {})
+		if friend <= 0.0:
+			continue
+		if rng.randf() >= MD.BURY_P * friend * (1.5 - _eth(o)):
+			continue
+		var spm := clampi(int(round(_strength_pm(o, tot_circ))), 0, 1000)
+		var cost := MD.CRED_BURY_CONVICTED if convicted else MD.CRED_BURY
+		o["cred"] = maxi(0, int(o["cred"]) - cost)
+		o["burials"] = int(o.get("burials", 0)) + 1
+		r["buried_pm"] = mini(1000, int(r["buried_pm"]) + spm)
+		var bl: Array = r["buriers"]
+		bl.append(String(id))
+		world.add_fact({"type": "MEDIA_SCANDAL_BURIED", "owner": "law", "subjects": [{"kind": "OUTLET", "id": id}, {"kind": "PARTY", "id": pid}],
+			"responsible": [], "impact": {}, "magnitude": MD.BURY_MAGNITUDE, "visibility": "PUBLIC", "causes": [rid],
+			"data": {"party": pid, "scandal": String(r["scandal"]), "revival": rid, "outlet": String(id), "outlet_name": String(o["name"]),
+				"strength_pm": spm, "cost": cost, "convicted": convicted}})
+
+
+## The party was convicted for this scandal (its PARTY_FINANCE case decided for the prosecution).
+static func _scandal_convicted(world: WorldState, scandal_fid: String) -> bool:
+	var donation := String(world.facts.get_fact(scandal_fid).get("data", {}).get("donation", ""))
+	if donation == "":
+		return false
+	var cases := world.peek("case")
+	for cid in Det.ordered(cases):
+		var c: Dictionary = cases[cid]
+		if String(c["type"]) == "PARTY_FINANCE" and String(c.get("status", "")) == "DECIDED" \
+				and String(c.get("outcome", "")) == "CLAIMANT" and String(c["data"].get("fact", "")) == donation:
+			return true
+	return false
 
 
 # =================================================================================== M2: censorship

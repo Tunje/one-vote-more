@@ -82,6 +82,21 @@ static func investigations(world: WorldState) -> Dictionary:
 	return world.peek("media").get("s", {}).get("investigations", {}).duplicate()
 
 
+
+## Old scandals dug up by the press since `since_month` (UI, tests): the MEDIA_SCANDAL_REVIVED data plus {fid, month,
+## buried_pm 0..1000}, oldest first. Pure read; rows live 132 months.
+static func revivals(world: WorldState, since_month: int = -1000000) -> Array:
+	var rev: Dictionary = world.peek("media").get("s", {}).get("revivals", {})
+	var out: Array = []
+	for k in rev:
+		var r: Dictionary = rev[k]
+		if int(r["month"]) >= since_month:
+			var c := r.duplicate(true)
+			c.erase("buriers")
+			out.append(c)
+	out.sort_custom(func(a, b): return int(a["month"]) < int(b["month"]) or (int(a["month"]) == int(b["month"]) and String(a["fid"]) < String(b["fid"])))
+	return out
+
 ## The news vector of a voter group (what PoliticsProvider applies; spec §7).
 static func news(leaf: Dictionary) -> Dictionary:
 	return {"blame": int(leaf.get("news_blame", 0)), "bias": leaf.get("news_bias", {}), "agenda": leaf.get("news_agenda", {}),
