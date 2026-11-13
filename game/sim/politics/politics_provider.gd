@@ -244,6 +244,8 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 						sign = -1.0 if gc > 5 * S else (1.0 if gc < -5 * S else 0.0)
 					if c == "COLONIAL_BURDEN":
 						sign = 1.0  # the charter's burden always pushes toward independence
+					elif c == "ENVIRONMENT_QUALITY":
+						sign = 1.0  # pollution has one remedy direction (more protection), whoever governs (A54 follow-up)
 					cell["ideology"][ax] += int(round(sign * PolDefs.CONCERN_PULL[c][ax] * (unmet - 0.5) * 2.0 * 0.5 * S))
 		for ax in PolDefs.AXES:
 			cell["ideology"][ax] += int(round(float(cell["base"][ax] - cell["ideology"][ax]) * 0.01))
