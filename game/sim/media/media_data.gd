@@ -71,6 +71,11 @@ const INVEST_P_MAX := 0.4
 const INVEST_W_DONATION := 6.0
 const INVEST_W_VIOLATION := 4.0
 const INVEST_W_LIE := 0.5
+## P1c: police misconduct and the government's secret unlawful acts (political arrests, understaffed public clinics
+## under binding ratios …). × (1 + opposition to the GOVERNMENT): papers against the government dig into its police.
+const INVEST_W_POLICE := 5.0
+const INVEST_W_GOV_ACT := 3.0
+const INVEST_GOV_ACT_SEVERE := 3.0      # × for SEVERE acts (a political arrest is the story of the decade)
 const FOI_TRANSPARENCY := 1.0
 const NO_FOI_TRANSPARENCY := 0.6
 const SCOOP_BONUS := 40.0

@@ -911,6 +911,7 @@ const PFN := preload("res://sim/law/party_finance.gd")
 const REN := preload("res://sim/law/rules_engine.gd")
 const LOPS := preload("res://sim/law/law_ops.gd")
 const LDATA := preload("res://sim/law/law_data.gd")
+const GOV_REF := {"kind": "GOVERNMENT", "id": "government"}
 
 
 ## Every MISLEADING, ERROR or FALSE report leaves a SECRET MEDIA_FALSE_REPORT fact (the ground truth that the paper
@@ -1167,7 +1168,17 @@ static func _investigate(world: WorldState) -> void:
 			var v: Dictionary = world.peek("violation_track")[fid]
 			if bool(v.get("unlawful", true)) and not bool(v.get("revealed", false)) and bool(v.get("active", true)) \
 					and String(v.get("company", "")) != String(o["owner"]["id"]):
-				targets.append(["VIOLATION", fid, MD.INVEST_W_VIOLATION * (1.0 + maxf(0.0, _opp_cached(world, o, {"kind": "COMPANY", "id": v.get("company", "")}, cache)))])
+				if String(v.get("kind", "")) in LDATA.POLICE_KINDS:     # P1c: papers against the government dig into its police
+					targets.append(["POLICE", fid, MD.INVEST_W_POLICE * (1.0 + maxf(0.0, _opp_cached(world, o, GOV_REF, cache)))])
+				else:
+					targets.append(["VIOLATION", fid, MD.INVEST_W_VIOLATION * (1.0 + maxf(0.0, _opp_cached(world, o, {"kind": "COMPANY", "id": v.get("company", "")}, cache)))])
+		for fid in Det.ordered(world.peek("unlawful_track")):
+			var u: Dictionary = world.peek("unlawful_track")[fid]
+			if String(u.get("kind", "")) != "GOV" or bool(u.get("revealed", false)) or world.peek("revealed_fact").has(fid):
+				continue
+			var sev := String(world.facts.get_fact(fid).get("data", {}).get("class", "")) == "SEVERE"
+			targets.append(["GOV_ACT", fid, MD.INVEST_W_GOV_ACT * (MD.INVEST_GOV_ACT_SEVERE if sev else 1.0) \
+				* (1.0 + maxf(0.0, _opp_cached(world, o, GOV_REF, cache)))])
 		for fid in Det.ordered(world.peek("media_lie")):
 			var l: Dictionary = world.peek("media_lie")[fid]
 			if not l["revealed"] and String(l["outlet"]) != id:
@@ -1189,8 +1200,10 @@ static func _investigate(world: WorldState) -> void:
 		match String(pick[0]):
 			"DONATION":
 				PFN._scandal(world, String(pick[1]), by, "PRESS")
-			"VIOLATION":
+			"VIOLATION", "POLICE":
 				JO._reveal_violation(world, String(pick[1]), by, "PRESS")
+			"GOV_ACT":
+				_reveal_gov_act(world, String(pick[1]), by)
 			"LIE":
 				expose_lie(world, String(pick[1]), "RIVAL", id)
 		var sc: Array = o["scoops"]
@@ -1205,6 +1218,17 @@ static func _investigate(world: WorldState) -> void:
 		var tot_by: Dictionary = state(world).get("investigations", {})
 		tot_by[String(pick[0])] = int(tot_by.get(String(pick[0]), 0)) + 1
 		state(world)["investigations"] = tot_by
+
+
+## A paper exposes a secret unlawful government act (as LawOps.discover does for leaks): the usual
+## LAW_UNLAWFUL_GOV_ACTION_REVEALED, then the burdened party may sue (JusticeOps).
+static func _reveal_gov_act(world: WorldState, fid: String, by: Dictionary) -> void:
+	var t: Dictionary = world.table("unlawful_track").get(fid, {})
+	if t.is_empty() or bool(t.get("revealed", false)):
+		return
+	t["revealed"] = true
+	world.table("revealed_fact")[fid] = true
+	world.facts.reveal(world.month, fid, [by])
 
 
 # =================================================================================== M5: old scandals flare up
