@@ -149,3 +149,21 @@ func test_friendly_paper_buries() -> void:
 			check(int(Media.outlet(w, fr)["cred"]) < c0, "burying costs credibility")
 			check(int(MQ.revivals(w).filter(func(r): return String(r["fid"]) == rid)[0]["buried_pm"]) > 0, "bury strength recorded")
 	check(buried > 0, "some revivals get buried (%d/20)" % buried)
+
+
+func test_person_trigger_on_any_notable_post() -> void:
+	var s := _world()
+	var w: WorldState = s["w"]
+	var st := Media.state(w)
+	w.table("person")["p:1"] = {"id": "p:1", "name": "Old Boss", "party_id": "party:1", "list_rank": 9}
+	Media._new_posts(w, st)                  # records this month's posts
+	w.month += 1
+	w.table("person")["p:1"]["list_rank"] = 2
+	var moved := Media._new_posts(w, st)
+	check(moved.has("Old Boss"), "moving into the top 3 of the list counts")
+	var f := w.facts.get_fact(String(s["scandal"]))
+	var t: Dictionary = Media._triggers(w, [f], moved)[String(s["scandal"])]
+	check_eq(String(t["trigger"]), "PERSON", "the scandal figure moved up")
+	check_eq(String(t["post"]), "number 2 on the party list", "post named for the chronicle")
+	w.month += 1
+	check(not Media._new_posts(w, st).has("Old Boss"), "staying put is not news")

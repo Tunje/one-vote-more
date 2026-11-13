@@ -139,8 +139,12 @@ const REVIVE_MIN_AGE := 12            # months since POL_SCANDAL_REVEALED before
 const REVIVE_MAX_AGE := 120
 const REVIVE_MAX_N := 3               # revivals per scandal over its lifetime
 const REVIVE_KEEP_MONTHS := 132       # revival rows kept this long (state.revivals)
-const REVIVE_P := 0.004               # per paper × scandal-month × (0.5 + sens) × hostility × (0.5 + invest W_ref) × triggers
-const REVIVE_TRIGGERS := {"SIMILAR": 3.0, "PERSON": 3.0, "VERDICT": 3.0, "CAMPAIGN": 2.0, "ANNIVERSARY": 2.0, "SLOW_NEWS": 1.5}
+# v1 probe (3 seeds × 50 y): 13 revivals, 8 with no trigger. v2: half the untriggered chance, stronger triggers, so most
+# revivals have a reason the chronicle can name at about the same total (≈ 1 a decade).
+const REVIVE_P := 0.002               # per paper × scandal-month × (0.5 + sens) × hostility × (0.5 + invest W_ref) × triggers
+const REVIVE_TRIGGERS := {"SIMILAR": 6.0, "PERSON": 6.0, "VERDICT": 6.0, "CAMPAIGN": 5.0, "ANNIVERSARY": 4.0, "SLOW_NEWS": 3.0}
+const REVIVE_LIST_TOP := 3            # PERSON: a scandal figure moves to leader, minister or the top of a party list
+const REVIVE_ANNIVERSARY_MONTHS := 3  # ANNIVERSARY: the first months of each fifth year
 const REVIVE_TRIGGER_ORDER := ["SIMILAR", "PERSON", "VERDICT", "CAMPAIGN", "ANNIVERSARY", "SLOW_NEWS"]   # ties: first wins
 const REVIVE_ELECTION_MONTHS := 12    # CAMPAIGN: 0 ≤ months to the election ≤ this
 const REVIVE_SLOW_NEWS := 8           # SLOW_NEWS: fewer newsworthy facts than this this month

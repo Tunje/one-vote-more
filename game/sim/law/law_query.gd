@@ -561,6 +561,13 @@ static func quota_due(world: WorldState) -> Dictionary:
 
 # =====================================================================================  M13 districts by law
 
+## P1a: reported offences per 10k residents per year (last 12 months) {THEFT, VIOLENCE, FRAUD} for an economic
+## district ("" = colony, population-weighted). {} while the crime model is off (meta["on"] "CRIME") or has not run.
+## Reference at full employment and full police strength: about THEFT 420, VIOLENCE 60, FRAUD 80.
+static func crime_rate(world: WorldState, district: String = "") -> Dictionary:
+	return preload("res://sim/law/crime.gd").crime_rate(world, district)
+
+
 ## Active districts: [{id, name, areas, since_month, act}]
 static func districts(world: WorldState) -> Array:
 	var out: Array = []

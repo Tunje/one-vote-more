@@ -1236,6 +1236,7 @@ static func _revive(world: WorldState) -> void:
 	for k in Det.ordered(rn):
 		if world.month - int(rn[k][1]) > MD.REVIVE_MAX_AGE:
 			rn.erase(k)
+	var new_posts := _new_posts(world, s)
 	var parties := world.peek("party")
 	var cands: Array = []
 	for f in world.facts.query("POL_SCANDAL_REVEALED", world.month - MD.REVIVE_MAX_AGE, world.month - MD.REVIVE_MIN_AGE):
@@ -1244,7 +1245,7 @@ static func _revive(world: WorldState) -> void:
 			cands.append(f)
 	if cands.is_empty():
 		return
-	var trig := _triggers(world, cands)
+	var trig := _triggers(world, cands, new_posts)
 	var rng := world.rng.stream("media.revive")
 	var tot_circ := maxf(1.0, _total_circ(world))
 	var fresh: Array = []
@@ -1272,18 +1273,50 @@ static func _revive(world: WorldState) -> void:
 
 
 ## Per candidate scandal: {mult (product of the present triggers), trigger (the strongest), person}.
-static func _triggers(world: WorldState, cands: Array) -> Dictionary:
+## {name: post} of everyone in a notable post now: party leaders, ministers, the top REVIVE_LIST_TOP of each party
+## list (a person holding several gets the highest).
+static func notable_posts(world: WorldState) -> Dictionary:
+	var out := {}
+	for pid in Det.ordered(world.peek("party")):
+		var p: Dictionary = world.peek("party")[pid]
+		if String(p.get("status", "")) == "ACTIVE":
+			var nm := String(PFN.leader_name(world, String(pid)))
+			if nm != "":
+				out[nm] = "party leader"
+	for r in load("res://sim/staff/office_staff.gd").call("cabinet", world):
+		if bool(r.get("minister", false)) and String(r.get("name", "")) != "" and not out.has(String(r["name"])):
+			out[String(r["name"])] = String(r.get("title", "minister"))
+	var people := world.peek("person")
+	for id in Det.ordered(people):
+		var q: Dictionary = people[id]
+		var rank := int(q.get("list_rank", -1))
+		if rank >= 1 and rank <= MD.REVIVE_LIST_TOP and String(q.get("name", "")) != "" and not out.has(String(q["name"])):
+			out[String(q["name"])] = "number %d on the party list" % rank
+	return out
+
+
+## Names that moved into a notable post (or a different one) since last month; state.revival_posts keeps last
+## month's {name: post}. The first month only records.
+static func _new_posts(world: WorldState, s: Dictionary) -> Dictionary:
+	var now := notable_posts(world)
+	var out := {}
+	if s.has("revival_posts"):
+		var prev: Dictionary = s["revival_posts"]
+		for nm in Det.ordered(now):
+			if String(prev.get(nm, "")) != String(now[nm]):
+				out[nm] = now[nm]
+	s["revival_posts"] = now
+	return out
+
+
+static func _triggers(world: WorldState, cands: Array, new_posts: Dictionary = {}) -> Dictionary:
 	var m := world.month
 	var new_scandal := {}
 	for f in world.facts.query("POL_SCANDAL_REVEALED", m, m):
 		new_scandal[String(f["data"].get("party", ""))] = true
-	var new_leaders := {}
+	var new_leaders := new_posts.duplicate()
 	for f in world.facts.query("POL_LEADER_CHANGED", m, m):
 		new_leaders[String(f["data"].get("new", ""))] = "party leader"
-	for f in world.facts.query("STAFF_CABINET_FORMED", m, m):
-		for r in f["data"].get("ministers", []):
-			if not new_leaders.has(String(r.get("name", ""))):
-				new_leaders[String(r.get("name", ""))] = String(r.get("title", "minister"))
 	var verdict_cases := {}
 	for t in ["LAW_RULING", "LAW_LEADER_CONVICTED"]:
 		for f in world.facts.query(t, m, m):
@@ -1307,7 +1340,7 @@ static func _triggers(world: WorldState, cands: Array) -> Dictionary:
 			"PERSON": leader != "" and new_leaders.has(leader),
 			"VERDICT": verdict_facts.has(String(d.get("donation", ""))),
 			"CAMPAIGN": campaign,
-			"ANNIVERSARY": age > 0 and age % 60 == 0,
+			"ANNIVERSARY": age >= 60 and age % 60 < MD.REVIVE_ANNIVERSARY_MONTHS,
 			"SLOW_NEWS": slow}
 		var mult := 1.0
 		var best := "NONE"

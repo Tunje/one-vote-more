@@ -452,6 +452,13 @@ const LEVERS := [
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": 0.0006, "ECON_ROLE": 0.0003},
 		"concerns": {"SAFETY": 6, "PUBLIC_SERVICES": 3, "GOVERNANCE": -5},
 		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# P1a police strength (plan-public-safety A60): ‰ of the reference strength per resident (1000 = 20 officers per 10k
+	# plus support staff, ≈ 26 milli-W_ref per 10k residents a month), so coverage does not erode as the colony grows.
+	# Bob's budget line prices it as value × REF_COST × population (crime.gd police_cost).
+	{"id": "LAW_POLICE_BUDGET", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 2000], "default": 1000,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": -0.0015, "FISCAL": 0.0025, "ECON_ROLE": 0.001},
+		"concerns": {"SAFETY": 8, "GOVERNANCE": -5},
+		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 3, "scope": "COLONY", "domain": "LAW"},
 	{"id": "LAW_WHISTLEBLOWER_PROTECTION", "owner": "law", "type": "BOOL", "default": false,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"INSTITUTIONS": 8, "LABOR": 6},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},

@@ -80,6 +80,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			Ops.Justice.run(world)
 			PF.run(world)
 			Land.tick(world)
+			preload("res://sim/law/crime.gd").monthly(world)     # P1a offences (opt-in CRIME), before the press reports
 			Media.run(world)
 			Ops.write_indicators(world)
 		TickPhase.EVENTS:
