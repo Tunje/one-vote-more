@@ -28,12 +28,21 @@ static func econ_only_for_load() -> Simulation:
 	return sim
 
 
+## v8 (Wilma, 2026-11-13; user: "make your best decision, the chronicles will show"): opt-in pieces that passed their
+## A/Bs are on in the full game. Off: SUPPORT_S comfort (cost population in the full-game check), WAREHOUSE and CARE
+## (not yet full-game tested), SUPPORT_D/E (failed earlier A/Bs). Econ-only test worlds (make_econ_only) stay opt-in.
+## meta["off"] still switches any of these off.
+const DEFAULT_ON := ["E134", "PAYOUT", "SUPPORT_T", "FLEET", "WORKLOAD", "SUPPORT_A", "CONDUCT", "CRIME", "SCANDAL_REVIVAL"]
+
+
 static func make(seed_value: int, scenario: String = "BALANCED", persona: Dictionary = {}, autoplay: bool = true) -> Simulation:
 	var sim := Simulation.new(seed_value)
 	sim.world.meta["scenario"] = scenario
 	sim.world.meta["persona"] = persona
 	sim.world.meta["autoplay_player"] = autoplay
 	sim.world.meta["voters"] = "LEAVES"  # M10 S3c: the population blocks are the voters (old saves keep CELLS)
+	if not sim.world.meta.has("on"):
+		sim.world.meta["on"] = DEFAULT_ON.duplicate()
 	_register(sim)
 	sim.new_game()
 	return sim
