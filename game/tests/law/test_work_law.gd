@@ -108,3 +108,32 @@ func test_staffing_strike_lawful_only_under_binding_ratios() -> void:
 	LawOps.record_greed(w, "org:1", {"kind": "UNDERSTAFFING", "facility": "fac:1", "saving": 1000})
 	check(WK.strike_lawful_staffing(w, sector), "binding ratios and a short clinic: a lawful staffing strike (%s)" % sector)
 	check(not WK.strike_lawful_staffing(w, "MINING_NOT_A_SECTOR"), "another sector is not covered")
+
+
+## A binding staffing law binds the government's own clinics: one secret unlawful act per shortfall, a lawful strike.
+func test_public_clinic_shortfall_is_a_government_violation() -> void:
+	var w := _world()
+	LawOps.ensure_work_rules(w)
+	var r := WK.report_public_staffing(w, "fac:9", "d:2", "HEALTH", 1500, 3)
+	check(String(r["fact"]) == "" and int(r["short"]) == 0, "no ratio law: nothing recorded")
+	w.levers["LAW_STAFFING_RATIOS"] = 2
+	r = WK.report_public_staffing(w, "fac:9", "d:2", "HEALTH", 1500, 3)
+	check_eq(int(r["short"]), 2, "two doctors short of 1:300")
+	var fid := String(r["fact"])
+	check(fid != "", "recorded")
+	if fid == "":
+		return
+	var f := w.facts.get_fact(fid)
+	check_eq(String(f["type"]), "LAW_UNLAWFUL_GOV_ACTION", "the government broke its own law")
+	check_eq(String(f["visibility"]), "SECRET", "hidden until found")
+	check_eq(String(f["responsible"][0]["actor"]["kind"]), "GOVERNMENT", "the Cabinet's blame")
+	check(w.table("unlawful_track")[fid]["burdened"], "patients can complain")
+	w.month += 1
+	check_eq(String(WK.report_public_staffing(w, "fac:9", "d:2", "HEALTH", 1500, 4)["fact"]), fid, "one record while it lasts")
+	check(WK.strike_lawful_staffing(w, "PUBLIC_SECTOR"), "public-sector staff may strike over it")
+	w.month += 1
+	check_eq(String(WK.report_public_staffing(w, "fac:9", "d:2", "HEALTH", 1500, 5)["fact"]), "", "fully staffed: episode over")
+	check(not WK.strike_lawful_staffing(w, "PUBLIC_SECTOR"), "and no lawful strike")
+	w.month += 1
+	var again := String(WK.report_public_staffing(w, "fac:9", "d:2", "HEALTH", 1500, 3)["fact"])
+	check(again != "" and again != fid, "a new shortfall is a new act")

@@ -110,7 +110,10 @@ static func work_rules() -> Array:
 	var co := [{"field": "actor.kind", "op": "EQ", "value": "COMPANY"}]
 	var law := {"level": "LAW", "source": "WORK_LAW"}
 	return [_r("PROHIBIT", "EXCEED_WORKING_HOURS", co, [], law),
-		_r("PROHIBIT", "UNDERSTAFF_SERVICE", co, [{"field": "lever.LAW_STAFFING_RATIOS", "op": "EQ", "value": 2}], law)]
+		_r("PROHIBIT", "UNDERSTAFF_SERVICE", co, [{"field": "lever.LAW_STAFFING_RATIOS", "op": "EQ", "value": 2}], law),
+		# Binding ratios bind the government's own clinics too (WK.report_public_staffing).
+		_r("PROHIBIT", "UNDERSTAFF_SERVICE", [{"field": "actor.kind", "op": "IN", "value": ["GOVERNMENT", "AUTHORITY"]}],
+			[{"field": "lever.LAW_STAFFING_RATIOS", "op": "EQ", "value": 2}], law)]
 
 
 ## Company-rivalry rules, added once by LawOps.ensure_competition_rules. Predation and abuse are unlawful for a

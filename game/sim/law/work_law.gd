@@ -54,10 +54,13 @@ static func stress_accident(workload_pm: int) -> bool:
 
 ## Step 2 (Wilma's union side): a staffing strike in `sector` (an occupation, as EconQuery.workload and the unions use) is
 ## lawful when ratios are BINDING and a workplace in that sector is short of them: an active UNDERSTAFFING record
-## (Bob reports one every month a private clinic is short; the union knows its own rota, revealed or not).
+## (Bob reports one every month a private clinic is short; the union knows its own rota, revealed or not), or, for
+## PUBLIC_SECTOR, a public workplace short of them (report_public_staffing).
 static func strike_lawful_staffing(world: WorldState, sector: String) -> bool:
 	if ratio_mode(world) != "BINDING":
 		return false
+	if sector == "PUBLIC_SECTOR" and not public_shortfalls(world).is_empty():
+		return true
 	var fac := world.peek("facility")
 	var orgs := world.peek("org")
 	var vt := world.peek("violation_track")
@@ -72,3 +75,56 @@ static func strike_lawful_staffing(world: WorldState, sector: String) -> bool:
 		if EconLabor.occupation_of(world, org, String(f["type"])) == sector:
 			return true
 	return false
+
+
+
+# =====================================================================================  public workplaces
+
+## Bob calls this every month for each PUBLIC workplace with a ratio service (HEALTH, CARE, CHILDCARE). Returns
+## staffing_check + {fact}. Under BINDING ratios a shortfall is the government breaking its own law: one SECRET
+## LAW_UNLAWFUL_GOV_ACTION (action UNDERSTAFF_SERVICE, responsible GOVERNMENT = the Cabinet) per continuous shortfall,
+## found through the usual leaks and complaints by the district's patients (VICTIMS), then an UNLAWFUL_GOV case. The
+## episode ends when the workplace is no longer short, the law stops binding, or Bob stops reporting it.
+static func report_public_staffing(world: WorldState, facility: String, district: String, service: String, clients: int,
+		staff: int) -> Dictionary:
+	var chk := staffing_check(world, service, clients, staff)
+	var ps := _public_state(world)
+	var row: Dictionary = ps.get(facility, {})
+	var open := not row.is_empty() and int(row["last"]) >= world.month - 1
+	if not bool(chk["unlawful"]):
+		ps.erase(facility)
+		chk["fact"] = ""
+		return chk
+	if not open:
+		var LawOps = load("res://sim/law/law_ops.gd")
+		var res: Dictionary = LawOps.proceed_unlawfully(world, {"kind": "GOVERNMENT", "id": "government"}, "UNDERSTAFF_SERVICE",
+			{"facility": facility, "district": district, "service": service, "required": int(chk["required"]),
+			"staff": staff, "short": int(chk["short"])}, "",
+			{"kind": "VICTIMS", "id": "patients:" + district, "scope": {"districts": [district]}}, "SERIOUS")
+		if not bool(res.get("ok", false)):
+			chk["fact"] = ""
+			return chk
+		row = {"fact": String(res["fact"]), "since": world.month, "district": district, "service": service, "max_short": 0}
+		ps[facility] = row
+	row["last"] = world.month
+	row["short"] = int(chk["short"])
+	row["max_short"] = maxi(int(row["max_short"]), int(chk["short"]))
+	chk["fact"] = String(row["fact"])
+	return chk
+
+
+## Open public shortfalls this month or last: {facility: {fact, since, last, district, service, short, max_short}}.
+static func public_shortfalls(world: WorldState) -> Dictionary:
+	var out := {}
+	var ps: Dictionary = world.peek("law_state").get("s", {}).get("public_staffing", {})
+	for fid in ps:
+		if int(ps[fid].get("last", -99)) >= world.month - 1:
+			out[fid] = ps[fid]
+	return out
+
+
+static func _public_state(world: WorldState) -> Dictionary:
+	var s: Dictionary = load("res://sim/law/law_ops.gd").state(world)
+	if not s.has("public_staffing"):
+		s["public_staffing"] = {}
+	return s["public_staffing"]
