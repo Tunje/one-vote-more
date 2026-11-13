@@ -23,6 +23,8 @@ func _init() -> void:
 		on.append("SUPPORT_D")
 	if v.contains("C"):
 		on.append("CONDUCT")
+	if v.contains("S"):
+		on.append("SUPPORT_S")
 	w.meta["on"] = on
 	var failed := 0
 	var seen_dead := {}
@@ -52,6 +54,9 @@ func _init() -> void:
 			var o2: Dictionary = w.table("org")[oid]
 			if o2["status"] in ["ACTIVE", "DISTRESSED", "ADMINISTRATION"] and not o2["is_contractor"] and o2["type"] in ["PRIVATE", "COOPERATIVE"]:
 				alive += 1
+		var comfort := 0
+		for d in EconComfort.summary(w):
+			comfort += int(EconComfort.summary(w)[d]["posts"])
 		var shops := 0
 		for d in EconRetail.summary(w):
 			shops += int(EconRetail.summary(w)[d]["posts"])
@@ -68,10 +73,18 @@ func _init() -> void:
 		for fx in w.facts.query("COMP_WORKPLACE_ACCIDENT"):
 			if bool(fx["data"].get("crisis", false)):
 				majors += 1
+		var fill_sum := 0.0
+		var fill_n := 0
+		for oid in w.table("org"):
+			if EconOffice.office_of(w, oid) != "":
+				fill_sum += EconOffice.office_fill(w, oid)
+				fill_n += 1
+		print("   prices: food %d consumer %d | wage G %d S %d | office fill %.2f" % [int(s["prices"]["FOOD"]) / 1000, int(s["prices"]["CONSUMER"]) / 1000,
+			int(s["wage"]["G"]) / 1000, int(s["wage"]["S"]) / 1000, fill_sum / maxf(1.0, float(fill_n))])
 		print("   conduct: records %d unlawful %d revealed %d | major accidents %d" % [v_all, v_unl, v_rev, majors])
-		print("%s seed %d Y%d pop %d lf %d u %.1f%% | offices %d sanit %d shops %d | real income %.2f | firms alive %d failed %d | food short %d‰ | default %s" % [
+		print("%s seed %d Y%d pop %d lf %d u %.1f%% | offices %d sanit %d shops %d comfort %d | real income %.2f | firms alive %d failed %d | food short %d‰ | default %s" % [
 			v, sd, y + 1, PopStore.total(w), int(lab["labour_force"]), float(lab["rate_pct"]),
-			int(EconOffice.summary(w)["posts_held"]), int(EconSanitation.summary(w)["posts"]), shops, real,
+			int(EconOffice.summary(w)["posts_held"]), int(EconSanitation.summary(w)["posts"]), shops, comfort, real,
 			alive, failed, int(s.get("food_shortfall", 0)), str(s.get("sovereign_default", false))])
 	print("%s seed %d END ledger %d goods %s jobs %s" % [v, sd, w.ledger.total(), str(EconReport.goods_errors(w)), str(EconPop.check(w).size())])
 	quit()

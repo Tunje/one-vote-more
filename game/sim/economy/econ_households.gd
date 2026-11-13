@@ -261,6 +261,7 @@ static func _buy_services(world: WorldState) -> void:
 		var d: String = g["district"]
 		var budget := int((1.0 - EconData.DISC_CONSUMER_SHARE) * discretionary_budget(world, g)) - int(g.get("media_spent", 0))
 		budget = maxi(0, mini(budget, world.ledger.balance(EconUtil.hh_acct(gid))))
+		budget -= EconComfort.spend(world, g, budget)  # §8b (opt-in): comfort services come out of the services budget
 		var price: int = s["svc_price"][d]
 		var want := int(float(budget) * S / float(maxi(1, price)))
 		demand_d[d] = demand_d.get(d, 0) + want

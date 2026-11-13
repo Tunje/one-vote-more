@@ -94,12 +94,30 @@ static func monthly(world: WorldState) -> void:
 		var f := _site(world, oid)
 		if f.is_empty():
 			continue
+		_pay_out(world, oid, f)
 		var wage := maxi(1, int(s["wage"]["G"]))
 		var posts := int(float(ema[d]) * WAGE_SHARE / float(wage))
 		f["scale"] = posts * 1000 / POSTS_PER_UNIT
 		f["T"] = 1000
 	s["retail_rev_ema"] = ema
 	s["retail_rev_m"] = {}
+
+
+## Local partnership: cash above one month of wages goes to the owner pool every month, so the margin returns to
+## households as income instead of sitting in the company account (the §8b A/B: retained margins drained demand).
+static func _pay_out(world: WorldState, oid: String, f: Dictionary) -> void:
+	var o: Dictionary = world.table("org")[oid]
+	if o.get("owner_group", "") == "" or not world.table("hh").has(o["owner_group"]):
+		return
+	var bill := 0
+	for t in EconData.RECIPES[f["type"]]["labor"]:
+		bill += int(EconData.RECIPES[f["type"]]["labor"][t]) * int(f.get("scale", 0)) / 1000 * EconFinance.wage_for(world, oid, t)
+	var spare := world.ledger.balance(EconUtil.acct(oid)) - bill
+	if spare <= 0:
+		return
+	world.ledger.transfer(EconUtil.acct(oid), EconUtil.hh_acct(o["owner_group"]), spare, "DIVIDEND", world.month)
+	world.table("hh")[o["owner_group"]]["income"]["dividend"] += spare
+	EconPop.credit_status(world, o["owner_group"], "NOT_IN_LF", spare, "dividend", "BUSINESS_OWNER")
 
 
 ## Shops per district: {posts held, margin revenue (smoothed)} — for probes and the A/B.

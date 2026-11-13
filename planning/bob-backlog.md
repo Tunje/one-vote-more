@@ -235,3 +235,14 @@ projects." — clarified: "I did not mean a bostadsrätt (co-op), I meant owning
    an inquiry that links by cause_records / data.hazard (vs record.hazard_ids) / data.facility → LAW_CRISIS_CAUSE_REVEALED
    + TORT. On record_greed: always rec.facility; rec.hazard_ids = the E116 HAZARD ids the conduct raises
    (DEFERRED_UPKEEP and SAFETY_CORNERS on hazardous plants); record_greed merges new hazard_ids.
+30. **Public safety A60 (planning/plan-public-safety.md; Anni leads; after the support pieces: offices A/B, §8b, §8c,
+   §9).** My part: economic crime drivers (unemployment, hunger, stress, inequality, informal housing, theft from
+   warehouse stock), police and prison wages, budget lines LAW_BUDGET_POLICE and LAW_BUDGET_PRISONS; police stations get
+   support staff under the A56 (office split) rules. Anni sends an interface note.
+31. **Money stock / deflation (Wilma, right after §8b):** nominal wages and prices halve over 50 years in every arm
+   (G ~1,500 → ~750) — undesigned deflation. Suspect: money piling up outside households (firm cash: private dividends
+   only above 3 months of costs; PE cash, E129; the treasury) while the population grows. Track the money stock by holder
+   (households, private firms, PEs, treasury, banks, off-world/EXTERNAL) every 5 years on one seed; find where it piles
+   up. If idle firm cash is the cause: a general payout rule for all private firms (cash above ~1–2 months of costs,
+   keeping an investment reserve for planned builds) instead of the comfort/retail special case.
+32. **6-seed check of SUPPORT_A** (offices split) before it goes on by default (after §8b).
