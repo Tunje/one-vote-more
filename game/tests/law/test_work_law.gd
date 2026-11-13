@@ -93,3 +93,18 @@ func test_stress_accidents_go_to_court() -> void:
 			check(String(c["data"]["lean_record"]) != "", "the overwork record backs the claim")
 			check_eq(int(c["data"]["claim"]), int(2 * JO.STRESS_TORT_WREF * JO.STRESS_LEAN_MULT * 1000000), "lean running: larger claim")
 	check(priv >= 6 and priv <= 18 and pub >= 6 and pub <= 18, "most stress accidents are sued (%d private, %d public of 20 each)" % [priv, pub])
+
+
+func test_staffing_strike_lawful_only_under_binding_ratios() -> void:
+	var w := _world()
+	LawOps.ensure_m11_rules(w)
+	LawOps.ensure_work_rules(w)
+	w.table("org")["org:1"] = {"id": "org:1", "type": "PRIVATE"}
+	w.table("facility")["fac:1"] = {"id": "fac:1", "org": "org:1", "type": "CLINIC", "district": "d:1"}
+	var sector := EconLabor.occupation_of(w, "org:1", "CLINIC")
+	LawOps.record_greed(w, "org:1", {"kind": "UNDERSTAFFING", "facility": "fac:1", "saving": 1000})
+	check(not WK.strike_lawful_staffing(w, sector), "no binding ratios: the shortfall is lawful, so is the employer")
+	w.levers["LAW_STAFFING_RATIOS"] = 2
+	LawOps.record_greed(w, "org:1", {"kind": "UNDERSTAFFING", "facility": "fac:1", "saving": 1000})
+	check(WK.strike_lawful_staffing(w, sector), "binding ratios and a short clinic: a lawful staffing strike (%s)" % sector)
+	check(not WK.strike_lawful_staffing(w, "MINING_NOT_A_SECTOR"), "another sector is not covered")

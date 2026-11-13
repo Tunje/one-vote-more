@@ -50,3 +50,25 @@ static func inspections(world: WorldState) -> float:
 
 static func stress_accident(workload_pm: int) -> bool:
 	return workload_pm >= STRESS_ACCIDENT_FROM
+
+
+## Step 2 (Wilma's union side): a staffing strike in `sector` (an occupation, as EconQuery.workload and the unions use) is
+## lawful when ratios are BINDING and a workplace in that sector is short of them: an active UNDERSTAFFING record
+## (Bob reports one every month a private clinic is short; the union knows its own rota, revealed or not).
+static func strike_lawful_staffing(world: WorldState, sector: String) -> bool:
+	if ratio_mode(world) != "BINDING":
+		return false
+	var fac := world.peek("facility")
+	var orgs := world.peek("org")
+	var vt := world.peek("violation_track")
+	for vid in vt:
+		var v: Dictionary = vt[vid]
+		if String(v.get("kind", "")) != "UNDERSTAFFING" or not bool(v.get("active", false)) or not bool(v.get("unlawful", false)):
+			continue
+		var f: Dictionary = fac.get(String(v.get("facility", "")), {})
+		var org := String(f.get("org", ""))
+		if f.is_empty() or not orgs.has(org):
+			continue
+		if EconLabor.occupation_of(world, org, String(f["type"])) == sector:
+			return true
+	return false
