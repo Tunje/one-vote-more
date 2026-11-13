@@ -29,10 +29,10 @@ static func econ_only_for_load() -> Simulation:
 
 
 ## v8 (Wilma, 2026-11-13; user: "make your best decision, the chronicles will show"): opt-in pieces that passed their
-## A/Bs are on in the full game. Off: SUPPORT_S comfort (cost population in the full-game check), WAREHOUSE and CARE
+## A/Bs are on in the full game. Off: SUPPORT_S comfort (cost population in the full-game check), FLEET (v8: a dead fleet never recovered and caused permanent outages; off until fixed), WAREHOUSE and CARE
 ## (not yet full-game tested), SUPPORT_D/E (failed earlier A/Bs). Econ-only test worlds (make_econ_only) stay opt-in.
 ## meta["off"] still switches any of these off.
-const DEFAULT_ON := ["E134", "PAYOUT", "SUPPORT_T", "FLEET", "WORKLOAD", "SUPPORT_A", "CONDUCT", "CRIME", "SCANDAL_REVIVAL"]
+const DEFAULT_ON := ["E134", "PAYOUT", "SUPPORT_T", "WORKLOAD", "SUPPORT_A", "CONDUCT", "CRIME", "SCANDAL_REVIVAL"]
 
 
 static func make(seed_value: int, scenario: String = "BALANCED", persona: Dictionary = {}, autoplay: bool = true) -> Simulation:
