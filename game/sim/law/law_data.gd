@@ -347,8 +347,9 @@ const INDICATOR_TUNING := {
 		"normalize": {"good": 1000, "bad": 10000}},
 	# P1a crime (opt-in CRIME; published only while it runs). Crime index = reported THEFT + 3 x VIOLENCE per 10k a year
 	# (reference at 4% unemployment and full police ~ 420 + 180 = 600). Fraud feeds FAIRNESS.
-	"LAW_CRIME_INDEX": {"range": [0, 20000000], "concerns": {"SAFETY": 0.6, "GOVERNANCE": 0.05},
-		"normalize": {"good": 600000, "bad": 2400000}},
+	# v8 follow-up: crime at 2x the base never made SAFETY an issue; full weight, and 3x the base counts as "bad"
+	"LAW_CRIME_INDEX": {"range": [0, 20000000], "concerns": {"SAFETY": 1.0, "GOVERNANCE": 0.05},
+		"normalize": {"good": 600000, "bad": 1800000}},
 	"LAW_FRAUD_RATE": {"range": [0, 5000000], "concerns": {"FAIRNESS": 0.2},
 		"normalize": {"good": 80000, "bad": 400000}},
 	# M6. Published only when there is data (revealed violations / decided cases).
