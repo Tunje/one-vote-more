@@ -215,6 +215,7 @@ static func _plan(world: WorldState, f: Dictionary) -> Dictionary:
 		lab = minf(lab, EconOffice.office_fill(world, f["org"]))  # support economy A: the office must be staffed too
 	lab *= EconUnions.work_factor(world, f)  # M9: strike / lockout
 	lab *= EconWorkload.sick_mult(f)  # 27-W: stressed crews take sick days (1.0 when off)
+	lab *= float(1000 - EconFleet.absent_pm(world, f["district"])) / 1000.0  # §8c: commuters who could not get to work
 	var mi := 1.0
 	var soft_f := 1.0
 	var soft: Array = EconData.SOFT_INPUTS.get(f["type"], [])

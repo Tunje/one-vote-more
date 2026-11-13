@@ -23,6 +23,8 @@ func _init() -> void:
 		on.append("SUPPORT_T")
 	if arm.contains("workload"):
 		on.append("WORKLOAD")
+	if arm.contains("fleet"):
+		on.append("FLEET")
 	w.meta["on"] = on
 	var money := arm.contains("money")
 	var u_sum := 0.0

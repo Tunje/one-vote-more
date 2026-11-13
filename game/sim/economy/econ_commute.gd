@@ -114,11 +114,28 @@ static func monthly(world: WorldState) -> void:
 		var fid := EconSetup.add_facility(world, "TRANSIT", cta, "d:1", false)
 		world.table("facility")[fid]["book"] = 0
 		f = world.table("facility")[fid]
-	var posts := int(float(ema) * WAGE_SHARE / float(maxi(1, int(s["wage"]["G"]))))
+	var fleet := EconFleet.active(world)
+	var share := (1.0 - EconFleet.FLEET_SHARE) if fleet else WAGE_SHARE  # §8c: a fifth of the fares buys parts and buses
+	var posts := int(float(ema) * share / float(maxi(1, int(s["wage"]["G"]))))
 	f["scale"] = posts * 1000 / POSTS_PER_UNIT
 	f["T"] = 1000
+	var fr := {}
+	if fleet:
+		EconFleet.post_parts_order(world, cta, ema)
+		fr = EconFleet.step(world, cta, pairs, f)
 	# Terra: bus lines and road traffic from the pair rows
 	var rows := query_rows(world, pairs)
+	if fleet:
+		for r in rows:
+			var k := "%s>%s" % [r["from_d"], r["to_d"]]
+			var fp: Dictionary = fr.get("pairs", {}).get(k, {})
+			if not fp.is_empty():
+				r["seats"] = int(fp["seats"])
+				r["buses_in_service"] = int(fp["buses"])
+				r["load_pm"] = int(r["bus_commuters"]) * 1000 / maxi(1, int(fp["seats"]))
+		if not rows.is_empty():
+			rows[0]["breakdowns_m"] = int(fr.get("breakdowns", 0))  # colony totals on the first row (per pair later)
+			rows[0]["crashes_m"] = int(fr.get("crashes", 0))
 	s["commute_rows"] = rows
 	if _has_map(world):
 		Transport.add_commute_traffic(world, rows)

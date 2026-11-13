@@ -21,6 +21,8 @@ const WK := preload("res://sim/law/work_law.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 const LEAN_PM := 150
 const PLEDGE_M := 24
+## Public services under a staffing ratio (Anni's WK.RATIOS); CARE and CHILDCARE join when those services exist.
+const PUBLIC_RATIO_SERVICE := {"CLINIC": "HEALTH"}
 const SICK_PM := 150
 const QUALITY_PM := 300
 const OVERLOAD_PM := 800
@@ -138,6 +140,10 @@ static func _report_law(world: WorldState, f: Dictionary, o: Dictionary, saving:
 	elif t.has(ow):
 		LawOps.greed_stop(world, str(t[ow]))
 		t.erase(ow)
+	# Anni (Wilma's ruling): binding ratios bind the government's own services too — the law side records the episode
+	if o["type"] in EconData.PUBLIC_TYPES and PUBLIC_RATIO_SERVICE.has(f["type"]):
+		WK.report_public_staffing(world, fid, f["district"], PUBLIC_RATIO_SERVICE[f["type"]], _clients(world, f),
+			EconLabor.staff_total(f["staff"]) / S)
 	var us := fid + "|UNDERSTAFFING"
 	if f["type"] == "CLINIC" and o["type"] in ["PRIVATE", "COOPERATIVE"]:
 		var chk := WK.staffing_check(world, "HEALTH", _clients(world, f), EconLabor.staff_total(f["staff"]) / S)
