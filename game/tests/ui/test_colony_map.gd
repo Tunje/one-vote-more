@@ -187,3 +187,42 @@ func test_waste_siting_and_sites_on_the_map() -> void:
 	var img := v.get_rect()   # draw path smoke: no errors drawing sites and the study
 	check(img.size.x > 0, "drawn")
 	v.free()
+
+
+## A60 (Wilma 2026-11-13): Bob's police stations (opt-in POLICE) and Anni's crime rates (opt-in CRIME) on the colony
+## map and in the window view: station badges with their coverage, the crime overlay per economic district.
+func test_police_stations_and_crime_overlay() -> void:
+	var s := GameSession.new()
+	s.new_game(1, true)
+	var w := s.world()
+	w.meta["on"] = ["POLICE", "CRIME", "WORKLOAD"]
+	w.levers["LAW_POLICE_BUDGET"] = 2000
+	for _m in 14:
+		s.end_month()
+	var v := _view(s)
+	check(not v._stations.is_empty(), "the map knows the police stations")
+	check(not v._crime.is_empty(), "and the crime rates per district")
+	check(v._crime_btn.visible, "the Crime button shows")
+	var st: Dictionary = v._stations[0]
+	check(v._fac_tiles.has(String(st["id"])), "a station stands on a tile")
+	v.click_tile(v._fac_tiles[String(st["id"])])
+	check(v._info.text.contains("Police") and v._info.text.contains("officers"), "the station panel: %s" % v._info.text.left(300))
+	v.selected = {}
+	v._update_panel()
+	check(v._info.text.contains("Public safety"), "the summary counts the stations")
+	v._crime_btn.button_pressed = true
+	check(v.show_crime, "the overlay is on")
+	var any := false
+	for d in v._crime:
+		any = any or v._econ_terr.has(d)
+	check(any, "the overlay has land per district")
+	check(ColonyMap.crime_level({"THEFT": 0, "VIOLENCE": 0, "FRAUD": 0}) == 0.0 and ColonyMap.crime_color(3.5) == Color("#ef5350"), "levels and colours")
+	v.free()
+	var kinds := {}
+	for t in ColonyVista.gather(w)["things"]:
+		kinds[String(t["kind"])] = true
+	check(kinds.has("POLICE_STATION"), "the window view has the station")
+	# off by default: no button, no overlay
+	var v2 := _view(_session(false))
+	check(v2._stations.is_empty() and v2._crime.is_empty() and not v2._crime_btn.visible, "nothing while POLICE and CRIME are off")
+	v2.free()

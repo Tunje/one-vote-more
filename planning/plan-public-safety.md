@@ -28,6 +28,15 @@ Everything opt-in (meta["on"]) with its own A/B; integer state; RNG streams; --c
   existing violation/reveal chain; press and inquiries.
 - Political control (§15.5): government sets budget, law and structure; arresting opponents needs an unlawful path
   (unlawful action reveal, courts, press) and feeds authoritarian drift.
+- Drawn (Terra, 2026-11-13). Colony map: each station from EconQuery.police (opt-in POLICE) is a blue "Po"
+  badge with a ring. A "Crime" toggle (shown when POLICE or CRIME is on) tints each economic district's land
+  green, yellow or red by LQ.crime_rate against the base rates (green at or below 1×, yellow at 2×, red from 3×).
+  It adds a legend with theft, violence and fraud per 10,000 a year, and dashed lines from each station to the
+  districts it covers. The station panel shows officers against target, the districts covered, population,
+  workload, stress, sick share and crime in its districts; the summary names the district with most crime.
+  Window view: a white station with a blue band. POLICE_STATION is an in-town service for the road network, so
+  it gets no spur track. Shot: `tools/shot_colony.gd 1 out.png INSPECT 24 0 police`. Prisons: when Anni's P2
+  facility exists.
 
 ### P1c Politics (Wilma)
 - SAFETY concern now driven by crime too; a "crime" hot issue for Ella's campaigns.

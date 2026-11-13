@@ -118,8 +118,8 @@ static func gather(w: WorldState) -> Dictionary:
 	for ln in Transport.bus_lines(w, EconQuery.commuting(w)):
 		for bt in ln["bus_tiles"]:
 			vehicles.append({"kind": "BUS", "tile": Transport.int_tile(int(bt)), "fid": ""})
-		for inc in ln["incidents"]:
-			vehicles.append({"kind": "BUS_" + String(inc["kind"]), "tile": Transport.int_tile(int(inc["tile"])), "fid": ""})
+	for inc in Commuting.incident_marks(w):   # Bob's BUS_BREAKDOWN / BUS_CRASH facts of last month
+		vehicles.append({"kind": "BUS_" + String(inc["kind"]), "tile": Transport.int_tile(int(inc["tile"])), "fid": ""})
 	d["vehicles"] = vehicles
 	var waste := {}
 	for ws in WasteMap.sites(w):
@@ -362,6 +362,11 @@ func _draw_things(w: WorldState, W: float, H: float, hy: float) -> void:
 			"DEPOT":
 				draw_rect(Rect2(p.x - s * 0.8, p.y - s * 0.4, s * 1.6, s * 0.4), haze.call(Color("#a08a6a")))
 				draw_rect(Rect2(p.x - s * 0.85, p.y - s * 0.48, s * 1.7, s * 0.1), haze.call(Color("#6e5e4a")))
+			"POLICE_STATION":   # a white station with a blue band and a light on the roof
+				draw_rect(Rect2(p.x - s * 0.55, p.y - s * 0.55, s * 1.1, s * 0.55), haze.call(Color("#eef1f5")))
+				draw_rect(Rect2(p.x - s * 0.55, p.y - s * 0.36, s * 1.1, s * 0.1), haze.call(Color("#3f6fd8")))
+				draw_rect(Rect2(p.x - s * 0.6, p.y - s * 0.62, s * 1.2, s * 0.08), haze.call(Color("#5a6470")))
+				draw_circle(p + Vector2(0, -s * 0.7), maxf(1.0, s * 0.07), Color("#4d8bff"))
 			"CLINIC", "SCHOOL", "ADMIN", "SERVICEHUB":
 				draw_rect(Rect2(p.x - s * 0.5, p.y - s * 0.55, s, s * 0.55), haze.call(Color("#f2ede1")))
 				draw_rect(Rect2(p.x - s * 0.55, p.y - s * 0.62, s * 1.1, s * 0.09), haze.call(Color("#8a8a8a")))

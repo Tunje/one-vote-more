@@ -1,6 +1,6 @@
 extends SceneTree
 ## Terra (A5): render the colony map to a PNG (needs a window, not --headless).
-## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1] [bridge|waste|siting|whole|buses]
+## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1] [bridge|waste|siting|whole|buses|police]
 ## "whole": the whole map at once (the opening view frames the landing site)
 ## fixture 1 builds a few areas (Landing, a mining camp, a farm village, a private enclave) with residents, as the
 ## economy will once A2/A3 land, so the area tools can be seen today.
@@ -11,6 +11,7 @@ var _out := "user://colony.png"
 var _mode := "INSPECT"
 var _bridge := false
 var _whole := false
+var _police := false    # arg 6 = "police": POLICE + CRIME on, the crime overlay and the first station selected
 var _buses := false     # arg 6 = "buses": SUPPORT_T on, the bus lines with a demo breakdown and crash
 var _waste := ""       # arg 6 = "waste": a demo landfill, cemetery and sewage in the river; "siting": the landfill siting study   # arg 6 = "bridge": zoom in on the first river crossing and open its link panel
 
@@ -31,13 +32,20 @@ func _init() -> void:
 	_buses = args.size() > 5 and args[5] == "buses"
 	if _buses:   # Bob's commuting step (opt-in SUPPORT_T) on, so the bus lines show
 		s.world().meta["on"] = ["SUPPORT_T"]
+	_police = args.size() > 5 and args[5] == "police"
+	if _police:   # Bob's police stations and Anni's crime (opt-in), the crime overlay on
+		s.world().meta["on"] = ["POLICE", "CRIME", "WORKLOAD"]
+		s.world().levers["LAW_POLICE_BUDGET"] = 2000
 	for _m in months:
 		s.end_month()
-	if _buses:   # demo: a breakdown and a crash on the first line between districts (0 until Bob's §8c)
-		for r in EconUtil.st(s.world()).get("commute_rows", []):
+	if _buses:   # demo: a breakdown and a crash (Bob's facts, as FLEET emits them) on the first line between districts
+		var w0 := s.world()
+		for r in EconQuery.commuting(w0):
 			if r["from_d"] != r["to_d"]:
-				r["breakdowns_m"] = 1
-				r["crashes_m"] = 1
+				for kind in ["BREAKDOWN", "CRASH"]:
+					var site := Transport.incident_site(w0, r["from_d"], r["to_d"], 4242, kind)
+					w0.add_fact({"type": "BUS_" + kind, "owner": "demo", "subjects": [], "responsible": [], "impact": {}, "magnitude": 10,
+						"visibility": "PUBLIC", "data": {"tile": site["tile"], "link": site["link"]}})
 				break
 	if args.size() > 4 and args[4] == "1":
 		fixture(s.world())
@@ -148,6 +156,14 @@ func _process(_d: float) -> bool:
 			if not ln["links"].is_empty():
 				_view.selected = {"kind": "LINK", "id": ln["links"][0], "tile": tl}
 				_view._update_panel()
+			_view.queue_redraw()
+		if _police:
+			_view.show_crime = true
+			_view._crime_btn.set_pressed_no_signal(true)
+			if not _view._stations.is_empty():
+				var fid := String(_view._stations[0]["id"])
+				_view.selected = {"kind": "FACILITY", "id": fid, "tile": _view._fac_tiles.get(fid, Vector2i.ZERO)}
+			_view._update_panel()
 			_view.queue_redraw()
 		if _bridge:
 			for l in Transport.network(w)["links"]:

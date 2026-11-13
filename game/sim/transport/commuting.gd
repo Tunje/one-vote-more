@@ -179,7 +179,7 @@ static func incident_site(world: WorldState, from_d: String, to_d: String, salt:
 ## load_pm, breakdowns_m, crashes_m, ...}): one line per pair of districts (both directions together) over the road
 ## route. → [{id, a, b, links, stops: [tiles], depot (tile of the nearest DEPOT, -1 if none), commuters, buses,
 ## seats, load_pm (the fuller direction), breakdowns_m, crashes_m, path (route tiles in order from the first stop),
-## bus_tiles, incidents (display placement, see _place)}]. Pairs within one district have no line.
+## bus_tiles (display placement, see _place)}]. The incident marks are incident_marks (Bob's facts). Pairs within one district have no line.
 static func bus_lines(world: WorldState, pairs: Array) -> Array:
 	var by := {}
 	for p in pairs:
@@ -260,11 +260,8 @@ static func route_path(world: WorldState, lids: Array, start: int) -> Array:
 
 
 const SHOW_BUSES := 12      # buses drawn on a line at most (one mark each)
-const SHOW_INCIDENTS := 6   # breakdowns and crashes drawn per line and kind at most
 
-## Display only (pure, no RNG stream): where this month's buses are along the line ("bus_tiles"), and where last
-## month's breakdowns and crashes happened ("incidents": [{kind, tile, link, junction}], Commuting.incident_site with a
-## salt from the month and the line).
+## Display only (pure, no RNG stream): where this month's buses are along the line ("bus_tiles").
 static func _place(world: WorldState, ln: Dictionary) -> void:
 	var path: Array = ln["path"]
 	var h := String(ln["id"]).hash()
@@ -275,14 +272,20 @@ static func _place(world: WorldState, ln: Dictionary) -> void:
 			var f := (float(i) + float(Planet._mix(world.month * 131 + i, h) % 1000) / 1000.0) / float(maxi(1, n))
 			buses.append(int(path[clampi(roundi(f * float(path.size() - 1)), 0, path.size() - 1)]))
 	ln["bus_tiles"] = buses
-	var inc: Array = []
+
+
+## The marks of last month's bus breakdowns and crashes, from Bob's BUS_BREAKDOWN / BUS_CRASH facts (§8c, opt-in
+## FLEET; he places them with incident_site): [{kind (BREAKDOWN | CRASH), tile, link, month, fact}], those with a
+## tile on the map, in fact order. Pure read.
+static func incident_marks(world: WorldState) -> Array:
+	var out: Array = []
 	for kind in ["BREAKDOWN", "CRASH"]:
-		var cnt := mini(int(ln["breakdowns_m" if kind == "BREAKDOWN" else "crashes_m"]), SHOW_INCIDENTS)
-		for k in cnt:
-			var s := incident_site(world, String(ln["a"]), String(ln["b"]), Planet._mix(world.month * 7 + k, h ^ kind.hash()), kind)
-			s["kind"] = kind
-			inc.append(s)
-	ln["incidents"] = inc
+		for f in world.facts.query("BUS_" + kind, world.month - 1):
+			var d: Dictionary = f.get("data", {})
+			if int(d.get("tile", -1)) >= 0:
+				out.append({"kind": kind, "tile": int(d["tile"]), "link": String(d.get("link", "")), "month": int(f.get("month", world.month)),
+					"fact": String(f.get("id", ""))})
+	return out
 
 
 ## The only write: the commuters' vehicle trips this month go onto the roads (T7 counts, congestion, wear). Bob calls

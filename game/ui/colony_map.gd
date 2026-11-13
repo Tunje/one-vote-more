@@ -27,10 +27,12 @@ const FAC_STYLE := {"POWER": ["P", Color("#f4d03f")], "WATERWORKS": ["W", Color(
 	"ROAD": ["R", Color("#8d8d8d")], "HOUSING": ["H", Color("#f1e3c8")], "FARM": ["F", Color("#7cc06a")],
 	"MINE": ["M", Color("#c97b43")], "PROCESSING": ["Pr", Color("#9aa5b1")], "COMPONENTS": ["C", Color("#7f9cb8")],
 	"MEDWORKS": ["Md", Color("#f28fb1")], "CONSUMERF": ["G", Color("#e8a85c")], "SERVICEHUB": ["S", Color("#4fc1b0")],
-	"CLINIC": ["+", Color("#ef5350")], "SCHOOL": ["Sc", Color("#a58ad8")], "ADMIN": ["A", Color("#f5f5f5")]}
+	"CLINIC": ["+", Color("#ef5350")], "SCHOOL": ["Sc", Color("#a58ad8")], "ADMIN": ["A", Color("#f5f5f5")],
+	"POLICE_STATION": ["Po", Color("#3f6fd8")]}
 const FAC_NAMES := {"POWER": "power plant", "WATERWORKS": "waterworks", "DEPOT": "depot", "ROAD": "road", "HOUSING": "housing block",
 	"FARM": "farm", "MINE": "mine", "PROCESSING": "processing plant", "COMPONENTS": "component workshop", "MEDWORKS": "medical works",
-	"CONSUMERF": "consumer goods factory", "SERVICEHUB": "service hub", "CLINIC": "clinic", "SCHOOL": "school", "ADMIN": "administration"}
+	"CONSUMERF": "consumer goods factory", "SERVICEHUB": "service hub", "CLINIC": "clinic", "SCHOOL": "school", "ADMIN": "administration",
+	"POLICE_STATION": "police station"}
 const DISTRICT_COLORS := [Color("#5dade2"), Color("#f5b041"), Color("#58d68d"), Color("#ec7063"), Color("#af7ac5"),
 	Color("#f4d03f"), Color("#48c9b0"), Color("#eb984e"), Color("#85929e"), Color("#f1948a"), Color("#7fb3d5"), Color("#c39bd3")]
 ## Where facilities may stand (display placement before A2, and build validity).
@@ -88,6 +90,12 @@ var _site_pick := -1             # index of the chosen candidate
 var _waste_at := {}              # tile int -> waste site id
 var _bus_lines: Array = []       # Transport.bus_lines of last month's commuting (Bob's EconQuery.commuting)
 var _bus_at := {}                # tile int -> [bus line index]
+var show_crime := false         # the crime overlay (LQ.crime_rate per economic district; CRIME opt-in)
+var _crime := {}                 # econ district -> {THEFT, VIOLENCE, FRAUD} per 10k a year ({} while CRIME is off)
+var _econ_terr: Array = []       # [y * W + x] -> economic district or "" (the crime overlay's territory)
+var _stations: Array = []        # EconQuery.police(world).stations (POLICE opt-in)
+var _crime_btn: Button
+var _bus_marks: Array = []       # Commuting.incident_marks: last month's breakdowns and crashes (Bob's facts)
 
 var _info: RichTextLabel
 var _mode_buttons := {}
@@ -136,6 +144,12 @@ func _ready() -> void:
 		b.pressed.connect(func(): set_mode(key))
 		modes.add_child(b)
 		_mode_buttons[key] = b
+	_crime_btn = Button.new()
+	_crime_btn.text = "Crime"
+	_crime_btn.toggle_mode = true
+	_crime_btn.tooltip_text = "Reported crime per district and the police stations' areas"
+	_crime_btn.toggled.connect(func(on: bool): show_crime = on; _update_panel(); queue_redraw())
+	modes.add_child(_crime_btn)
 	_build_box = HBoxContainer.new()
 	v.add_child(_build_box)
 	var bl := Label.new()
@@ -211,6 +225,7 @@ func refresh() -> void:
 		_fac_at[Terrain.key(_fac_tiles[fid].x, _fac_tiles[fid].y)] = fid
 	_refresh_network(w)
 	_refresh_waste(w)
+	_refresh_crime(w)
 	if mode == "DRAW" and plan.is_empty():
 		start_drawing()
 	_build_territory(w)
@@ -325,25 +340,34 @@ func _build_territory(w: WorldState) -> void:
 			var dk := String(w.peek("facility")[fid].get("district", ""))
 			if _dist_names.has(dk):
 				seeds[Terrain.key(_fac_tiles[fid].x, _fac_tiles[fid].y)] = dk
-	# multi-source breadth-first growth, TERRITORY_REACH steps; ties go to the first key in sorted seed order
+	_territory = _grow(seeds)
+
+
+## Multi-source breadth-first growth from seeds ("x,y" -> key), TERRITORY_REACH steps; ties go to the first key in
+## sorted seed order. -> [y * W + x] -> key or "".
+func _grow(seeds: Dictionary) -> Array:
+	var terr: Array = []
+	terr.resize(Terrain.W * Terrain.H)
+	terr.fill("")
 	var frontier: Array = []
 	var keys: Array = seeds.keys()
 	keys.sort()
 	for k in keys:
 		var t := _as_tile(k)
-		_territory[t.y * Terrain.W + t.x] = seeds[k]
+		terr[t.y * Terrain.W + t.x] = seeds[k]
 		frontier.append(t)
 	for _step in TERRITORY_REACH:
 		var nxt: Array = []
 		for t in frontier:
-			var dk: String = _territory[t.y * Terrain.W + t.x]
+			var dk: String = terr[t.y * Terrain.W + t.x]
 			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 				var n: Vector2i = t + d
-				if n.x < 0 or n.y < 0 or n.x >= Terrain.W or n.y >= Terrain.H or _territory[n.y * Terrain.W + n.x] != "":
+				if n.x < 0 or n.y < 0 or n.x >= Terrain.W or n.y >= Terrain.H or terr[n.y * Terrain.W + n.x] != "":
 					continue
-				_territory[n.y * Terrain.W + n.x] = dk
+				terr[n.y * Terrain.W + n.x] = dk
 				nxt.append(n)
 		frontier = nxt
+	return terr
 
 
 func _district_color(k: String) -> Color:
@@ -416,6 +440,10 @@ func _draw() -> void:
 			if area != "":
 				var kind := String(AreaStore.get_area(w, area).get("kind", "SETTLEMENT"))
 				c = c.lerp(KIND_COLORS.get(kind, Color.WHITE), 0.75)
+			if show_crime and not show_dist and not _crime.is_empty():
+				var ck: String = _econ_terr[y * Terrain.W + x]
+				if ck != "" and _crime.has(ck):
+					c = c.lerp(crime_color(crime_level(_crime[ck])), 0.5)
 			if show_dist:
 				var dk: String = _territory[y * Terrain.W + x]
 				if dk != "":
@@ -440,8 +468,12 @@ func _draw() -> void:
 	if not show_dist:
 		_draw_site_names(w, t)
 	_draw_cursor(w, t)
+	if not show_dist:
+		_draw_police(t)
 	if mode == "DISTRICTS" or mode == "DRAW":
 		_draw_legend()
+	elif show_crime:
+		_draw_crime_legend()
 
 
 ## Outline each area along edges where the neighbour is not the same area; selected area in white.
@@ -967,6 +999,7 @@ func _inspect_text(w: WorldState) -> String:
 	var t := "[b]%d area%s, %d facilities[/b]\n" % [n, "" if n == 1 else "s", _fac_tiles.size()]
 	t += "Click an area, a facility or a tile.\nWheel zooms (out to the whole map), right-drag pans.\n\n"
 	t += _network_summary(w)
+	t += _crime_summary()
 	t += "[b]Areas by kind[/b]\n"
 	for k in KIND_COLORS:
 		t += "[color=#%s]■[/color] %s\n" % [KIND_COLORS[k].to_html(false), String(KIND_NAMES[k]).capitalize()]
@@ -1106,6 +1139,8 @@ func facility_text(w: WorldState, fid: String) -> String:
 		t += "[color=#ef5350]Mothballed[/color]\n"
 	if int(f.get("stop_until", 0)) > w.month:
 		t += "[color=#ef5350]Stopped (%s) until %s[/color]\n" % [String(f.get("stop_kind", "")).to_lower(), _month_text(int(f["stop_until"]))]
+	if ty == "POLICE_STATION":
+		t += _police_text(fid)
 	var ex: Dictionary = EconQuery.explain_facility(w, fid)
 	for c in ex.get("causes", []).slice(0, 3):
 		t += "• %s\n" % String(c.get("detail", c.get("cause", "")))
@@ -1286,6 +1321,7 @@ func _refresh_network(w: WorldState) -> void:
 	for r in Transport.reachable_sites(w):
 		_reach[String(r["id"])] = r
 	_bus_lines = Transport.bus_lines(w, EconQuery.commuting(w))
+	_bus_marks = Commuting.incident_marks(w)
 	_bus_at.clear()
 	for i in _bus_lines.size():
 		for ti in _bus_lines[i]["path"]:
@@ -1467,17 +1503,17 @@ func _draw_buses(t: float) -> void:
 			var p := shifted[i] if i >= 0 else _tile_center(Transport.int_tile(int(bt)))
 			draw_rect(Rect2(p - Vector2(bs, bs * 0.6) * 0.5, Vector2(bs, bs * 0.6)), col.lightened(0.2))
 			draw_rect(Rect2(p - Vector2(bs, bs * 0.6) * 0.5, Vector2(bs, bs * 0.6)), Color.BLACK, false, 1.0)
-		for inc in ln["incidents"]:
-			var p2 := _tile_center(Transport.int_tile(int(inc["tile"])))
-			var r := maxf(4.0, t * 0.45)
-			if String(inc["kind"]) == "CRASH":
-				for k in 4:
-					var ang := PI / 4.0 * float(k)
-					draw_line(p2 - Vector2.from_angle(ang) * r, p2 + Vector2.from_angle(ang) * r, Color("#ff3030"), maxf(2.0, t * 0.12))
-			else:
-				var tri := PackedVector2Array([p2 + Vector2(0, -r), p2 + Vector2(r * 0.9, r * 0.6), p2 + Vector2(-r * 0.9, r * 0.6)])
-				draw_colored_polygon(tri, Color("#f4d03f"))
-				draw_polyline(tri + PackedVector2Array([tri[0]]), Color.BLACK, 1.0)
+	for inc in _bus_marks:
+		var p2 := _tile_center(Transport.int_tile(int(inc["tile"])))
+		var r := maxf(4.0, t * 0.45)
+		if String(inc["kind"]) == "CRASH":
+			for k in 4:
+				var ang := PI / 4.0 * float(k)
+				draw_line(p2 - Vector2.from_angle(ang) * r, p2 + Vector2.from_angle(ang) * r, Color("#ff3030"), maxf(2.0, t * 0.12))
+		else:
+			var tri := PackedVector2Array([p2 + Vector2(0, -r), p2 + Vector2(r * 0.9, r * 0.6), p2 + Vector2(-r * 0.9, r * 0.6)])
+			draw_colored_polygon(tri, Color("#f4d03f"))
+			draw_polyline(tri + PackedVector2Array([tri[0]]), Color.BLACK, 1.0)
 
 
 ## The bus lines that run over a link, for its panel.
@@ -1770,3 +1806,140 @@ func _waste_tile_text(w: WorldState, ti: int, code: String) -> String:
 		var q := WasteMap.river_quality(w, ti)
 		t += "Water quality %d/100%s\n" % [q, " · clean" if q >= 95 else (" · [color=#ef5350]polluted from upstream[/color]" if q < 60 else "")]
 	return t
+
+
+# ------------------------------------------------------------------ public safety (A60: Bob's police stations, Anni's crime)
+
+const CRIME_KINDS := ["THEFT", "VIOLENCE", "FRAUD"]
+const POLICE_COLOR := Color("#3f6fd8")
+const CRIME := preload("res://sim/law/crime.gd")
+
+
+func _refresh_crime(w: WorldState) -> void:
+	_stations = EconQuery.police(w).get("stations", [])
+	_crime.clear()
+	var ids: Array = _anchors.keys()
+	ids.sort()
+	for d in ids:
+		var r: Dictionary = LQ.crime_rate(w, d)
+		if not r.is_empty():
+			_crime[d] = r
+	# the economic districts' land: their settlements, facilities and areas, grown a few tiles
+	var seeds := {}
+	for d in ids:
+		seeds[Terrain.key(_anchors[d].x, _anchors[d].y)] = d
+	for fid in _fac_tiles:
+		var dk := String(w.peek("facility")[fid].get("district", ""))
+		if _anchors.has(dk):
+			seeds[Terrain.key(_fac_tiles[fid].x, _fac_tiles[fid].y)] = dk
+	for a in AreaStore.areas(w):
+		for tl in AreaStore.tiles_of(w, a["id"]):
+			seeds[Terrain.key(tl.x, tl.y)] = econ_district_near(w, tl, _anchors)
+	_econ_terr = _grow(seeds)
+	if _crime_btn != null:
+		_crime_btn.visible = not _crime.is_empty() or not _stations.is_empty()
+
+
+## Reported crime against the base rates (1.0 = a Swedish-level colony at full employment).
+static func crime_level(r: Dictionary) -> float:
+	var base := 0
+	var now := 0
+	for k in CRIME_KINDS:
+		base += CRIME.base_rate(k)
+		now += int(r.get(k, 0))
+	return float(now) / float(maxi(1, base))
+
+
+## Green at or below the base rate, yellow at twice it, red from three times.
+static func crime_color(level: float) -> Color:
+	if level <= 1.0:
+		return Color("#58d68d")
+	if level <= 2.0:
+		return Color("#58d68d").lerp(Color("#f4d03f"), level - 1.0)
+	return Color("#f4d03f").lerp(Color("#ef5350"), clampf(level - 2.0, 0.0, 1.0))
+
+
+func _district_label(d: String) -> String:
+	return String(EconData.DISTRICTS.get(d, {}).get("name", d))
+
+
+## Police stations: a ring around each station's badge; with the crime overlay on or the station selected, dashed
+## lines to the settlements of the other districts it covers.
+func _draw_police(t: float) -> void:
+	var sel := String(selected.get("id", "")) if selected.get("kind", "") == "FACILITY" else ""
+	var col := POLICE_COLOR.lightened(0.3)
+	for st in _stations:
+		var fid := String(st["id"])
+		if not _fac_tiles.has(fid):
+			continue
+		var p := _tile_center(_fac_tiles[fid])
+		draw_arc(p, maxf(4.0, t * 0.6), 0.0, TAU, 24, col, maxf(1.5, t * 0.08))
+		if not show_crime and fid != sel:
+			continue
+		for d in st.get("covers", []):
+			if String(d) == String(st["district"]) or not _anchors.has(String(d)):
+				continue
+			var q := _tile_center(_anchors[String(d)])
+			draw_dashed_line(p, q, col, maxf(1.5, t * 0.1), maxf(4.0, t * 0.4))
+			draw_arc(q, maxf(4.0, t * 0.5), 0.0, TAU, 20, col, maxf(1.0, t * 0.06))
+
+
+func _draw_crime_legend() -> void:
+	var font := get_theme_default_font()
+	var head := "Reported crime per 10,000 a year"
+	var lines: Array = []
+	var ids: Array = _crime.keys()
+	ids.sort()
+	for d in ids:
+		var r: Dictionary = _crime[d]
+		lines.append([crime_color(crime_level(r)), "%s: %d theft · %d violence · %d fraud" % [_district_label(d), int(r["THEFT"]),
+			int(r["VIOLENCE"]), int(r["FRAUD"])]])
+	if lines.is_empty():
+		lines.append([Color(0.5, 0.5, 0.5), "No crime figures (crime is not modelled in this game)"])
+	if not _stations.is_empty():
+		lines.append([POLICE_COLOR.lightened(0.3), "Police station and the districts it covers"])
+	var wmax := font.get_string_size(head, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+	for l in lines:
+		wmax = maxf(wmax, font.get_string_size(String(l[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x)
+	draw_rect(Rect2(4, 4, wmax + 36, lines.size() * 18.0 + 30), Color(0.08, 0.09, 0.1, 0.85))
+	draw_string(font, Vector2(10, 18), head, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+	var y := 28.0
+	for l in lines:
+		draw_rect(Rect2(10, y, 14, 14), l[0])
+		draw_string(font, Vector2(30, y + 12), String(l[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+		y += 18.0
+
+
+func _police_text(fid: String) -> String:
+	for st in _stations:
+		if String(st["id"]) != fid:
+			continue
+		var cov: Array = (st.get("covers", []) as Array).map(func(d): return _district_label(String(d)))
+		var t := "\n[color=#%s]Police[/color]: %d of %d officers · covers %s (%d people)\n" % [POLICE_COLOR.lightened(0.3).to_html(false),
+			int(st["staff"]), int(st["officers_target"]), ", ".join(cov), int(st["covered_pop"])]
+		t += "Workload %d%% · stress %d%% · off sick %d%%\n" % [int(st["workload_pm"]) / 10, int(st["stress_pm"]) / 10, int(st["sick_pm"]) / 10]
+		for d in st.get("covers", []):
+			if _crime.has(String(d)):
+				var r: Dictionary = _crime[String(d)]
+				t += "  %s: %d theft, %d violence, %d fraud per 10,000 a year\n" % [_district_label(String(d)), int(r["THEFT"]),
+					int(r["VIOLENCE"]), int(r["FRAUD"])]
+		return t
+	return ""
+
+
+func _crime_summary() -> String:
+	if _crime.is_empty() and _stations.is_empty():
+		return ""
+	var t := "[b]Public safety[/b]: %d police station%s" % [_stations.size(), "" if _stations.size() == 1 else "s"]
+	var worst := ""
+	var wl := -1.0
+	var ids: Array = _crime.keys()
+	ids.sort()
+	for d in ids:
+		var lv := crime_level(_crime[d])
+		if lv > wl:
+			wl = lv
+			worst = String(d)
+	if worst != "":
+		t += " · most crime: %s ([color=#%s]%.1f× the base rate[/color])" % [_district_label(worst), crime_color(wl).to_html(false), wl]
+	return t + "\n[i]Crime button: the overlay and the stations' areas[/i]\n\n"

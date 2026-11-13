@@ -54,7 +54,7 @@ const JUNCTION_CAPACITY := {"CROSSING": 400, "PRIORITY": 900, "ROUNDABOUT": 2000
 const JUNCTION_RISK := {"CROSSING": 100, "PRIORITY": 70, "ROUNDABOUT": 25, "SIGNALS": 45}
 const BILL_JUNCTION := {"PRIORITY": [15, 8, 0], "ROUNDABOUT": [110, 140, 2], "SIGNALS": [50, 40, 14]}
 const LANE_SHARE := 70             # a second lane costs this % of the link's bill (bridges excluded)
-const PLANT_FREE_TYPES := ["HOUSING", "CLINIC", "SCHOOL", "ADMIN", "SERVICEHUB"]   # in-town services, not plants
+const PLANT_FREE_TYPES := ["HOUSING", "CLINIC", "SCHOOL", "ADMIN", "SERVICEHUB", "POLICE_STATION"]   # in-town services, not plants
 
 static var _init_cache := {}
 static var _memo := {}

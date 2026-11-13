@@ -123,7 +123,7 @@ func test_bus_lines_and_commuter_traffic() -> void:
 
 
 ## Bob's EconQuery.commuting (opt-in SUPPORT_T) drawn: bus lines follow their road in order, buses stand on the line,
-## incidents on the route; the colony map and the window view show them. Display placement is pure.
+## Bob's incident facts become marks on the route; the colony map and the window view show them. Display placement is pure.
 func test_bus_lines_are_drawn_from_bobs_rows() -> void:
 	var sim := EconSim.make(1, "BALANCED", {}, true)
 	sim.world.meta["on"] = ["SUPPORT_T"]
@@ -150,18 +150,28 @@ func test_bus_lines_are_drawn_from_bobs_rows() -> void:
 			check(int(bt) in path, "buses stand on the line")
 	check_eq(var_to_str(lines), var_to_str(Transport.bus_lines(w, rows)), "deterministic")
 	check_eq(w.state_hash(), h, "pure")
-	# incidents (0 until Bob's §8c): injected, they land on the route
-	var r0: Dictionary = rows[0].duplicate()
+	# incident marks: Bob's BUS_BREAKDOWN / BUS_CRASH facts (FLEET) of last month with a tile, nothing else
+	check(Commuting.incident_marks(w).is_empty(), "no marks without the facts")
+	var r0: Dictionary = {}
 	for r in rows:
 		if r["from_d"] != r["to_d"] and not Transport.commute_d(w, r["from_d"], r["to_d"])["links"].is_empty():
-			r0 = r.duplicate()
+			r0 = r
 			break
-	r0["breakdowns_m"] = 2
-	r0["crashes_m"] = 1
-	var l2: Array = Transport.bus_lines(w, [r0])
-	check_eq(l2[0]["incidents"].size(), 3, "two breakdowns and a crash")
-	for inc in l2[0]["incidents"]:
-		check(int(inc["tile"]) in l2[0]["path"] or String(inc["junction"]) != "", "an incident on the line %s" % str(inc))
+	var cd0 := Transport.commute_d(w, r0["from_d"], r0["to_d"])
+	for kind in ["BREAKDOWN", "CRASH"]:
+		var site := Transport.incident_site(w, r0["from_d"], r0["to_d"], 99, kind)
+		w.add_fact({"type": "BUS_" + kind, "owner": "test", "subjects": [], "responsible": [], "impact": {}, "magnitude": 10,
+			"visibility": "PUBLIC", "data": {"tile": site["tile"], "link": site["link"]}})
+	w.add_fact({"type": "BUS_BREAKDOWN", "owner": "test", "subjects": [], "responsible": [], "impact": {}, "magnitude": 10,
+		"visibility": "PUBLIC", "data": {"tile": -1, "link": ""}})   # no map: no mark
+	var marks := Commuting.incident_marks(w)
+	check_eq(marks.size(), 2, "a breakdown and a crash marked %s" % str(marks))
+	var on := {}
+	for lid in cd0["links"]:
+		for ti in Transport._links(w)[lid]["path"]:
+			on[int(ti)] = true
+	for mk in marks:
+		check(on.has(int(mk["tile"])), "the mark is on the commute %s" % str(mk))
 	# the colony map and the window view
 	var s := GameSession.new()
 	s.new_game(1, true)
@@ -178,4 +188,19 @@ func test_bus_lines_are_drawn_from_bobs_rows() -> void:
 	check(v._network_summary(w).contains("Buses"), "the network summary counts the buses")
 	v.free()
 	var vd := ColonyVista.gather(w)
-	check(vd.has("vehicles"), "the window view knows the buses")
+	var kinds := {}
+	for vh in vd["vehicles"]:
+		kinds[String(vh["kind"])] = true
+	check(kinds.has("BUS") and kinds.has("BUS_BREAKDOWN") and kinds.has("BUS_CRASH"), "the window view has buses, a breakdown and a crash %s" % str(kinds))
+	check_eq(v2_marks(s), 2, "the map has both marks")
+
+
+func v2_marks(s: GameSession) -> int:
+	var v := ColonyMap.new()
+	v.session = s
+	v._ready()
+	v.size = Vector2(1600, 900)
+	v.refresh()
+	var n := v._bus_marks.size()
+	v.free()
+	return n
