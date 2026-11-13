@@ -203,12 +203,15 @@ static func _plan(world: WorldState, f: Dictionary) -> Dictionary:
 	var r: Dictionary = EconData.RECIPES[f["type"]]
 	var t := 0.0 if f["mothball"] else float(f["T"]) / 1000.0
 	var lab := 1.0
+	var floor_share := float(1000 - int(f.get("off_share_pm", 0))) / 1000.0  # support economy A: part of the crew works at the office
 	for tier in r["labor"]:
-		var req := float(r["labor"][tier]) * S * t
+		var req := float(r["labor"][tier]) * S * t * floor_share
 		if req > 0.0:
 			# M10: staff are whole persons; a tier short by less than half a person counts as fully staffed
 			var have := float(EconLabor.tier_total(f["staff"], tier)) + (float(f.get("named_sp", 0)) * S if tier == "Sp" else 0.0)
 			lab = minf(lab, minf(1.0, have / maxf(req - 0.5 * S, 0.5 * req)))
+	if int(f.get("off_share_pm", 0)) > 0:
+		lab = minf(lab, EconOffice.office_fill(world, f["org"]))  # support economy A: the office must be staffed too
 	lab *= EconUnions.work_factor(world, f)  # M9: strike / lockout
 	var mi := 1.0
 	var soft_f := 1.0

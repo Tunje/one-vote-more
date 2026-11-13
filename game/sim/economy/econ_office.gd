@@ -119,6 +119,21 @@ static func monthly(world: WorldState) -> void:
 		f["T"] = 1000
 
 
+## Fill (0..1) of an organisation's office this month: production at its split plants cannot outrun its office —
+## otherwise unfilled office posts were a hidden productivity gain (same output with fewer people, more unemployment).
+static func office_fill(world: WorldState, oid: String) -> float:
+	var fid := office_of(world, oid)
+	if fid == "":
+		return 1.0
+	var f: Dictionary = world.table("facility")[fid]
+	var req := 0
+	for tier in f.get("office_req", {}):
+		req += int(f["office_req"][tier])
+	if req <= 0:
+		return 1.0
+	return clampf(float(EconLabor.staff_total(f["staff"])) / float(maxi(req - S / 2, req / 2)), 0.0, 1.0)
+
+
 ## Office posts held and wanted, colony-wide (persons), for probes and the office.
 static func summary(world: WorldState) -> Dictionary:
 	var held := 0
