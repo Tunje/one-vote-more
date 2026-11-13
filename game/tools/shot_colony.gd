@@ -1,6 +1,6 @@
 extends SceneTree
 ## Terra (A5): render the colony map to a PNG (needs a window, not --headless).
-## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1] [bridge|waste|siting|whole|buses|police]
+## godot --path game --script res://tools/shot_colony.gd -- <seed> <out.png> [mode INSPECT|BUILD|DISTRICTS|DRAW] [months] [fixture 0|1] [bridge|waste|siting|whole|buses|police|v8]
 ## "whole": the whole map at once (the opening view frames the landing site)
 ## fixture 1 builds a few areas (Landing, a mining camp, a farm village, a private enclave) with residents, as the
 ## economy will once A2/A3 land, so the area tools can be seen today.
@@ -11,6 +11,7 @@ var _out := "user://colony.png"
 var _mode := "INSPECT"
 var _bridge := false
 var _whole := false
+var _v8 := false        # arg 6 = "v8": every v8 system on; saves the crime overlay and a plain shot
 var _police := false    # arg 6 = "police": POLICE + CRIME on, the crime overlay and the first station selected
 var _buses := false     # arg 6 = "buses": SUPPORT_T on, the bus lines with a demo breakdown and crash
 var _waste := ""       # arg 6 = "waste": a demo landfill, cemetery and sewage in the river; "siting": the landfill siting study   # arg 6 = "bridge": zoom in on the first river crossing and open its link panel
@@ -30,12 +31,21 @@ func _init() -> void:
 	var s := GameSession.new()
 	s.new_game(seed_v, true)
 	_buses = args.size() > 5 and args[5] == "buses"
+	_police = args.size() > 5 and args[5] in ["police", "v8"]
+	var extra: Array = []
 	if _buses:   # Bob's commuting step (opt-in SUPPORT_T) on, so the bus lines show
-		s.world().meta["on"] = ["SUPPORT_T"]
-	_police = args.size() > 5 and args[5] == "police"
+		extra = ["SUPPORT_T"]
 	if _police:   # Bob's police stations and Anni's crime (opt-in), the crime overlay on
-		s.world().meta["on"] = ["POLICE", "CRIME", "WORKLOAD"]
+		extra = ["POLICE", "CRIME", "WORKLOAD"]
 		s.world().levers["LAW_POLICE_BUDGET"] = 2000
+	_v8 = args.size() > 5 and args[5] == "v8"
+	if _v8:   # every v8 system: the defaults plus the fleet, police and prisons
+		extra = ["SUPPORT_T", "FLEET", "POLICE", "CRIME", "WORKLOAD", "PRISONS"]
+	var on: Array = s.world().meta.get("on", [])
+	for f in extra:   # added to the game's defaults (EconSim.DEFAULT_ON), not instead of them
+		if not f in on:
+			on.append(f)
+	s.world().meta["on"] = on
 	for _m in months:
 		s.end_month()
 	if _buses:   # demo: a breakdown and a crash (Bob's facts, as FLEET emits them) on the first line between districts
@@ -180,6 +190,19 @@ func _process(_d: float) -> bool:
 					break
 	if _frames < 8:
 		return false
-	root.get_texture().get_image().save_png(_out)
-	print("saved ", _out)
+	if _frames == 8:
+		root.get_texture().get_image().save_png(_out)
+		print("saved ", _out)
+		if not _v8:
+			return true
+		_view.show_crime = false   # v8: a second shot without the overlay, nothing selected
+		_view._crime_btn.set_pressed_no_signal(false)
+		_view.selected = {}
+		_view._update_panel()
+		_view.queue_redraw()
+		return false
+	if _frames < 12:
+		return false
+	root.get_texture().get_image().save_png(_out.get_basename() + "_plain.png")
+	print("saved ", _out.get_basename() + "_plain.png")
 	return true

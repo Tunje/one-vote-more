@@ -28,11 +28,21 @@ const FAC_STYLE := {"POWER": ["P", Color("#f4d03f")], "WATERWORKS": ["W", Color(
 	"MINE": ["M", Color("#c97b43")], "PROCESSING": ["Pr", Color("#9aa5b1")], "COMPONENTS": ["C", Color("#7f9cb8")],
 	"MEDWORKS": ["Md", Color("#f28fb1")], "CONSUMERF": ["G", Color("#e8a85c")], "SERVICEHUB": ["S", Color("#4fc1b0")],
 	"CLINIC": ["+", Color("#ef5350")], "SCHOOL": ["Sc", Color("#a58ad8")], "ADMIN": ["A", Color("#f5f5f5")],
-	"POLICE_STATION": ["Po", Color("#3f6fd8")]}
+	"POLICE_STATION": ["Po", Color("#3f6fd8")], "TEXTILE": ["Tx", Color("#d9a0c8")], "FURNITURE": ["Fu", Color("#b9875a")],
+	"BAKERY": ["Bk", Color("#f0c27a")], "WAREHOUSE": ["Wh", Color("#a89a86")], "SANITATION": ["Sa", Color("#7aa38a")],
+	"TRANSIT": ["Bu", Color("#ff9f43")], "OFFICE": ["O", Color("#c8ccd2")], "HQOFFICE": ["HQ", Color("#e3e6ea")],
+	"BIZSVC": ["Bz", Color("#b8c4d8")], "RETAIL": ["Rt", Color("#f6b8a0")], "COMFORT": ["Co", Color("#e7a3c4")],
+	"ELDERCARE": ["El", Color("#e9a6a6")], "CHILDCARE": ["Ch", Color("#f3d58a")], "NEWSROOM": ["N", Color("#d0d0d0")],
+	"PUBJOBS": ["Pj", Color("#9ccbe0")]}
+## Small in-town services and offices: drawn as smaller badges so the towns stay readable as they fill up.
+const MINOR_FAC := ["OFFICE", "BIZSVC", "RETAIL", "COMFORT", "ELDERCARE", "CHILDCARE", "NEWSROOM", "PUBJOBS", "HQOFFICE", "BAKERY"]
 const FAC_NAMES := {"POWER": "power plant", "WATERWORKS": "waterworks", "DEPOT": "depot", "ROAD": "road", "HOUSING": "housing block",
 	"FARM": "farm", "MINE": "mine", "PROCESSING": "processing plant", "COMPONENTS": "component workshop", "MEDWORKS": "medical works",
 	"CONSUMERF": "consumer goods factory", "SERVICEHUB": "service hub", "CLINIC": "clinic", "SCHOOL": "school", "ADMIN": "administration",
-	"POLICE_STATION": "police station"}
+	"POLICE_STATION": "police station", "TEXTILE": "textile mill", "FURNITURE": "furniture workshop", "BAKERY": "bakery",
+	"WAREHOUSE": "warehouse", "SANITATION": "sanitation works", "TRANSIT": "bus depot", "OFFICE": "office", "HQOFFICE": "head office",
+	"BIZSVC": "business services", "RETAIL": "shop", "COMFORT": "comfort services", "ELDERCARE": "elder care home",
+	"CHILDCARE": "childcare centre", "NEWSROOM": "newsroom", "PUBJOBS": "public works"}
 const DISTRICT_COLORS := [Color("#5dade2"), Color("#f5b041"), Color("#58d68d"), Color("#ec7063"), Color("#af7ac5"),
 	Color("#f4d03f"), Color("#48c9b0"), Color("#eb984e"), Color("#85929e"), Color("#f1948a"), Color("#7fb3d5"), Color("#c39bd3")]
 ## Where facilities may stand (display placement before A2, and build validity).
@@ -524,7 +534,7 @@ func _draw_facilities(w: WorldState, t: float) -> void:
 			continue
 		var st: Array = FAC_STYLE.get(String(f["type"]), [String(f["type"]).substr(0, 1), Color.WHITE])
 		var p := _tile_center(_fac_tiles[fid])
-		var r := maxf(2.5, t * 0.42)
+		var r := maxf(2.5, t * 0.42) * (0.62 if String(f["type"]) in MINOR_FAC else 1.0)
 		var col: Color = st[1]
 		if f.get("mothball", false) or int(f.get("closed_m", 0)) > 0:
 			col = col.darkened(0.5)
@@ -532,8 +542,8 @@ func _draw_facilities(w: WorldState, t: float) -> void:
 		draw_circle(p, r, col)
 		if fid == sel_fac:
 			draw_arc(p, r + 3.0, 0.0, TAU, 24, Color.WHITE, 2.0)
-		if t >= 13.0:
-			var fs := int(clampf(t * 0.5, 8.0, 18.0))
+		if t >= 13.0 and (r >= t * 0.4 or t >= 26.0):   # small badges get their letters only when zoomed in
+			var fs := int(clampf(t * 0.5 * r / (t * 0.42), 7.0, 18.0))
 			var g: String = st[0]
 			var gw := font.get_string_size(g, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 			draw_string(font, p + Vector2(-gw * 0.5, fs * 0.36), g, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.08, 0.08, 0.08))
