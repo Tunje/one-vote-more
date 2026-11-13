@@ -14,6 +14,8 @@ const LawOps := preload("res://sim/law/law_ops.gd")
 const START_COHESION := 70
 const EXIT_COHESION := 25            # below this for EXIT_MONTHS in a row -> the partner leaves
 const EXIT_MONTHS := 3
+const ARREST_COHESION := 35.0       # A60 P1c: a revealed political arrest costs each partner this much cohesion target
+const ARREST_WINDOW := 12            # months a revealed political arrest weighs on the coalition
 const QUIET_BEFORE_ELECTION := 6     # no walk-outs or motions this close to an ordinary election
 const NC_MIN_MONTHS_IN_OFFICE := 6
 const NC_APPROVAL_BELOW := 45000     # opposition only moves a motion when the government is unpopular
@@ -97,6 +99,7 @@ static func cohesion_step(world: WorldState, st: Dictionary) -> void:
 	var parties := _active(world)
 	var poll: Dictionary = world.peek("poll").get(st.get("last_poll", ""), {}).get("estimates", {})
 	var delivered := _agreement_delivery(world, g)
+	var arrests := revealed_political_arrests(world, ARREST_WINDOW).size()
 	var coh: Dictionary = st.get("cohesion", {})
 	var low: Dictionary = st.get("cohesion_low", {})
 	for pid in g["members"].duplicate():
@@ -106,13 +109,29 @@ static func cohesion_step(world: WorldState, st: Dictionary) -> void:
 		var dist := VoteModel.distance(p["positions"], g["center"])
 		var drop := maxf(0.0, (float(p["support"]) - float(poll.get(pid, p["support"]))) / 1000.0)  # pp lost since election
 		var years := float(world.month - int(g["formed_month"])) / 12.0
-		var target := clampf(70.0 + 20.0 * delivered - 1.0 * dist - 3.0 * drop - 3.0 * years, 0.0, 100.0)
+		# a revealed order to arrest an opponent shames the partners; liberty-minded ones most (A60 P1c)
+		var shame := ARREST_COHESION * float(arrests) * (1.0 + maxf(0.0, float(p["positions"].get("INSTITUTIONS", 0))) / 100000.0)
+		var target := clampf(70.0 + 20.0 * delivered - 1.0 * dist - 3.0 * drop - 3.0 * years - shame, 0.0, 100.0)
 		coh[pid] = int(round(0.9 * float(coh.get(pid, START_COHESION)) + 0.1 * target))
 		low[pid] = int(low.get(pid, 0)) + 1 if coh[pid] < EXIT_COHESION else 0
 		if int(low[pid]) >= EXIT_MONTHS:
 			partner_exit(world, st, pid)
 	st["cohesion"] = coh
 	st["cohesion_low"] = low
+
+
+## Revealed orders to arrest political opponents in the last `months` (Anni's P1c: the reveal's causes[0] is the
+## secret LAW_UNLAWFUL_GOV_ACTION with data.action POLITICAL_ARREST). -> [order data]
+static func revealed_political_arrests(world: WorldState, months: int) -> Array:
+	var out: Array = []
+	for f in world.facts.query("LAW_UNLAWFUL_GOV_ACTION_REVEALED", world.month - months + 1, world.month):
+		var causes: Array = f.get("causes", [])
+		if causes.is_empty():
+			continue
+		var order: Dictionary = world.facts.get_fact(str(causes[0]))
+		if str(order.get("data", {}).get("action", "")) == "POLITICAL_ARREST":
+			out.append(order["data"])
+	return out
 
 
 ## Share of the coalition agreement whose levers have moved in the agreed direction since formation.

@@ -133,3 +133,30 @@ func test_excluded_parties_still_count_as_opposition() -> void:
 	check(int(r["no"]) < PolDefs.MAJORITY, "a government that forms has no majority against it, counting C")
 	var e := Coalition.evaluate(r["members"], parties, 45.0)
 	check_eq(int(r["no"]), int(e["no"]), "the opposition count includes the excluded party's seats")
+
+
+func test_revealed_political_arrest_shakes_the_coalition() -> void:
+	var runs: Dictionary = {}
+	for shame in [false, true]:
+		var sim := _sim_with_government()
+		var w := sim.world
+		var st: Dictionary = w.table("pol")["state"]
+		var g: Dictionary = st["government"]
+		var partner := ""
+		for pid in w.table("party"):
+			if not (pid in g["members"]) and w.table("party")[pid]["seats"] > 0:
+				partner = pid
+				break
+		g["members"].append(partner)
+		st["cohesion"] = {partner: 70}
+		st["cohesion_low"] = {partner: 0}
+		st["next_election"] = w.month + 40
+		if shame:
+			var oid := w.add_fact({"type": "LAW_UNLAWFUL_GOV_ACTION", "owner": "law", "subjects": [],
+				"responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}], "impact": {},
+				"magnitude": 60, "visibility": "SECRET", "data": {"action": "POLITICAL_ARREST", "params": {"party": partner}}})
+			w.facts.reveal(w.month, oid)
+			check_eq(GovCrisis.revealed_political_arrests(w, 12).size(), 1, "the revealed arrest is found")
+		GovCrisis.cohesion_step(w, st)
+		runs[shame] = int(st["cohesion"].get(partner, 0))
+	check(runs[true] < runs[false], "a revealed political arrest lowers partner cohesion (%d vs %d)" % [runs[true], runs[false]])
