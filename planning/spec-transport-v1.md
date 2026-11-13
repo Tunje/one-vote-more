@@ -94,6 +94,24 @@ an operator buying rovers or an airship is a real investment.
   widens job markets (unemployment), bad transport traps people.
 - **Leisure access**: a venue serves the areas within reach; an arena far from town on a dirt track draws little.
 
+### T3 network side implemented (Terra, 2026-11-13; agreed with Bob, plan-support-economy §8c): sim/transport/commuting.gd, tests/transport/test_commuting.gd
+- `Transport.commutes(world)` → `[{from_d, to_d, n, fid}]`: home → work from facility staff and builder crews
+  (the staff keys carry the home block; milli-persons ÷ 1000). District level; an area-level call keeps the shape.
+- `Transport.commute_d(world, from_d, to_d)` → `{ok, hops, km, minutes, links, factor}`, and
+  `Transport.route_factor(...)` → ‰ (1000 = a good road, normal traffic). Each link is weighted by km: condition,
+  kind (TRACK 1300 / ROAD 1000 / PAVED 850), congestion above 80% of capacity (this month's or last month's count),
+  a second lane ×0.9, closed this month 2500. Each junction passed weighs 3 km by type. No road: 3000, cross-country.
+- `Transport.incident_site(world, from_d, to_d, salt, kind)` → `{link, junction, tile}`. Bob's "econ.buses" draw
+  decides that a breakdown or crash happens; this picks where: breakdowns by km, crashes by link factor × km and
+  junction risk. Bob calls `add_accident` for crashes and puts data.tile and data.link on BUS_BREAKDOWN / BUS_CRASH.
+- `Transport.bus_lines(world, EconQuery.commuting rows)`: derived lines, one per district pair over the road route,
+  with stops at the settlements and the junctions on the way, and the nearest DEPOT. No state.
+- `Transport.add_commute_traffic(world, rows)`: the only write. Buses in service × 4 trips and taxis (users / 1.5)
+  × 2 trips, over 22 working days, go onto the route's links and junctions (T7 counts). Bob calls it after his
+  commuting step. The NATURE reset keeps `traffic_last` on links and junctions.
+- Next (after Bob's EconQuery.commuting exists): the map draws the lines by load, the buses, and a mark at each
+  breakdown or crash tile; the vista shows buses on the roads.
+
 ## T4. Tourism transport (Bob, with Terra's sites)
 
 - Tourists reach a site by road coach (if a road exists), by rover tour (off-road, rover base, licensed operator),
