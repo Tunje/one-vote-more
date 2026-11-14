@@ -69,11 +69,23 @@ const REVIVE_STRENGTH := 0.2
 const REVIVE_ESCALATED := 1.2        # the digging found something new: hotter than the original
 const REVIVE_DIMINISH := [1.0, 0.7, 0.5]   # 1st, 2nd, 3rd revival of the same scandal (the press stops at 3)
 const BURY_MAX := 0.5                # friendly papers burying it at full strength halve a revival (never immunity)
+const REVIVE_TARGET_MULT := 2.0      # in the 12 months before an election a revival weighs double in who to attack
+const REVIVE_TARGET_MONTHS := 12
 const SCANDAL_SEV_UNIT := 50.0       # severity that counts as 1.0 heat (severity runs 20..100)
 const SCANDAL_HEAT_CAP := 2.0
 const SCANDAL_TARGET_W := 1.0        # heat 1 (a fresh severity-50 scandal) outweighs the default target's claim
 const SCANDAL_OPPO := 0.5            # oppo research digs up more on a party under fire (x 1 + this at heat 1)
 const SCANDAL_VULN := 0.2            # attacks stick better (vulnerability + this at heat 1)
+# ---- political arrests (Anni's P1c, opt-in POLICE; A/B switch off "MARTYR") ----
+# Momentum is campaign utility for every voter: 100 ~ 1.6 pp for a 20% party (logit), decaying 30%/month.
+const MARTYR_MEMORY := 48            # a revealed order to arrest an opponent fades linearly over a term
+const MARTYR_REVEAL := 150           # momentum jolt for the victim in the month the order comes out
+const MARTYR_MONTHLY := 45           # sympathy per campaign month x heat (steady state ~150 ~ 2.5 pp, fresh)
+const MARTYR_THEME := 0.5            # from this heat the victim campaigns on GOVERNANCE ("the rule of law")
+const MARTYR_TONE := 0.2             # the victim's tone pressure against the jailers, x heat
+const JAILED_LINE := -120            # "they jailed our leader": the victim's first attack ad on the ordering PM's party
+const PERSECUTION_CLAIM := 80        # the detention itself, during a campaign: the party alleges persecution (unproven)
+const PERSECUTION_MONTHLY := 20      # statements from the cell, per campaign month while the leader is held
 const LEAK_P := 60                   # held dirt leaks per month ("they sat on it")
 const SMEAR_P := 300                 # a desperate low-integrity campaign fabricates something
 const SMEAR_MAX_INTEGRITY := 35
@@ -91,6 +103,7 @@ const TACTICAL_MAX_FRAC := 0.08      # at most 8% of the largest partner's voter
 const Det := preload("res://sim/staff/det.gd")
 const PF_PATH := "res://sim/law/party_finance.gd"
 const JUSTICE_PATH := "res://sim/law/justice_ops.gd"
+const POLICE_PATH := "res://sim/law/police.gd"
 const DEFAMATION_CREDIBILITY := 8     # a smearer convicted of defamation (on top of the exposure hit)
 
 
@@ -192,6 +205,11 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	_decay(c)
 	if to_go == SHORT_CAMPAIGN or (bool(c["extra"]) and to_go == WINDOW_EXTRA):
 		_replan_tone(world, st, c)
+	elif revival_on(world) and not world.facts.query("MEDIA_SCANDAL_REVIVED", world.month, world.month).is_empty():
+		_replan_tone(world, st, c)   # a paper dug up an old scandal: the campaigns react this month
+	elif martyrs(world).values().any(func(m): return int(m["at"]) == world.month):
+		_replan_tone(world, st, c)   # an order to arrest an opponent came out: the victim turns on the jailers
+	_persecution(world, st, c)
 	var spend := _spend(world, c, to_go, seg)
 	_ads(world, c, seg, spend)
 	_ground(world, c, spend)
@@ -231,7 +249,8 @@ static func _open(world: WorldState, st: Dictionary, month: int, extra: bool) ->
 	st["campaign_id"] = cid
 	world.add_fact({"type": "POL_CAMPAIGN_OPENED", "owner": "pol", "subjects": [], "responsible": [], "impact": {},
 		"magnitude": 50 if not extra else 60, "visibility": "PUBLIC",
-		"data": {"campaign": cid, "election_month": month, "extra": extra, "channel": "CAMPAIGN", "hot": hot_now(world)}})
+		"data": {"campaign": cid, "election_month": month, "extra": extra, "channel": "CAMPAIGN", "hot": hot_now(world),
+			"hot_labels": hot_now(world).map(func(i): return HotIssues.label_now(world, String(i)))}})
 	return c
 
 
@@ -322,6 +341,7 @@ static func _plan(world: WorldState, st: Dictionary, c: Dictionary, p: Dictionar
 		e["themes"] = cg["themes"].duplicate()   # the manifesto the party congress adopted
 	else:
 		e["themes"] = pick_themes(world, st, p, seg)
+	_martyr_theme(world, e, p["id"])
 	e["target"] = pick_target(world, st, p)
 	_set_tone(world, st, c, p, e)
 
@@ -384,7 +404,11 @@ static func pick_target(world: WorldState, st: Dictionary, p: Dictionary) -> Str
 			if int(q["support"]) > best_s:
 				best_s = int(q["support"])
 				base = q["id"]
-	var heat := scandal_heat(world)
+	var mt: Dictionary = martyrs(world).get(p["id"], {})
+	if not mt.is_empty() and String(mt["pm"]) != "" and String(mt["pm"]) != p["id"] \
+			and world.peek("party").has(String(mt["pm"])) and world.peek("party")[String(mt["pm"])]["status"] == "ACTIVE":
+		return String(mt["pm"])   # they jailed our leader
+	var heat := _target_heat(world)
 	if heat.is_empty():
 		return base
 	var mine := members.has(p["id"])
@@ -412,7 +436,19 @@ static func scandal_heat(world: WorldState) -> Dictionary:
 	return out
 
 
-## {pid: {heat, fid, kind, month, at, outlet}}: scandal_heat plus the party's latest remembered scandal (for the
+## scandal_heat for choosing whom to attack: a paper's revival weighs REVIVE_TARGET_MULT in the REVIVE_TARGET_MONTHS
+## before an election (Wilma: a flare-up has to be able to redirect fire).
+static func _target_heat(world: WorldState) -> Dictionary:
+	var mem := scandal_memory(world)
+	var to_go := months_to_election(world)
+	var boost := REVIVE_TARGET_MULT - 1.0 if to_go >= 0 and to_go <= REVIVE_TARGET_MONTHS else 0.0
+	var out := {}
+	for pid in mem:
+		out[pid] = minf(SCANDAL_HEAT_CAP, float(mem[pid]["heat"]) + boost * float(mem[pid].get("revived", 0.0)))
+	return out
+
+
+## {pid: {heat, fid, kind, month, at, outlet, revived}}: scandal_heat plus the party's latest remembered scandal (for the
 ## attack line): `month` of the original reveal, `at` of the last time it was news, `outlet` the paper that revived
 ## it ("" for a plain reveal). A revival (MEDIA_SCANDAL_REVIVED, when revival_on) adds severity/50 x REVIVE_SHARE..
 ## x REVIVE_DIMINISH[n-1] x (1 - BURY_MAX x buried), fading over SCANDAL_WINDOW like a fresh reveal (no floor).
@@ -463,6 +499,7 @@ static func _add_revivals(world: WorldState, out: Dictionary) -> void:
 		var e: Dictionary = out.get(pid, {"heat": 0.0, "at": -1})
 		var ne := e.duplicate()
 		ne["heat"] = minf(SCANDAL_HEAT_CAP, float(e["heat"]) + h)
+		ne["revived"] = float(e.get("revived", 0.0)) + h
 		if int(f["month"]) >= int(e.get("at", -1)):
 			ne["fid"] = String(d.get("scandal", ""))
 			ne["kind"] = String(od.get("kind", d.get("kind", "DONATION")))
@@ -487,6 +524,9 @@ static func _set_tone(world: WorldState, st: Dictionary, c: Dictionary, p: Dicti
 	n += GENE_NEGATIVE_TONE * (float(Learn.gene(p, "G_NEGATIVE")) - 500.0) / 500.0   # A53
 	if String(e["target"]) != "" and not EconUtil.off(world, "SCANDAL_FIRE_V2"):   # a target with a scandal invites attack
 		n += SCANDAL_TONE * minf(1.0, float(scandal_heat(world).get(String(e["target"]), 0.0)))
+	var mt: Dictionary = martyrs(world).get(p["id"], {})
+	if not mt.is_empty() and String(mt["pm"]) != "" and String(mt["pm"]) == String(e["target"]):
+		n += MARTYR_TONE * float(mt["heat"])
 	var tone := "NEGATIVE" if n > 0.15 else ("MIXED" if n > 0.0 else "POSITIVE")
 	if e["target"] == "":
 		tone = "POSITIVE"
@@ -633,6 +673,7 @@ static func _ads(world: WorldState, c: Dictionary, seg: Dictionary, spend: Dicti
 		var hit := 0.0
 		var mem: Dictionary = scandal_memory(world).get(tgt, {}) if attack_share > 0.0 else {}
 		var vul := vulnerability(world.table("party")[tgt], float(mem.get("heat", 0.0))) if attack_share > 0.0 else 1.0
+		var mt: Dictionary = martyrs(world).get(pid, {}) if attack_share > 0.0 else {}
 		for k in w:
 			var inc := float(BETA_AD) * power * (1.0 - attack_share) * float(w[k])
 			_add(e["persuasion"], k, inc, PERSUASION_CAP)
@@ -643,12 +684,16 @@ static func _ads(world: WorldState, c: Dictionary, seg: Dictionary, spend: Dicti
 		if hit > 0.0:
 			e["attacks"] = int(e["attacks"]) + 1
 			_backfire(c, pid, seg, hit)
-			if int(e["attacks"]) == 1:
+			if String(e.get("ad_target", "")) != tgt:   # the first attack ad on each new target is news
+				e["ad_target"] = tgt
 				var ad := {"party": pid, "target": tgt, "tone": e["tone"]}
 				if not mem.is_empty() and not EconUtil.off(world, "SCANDAL_FIRE_V2"):   # "remember the donation scandal"
 					ad["recalls"] = {"fid": mem["fid"], "kind": mem["kind"], "ago": world.month - int(mem["month"]),
 						"outlet": String(mem.get("outlet", "")), "revived_ago": world.month - int(mem.get("at", mem["month"]))}
 					_momentum(c, tgt, RECALL_LINE)
+				if not mt.is_empty() and String(mt["pm"]) == tgt:   # "they jailed our leader"
+					ad["jailed"] = {"name": mt["name"], "leader": bool(mt["leader"]), "ago": world.month - int(mt["at"])}
+					_momentum(c, tgt, JAILED_LINE)
 				_event(world, c, "POL_ATTACK_AD", "AD", [pid, tgt], 40, ad)
 
 
@@ -750,11 +795,15 @@ static func performance(c: Dictionary, p: Dictionary, r: RandomNumberGenerator, 
 	return 0.5 * float(l["charisma"]) + 0.3 * float(l["competence"]) + 0.2 * prep * 2.0 + r.randfn(0.0, sd)
 
 
+## Leaders on stage (politics week, debates); a leader held by the police can't appear, only send statements.
 static func _stage_parties(world: WorldState, c: Dictionary) -> Array:
 	var out: Array = []
 	var poll := PartyLife.latest_poll_shares(world)
+	var held := held_leaders(world)
 	for p in PartyLife.active(world):
 		var share := maxi(int(p["support"]), int(poll.get(p["id"], 0)))
+		if held.has(p["id"]):
+			continue
 		if c["parties"].has(p["id"]) and (int(p["seats"]) > 0 or share >= 2000):
 			out.append(p)
 	return out
@@ -781,7 +830,8 @@ static func _politics_week(world: WorldState, c: Dictionary) -> void:
 			best = pid
 		if worst == "" or perf[pid] < perf[worst]:
 			worst = pid
-	_event(world, c, "POL_POLITICS_WEEK", "RALLY", [best, worst], 45, {"best": best, "worst": worst})
+	_event(world, c, "POL_POLITICS_WEEK", "RALLY", [best, worst], 45, {"best": best, "worst": worst,
+		"held": Det.ordered(held_leaders(world)).filter(func(q): return c["parties"].has(q))})
 
 
 ## Leaders' debate (to_go 1) and the final debate (election month, before the vote).
@@ -840,11 +890,109 @@ static func _debate(world: WorldState, st: Dictionary, c: Dictionary, final: boo
 		_event(world, c, "POL_DEBATE_GAFFE", "DEBATE", [pid], 60,
 			{"party": pid, "leader": PartyLife.leader_name(world.table("party")[pid]), "final": final})
 	var d := {"month": world.month, "final": final, "winner": winner, "loser": loser, "killer_on": killer, "gaffes": gaffes,
-		"answers": answers, "topics": qs.map(func(q): return q["topic"]), "issues": qs.map(func(q): return String(q.get("issue", "")))}
+		"held": Det.ordered(held_leaders(world)).filter(func(q): return c["parties"].has(q)),
+		"answers": answers, "topics": qs.map(func(q): return q["topic"]), "issues": qs.map(func(q): return String(q.get("issue", ""))),
+		"issue_labels": qs.map(func(q): return HotIssues.label_now(world, String(q.get("issue", ""))) if String(q.get("issue", "")) != "" else "")}
 	c["debates"].append(d)
 	var data := d.duplicate()
 	data.erase("answers")
 	_event(world, c, "POL_DEBATE_HELD", "DEBATE", [winner, loser], 70 if final else 55, data)
+
+
+# ======================================================================= political arrests (P1c, opt-in POLICE)
+
+## {pid: {heat 0..1, order, name, leader, month (the order), at (the reveal), pm}}: the hottest revealed order
+## (LAW_UNLAWFUL_GOV_ACTION_REVEALED -> POLITICAL_ARREST) against each party in the last MARTYR_MEMORY months, heat
+## fading linearly with the reveal's age. pm = the PM party of the government that gave the order if it still
+## governs, else "" (the jailers are gone: sympathy, no line). A/B: off "MARTYR" -> {}.
+static func martyrs(world: WorldState) -> Dictionary:
+	var out := {}
+	if EconUtil.off(world, "MARTYR"):
+		return out
+	var g: Dictionary = world.peek("pol").get("state", {}).get("government", {})
+	for f in world.facts.query("LAW_UNLAWFUL_GOV_ACTION_REVEALED", world.month - MARTYR_MEMORY + 1, world.month):
+		var causes: Array = f.get("causes", [])
+		if causes.is_empty():
+			continue
+		var order: Dictionary = world.facts.get_fact(str(causes[0]))
+		if str(order.get("data", {}).get("action", "")) != "POLITICAL_ARREST":
+			continue
+		var pr: Dictionary = order["data"].get("params", {})
+		var pid := String(pr.get("party", ""))
+		if pid == "":
+			continue
+		var heat := maxf(0.0, 1.0 - float(world.month - int(f["month"])) / float(MARTYR_MEMORY))
+		if out.has(pid) and float(out[pid]["heat"]) >= heat:
+			continue
+		var pm := ""
+		if not g.is_empty() and int(g.get("formed_month", world.month)) <= int(order["month"]):
+			pm = String(g.get("pm_party", ""))
+		out[pid] = {"heat": heat, "order": String(order["id"]), "name": String(pr.get("name", "")),
+			"leader": String(pr.get("person", "")) == "", "month": int(order["month"]), "at": int(f["month"]), "pm": pm}
+	return out
+
+
+## {pid: name} of parties whose leader the police hold now (Police.detained, kind PARTY targets).
+static func held_leaders(world: WorldState) -> Dictionary:
+	var out := {}
+	if EconUtil.off(world, "MARTYR"):
+		return out
+	var det: Dictionary = _law_call("detained", [world], {}, POLICE_PATH)
+	for aid in Det.ordered(det):
+		var r: Dictionary = det[aid]
+		if String(r.get("person", "")) == "" and String(r.get("party", "")) != "":
+			out[String(r["party"])] = String(r.get("name", ""))
+	return out
+
+
+## The victim of a revealed arrest order campaigns on the rule of law (GOVERNANCE first) while the heat lasts.
+static func _martyr_theme(world: WorldState, e: Dictionary, pid: String) -> void:
+	var mt: Dictionary = martyrs(world).get(pid, {})
+	if bool(e.get("manual", false)) or mt.is_empty() or float(mt["heat"]) < MARTYR_THEME:
+		return
+	var th: Array = e["themes"].filter(func(x): return x != "GOVERNANCE")
+	e["themes"] = ["GOVERNANCE"] + th.slice(0, 1)
+
+
+## Campaign month: a detention now is an allegation of persecution (news + a small bump), a leader in a cell
+## sends statements (a trickle), and a revealed order is a martyr story: sympathy every month by heat, a jolt
+## in the month it comes out. Told once per campaign per order (POL_MARTYR_CAMPAIGN).
+static func _persecution(world: WorldState, st: Dictionary, c: Dictionary) -> void:
+	if EconUtil.off(world, "MARTYR"):
+		return
+	var pm := String(st.get("government", {}).get("pm_party", ""))
+	for f in world.facts.query("LAW_POLITICAL_ARREST", world.month, world.month):
+		var pid := String(f["data"].get("party", ""))
+		if not c["parties"].has(pid):
+			continue
+		var by := pm if pm != pid else ""
+		_momentum(c, pid, PERSECUTION_CLAIM)
+		_event(world, c, "POL_PERSECUTION_ALLEGED", "CAMPAIGN", [pid, by], 50,
+			{"party": pid, "by": by, "name": String(f["data"].get("name", "")),
+			"leader": String(f["data"].get("person", "")) == "", "pretext": String(f["data"].get("pretext", "")),
+			"arrest": String(f["id"])})
+	var held := held_leaders(world)
+	for pid in Det.ordered(held):
+		if c["parties"].has(pid):
+			_momentum(c, pid, PERSECUTION_MONTHLY)
+	var mts := martyrs(world)
+	var told: Array = c.get("martyr_told", [])
+	for pid in Det.ordered(mts):
+		if not c["parties"].has(pid):
+			continue
+		var m: Dictionary = mts[pid]
+		var d := int(round(float(MARTYR_MONTHLY) * float(m["heat"])))
+		var fresh := int(m["at"]) == world.month
+		if fresh:
+			d += MARTYR_REVEAL
+			_martyr_theme(world, c["parties"][pid], pid)
+		_momentum(c, pid, d)
+		if not told.has(String(m["order"])):
+			told.append(String(m["order"]))
+			_event(world, c, "POL_MARTYR_CAMPAIGN", "CAMPAIGN", [pid, String(m["pm"])], 60 if fresh else 45,
+				{"party": pid, "jailers": String(m["pm"]), "name": m["name"], "leader": m["leader"], "order": m["order"],
+				"ago": world.month - int(m["at"])})
+	c["martyr_told"] = told
 
 
 # ======================================================================= debate night
@@ -894,7 +1042,7 @@ static func prepare_debate(world: WorldState, c: Dictionary, at_to_go: int) -> D
 		if int(cs[3][i]) >= HotIssues.HOT and (hottest == "" or int(cs[3][i]) > int(cs[3][hottest])):
 			hottest = i
 	if hottest != "":
-		var hc := String(HotIssues.ISSUES[hottest]["concern"])
+		var hc := HotIssues.concern(hottest)
 		if not qs.slice(0, 2).any(func(q): return q["topic"] == hc):
 			qs[2] = {"topic": hc, "asker": "AUDIENCE", "issue": hottest}
 	var prep := {"month": month, "final": at_to_go == 0, "questions": qs, "answers": {}}
@@ -924,8 +1072,8 @@ static func stance_fit(world: WorldState, st: Dictionary, c: Dictionary, p: Dict
 			else:
 				var tgt_gov := 1.0 if members.has(tgt) else 0.5
 				f = unmet * vulnerability(world.table("party")[tgt], float(scandal_heat(world).get(tgt, 0.0))) * tgt_gov * 1.2 - 0.15
-				if members.has(tgt) and cs.size() > 2:
-					f += HotIssues.ATTACK_BONUS * float(cs[2].get(topic, 0)) / 1000.0   # the government is blamed for it
+				if cs.size() > 3:   # who is blamed: the government; for workplace overload whoever runs it (HotIssues.blame)
+					f += HotIssues.ATTACK_BONUS * float(cs[2].get(topic, 0)) / 1000.0 * HotIssues.blame(world, cs[3], topic, tgt, members)
 		"DEFEND":
 			f = (sat - 0.45) * 2.0 if in_gov else own * 0.8 - 0.1
 		"PIVOT":

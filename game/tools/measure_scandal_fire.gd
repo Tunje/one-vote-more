@@ -15,7 +15,12 @@ func _initialize() -> void:
 	var off: Array = Array(args[2].split(",", false)) if args.size() > 2 else []
 	var sim: Simulation = EconSim.make(seed_v, "BALANCED", {}, true)
 	sim.world.meta["off"] = off
-	sim.world.meta["on"] = Array(args[3].split(",", false)) if args.size() > 3 else []   # e.g. SCANDAL_REVIVAL
+	if args.size() > 3:   # extra opt-in systems on top of the full game's defaults (EconSim.DEFAULT_ON)
+		var on: Array = sim.world.meta.get("on", []).duplicate()
+		for k in args[3].split(",", false):
+			if not on.has(k):
+				on.append(k)
+		sim.world.meta["on"] = on
 	sim.run(months)
 	var w := sim.world
 	var elections: Array = w.facts.query("POL_ELECTION_HELD").map(func(f): return int(f["month"]))

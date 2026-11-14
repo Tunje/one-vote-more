@@ -91,6 +91,7 @@ func test_a_scandal_pushes_tone_and_the_ad_names_it() -> void:
 	e["tone"] = "NEGATIVE"
 	e["manual"] = true
 	e["attacks"] = 0
+	e.erase("ad_target")
 	var n0 := w.facts.query("POL_ATTACK_AD").size()
 	var sp := {}
 	for q in c["parties"]:
@@ -195,6 +196,7 @@ func test_the_attack_ad_cites_the_paper() -> void:
 	e["tone"] = "NEGATIVE"
 	e["manual"] = true
 	e["attacks"] = 0
+	e.erase("ad_target")
 	var n0 := w.facts.query("POL_ATTACK_AD").size()
 	var sp := {}
 	for q in c["parties"]:
@@ -205,3 +207,19 @@ func test_the_attack_ad_cites_the_paper() -> void:
 	if ads.size() == 1:
 		check_eq(String(ads[0]["data"]["recalls"].get("outlet", "")), "out:x", "cites the paper")
 		check(NewsText.sentence(w, ads[0]).contains("dug up again"), NewsText.sentence(w, ads[0]))
+
+
+func test_a_revival_weighs_double_in_whom_to_attack_before_an_election() -> void:
+	var r := _old_scandal()
+	var w: WorldState = r[0]
+	var pid: String = r[1]
+	w.meta["on"] = ["SCANDAL_REVIVAL"]
+	var st: Dictionary = w.table("pol")["state"]
+	_revive(w, pid, r[2], 1, 500)
+	var mem: Dictionary = Campaign.scandal_memory(w)[pid]
+	check(absf(float(mem["revived"]) - 0.5) < 1e-6, "the revival's own heat")
+	st["next_election"] = w.month + 30
+	check(absf(float(Campaign._target_heat(w)[pid]) - float(mem["heat"])) < 1e-6, "far from an election: as is")
+	st["next_election"] = w.month + 6
+	check(absf(float(Campaign._target_heat(w)[pid]) - float(mem["heat"]) - 0.5) < 1e-6, "in the year before: doubled")
+	check(absf(_h(w, pid) - float(mem["heat"])) < 1e-6, "the 40-60% heat elsewhere is unchanged")

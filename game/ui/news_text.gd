@@ -252,7 +252,8 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"POL_CAMPAIGN_OPENED":
 			s = "[b]%s[/b]: the parties launch their campaigns" % ("A snap election campaign begins" if d.get("extra", false) else "Election year")
 			if not d.get("hot", []).is_empty():
-				s += "; everyone is talking about %s" % " and ".join(d["hot"].slice(0, 2).map(func(i): return HotIssues.label(String(i))))
+				var hl: Array = d.get("hot_labels", d["hot"].map(func(i): return HotIssues.label(String(i))))
+				s += "; everyone is talking about %s" % " and ".join(hl.slice(0, 2))
 		"POL_CAMPAIGN_GOES_NEGATIVE": s = "%s goes negative: its ads now target %s" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
 		"POL_ATTACK_AD":
 			s = "%s runs attack ads against %s" % [party(w, d.get("party", "")), party(w, d.get("target", ""))]
@@ -263,13 +264,32 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 					"this year" if ago < 12 else ("last year" if ago < 24 else "%d years ago" % (ago / 12))]
 				if String(rc.get("outlet", "")) != "":
 					s += ", which %s dug up again %s" % [outlet(w, rc["outlet"]), "this month" if int(rc.get("revived_ago", 0)) == 0 else "%s ago" % months(int(rc.get("revived_ago", 0)))]
-		"POL_POLITICS_WEEK": s = "Politics week: %s gave the speech of the summer; %s fell flat" % [party(w, d.get("best", "")), party(w, d.get("worst", ""))]
+			var jl: Dictionary = d.get("jailed", {})
+			if not jl.is_empty():
+				s += ": [i]\"they jailed our %s\"[/i]" % ("leader" if jl.get("leader", true) else String(jl.get("name", "people")))
+		"POL_POLITICS_WEEK":
+			s = "Politics week: %s gave the speech of the summer; %s fell flat" % [party(w, d.get("best", "")), party(w, d.get("worst", ""))]
+			for q in d.get("held", []):
+				s += "; %s's leader, held by the police, sent a statement" % party(w, q)
+		"POL_PERSECUTION_ALLEGED":
+			s = "[color=#ff8a65]%s alleges political persecution[/color] after the police detained %s%s" % [party(w, d.get("party", "")),
+				("its leader " + String(d.get("name", ""))) if d.get("leader", true) else String(d.get("name", "one of its people")),
+				(" (\"%s\")" % d["pretext"]) if String(d.get("pretext", "")) != "" else ""]
+		"POL_MARTYR_CAMPAIGN":
+			s = "%s campaigns on the order to arrest %s%s" % [party(w, d.get("party", "")),
+				("its leader " + String(d.get("name", ""))) if d.get("leader", true) else String(d.get("name", "one of its people")),
+				(" — and %s, whose government gave it" % party(w, d["jailers"])) if String(d.get("jailers", "")) != "" else ""]
 		"POL_DEBATE_HELD":
 			var killer := (", landing a blow on %s" % party(w, d.get("killer_on", ""))) if String(d.get("killer_on", "")) != "" else ""
 			s = "[b]%s[/b]: %s won%s; %s struggled" % ["Final debate" if d.get("final", false) else "Leaders' debate", party(w, d.get("winner", "")), killer, party(w, d.get("loser", ""))]
-			var iss: Array = d.get("issues", []).filter(func(i): return String(i) != "")
-			if not iss.is_empty():
-				s += " (the clash over %s)" % HotIssues.label(String(iss[0]))
+			var ia: Array = d.get("issues", [])
+			var il: Array = d.get("issue_labels", [])
+			for k in ia.size():
+				if String(ia[k]) != "":
+					s += " (the clash over %s)" % (String(il[k]) if k < il.size() and String(il[k]) != "" else HotIssues.label(String(ia[k])))
+					break
+			for q in d.get("held", []):
+				s += "; %s's leader could not take part (held by the police)" % party(w, q)
 		"POL_DEBATE_GAFFE": s = "[color=#ff8a65]Gaffe[/color]: %s (%s) blundered in the %s" % [d.get("leader", ""), party(w, d.get("party", "")), "final debate" if d.get("final", false) else "debate"]
 		"POL_DIRT_RELEASED":
 			var what: String = {"DONATION": "hidden donations", "PERSONAL": "the private conduct of %s" % d.get("leader", "its leader"), "SMEAR": "allegations against %s" % d.get("leader", "its leader")}.get(String(d.get("kind", "")), "damaging claims")
