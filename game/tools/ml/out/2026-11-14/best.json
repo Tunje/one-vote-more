@@ -1,0 +1,28 @@
+{
+ "advantage": 25.467932967032894,
+ "gen": 11,
+ "genome": {
+  "G_DRIFT": 295,
+  "G_ISSUE": 480,
+  "G_NEGATIVE": 470,
+  "G_SPEND": 119,
+  "G_COALITION": 546,
+  "G_PORK": 896,
+  "G_PACE": 824,
+  "G_DISCIPLINE": 869,
+  "G_RESEARCH": 746,
+  "G_UNION": 1000
+ },
+ "mean_genome": {
+  "G_DRIFT": 465,
+  "G_ISSUE": 446,
+  "G_NEGATIVE": 405,
+  "G_SPEND": 158,
+  "G_COALITION": 544,
+  "G_PORK": 944,
+  "G_PACE": 675,
+  "G_DISCIPLINE": 926,
+  "G_RESEARCH": 773,
+  "G_UNION": 968
+ }
+}
