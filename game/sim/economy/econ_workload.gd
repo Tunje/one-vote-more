@@ -147,7 +147,10 @@ static func _report_law(world: WorldState, f: Dictionary, o: Dictionary, saving:
 	var t: Dictionary = EconUtil.st(world).get("workload_tracks", {})
 	EconUtil.st(world)["workload_tracks"] = t
 	var ow := fid + "|OVERWORK"
-	if o["type"] in ["PRIVATE", "COOPERATIVE"] and int(f["hours"]) > WK.max_hours(world):
+	# OVERWORK is a choice: only a firm that runs lean (fewer posts than the work needs) is recorded. A firm short-staffed
+	# because nobody can be hired is not (farm-death census: OVERWORK on labour-short farms was the main fine behind
+	# profitable farms dying)
+	if o["type"] in ["PRIVATE", "COOPERATIVE"] and int(f["hours"]) > WK.max_hours(world) and int(f.get("lean_pm", 0)) > 0:
 		t[ow] = LawOps.record_greed(world, f["org"], {"kind": "OVERWORK", "facility": fid, "district": f["district"], "saving": saving})
 	elif t.has(ow):
 		LawOps.greed_stop(world, str(t[ow]))
