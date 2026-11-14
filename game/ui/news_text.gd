@@ -165,6 +165,8 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"ECON_UTILITY_OUTAGE": s = "Power or water outages%s" % where
 		"ECON_FOOD_AID": s = "Food aid handed out (%d rations)" % int(d.get("qty", 0))
 		"ECON_FOOD_UNAFFORDABLE": s = "Food on the shelves, but %d%% of families' needs went unbought: they cannot afford it%s" % [int(d.get("unaffordable_permille", 0)) / 10, where]
+		"ECON_TARIFF_CHANGE": s = "%s %s its charges%s" % [str(d.get("org", "The public utility")), "raises" if bool(d.get("up", false)) else "lowers", where]
+		"ECON_RAW_FOOD": s = "Families are living on raw farm food: %d%% of the bread and bakery goods they want is not to be had%s" % [int(d.get("raw_permille", 0)) / 10, where]
 		"ECON_FOOD_SCARCE": s = "Food is scarce: %d%% of what families ordered was not delivered" % (int(d.get("scarce_permille", 0)) / 10)
 		"ECON_FAMINE": s = "[color=#ff5252]FAMINE: the colony cannot feed itself[/color]"
 		"ECON_RENT_INCREASE": s = "Rents rose %d%%%s" % [int(d.get("pct", 0)), where]

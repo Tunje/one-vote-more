@@ -34,7 +34,7 @@ func run_phase(_phase: int, world: WorldState) -> void:
 	if world.month % 3 != 1:
 		return
 	_fiscal_rule(world)
-	if _runway(world) < 12.0:
+	if _runway(world) < (3.0 if Legislature.e151(world) else 12.0):   # E151: the caretaker builds down to 3 months of reserves
 		return  # caretaker pauses new capital projects when cash + credit cover < 12 months
 	var busy := {}
 	for pid in world.table("project"):

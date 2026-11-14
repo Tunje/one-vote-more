@@ -5,7 +5,7 @@ G="/c/Users/simon/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_wi
 OUT="$1"; YEARS="$2"; PAR="$3"; shift 3
 mkdir -p "$OUT"
 jobs=()
-for arm in "$@"; do for sd in 1 2 3 4 5; do jobs+=("${arm%%:*} ${arm#*:} $sd"); done; done
+for arm in "$@"; do for sd in ${SEEDS:-1 2 3 4 5}; do jobs+=("${arm%%:*} ${arm#*:} $sd"); done; done
 i=0
 for j in "${jobs[@]}"; do
   set -- $j

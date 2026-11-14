@@ -114,6 +114,7 @@ static func _consume(world: WorldState) -> void:
 	var short_d := {}
 	var need_d := {}
 	var s7 := EconFoodSec.active(world)
+	var staple := EconStaple.active(world)
 	var fneed_d := {}
 	var unaff_d := {}
 	var scarce_d := {}
@@ -123,6 +124,8 @@ static func _consume(world: WorldState) -> void:
 		var food_need := int(p * EconData.NEED["FOOD"])
 		var cons_need := int(p * EconData.NEED["CONSUMER_MIN"])
 		var food: int = g["bought"].get("FOOD", 0)
+		var ff_staple := int(g.get("ff_got", 0)) if staple else 0
+		food += ff_staple  # E146: bakery staples feed (the luxury extra on top is eaten in EconConsumer.absorb)
 		var cons: int = g["bought"].get("CONSUMER", 0)
 		var sv: Array = s.get("util_served_hh", {}).get(g["district"], [1.0, 1.0])
 		var unmet_food := maxi(0, food_need - food)
@@ -142,7 +145,7 @@ static func _consume(world: WorldState) -> void:
 		var need_tot := food_need + cons_need + int(p * (EconData.NEED["ENERGY"] + EconData.NEED["WATER"]))
 		short_d[d] = short_d.get(d, 0) + unmet_food + unmet_cons + unmet_e + unmet_w
 		need_d[d] = need_d.get(d, 0) + need_tot
-		EconUtil.qflow(world, "FOOD", "burned", food)
+		EconUtil.qflow(world, "FOOD", "burned", food - ff_staple)
 		EconUtil.qflow(world, "CONSUMER", "burned", cons)
 		if g["bought"].has("MEDICAL"):
 			EconUtil.qflow(world, "MEDICAL", "burned", g["bought"]["MEDICAL"])
@@ -150,6 +153,8 @@ static func _consume(world: WorldState) -> void:
 	s["food_shortfall"] = int(1000.0 * float(short_food) / maxf(1.0, float(need_food)))
 	if s7:
 		EconFoodSec.record(world, fneed_d, unaff_d, scarce_d)
+	if staple:
+		EconStaple.record_raw(world)
 	s["shortfall_d"] = {}
 	for d in need_d:
 		s["shortfall_d"][d] = int(1000.0 * float(short_d[d]) / maxf(1.0, float(need_d[d])))
@@ -434,6 +439,7 @@ static func _post_orders(world: WorldState) -> void:
 	var tax_m := 1.0 + float(EconUtil.lever(world, "ECON_SALES_TAX", 0)) / 100.0
 	var s7 := EconFoodSec.active(world)
 	var pf_eff := food_price_eff(world)  # D: shop margin
+	var staple := EconStaple.active(world)
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
 		var p := persons(g)
@@ -451,14 +457,21 @@ static func _post_orders(world: WorldState) -> void:
 			food_cost = budget
 		if s7:
 			g["food_ord"] = food_q  # S7a: what the group could afford to order (the scarce / unaffordable split)
+		var ff_q := 0
+		if staple:
+			ff_q = EconStaple.staple_q(world, g, food_q, pf_eff, maxi(0, budget - food_cost - util_res - rent_res))  # E146 (fallback: FOOD)
+			g["ff_ord"] = ff_q
 		budget = maxi(0, budget - food_cost - util_res)
 		var pc_eff := int(float(pc) * 1.1 * tax_m * (1.0 + float(EconRetail.margin_pm(world, "CONSUMER")) / 1000.0))  # D: shop margin
 		var cmin := int(p * EconData.NEED["CONSUMER_MIN"])
 		var cmin_cost := mini(EconUtil.val(cmin, pc_eff), budget)
 		cmin = int(float(cmin_cost) * S / float(maxi(1, pc_eff)))
 		budget -= cmin_cost
-		if food_q > 0:
-			s["orders"].append({"buyer": gid, "acct": EconUtil.hh_acct(gid), "district": g["district"], "good": "FOOD", "qty": food_q,
+		if ff_q > 0:
+			s["orders"].append({"buyer": gid + "~ff", "acct": EconUtil.hh_acct(gid), "district": g["district"], "good": "FINE_FOOD", "qty": ff_q,
+				"limit": int(s["prices"].get("FINE_FOOD", 0)) * 3, "class": EconMarket.C_HH_ESS, "kind": "hh", "group": gid})
+		if food_q - ff_q > 0:
+			s["orders"].append({"buyer": gid, "acct": EconUtil.hh_acct(gid), "district": g["district"], "good": "FOOD", "qty": food_q - ff_q,
 				"limit": pf * 3, "class": EconMarket.C_HH_ESS, "kind": "hh"})
 		if cmin > 0:
 			s["orders"].append({"buyer": gid, "acct": EconUtil.hh_acct(gid), "district": g["district"], "good": "CONSUMER", "qty": cmin,

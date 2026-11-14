@@ -45,6 +45,8 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	#     a plant is finished, so they are not held back by the cash check below.
 	var runway := float(world.indicators.read("ECON_TREASURY_RUNWAY", "COLONY", 240000)) / 1000.0
 	var can_build := runway >= 12.0 - 6.0 * spend
+	if Legislature.e151(world):
+		can_build = runway >= 3.0 - 1.5 * spend or not Legislature.fiscal_guard(world)   # E151: reserves target 6 months, not 24; capital projects may borrow
 	_essentials(world, st, busy, who, state, spend, can_build)
 	if can_build:
 		_port_depot(world, st, busy, who, state, spend)
@@ -67,6 +69,10 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	# 1b. housing ahead of the wave (A46 S6): households forming over the planning horizon against free homes.
 	#     State-minded governments plan further ahead and build; market-minded ones offer developers a grant.
 	orders += _housing_ahead(world, st, busy, who, state)
+	# 2b. bakeries (E146, user: "people prefer bakery things over direct from farms"; "living on raw should produce
+	#     unhappiness"): where many people live on raw farm food and no bakery serves them, a state-minded or centrist
+	#     government has the Agricultural Board build one. Market-minded governments leave it to private founders.
+	orders += _bakery_needs(world, st, busy, who, state, equality)
 	# 3. schools and clinics where access is poor; egalitarian and service-owning governments set a higher bar
 	var bar := clampf(650.0 + 150.0 * maxf(equality, services_owner), 500.0, 850.0)
 	var needs: Array = []
@@ -203,6 +209,44 @@ static func _order(world: WorldState, st: Dictionary, busy: Dictionary, who: Dic
 		"responsible": [{"actor": {"kind": "GOVERNMENT" if who["by"] != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}],
 		"impact": {}, "magnitude": 35, "visibility": "PUBLIC", "data": {"type": ftype, "district": d, "by": who["by"], "line": line}})
 	return 1
+
+
+## E146 bakery commissioning. Need per district = the raw-food share of the wanted bakery portion (EconStaple.raw_pct,
+## 0..100). The bar falls for state-minded and egalitarian governments. A colony with no bakery at all has no taste yet
+## (raw share 0), so the first one is judged on unfilled staple orders instead. Only with food to spare (no grain, no
+## bread), at most one bakery a quarter, none while one is being built.
+const BAKERY_BAR := 40.0
+static func _bakery_needs(world: WorldState, st: Dictionary, busy: Dictionary, who: Dictionary, state: float, equality: float) -> int:
+	if not EconStaple.active(world) or state < -0.15:
+		return 0
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["type"] == "BAKERY" and p["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
+			return 0
+	var food: Dictionary = EconQuery.essentials(world).get("FOOD", {})
+	if int(food.get("margin_pct", -1)) < 0:
+		return 0
+	var bar := clampf(BAKERY_BAR - 20.0 * maxf(0.0, state) - 10.0 * maxf(0.0, equality), 20.0, 40.0)
+	var s := EconUtil.st(world)
+	var worst := ""
+	var worst_v := bar
+	for d in EconUtil.sorted_keys(world.table("district")):
+		var v := EconStaple.raw_pct(world, d)
+		if v > worst_v and not _has_facility(world, "BAKERY", d):
+			worst_v = v
+			worst = d
+	if worst == "" and _count(world, "BAKERY") == 0:
+		var sm: Dictionary = s.get("staple_m", {})
+		if int(sm.get("want", 0)) > 0 and int(sm.get("got", 0)) * 2 < int(sm.get("want", 0)):
+			var best_h := -1
+			for d in EconUtil.sorted_keys(world.table("district")):
+				var h := int(world.table("district")[d].get("households", 0))
+				if h > best_h:
+					best_h = h
+					worst = d
+	if worst == "":
+		return 0
+	return _order(world, st, busy, who, "BAKERY", worst, "")
 
 
 static func _has_facility(world: WorldState, ftype: String, d: String) -> bool:

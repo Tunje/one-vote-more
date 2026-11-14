@@ -31,6 +31,9 @@ const LAPSE_MONTHS := 12
 const ELECTION_M := 48
 const STRIKE_PAY_SHARE := 0.5  # strike pay per striking member-month, share of the General wage (U2 pays it)
 const FUND_CAP_WEEKS := 12.0  # E133: a fund above this many weeks of strike pay rebates the excess to its members
+## E154 (money audit, opt-in; Anni OK 2026-11-14): funds held 16–35% of household money for decades; U2's strike
+## strength reads at most 8 weeks, so the cap drops to 8 weeks and the federation keeps a quarter of the caps
+const E154_CAP_WEEKS := 8.0
 const MAINT_DUES_SHARE := 0.25  # E133: dues charged while a fund is at its cap (of the full dues)
 const RESERVE_WEEKS := 4.0  # strike pay kept back before a union gives money away (8 left most unions unable to donate)
 const MERGE_MAX := 40  # persons: both unions below this to merge
@@ -263,7 +266,8 @@ static func _dues(world: WorldState) -> void:
 		# E133 (money-stock check, seed 1: union funds grew 0.2 → 6.4M, ≈ 1.6 months of all household spending, money
 		# taken out of circulation for good): a fund above FUND_CAP_WEEKS of strike pay charges maintenance dues only and
 		# rebates the excess to its members' households. Strike strength is unchanged (U2 reads up to 8 weeks).
-		var cap := int(FUND_CAP_WEEKS / 4.33 * float(u["members"]) / S * float(strike_pay(world)))
+		var cap_w := E154_CAP_WEEKS if (world.meta.get("on", []) as Array).has("E154") else FUND_CAP_WEEKS
+		var cap := int(cap_w / 4.33 * float(u["members"]) / S * float(strike_pay(world)))
 		cap_sum += cap
 		var due := full_due
 		if e133 and fund(world, u["id"]) >= cap:
@@ -286,7 +290,7 @@ static func _dues(world: WorldState) -> void:
 		if e133:
 			_rebate(world, u, cap, weights)
 	if e133 and not fed.is_empty():
-		_fed_rebate(world, fed, cap_sum / 2)
+		_fed_rebate(world, fed, cap_sum / 4 if (world.meta.get("on", []) as Array).has("E154") else cap_sum / 2)
 
 
 ## E133: a union fund above its cap rebates the excess to its members' households (by membership).

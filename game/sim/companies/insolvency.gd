@@ -81,6 +81,7 @@ static func _step(world: WorldState, oid: String) -> void:
 			for fid in world.table("facility"):
 				if world.table("facility")[fid]["org"] == oid:
 					o["status"] = "ACTIVE"
+					EconStaple.startup_capital(world, oid, fid)  # E147 (opt-in): the founder funds the first months
 					break
 			if o["status"] == "FORMING":
 				var building := false
@@ -116,11 +117,14 @@ static func _step(world: WorldState, oid: String) -> void:
 				_rescue_strategic(world, oid)
 			var zombie: bool = bool(o.get("no_workout", false)) and not EconUtil.off(world, "E135")
 			if not zombie and EconFinance.profit(o["pl"]) > 0 and cash >= f and o["missed_streak"] == 0:
-				for lid in EconUtil.sorted_keys(world.table("loan")):
-					var l: Dictionary = world.table("loan")[lid]
-					if l["borrower"] == oid:
-						l["principal"] = int(l["principal"] * (1.0 - EconData.RESTRUCTURE_HAIRCUT))
-						l["missed"] = 0
+				if EconMoney.sound_bank(world):
+					EconMoney.reschedule(world, oid)  # E152a: rescheduled, not written down
+				else:
+					for lid in EconUtil.sorted_keys(world.table("loan")):
+						var l: Dictionary = world.table("loan")[lid]
+						if l["borrower"] == oid:
+							l["principal"] = int(l["principal"] * (1.0 - EconData.RESTRUCTURE_HAIRCUT))
+							l["missed"] = 0
 				o["status"] = "ACTIVE"
 				o["admin_months"] = 0
 				_payment_plan(world, oid)
@@ -133,11 +137,14 @@ static func _step(world: WorldState, oid: String) -> void:
 				var debt := EconFinance.debt_of(world, oid)
 				var keep := mini(int(float(debt) * (1.0 - EconData.RESTRUCTURE_HAIRCUT)), 24 * surplus)
 				var factor := float(keep) / float(maxi(1, debt))
-				for lid in EconUtil.sorted_keys(world.table("loan")):
-					var l: Dictionary = world.table("loan")[lid]
-					if l["borrower"] == oid:
-						l["principal"] = int(float(l["principal"]) * factor)
-						l["missed"] = 0
+				if EconMoney.sound_bank(world):
+					EconMoney.reschedule(world, oid)  # E152a: the debt is spread over a longer term, not written down
+				else:
+					for lid in EconUtil.sorted_keys(world.table("loan")):
+						var l: Dictionary = world.table("loan")[lid]
+						if l["borrower"] == oid:
+							l["principal"] = int(float(l["principal"]) * factor)
+							l["missed"] = 0
 				o["status"] = "ACTIVE"
 				o["admin_months"] = 0
 				o["missed_streak"] = 0
@@ -270,6 +277,12 @@ static func _pe_support(world: WorldState, oid: String) -> void:
 		for t in o["crew"]:
 			lifeline += EconLabor.tier_total(o["crew"], t) / EconUtil.S * EconFinance.wage_for(world, oid, t)
 	var cap := maxi(lifeline, EconActions.headroom(world, "ECON_BUDGET_SUBSIDIES"))
+	if EconPublicCo.support_cap(world) >= 0:
+		cap = EconPublicCo.support_cap(world)  # E150: only what the voted subsidy line allows
+		if cap <= 0:
+			EconFacts.emit(world, "ECON_PE_FUNDING_REQUEST", o["hq"], [["COMPANY", oid]], [["GOVERNMENT", "government", 1.0]], {}, 30, "OFFICIAL",
+				{"amount": 0, "asked": maxi(0, costs - cash) / S})
+			return
 	var paid := EconFinance.gov_pay(world, EconUtil.acct(oid), mini(costs - cash, cap), "SUBSIDY")
 	EconFinance._spend_line(world, "ECON_BUDGET_SUBSIDIES", paid)
 	EconFinance.pl_add(world, oid, "subsidy", paid)
@@ -485,6 +498,14 @@ static func _worker_buyout(world: WorldState, seller: String, f: Dictionary) -> 
 		"dividends_ytd": 0, "sold": {}}
 	world.ledger.open_account(EconUtil.acct(id))
 	EconFinance.new_loan(world, id, maxi(3 * wages, 10000 * EconUtil.S), 0, true)
+	if EconMoney.sound_bank(world):
+		# E152b: the co-op takes over the plant's share (by book value) of the failed firm's bank debt, rescheduled
+		var total_book := 0
+		for fid2 in world.table("facility"):
+			if world.table("facility")[fid2]["org"] == seller:
+				total_book += int(world.table("facility")[fid2]["book"])
+		if total_book > 0:
+			EconMoney.pass_debt(world, seller, id, clampi(int(f["book"]) * 1000 / total_book, 0, 1000))
 	f["org"] = id
 	f["book"] = 0
 	f["mothball"] = false

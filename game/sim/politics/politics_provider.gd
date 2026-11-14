@@ -270,6 +270,8 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 			perf += float(cell["salience"][c]) * sv / 1000.0
 		var hist: Array = cell["perf_hist"]
 		var trend := perf - float(hist[0]) if hist.size() >= 12 else 0.0
+		if trend > 0.0:   # v9 review (Ella's A/B): credit only new highs; climbing back to where you were is no gain (losses as before)
+			trend = maxf(0.0, perf - float(hist.max()))
 		if trend < 0.0:
 			trend *= 1.5  # bad news travels faster
 		hist.append(int(perf))

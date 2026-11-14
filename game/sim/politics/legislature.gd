@@ -112,12 +112,33 @@ static func in_default(world: WorldState) -> bool:
 	return world.table("econ").has("s") and bool(EconUtil.peek_st(world).get("sovereign_default", false))
 
 
+## E151 (money audit 2026-11-14, opt-in): the treasury held 19-68% of all colony money because governments read any
+## runway under 24 months as fiscal stress (and full room only past 42). A two-sided target instead: 6 months of
+## spending is comfortable, under 2 is stress, and reserves above 6 push for tax cuts or spending, fully from 12.
+## The soft brake (no budget-worsening proposals) sits at 3 months instead of 9.
+const E151_RUNWAY := {"good": 6000, "bad": 2000}
+const E151_GUARD := 3000
+const E151_ROOM_SPAN := 6000
+const E151_ROOM_PULL := 2.0
+
+
+static func e151(world: WorldState) -> bool:
+	return world.meta.has("on") and (world.meta["on"] as Array).has("E151") and not EconUtil.off(world, "E151")
+
+
+static func _fs(world: WorldState, id: String) -> Dictionary:
+	var fs: Dictionary = world.indicators.defs[id].get("fiscalStress", {})
+	if id == "ECON_TREASURY_RUNWAY" and not fs.is_empty() and e151(world):
+		return E151_RUNWAY
+	return fs
+
+
 static func fiscal_stress(world: WorldState) -> float:
 	if in_default(world):
 		return 1.0   # a defaulting state is under full stress whatever the runway reads
 	var worst := 0.0
 	for id in world.indicators.defs:
-		var fs: Dictionary = world.indicators.defs[id].get("fiscalStress", {})
+		var fs: Dictionary = _fs(world, id)
 		if fs.is_empty() or not world.indicators.values[id].has("COLONY"):
 			continue
 		var v := float(world.indicators.read(id, "COLONY"))
@@ -137,7 +158,8 @@ static func fiscal_guard(world: WorldState) -> bool:
 		var fg: Dictionary = world.indicators.defs[id].get("fiscalGuard", {})
 		if fg.is_empty() or not world.indicators.values[id].has("COLONY"):
 			continue
-		if world.indicators.read(id, "COLONY") < int(fg["floor"]):
+		var floor_v := E151_GUARD if id == "ECON_TREASURY_RUNWAY" and e151(world) else int(fg["floor"])
+		if world.indicators.read(id, "COLONY") < floor_v:
 			return true
 	return false
 
@@ -148,15 +170,16 @@ static func fiscal_room(world: WorldState) -> float:
 	var room := 1.0
 	var found := false
 	for id in world.indicators.defs:
-		var fs: Dictionary = world.indicators.defs[id].get("fiscalStress", {})
+		var fs: Dictionary = _fs(world, id)
 		if fs.is_empty() or not world.indicators.values[id].has("COLONY"):
 			continue
 		found = true
 		var v := float(world.indicators.read(id, "COLONY"))
 		var good := float(fs["good"])
 		var bad := float(fs["bad"])
+		var span := float(E151_ROOM_SPAN) if id == "ECON_TREASURY_RUNWAY" and e151(world) else good - bad
 		if good != bad:
-			room = minf(room, clampf((v - good) / (good - bad), 0.0, 1.0))
+			room = minf(room, clampf((v - good) / span, 0.0, 1.0))
 	return room if found else 0.0
 
 
@@ -327,7 +350,7 @@ static func food_unaffordable(world: WorldState) -> float:
 static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Dictionary, agreement: Array, allowed: String, stress: float = 0.0, crisis: bool = false, exclude: Dictionary = {}, pork: float = 0.0, stats: Dictionary = {}) -> Array:
 	var scored: Array = []
 	var guarded := fiscal_guard(world)
-	var room := fiscal_room(world)
+	var room := fiscal_room(world) * (E151_ROOM_PULL / FISCAL_ROOM_PULL if e151(world) else 1.0)   # E151: reserves above target push harder
 	var step_fraction := CRISIS_STEP_FRACTION if crisis else STEP_FRACTION
 	var mem := _bill_memory(world) if allowed == "PARLIAMENT" else {"defeated": {}, "moved": {}}
 	var skill_gap := _skill_gap(world) if allowed == "PARLIAMENT" else 0.0
@@ -516,7 +539,7 @@ static func party_vote(party: Dictionary, clauses: Array, world: WorldState, gov
 		var delta := clause_delta(def, c)
 		var stress_c := 0.0 if protect.has(String(c["lever"])) and bool(protect[String(c["lever"])][1]) else fiscal_stress(world)   # v7: jobs judged as jobs
 		s += lobby_tilt(world, party, String(c["lever"]), delta)   # A58
-		s += IDEOLOGY_VOTE_WEIGHT * ideo_alignment(def, delta, party["positions"]) + 1.5 * relief(def, delta, sat, sal, stress_c, fiscal_room(world), ordinal(def, c["from"]), Intel.belief(world, String(party.get("id", "")), String(c["lever"])))
+		s += IDEOLOGY_VOTE_WEIGHT * ideo_alignment(def, delta, party["positions"]) + 1.5 * relief(def, delta, sat, sal, stress_c, fiscal_room(world) * (E151_ROOM_PULL / FISCAL_ROOM_PULL if e151(world) else 1.0), ordinal(def, c["from"]), Intel.belief(world, String(party.get("id", "")), String(c["lever"])))
 		for cm in party["commitments"]:
 			if cm["lever"] == c["lever"]:
 				var agree: bool = signf(delta) == cm["dir"]

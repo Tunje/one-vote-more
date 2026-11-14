@@ -7,7 +7,7 @@ const S := EconUtil.S
 ## Government project operators by facility type.
 ## E110 (A39): FARM → the Colony Agricultural Board (founded on first use), fabrication plants → CPW.
 const OPERATOR := {"HOUSING": "CHO", "POWER": "CPW", "WATERWORKS": "CPW", "DEPOT": "CTA", "ROAD": "CTA",
-	"CLINIC": "HEALTH", "SCHOOL": "SCHOOLS", "FARM": "CAB", "PROCESSING": "CPW", "COMPONENTS": "CPW"}
+	"CLINIC": "HEALTH", "SCHOOL": "SCHOOLS", "FARM": "CAB", "PROCESSING": "CPW", "COMPONENTS": "CPW", "BAKERY": "CAB"}
 const LINE_OF := {"HOUSING": "ECON_BUDGET_HOUSING"}
 ## Budget lines that may pay for a commissioned project (first = default). Public works is the counter-cyclical line (E68).
 const PUBLIC_WORKS := "ECON_BUDGET_PUBLIC_WORKS"
@@ -42,6 +42,10 @@ static func validate(world: WorldState, id: String, p: Dictionary) -> String:
 	match id:
 		"ECON_OFFER_INCENTIVE":
 			return EconEssentials.validate_offer(world, p)
+		"ECON_APPROVE_TARIFF":
+			if not EconPublicCo.pending(world).has(p.get("org", "")):
+				return "No tariff proposal from '%s' is waiting" % str(p.get("org", ""))
+			return ""
 		"ECON_ANSWER_UNION_DEMAND":
 			return UnionDisputes.validate_answer(world, p)  # U2: the government (player) answers a public-sector demand
 		"ECON_UPGRADE_FACILITY":
@@ -67,6 +71,8 @@ static func validate(world: WorldState, id: String, p: Dictionary) -> String:
 			return ""
 		"ECON_COMMISSION_PROJECT":
 			var ftype: String = p.get("type", "")
+			if ftype == "BAKERY" and not EconStaple.active(world):
+				return "Bakeries are commissioned only when bakery goods are a staple (E146)"
 			if not OPERATOR.has(ftype) or not EconData.BUILD.has(ftype):
 				return "Cannot commission '%s' (buildable: %s)" % [ftype, ", ".join(OPERATOR.keys().filter(func(t): return EconData.BUILD.has(t)))]
 			if not EconData.DISTRICTS.has(p.get("district", "")):
@@ -162,6 +168,8 @@ static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 	match id:
 		"ECON_OFFER_INCENTIVE":
 			return EconEssentials.apply_offer(world, p)
+		"ECON_APPROVE_TARIFF":
+			return EconPublicCo.approve(world, p["org"])  # E150P: the government approves a public company's tariff rise
 		"ECON_ANSWER_UNION_DEMAND":
 			return UnionDisputes.apply_answer(world, p)
 		"ECON_UPGRADE_FACILITY":

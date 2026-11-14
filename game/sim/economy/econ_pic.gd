@@ -7,7 +7,7 @@ extends RefCounted
 ## shares sit at 0 almost everywhere; as ordinary indicators they added "perfect" weight to HOUSING, SAFETY and FAIRNESS
 ## in every district (concerns are weighted averages), diluting the real housing signal even with S7 switched off.
 const EXCEPTION_ONLY := ["ECON_INFORMAL_HOUSING", "ECON_HOMELESSNESS", "ECON_ELDER_CARE_ACCESS", "ECON_CHILDCARE_ACCESS",
-	"ECON_FOOD_UNAFFORDABLE"]
+	"ECON_FOOD_UNAFFORDABLE", "ECON_RAW_FOOD_SHARE"]
 
 
 static func indicators() -> Array:
@@ -32,6 +32,8 @@ static func indicators() -> Array:
 		["ECON_CHILDCARE_ACCESS", "%", [0, 100], "DISTRICT", 1, {"PUBLIC_SERVICES": 0.3, "JOBS": 0.1, "COST_OF_LIVING": 0.1}, 70, 25, "PUBLIC", 1],
 		# S7a (EconFoodSec, opt-in S7F): share of household food need that went unbought for lack of money
 		["ECON_FOOD_UNAFFORDABLE", "%", [0, 100], "DISTRICT", -1, {"COST_OF_LIVING": 0.5, "FAIRNESS": 0.3, "GOVERNANCE": 0.1}, 0, 10, "PUBLIC", 0],
+		# E146 (EconStaple, opt-in): share of the preferred bakery portion of food that had to be raw farm food
+		["ECON_RAW_FOOD_SHARE", "%", [0, 100], "DISTRICT", -1, {"COST_OF_LIVING": 0.5, "FAIRNESS": 0.2}, 0, 40, "PUBLIC", 0],
 		["ECON_UTILITY_RELIABILITY", "%", [0, 100], "DISTRICT", 1, {"INFRASTRUCTURE": 0.6, "PUBLIC_SERVICES": 0.3}, 100, 85, "PUBLIC", 0],
 		["ECON_INFRA_CONDITION", "index", [0, 100], "DISTRICT", 1, {"INFRASTRUCTURE": 0.6, "SAFETY": 0.1}, 90, 50, "PUBLIC", 3],
 		["ECON_LOGISTICS_DELAY", "%", [0, 100], "DISTRICT", -1, {"INFRASTRUCTURE": 0.5, "COST_OF_LIVING": 0.1}, 0, 20, "PUBLIC", 1],
@@ -224,7 +226,7 @@ static func levers() -> Array:
 static func actions() -> Array:
 	var ids := ["ECON_COMMISSION_PROJECT", "ECON_AWARD_CONTRACT", "ECON_RETENDER_PROJECT", "ECON_CANCEL_PROJECT", "ECON_TERMINATE_FOR_BREACH",
 		"ECON_SET_BUDGET", "ECON_SUBSIDIZE", "ECON_RESCUE_LOAN", "ECON_BUY_FACILITY", "ECON_SELL_FACILITY", "ECON_ORDER_IMPORTS",
-		"ECON_RELEASE_RESERVE", "ECON_UPGRADE_FACILITY", "ECON_OFFER_INCENTIVE", "ECON_ANSWER_UNION_DEMAND", "ECON_BORROW", "ECON_BANK_BAILOUT", "ECON_REPAY_DEBT", "ECON_PUBLISH_FISCAL_REPORT", "ECON_REQUEST_ECON_BRIEFING"]
+		"ECON_RELEASE_RESERVE", "ECON_UPGRADE_FACILITY", "ECON_OFFER_INCENTIVE", "ECON_ANSWER_UNION_DEMAND", "ECON_APPROVE_TARIFF", "ECON_BORROW", "ECON_BANK_BAILOUT", "ECON_REPAY_DEBT", "ECON_PUBLISH_FISCAL_REPORT", "ECON_REQUEST_ECON_BRIEFING"]
 	var out: Array = []
 	for id in ids:
 		out.append({"id": id, "owner": "econ", "actors": ["PLAYER_GOV", "AI_GOV", "COMMANDER"], "spec": "planning/pic-economy.md §4"})

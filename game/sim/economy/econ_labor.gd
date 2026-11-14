@@ -285,7 +285,10 @@ static func match(world: WorldState, no_limits: bool = false) -> void:
 
 
 static func _strategic_vac(world: WorldState, v: Dictionary) -> bool:
-	return v["kind"] == "fac" and world.table("facility")[v["emp"]]["type"] in EconData.STRATEGIC
+	if v["kind"] != "fac":
+		return false
+	var ft: String = world.table("facility")[v["emp"]]["type"]
+	return ft in EconData.STRATEGIC or (ft == "BAKERY" and EconStaple.active(world))  # E146: bakeries feed people
 
 
 ## Wage index update (COMPANY_AI, spec §6.5) + unemployment rates.

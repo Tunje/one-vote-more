@@ -446,7 +446,8 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 		var lim := int(s["prices"][good] * (1.1 if tight else EconData.INPUT_LIMIT_MULT)) + freight_allow
 		if o["type"] in EconData.PUBLIC_TYPES:
 			lim = s["prices"][good] * 2 + freight_allow  # public services and utilities outbid industry for inputs
-		if good == "FOOD" and bakery_orgs.has(oid) and not EconUtil.off(world, "D2"):
+		var staple_bakery: bool = good == "FOOD" and bakery_orgs.has(oid) and EconStaple.active(world)
+		if good == "FOOD" and bakery_orgs.has(oid) and not EconUtil.off(world, "D2") and not staple_bakery:
 			# D2 (Wilma): a bakery pays for food only what its fine food earns (1.2 per unit of food, at BAKERY_FOOD_SHARE of
 			# the value; a corner-cutting CEO pays more). In a shortage food outprices cakes and bakeries cut back by
 			# themselves; strong fine-food demand from the rich, or a greedy owner, can still keep them buying.
@@ -474,8 +475,11 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 		if want <= 0:
 			continue
 		budgets[oid] -= EconUtil.val(want, lim)
+		var cls: int = EconMarket.C_INSTITUTION if o["type"] == "PUBLIC_INSTITUTION" else EconMarket.C_FIRM
+		# E146: a bakery's food stays in the firms' class, after the households' own food (no single point of failure:
+		# on equal terms the bakeries took 3.7k of 5.9k food in seed 3 and raw food for the fallback ran out — 33% hunger)
 		s["orders"].append({"buyer": oid, "acct": EconUtil.acct(oid), "district": d, "good": good, "qty": want, "limit": lim,
-			"class": EconMarket.C_INSTITUTION if o["type"] == "PUBLIC_INSTITUTION" else EconMarket.C_FIRM, "kind": "org"})
+			"class": cls, "kind": "org"})
 	# sale offers: each org offers its output goods' stock, priced by inventory cover
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		var o: Dictionary = world.table("org")[oid]
@@ -1028,10 +1032,13 @@ static func _builder_entry(world: WorldState) -> void:
 			best_cash = c
 			best = gid
 	var equity := EconData.BUILDER_EQUITY * S
-	if best == "" or best_cash < equity * 2:
+	# E155 (user, money fix): a construction company coming from the home world brings its own capital — 5 years of its
+	# running costs, from outside (new money), not a colony household's savings
+	var e155: bool = (world.meta.get("on", []) as Array).has("E155") and not EconUtil.off(world, "E155")
+	if not e155 and (best == "" or best_cash < equity * 2):
 		return
-	var g: Dictionary = world.table("hh")[best]
-	var d: String = g["district"]
+	var g: Dictionary = world.table("hh")[best] if best != "" else {}
+	var d: String = g.get("district", "d:1") if not e155 else _builder_district(world)
 	var id := world.new_id("org")
 	var mgmt := int(clampf(50.0 + EconUtil.normal(world, "comp.entry", 15.0), 10.0, 95.0))
 	var risk := world.rng.stream("comp.entry").randi_range(20, 70)
@@ -1042,12 +1049,42 @@ static func _builder_entry(world: WorldState) -> void:
 		"missed_streak": 0, "ok_streak": 0, "low_cash_streak": 0, "distress_months": 0, "admin_months": 0, "liq_months": 0,
 		"missed_this_month": false, "owner_group": best, "sales_ema": {}, "contracts": [], "dividends_ytd": 0, "sold": {}}
 	world.ledger.open_account(EconUtil.acct(id))
-	world.ledger.transfer(EconUtil.hh_acct(best), EconUtil.acct(id), equity, "EQUITY", world.month)
-	EconPop.make_owner(world, g["hb"], g["band"])
-	EconPop.sync(world)
+	if e155:
+		world.table("org")[id]["owner_group"] = ""  # owned at home: no colony household is made an owner
+		var cost_m := 0
+		for t in EconData.BUILDER_CREW:
+			cost_m += int(EconData.BUILDER_CREW[t]) * EconLabor.offer(world, id, t)
+		var capital := int(float(cost_m) * BUILDER_HOME_UPKEEP) * BUILDER_HOME_M
+		world.ledger.transfer(Ledger.EXTERNAL, EconUtil.acct(id), capital, "HOME_CAPITAL", world.month)
+		world.table("org")[id]["home_owned"] = true
+		s["builder_home_capital"] = int(s.get("builder_home_capital", 0)) + capital
+	else:
+		world.ledger.transfer(EconUtil.hh_acct(best), EconUtil.acct(id), equity, "EQUITY", world.month)
+		EconPop.make_owner(world, g["hb"], g["band"])
+		EconPop.sync(world)
 	s["builder_entry_last"] = world.month
 	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", d, [["COMPANY", id]], [["COMPANY", id, 0.8], ["GOVERNMENT", "government", 0.2]],
 		{"JOBS": 3, "INFRASTRUCTURE": 2}, 20, "PUBLIC", {"type": "CONTRACTOR", "waiting_projects": waiting}, {"districts": [d]})
+
+
+const BUILDER_HOME_M := 60  # E155: months of running costs a home-world builder brings
+const BUILDER_HOME_UPKEEP := 1.1  # crew wages + 10% for equipment and upkeep
+
+
+## E155: a home-world builder sets up where most unbuilt work waits (d:1 when none).
+static func _builder_district(world: WorldState) -> String:
+	var n := {}
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["status"] in ["TENDERABLE", "TENDER"]:
+			n[p["district"]] = int(n.get(p["district"], 0)) + 1
+	var best := "d:1"
+	var bn := 0
+	for d in EconUtil.sorted_keys(n):
+		if int(n[d]) > bn:
+			bn = int(n[d])
+			best = d
+	return best
 
 
 ## Firm entry (spec §9.4): at most one per quarter, when a good is scarce and pricey.
@@ -1080,7 +1117,7 @@ static func _entry(world: WorldState) -> void:
 				hot = false
 			# consumer workshops need real unmet demand, not just a high price on a thin market (141 of 198 entrants in
 			# 60 years were workshops, almost all failed or were never built, crowding out the farms that lasted)
-			if ftype in ["TEXTILE", "FURNITURE", "BAKERY"] and int(s.get("fill_last", {}).get(good, 1000)) >= ENTRY_D2_FILL:
+			if ftype in ["TEXTILE", "FURNITURE", "BAKERY"] and int(s.get("fill_last", {}).get(good, 1000)) >= ENTRY_D2_FILL 					and not (ftype == "BAKERY" and EconStaple.active(world)):  # E146: bakeries are food producers, gated like farms
 				hot = false
 		hist[ftype] = hist.get(ftype, 0) + 1 if hot else 0
 		if hist[ftype] >= 2:
@@ -1125,7 +1162,7 @@ static func _entry(world: WorldState) -> void:
 	var est := 0
 	for row in hot_list:
 		var ft: String = row[0]
-		if ft in ["TEXTILE", "FURNITURE", "BAKERY"] and (world.month < D2_ENTRY_MONTH or colony_unemployment(world) < D2_ENTRY_UNEMP):
+		if ft in ["TEXTILE", "FURNITURE", "BAKERY"] and (world.month < D2_ENTRY_MONTH or colony_unemployment(world) < D2_ENTRY_UNEMP) 				and not (ft == "BAKERY" and EconStaple.active(world)):
 			continue  # D2: consumer workshops start once there are idle hands (not while the farms still need every worker)
 		if forming_types.has(ft):
 			continue

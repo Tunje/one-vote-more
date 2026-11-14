@@ -45,8 +45,17 @@ static func trade(world: WorldState) -> void:
 	s["wanted_ema"] = we
 	s["market_stats"] = {}
 	var tariff := int(EconUtil.lever(world, "ECON_FREIGHT_TARIFF", 5)) * S
-	for good in CLEAR_ORDER:
-		_clear(world, good, tariff)
+	s["staple_m"] = {"want": 0, "got": 0}
+	if EconStaple.active(world):
+		# E146: bakery staples clear first; what households did not get is re-ordered as raw FOOD before FOOD clears
+		_clear(world, "FINE_FOOD", tariff)
+		EconStaple.fallback(world)
+		for good in CLEAR_ORDER:
+			if good != "FINE_FOOD":
+				_clear(world, good, tariff)
+	else:
+		for good in CLEAR_ORDER:
+			_clear(world, good, tariff)
 	s["orders"] = []
 	s["offers"] = []
 	_spoilage(world)
@@ -149,6 +158,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 	var s := EconUtil.st(world)
 	var good: String = bid["good"]
 	var cta := EconFinance.org_by_key(world, "CTA")
+	var credit := EconCredit.active(world)
 	var ranked := offers.duplicate()
 	ranked.sort_custom(func(a, b):
 		var pa: int = a["ask"] + EconUtil.hops(a["district"], bid["district"]) * tariff
@@ -204,14 +214,29 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 		var unit_pay := unit
 		if bid["kind"] == "hh":
 			unit_pay = unit + unit * EconRetail.margin_pm(world, good) / 1000  # support economy D: the shop's margin on top
+		# E148 (opt-in): firm-to-firm purchases on account, up to the buyer's credit room
+		var on_acct: bool = credit and bid["kind"] == "org" and EconCredit.trades_on_account(world, bid["buyer"]) 			and EconCredit.trades_on_account(world, o["seller"])
+		var croom := EconCredit.room(world, bid["buyer"]) if on_acct else 0
 		if unit_pay > 0:
-			take = mini(take, int(float(cash) * S / float(unit_pay)))
+			take = mini(take, int(float(cash + croom) * S / float(unit_pay)))
 		if take <= 0:
 			break
 		var goods_cost := EconUtil.val(take, o["ask"])
 		var freight := EconUtil.val(take, h * tariff)
-		world.ledger.transfer(bid["acct"], o["acct"], goods_cost, "SALE", world.month)
-		if freight > 0 and cta != "":
+		var g_cash := goods_cost
+		if on_acct:
+			g_cash -= EconCredit.invoice(world, bid["buyer"], o["seller"], goods_cost)
+			var gp := EconUtil.pay_upto(world, bid["acct"], o["acct"], g_cash, "SALE")
+			if gp < g_cash:
+				EconCredit.invoice(world, bid["buyer"], o["seller"], g_cash - gp, true)  # rounding: the rest on account
+		else:
+			world.ledger.transfer(bid["acct"], o["acct"], goods_cost, "SALE", world.month)
+		if freight > 0 and cta != "" and on_acct and EconCredit.trades_on_account(world, cta):
+			var f_cash := freight - EconCredit.invoice(world, bid["buyer"], cta, freight)
+			var fp := EconUtil.pay_upto(world, bid["acct"], EconUtil.acct(cta), f_cash, "FREIGHT")
+			if fp < f_cash:
+				EconCredit.invoice(world, bid["buyer"], cta, f_cash - fp, true)
+		elif freight > 0 and cta != "":
 			world.ledger.transfer(bid["acct"], EconUtil.acct(cta), freight, "FREIGHT", world.month)
 			EconFinance.pl_add(world, cta, "rev", freight)
 			s["freight_used"] += take * h
@@ -290,6 +315,7 @@ static func _spoilage(world: WorldState) -> void:
 static func _update_prices(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var contest: bool = (world.meta.get("on", []) as Array).has("E139") and not EconUtil.off(world, "E139")
+	var cost_plus: bool = (world.meta.get("on", []) as Array).has("E149") and not EconUtil.off(world, "E149")
 	for good in CLEAR_ORDER:
 		var m: Dictionary = s["market_stats"].get(good, {})
 		var d := float(m.get("D", 0))
@@ -320,8 +346,39 @@ static func _update_prices(world: WorldState) -> void:
 			var fc := _cheapest_cost(world, good)
 			if fc > 0.0 and p2 > SURPLUS_START * fc:
 				p2 = maxf(SURPLUS_FLOOR * fc, p2 * (1.0 - SURPLUS_DRIFT))
+		if cost_plus and not (good in COST_PLUS_EXEMPT):
+			p2 = _cost_plus(world, good, p, shortage, excess)
 		var base := float(s["base"][good])
 		s["prices"][good] = int(clampf(p2, base * EconData.PRICE_MIN_MULT, base * EconData.PRICE_MAX_MULT * wage_level(world)))
+
+
+## E149 cost-plus prices (user decision via Wilma 2026-11-14; opt-in "E149"): a price moves at most COST_PLUS_STEP a
+## month. In a shortage it rises (by at most the step: a sell-out means producing more — producers already plan on the
+## unmet demand they see — not an immediate price jump); in a glut (cover beyond 2 months) it falls; otherwise it drifts
+## towards the sector's usual markup over the cheapest active producer's full unit cost. Without a producer: the old
+## direction, capped. Floors and ceilings stay (the clamp after it).
+const COST_PLUS_STEP := 0.03
+## A/B 5 × 30 y: with FOOD included the food shortfall doubled (12 → 29‰; a 3% monthly cap is too slow in a real food
+## shortage) — the E139 lesson again; food keeps the old market rule
+const COST_PLUS_EXEMPT := ["FOOD"]
+const MARKUP := {"FOOD": 1.15, "MINERAL": 1.2, "MATERIAL": 1.2, "COMPONENT": 1.2, "FINE_FOOD": 1.2, "MEDICAL": 1.25,
+	"CONSUMER": 1.3, "CLOTHING": 1.3, "FURNISHINGS": 1.3}
+
+
+static func _cost_plus(world: WorldState, good: String, p: float, shortage: float, excess: float) -> float:
+	var up := p * (1.0 + minf(COST_PLUS_STEP, EconData.ALPHA * shortage))
+	var down := p * (1.0 - minf(COST_PLUS_STEP, EconData.ALPHA * excess))
+	if shortage > 0.05:
+		return up
+	if excess > 0.0:
+		return down
+	var uc := _cheapest_cost(world, good)
+	if uc <= 0.0:
+		return p
+	var target := float(MARKUP.get(good, 1.2)) * uc
+	if p > target:
+		return maxf(target, p * (1.0 - COST_PLUS_STEP))
+	return minf(target, p * (1.0 + COST_PLUS_STEP))
 
 
 ## S7c: perishable surplus drift (FOOD only, opt-in S7C)

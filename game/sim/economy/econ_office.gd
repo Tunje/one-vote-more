@@ -135,7 +135,18 @@ static func office_fill(world: WorldState, oid: String) -> float:
 		req += int(f["office_req"][tier])
 	if req <= 0:
 		return 1.0
-	return clampf(float(EconLabor.staff_total(f["staff"])) / float(maxi(req - S / 2, req / 2)), 0.0, 1.0)
+	var den := maxi(req - S / 2, req / 2)
+	if (world.meta.get("on", []) as Array).has("E143") and not EconUtil.off(world, "E143"):
+		# E143 (v10): the labour market hires whole persons per tier (a post under half a person is never a hire), so a
+		# small firm's office of 0.45 G + 0.09 S stayed empty for ever and its fill of 0 stopped the plant. The fill is
+		# measured against the whole posts that can actually be hired. A/B 5 × 30 y: neutral (adults +31, private alive +3.4).
+		var whole := 0
+		for tier in f.get("office_req", {}):
+			whole += (int(f["office_req"][tier]) + S / 2) / S
+		if whole <= 0:
+			return 1.0
+		den = mini(den, whole * S)
+	return clampf(float(EconLabor.staff_total(f["staff"])) / float(den), 0.0, 1.0)
 
 
 ## Office posts held and wanted, colony-wide (persons), for probes and the office.

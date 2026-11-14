@@ -148,7 +148,7 @@ static func ag_board(world: WorldState) -> String:
 
 ## Operator for a state-commissioned plant: the Board for farms, else the EconActions.OPERATOR table.
 static func operator_for(world: WorldState, ftype: String) -> String:
-	if ftype == "FARM":
+	if ftype == "FARM" or ftype == "BAKERY":  # E146: commissioned bakeries are run by the Board too
 		return ag_board(world)
 	return EconFinance.org_by_key(world, EconActions.OPERATOR.get(ftype, "CPW"))
 

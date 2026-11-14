@@ -37,6 +37,8 @@ static func yearly_payout(world: WorldState) -> bool:
 
 
 static func applies(world: WorldState, o: Dictionary) -> bool:
+	if active(world) and EconMoney.asset_lines(world) and String(o.get("type", "")) == "PUBLIC_ENTERPRISE":
+		return true  # E153: public enterprises get working-capital lines too
 	return active(world) and String(o.get("type", "")) in KINDS
 
 
@@ -123,6 +125,8 @@ static func drawn(world: WorldState, oid: String) -> int:
 
 ## Limit: LINE_MONTHS × the average month's sales, for a firm profitable over the year (0 otherwise: no new draws).
 static func limit(world: WorldState, o: Dictionary) -> int:
+	if EconMoney.asset_lines(world) and applies(world, o) and months(o) >= MIN_M and o["status"] in ["ACTIVE", "DISTRESSED"]:
+		return EconMoney.line_limit(world, o)  # E153: secured on stock and receivables, no profit test
 	if not applies(world, o) or months(o) < MIN_M or profit12(o) <= 0:
 		return 0
 	if not (o["status"] in ["ACTIVE", "DISTRESSED"]):

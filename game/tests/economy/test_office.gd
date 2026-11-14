@@ -75,3 +75,29 @@ func test_liquidation_gives_up_the_office() -> void:
 	check_eq(EconOffice.office_of(w, victim), "", "no live office left")
 	check(EconPop.check(w).is_empty(), "jobs still equal people: %s" % [EconPop.check(w)])
 	check_eq(w.ledger.total(), 0, "ledger closed")
+
+
+## E143 (opt-in): an office needing less than half a person per tier has no whole post to hire — it no longer
+## counts as empty (fill 0 stopped the plant); a bigger office is measured against its whole posts.
+func test_e143_whole_posts() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["SUPPORT_A"]
+	sim.run(4)
+	var oid := ""
+	for fid in _offices(w):
+		var o2: String = w.table("facility")[fid]["org"]
+		if w.table("org")[o2]["type"] == "PRIVATE":
+			oid = o2
+			break
+	check(oid != "", "a private firm has an office")
+	if oid == "":
+		return
+	var f: Dictionary = w.table("facility")[EconOffice.office_of(w, oid)]
+	f["office_req"] = {"G": 452, "S": 90, "Sp": 0}
+	f["staff"] = {"G": {}, "S": {}, "Sp": {}}
+	check_eq(EconOffice.office_fill(w, oid), 0.0, "old rule: an unhireable 0.54-person office is empty")
+	w.meta["on"] = ["SUPPORT_A", "E143"]
+	check_eq(EconOffice.office_fill(w, oid), 1.0, "E143: no whole post to hire, the plant is not stopped")
+	f["office_req"] = {"G": 1400, "S": 400, "Sp": 0}  # 1 whole G post (0.4 S rounds to none)
+	check_eq(EconOffice.office_fill(w, oid), 0.0, "E143: one hireable post, unfilled")

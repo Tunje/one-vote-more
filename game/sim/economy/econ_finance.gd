@@ -166,6 +166,7 @@ static func settle(world: WorldState) -> void:
 	EconConstruction.settle_payments(world)
 	_benefits(world)
 	_loan_service(world)
+	EconCredit.settle(world)  # E148 (opt-in): supplier invoices fall due
 	EconAnnual.post_settle(world)  # E140 (opt-in): spare cash repays the line; a line fully drawn for a year is termed out
 	_royalty(world)
 	_strategic_subsidy(world)
@@ -173,6 +174,7 @@ static func settle(world: WorldState) -> void:
 	if world.month_of_year() % 3 == 0:
 		_profit_tax_and_dividends(world)
 		_surplus_sweep(world)
+		EconPublicCo.quarterly(world)  # E150 (opt-in): public companies review their tariffs
 	var grant := origin_grant(world.month) if EconUtil.support(world) else 0  # M12: no grant
 	if grant > 0:
 		world.ledger.transfer(Ledger.EXTERNAL, EconUtil.TREASURY, grant, "GRANT", world.month)
@@ -715,6 +717,8 @@ static func _bank_remit(world: WorldState) -> void:
 	var retention := clampi(int(EconUtil.lever(world, "LAW_BANK_RETENTION", 50)), 0, 100)
 	var rtax := clampi(int(EconUtil.lever(world, "LAW_REMITTANCE_TAX", 0)), 0, 100)
 	var r := profit * (100 - retention) / 100
+	if not EconMoney.remit_allowed(world):
+		r = 0  # E152c: a bank below its capital floor keeps its profit
 	if r > 0:
 		var tax := EconUtil.pay_upto(world, EconUtil.BANK, EconUtil.TREASURY, r * rtax / 100, "REMITTANCE_TAX")
 		_gov_rev(world, tax)
