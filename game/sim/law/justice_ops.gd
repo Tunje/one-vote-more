@@ -796,7 +796,8 @@ static func _award(world: WorldState, victims: Dictionary, amount: int) -> void:
 		"amount": amount, "paid_out": 0, "status": "OPEN", "month": world.month}
 
 
-## Placeholder until 88's pool payout exists: nothing to do here (awards wait in law:victim_fund).
+## Pays court awards the treasury still owes into law:victim_fund; the economy pays the fund out to households
+## (EconVictims.monthly).
 static func _pay_victims(world: WorldState) -> void:
 	_pay_gov_owed(world)
 
