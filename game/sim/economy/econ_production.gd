@@ -25,11 +25,12 @@ static func produce(world: WorldState) -> void:
 			e_supply += int(1200 * S * plan[fid]["act"] * _eff(world, f) * EconUtil.fscale(f))
 	var e_dem := []  # [tier, key, qty, payer_acct, fid_or_district]
 	var hh_first: bool = str(EconUtil.lever(world, "ECON_ENERGY_PRIORITY", "HOUSEHOLDS_FIRST")) != "INDUSTRY_FIRST"
+	var s7 := EconFoodSec.active(world)
 	for fid in facs:
 		var f: Dictionary = world.table("facility")[fid]
 		var need: float = float(EconData.RECIPES[f["type"]]["in"].get("ENERGY", 0)) * plan[fid]["act"] * EconUtil.fscale(f)
 		if need > 0.0:
-			e_dem.append([_prio(f["type"], hh_first), fid, int(need * S), EconUtil.acct(f["org"]), "fac"])
+			e_dem.append([_prio(f["type"], hh_first, s7), fid, int(need * S), EconUtil.acct(f["org"]), "fac"])
 	for d in EconUtil.sorted_keys(pop_d):
 		if EconUtil.connected(d) and pop_d[d] > 0:
 			e_dem.append([1 if hh_first else 4, d, int(float(pop_d[d]) * EconData.NEED["ENERGY"]), "", "hh"])
@@ -75,11 +76,15 @@ static func produce(world: WorldState) -> void:
 		var a := EconUtil.hh_acct(gid)
 		used[a] = [int(persons * EconData.NEED["ENERGY"] * sv[0]), int(persons * EconData.NEED["WATER"] * sv[1])]
 	s["util_used"] = used
-	if e_supply < _total(e_dem) * 98 / 100 or w_supply < _total(w_dem) * 98 / 100:
+	var short_util := e_supply < _total(e_dem) * 98 / 100 or w_supply < _total(w_dem) * 98 / 100
+	if s7:  # S7d: months in a row of rationing (the fact says how long; farms are served before industry)
+		s["util_ration_m"] = int(s.get("util_ration_m", 0)) + 1 if short_util else 0
+	if short_util:
 		var unserved := 1.0 - minf(float(e_supply) / maxf(1.0, float(_total(e_dem))), float(w_supply) / maxf(1.0, float(_total(w_dem))))
 		var cpw := EconFinance.org_by_key(world, "CPW")
 		EconFacts.emit(world, "ECON_UTILITY_OUTAGE", null, [["COMPANY", cpw]], [["COMPANY", cpw, 0.3], ["GOVERNMENT", "government", 0.7]],
-			{"INFRASTRUCTURE": -int(400.0 * unserved), "PUBLIC_SERVICES": -int(100.0 * unserved)}, int(300.0 * unserved), "PUBLIC")
+			{"INFRASTRUCTURE": -int(400.0 * unserved), "PUBLIC_SERVICES": -int(100.0 * unserved)}, int(300.0 * unserved), "PUBLIC",
+			{"months": int(s.get("util_ration_m", 0)), "unserved_pct": int(100.0 * unserved)} if s7 else {})
 	# ---- facility output ----
 	var health := {}
 	var edu := {}
@@ -242,7 +247,9 @@ static func _eff(world: WorldState, f: Dictionary) -> float:
 
 
 ## Utility priority tier: lower = served first (spec §6.6).
-static func _prio(ftype: String, hh_first: bool) -> int:
+## S7d (opt-in S7F): under INDUSTRY_FIRST, industry still comes after farms, freight and schools (tier 3, before
+## households at 4) — before, industry shared the farms' tier pro rata, so a power shortfall rationed food growing.
+static func _prio(ftype: String, hh_first: bool, s7: bool = false) -> int:
 	if ftype == "CLINIC":
 		return 0
 	if ftype in ["FARM", "DEPOT"]:
@@ -252,7 +259,7 @@ static func _prio(ftype: String, hh_first: bool) -> int:
 		return 2
 	if ftype == "WATERWORKS":
 		return 0  # E81: water is everyone's input (households, farms, clinics); a power shortage must not cut it first
-	return 4 if hh_first else 1
+	return 4 if hh_first else (3 if s7 else 1)
 
 
 ## Allocate supply to demand rows by priority tier, pro-rata within a tier. Returns key -> served ratio.
@@ -327,7 +334,16 @@ static func _upkeep(world: WorldState, f: Dictionary, running: bool) -> void:
 		frac = minf(frac, clampf(float(got) / need, 0.0, 1.0))
 	f["upkeep_frac"] = int(frac * 1000.0)  # share of this month's upkeep supplied (diagnostics)
 	if not repairing:
-		cond -= int(1.0 * S * (1.0 - frac))
+		var loss := 1.0 - frac
+		# S7d (opt-in S7F): a running farm short of MATERIAL keeps its fields, fences and tools up by hand — the crew
+		# offsets most of the wear (FARM_HAND_UPKEEP × labour fill) and a full crew slowly restores a run-down farm.
+		# Before, farms decayed for good whenever materials ran out (seed 4: all farms CONDITION → famine spiral).
+		if running and f["type"] == "FARM" and frac < 0.999 and EconFoodSec.active(world):
+			var fill := EconFoodSec.labour_fill(f)
+			loss *= 1.0 - EconFoodSec.FARM_HAND_UPKEEP * fill
+			if fill >= 0.9 and cond < 100 * S:
+				cond += EconFoodSec.FARM_HAND_REPAIR
+		cond -= int(float(S) * loss)
 	# E84: maintenance restores. Fully supplied upkeep slowly repairs a running plant; a plant closed as unsafe
 	# is overhauled with full upkeep and reopens at REOPEN_CONDITION (before, condition could only fall).
 	if e84 and running and frac >= 0.999:

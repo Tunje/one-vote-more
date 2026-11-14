@@ -294,7 +294,32 @@ static func protected_levers(world: WorldState) -> Dictionary:
 	if hs > 0.0:
 		for lid in HUNGER_LEVERS:
 			out[lid] = [hs, h >= HUNGER_DEEP]
+	# S7 (Bob's seed-4 probes, 2026-11-14): the hunger guard came too late. While food assistance works there is no
+	# shortfall, so governments cut it and the shortfall followed (135-192 permille). Judge the cut by what it would do:
+	# the share of the colony's food bill that assistance pays now (food_assist_pm), or households already priced out.
+	var dep := maxf(food_dependence(world), food_unaffordable(world))
+	var ds := clampf((dep - FOOD_DEP_FROM) / 0.05, 0.0, 2.0)
+	if ds > 0.0:
+		var cur: Array = out.get("ECON_FOOD_ASSISTANCE", [0.0, false])
+		out["ECON_FOOD_ASSISTANCE"] = [maxf(float(cur[0]), ds), bool(cur[1]) or dep >= FOOD_DEP_DEEP]
 	return out
+
+
+## S7: share of the colony's food bill paid by food assistance (Bob's stat, permille), and the unaffordable share.
+const FOOD_DEP_FROM := 0.03
+const FOOD_DEP_DEEP := 0.08
+
+
+static func food_dependence(world: WorldState) -> float:
+	if not world.table("econ").has("s"):
+		return 0.0
+	return float(EconUtil.peek_st(world).get("food_assist_pm", 0)) / 1000.0
+
+
+static func food_unaffordable(world: WorldState) -> float:
+	if not world.table("econ").has("s"):
+		return 0.0
+	return float(EconUtil.peek_st(world).get("food_unaff", 0)) / 1000.0
 
 
 ## pork (0..1, election year; Ella/Campaign.pork_pressure): crowd-pleasing relief counts more, ideology less.

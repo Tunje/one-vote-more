@@ -82,13 +82,18 @@ func test_opposition_no_vote_on_a_pro_labour_bill_counts_half() -> void:
 	var opp: Dictionary = ps[1]
 	st["government"]["members"] = [gov["id"]]
 	var u: Dictionary = Unions.federation(w)
-	var g0 := UnionPolitics.score(w, u, gov)
-	var o0 := UnionPolitics.score(w, u, opp)
+	var s: Dictionary = w.table("union_pol")["s"]
+	# only this bill: the sim's own bills and ordinances of its last month are not yet scanned, so skip past them,
+	# and measure the record part alone (a review in the same month may also move support or ties)
+	w.month += 1
+	s["scanned_to"] = w.month - 1
+	var n_g: int = s["rec"].get(gov["id"], []).size()
+	var n_o: int = s["rec"].get(opp["id"], []).size()
 	_labour_bill(w, gov["id"], {gov["id"]: "YES", opp["id"]: "NO"}, 400, 1000, true)
 	w.month += 1
 	UnionPolitics.monthly(w, st)
-	var dg := UnionPolitics.score(w, u, gov) - g0
-	var do := UnionPolitics.score(w, u, opp) - o0
+	var dg := UnionPolitics.RECORD_PTS * UnionPolitics._faded(s["rec"].get(gov["id"], []).slice(n_g), w.month, u)
+	var do := UnionPolitics.RECORD_PTS * UnionPolitics._faded(s["rec"].get(opp["id"], []).slice(n_o), w.month, u)
 	check(dg > 0.0, "the government gets credit (%.1f)" % dg)
 	check(do < 0.0, "the opposition's NO costs it (%.1f)" % do)
 	check(absf(absf(do) - 0.5 * dg) < 0.6, "at half weight (%.1f vs %.1f)" % [do, dg])

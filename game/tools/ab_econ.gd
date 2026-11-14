@@ -25,6 +25,8 @@ func _init() -> void:
 		on.append("WORKLOAD")
 	if arm.contains("fleet"):
 		on.append("FLEET")
+	if arm.contains("own"):
+		on.append("E137")
 	if arm.contains("m2"):
 		on.append("M2")
 	if arm.contains("police"):

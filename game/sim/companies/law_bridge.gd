@@ -69,7 +69,7 @@ static func _misconduct(world: WorldState, org_id: String) -> bool:
 	var o: Dictionary = world.table("org").get(org_id, {})
 	if o.is_empty() or o["type"] in EconData.PUBLIC_TYPES:
 		return false
-	var profitable := EconFinance.profit(o["pl_last"]) > 0 if not o["pl_last"].is_empty() else true
+	var profitable := EconAnnual.profitable(world, o)  # E140: over the year (else last month)
 	var risk: int = o["ceo"]["risk"]
 	var inspectors := int(EconUtil.lever(world, "LAW_INSPECTORS", 4))
 	return profitable and (risk >= 70 or o["status"] == "DISTRESSED" or (risk >= 45 and inspectors <= 4))

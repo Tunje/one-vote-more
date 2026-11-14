@@ -96,14 +96,16 @@ static func _step(world: WorldState, oid: String) -> void:
 							p["status"] = "CANCELLED"
 					_waterfall(world, oid)
 		"ACTIVE":
-			if missed or o["low_cash_streak"] >= 2:
+			var e140 := EconAnnual.distress(world, oid, missed, cash)  # -1: the old rule
+			if (e140 == 1) if e140 >= 0 else (missed or o["low_cash_streak"] >= 2):
+				EconAnnual.note_distress(world, o)
 				o["status"] = "DISTRESSED"
 				o["distress_months"] = 0
 				EconFacts.emit(world, "COMP_DISTRESSED", o["hq"], [["COMPANY", oid]], [["COMPANY", oid, 1.0]], {}, 20, "OFFICIAL",
 					{"cash": cash, "obligations": f})
 		"DISTRESSED":
 			o["distress_months"] += 1
-			if cash >= 2 * f and o["ok_streak"] >= 3:
+			if (cash >= 2 * f and o["ok_streak"] >= 3) or EconAnnual.recovered(world, oid, cash, f):
 				o["status"] = "ACTIVE"
 				o["distress_months"] = 0
 			elif o["missed_streak"] >= 3 or _loan_called(world, oid):
@@ -124,10 +126,10 @@ static func _step(world: WorldState, oid: String) -> void:
 				_payment_plan(world, oid)
 				EconFacts.emit(world, "COMP_RESTRUCTURED", o["hq"], [["COMPANY", oid]], [["COMPANY", oid, 0.8], ["GOVERNMENT", "government", 0.2]],
 					{"JOBS": 5}, 20, "PUBLIC")
-			elif not zombie and o["admin_months"] >= 2 and _operating_surplus(o) >= 0 and EconFinance.debt_of(world, oid) > 0:
+			elif not zombie and o["admin_months"] >= 2 and _op_surplus(world, o) >= 0 and EconFinance.debt_of(world, oid) > 0:
 				# E77 debt workout: the business covers its running costs, only the debt kills it → the bank writes
 				# debt down to what ~24 months of surplus can carry (at least the normal haircut) and the firm continues
-				var surplus := _operating_surplus(o)
+				var surplus := _op_surplus(world, o)
 				var debt := EconFinance.debt_of(world, oid)
 				var keep := mini(int(float(debt) * (1.0 - EconData.RESTRUCTURE_HAIRCUT)), 24 * surplus)
 				var factor := float(keep) / float(maxi(1, debt))
@@ -204,6 +206,12 @@ static func _rescue_strategic(world: WorldState, oid: String) -> void:
 				EconUtil.inv_add(world, pe, g, f["district"], q, wac)
 		EconFacts.emit(world, "ECON_FACILITY_SOLD", f["district"], [["COMPANY", oid], ["GOVERNMENT", "government"]],
 			[["GOVERNMENT", "government", 1.0]], {"JOBS": 5}, 30, "PUBLIC", {"facility": fid, "price": paid, "nationalized": true})
+
+
+## E140: the year's average month under E140, else last month.
+static func _op_surplus(world: WorldState, o: Dictionary) -> int:
+	var e := EconAnnual.operating_surplus(world, o)
+	return e if e != -2 else _operating_surplus(o)
 
 
 ## Last month's revenue minus input costs and wages (no interest, no depreciation).

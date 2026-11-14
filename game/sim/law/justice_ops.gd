@@ -41,6 +41,8 @@ const APPEAL_IF_ABOVE := 0.4
 # keeps a fine for a firm with almost no revenue, and FINE_CAP_REV caps the whole fine (repeat ×2 included).
 const FINE := {"MINOR": [0.01, 0.5], "SERIOUS": [0.04, 2.0], "SEVERE": [0.10, 5.0]}
 const FINE_CAP_REV := 0.2                # a fine never exceeds this share of annual revenue (or the floor, if larger)
+const OPEN_FINES_CAP_REV := 0.25         # Bob's farm census: stacked fines (5–7 months of revenue) killed profitable farms.
+                                         # All open fines together stay under this share; beyond it the licence ladder decides
 const SMALL_FIRM_REV_WREF := 200.0       # annual revenue below this (W_ref): unpaid fines and awards go on a plan …
 const PLAN_MONTHS := 24                  # … paid in PLAN_PARTS instalments over this many months
 const PLAN_PARTS := 8
@@ -942,6 +944,13 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 		base *= REPEAT_FINE_MULT
 	base = minf(base, maxf(FINE_CAP_REV * annual, floor_amt))
 	var amount := int(round(base * float(world.levers.get("LAW_FINE_SCALE", 1000)) / 1000.0))
+	var open_fines := 0
+	for li in world.peek("liability").values():
+		if String(li["debtor"]) == org_id and String(li["kind"]) == "FINE" and String(li["status"]) == "OPEN":
+			open_fines += int(li["amount"])
+	var room := maxi(0, int(round(maxf(OPEN_FINES_CAP_REV * annual, floor_amt))) - open_fines)
+	var capped := amount > room
+	amount = mini(amount, room)        # the conviction still counts (repeat rule, licence ladder)
 	if world.peek("violation_track").has(violation):
 		world.table("violation_track")[violation]["fined_month"] = world.month
 	var acct := company_acct(org_id)
@@ -954,15 +963,24 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 		_owe(world, org_id, "gov", "", amount - paid, "FINE")
 	if cls == "SEVERE" or (repeat and cls == "SERIOUS"):
 		var months := SUSPEND_MONTHS * (2 if repeat and cls == "SEVERE" else 1)
-		for l in world.table("licence").values():
-			if l["holder_id"] == org_id and l["status"] == "ACTIVE":
+		var lics: Array = []
+		var lic_t := world.table("licence")
+		for lid in Det.ordered(lic_t):
+			var l: Dictionary = lic_t[lid]
+			if l["holder_id"] == org_id and l["status"] == "ACTIVE":     # an already-suspended licence is not suspended again
 				l["status"] = "SUSPENDED"
 				l["suspended_until"] = world.month + months
-		fact(world, "LAW_LICENCE_SUSPENDED", "PUBLIC", [{"kind": "COMPANY", "id": org_id}],
-			[{"actor": {"kind": "COMPANY", "id": org_id}, "share": 1.0}], {"JOBS": -2}, 20, {"months": months, "repeat": repeat})
+				lics.append({"id": String(lid), "kind": l.get("kind", ""), "type": l.get("type", "")})
+		if not lics.is_empty():        # v8 review: no fact when nothing new was suspended
+			var vt: Dictionary = world.peek("violation_track").get(violation, {})
+			fact(world, "LAW_LICENCE_SUSPENDED", "PUBLIC", [{"kind": "COMPANY", "id": org_id}],
+				[{"actor": {"kind": "COMPANY", "id": org_id}, "share": 1.0}], {"JOBS": -2}, 20,
+				{"months": months, "repeat": repeat, "org": org_id, "facility": String(vt.get("facility", "")),
+				"violation": violation, "class": cls, "licences": lics, "start": world.month, "until": world.month + months})
 	fact(world, "LAW_FINE_IMPOSED", "PUBLIC", [{"kind": "COMPANY", "id": org_id}],
 		[{"actor": {"kind": "COMPANY", "id": org_id}, "share": 1.0}], {"FAIRNESS": 3}, mini(40, 10 + amount / maxi(1, w_ref(world))),
-		{"amount": amount, "paid": paid, "class": cls, "violation": violation, "repeat": repeat})
+		{"amount": amount, "paid": paid, "class": cls, "violation": violation, "repeat": repeat, "capped": capped,
+		"open_fines": open_fines})
 	return amount
 
 

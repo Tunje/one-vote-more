@@ -63,6 +63,7 @@ func test_hunger_protects_food_assistance_and_the_benefit_floor() -> void:
 	for lid in Legislature.HUNGER_LEVERS:
 		w.levers[lid] = 50
 	_set_unemp(w, 5)
+	EconUtil.st(w)["sovereign_default"] = false   # v9: seed 5 can be in default at m66, where only food aid keeps a case
 	EconUtil.st(w)["food_shortfall"] = 300   # 30% of household food need unmet
 	check(absf(Legislature.hunger(w) - 0.3) < 0.001, "reads the shortfall")
 	check(Legislature.protected_levers(w).has("ECON_FOOD_ASSISTANCE"), "food assistance is protected")

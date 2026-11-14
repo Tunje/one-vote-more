@@ -22,8 +22,8 @@ func _diff(pa: String, x, y, out: Array) -> void:
 
 
 func _initialize() -> void:
-	var a: Simulation = EconSim.make(2, "BALANCED", {}, true)
-	for _m in 14:
+	var a: Simulation = EconSim.make(4, "BALANCED", {}, true)
+	for _m in 30:
 		a.step()
 	SaveIO.save(a, "user://dbg.sav")
 	var b := EconSim.for_load()

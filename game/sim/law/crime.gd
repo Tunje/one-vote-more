@@ -401,7 +401,7 @@ static func _high_crime(world: WorldState, d: String, row: Dictionary) -> void:
 	world.add_fact({"type": "LAW_HIGH_CRIME", "owner": "law", "subjects": [{"kind": "DISTRICT", "id": d}],
 		"responsible": resp, "impact": {"SAFETY": -4}, "magnitude": 40, "visibility": "PUBLIC",
 		"data": {"district": d, "theft": rate_10k_y(row, "THEFT"), "violence": rate_10k_y(row, "VIOLENCE"),
-			"times_base": snappedf(idx / base, 0.1), "coverage_pm": cov}})
+			"times_base_x10": int(round(10.0 * idx / base)), "coverage_pm": cov}})  # integer: a float did not survive save/load
 
 
 static func rate_10k_y(row: Dictionary, kind: String) -> int:

@@ -266,6 +266,8 @@ static func _district_indicators(world: WorldState, cls: Array) -> void:
 		if EconCare.active(world):
 			_w(world, "ECON_ELDER_CARE_ACCESS", d, float(EconCare.coverage(world, "ELDER", d)) / 10.0)
 			_w(world, "ECON_CHILDCARE_ACCESS", d, float(EconCare.coverage(world, "CHILD", d)) / 10.0)
+		if EconFoodSec.active(world):
+			_w(world, "ECON_FOOD_UNAFFORDABLE", d, float(EconFoodSec.unaffordable_pm(world, d)) / 10.0)
 		var sv: Array = s.get("util_served_hh", {}).get(d, [1.0, 1.0])
 		_w(world, "ECON_UTILITY_RELIABILITY", d, 100.0 * (float(sv[0]) + float(sv[1])) / 2.0)
 		_w(world, "ECON_INFRA_CONDITION", d, _infra(world, d))

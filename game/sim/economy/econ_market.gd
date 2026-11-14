@@ -12,6 +12,7 @@ static func trade(world: WorldState) -> void:
 	for oid in world.table("org"):
 		var o: Dictionary = world.table("org")[oid]
 		o["pl_last"] = o["pl"]
+		EconAnnual.record(o)  # E140: rolling 12-month P&L (measurement in every arm)
 		o["pl"] = EconFinance.empty_pl()
 		o["sold"] = {}
 	for gid in world.table("hh"):
@@ -311,10 +312,23 @@ static func _update_prices(world: WorldState) -> void:
 			var uc := _cheapest_cost(world, good)
 			if uc > 0.0 and p2 > CONTEST_MARK * uc:
 				p2 *= 1.0 - CONTEST_DRIFT * minf(1.0, p2 / (CONTEST_MARK * uc) - 1.0)
+		# S7c (opt-in "S7C", A/B arm of the S7 food trap): unsold food is perishable — with every order filled and more
+		# than SURPLUS_COVER × the orders on offer, the price drifts down towards SURPLUS_FLOOR × the cheapest farm's cost
+		# (before, it only fell past 2 months of cover, which a farm that cuts output to sales never reaches; seed 4 sat
+		# at 2.3× base with 1.5 months on the shelves and a fifth of the colony unable to afford its food)
+		if good == "FOOD" and shortage <= 0.02 and cover >= SURPLUS_COVER and (world.meta.get("on", []) as Array).has("S7C") 				and not EconUtil.off(world, "S7C"):
+			var fc := _cheapest_cost(world, good)
+			if fc > 0.0 and p2 > SURPLUS_START * fc:
+				p2 = maxf(SURPLUS_FLOOR * fc, p2 * (1.0 - SURPLUS_DRIFT))
 		var base := float(s["base"][good])
 		s["prices"][good] = int(clampf(p2, base * EconData.PRICE_MIN_MULT, base * EconData.PRICE_MAX_MULT * wage_level(world)))
 
 
+## S7c: perishable surplus drift (FOOD only, opt-in S7C)
+const SURPLUS_COVER := 1.2  # offered / ordered
+const SURPLUS_START := 1.3  # × cheapest farm unit cost
+const SURPLUS_FLOOR := 1.2
+const SURPLUS_DRIFT := 0.02  # per month
 const CONTEST_MARK := 1.5
 ## E139 A/B (5 seeds × 30 years): with FOOD included the food shortfall rose 31 → 42‰ (thinner farm margins, slower farm
 ## building) — Wilma's condition; food stays out (its price is political: reserves, assistance, the food trap rules)

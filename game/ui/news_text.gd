@@ -164,6 +164,8 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"ECON_SHORTAGE": s = "Shortage%s: %d%% of demand could not be met" % [(" of " + _kind(d.get("good", ""))) if d.has("good") else "", int(d.get("shortfall_permille", 0)) / 10]
 		"ECON_UTILITY_OUTAGE": s = "Power or water outages%s" % where
 		"ECON_FOOD_AID": s = "Food aid handed out (%d rations)" % int(d.get("qty", 0))
+		"ECON_FOOD_UNAFFORDABLE": s = "Food on the shelves, but %d%% of families' needs went unbought: they cannot afford it%s" % [int(d.get("unaffordable_permille", 0)) / 10, where]
+		"ECON_FOOD_SCARCE": s = "Food is scarce: %d%% of what families ordered was not delivered" % (int(d.get("scarce_permille", 0)) / 10)
 		"ECON_FAMINE": s = "[color=#ff5252]FAMINE: the colony cannot feed itself[/color]"
 		"ECON_RENT_INCREASE": s = "Rents rose %d%%%s" % [int(d.get("pct", 0)), where]
 		"ECON_SOVEREIGN_DEFAULT": s = "[color=#ff5252]The government has defaulted on its debts[/color]"
@@ -240,6 +242,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"HOME_DEMAND_RAISED": s = "[color=#ff8a65]The home world raised its demands[/color]"
 		"HOME_SANCTION": s = "The home world imposed a sanction: %s" % _kind(d.get("kind", ""))
 		"HOME_EXPEDITION_SENT": s = "[color=#ff5252][b]The home world has sent a punitive expedition[/b][/color]"
+		"HOME_AUTONOMY_REFUSED": s = "[b]%s refused the home world's offer of autonomy[/b]: the declaration of independence stands" % assembly(w)
 		# ---- media (Anni, sim/media) ----
 		"MEDIA_OUTLET_FOUNDED": s = "A new newspaper, [b]%s[/b], is published by %s" % [d.get("name", "?"), actor(w, d.get("owner", {}))]
 		"MEDIA_OUTLET_SOLD": s = "%s was sold to %s" % [outlet(w, d.get("outlet", "")), actor(w, d.get("to", {}))]

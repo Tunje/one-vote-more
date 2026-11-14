@@ -6,7 +6,8 @@ extends RefCounted
 ## pic-core v1.1 exceptionOnly: these count toward a concern only while something is wrong. S7's shack and homeless
 ## shares sit at 0 almost everywhere; as ordinary indicators they added "perfect" weight to HOUSING, SAFETY and FAIRNESS
 ## in every district (concerns are weighted averages), diluting the real housing signal even with S7 switched off.
-const EXCEPTION_ONLY := ["ECON_INFORMAL_HOUSING", "ECON_HOMELESSNESS", "ECON_ELDER_CARE_ACCESS", "ECON_CHILDCARE_ACCESS"]
+const EXCEPTION_ONLY := ["ECON_INFORMAL_HOUSING", "ECON_HOMELESSNESS", "ECON_ELDER_CARE_ACCESS", "ECON_CHILDCARE_ACCESS",
+	"ECON_FOOD_UNAFFORDABLE"]
 
 
 static func indicators() -> Array:
@@ -29,6 +30,8 @@ static func indicators() -> Array:
 		# part E (EconCare, opt-in CARE): the share of the retired / of children aged 1–5 actually cared for
 		["ECON_ELDER_CARE_ACCESS", "%", [0, 100], "DISTRICT", 1, {"PUBLIC_SERVICES": 0.4, "FAIRNESS": 0.1}, 80, 30, "PUBLIC", 1],
 		["ECON_CHILDCARE_ACCESS", "%", [0, 100], "DISTRICT", 1, {"PUBLIC_SERVICES": 0.3, "JOBS": 0.1, "COST_OF_LIVING": 0.1}, 70, 25, "PUBLIC", 1],
+		# S7a (EconFoodSec, opt-in S7F): share of household food need that went unbought for lack of money
+		["ECON_FOOD_UNAFFORDABLE", "%", [0, 100], "DISTRICT", -1, {"COST_OF_LIVING": 0.5, "FAIRNESS": 0.3, "GOVERNANCE": 0.1}, 0, 10, "PUBLIC", 0],
 		["ECON_UTILITY_RELIABILITY", "%", [0, 100], "DISTRICT", 1, {"INFRASTRUCTURE": 0.6, "PUBLIC_SERVICES": 0.3}, 100, 85, "PUBLIC", 0],
 		["ECON_INFRA_CONDITION", "index", [0, 100], "DISTRICT", 1, {"INFRASTRUCTURE": 0.6, "SAFETY": 0.1}, 90, 50, "PUBLIC", 3],
 		["ECON_LOGISTICS_DELAY", "%", [0, 100], "DISTRICT", -1, {"INFRASTRUCTURE": 0.5, "COST_OF_LIVING": 0.1}, 0, 20, "PUBLIC", 1],

@@ -159,12 +159,14 @@ static func settle(world: WorldState) -> void:
 		g["income"] = {"wages": 0, "gross": 0, "tax": 0, "benefit": 0, "pension": 0, "dividend": 0}
 	s["leaf_inc"] = {}  # per-leaf income of this month (M10: income bands)
 	_fund_institutions(world)
+	EconAnnual.pre_settle(world)  # E140 (opt-in): the overdraft covers this month's wages when cash falls short
 	_payroll(world)
 	_utility_bills(world)
 	_rent(world)
 	EconConstruction.settle_payments(world)
 	_benefits(world)
 	_loan_service(world)
+	EconAnnual.post_settle(world)  # E140 (opt-in): spare cash repays the line; a line fully drawn for a year is termed out
 	_royalty(world)
 	_strategic_subsidy(world)
 	_depreciation(world)
@@ -407,12 +409,19 @@ static func _rent(world: WorldState) -> void:
 ## E63 food assistance (demand floor): top up groups whose cash cannot buy their food need at current prices.
 static func _food_assistance(world: WorldState) -> void:
 	var s := EconUtil.st(world)
+	if EconFoodSec.active(world):
+		return  # S7b: paid right before households order (EconFoodSec.assist), not here where fares and services ate it
+	s["food_assist_pm"] = 0
 	var fa := float(EconUtil.lever(world, "ECON_FOOD_ASSISTANCE", 100)) / 100.0
 	if fa <= 0.0:
 		return
 	var food_price := float(s["prices"]["FOOD"]) * 1.1 * (1.0 + float(EconUtil.lever(world, "ECON_SALES_TAX", 0)) / 100.0)
+	var pf_eff := EconHouseholds.food_price_eff(world)  # the dependence stat uses the price households actually pay
+	var paid_tot := 0
+	var bill := 0
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
+		bill += EconUtil.val(int(EconHouseholds.persons(g) * EconData.NEED["FOOD"]), pf_eff)
 		var need := int(float(EconHouseholds.persons(g)) / S * EconData.NEED["FOOD"] * food_price * fa)
 		var gap := need - world.ledger.balance(EconUtil.hh_acct(gid))
 		if gap > 0:
@@ -420,6 +429,8 @@ static func _food_assistance(world: WorldState) -> void:
 			g["income"]["benefit"] += paid
 			EconPop.credit_status(world, gid, "", paid, "benefit")
 			s["gov_spend_m"] = s.get("gov_spend_m", 0) + paid
+			paid_tot += paid
+	s["food_assist_pm"] = EconFoodSec.assist_pm(paid_tot, bill)
 
 
 static func _benefits(world: WorldState) -> void:
@@ -482,8 +493,8 @@ static func _loan_service(world: WorldState) -> void:
 		var annuity: int = int(l["principal"] * r / (1.0 - pow(1.0 + r, -n))) if r > 0 else l["principal"] / n
 		var principal_part := clampi(annuity - interest, 0, l["principal"])
 		var grace: bool = world.month < int(l.get("grace_until", -1))
-		if grace:
-			principal_part = 0  # E136: interest only while the new firm finds its feet
+		if grace or bool(l.get("revolving", false)):
+			principal_part = 0  # E136: interest only while the new firm finds its feet; E140: a credit line pays interest only
 		var acc := EconUtil.acct(l["borrower"])
 		var due := interest + principal_part
 		if world.ledger.balance(acc) >= due:
@@ -571,6 +582,11 @@ static func _profit_tax_and_dividends(world: WorldState) -> void:
 			o["tax_loss_cf"] = -taxable  # remaining loss carried forward indefinitely (E22)
 		var after := p - tax
 		o["profit_q"] = 0
+		if EconAnnual.yearly_payout(world) and o["type"] == "PRIVATE" and o["owner_group"] != "" and (world.meta.get("on", []) as Array).has("PAYOUT"):
+			# E140P: owners are paid once a year, after the December accounts, on the year's profit
+			if world.month_of_year() == 12 and o["status"] == "ACTIVE":
+				EconAnnual.payout(world, oid, o)
+			continue
 		if after <= 0 or o["status"] != "ACTIVE":
 			continue
 		var monthly_costs := maxi(1, _monthly_costs(o))
@@ -615,6 +631,8 @@ static func _surplus_sweep(world: WorldState) -> void:
 		var o: Dictionary = world.table("org")[oid]
 		if o["type"] == "PUBLIC_INSTITUTION" or o["status"] != "ACTIVE":
 			continue
+		if o["type"] == "PRIVATE" and EconAnnual.yearly_payout(world):
+			continue  # E140P: the yearly payout replaces the quarterly sweep for private firms
 		var acc := EconUtil.acct(oid)
 		var buffer := maxi(EconData.SURPLUS_BUFFER_MONTHS * _monthly_costs(o), EconData.SURPLUS_BUFFER_MIN * S)
 		if debt_of(world, oid) > 0:

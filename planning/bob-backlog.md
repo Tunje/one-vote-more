@@ -246,3 +246,13 @@ projects." — clarified: "I did not mean a bostadsrätt (co-op), I meant owning
    up. If idle firm cash is the cause: a general payout rule for all private firms (cash above ~1–2 months of costs,
    keeping an investment reserve for planned builds) instead of the comfort/retail special case.
 32. **6-seed check of SUPPORT_A** (offices split) before it goes on by default (after §8b).
+33. **A61 MONEY (USER ruling via Wilma; planning/plan-money.md).** User likes BOTH bank credit creation and an own
+   currency after independence; notes it is not a closed loop — exports to the home world bring money in.
+   - **M1 (cheap; after the E134 econ-only test):** a money-flow ledger by channel per year. IN: exports, migrants'
+     savings, charter funding, other. OUT: imports, charter dues/taxes, profits sent home, emigrants, freight. Money
+     grew only 66% in 50 years with exports running — find what eats the inflow (imports? dues? remitted profits?).
+     Then propose exports as a real political lever: export promotion, export tax, home-world tariffs and quotas.
+   - **M2 (after the support-economy pieces):** bank credit creation — deposits created by lending, a reserve ratio,
+     capital, the interest rate; booms, bad loans, runs, bailouts.
+   - **M3 (Wilma's, with me on mechanics):** after independence, the negotiation with the home world (currency union or
+     own currency, savings conversion, reserves, debts, trade terms), then a central bank.

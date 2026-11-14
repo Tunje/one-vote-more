@@ -62,6 +62,7 @@ static func social(world: WorldState) -> void:
 		EconPop.reclassify(world, world.month_of_year() == 1 or EconUtil.off(world, "BANDS_YEARLY"))
 	_self_employment_flow(world)
 	EconLabor.recount(world)
+	EconFoodSec.assist(world)  # S7b (opt-in S7F): food assistance tops up budget-limited households before they order
 	_post_orders(world)
 	_housing(world)
 	EconInformal.monthly(world)  # S7: doubling-up ceiling, shacks, homelessness (before births, deaths and the ship)
@@ -112,6 +113,10 @@ static func _consume(world: WorldState) -> void:
 	var need_food := 0
 	var short_d := {}
 	var need_d := {}
+	var s7 := EconFoodSec.active(world)
+	var fneed_d := {}
+	var unaff_d := {}
+	var scarce_d := {}
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
 		var p := persons(g)
@@ -129,6 +134,11 @@ static func _consume(world: WorldState) -> void:
 		short_food += unmet_food
 		need_food += food_need
 		var d: String = g["district"]
+		if s7:  # S7a: ordered but not delivered = scarce; the rest of the gap was never ordered = unaffordable
+			var scarce := clampi(int(g.get("food_ord", food_need)) - food, 0, unmet_food)
+			fneed_d[d] = int(fneed_d.get(d, 0)) + food_need
+			scarce_d[d] = int(scarce_d.get(d, 0)) + scarce
+			unaff_d[d] = int(unaff_d.get(d, 0)) + unmet_food - scarce
 		var need_tot := food_need + cons_need + int(p * (EconData.NEED["ENERGY"] + EconData.NEED["WATER"]))
 		short_d[d] = short_d.get(d, 0) + unmet_food + unmet_cons + unmet_e + unmet_w
 		need_d[d] = need_d.get(d, 0) + need_tot
@@ -138,6 +148,8 @@ static func _consume(world: WorldState) -> void:
 			EconUtil.qflow(world, "MEDICAL", "burned", g["bought"]["MEDICAL"])
 		EconConsumer.absorb(world, g)  # D2: durables into the home stock (which wears), fine food eaten
 	s["food_shortfall"] = int(1000.0 * float(short_food) / maxf(1.0, float(need_food)))
+	if s7:
+		EconFoodSec.record(world, fneed_d, unaff_d, scarce_d)
 	s["shortfall_d"] = {}
 	for d in need_d:
 		s["shortfall_d"][d] = int(1000.0 * float(short_d[d]) / maxf(1.0, float(need_d[d])))
@@ -408,12 +420,20 @@ static func _self_employment_flow(world: WorldState) -> void:
 	EconPop.sync(world)
 
 
+## Food price a household budgets with (mcr per unit): market price + 10% freight allowance, sales tax, shop margin.
+static func food_price_eff(world: WorldState) -> int:
+	var tax_m := 1.0 + float(EconUtil.lever(world, "ECON_SALES_TAX", 0)) / 100.0
+	return int(float(EconUtil.st(world)["prices"]["FOOD"]) * 1.1 * tax_m * (1.0 + float(EconRetail.margin_pm(world, "FOOD")) / 1000.0))
+
+
 ## Orders for next month's TRADE: essentials first (rent + utilities reserved), then discretionary goods.
 static func _post_orders(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var pf: int = s["prices"]["FOOD"]
 	var pc: int = s["prices"]["CONSUMER"]
 	var tax_m := 1.0 + float(EconUtil.lever(world, "ECON_SALES_TAX", 0)) / 100.0
+	var s7 := EconFoodSec.active(world)
+	var pf_eff := food_price_eff(world)  # D: shop margin
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
 		var p := persons(g)
@@ -424,12 +444,13 @@ static func _post_orders(world: WorldState) -> void:
 		var rent_res := int(float(households(g)) / S * float(EconFinance.district_rent(world, g["district"])))
 		var util_res := int(float(p) / S * (EconData.NEED["ENERGY"] * float(EconUtil.lever(world, "ECON_UTILITY_TARIFF_ENERGY", 40)) * S
 			+ EconData.NEED["WATER"] * float(EconUtil.lever(world, "ECON_UTILITY_TARIFF_WATER", 20)) * S))
-		var pf_eff := int(float(pf) * 1.1 * tax_m * (1.0 + float(EconRetail.margin_pm(world, "FOOD")) / 1000.0))  # D: shop margin
 		var food_q := int(p * EconData.NEED["FOOD"])
 		var food_cost := EconUtil.val(food_q, pf_eff)
 		if food_cost > budget:
 			food_q = int(float(budget) * S / float(pf_eff))
 			food_cost = budget
+		if s7:
+			g["food_ord"] = food_q  # S7a: what the group could afford to order (the scarce / unaffordable split)
 		budget = maxi(0, budget - food_cost - util_res)
 		var pc_eff := int(float(pc) * 1.1 * tax_m * (1.0 + float(EconRetail.margin_pm(world, "CONSUMER")) / 1000.0))  # D: shop margin
 		var cmin := int(p * EconData.NEED["CONSUMER_MIN"])

@@ -28,11 +28,15 @@ static func econ_only_for_load() -> Simulation:
 	return sim
 
 
-## v8 (Wilma, 2026-11-13; user: "make your best decision, the chronicles will show"): opt-in pieces that passed their
-## A/Bs are on in the full game. Off: SUPPORT_S comfort (cost population in the full-game check), FLEET (v8: a dead fleet never recovered and caused permanent outages; off until fixed), WAREHOUSE and CARE
-## (not yet full-game tested), SUPPORT_D/E (failed earlier A/Bs). Econ-only test worlds (make_econ_only) stay opt-in.
-## meta["off"] still switches any of these off.
-const DEFAULT_ON := ["E134", "PAYOUT", "SUPPORT_T", "WORKLOAD", "SUPPORT_A", "CONDUCT", "CRIME", "SCANDAL_REVIVAL"]
+## v9 (Wilma, 2026-11-14; Bob's per-flag check, 5 seeds x 30 years, each arm on the v8 base): added M2 (bank credit; best
+## arm), WAREHOUSE, POLICE, PRISONS, FLEET (the v8 death spiral is fixed; the seed-3 dip did not reproduce) and CARE (the
+## seed-4 collapse is an energy-to-food trap, not care; S7 owns it) and E140 (annual budgeting: firms judged on 12 months,
+## a credit line; profitable firms entering distress 57 -> 1-4 in 5 seeds; without E140P, the yearly payout, which cost
+## adults). Off: S7F/S7C (no gain on the v9 base), E141 (office hiring priority; costs jobs and food), SUPPORT_S (no gain, higher tax), E136-E138
+## (lowest real income; wait for the private-firm work), SUPPORT_D/E (failed earlier A/Bs). Econ-only test worlds
+## (make_econ_only) stay opt-in. meta["off"] still switches any of these off.
+const DEFAULT_ON := ["E134", "PAYOUT", "SUPPORT_T", "WORKLOAD", "SUPPORT_A", "CONDUCT", "CRIME", "SCANDAL_REVIVAL",
+	"M2", "WAREHOUSE", "POLICE", "PRISONS", "FLEET", "CARE", "E140"]
 
 
 static func make(seed_value: int, scenario: String = "BALANCED", persona: Dictionary = {}, autoplay: bool = true) -> Simulation:

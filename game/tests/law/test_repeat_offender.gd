@@ -129,3 +129,45 @@ func test_fines_scale_with_the_firm_and_small_firms_get_a_plan() -> void:
 	w.table("org")["org:zero"] = {"id": "org:zero", "pl_last": {"rev": 0}}
 	w.table("violation_track")["v:z"] = {"company": "org:zero", "kind": "SAFETY_CORNERS"}
 	check_eq(JO._fine(w, "org:zero", "SEVERE", "v:z"), 5000000, "no revenue: the small floor only")
+
+
+## Bob's farm census: stacked fines may not exceed 25% of annual revenue in total; the convictions still count.
+func test_open_fines_are_capped_in_total() -> void:
+	var w := _world()
+	w.values["ECON_W_REF"] = 1000000
+	w.table("org")["org:farm"] = {"id": "org:farm", "pl_last": {"rev": 10000000}}      # 120M a year
+	var total := 0
+	for i in 6:
+		var vid := "v:f%d" % i
+		w.table("violation_track")[vid] = {"company": "org:farm", "kind": "SAFETY_CORNERS"}
+		total += JO._fine(w, "org:farm", "SEVERE", vid)
+		w.month += 2
+	var open := 0
+	for li in w.peek("liability").values():
+		if String(li["debtor"]) == "org:farm" and String(li["status"]) == "OPEN":
+			open += int(li["amount"])
+	check(open <= 30000000, "open fines stay within 25%% of revenue (%d)" % open)
+	check_eq(total, open, "nothing was paid (no account), all owed")
+	var capped := w.facts.query("LAW_FINE_IMPOSED", 0, w.month).filter(func(f): return bool(f["data"].get("capped", false)))
+	check(capped.size() >= 3, "later fines capped (%d)" % capped.size())
+
+
+## v8 review: a suspension fact names the firm, facility, violation, licences and term; a licence that is already
+## suspended is not suspended again, and no fact is written when nothing new was suspended.
+func test_suspension_fact_names_its_licences_and_is_not_repeated() -> void:
+	var w := _world()
+	w.table("violation_track")["v:1"]["facility"] = "fac:7"
+	JO._fine(w, "org:1", "SEVERE", "v:1")
+	var f := w.facts.query("LAW_LICENCE_SUSPENDED", 0, w.month)
+	check_eq(f.size(), 1, "one suspension")
+	if f.is_empty():
+		return
+	var d: Dictionary = f[0]["data"]
+	check(String(d["org"]) == "org:1" and String(d["facility"]) == "fac:7" and String(d["violation"]) == "v:1", "who and why (%s)" % [d])
+	check(int(d["start"]) == w.month and int(d["until"]) == w.month + JO.SUSPEND_MONTHS, "the term")
+	check(d["licences"].size() == 1 and String(d["licences"][0]["id"]) == "lic:1", "which licence")
+	var until := int(w.peek("licence")["lic:1"]["suspended_until"])
+	w.month += 1
+	JO._fine(w, "org:1", "SEVERE", "v:2")
+	check_eq(w.facts.query("LAW_LICENCE_SUSPENDED", 0, w.month).size(), 1, "already suspended: no second fact")
+	check_eq(int(w.peek("licence")["lic:1"]["suspended_until"]), until, "and the term is not restarted")

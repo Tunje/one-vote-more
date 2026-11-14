@@ -234,7 +234,7 @@ static func _media_owners(world: WorldState) -> void:
 		if short <= 0:
 			continue
 		var willing := (MEDIA_COVER_BASE + MEDIA_COVER_PER_STORY * float(mini(4, Media.bad_press_12m(world, oid)))) * float(wref)
-		var profit := EconFinance.profit(o["pl_last"]) if not o.get("pl_last", {}).is_empty() else 0
+		var profit := EconAnnual.profit_month(world, o)  # E140: the year's average month (else last month)
 		willing += MEDIA_COVER_PROFIT_SHARE * float(maxi(0, profit))
 		var spare := world.ledger.balance(EconUtil.acct(oid)) - MEDIA_RESERVE_MONTHS * maxi(1, EconFinance._monthly_costs(o))
 		# the owner's reasoning, kept on the outlet for the papers' finance view and probes (W_ref)
@@ -454,7 +454,10 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 			lim = mini(lim, int(float(s["prices"].get("FINE_FOOD", 0)) * BAKERY_YIELD * share))
 		var cost_needed := EconUtil.val(maxi(want, 0), lim)
 		if cost_needed > budgets[oid] and o["type"] in ["PRIVATE", "COOPERATIVE"]:
-			budgets[oid] += _working_capital(world, oid, cost_needed - budgets[oid])
+			if EconAnnual.applies(world, o) and EconAnnual.months(o) >= EconAnnual.MIN_M:
+				budgets[oid] += EconAnnual.input_draw(world, oid, budgets[oid], cost_needed)  # E140: the year's plan, on the credit line
+			else:
+				budgets[oid] += _working_capital(world, oid, cost_needed - budgets[oid])
 		var up_want := mini(maxi(0, want), int(upkeep_qty.get(k, 0)))
 		want = mini(want, int(float(maxi(0, budgets[oid])) * S / float(maxi(1, lim))))
 		if e116 and up_want > 0:

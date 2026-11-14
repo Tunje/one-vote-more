@@ -80,7 +80,41 @@ func test_independence_path_referendum_and_home_response() -> void:
 	var status := String(LQ.sovereignty(w)["status"])
 	check(status in ["INDEPENDENT", "AUTONOMY", "INDEPENDENCE_DECLARED"], "home world responded (%s, expedition %d)" % [status, h["expedition_month"]])
 	if status == "INDEPENDENCE_DECLARED":
-		check(int(h["expedition_month"]) > w.month, "an expedition is on its way")
+		check(int(h["expedition_month"]) > w.month or int(h.get("autonomy_refused", 0)) > 0,
+			"an expedition is on its way, or parliament refused an autonomy offer")
+
+
+## v8 review: autonomy after a declaration is an offer; an independence-minded parliament refuses it and the declaration
+## stands; a parliament that does not want independence accepts it.
+func test_autonomy_offer_is_put_to_parliament() -> void:
+	var w := _sim().world
+	var st := _st(w)
+	var h := HomeWorld.state(w)
+	var refused := 0
+	var accepted := 0
+	for want in [70, -70]:
+		for p in PartyLife.active(w):
+			p["positions"]["SOVEREIGNTY"] = want * 1000
+		st["government"]["center"]["SOVEREIGNTY"] = want * 1000
+		for i in 60:
+			CO.sov(w)["status"] = "INDEPENDENCE_DECLARED"
+			h["patience"] = 100
+			h["autonomy_refused"] = 0
+			h["expedition_month"] = -1
+			var r := RandomNumberGenerator.new()
+			r.seed = 1000 + i
+			HomeWorld._respond_to_independence(w, st, h, r)
+			var status := String(LQ.sovereignty(w)["status"])
+			if int(h["autonomy_refused"]) > 0:
+				check_eq(want, 70, "only an independence-minded parliament refuses")
+				check_eq(status, "INDEPENDENCE_DECLARED", "a refused offer leaves the declaration standing")
+				refused += 1
+			elif status == "AUTONOMY":
+				check_eq(want, -70, "an independence-minded parliament never has autonomy imposed")
+				accepted += 1
+	check(refused > 0, "offers refused (%d)" % refused)
+	check(accepted > 0, "offers accepted (%d)" % accepted)
+	check(w.facts.query("HOME_AUTONOMY_REFUSED").size() == refused, "a fact per refusal")
 
 
 func test_needy_home_world_raises_its_demands() -> void:

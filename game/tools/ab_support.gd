@@ -15,17 +15,22 @@ func _init() -> void:
 	var sim: Simulation = EconSim.make(sd, "BALANCED", {}, true)
 	var w := sim.world
 	var on: Array = []
-	if v.contains("A"):
+	var flags: String = v.split("!")[0]  # on-letters only from the part before any "!OFF" switches
+	if flags.contains("A"):
 		on.append("SUPPORT_A")
-	if v.contains("E"):
+	if flags.contains("E"):
 		on.append("SUPPORT_E")
-	if v.contains("D"):
+	if flags.contains("D"):
 		on.append("SUPPORT_D")
-	if v.contains("C"):
+	if flags.contains("C"):
 		on.append("CONDUCT")
-	if v.contains("S"):
+	if flags.contains("S"):
 		on.append("SUPPORT_S")
 	w.meta["on"] = on
+	var offs: Array = []
+	for part in v.split("!").slice(1):
+		offs.append(part)
+	w.meta["off"] = offs
 	var failed := 0
 	var seen_dead := {}
 	for y in years:
@@ -79,6 +84,17 @@ func _init() -> void:
 			if EconOffice.office_of(w, oid) != "":
 				fill_sum += EconOffice.office_fill(w, oid)
 				fill_n += 1
+		var hh_m := 0
+		var firm_m := 0
+		var union_m := 0
+		for acc in w.ledger.balances:
+			if str(acc).begins_with("hh:"):
+				hh_m += int(w.ledger.balances[acc])
+			elif str(acc).begins_with("co:"):
+				firm_m += int(w.ledger.balances[acc])
+			elif str(acc).begins_with("union:"):
+				union_m += int(w.ledger.balances[acc])
+		print("   money M: households %d firms %d unions %d treasury %d" % [hh_m / 1000000, firm_m / 1000000, union_m / 1000000, w.ledger.balance(EconUtil.TREASURY) / 1000000])
 		print("   prices: food %d consumer %d | wage G %d S %d | office fill %.2f" % [int(s["prices"]["FOOD"]) / 1000, int(s["prices"]["CONSUMER"]) / 1000,
 			int(s["wage"]["G"]) / 1000, int(s["wage"]["S"]) / 1000, fill_sum / maxf(1.0, float(fill_n))])
 		print("   conduct: records %d unlawful %d revealed %d | major accidents %d" % [v_all, v_unl, v_rev, majors])

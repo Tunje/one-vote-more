@@ -198,6 +198,12 @@ static func _send_expedition(world: WorldState, h: Dictionary, r: RandomNumberGe
 	_note(world, h, "punitive expedition sent")
 
 
+## v8 review: a party votes to refuse the home world's autonomy offer from this SOVEREIGNTY lean (government members
+## from 25 lower, like the other charter votes); one offer per ship, at most AUTONOMY_OFFERS refusals.
+const AUTONOMY_REFUSE_SOV := 30.0
+const AUTONOMY_OFFERS := 2
+
+
 static func _respond_to_independence(world: WorldState, st: Dictionary, h: Dictionary, r: RandomNumberGenerator) -> void:
 	var lev := leverage(world, h)
 	var p_recognise := clampf(0.15 + 0.5 * (1.0 - float(h["need"]) / 100.0) + 0.3 * (1.0 - float(h["legitimacy"]) / 100.0) + 0.2 * (lev - 0.5), 0.05, 0.9)
@@ -205,9 +211,19 @@ static func _respond_to_independence(world: WorldState, st: Dictionary, h: Dicti
 	if x < p_recognise:
 		CO.recognise_independence(world)
 		_note(world, h, "recognised independence")
-	elif int(h["patience"]) > 40 or x < p_recognise + 0.25:
-		CO.grant_autonomy(world, {"LAW_CHARTER_QUOTA_SHARE": 20, "LAW_CHARTER_PRICE_PCT": 70})
-		_note(world, h, "offered autonomy")
+	elif (int(h["patience"]) > 40 or x < p_recognise + 0.25) and int(h.get("autonomy_refused", 0)) < AUTONOMY_OFFERS:
+		# v8 review: autonomy after a declaration is an OFFER the colony's parliament can refuse (was imposed outright,
+		# reversing a declared independence twice in v8 seed 2). Refused: the declaration stands and the home world
+		# answers on a later ship (recognition or an expedition); after AUTONOMY_OFFERS refusals it stops offering.
+		var v := _parliament_vote(world, st, "REFUSE_AUTONOMY", AUTONOMY_REFUSE_SOV)
+		if v["passed"]:
+			h["autonomy_refused"] = int(h.get("autonomy_refused", 0)) + 1
+			h["legitimacy"] = maxi(0, int(h["legitimacy"]) - 5)
+			_fact(world, "HOME_AUTONOMY_REFUSED", {"yes": v["yes"], "no": v["no"]}, 85, {})
+			_note(world, h, "autonomy offer refused")
+		else:
+			CO.grant_autonomy(world, {"LAW_CHARTER_QUOTA_SHARE": 20, "LAW_CHARTER_PRICE_PCT": 70})
+			_note(world, h, "autonomy offered and accepted")
 	else:
 		_send_expedition(world, h, r)
 
