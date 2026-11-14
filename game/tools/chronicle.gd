@@ -27,6 +27,8 @@ var lever_log: Array = []  # [{month, lever, from, to, source}]
 var events := {}           # year -> [line]
 var counts := {}           # year -> {type: n}
 var years_tbl: Array = []  # [{year, pop, gov, pm, indicators{}, seats{}}]
+var firms := {}            # user (2026-11-14): new private firms and their jobs. oid -> {m, type, d, ring[], at12{}, closed_m, lost}
+var firm_jobs_y := {}      # year -> private jobs (persons) at year end
 
 
 func _initialize() -> void:
@@ -89,8 +91,51 @@ func _month(m: int, prev_levers: Dictionary) -> void:
 			continue
 		if t.begins_with("POL_") or t.begins_with("LAW_") or t.begins_with("HOME_") or t == "ECON_SHIP_ARRIVED" or t.begins_with("STAFF_OFFICIAL") or t == "STAFF_OVERSIGHT_REPORT" or t in NOTABLE_ECON:
 			events[y].append("m%d (%s) **%s** %s" % [m, _date(m), t, _describe(f)])
+	_track_firms(m)
 	if (m + 1) % 12 == 0:
 		_snap_year(y)
+
+
+## User: "Of the new companies founded in each year, how many create functioning, revenue-generating workplaces, how
+## many workers do they employ after twelve months, and how many merely replace employers that closed?" Every private
+## firm and co-op is followed from the month it first appears (firms present at the start are not counted as new).
+func _track_firms(m: int) -> void:
+	var jobs := {}
+	var running := {}
+	for fid in w.peek("facility"):
+		var f: Dictionary = w.peek("facility")[fid]
+		var n := EconLabor.staff_total(f.get("staff", {}))
+		jobs[f["org"]] = int(jobs.get(f["org"], 0)) + n
+		if not f.get("mothball", false) and n > 0:
+			running[f["org"]] = String(f["type"])
+	var total := 0
+	for oid in w.peek("org"):
+		var o: Dictionary = w.peek("org")[oid]
+		if not (String(o["type"]) in ["PRIVATE", "COOPERATIVE"]) or bool(o.get("is_contractor", false)):
+			continue
+		var j := (int(jobs.get(oid, 0)) + EconLabor.staff_total(o.get("crew", {}))) / EconUtil.S
+		var rec: Dictionary = firms.get(oid, {})
+		if rec.is_empty():
+			rec = {"m": m if m > 0 else -1, "type": String(o.get("entry_type", "")), "d": String(o.get("hq", "")), "ring": [], "at12": {}, "closed_m": -1, "lost": 0}
+			firms[oid] = rec
+		if String(rec["type"]) == "" and running.has(oid):
+			rec["type"] = running[oid]
+		var closed: bool = String(o["status"]) in ["LIQUIDATION", "DISSOLVED"]
+		if not closed:
+			total += j
+		var ring: Array = rec["ring"]
+		ring.append(j)
+		while ring.size() > 12:
+			ring.pop_front()
+		if int(rec["m"]) >= 0 and m == int(rec["m"]) + 12:
+			var rev := int((o.get("pl_last", {}) as Dictionary).get("rev", 0))
+			rec["at12"] = {"alive": not closed, "working": not closed and running.has(oid) and rev > 0, "jobs": 0 if closed else j,
+				"building": String(o["status"]) == "FORMING"}
+		if closed and int(rec["closed_m"]) < 0:
+			rec["closed_m"] = m
+			rec["lost"] = int(ring.max()) if not ring.is_empty() else 0
+	if (m + 1) % 12 == 0:
+		firm_jobs_y[m / 12 + 1] = total
 
 
 func _snap_party(p: Dictionary, m: int, kind: String, why: Dictionary) -> void:
@@ -536,6 +581,7 @@ func _society(L: PackedStringArray) -> void:
 	_unions_section(L, by_type)
 	_trade_section(L, by_type)
 	_industry_section(L, by_type)
+	_firm_cohorts(L)
 	_press_section(L, by_type)
 
 
@@ -647,6 +693,55 @@ func _industry_section(L: PackedStringArray, by_type: Dictionary) -> void:
 			L.append("- Y%d–%d: %s" % [d * 10 + 1, d * 10 + 10, ", ".join(ks.map(func(k): return "%s %d" % [String(k).get_slice("|", 1), inv[k]]))])
 	L.append("")
 	L.append("Plants scrapped: %d · mothballed: %d." % [by_type.get("ECON_FACILITY_SCRAPPED", []).size(), by_type.get("ECON_FACILITY_MOTHBALLED", []).size()])
+	L.append("")
+
+
+func _firm_cohorts(L: PackedStringArray) -> void:
+	L.append("### New firms and jobs, year by year")
+	L.append("")
+	L.append("Private firms and co-ops founded each year and how they did twelve months later: *working* = still open with a running, staffed plant and sales last month. *Replacing* = founded in a district where a firm with the same kind of plant closed in the 24 months before. *Closed* and *jobs lost* count firms that closed that year and their peak staff in their last twelve months. *Net* = jobs at 12 months of that year's new firms minus jobs lost in that year's closures. *Private jobs* = all staff of open private firms and co-ops at year end.")
+	L.append("")
+	L.append("| Year | Founded | Working at 12 m | Still building at 12 m | Gone by 12 m | Jobs at 12 m | Replacing | Closed | Jobs lost | Net | Private jobs | Unemployment % |")
+	L.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
+	var by_y := {}
+	for oid in firms:
+		var r: Dictionary = firms[oid]
+		if int(r["m"]) >= 0:
+			var y := int(r["m"]) / 12 + 1
+			var row: Dictionary = by_y.get(y, {"f": 0, "w": 0, "b": 0, "dead": 0, "j": 0, "rep": 0, "c": 0, "lost": 0, "pending": 0})
+			row["f"] += 1
+			if (r["at12"] as Dictionary).is_empty():
+				row["pending"] += 1
+			else:
+				row["w"] += 1 if bool(r["at12"]["working"]) else 0
+				row["b"] += 1 if bool(r["at12"].get("building", false)) else 0
+				row["dead"] += 0 if bool(r["at12"]["alive"]) else 1
+				row["j"] += int(r["at12"]["jobs"])
+			for oid2 in firms:
+				var c: Dictionary = firms[oid2]
+				if oid2 != oid and int(c["closed_m"]) >= 0 and int(c["closed_m"]) <= int(r["m"]) and int(r["m"]) - int(c["closed_m"]) <= 24 						and String(c["type"]) == String(r["type"]) and String(c["type"]) != "" and String(c["d"]) == String(r["d"]):
+					row["rep"] += 1
+					break
+			by_y[y] = row
+		if int(r["closed_m"]) >= 0:
+			var yc := int(r["closed_m"]) / 12 + 1
+			var row2: Dictionary = by_y.get(yc, {"f": 0, "w": 0, "b": 0, "dead": 0, "j": 0, "rep": 0, "c": 0, "lost": 0, "pending": 0})
+			row2["c"] += 1
+			row2["lost"] += int(r["lost"])
+			by_y[yc] = row2
+	var unemp := {}
+	for yr in years_tbl:
+		unemp[int(yr["year"])] = float(yr["ind"].get("Unemployment %", -1.0))
+	var tot := {"f": 0, "w": 0, "b": 0, "dead": 0, "j": 0, "rep": 0, "c": 0, "lost": 0}
+	for y in range(1, firm_jobs_y.size() + 1):
+		var r3: Dictionary = by_y.get(y, {"f": 0, "w": 0, "b": 0, "dead": 0, "j": 0, "rep": 0, "c": 0, "lost": 0, "pending": 0})
+		var pend := int(r3["pending"])
+		var wk := "%d of %d%s" % [r3["w"], r3["f"], (" (%d too new)" % pend) if pend > 0 else ""] if int(r3["f"]) > 0 else "–"
+		L.append("| %d | %d | %s | %d | %d | %d | %d | %d | %d | %+d | %d | %s |" % [y, r3["f"], wk, r3["b"], r3["dead"], r3["j"], r3["rep"], r3["c"], r3["lost"], int(r3["j"]) - int(r3["lost"]),
+			int(firm_jobs_y.get(y, 0)), ("%.1f" % unemp[y]) if unemp.get(y, -1.0) >= 0.0 else "–"])
+		for k in tot:
+			tot[k] += int(r3[k])
+	L.append("| **All** | %d | %d | %d | %d | %d | %d | %d | %d | %+d | | |" % [tot["f"], tot["w"], tot["b"], tot["dead"], tot["j"], tot["rep"], tot["c"], tot["lost"], int(tot["j"]) - int(tot["lost"])])
 	L.append("")
 
 

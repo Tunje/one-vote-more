@@ -81,7 +81,9 @@ and that is why they max out.
    faction splits off in one go when it does break, or slows the party's drift toward its voters.
 3. **G_RESEARCH is free.** "Polling money buys a sharper picture", but no money is spent. Fix: charge it to the
    party's funds per month, scaled by the gene.
-4. **G_PORK pays off strongly.** Election-year spending is real politics and its cost lands on the treasury, so this is
+4. **G_PORK pays off strongly** (follow-up 2026-11-14, Ella's check, 3 seeds × 40 years, gene 0 vs 1000 for all
+   parties: sweeteners barely move the First Minister's party's vote and the bill reaches voters only faintly through
+   GOVERNANCE satisfaction; the optimiser's gain was probably noise, so not a live exploit). Election-year spending is real politics and its cost lands on the treasury, so this is
    partly intended realism. Check whether voters ever punish the deficit afterwards; if the bill never arrives at the
    ballot box, this is an exploit too.
 5. **G_SPEND low wins: campaign money buys too little.** The learned party spends a third of the default rate and
