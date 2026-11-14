@@ -110,11 +110,18 @@ func test_grudge_fades_linearly_over_eight_years() -> void:
 	var u: Dictionary = pair[0]
 	var p: Dictionary = pair[1]
 	var base := UnionPolitics.score(w, u, p)
-	UnionPolitics.betray(w, st, p["id"], {"ECON_UNION_RIGHTS": -2.0})
 	var m0 := w.month
+	# the party's own record with the union fades over the same years (v10 worlds have a large one at this point):
+	# measure that drift without a grudge first, so only the grudge is tested
+	var drift := {}
+	for dm0 in [0, 48, 96]:
+		w.month = m0 + dm0
+		drift[dm0] = base - UnionPolitics.score(w, u, p)
+	w.month = m0
+	UnionPolitics.betray(w, st, p["id"], {"ECON_UNION_RIGHTS": -2.0})
 	var at := func(dm: int) -> float:
 		w.month = m0 + dm
-		return base - UnionPolitics.score(w, u, p)
+		return base - UnionPolitics.score(w, u, p) - float(drift[dm])
 	var p0: float = at.call(0)
 	var p48: float = at.call(48)
 	var p96: float = at.call(96)

@@ -333,6 +333,7 @@ static func essentials(world: WorldState) -> Dictionary:
 		var o: Dictionary = offers.get(ftype, {})
 		out[g] = {"capacity": m[g]["capacity"], "demand": m[g]["demand"], "margin_pct": int(round(m[g]["margin_pct"])),
 			"trend": EconEssentials.trend(world, g), "labour_fill": EconEssentials.labour_fill(world, ftype),
+			"nameplate": m[g].get("nameplate", m[g]["capacity"]), "labour_fill_tiers": EconEssentials.labour_fill_by_tier(world, ftype),
 			"incentive": {} if o.is_empty() else {"grant_pct": o["grant_pct"], "until": o["until"], "cap": float(o["cap"]) / S,
 				"paid": float(o["paid"]) / S}}
 	var units := 0

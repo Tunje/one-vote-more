@@ -37,13 +37,117 @@ static func staple_q(world: WorldState, g: Dictionary, food_q: int, pf_eff: int,
 	# never had bakeries does not miss them, while one whose bakeries collapse does (taste fades over years)
 	g["ff_pref"] = share_q * int(g.get("ff_taste", 0)) / 1000
 	var pff := fine_price_eff(world)
-	if float(pff) > float(PRICE_CAP.get(band, 2.7)) * float(pf_eff):
-		return 0
-	if spare >= 0 and pff > pf_eff:
+	var cap_eff := int(float(PRICE_CAP.get(band, 2.7)) * float(pf_eff))
+	var want := share_q
+	if float(pff) > float(cap_eff):
+		share_q = 0
+	elif spare >= 0 and pff > pf_eff:
 		# never at the expense of calories: the bakery premium comes out of money left after a full raw-food diet,
 		# utilities and rent (5 seeds: without this cap the dearer staples left families short for the fallback)
 		share_q = mini(share_q, int(float(spare) * S / float(pff - pf_eff)))
+	if dissatisfaction(world):
+		_record_gate(world, want, cap_eff, spare, pf_eff, maxi(0, share_q))
 	return maxi(0, share_q)  # households still try to buy their share — that is how they get to know bakery goods
+
+
+# ------------------------------------------------------------------ E156 priced-out demand (bread only)
+
+## E156 (user, opt-in with E146): "if they want to but can't buy, bread goes too high — the company can win by lowering
+## instead: 1000 orders at 250 beats 500 orders at 350". Priced-out bread was invisible to bakeries (no order, so no
+## shortage, so the price never fell, bakeries idle at 18–68% beside people eating raw). Each month every household
+## pool's own gate is recorded — its bread share, its price cap (band × food price) and its spare budget — so the bakers
+## can see exactly how much more would sell at a lower price. EconMarket then lowers the bread price by up to
+## CUT_STEP a month when that raises revenue (never below CUT_FLOOR × the cheapest bakery's cost, only with idle
+## capacity, not in a shortage). Bread only, by the user's choice (one clean control case).
+const CUT_STEP := 0.05
+const CUT_STEP_IDLE := 0.15  # Wilma: the same as the normal ALPHA, while (almost) nothing sells
+const CUT_FLOOR := 1.1
+const PRICED_OUT_MIN := 0.20
+const IDLE_UTIL := 0.85
+
+
+static func dissatisfaction(world: WorldState) -> bool:
+	return active(world) and (world.meta["on"] as Array).has("E156")
+
+
+static func _record_gate(world: WorldState, want: int, cap_eff: int, spare: int, pf_eff: int, ordered: int) -> void:
+	var s := EconUtil.st(world)
+	if int(s.get("bread_gates_m", -1)) != world.month:
+		s["bread_gates"] = []
+		s["bread_gates_m"] = world.month
+		s["priced_out"] = {"FINE_FOOD": 0, "wanted": 0}
+	(s["bread_gates"] as Array).append([want, cap_eff, spare, pf_eff])
+	var po: Dictionary = s["priced_out"]
+	po["FINE_FOOD"] = int(po["FINE_FOOD"]) + maxi(0, want - ordered)
+	po["wanted"] = int(po["wanted"]) + want
+
+
+## Staple bread the recorded households would order at an effective (shop) price x (milli-units).
+static func demand_at(world: WorldState, x_eff: int) -> int:
+	var t := 0
+	for e in EconUtil.st(world).get("bread_gates", []):
+		var want := int(e[0])
+		if x_eff > int(e[1]):
+			continue
+		if x_eff <= int(e[3]) or int(e[2]) < 0:
+			t += want
+		else:
+			t += mini(want, int(float(int(e[2])) * S / float(x_eff - int(e[3]))))
+	return t
+
+
+## The shop price households see for a market bread price p.
+static func eff_of(world: WorldState, p: float) -> int:
+	var tax_m := 1.0 + float(EconUtil.lever(world, "ECON_SALES_TAX", 0)) / 100.0
+	return int(p * 1.1 * tax_m * (1.0 + float(EconRetail.margin_pm(world, "FINE_FOOD")) / 1000.0))
+
+
+## TRADE (_update_prices): the bakers' price cut, or -1.0 for no change. `sold` = bread sold this month (milli).
+static func bread_cut(world: WorldState, p: float, shortage: float, sold: int, cheapest: float) -> float:
+	if not dissatisfaction(world) or cheapest <= 0.0:
+		return -1.0
+	var s := EconUtil.st(world)
+	# Wilma: the shortage that blocks a cut is on the STAPLE orders only (a few unfilled luxury orders must not stop it)
+	var sm: Dictionary = s.get("staple_m", {})
+	var st_short := 0.0
+	if int(sm.get("want", 0)) > 0:
+		st_short = 1.0 - float(int(sm.get("got", 0))) / float(int(sm["want"]))
+	if st_short > 0.05:
+		return -1.0
+	var po: Dictionary = s.get("priced_out", {})
+	if int(po.get("wanted", 0)) <= 0 or float(int(po.get("FINE_FOOD", 0))) < PRICED_OUT_MIN * float(int(po["wanted"])):
+		return -1.0
+	var cap := 0
+	var made := 0
+	for fid in world.table("facility"):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] == "BAKERY" and not f["mothball"]:
+			cap += int(float(EconData.RECIPES["BAKERY"]["out"][1]) * S * EconUtil.fscale(f))
+			made += int(f.get("out_last", 0))
+	if cap <= 0 or float(made) >= IDLE_UTIL * float(cap):
+		return -1.0
+	var floor_p := CUT_FLOOR * cheapest
+	if p <= floor_p:
+		return -1.0
+	# the bakers look down the whole price range (to the floor) for the price that earns most, using the households'
+	# own gates and budgets — a single 5% step from far above every gate would show no gain and never start
+	var base_d := demand_at(world, eff_of(world, p))
+	var best_p := p
+	var best_rev := p * float(sold)
+	var x := p
+	while x > floor_p:
+		x = maxf(floor_p, x * (1.0 - CUT_STEP))
+		var gained := mini(maxi(0, demand_at(world, eff_of(world, x)) - base_d), cap - made)  # idle ovens only
+		var rev := x * float(sold + gained)
+		if rev > best_rev:
+			best_rev = rev
+			best_p = x
+	if best_p >= p:
+		return -1.0  # no lower price pays: keep it
+	s["bread_cut_m"] = int(s.get("bread_cut_m", 0)) + 1
+	# a seller with (almost) no sales loses nothing by cutting: up to CUT_STEP_IDLE a month then, CUT_STEP once it sells
+	var step := CUT_STEP_IDLE if float(sold) < 0.05 * float(maxi(1, made)) or sold < S else CUT_STEP
+	return maxf(best_p, p * (1.0 - step))
 
 
 ## (d) taste (‰ of the band share) after this month's staples: rises toward 1000 by the share of the staple order that

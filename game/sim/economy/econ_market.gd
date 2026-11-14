@@ -348,6 +348,10 @@ static func _update_prices(world: WorldState) -> void:
 				p2 = maxf(SURPLUS_FLOOR * fc, p2 * (1.0 - SURPLUS_DRIFT))
 		if cost_plus and not (good in COST_PLUS_EXEMPT):
 			p2 = _cost_plus(world, good, p, shortage, excess)
+		if good == "FINE_FOOD" and EconStaple.dissatisfaction(world):
+			var cut := EconStaple.bread_cut(world, p, shortage, int(m.get("filled", 0)), _cheapest_cost(world, good))
+			if cut > 0.0:
+				p2 = minf(p2, cut)  # E156: priced-out customers — selling more at a lower price beats selling less
 		var base := float(s["base"][good])
 		s["prices"][good] = int(clampf(p2, base * EconData.PRICE_MIN_MULT, base * EconData.PRICE_MAX_MULT * wage_level(world)))
 

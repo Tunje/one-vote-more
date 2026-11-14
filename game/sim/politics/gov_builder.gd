@@ -19,6 +19,8 @@ const QUARTER_MONTH := 1
 
 
 static func monthly(world: WorldState, st: Dictionary) -> void:
+	if world.table("econ").has("s"):
+		_grant_cover(world, st)
 	if world.month % 3 != QUARTER_MONTH or not world.table("econ").has("s"):
 		return
 	var who := _actor(world, st)
@@ -209,6 +211,126 @@ static func _order(world: WorldState, st: Dictionary, busy: Dictionary, who: Dic
 		"responsible": [{"actor": {"kind": "GOVERNMENT" if who["by"] != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}],
 		"impact": {}, "magnitude": 35, "visibility": "PUBLIC", "data": {"type": ftype, "district": d, "by": who["by"], "line": line}})
 	return 1
+
+
+## Family grant programmes (user 2026-11-15: a grant is a time-limited programme; when it ends the government starts
+## over on its level "and where it covers too"). When a programme opens (grant lever above 0 and no coverage set yet),
+## the government names the districts it covers: those with the greatest need (Bob's st["family_need_d"][kind] = {d:
+## need}), two by default, more for egalitarian and spending-minded governments. EconFamily reads st["grant_cover"][kind]
+## (absent = not decided yet, no grants that month) and the entry is dropped when the lever is back at 0, so the next programme chooses again.
+const GRANT_KINDS := {"FARM": "ECON_FAMILY_FARM_GRANT", "BAKERY": "ECON_FAMILY_BAKERY_GRANT"}
+const GRANT_FAVOUR := 0.5   # weight of the governing parties' vote share in a district against its (normalised) need
+static func _grant_cover(world: WorldState, st: Dictionary) -> void:
+	var s := EconUtil.st(world)
+	if not s.has("family_need_d"):
+		return
+	var cover: Dictionary = s.get("grant_cover", {})
+	var progs: Dictionary = s.get("grant_prog", {})
+	s["grant_prog"] = progs
+	for kind in EconUtil.sorted_keys(GRANT_KINDS):
+		var need_d: Dictionary = (s["family_need_d"] as Dictionary).get(kind, {})
+		if int(world.levers.get(GRANT_KINDS[kind], 0)) <= 0:
+			if progs.has(kind):
+				_programme_ended(world, st, String(kind), progs[kind])
+				progs.erase(kind)
+			cover.erase(kind)
+			continue
+		# the open programme: who opened it, how long it has run and in how many of those months there was a need
+		if not progs.has(kind):
+			progs[kind] = {"by": String(_actor(world, st).get("by", "")), "start": world.month, "months": 0, "need_m": 0}
+		progs[kind]["months"] = int(progs[kind]["months"]) + 1
+		for d0 in need_d:
+			if int(need_d[d0]) > 0:
+				progs[kind]["need_m"] = int(progs[kind]["need_m"]) + 1
+				break
+		if cover.has(kind):
+			continue
+		var ds: Array = []
+		for d in EconUtil.sorted_keys(need_d):
+			if int(need_d[d]) > 0:
+				ds.append(d)
+		if ds.is_empty():
+			continue   # nowhere needs it yet: decide when a need appears
+		var who := _actor(world, st)
+		if who.is_empty():
+			continue
+		var pos: Dictionary = who["pos"]
+		var wide := float(pos.get("REDISTRIBUTION", 0)) / 100000.0 + float(pos.get("FISCAL", 0)) / 100000.0
+		var n := clampi(2 + int(round(2.0 * wide)), 1, ds.size())
+		ds.sort_custom(func(a, b): return int(need_d[a]) > int(need_d[b]) or (int(need_d[a]) == int(need_d[b]) and String(a) < String(b)))
+		var fair: Array = ds.slice(0, n)
+		# User (2026-11-15): "this is a politics game first, yes voter territory, but that should not be appreciated".
+		# An elected government leans toward the districts that voted for it: more so with little regard for
+		# institutional norms and in an election year (pork). Need still counts; a district without need is never chosen.
+		var chosen: Array = fair
+		var members: Array = st.get("government", {}).get("members", [])
+		if who["by"] != "commander" and not members.is_empty() and ds.size() > n:
+			var inst := float(pos.get("INSTITUTIONS", 0)) / 100000.0
+			var favour := clampf(GRANT_FAVOUR * (1.0 - inst), 0.0, 2.0 * GRANT_FAVOUR) * (1.0 + Campaign.pork_pressure(world, st))
+			var top := 1.0
+			for d in ds:
+				top = maxf(top, float(need_d[d]))
+			var sc := {}
+			for d in ds:
+				sc[d] = float(need_d[d]) / top + favour * _district_share(world, String(d), members)
+			var ranked: Array = ds.duplicate()
+			ranked.sort_custom(func(a, b): return float(sc[a]) > float(sc[b]) or (float(sc[a]) == float(sc[b]) and String(a) < String(b)))
+			chosen = ranked.slice(0, n)
+		cover[kind] = chosen
+		var resp := [{"actor": {"kind": "GOVERNMENT" if who["by"] != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}]
+		world.add_fact({"type": "POL_GRANT_COVERAGE", "owner": "pol", "subjects": [], "responsible": resp,
+			"impact": {}, "magnitude": 25, "visibility": "PUBLIC", "data": {"kind": kind, "districts": chosen, "by": who["by"]}})
+		var passed_over: Array = fair.filter(func(d): return not (d in chosen))
+		if not passed_over.is_empty():
+			# favouring its own voters over needier districts is seen and resented
+			world.add_fact({"type": "POL_GRANT_FAVOURITISM", "owner": "pol", "subjects": [], "responsible": resp,
+				"impact": {"FAIRNESS": -4, "GOVERNANCE": -3}, "magnitude": 45, "visibility": "PUBLIC",
+				"data": {"kind": kind, "favoured": chosen.filter(func(d): return not (d in fair)), "passed_over": passed_over, "by": who["by"]}})
+	s["grant_cover"] = cover
+
+
+## User (2026-11-15): a government loses face when it opens a grant nobody takes up, "it feeds the politics", and
+## "they need to not know if it will succeed": nothing here or in the legislature tells a government beforehand whether
+## families will apply; it finds out when the programme ends (and its belief in the lever learns from the result like
+## any other law, Intel). A programme that paid no grant is a public failure of whoever opened it: a real one when the
+## colony needed the food or bread for much of its run, a small embarrassment when it did not.
+const GRANT_FAIL_NEED_M := 6
+static func _programme_ended(world: WorldState, st: Dictionary, kind: String, rec: Dictionary) -> void:
+	var paid := -1
+	var level := 0
+	for f in world.facts.query("ECON_GRANT_PROGRAMME_ENDED", world.month - 1, world.month):
+		if String(f["data"].get("lever", "")) == String(GRANT_KINDS[kind]):
+			paid = int(f["data"].get("paid", 0))
+			level = int(f["data"].get("level", 0))
+	if paid != 0:
+		return   # grants were paid (or the end is not on record): no failure
+	var needed: bool = int(rec.get("need_m", 0)) >= GRANT_FAIL_NEED_M
+	var by := String(rec.get("by", ""))
+	var pm := String(st.get("government", {}).get("pm_party", ""))
+	var actor := {"kind": "GOVERNMENT", "id": "government"}
+	if by == "commander":
+		actor = {"kind": "COMMANDER", "id": "government"}
+	elif by != "" and by != pm:
+		actor = {"kind": "PARTY", "id": by}   # the government that opened it has left office: its party carries it
+	world.add_fact({"type": "POL_GRANT_PROGRAMME_FAILED", "owner": "pol", "subjects": [{"kind": "PARTY", "id": by}] if by != "" and by != "commander" else [],
+		"responsible": [{"actor": actor, "share": 1.0}], "impact": {"GOVERNANCE": -6, "FAIRNESS": -2} if needed else {"GOVERNANCE": -2},
+		"magnitude": 50 if needed else 25, "visibility": "PUBLIC",
+		"data": {"kind": kind, "by": by, "level": level, "months": int(rec.get("months", 0)), "need_months": int(rec.get("need_m", 0)), "needed": needed}})
+
+
+## Share of an economic district's voters that backed the given parties at the last election (0..1).
+static func _district_share(world: WorldState, d: String, parties: Array) -> float:
+	var v := 0.0
+	var n := 0.0
+	for c in PolVoters.all(world):
+		if String(c.get("district", "")) != d or int(c.get("pop", 0)) <= 0:
+			continue
+		var sh := 0.0
+		for pid in parties:
+			sh += float((c.get("prev_share", {}) as Dictionary).get(pid, 0)) / 100000.0
+		v += sh * float(c["pop"])
+		n += float(c["pop"])
+	return v / n if n > 0.0 else 0.0
 
 
 ## E146 bakery commissioning. Need per district = the raw-food share of the wanted bakery portion (EconStaple.raw_pct,

@@ -29,8 +29,11 @@ const OVERBUILT_FALL := 25  # ... unless the margin fell by more than this many 
 static func measure(world: WorldState) -> Dictionary:
 	var s := EconUtil.peek_st(world)
 	var cap := {}
+	var plate := {}
+	var e157: bool = (world.meta.get("on", []) as Array).has("E157") and not EconUtil.off(world, "E157")
 	for g in GOODS:
 		cap[g] = 0.0
+		plate[g] = 0.0
 	for fid in EconUtil.sorted_keys(world.peek("facility")):
 		var f: Dictionary = world.peek("facility")[fid]
 		var r: Dictionary = EconData.RECIPES.get(f["type"], {})
@@ -40,7 +43,19 @@ static func measure(world: WorldState) -> Dictionary:
 		if not cap.has(g):
 			continue
 		var per := 1200.0 if g == "ENERGY" else (1500.0 if g == "WATER" else float(r["out"][1]))
-		cap[g] += per * EconUtil.fscale(f) * EconProduction._eff(world, f) * EconUtil.tier_out(f)
+		var nameplate := per * EconUtil.fscale(f) * EconProduction._eff(world, f) * EconUtil.tier_out(f)
+		plate[g] += nameplate
+		if e157:
+			# E157 (S1, Wilma 2026-11-14 — "planners reading nameplate capacity is a bug"): plan on what a plant can
+			# deliver now: its served share of energy and water (a waterworks short of power is short of water) and its
+			# crew. Rationed farms showed 24–55% "spare" food capacity in a famine, so nobody built.
+			var served := 1.0
+			if r["in"].has("ENERGY") or f["type"] == "WATERWORKS":
+				served = minf(served, EconProduction.energy_factor(world, f["type"], float(int(f.get("e_served", 1000))) / 1000.0))
+			if r["in"].has("WATER"):
+				served = minf(served, float(int(f.get("w_served", 1000))) / 1000.0)
+			nameplate *= served * EconFoodSec.labour_fill(f)
+		cap[g] += nameplate
 	var dem := {
 		"FOOD": float(PopStore.total(world)) * float(EconData.NEED["FOOD"]),
 		"ENERGY": float(s.get("util_demand", {}).get("E", 0)) / S,
@@ -55,7 +70,7 @@ static func measure(world: WorldState) -> Dictionary:
 			dem[g2] = maxf(dem[g2], float(s.get("use_ema", {}).get(g2, 0)) / S)
 	var out := {}
 	for g in GOODS:
-		out[g] = {"capacity": cap[g], "demand": dem[g],
+		out[g] = {"capacity": cap[g], "demand": dem[g], "nameplate": plate[g],
 			"margin_pct": 100.0 * (cap[g] / dem[g] - 1.0) if dem[g] > 0.0 else 100.0}
 	return out
 
@@ -102,6 +117,17 @@ static func overbuilt(world: WorldState, good: String) -> bool:
 	if a.is_empty():
 		return false
 	return int(a[a.size() - 1]) > OVERBUILT_PCT and trend(world, good) > -OVERBUILT_FALL
+
+
+## E157: expected fill per skill tier (the worst tier is labour_fill) — Skilled was the binding one in the famines.
+static func labour_fill_by_tier(world: WorldState, ftype: String) -> Dictionary:
+	var out := {}
+	var lab: Dictionary = EconData.RECIPES[ftype]["labor"]
+	for t in lab:
+		var need := float(lab[t])
+		if need > 0.0:
+			out[t] = clampf(float(PopStore.count(world, {"status": "UNEMPLOYED"}, "skill:" + t)) / need, 0.0, 1.0)
+	return out
 
 
 ## Expected fill (0..1) of a new plant's crew from the unemployed, worst skill tier.

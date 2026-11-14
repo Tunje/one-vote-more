@@ -11,6 +11,7 @@ extends RefCounted
 const LawOps := preload("res://sim/law/law_ops.gd")
 const STEP_FRACTION := 0.10          # one clause moves a lever by 10% of its range
 const MAX_CLAUSES := 2
+const NEED_PASSES_GUARD := 1500   # lever_need (permille) from which a needed programme passes the fiscal guard
 const TINKER_COST := 1.5           # score cost of moving a lever again the same way (no endless small steps)
 const IMPLEMENTATION_MONTHS_STUB := 2  # placeholder until staff implementation tasks exist (M3)
 const IDEOLOGY_VOTE_WEIGHT := 2.5    # substance over role: ideology dominates floor votes (tuning knob)
@@ -351,6 +352,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	var scored: Array = []
 	var guarded := fiscal_guard(world)
 	var room := fiscal_room(world) * (E151_ROOM_PULL / FISCAL_ROOM_PULL if e151(world) else 1.0)   # E151: reserves above target push harder
+	var need_levers: Dictionary = EconUtil.peek_st(world).get("lever_need", {}) if world.table("econ").has("s") else {}
 	var step_fraction := CRISIS_STEP_FRACTION if crisis else STEP_FRACTION
 	var mem := _bill_memory(world) if allowed == "PARLIAMENT" else {"defeated": {}, "moved": {}}
 	var skill_gap := _skill_gap(world) if allowed == "PARLIAMENT" else 0.0
@@ -397,7 +399,12 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 				against_slump += SLUMP_PENALTY   # raising taxes in a slump while holding reserves
 			if deep and delta < 0.0:
 				against_slump += SLUMP_PENALTY   # cutting the jobs schemes / food help in a deep slump or hunger
-			if guarded and not owes and float(def.get("concerns", {}).get("GOVERNANCE", 0)) * delta < 0.0 and not deep:
+			var need_pm := int(need_levers.get(lid, 0))
+			var need_known: bool = need_levers.has(lid)
+			# a strong, measured need (a real shortfall, not just a thin margin) passes the soft brake: a small need-tested
+			# programme is not what the guard is for (Bob's probe: the farm grant was blocked at m60 with food short)
+			var need_passes: bool = need_pm >= NEED_PASSES_GUARD and delta > 0.0
+			if guarded and not owes and float(def.get("concerns", {}).get("GOVERNANCE", 0)) * delta < 0.0 and not deep and not need_passes:
 				stats["guard_blocked"] = int(stats.get("guard_blocked", 0)) + 1
 				continue  # fiscal guard: no new spending / tax cuts while the books are weak (pork never overrides it)
 			if _recently_rejected(world, lid, signf(delta)):
@@ -408,8 +415,8 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			var dk := "%s|%d" % [lid, int(signf(delta))]
 			if mem["defeated"].has(dk) and not owes:
 				continue  # parliament threw this out and its make-up hasn't changed: don't table it again
-			if mem["moved"].has("%s|%d" % [lid, -int(signf(delta))]) and not owes:
-				continue  # this government moved it the other way recently: no flip-flopping
+			if mem["moved"].has("%s|%d" % [lid, -int(signf(delta))]) and not owes and not (need_pm < 0 and delta < 0.0):
+				continue  # this government moved it the other way recently: no flip-flopping (unless the need has gone)
 			var ia := ideo_alignment(def, delta, pos)
 			# in a deep slump (20%+) the jobs levers are judged as jobs, not as budget repair (no fiscal-stress weight)
 			var rl := relief(def, delta, sat, sal, 0.0 if deep else stress, room, cur, Intel.belief(world, believer, lid) if believer != "" else 1.0)
@@ -417,6 +424,10 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			# ideology is discounted (a market government does not see a jobs scheme as the cure, a left one does not
 			# see benefit cuts as one), so parties answer the same crisis differently. Not under fiscal stress:
 			# budget repair is shared ground.
+			if need_known and need_pm <= 0:
+				# no need: the lever buys nothing now, so raising it brings no relief and lowering it costs none
+				# (first try: the static hints outweighed the need signal; grants rose without need and never fell)
+				rl = minf(rl, 0.0) if delta > 0.0 else maxf(rl, 0.0)
 			if ia < 0.0 and rl > 0.0 and stress <= 0.0:
 				rl /= 1.0 + absf(ia) / 2.0
 			var sc := (1.0 - 0.3 * pork) * ia + 3.0 * (1.0 + 0.5 * pork) * rl
@@ -426,6 +437,11 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			sc += lobby_tilt(world, world.peek("party").get(believer, {}), lid, delta)   # A58: the donors' asks
 			if slump_lever:
 				sc += 4.0 * float(protect[lid][0]) * signf(delta)   # v7 review: jobs in a slump, food aid in hunger; cuts are costly
+			# User (2026-11-14): "grants would not be offered when there is no need ... the government is the regulatory
+			# system". A provider may publish st["lever_need"] {lever: permille}: positive = the colony needs what this
+			# lever pays for (raise it), negative = no need (lower it). A pressure like the others, not a ban.
+			if need_pm != 0:
+				sc += 4.0 * clampf(float(need_pm) / 1000.0, -1.0, 2.0) * signf(delta)
 			if skill_gap > 0.0 and delta > 0.0 and lid in TRAINING_LEVERS:
 				sc += skill_gap  # E114: firms cannot fill skilled posts; training money and the subsidy go together
 			# v5 review (433 bills in one run): no endless tinkering. Moving the same lever again the same way within
@@ -445,6 +461,8 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 						is_deal = true
 			if sc > 1.0 or is_deal:
 				var cl := {"lever": lid, "from": int(cur), "to": int(to), "score": int(round(sc * 100.0))}
+				if need_pm >= 1000 and delta > 0.0:
+					cl["need"] = true   # a programme the colony needs now: gets its own place in the bill (below)
 				if is_deal:
 					cl["deal"] = true
 				scored.append(cl)
@@ -461,6 +479,17 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 		used[c["lever"]] = true
 		out.append(c)
 		if out.size() >= MAX_CLAUSES:
+			break
+	# A needed programme is its own decision, not a budget line competing for the two places in the bill (Bob's probe:
+	# the farm grant scored 14.6 with food short and never made the bill behind housing and infrastructure): the best
+	# needed clause the governing parties back is added if none made it.
+	if not out.any(func(c): return c.get("need", false)):
+		for c in scored:
+			if not c.get("need", false) or used.has(c["lever"]):
+				continue
+			if not gov.is_empty() and not _members_back(world, gov, c, sat, sal):
+				continue
+			out.append(c)
 			break
 	return out
 

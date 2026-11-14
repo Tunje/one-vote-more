@@ -548,6 +548,9 @@ static func _royalty(world: WorldState) -> void:
 ## PAYOUT_KEEP_MONTHS of its costs plus what it still owes on its own projects (the investment reserve), instead of 50%
 ## of profit only above 3 months of costs — firm cash otherwise idles while households run short.
 const PAYOUT_KEEP_MONTHS := 2
+## PAYOUT12 (opt-in, A/B +86 adults, food 24 → 14‰): firms keep a year of costs before paying out (PAYOUT kept 2
+## months, so no firm ever built a buffer)
+const PAYOUT12_KEEP_MONTHS := 12
 
 
 static func _payout_surplus(world: WorldState, oid: String, o: Dictionary, monthly_costs: int) -> void:
@@ -556,7 +559,8 @@ static func _payout_surplus(world: WorldState, oid: String, o: Dictionary, month
 		var p: Dictionary = world.table("project")[pid]
 		if p["owner"] == oid and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
 			owed += (int(p["price"]) - int(p["paid"])) if p["status"] == "ACTIVE" else int(p.get("est_cost", 0))
-	var spare := world.ledger.balance(EconUtil.acct(oid)) - PAYOUT_KEEP_MONTHS * monthly_costs - owed
+	var keep_m := PAYOUT12_KEEP_MONTHS if (world.meta.get("on", []) as Array).has("PAYOUT12") else PAYOUT_KEEP_MONTHS
+	var spare := world.ledger.balance(EconUtil.acct(oid)) - keep_m * monthly_costs - owed
 	if spare <= 0:
 		return
 	world.ledger.transfer(EconUtil.acct(oid), EconUtil.hh_acct(o["owner_group"]), spare, "DIVIDEND", world.month)

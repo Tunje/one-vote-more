@@ -94,7 +94,8 @@ static func produce(world: WorldState) -> void:
 		var f: Dictionary = world.table("facility")[fid]
 		var r: Dictionary = EconData.RECIPES[f["type"]]
 		var u: float = plan[fid]["u"]
-		if r["in"].has("ENERGY"): u = minf(u, e_served.get(fid, 1.0))
+		if r["in"].has("ENERGY"):
+			u = minf(u, energy_factor(world, f["type"], float(e_served.get(fid, 1.0))))
 		if r["in"].has("WATER"): u = minf(u, w_served.get(fid, 1.0))
 		if f["type"] == "WATERWORKS": u = minf(u, e_served.get(fid, 1.0))
 		var t := float(f["T"]) / 1000.0
@@ -441,3 +442,16 @@ static func _access(cap: Dictionary, need: Dictionary, _w: float) -> Dictionary:
 			var share := minf(1.0, float(spare) / maxf(1.0, float(other_need)))
 			out[d] = int(1000.0 * 0.7 * share + 0.0)
 	return out
+
+
+## E161 (user ruling 2026-11-14: a farm "should still be able to produce without power, at a smaller rate"; opt-in):
+## energy scales only part of a farm's output — with no power it works by hand at HAND_SHARE of normal, partial power
+## scales linearly up to full. Water stays a hard limit. Other plants: output follows the energy served, as before.
+const HAND_SHARE := 0.6
+const HAND_TYPES := ["FARM"]
+
+
+static func energy_factor(world: WorldState, ftype: String, served: float) -> float:
+	if ftype in HAND_TYPES and (world.meta.get("on", []) as Array).has("E161") and not EconUtil.off(world, "E161"):
+		return HAND_SHARE + (1.0 - HAND_SHARE) * clampf(served, 0.0, 1.0)
+	return served

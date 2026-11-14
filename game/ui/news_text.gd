@@ -244,6 +244,9 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"HOME_DEMAND_RAISED": s = "[color=#ff8a65]The home world raised its demands[/color]"
 		"HOME_SANCTION": s = "The home world imposed a sanction: %s" % _kind(d.get("kind", ""))
 		"HOME_EXPEDITION_SENT": s = "[color=#ff5252][b]The home world has sent a punitive expedition[/b][/color]"
+		"POL_GRANT_COVERAGE": s = "The government opened a family %s grant programme covering %d district(s)" % [String(d.get("kind", "")).to_lower(), (d.get("districts", []) as Array).size()]
+		"POL_GRANT_PROGRAMME_FAILED": s = ("[color=#ff8a65][b]The family %s grant programme ended without a single grant paid[/b], though the colony needed it[/color]" if d.get("needed", false) else "The family %s grant programme ended without a single grant paid") % String(d.get("kind", "")).to_lower()
+		"POL_GRANT_FAVOURITISM": s = "[color=#ff8a65]The family %s grants went to the government's own strongholds, passing over %d needier district(s)[/color]" % [String(d.get("kind", "")).to_lower(), (d.get("passed_over", []) as Array).size()]
 		"HOME_AUTONOMY_REFUSED": s = "[b]%s refused the home world's offer of autonomy[/b]: the declaration of independence stands" % assembly(w)
 		# ---- media (Anni, sim/media) ----
 		"MEDIA_OUTLET_FOUNDED": s = "A new newspaper, [b]%s[/b], is published by %s" % [d.get("name", "?"), actor(w, d.get("owner", {}))]

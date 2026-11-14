@@ -35,8 +35,17 @@ static func econ_only_for_load() -> Simulation:
 ## adults). Off: S7F/S7C (no gain on the v9 base), E141 (office hiring priority; costs jobs and food), SUPPORT_S (no gain, higher tax), E136-E138
 ## (lowest real income; wait for the private-firm work), SUPPORT_D/E (failed earlier A/Bs). Econ-only test worlds
 ## (make_econ_only) stay opt-in. meta["off"] still switches any of these off.
+## v10 (Wilma, 2026-11-14/15; Bob's candidate run, 10 seeds x 30 years: adults 4695 -> 4761, unemployment 18.0 -> 16.0%,
+## food shortfall 24 -> 10 permille, real income 2.79 -> 3.45, food price 277 -> 195% of base, bank capital x2.8): added
+## E146/E147 (bread as everyday food, start-up capital), E148 (supplier credit), E149 (cost-plus prices, FOOD exempt),
+## E150 (self-funding public companies), PAYOUT12 (firms keep 12 months of costs before paying owners), E157 (planners
+## read deliverable capacity, not nameplate) and E161 (farms work by hand without power at 60%). Tested as exactly this
+## list. Off: E156 (bread price cuts; not in the candidate run), E143, E151-E155 (money arms: starve the colony until
+## supply responds), E158/E159 (job switching; no gain on top of E157), E160/E162 (family farms and bakeries; waiting for
+## the need-tested grants).
 const DEFAULT_ON := ["E134", "PAYOUT", "SUPPORT_T", "WORKLOAD", "SUPPORT_A", "CONDUCT", "CRIME", "SCANDAL_REVIVAL",
-	"M2", "WAREHOUSE", "POLICE", "PRISONS", "FLEET", "CARE", "E140"]
+	"M2", "WAREHOUSE", "POLICE", "PRISONS", "FLEET", "CARE", "E140",
+	"E146", "E147", "E148", "E149", "E150", "PAYOUT12", "E157", "E161"]
 
 
 static func make(seed_value: int, scenario: String = "BALANCED", persona: Dictionary = {}, autoplay: bool = true) -> Simulation:
