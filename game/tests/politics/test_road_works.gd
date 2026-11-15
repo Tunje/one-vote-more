@@ -78,3 +78,45 @@ func test_the_roads_case_for_the_budget() -> void:
 	w.table("transport")["fpairs_last"] = {"a|b": [1000, 0]}
 	GovBuilder._road_budget_need(w, st)
 	check(not st.has("lever_need"), "the case is withdrawn when the freight moves")
+
+
+func test_a_district_passed_over_for_another_road_resents_it() -> void:
+	var sim: Simulation = EconSim.make(1, "BALANCED", {}, true)
+	(sim.world.meta["on"] as Array).append_array(["FREIGHT_ROADS", "ROAD_WORKS"])
+	sim.run(60)
+	var w := sim.world
+	var st: Dictionary = w.table("pol")["state"]
+	for pid in w.table("project"):                     # no road work under way anywhere
+		if w.table("project")[pid]["type"] == "ROAD":
+			w.table("project")[pid]["status"] = "DONE"
+	var bad := ""
+	for r in Transport.road_needs(w):
+		if int(r.get("severity", 0)) >= GovBuilder.ROAD_FELT_SEV:
+			bad = str(r["district"])
+			break
+	check(bad != "", "a district with a badly overloaded road by year 5")
+	if bad == "":
+		return
+	var who := {"by": "commander", "pos": {}}
+	st.erase("road_wait")
+	st["road_q_orders"] = ["somewhere:else"]
+	GovBuilder._road_feelings(w, st, who)
+	var facts: Array = w.facts.query("POL_ROAD_PASSED_OVER", w.month, w.month).filter(func(f): return String(f["data"]["district"]) == bad)
+	check_eq(facts.size(), 1, "passed over once")
+	if facts.size() == 1:
+		check_eq(facts[0]["affected"]["districts"], [bad], "felt in that district only")
+		check(int(facts[0]["impact"]["INFRASTRUCTURE"]) < 0, "they think less of the roads")
+		check_eq(String(facts[0]["data"]["instead"]), "somewhere:else", "it names the road that went first")
+	check_eq(int(st["road_wait"][bad]), 1, "one quarter waited")
+	var first := int(facts[0]["impact"]["INFRASTRUCTURE"]) if facts.size() == 1 else 0
+	for i in 6:
+		w.month += 3
+		st["road_q_orders"] = ["somewhere:else"]
+		GovBuilder._road_feelings(w, st, who)
+	var later: Array = w.facts.query("POL_ROAD_PASSED_OVER", w.month, w.month).filter(func(f): return String(f["data"]["district"]) == bad)
+	check(later.size() == 1 and int(later[0]["impact"]["INFRASTRUCTURE"]) < first, "it gets worse the longer they wait")
+	w.month += 3
+	st["road_q_orders"] = [bad]
+	GovBuilder._road_feelings(w, st, who)
+	check(not (st.get("road_wait", {}) as Dictionary).has(bad), "a road ordered for them ends the wait")
+	check_eq(w.facts.query("POL_ROAD_PASSED_OVER").filter(func(f): return String(f["data"]["district"]) == bad).size(), 7, "and no new complaint from them")

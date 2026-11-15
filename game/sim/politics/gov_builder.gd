@@ -27,6 +27,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	var who := _actor(world, st)
 	if who.is_empty():
 		return
+	_road_feelings(world, st, who)
 	var pos: Dictionary = who["pos"]
 	var spend := float(pos.get("FISCAL", 0)) / 100000.0          # -1..1
 	var state := float(pos.get("ECON_ROLE", 0)) / 100000.0
@@ -190,8 +191,71 @@ static func _road_needs(world: WorldState, st: Dictionary, busy: Dictionary, who
 		if _order(world, st, busy, who, "ROAD", str(r["district"]), line, {"link": spec.duplicate(true)}) > 0:
 			done_keys[key] = world.month
 			done += 1
+			if choose:
+				var q: Array = st.get("road_q_orders", [])
+				q.append(str(r["district"]))
+				st["road_q_orders"] = q
 	st["road_need_keys"] = done_keys
 	return done
+
+
+## How people on a bad road take it (user 2026-11-15: "how do the people living on a bad road feel when the government
+## prioritises them down?"). Each quarter, looking back at the last one: a district with a badly overloaded or worn
+## road and no road work under way has waited another quarter (pol.state["road_wait"]). If the government ordered a
+## road elsewhere meanwhile, the district was passed over: POL_ROAD_PASSED_OVER, felt in that district only, worse the
+## longer it has waited, and worse again when the road that went first lies where the government's voters live.
+## If nothing was ordered anywhere, the district is merely neglected (a milder fact once a year).
+const ROAD_FELT_SEV := 300           # a road need at or over this severity is felt by the district
+const ROAD_FAVOUR_GAP := 0.05        # the chosen district votes this much more for the government: seen as favouring its own
+
+
+static func _road_feelings(world: WorldState, st: Dictionary, who: Dictionary) -> void:
+	if not road_works_on(world):
+		return
+	var ordered: Array = st.get("road_q_orders", [])
+	st.erase("road_q_orders")
+	var wait: Dictionary = st.get("road_wait", {})
+	var worst := {}
+	for r in Transport.road_needs(world):
+		var d := str(r["district"])
+		if int(r.get("severity", 0)) >= ROAD_FELT_SEV:
+			worst[d] = maxi(int(worst.get(d, 0)), int(r["severity"]))
+	var working := {}
+	for pid in world.peek("project"):
+		var p: Dictionary = world.peek("project")[pid]
+		if p["type"] == "ROAD" and p["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
+			working[String(p["district"])] = true
+	for d in EconUtil.sorted_keys(wait):
+		if not worst.has(d) or working.has(d) or ordered.has(d):
+			wait.erase(d)
+	var members: Array = (st.get("government", {}) as Dictionary).get("members", [])
+	var resp := [{"actor": {"kind": "GOVERNMENT" if who["by"] != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}]
+	for d in EconUtil.sorted_keys(worst):
+		if working.has(d) or ordered.has(d):
+			continue
+		var q := int(wait.get(d, 0)) + 1
+		wait[d] = q
+		var instead := ""
+		for o in ordered:
+			if String(o) != String(d):
+				instead = String(o)
+				break
+		if instead != "":
+			var favoured := not members.is_empty() and _district_share(world, instead, members) > _district_share(world, String(d), members) + ROAD_FAVOUR_GAP
+			var impact := {"INFRASTRUCTURE": -(2 + mini(q, 8) / 2)}
+			if favoured:
+				impact["FAIRNESS"] = -3
+			world.add_fact({"type": "POL_ROAD_PASSED_OVER", "owner": "pol", "subjects": [], "responsible": resp, "impact": impact,
+				"affected": {"districts": [String(d)]}, "magnitude": 20 + 3 * mini(q, 8) + (10 if favoured else 0), "visibility": "PUBLIC",
+				"data": {"district": String(d), "quarters": q, "instead": instead, "favoured": favoured, "severity": int(worst[d]), "by": who["by"]}})
+		elif q % 4 == 0:
+			world.add_fact({"type": "POL_ROAD_NEGLECTED", "owner": "pol", "subjects": [], "responsible": resp, "impact": {"INFRASTRUCTURE": -2},
+				"affected": {"districts": [String(d)]}, "magnitude": 20, "visibility": "PUBLIC",
+				"data": {"district": String(d), "quarters": q, "severity": int(worst[d]), "by": who["by"]}})
+	if wait.is_empty():
+		st.erase("road_wait")
+	else:
+		st["road_wait"] = wait
 
 
 ## Road works by choice (user 2026-11-15: "roads won't take the new freight ... another job for builders and for the

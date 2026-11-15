@@ -28,7 +28,7 @@ const DECAY_PM := 30                # a grudge loses this permille of itself a m
 const QUESTION_P := 0.5             # chance a month at full rivalry, when there is a decision to question
 const QUESTIONS_MAX := 2            # parties questioning in one month
 ## government decisions the opposition can question (fact types), and how tempting each is
-const QUESTIONABLE := {"POL_PROJECT_ORDERED": 1.0, "POL_ROAD_PATCHED": 2.5, "POL_GRANT_COVERAGE": 1.5, "POL_GRANT_FAVOURITISM": 3.0,
+const QUESTIONABLE := {"POL_PROJECT_ORDERED": 1.0, "POL_ROAD_PATCHED": 2.5, "POL_ROAD_PASSED_OVER": 2.5, "POL_GRANT_COVERAGE": 1.5, "POL_GRANT_FAVOURITISM": 3.0,
 	"POL_GRANT_PROGRAMME_FAILED": 3.0, "POL_WILDLIFE_OUTCRY": 2.0, "POL_BIRDS_MISSED": 1.0}
 
 
