@@ -14,6 +14,7 @@ extends RefCounted
 const Det := preload("res://sim/staff/det.gd")
 const Staff := preload("res://sim/staff/staff_ops.gd")
 const GOV := {"kind": "GOVERNMENT", "id": "government"}
+const Desk := preload("res://sim/office/decision_desk.gd")   # who decides (flag DELEGATION): counts decisions
 const PF := preload("res://sim/law/party_finance.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 const EXCLUSIVE_MODES := ["ALLOWED", "DOMINANT_BANNED", "BANNED"]
@@ -168,6 +169,8 @@ static func _post(world: WorldState, row: Dictionary) -> String:
 
 
 static func _decide(world: WorldState, row: Dictionary, decision: String, by: String) -> void:
+	if by != "LAW":
+		Desk.note(world, "COMPETITION_REVIEW")   # cleared by law below the threshold is no government decision
 	row["decision"] = decision
 	row["status"] = {"APPROVE": "CLEARED", "CONDITIONS": "CONDITIONS", "BLOCK": "BLOCKED"}[decision]
 	row["conditions"] = CONDITIONS.duplicate() if decision == "CONDITIONS" else {}

@@ -37,6 +37,7 @@ const Land := preload("res://sim/law/land_law.gd")
 const JO := preload("res://sim/law/justice_ops.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 const L := preload("res://sim/law/law_data.gd")
+const Desk := preload("res://sim/office/decision_desk.gd")   # who decides (flag DELEGATION): counts decisions
 
 const FLAG := "PRIVATE_ROADS"
 const BASE_FLAG := "FREIGHT_ROADS"
@@ -308,6 +309,7 @@ static func _post(world: WorldState, row: Dictionary) -> String:
 
 
 static func _decide(world: WorldState, row: Dictionary, choice: String, by: String) -> void:
+	Desk.note(world, "ROAD_LICENCE")
 	row["decision"] = choice
 	row["decided"] = world.month
 	row["by"] = by
@@ -612,6 +614,7 @@ static func _apply_neglect(world: WorldState, row: Dictionary, choice: String, b
 	var link := Transport.private_link(world, lid)
 	if link.is_empty():
 		return
+	Desk.note(world, "ROAD_NEGLECT")
 	var owner := String(link["owner"])
 	var co := {"kind": "COMPANY", "id": owner}
 	var ds := link_districts(world, lid)
@@ -729,4 +732,5 @@ static func take_over(world: WorldState, lid: String, mode: String, price: int =
 		"responsible": [{"actor": GOV, "share": 1.0}], "impact": {}, "affected": {"districts": ds}, "magnitude": 35,
 		"visibility": "PUBLIC", "data": {"link": lid, "owner": owner, "mode": mode, "price": p, "value": -1 if unlawful else v,
 			"districts": ds, "decided_by": "CABINET" if needs_cabinet else "MINISTER", "by": by}})
+	Desk.note(world, "ROAD_TAKEOVER")
 	return {"ok": true, "value": v, "price": p, "paid": paid, "needs_cabinet": needs_cabinet, "unlawful": unlawful}

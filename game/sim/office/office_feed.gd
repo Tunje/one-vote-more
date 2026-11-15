@@ -8,6 +8,8 @@ extends RefCounted
 const SQ := preload("res://sim/staff/staff_query.gd")
 const KIND_TXT := {"WAGE": "a pay rise", "SAFETY": "safer workplaces", "JOBS": "no job cuts", "RECOGNITION": "recognition", "STAFFING": "more staff"}
 const HOURS_PER_MONTH := 40
+## Who decides (flag DELEGATION): ministers answer the cases they may call, the monthly summary, the term-start sheet.
+const Desk := preload("res://sim/office/decision_desk.gd")
 
 
 ## Whether the player holds the government's office now (the founding commander counts when the player commands).
@@ -21,10 +23,12 @@ static func player_office(world: WorldState) -> bool:
 ## ideology. A weak or partisan minister gives the AI the same bad advice it would give the player.
 static func monthly(world: WorldState) -> void:
 	_union_demands(world)
-	if player_office(world):
+	var player := player_office(world)
+	if player:
 		_decisions(world)
 		_calendar(world)
-	else:
+	Desk.monthly(world, player)   # no-op without DELEGATION
+	if not player:
 		ai_answer(world)
 
 

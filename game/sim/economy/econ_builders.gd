@@ -36,6 +36,7 @@ extends RefCounted
 ## government)}; project["reopen_m"], ["refusals"]; st["r8b_stats"] counters for the reports.
 
 const S := EconUtil.S
+const Desk := preload("res://sim/office/decision_desk.gd")   # who decides (flag DELEGATION): counts decisions
 const STEP_PM := 20
 const MARGIN_MAX_PM := 300
 const BOOK_HI_M := 6
@@ -298,6 +299,8 @@ static func award_round(world: WorldState) -> void:
 				break
 			if why == "":
 				why = r
+		if p["owner"] == "gov":
+			Desk.note(world, "PUBLIC_QUOTE")
 		if chosen != "":
 			EconConstruction.award(world, pid, chosen)
 		else:
@@ -391,6 +394,7 @@ static func found_public_builder(world: WorldState, district: String) -> String:
 	EconFinance._spend_line(world, "ECON_BUDGET_INFRASTRUCTURE", paid)
 	_r(world.table("org")[id])
 	_stat(world, "public_founded")
+	Desk.note(world, "PUBLIC_BUILDER")
 	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", district, [["COMPANY", id], ["GOVERNMENT", "government"]],
 		[["GOVERNMENT", "government", 1.0]], {"JOBS": 3, "INFRASTRUCTURE": 2}, 25, "PUBLIC",
 		{"type": "CONTRACTOR", "public": true, "capital": paid / S}, {"districts": [district]})
@@ -406,6 +410,7 @@ static func enlarge_public_builder(world: WorldState, oid: String, crew: int) ->
 		return false
 	_r(o)["floor"] = maxi(0, crew)
 	_stat(world, "public_enlarged")
+	Desk.note(world, "PUBLIC_BUILDER")
 	return true
 
 
