@@ -19,6 +19,12 @@ by themselves; today most of this week's decisions (grant programmes and their d
 tariff approvals, budget requests, public builders, road works, price rises on public projects) are decided by code
 with no minister in sight.
 
+**Portfolios (user, 2026-11-15):** "Minister of agriculture, homeworld liaison, minister of education (once we add
+more)". Today's portfolios: Finance, Economy, Labour, Infrastructure, Home-World Affairs, Public Services, Environment,
+Justice, Leader of the Assembly. Home world exists. **Agriculture is new**: farms, family-farm programmes and their
+districts, food stocks, wildlife trouble on farms (today split between Economy and Environment). **Education is new,
+later**: it splits out of Public Services once there is more to decide in education than a budget.
+
 ## 2. Three levels, chosen per decision type
 - **Make the call:** the minister decides. The First Minister gets a line in the monthly summary: what was decided
   and why.
