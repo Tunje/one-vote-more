@@ -235,3 +235,43 @@ func test_a_jam_is_shared_with_the_commuters() -> void:
 	for id in ids:
 		FreightRoads._item(w, String(id))["fwt_last"] = int(FreightRoads._item(w, String(id))["fcap"]) * 3
 	check(Transport.freight_room_mu(w, p[0], p[1]) > jammed, "more freight wanted: a bigger share")
+
+
+func test_road_needs_say_what_each_road_would_free() -> void:
+	var w := _game(1, 4).world
+	var p := _pair(w)
+	var ids := FreightRoads.route_ids(w, p[0], p[1])
+	check(not ids.is_empty(), "a route")
+	w.table("transport")["fpairs"] = {}
+	w.table("transport")["fheld"] = {}
+	Transport.add_freight_traffic(w, p[0], p[1], 50000, 300000, "FOOD")
+	Transport.add_freight_traffic(w, p[0], p[1], 0, 100000, "MATERIAL")
+	Transport.add_freight_traffic(w, p[0], p[1], 0, 20000)   # the market named no good
+	_next_month(w)
+	# the route jammed last month: every link and junction on it is a need now
+	for id in ids:
+		var x := FreightRoads._item(w, String(id))
+		x["traffic_last"] = int(x["fcap"]) * 2
+	Transport._bump(w)
+	var h := w.state_hash()
+	var needs := Transport.road_needs(w)
+	check_eq(w.state_hash(), h, "pure")
+	var seen := 0
+	var prev := 1 << 40
+	for n in needs:
+		check(int(n["severity"]) <= prev, "still ordered by severity")
+		prev = int(n["severity"])
+		check(n.has("held_mu") and n.has("held_by_good") and n.has("to_districts") and n.has("trips"), "benefit fields on %s" % n["key"])
+		var id := String(n["key"]).substr(5)
+		if id in ids:
+			seen += 1
+			check_eq(int(n["held_mu"]), 420000, "all the freight held on the route counts at %s" % id)
+			check_eq(var_to_str(n["held_by_good"]), var_to_str({"FOOD": 300000, "MATERIAL": 100000, "?": 20000}), "by good")
+			check_eq(var_to_str(n["to_districts"]), var_to_str({p[1]: 420000}), "bound for the destination")
+			check_eq(int(n["trips"]), int(FreightRoads._item(w, id)["traffic_last"]), "its traffic last month")
+		elif not String(n["key"]).begins_with("PAIR:"):
+			check_eq(int(n["held_mu"]), 0, "nothing held off the route")
+	check(seen > 0, "the route's links are listed")
+	var off := _game(1, 4, false).world
+	for n in Transport.road_needs(off):
+		check(not n.has("held_mu"), "flag off: no benefit fields")

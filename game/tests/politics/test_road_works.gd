@@ -59,7 +59,7 @@ func test_the_roads_case_for_the_budget() -> void:
 	sim.run(60)
 	var w := sim.world
 	var st: Dictionary = w.table("pol")["state"]
-	w.table("transport")["fpairs_last"] = {"a|b": [100, 900]}
+	w.table("transport")["fpairs_last"] = {"d:1>d:2": [100, 900]}
 	GovBuilder._road_budget_need(w, st)
 	check(not st.has("lever_need"), "nothing reported without the flags")
 	(w.meta["on"] as Array).append_array(["FREIGHT_ROADS", "ROAD_WORKS"])
@@ -75,7 +75,7 @@ func test_the_roads_case_for_the_budget() -> void:
 		check_eq(need, 2000, "a cure the line can't pay for while freight is held: the strongest case")
 	else:
 		check_eq(need, 0, "no case while the line can pay or nothing cures")
-	w.table("transport")["fpairs_last"] = {"a|b": [1000, 0]}
+	w.table("transport")["fpairs_last"] = {"d:1>d:2": [1000, 0]}
 	GovBuilder._road_budget_need(w, st)
 	check(not st.has("lever_need"), "the case is withdrawn when the freight moves")
 

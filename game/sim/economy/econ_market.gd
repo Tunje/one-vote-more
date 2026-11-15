@@ -222,7 +222,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 					# road room is per route: what this route can't carry is held on it (Terra's held_mu, R8's held-by-roads),
 					# and the buyer goes on to other districts' offers (the depot cap above is colony-wide, the roads are not)
 					var cut := take - room
-					Transport.add_freight_traffic(world, o["district"], bid["district"], 0, cut)
+					Transport.add_freight_traffic(world, o["district"], bid["district"], 0, cut, good)
 					EconRules.note_held(world, good, o["district"], bid["district"], cut, true)
 					take = room
 					if take <= 0:

@@ -1313,8 +1313,8 @@ static func freight_room_mu(world: WorldState, from_d: String, to_d: String) -> 
 
 
 ## Freight moved between two districts (and what the roads held back): trucks onto the route. Bob's market.
-static func add_freight_traffic(world: WorldState, from_d: String, to_d: String, moved_mu: int, held_mu: int = 0) -> void:
-	FreightRoads.add_freight_traffic(world, from_d, to_d, moved_mu, held_mu)
+static func add_freight_traffic(world: WorldState, from_d: String, to_d: String, moved_mu: int, held_mu: int = 0, good: String = "") -> void:
+	FreightRoads.add_freight_traffic(world, from_d, to_d, moved_mu, held_mu, good)
 
 
 ## Can it be delivered: 0..1000 for the pair this month (FreightRoads.deliverable_pm).
@@ -1421,6 +1421,10 @@ static func traffic_fixes(world: WorldState) -> Dictionary:
 ## load, and pairs of districts joined only the long way round are needs of their own: key "PAIR:<a>><b>", why
 ## DETOUR, fix NEW_LINK (road_km, new_km, trips). Every need carries "options": all the ways to relieve it
 ## (_need_options), flag or not. Without the flag: proj_pm = load_pm, trend 0, no DETOUR needs, severity as before.
+## With the flag, each need also says what it would free (Wilma 2026-11-15, the user: "what road is going to help the
+## colony more"), from last month: held_mu (freight held back by the roads on routes through it), held_by_good {good:
+## mu} ("?" where the market named none), to_districts {district: mu} (where it was bound), trips (car-equivalents
+## through it last month; for a DETOUR, the pair's trips as before).
 const NEED_LOAD_PM := 800
 const NEED_COND := 600
 const NEED_HORIZON := 18
@@ -1510,6 +1514,23 @@ static func _road_needs(world: WorldState) -> Array:
 		out.append({"key": "PAIR:%s>%s" % [dt["a"], dt["b"]], "district": String(dt["a"]), "why": "DETOUR", "load_pm": worst, "proj_pm": worst,
 			"trend": 0, "cond": 1000, "fix": "NEW_LINK", "spec": o["spec"], "cost": int(o["cost"]), "months": int(o["months"]), "severity": sev,
 			"options": [o], "road_km": int(dt["road_km"]), "new_km": int(dt["new_km"]), "trips": int(dt["trips"])})
+	if fr:   # what each road would free (Wilma 2026-11-15): last month's held freight through it, and its traffic
+		var ht := FreightRoads.held_through(world)
+		var jt2 := junctions(world)
+		for r in out:
+			var key := String(r["key"])
+			var hb: Dictionary = {}
+			if key.begins_with("PAIR:"):
+				var ab := key.substr(5).split(">")
+				hb = FreightRoads.held_between(world, ab[0], ab[1])
+			else:
+				var id := key.substr(5)
+				hb = ht.get(id, {})
+				var x: Dictionary = links.get(id, jt2.get(id, {}))
+				r["trips"] = int(x.get("traffic_last", 0))
+			r["held_mu"] = int(hb.get("held", 0))
+			r["held_by_good"] = (hb.get("goods", {}) as Dictionary).duplicate()
+			r["to_districts"] = (hb.get("to", {}) as Dictionary).duplicate()
 	out.sort_custom(func(a, b): return int(a["severity"]) > int(b["severity"]) or (a["severity"] == b["severity"] and String(a["key"]) < String(b["key"])))
 	return out
 

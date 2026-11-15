@@ -6,8 +6,9 @@ extends RefCounted
 ##
 ## Bob's market (per trade, or per pair summed; agreed with Bob 2026-11-15):
 ##   freight_room_mu(from_d, to_d)   milli-units the road route can still take this month (BIG when unlimited)
-##   add_freight_traffic(from_d, to_d, moved_mu, held_mu)   the only write: trucks onto every link and junction of
-##                                   the route; held_mu = what the roads held back (it waits, as freight_deferred)
+##   add_freight_traffic(from_d, to_d, moved_mu, held_mu, good)   the only write: trucks onto every link and
+##                                   junction of the route; held_mu = what the roads held back (it waits, as
+##                                   freight_deferred); good (optional) names what was held, for road_needs' benefit
 ##   deliverable_pm(from_d, to_d)    0..1000: last month's moved / (moved + held) for the pair; when nothing was held,
 ##                                   the route's headroom (capacity × JAM_ALLOW ÷ last month's load, at most 1000)
 ##   district_jam_pm(d)              worst last-month load ‰ (1000 = at capacity) of the freight roads in district d
@@ -22,8 +23,9 @@ extends RefCounted
 ## State (only with the flag): per colony link and junction "frt"/"fwt" (mu moved / wanted this month), "fpcu_last"/
 ## "fwt_last" (car-equivalents last month), "fcap" (this month's capacity), the yearly trend "ys"/"yn" (this year's
 ## traffic sum and months), "yl"/"yp" (last year's and the year before's monthly mean; -1 = not yet); transport
-## "froutes" {"a|b" (a < b): [link and junction ids]}, "fjam" {d: ‰}, "fpairs"/"fpairs_last" {"a>b": [moved_mu,
-## held_mu]}, "jams" {d: 1}.
+## "froutes" {"a|b" (a < b): [link and junction ids]} and "froutes_last" (last month's), "fjam" {d: ‰},
+## "fpairs"/"fpairs_last" {"a>b": [moved_mu, held_mu]}, "fheld"/"fheld_last" {"a>b": {good ("?" unnamed): held_mu}},
+## "jams" {d: 1}.
 
 const FLAG := "FREIGHT_ROADS"
 const UNITS_PER_TRUCK := 25
@@ -131,7 +133,7 @@ static func freight_room_mu(world: WorldState, from_d: String, to_d: String) -> 
 	return room
 
 
-static func add_freight_traffic(world: WorldState, from_d: String, to_d: String, moved_mu: int, held_mu: int = 0) -> void:
+static func add_freight_traffic(world: WorldState, from_d: String, to_d: String, moved_mu: int, held_mu: int = 0, good: String = "") -> void:
 	if not on(world) or from_d == to_d or (moved_mu <= 0 and held_mu <= 0):
 		return
 	Transport.ensure(world)
@@ -143,6 +145,13 @@ static func add_freight_traffic(world: WorldState, from_d: String, to_d: String,
 	moved_mu = maxi(0, moved_mu)
 	held_mu = maxi(0, held_mu)
 	t["fpairs"][k] = [int(p[0]) + moved_mu, int(p[1]) + held_mu]
+	if held_mu > 0:
+		if not t.has("fheld"):
+			t["fheld"] = {}
+		if not t["fheld"].has(k):
+			t["fheld"][k] = {}
+		var g := good if good != "" else "?"
+		t["fheld"][k][g] = int(t["fheld"][k].get(g, 0)) + held_mu
 	for id in route_ids(world, from_d, to_d):
 		var x := _item(world, String(id))
 		if x.is_empty():
@@ -184,6 +193,57 @@ static func district_jam_pm(world: WorldState, d: String) -> int:
 	if not on(world):
 		return 0
 	return int(world.peek("transport").get("fjam", {}).get(d, 0))
+
+
+## What a road would free (Wilma 2026-11-15, user: "what road is going to help the colony more"): last month's freight
+## held back by the roads on every link and junction it would have used, {id: {held (mu), goods {good: mu}, to
+## {district: mu}}}, along last month's routes. Monthly memo (it reads only last month's records).
+static func held_through(world: WorldState) -> Dictionary:
+	if not on(world):
+		return {}
+	return Transport._memoised(world, "fheld", func(): return _held_through(world))
+
+
+static func _held_through(world: WorldState) -> Dictionary:
+	var out := {}
+	var t := world.peek("transport")
+	var fp: Dictionary = t.get("fpairs_last", {})
+	var fh: Dictionary = t.get("fheld_last", {})
+	var routes: Dictionary = t.get("froutes_last", t.get("froutes", {}))
+	for k in EconUtil.sorted_keys(fp):
+		var held := int(fp[k][1])
+		if held <= 0:
+			continue
+		var ab := String(k).split(">")
+		var goods: Dictionary = fh.get(k, {"?": held})
+		for id in routes.get(_pk(ab[0], ab[1]), []):
+			if not out.has(id):
+				out[id] = {"held": 0, "goods": {}, "to": {}}
+			var row: Dictionary = out[id]
+			row["held"] = int(row["held"]) + held
+			row["to"][ab[1]] = int(row["to"].get(ab[1], 0)) + held
+			for g in goods:
+				row["goods"][g] = int(row["goods"].get(g, 0)) + int(goods[g])
+	return out
+
+
+## The same for a pair of districts, both ways (a new link between them would free it): {held, goods, to}.
+static func held_between(world: WorldState, a: String, b: String) -> Dictionary:
+	var out := {"held": 0, "goods": {}, "to": {}}
+	var t := world.peek("transport")
+	var fp: Dictionary = t.get("fpairs_last", {})
+	var fh: Dictionary = t.get("fheld_last", {})
+	for k in ["%s>%s" % [a, b], "%s>%s" % [b, a]]:
+		var held := int(fp.get(k, [0, 0])[1])
+		if held <= 0:
+			continue
+		var to := String(k).split(">")[1]
+		out["held"] = int(out["held"]) + held
+		out["to"][to] = int(out["to"].get(to, 0)) + held
+		var goods: Dictionary = fh.get(k, {"?": held})
+		for g in goods:
+			out["goods"][g] = int(out["goods"].get(g, 0)) + int(goods[g])
+	return out
 
 
 ## Colony-wide share of last month's freight between districts that the roads held back, ‰.
@@ -299,6 +359,7 @@ static func step_month(world: WorldState) -> void:
 			routes[_pk(String(ds[i]), String(ds[j]))] = r["links"] + r["juncs"]
 			for id in r["links"] + r["juncs"]:
 				on_route[id] = true
+	t["froutes_last"] = t.get("froutes", {})
 	t["froutes"] = routes
 	var setl := ColonyLayout.settlements(world)
 	var fjam := {}
@@ -312,6 +373,8 @@ static func step_month(world: WorldState) -> void:
 	t["fjam"] = fjam
 	t["fpairs_last"] = t.get("fpairs", {})
 	t["fpairs"] = {}
+	t["fheld_last"] = t.get("fheld", {})
+	t["fheld"] = {}
 	_jam_facts(world, t)
 
 
