@@ -229,8 +229,67 @@ Rougher weather is local, over the land the colony harmed ("exactly what I wante
   seed 1 and 143‰ on seed 3, with no dust storms yet. A careful colony (under ~20 units) does no harm.
 - **Left out**: health (Bob's district pollution index covers it), species, ocean chemistry, clean-up and
   restoration, ecology per colony-map tile, and any change to global warming.
-- **Stage 2 (agreed, next)**: a food pyramid per hex (pollinators, pests, foragers, grazers, predators), wildlife
-  attacks as facts, and lever ECO_WILDLIFE_POLICY.
+- **Stage 2**: see below.
+
+## Ecology, stage 2: the food pyramid (user order via Wilma, 2026-11-15; under ECO) — sim/planet/planet_wildlife.gd, tests/planet/test_wildlife.gd
+
+User: "an animal pyramid too: insects at the bottom, and if something gets wiped the others are affected; at the top,
+things that can hurt humans, then we can have worry affecting politics ... insects that can both help or hinder,
+animals that depend on them; real fodder for planet-first parties."
+
+- **Levels per hex** (‰ of natural, 1000 = untouched):
+  - pollinators: help farms;
+  - pests: hurt farms, and farmland feeds them;
+  - foragers: eat insects, mostly pests;
+  - grazers: raid crops;
+  - predators: eat foragers and grazers, and can hurt people.
+- **Saved**: planet "web": {"<cell>": [pol, pest, forg, graz, pred]}, only for hexes where a level or its target is
+  off natural; "web_att" holds the attack months of the last 12 months, and "web_col" open collapses.
+- **Dynamics** (monthly, integers): each level closes 15/20/6/5/2.5% of the gap to its target.
+  - Habitat = (1 − harm) × (1 − 2 × cleared share), where cleared is farmed and built map tiles per hex.
+  - Pollution poisons pollinators (× fragility) more than pests.
+  - Foragers' targets follow insect food. Predators' targets follow foragers and grazers.
+  - Each level is held down by the level above, so wiping one out cascades.
+- **Lever ECO_WILDLIFE_POLICY** (owner planet, `requires: ["ECO"]`): PROTECT (no hunting), MANAGE (default; predators
+  at the colony's hex held to 80%), CULL (15% at the colony's hex, 40% next door). Culling means fewer attacks, but
+  grazers and foragers boom and eat into the pollinators.
+- **Random per world** (pure in the seed):
+  - creature names for each level;
+  - predator danger 1–5 (15/25/30/20/10%) and boldness ×0.5–2;
+  - pollinator fragility ×0.5–2;
+  - crops' dependence on pollinators 0.3–1;
+  - pest-swarm frequency ×0.5–2.
+- **Random per month** (stream planet.eco):
+  - Pest swarm years: about one every 14 years × the world's factor, at the landing hex and its neighbours.
+  - Attacks: Poisson with λ = 0.012 × danger × boldness × Σ over sites of (predators × exposure).
+    - Sites are farms, family farms, mines and settlements.
+    - Exposure = vitality × distance from the landing (the colony's edge) × empty land around the site (settlements
+      at half).
+    - Kill chance is 7% per danger point; Bob's EconPop.casualties removes the dead (the plant's workers first).
+- **Effects**:
+  - yield_pct also loses up to 15% × dependence when pollinators are gone, up to 20% in a pest boom and up to 10% in
+    a grazer boom.
+  - Facts (PUBLIC, no one responsible):
+    - PLANET_WILDLIFE_ATTACK: hex, tile, creature, danger, killed, injured, site, fid, org, district, place, opened,
+      family_farm, grant_funded, grant_month, policy.
+    - PLANET_WILDLIFE_COLLAPSE: a level near the colony under 150‰, reported once until recovery.
+    - PLANET_WILDLIFE_RECOVERY: back above 500‰.
+    - PLANET_WILDLIFE_BOOM: pests or grazers above 1600‰.
+    - PLANET_WILDLIFE_SWARM.
+  - Indicators: PLANET_WILDLIFE_ATTACKS (12 months) and PLANET_WEB_HEALTH (the landing hex's weakest level).
+- **Map**:
+  - Colony map: claw marks for the last 12 months' attacks (red where someone died, fading with age), and a
+    "Wildlife" line in the summary.
+  - Globe: the hover line shows the five levels with this world's names; the header names the top predator and its
+    danger.
+- **Seed 2, 40 years** (danger 2, a fragile, pollinator-dependent world), before the attack rate was doubled:
+  - Pollinators fell to ~25–35% under the colony's pollution, with collapse facts at about Y19.
+  - Farms lose ~10%.
+  - Two rootmite swarm years.
+  - 7 attacks with 1 death (MANAGE).
+  - Predators fell to ~53% from hunting and lost habitat.
+- **Left out**: individual species, migration across the globe, disease from wildlife, hunting as an industry, and
+  livestock.
 
 ## Next (proposed)
 1. Terrain.generate reads the landing region and its neighbours (coast → a sea edge, mountains → more hills,

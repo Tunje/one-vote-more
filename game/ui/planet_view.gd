@@ -864,6 +864,8 @@ func _update_info() -> void:
 		notes.append("warming +%.2f °C" % warm)
 	if PlanetEcology.on(w):
 		notes.append("life: " + String(PlanetEcology.TRAIT_NAMES[PlanetEcology.character(w)["trait"]]))
+		var wc := PlanetWildlife.character(w)
+		notes.append("top predator: %s (danger %d)" % [PlanetWildlife.creature(w, "pred"), int(wc["danger"])])
 	head += "\n" + " · ".join(notes)
 	var hits := colony_hits(w)
 	if not hits.is_empty():
@@ -891,6 +893,13 @@ func _update_info() -> void:
 		if hm > 0 or pol >= 1.0:
 			s += "
 Land harmed %d‰ · pollution %.0f (absorbs %d) · farm yields %d%%" % [hm, pol, PlanetEcology.capacity(w, _hover), PlanetEcology.yield_pct(w, _hover)]
+		var lv := PlanetWildlife.levels(w, _hover)
+		if not Planet.is_water(w, _hover) and PlanetWildlife.web_health(w, _hover) < 1000 or int(lv["pest"]) > 1000 or int(lv["graz"]) > 1000:
+			var parts: Array = []
+			for k in PlanetWildlife.LEVELS:
+				parts.append("%s %d%%" % [PlanetWildlife.creature(w, k), int(lv[k]) / 10])
+			s += "
+Wildlife (of natural): " + " · ".join(parts)
 	for site in PlanetSites.at_cell(w, _hover):
 		if site["where"] != "COLONY":
 			s += "\n★ %s: %s · attraction %d · this month %d%% · %d km, %d days from the colony" % [site["name"],

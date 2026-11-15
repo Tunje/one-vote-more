@@ -106,6 +106,7 @@ var _econ_terr: Array = []       # [y * W + x] -> economic district or "" (the c
 var _stations: Array = []        # EconQuery.police(world).stations (POLICE opt-in)
 var _crime_btn: Button
 var _bus_marks: Array = []       # Commuting.incident_marks: last month's breakdowns and crashes (Bob's facts)
+var _wild_marks: Array = []      # PlanetWildlife.attack_marks: wildlife attacks of the last 12 months (ECO)
 
 var _info: RichTextLabel
 var _mode_buttons := {}
@@ -1332,6 +1333,7 @@ func _refresh_network(w: WorldState) -> void:
 		_reach[String(r["id"])] = r
 	_bus_lines = Transport.bus_lines(w, EconQuery.commuting(w))
 	_bus_marks = Commuting.incident_marks(w)
+	_wild_marks = PlanetWildlife.attack_marks(w)
 	_bus_at.clear()
 	for i in _bus_lines.size():
 		for ti in _bus_lines[i]["path"]:
@@ -1459,6 +1461,14 @@ func _network_summary(_w: WorldState) -> String:
 		t += "[color=#%s]Buses[/color]: %d line%s, %d bus%s, %d commuters%s%s\n" % [BUS_COLOR.to_html(false), _bus_lines.size(),
 			"" if _bus_lines.size() == 1 else "s", buses, "" if buses == 1 else "es", riders,
 			(" · %d breakdown%s" % [bd, "" if bd == 1 else "s"]) if bd > 0 else "", (" · [color=#ef5350]%d crash%s[/color]" % [cr, "" if cr == 1 else "es"]) if cr > 0 else ""]
+	if PlanetEcology.on(_w):   # ECO stage 2: the food web and attacks
+		var dead := 0
+		for am in _wild_marks:
+			dead += int(am["killed"])
+		t += "[color=#ff8a65]Wildlife[/color]: %d attack%s by %s in 12 months%s · food web %d‰ · policy %s" % [_wild_marks.size(),
+			"" if _wild_marks.size() == 1 else "s", PlanetWildlife.creature(_w, "pred"), (", [color=#ef5350]%d killed[/color]" % dead) if dead > 0 else "",
+			PlanetWildlife.web_health(_w, Planet.landing(_w)), PlanetWildlife.policy(_w).to_lower()] + "
+"
 	return t + "\n"
 
 
@@ -1513,6 +1523,16 @@ func _draw_buses(t: float) -> void:
 			var p := shifted[i] if i >= 0 else _tile_center(Transport.int_tile(int(bt)))
 			draw_rect(Rect2(p - Vector2(bs, bs * 0.6) * 0.5, Vector2(bs, bs * 0.6)), col.lightened(0.2))
 			draw_rect(Rect2(p - Vector2(bs, bs * 0.6) * 0.5, Vector2(bs, bs * 0.6)), Color.BLACK, false, 1.0)
+	for am in _wild_marks:   # ECO: a wildlife attack: three claw strokes on a dark disc, red if someone died; older ones fade
+		var pa := _tile_center(am["tile"])
+		var ra := maxf(4.0, t * (0.5 if int(am["killed"]) > 0 else 0.38))
+		var fade := clampf(1.0 - float(_view_month() - int(am["month"])) / 14.0, 0.3, 1.0)
+		draw_circle(pa, ra, Color(0.1, 0.08, 0.06, 0.75 * fade))
+		var cc := Color("#ff4040") if int(am["killed"]) > 0 else Color("#ffb347")
+		cc.a = fade
+		for k in 3:
+			var off := (float(k) - 1.0) * ra * 0.45
+			draw_line(pa + Vector2(off - ra * 0.3, -ra * 0.6), pa + Vector2(off + ra * 0.3, ra * 0.6), cc, maxf(1.5, t * 0.07))
 	for inc in _bus_marks:
 		var p2 := _tile_center(Transport.int_tile(int(inc["tile"])))
 		var r := maxf(4.0, t * 0.45)
@@ -1953,3 +1973,7 @@ func _crime_summary() -> String:
 	if worst != "":
 		t += " · most crime: %s ([color=#%s]%.1f× the base rate[/color])" % [_district_label(worst), crime_color(wl).to_html(false), wl]
 	return t + "\n[i]Crime button: the overlay and the stations' areas[/i]\n\n"
+
+
+func _view_month() -> int:
+	return session.world().month if session != null else 0

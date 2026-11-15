@@ -25,12 +25,21 @@ func indicator_defs() -> Array:
 		["PLANET_AIR_POLLUTION", "index (milli)", [0, 100000], -1, {"good": 0, "bad": 60000}],
 		["PLANET_WARMING", "°C (milli)", [0, 10000], -1, {"good": 0, "bad": 2000}],
 		["PLANET_ECO_HARM", "‰ (milli)", [0, 1000000], -1, {"good": 0, "bad": 600000}],   # ECO only
+		["PLANET_WILDLIFE_ATTACKS", "attacks in 12 months (milli)", [0, 100000], -1, {"good": 0, "bad": 6000}],   # ECO only
+		["PLANET_WEB_HEALTH", "weakest level ‰ (milli)", [0, 1000000], 1, {"good": 1000000, "bad": 300000}],   # ECO only
 	]:
 		# concerns stay empty for now: politics decides how much people care (Wilma)
 		out.append({"id": row[0], "owner": OWNER, "unit": row[1], "range": row[2], "granularity": "COLONY",
 			"polarity": row[3], "concerns": {}, "normalize": row[4], "phase": TickPhase.NATURE,
 			"visibility": "PUBLIC", "perceptionLag": 0})
 	return out
+
+
+## ECO stage 2: how the colony treats wildlife (PlanetWildlife). Only on the table when ECO is on.
+func lever_defs() -> Array:
+	return [{"id": PlanetWildlife.POLICY_LEVER, "owner": OWNER, "type": "ENUM", "values": PlanetWildlife.POLICIES, "default": "MANAGE",
+		"legalLevel": "REGULATION", "foundingEra": "COMMANDER", "ideology": {"ENVIRONMENT": -6.0}, "concerns": {},
+		"implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "fiscal": null, "domain": "ENV", "requires": ["ECO"]}]
 
 
 func init_world(world: WorldState) -> void:
@@ -43,9 +52,11 @@ func run_phase(phase: int, world: WorldState) -> void:
 	Planet.generate(world)   # worlds set up before the planet existed
 	PlanetClimate.step_month(world)
 	var crossed: Array = []
+	var wild := {}
 	if PlanetEcology.on(world):   # ECO: pollution released, spread and absorbed; harmed land raises dust (own stream)
 		var pt := world.table("planet")
 		crossed = PlanetEcology.step_month(world, pt["storms"], pt["phenomena"])
+		wild = PlanetWildlife.step_month(world)
 	Transport.step_month(world)
 	WasteMap.step_month(world)    # A45 W5: last month's sewage and leachate flow down the river   # A43 T1: the network wears, storms and mud close tracks (after this month's weather)
 	var home := Planet.landing(world)
@@ -58,6 +69,9 @@ func run_phase(phase: int, world: WorldState) -> void:
 	if PlanetEcology.on(world):
 		world.set_indicator(OWNER, "PLANET_ECO_HARM", "COLONY", PlanetEcology.harm(world, home) * 1000)
 		_report_eco(world, crossed)
+		world.set_indicator(OWNER, "PLANET_WILDLIFE_ATTACKS", "COLONY", PlanetWildlife.attacks_last_year(world) * 1000)
+		world.set_indicator(OWNER, "PLANET_WEB_HEALTH", "COLONY", PlanetWildlife.web_health(world, home) * 1000)
+		_report_wild(world, wild)
 	for cell in Planet.settled(world):
 		for h in PlanetClimate.storms_at(world, cell) + PlanetClimate.phenomena_at(world, cell):
 			_report(world, cell, h)
@@ -96,3 +110,35 @@ func _report_eco(world: WorldState, crossed: Array) -> void:
 		world.add_fact({"type": "PLANET_ECO_DAMAGE" if rising else "PLANET_ECO_RECOVERY", "owner": OWNER, "subjects": [], "responsible": [],
 			"impact": {}, "magnitude": clampi(20 + lv / 20, 0, 100) if rising else 30, "visibility": "PUBLIC",
 			"data": {"hex": c, "harm": int(x["new"]), "level": lv, "colony": c == Planet.landing(world)}})
+
+
+## ECO stage 2: attacks on people, and food-web collapses, booms and recoveries near the colony. PUBLIC; no one
+## responsible (nature); the place and what stood there go in data so politics can attach blame and worry.
+func _report_wild(world: WorldState, wild: Dictionary) -> void:
+	var ch := PlanetWildlife.character(world)
+	var orgs: Dictionary = world.peek("org")
+	for a in wild.get("attacks", []):
+		var s: Dictionary = a["site"]
+		var org: Dictionary = orgs.get(String(s.get("org", "")), {})
+		var fac: Dictionary = world.peek("facility").get(String(s.get("fid", "")), {})
+		var tl: Vector2i = s["tile"]
+		var killed := int(a["killed"])
+		if killed > 0 and String(s.get("district", "")) != "":   # Bob's hook: the dead leave the population (plant's workers first)
+			killed = EconPop.casualties(world, String(s["district"]), killed, "OUTDOOR", String(s.get("fid", "")))
+		world.add_fact({"type": "PLANET_WILDLIFE_ATTACK", "owner": OWNER, "subjects": [], "responsible": [], "impact": {},
+			"magnitude": clampi(25 + 30 * killed + 5 * int(a["injured"]), 0, 100), "visibility": "PUBLIC",
+			"data": {"hex": int(s["hex"]), "tile": [tl.x, tl.y], "creature": PlanetWildlife.creature(world, "pred"), "danger": int(ch["danger"]),
+				"killed": killed, "injured": int(a["injured"]), "site": String(s["kind"]), "fid": String(s.get("fid", "")),
+				"org": String(s.get("org", "")), "district": String(s.get("district", "")), "place": String(s.get("name", "")),
+				"opened": int(fac.get("opened", -1)), "family_farm": bool(org.get("family", false)),
+				"grant_funded": int(org.get("grant_paid", 0)) > 0, "grant_month": int(org.get("grant_month", -1)),
+				"policy": PlanetWildlife.policy(world)}})
+	for x in wild.get("crossed", []):
+		var lv := String(x["level"])
+		world.add_fact({"type": "PLANET_WILDLIFE_" + String(x["kind"]), "owner": OWNER, "subjects": [], "responsible": [], "impact": {},
+			"magnitude": 40 if x["kind"] == "COLLAPSE" else 30, "visibility": "PUBLIC",
+			"data": {"hex": int(x["cell"]), "level": lv, "group": PlanetWildlife.LEVEL_NAMES[lv], "creature": PlanetWildlife.creature(world, lv),
+				"value": int(x["value"]), "colony": int(x["cell"]) == Planet.landing(world), "policy": PlanetWildlife.policy(world)}})
+	if wild.get("swarm", false):
+		world.add_fact({"type": "PLANET_WILDLIFE_SWARM", "owner": OWNER, "subjects": [], "responsible": [], "impact": {}, "magnitude": 35,
+			"visibility": "PUBLIC", "data": {"hex": Planet.landing(world), "creature": PlanetWildlife.creature(world, "pest")}})

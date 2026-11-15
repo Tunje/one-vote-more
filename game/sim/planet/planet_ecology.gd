@@ -116,12 +116,13 @@ static func _row(world: WorldState, cell: int) -> Array:
 	return world.peek("planet").get("eco", {}).get(str(cell), [0, 0])
 
 
-## Farm yield of a hex in percent: 100 untouched, 100 - YIELD_LOSS at full harm (FRAGILE: twice the loss).
+## Farm yield of a hex in percent: 100 untouched, 100 - YIELD_LOSS at full harm (FRAGILE: twice the loss), less what
+## the food web takes (PlanetWildlife.yield_loss: pollinators missing, pests and grazers booming).
 static func yield_pct(world: WorldState, cell: int) -> int:
 	if not on(world) or cell < 0:
 		return 100
 	var loss := YIELD_LOSS * (2 if String(character(world)["trait"]) == "FRAGILE" else 1)
-	return 100 - loss * harm(world, cell) / 1000
+	return maxi(20, 100 - loss * harm(world, cell) / 1000 - PlanetWildlife.yield_loss(world, cell))   # stage 2: the food web
 
 
 ## How much wider rain anomalies swing over a hex (1.0 when unharmed or ECO off).
