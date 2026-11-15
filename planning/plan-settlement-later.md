@@ -51,3 +51,14 @@ agricultural land in real life."
 - Family farms and bakeries (E160/E162), six family farms to a plot, neighbourhood bakeries placed by demand.
 - The business-size ladder and shared plots the user raised on 2026-11-14 (also noted as "later", not planned).
 - Districting law (Anni) and the government's building programme (Wilma).
+
+## Who picks where a building goes (queued 2026-11-15; user: "I want a working colony first, but queue it with the other things")
+Today nobody decides a site. The district is picked by a fixed rule (the government's building programme: the most
+overcrowded district for housing, the worst access for a clinic or school; a founder: its best market signal), and the
+spot inside the district is the nearest free tile of suitable terrain (ColonyLayout). Nothing weighs one site against
+another, considers the neighbours, or reserves land.
+Queued, not to start before the colony works: site choice as a real decision (options, neighbours' objections, land
+reserved by use), belonging with town and village planning and the per-hex land-use rules above, and the natural first
+power of municipalities (user: they start with building and roads). It is probably the largest missing source of
+decisions for the First Minister's desk (Maja's desk count, chronicles/desk_count_v1: the code takes about 1.2 to 1.5
+decisions a month because whole areas, siting among them, have no decision at all).
