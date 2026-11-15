@@ -78,6 +78,17 @@ wildlife troubles) would belong to town or district councils with their own elec
 reach the Cabinet. That is a new layer of government, with its own elections and money, and ties to the user's
 settlement notes (planning/plan-settlement-later.md). It needs the user's decision before any design.
 
+**What the user has said so far (2026-11-15; "I don't know how municipalities should work yet"):**
+- A region gets **designated** a municipality; then it has to hold an **election** to get its own person in charge.
+- Parties must get **someone in the municipality** who can be voted on.
+- Maybe a **mini version of the whole government**: 31 seats instead of 151, 3+3 instead of 10+10.
+- **Taxes:** when a municipality is made, the national government chooses its tax arrangement ("that can lead to
+  excellent politics").
+- **Powers:** they start primarily with **building and roads**; negotiations can change this later.
+- **Who qualifies:** not size alone; location and distance to the capital can matter too; about **at least 1,000
+  adults**.
+Open: what the tax options are, how the negotiations over powers run, who may ask for designation and who may refuse.
+
 ## Build order (after the user's review)
 1. The decision-type registry and the case counter; the chronicle reports cases by type and decade.
 2. Levels per type, the term-start screen and the monthly summary; existing office items (union demands, staff
