@@ -9,6 +9,7 @@
 | + found_mark: hardship and unemployment lower the bar (f0284f1) | 4817 | 15.4 | 72.4 | 121 | 179 | 16.1 | 1,022 | 54 | 146 / 57 |
 | + family_unit_cost: no wages, ungranted share of the building (e2ae6a0) | 4778 | 14.6 | 73.9 | 111 | 192 | 14.5 | 1,228 | 65 | 43 / 26 |
 | + farm_site: sited where farmland is free (cf38d42) | 4782 | 14.5 | 98.4 | 116 | 187 | 15.2 | - | 65 | 76 / 27 |
+| + food_glut: no grant and no founding with over 3 months' demand on offer (d370c67) | 4662 | 15.8 | 101.3 | 120 | 195 | 16.2 | - | 64 | 71 / 25 |
 
 Family farms opened per game: 13-101 as they were; 51-112 with found_mark; 94-209 with family_unit_cost.
 
@@ -42,3 +43,13 @@ market price a third of cost. Freight is not the limit (deferred 43 a month).
 The user: family firms are on in v11, and food comes under the eight rules like any good. Bob's step 3 (after
 materials): buyers bid what food is worth to them, sellers decide what they accept, no price rule; families do not
 found into a glut. Family firms stay opt-in until that is measured.
+
+## Addendum: the glut rule (d370c67) comes too late
+With food_glut at 3 x demand on offer, grants fall to under half (443 against about 1,000 a game) and fewer family
+farms open (61-143 against 94-209), but the collapse still happens (shortfall 101.3, food below cost 195 months).
+The seed-5 series shows why: in year 13 the family farms alone make 3,825 a month against 4,244 wanted, with the big
+farms adding 1,206 at a target of 375 permille; offered / wanted is 2.2 and the price still 1.04 x cost. A year later it
+is 3.7 and the price 0.73 x cost; the 3 x test only trips then. Family farms always work at full output (firm_ai: "a
+family works its own farm fully"), so once there are enough of them production exceeds demand whatever the price, and
+the big farms cannot cut further. Missing for family farms: the "produce less" rule, and a "when not to start" test on
+production against demand rather than on the stock already piled up. Both belong to the food step.
