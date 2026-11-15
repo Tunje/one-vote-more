@@ -570,6 +570,7 @@ static func _payout_surplus(world: WorldState, oid: String, o: Dictionary, month
 	var spare := world.ledger.balance(EconUtil.acct(oid)) - keep_m * monthly_costs - owed
 	if spare <= 0:
 		return
+	spare = EconShares.pay_others(world, oid, spare)  # E166 share register: outside holders first (no register: unchanged)
 	world.ledger.transfer(EconUtil.acct(oid), EconUtil.hh_acct(o["owner_group"]), spare, "DIVIDEND", world.month)
 	world.table("hh")[o["owner_group"]]["income"]["dividend"] += spare
 	EconPop.credit_status(world, o["owner_group"], "NOT_IN_LF", spare, "dividend", "BUSINESS_OWNER")
@@ -614,6 +615,7 @@ static func _profit_tax_and_dividends(world: WorldState) -> void:
 		elif o["type"] == "PRIVATE" and o["owner_group"] != "":
 			if world.ledger.balance(acc) >= 3 * monthly_costs:
 				var d := int(after * 0.5)
+				d = EconShares.pay_others(world, oid, d)  # E166 share register: outside holders first (no register: unchanged)
 				world.ledger.transfer(acc, EconUtil.hh_acct(o["owner_group"]), d, "DIVIDEND", world.month)
 				world.table("hh")[o["owner_group"]]["income"]["dividend"] += d
 				EconPop.credit_status(world, o["owner_group"], "NOT_IN_LF", d, "dividend", "BUSINESS_OWNER")
@@ -665,6 +667,7 @@ static func _surplus_sweep(world: WorldState) -> void:
 			"PRIVATE":
 				if o["owner_group"] == "" or not world.table("hh").has(o["owner_group"]):
 					continue
+				amt = EconShares.pay_others(world, oid, amt)  # E166 share register: outside holders first (no register: unchanged)
 				world.ledger.transfer(acc, EconUtil.hh_acct(o["owner_group"]), amt, "DIVIDEND", world.month)
 				world.table("hh")[o["owner_group"]]["income"]["dividend"] += amt
 				EconPop.credit_status(world, o["owner_group"], "NOT_IN_LF", amt, "dividend", "BUSINESS_OWNER")

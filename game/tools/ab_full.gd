@@ -20,6 +20,13 @@ func _init() -> void:
 				(w.meta["on"] as Array).erase(fl.substr(1))
 			elif not (w.meta["on"] as Array).has(fl):
 				(w.meta["on"] as Array).append(fl)
+	for fl in (w.meta["on"] as Array):
+		if String(fl).begins_with("R8_") and not (w.meta["on"] as Array).has("R8"):
+			# an R8 sector switch is a silent no-op without R8 (EconRules.active); fail loudly instead (Wilma/Maja)
+			push_error("ab_full: %s needs R8 in the same arm" % fl)
+			print("AB %s s%s ERROR %s without R8" % [a[3], a[0], fl])
+			quit(1)
+			return
 	var n := 0
 	var su := 0.0
 	var sf := 0.0

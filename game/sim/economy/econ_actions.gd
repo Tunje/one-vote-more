@@ -40,6 +40,8 @@ static func validate(world: WorldState, id: String, p: Dictionary) -> String:
 	if id == "ECON_ORDER_IMPORTS" and not EconUtil.support(world):
 		return "No ship is due: imports arrive only with the home-world ships, rarely and at great cost"
 	match id:
+		"ECON_RESCUE_PLAN":
+			return EconPlanRescue.validate_action(world, p)  # E166 (opt-in)
 		"ECON_OFFER_INCENTIVE":
 			return EconEssentials.validate_offer(world, p)
 		"ECON_APPROVE_TARIFF":
@@ -166,6 +168,8 @@ static func headroom(world: WorldState, line: String) -> int:  # pure read (used
 
 static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 	match id:
+		"ECON_RESCUE_PLAN":
+			return EconPlanRescue.apply_action(world, p)  # E166 (opt-in)
 		"ECON_OFFER_INCENTIVE":
 			return EconEssentials.apply_offer(world, p)
 		"ECON_APPROVE_TARIFF":
@@ -207,6 +211,8 @@ static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 			pr["status"] = "CANCELLED"
 			EconFacts.emit(world, "ECON_PROJECT_CANCELLED", pr["district"], [["GOVERNMENT", "government"]], [["GOVERNMENT", "government", 1.0]],
 				{"GOVERNANCE": -5}, 30, "PUBLIC", {"project": pr["id"]})
+			if pr["owner"] == "gov":
+				EconUnfinished.leave(world, pr, EconUtil.TREASURY)  # E169 (opt-in): the half-built work stays public
 			return true
 		"ECON_SUBSIDIZE":
 			var oid: String = p["org"]

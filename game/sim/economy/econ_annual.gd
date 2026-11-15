@@ -263,6 +263,7 @@ static func payout(world: WorldState, oid: String, o: Dictionary) -> void:
 	var spare := world.ledger.balance(EconUtil.acct(oid)) - KEEP_M * maxi(1, avg_costs(o)) - owed - drawn(world, oid)
 	if spare <= 0:
 		return
+	spare = EconShares.pay_others(world, oid, spare)  # E166 share register: outside holders first (no register: unchanged)
 	world.ledger.transfer(EconUtil.acct(oid), EconUtil.hh_acct(o["owner_group"]), spare, "DIVIDEND", world.month)
 	world.table("hh")[o["owner_group"]]["income"]["dividend"] += spare
 	EconPop.credit_status(world, o["owner_group"], "NOT_IN_LF", spare, "dividend", "BUSINESS_OWNER")

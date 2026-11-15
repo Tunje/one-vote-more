@@ -44,6 +44,8 @@ static func create(world: WorldState, ftype: String, district: String, owner: St
 		world.table("project")[id]["size_pm"] = size_pm
 	EconFacts.emit(world, "ECON_TENDER_OPENED", district, [["GOVERNMENT" if owner == "gov" else "COMPANY", owner]],
 		[["GOVERNMENT", "government", 1.0]] if owner == "gov" else [["COMPANY", owner, 1.0]], {}, 10, "PUBLIC", {"project": id, "type": ftype})
+	if EconUnfinished.active(world):
+		EconUnfinished.try_take(world, world.table("project")[id])  # E169 (opt-in): take over a half-built building first
 	return id
 
 
@@ -123,6 +125,8 @@ static func committed(world: WorldState, oid: String) -> int:
 	var c := 0
 	for pid in world.table("org")[oid]["contracts"]:
 		var p: Dictionary = world.table("project")[pid]
+		if p["status"] != "ACTIVE":
+			continue  # guard: a cancelled or re-tendered job is no longer the builder's work
 		c += p["wu_total"] - p["wu_done"]
 	return c
 
@@ -538,7 +542,7 @@ static func _complete(world: WorldState, p: Dictionary) -> void:
 			world.table("facility")[fid]["condition"] = EconConduct.CONTRACT_CONDITION * S  # E132: a skimped build starts worn
 		if p.has("size_pm"):
 			world.table("facility")[fid]["scale"] = int(p["size_pm"])  # E120: a lot builds part of a block
-		world.table("facility")[fid]["book"] = p["price"]
+		world.table("facility")[fid]["book"] = p["price"] + int(p.get("book_carry", 0))  # E169: + the half-built shell's price
 	var impact := {"HOUSING": 15} if p["type"] == "HOUSING" else {"INFRASTRUCTURE": 5, "JOBS": 3}
 	EconFacts.emit(world, "ECON_PROJECT_COMPLETED", p["district"], [["GOVERNMENT", "government"], ["COMPANY", p["contractor"]]],
 		[["GOVERNMENT", "government", 0.7], ["COMPANY", p["contractor"], 0.3]] if p["owner"] == "gov" else [["COMPANY", p["owner"], 1.0]],
@@ -583,6 +587,7 @@ static func settle_payments(world: WorldState) -> void:
 				world.table("org")[p["contractor"]]["contracts"].erase(pid)
 				EconFacts.emit(world, "ECON_PROJECT_CANCELLED", p["district"], [["COMPANY", p["owner"]], ["COMPANY", p["contractor"]]],
 					[["COMPANY", p["owner"], 1.0]], {}, 20, "PUBLIC", {"project": pid, "reason": "owner_unpaid"})
+				EconUnfinished.leave(world, p, EconUtil.acct(p["owner"]))  # E169 (opt-in): the half-built work stays the owner's
 				continue
 			EconFacts.emit(world, "ECON_CONTRACT_PAYMENT_MISSED", p["district"], [["GOVERNMENT" if p["owner"] == "gov" else "COMPANY", p["owner"]], ["COMPANY", p["contractor"]]],
 				[["GOVERNMENT", "government", 1.0]] if p["owner"] == "gov" else [["COMPANY", p["owner"], 1.0]],
@@ -642,6 +647,7 @@ static func retender(world: WorldState, pid: String) -> void:
 ## Contractor AI: crew targets + material orders (COMPANY_AI).
 static func contractor_plans(world: WorldState) -> void:
 	var s := EconUtil.st(world)
+	EconUnfinished.monthly(world)  # E169 (opt-in): unsold half-built buildings decay
 	var r8b := EconBuilders.on(world)  # R8 step 4 (opt-in)
 	if r8b:
 		var s8: Dictionary = s.get("r8", {})

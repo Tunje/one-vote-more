@@ -36,6 +36,7 @@ static func obligations(world: WorldState, oid: String) -> int:
 
 static func check_all(world: WorldState) -> void:
 	_pay_liabilities(world)
+	EconPlanRescue.monthly(world)  # E166 (opt-in): rescue windows for plans in trouble
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		var o: Dictionary = world.table("org")[oid]
 		match o["type"]:
@@ -654,6 +655,8 @@ static func _open_plan(world: WorldState, oid: String, fid: String) -> void:
 	var o: Dictionary = world.table("org")[oid]
 	o["opened_month"] = world.month
 	o.erase("plan_credit")
+	if EconPlanRescue.active(world):
+		EconPlanRescue.on_open(world, oid)  # E166: interest-only months from the opening
 	o["pl_ring"] = []
 	var s := EconUtil.st(world)
 	var ps: Dictionary = s.get("plan_stats", {})
@@ -668,9 +671,15 @@ static func _open_plan(world: WorldState, oid: String, fid: String) -> void:
 static func abandon_plan(world: WorldState, oid: String, cause: String) -> void:
 	var o: Dictionary = world.table("org")[oid]
 	var acc := EconUtil.acct(oid)
+	var left: Array = []  # E169: projects with work done become half-built buildings
 	for pid in EconUtil.sorted_keys(world.table("project")):
 		var p: Dictionary = world.table("project")[pid]
 		if p["owner"] == oid and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+			if p["status"] == "ACTIVE" and EconUnfinished.active(world):
+				left.append(p)
+			if p["status"] == "ACTIVE" and world.table("org").has(String(p.get("contractor", ""))):
+				# the cancelled job leaves the builder's book (it inflated committed() for the builder's life; Otto + Bob)
+				(world.table("org")[p["contractor"]]["contracts"] as Array).erase(pid)
 			p["status"] = "CANCELLED"
 	var repaid := 0
 	var written := 0
@@ -685,6 +694,12 @@ static func abandon_plan(world: WorldState, oid: String, cause: String) -> void:
 	if rest > 0:
 		var to := EconUtil.hh_acct(o["owner_group"]) if o["owner_group"] != "" and world.table("hh").has(o["owner_group"]) else EconUtil.TREASURY
 		world.ledger.transfer(acc, to, rest, "PLAN_RETURN", world.month)
+	var claim := written
+	for p in left:
+		# E169: the bank holds the shell up to what it wrote off; the rest belongs to the founder household
+		var hold := EconUtil.hh_acct(o["owner_group"]) if o["owner_group"] != "" and world.table("hh").has(o["owner_group"]) else EconUtil.TREASURY
+		if EconUnfinished.leave(world, p, hold, claim) != "":
+			claim = 0  # one claim, on the first shell
 	o["status"] = "DISSOLVED"
 	o["plan_abandoned"] = true
 	o.erase("plan_credit")
