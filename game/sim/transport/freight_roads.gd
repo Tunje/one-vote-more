@@ -124,18 +124,41 @@ static func _cap(world: WorldState, id: String, x: Dictionary) -> int:
 
 
 ## Milli-units one link or junction can still take this month.
-static func _room_mu(world: WorldState, id: String) -> int:
+## PRIVATE_ROADS: on an open private road with a reserved share, the owner's freight (org = owner) may use its share
+## first and whatever is left beyond it; everyone else shares the rest (less what the owner took beyond its share).
+static func _room_mu(world: WorldState, id: String, org: String = "") -> int:
 	var x := _item(world, id)
 	if x.is_empty():
 		return BIG
 	var allow := _cap(world, id, x) * JAM_ALLOW_PM / 1000
+	var res := 0
+	var owner := ""
+	if PrivateRoads.is_private(x) and String(x.get("regime", "")) != "OWNER" and PrivateRoads.on(world):
+		res = clampi(int(x.get("reserved_pm", 0)), 0, 1000)
+		owner = String(x["owner"])
+	if res <= 0:
+		return maxi(0, _mu_of(_share(x, allow)) - int(x.get("frt", 0)))
+	var res_mu := _mu_of(allow * res / 1000)
+	var own := int(x.get("fro", 0))
+	if org == owner:
+		return maxi(maxi(0, res_mu - own), _mu_of(_share(x, allow)) - int(x.get("frt", 0)))
+	var others := int(x.get("frt", 0)) - own + maxi(0, own - res_mu)
+	return maxi(0, _mu_of(_share(x, allow * (1000 - res) / 1000)) - others)
+
+
+## Car-equivalents freight may use of an allowance: what the commuters leave, or past a jam a share by demand.
+static func _share(x: Dictionary, allow: int) -> int:
 	var commuters := maxi(0, int(x.get("traffic_last", 0)) - int(x.get("fpcu_last", 0)))
 	var want := maxi(int(x.get("fwt_last", 0)), allow / 4)
 	var room := allow - commuters
 	if commuters + want > allow:   # a jam: trucks and commuters share it by demand
-		room = maxi(room, allow * want / (commuters + want))
-	var trucks := maxi(0, room) / (2 * TRUCK_PCU)
-	return maxi(0, trucks * UNITS_PER_TRUCK * 1000 - int(x.get("frt", 0)))
+		room = maxi(room, allow * want / maxi(1, commuters + want))
+	return maxi(0, room)
+
+
+## Milli-units a number of car-equivalents carries (whole trucks there and back).
+static func _mu_of(pcu: int) -> int:
+	return maxi(0, pcu) / (2 * TRUCK_PCU) * UNITS_PER_TRUCK * 1000
 
 
 static func freight_room_mu(world: WorldState, from_d: String, to_d: String, org: String = "") -> int:
@@ -146,7 +169,7 @@ static func freight_room_mu(world: WorldState, from_d: String, to_d: String, org
 		return BIG
 	var room := BIG
 	for id in ids:
-		room = mini(room, _room_mu(world, String(id)))
+		room = mini(room, _room_mu(world, String(id), org))
 	return room
 
 
@@ -174,6 +197,8 @@ static func add_freight_traffic(world: WorldState, from_d: String, to_d: String,
 		if x.is_empty():
 			continue
 		x["fwt"] = int(x.get("fwt", 0)) + moved_mu + held_mu
+		if moved_mu > 0 and org != "" and String(x.get("owner", "")) == org:   # the owner's own freight on its road
+			x["fro"] = int(x.get("fro", 0)) + moved_mu
 		if moved_mu > 0:
 			var before := trucks_pcu(int(x.get("frt", 0)))
 			x["frt"] = int(x.get("frt", 0)) + moved_mu
@@ -357,6 +382,8 @@ static func step_month(world: WorldState) -> void:
 		x["fpcu_last"] = trucks_pcu(int(x.get("frt", 0)))
 		x["fwt_last"] = trucks_pcu(int(x.get("fwt", 0)))
 		x["frt"] = 0
+		if x.has("fro"):
+			x["fro"] = 0
 		x["fwt"] = 0
 		x["fcap"] = Transport.link_capacity(x, world) if t["links"].has(id) else Transport.junction_capacity(world, x)
 		x["ys"] = int(x.get("ys", 0)) + int(x.get("traffic_last", 0))

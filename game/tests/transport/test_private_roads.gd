@@ -187,3 +187,35 @@ func test_a_firms_freight_takes_its_own_road() -> void:
 	Transport.add_freight_traffic(w, d[0], d[1], 50000, 0, "FOOD")
 	check_eq(int(links[lid]["traffic"]), t1, "public freight stays off it")
 	check(Transport.freight_room_mu(w, d[0], d[1], firm) > 0, "room on the firm's route")
+
+
+func test_the_owner_keeps_its_share_of_an_open_road() -> void:
+	var w := _game().world
+	var firm := _firm(w)
+	var other := _firm(w, firm)
+	var d := _two(w)
+	var lid := _build(w, firm, {"kind": "PAVED", "regime": "OPEN_FREE", "reserved_pm": 500})
+	w.month += 1
+	Transport.step_month(w)
+	check(lid in FreightRoads.route_ids(w, d[0], d[1]), "the open road carries public freight")
+	var x := FreightRoads._item(w, lid)
+	for k in ["traffic_last", "fpcu_last", "fwt_last", "frt", "fro"]:
+		x[k] = 0
+	var full := FreightRoads._room_mu(w, lid, firm)
+	var pub := FreightRoads._room_mu(w, lid, other)
+	check(full > pub and pub > 0, "the owner may use all of it, others half (%d vs %d)" % [full, pub])
+	check(absi(pub * 2 - full) <= FreightRoads.UNITS_PER_TRUCK * 1000 * 2, "about half for others")
+	# others fill their half: the owner's share is still there
+	Transport.add_freight_traffic(w, d[0], d[1], pub, 0, "FOOD", other)
+	check(FreightRoads._room_mu(w, lid, other) <= 0, "others' half is full")
+	check(FreightRoads._room_mu(w, lid, firm) >= full - pub - FreightRoads.UNITS_PER_TRUCK * 1000, "the owner's half is untouched")
+	# the owner going past its share eats into the others' half
+	x["frt"] = 0
+	x["fro"] = 0
+	Transport.add_freight_traffic(w, d[0], d[1], full * 3 / 4, 0, "FOOD", firm)
+	check(FreightRoads._room_mu(w, lid, other) < pub, "the owner past its share leaves others less")
+	# a public road and the flag-off rule are as before
+	var pubroad := String(FreightRoads.route_ids(w, d[0], d[1])[0])
+	if pubroad != lid:
+		check_eq(FreightRoads._room_mu(w, pubroad, firm), FreightRoads._room_mu(w, pubroad, other), "no reservations on a public road")
+
