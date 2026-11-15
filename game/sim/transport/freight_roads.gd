@@ -215,6 +215,8 @@ static func _held_through(world: WorldState) -> Dictionary:
 		if held <= 0:
 			continue
 		var ab := String(k).split(">")
+		if ab.size() != 2:   # not a pair key ("a>b"): skip it rather than fail
+			continue
 		var goods: Dictionary = fh.get(k, {"?": held})
 		for id in routes.get(_pk(ab[0], ab[1]), []):
 			if not out.has(id):
@@ -385,6 +387,8 @@ static func _jam_facts(world: WorldState, t: Dictionary) -> void:
 	var fp: Dictionary = t["fpairs_last"]
 	for k in EconUtil.sorted_keys(fp):
 		var ab := String(k).split(">")
+		if ab.size() != 2:
+			continue
 		var d := ab[1]
 		if not by.has(d):
 			by[d] = [0, 0, []]

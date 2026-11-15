@@ -275,3 +275,10 @@ func test_road_needs_say_what_each_road_would_free() -> void:
 	var off := _game(1, 4, false).world
 	for n in Transport.road_needs(off):
 		check(not n.has("held_mu"), "flag off: no benefit fields")
+	# a key that is not a pair is skipped, not an error (Wilma 2026-11-15)
+	w.table("transport")["fpairs_last"]["junk"] = [0, 5000]
+	w.table("transport")["fpairs"] = {"junk": [0, 5000]}
+	Transport._bump(w)
+	check(FreightRoads.held_through(w) is Dictionary, "held_through skips it")
+	_next_month(w)
+	check(true, "the jam facts skip it too")
