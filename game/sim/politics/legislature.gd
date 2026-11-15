@@ -713,6 +713,7 @@ static func submit_bill(world: WorldState, clauses: Array, gov: Dictionary, sat:
 		"subjects": [{"kind": "PARTY", "id": gov["pm_party"]}],
 		"responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}],
 		"impact": {}, "magnitude": 40, "visibility": "PUBLIC", "data": {"bill": bill_id, "yes": yes, "no": no}})
+	Rivalry.on_vote(world, bill, gov)   # RIVALRY: the government's parties remember who voted against them
 	return bill
 
 

@@ -129,6 +129,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 	AreaStore.yearly(world)        # January: oversized areas and private enclaves split (moves to SOCIAL with Bob's A2)
 	GovBuilder.monthly(world, st)  # the state's capital programme, decided by whoever governs (not when the player does)
 	GovWildlife.monthly(world, st)  # ECO: blame for wildlife attacks, alarm at a collapsing food web, the yearly policy review
+	Rivalry.monthly(world, st)      # RIVALRY: grudges fade; opposition parties question this month's decisions
 	if have_parties and world.month > PolDefs.PARTY_FORMATION_MONTH:
 		HomeWorld.monthly(world, st)
 	OfficeFeed.monthly(world)      # A44: what needs the player this month reaches the office channel
