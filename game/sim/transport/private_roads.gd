@@ -170,6 +170,108 @@ static func owners(world: WorldState) -> Array:
 	return EconUtil.sorted_keys(out)
 
 
+## A firm's road between two districts (step 4): planned off the public roads, priced, with what it would free and
+## the plan Anni's RoadLaw.may_build judges ({tiles ["x,y"], kind, districts crossed in order, regime, tile_district
+## {"x,y": d}, junction_over [d], essential}). Pure.
+static func road_case(world: WorldState, org: String, from_d: String, to_d: String, kind: String = "ROAD") -> Dictionary:
+	var out := {"ok": false, "error": "", "spec": {}, "cost": 0, "months": 0, "km": 0, "freed_mu": 0, "freed_by_good": {},
+		"relieves": [], "law_plan": {}}
+	if not on(world):
+		out["error"] = "Private roads are not in this game"
+		return out
+	var na := Commuting.district_node(world, from_d)
+	var nb := Commuting.district_node(world, to_d)
+	if from_d == to_d or na.is_empty() or nb.is_empty() or int(na["tile"]) < 0 or int(nb["tile"]) < 0:
+		out["error"] = "Two districts with a place on the colony map are needed"
+		return out
+	# keep_off_public stays in the spec: the project plans the same way when it is built
+	var spec := {"a": int(na["tile"]), "b": int(nb["tile"]), "kind": kind, "keep_off_public": true, "regime": "OWNER"}
+	var plan := Transport.plan_link(world, spec)
+	if not bool(plan["ok"]):
+		out["error"] = String(plan["error"])
+		return out
+	var freed := FreightRoads.held_between(world, from_d, to_d)
+	var relieves := FreightRoads.route_ids(world, from_d, to_d)
+	# Anni's plan: tiles, districts crossed, which districts' public junctions the pair's traffic would overload, and
+	# whether it would be the only good route (the public one 1.6x longer, or delivering under 80%)
+	var setl := ColonyLayout.settlements(world)
+	var keys: Array = []
+	var td := {}
+	var crossed: Array = []
+	for ti in plan["path"]:
+		var t := Transport.int_tile(int(ti))
+		var k := "%d,%d" % [t.x, t.y]
+		keys.append(k)
+		var d := Transport._district_near(setl, t)
+		td[k] = d
+		if crossed.is_empty() or crossed[-1] != d:
+			if not d in crossed:
+				crossed.append(d)
+	var trips := FreightRoads.pair_traffic(world, from_d, to_d)
+	var jt := Transport.junctions(world)
+	var on_path := {}
+	for ti in plan["path"]:
+		on_path[int(ti)] = true
+	var over: Array = []
+	for jid in EconUtil.sorted_keys(jt):
+		if not on_path.has(int(jt[jid]["tile"])):
+			continue
+		var cap := maxi(1, Transport.junction_capacity(world, jt[jid]))
+		if (int(jt[jid].get("traffic_last", 0)) + trips) * 1000 > cap * FreightRoads.JAM_ALLOW_PM:
+			var dj := Transport._district_near(setl, Transport.int_tile(int(jt[jid]["tile"])))
+			if not dj in over:
+				over.append(dj)
+	var cd := Transport.commute_d(world, from_d, to_d)
+	var essential := not bool(cd["ok"]) or int(cd["km"]) * 1000 >= int(plan["km"]) * FreightRoads.DETOUR_PM \
+		or FreightRoads.deliverable_pm(world, from_d, to_d) < 800
+	out["ok"] = true
+	out["spec"] = spec
+	out["cost"] = int(plan["cost"])
+	out["months"] = int(plan["months"])
+	out["km"] = int(plan["km"])
+	out["freed_mu"] = int(freed["held"])
+	out["freed_by_good"] = freed["goods"]
+	out["relieves"] = relieves
+	out["law_plan"] = {"tiles": keys, "kind": kind, "districts": crossed, "regime": "OWNER", "tile_district": td,
+		"junction_over": over, "essential": essential}
+	return out
+
+
+## The works on a firm's own roads, worst first (step 4; Bob's rule 6: repair, or let it decay).
+static func road_needs(world: WorldState, org: String) -> Array:
+	var out: Array = []
+	if not on(world):
+		return out
+	var links := Transport._links(world)
+	for lid in links_of(world, org):
+		var l: Dictionary = links[lid]
+		var cap := maxi(1, Transport.link_capacity(l, world))
+		var lpm := Transport.traffic_load(l) * 1000 / cap
+		var cond := int(l["cond"])
+		var congested := lpm > Transport.NEED_LOAD_PM
+		var worn := cond < Transport.NEED_COND
+		var opts: Array = []
+		for o in Transport._link_options(world, lid, l, false):
+			var after := lpm * 1000 / maxi(1, int(o["cap_pm"]))
+			opts.append({"fix": String(o["fix"]), "type": String(Transport.NEED_TYPE.get(String(o["fix"]), "WIDEN")), "spec": o["spec"],
+				"cost": int(o["cost"]), "months": int(o["months"]), "cap_pm": int(o["cap_pm"]), "load_after_pm": after, "relief_pm": lpm - after})
+		if cond < 950:
+			var plan := Transport.plan_link(world, {"repair": lid})
+			if bool(plan["ok"]):
+				var fresh := l.duplicate()
+				fresh["cond"] = 1000
+				var cap_pm := Transport.link_capacity(fresh, world) * 1000 / cap
+				var after2 := lpm * 1000 / maxi(1, cap_pm)
+				opts.append({"fix": "REPAIR", "type": "REPAIR", "spec": {"repair": lid}, "cost": int(plan["cost"]), "months": int(plan["months"]),
+					"cap_pm": cap_pm, "load_after_pm": after2, "relief_pm": lpm - after2})
+		opts.sort_custom(func(a, b): return int(a["cost"]) < int(b["cost"]) or (a["cost"] == b["cost"] and String(a["fix"]) < String(b["fix"])))
+		out.append({"key": "LINK:" + lid, "load_pm": lpm, "cond": cond, "upkeep": upkeep(world, l),
+			"why": "BOTH" if congested and worn else ("CONGESTED" if congested else ("WORN" if worn else "OK")),
+			"severity": maxi(0, lpm - Transport.NEED_LOAD_PM) + maxi(0, Transport.NEED_COND - cond), "options": opts})
+	out.sort_custom(func(a, b): return int(a["severity"]) > int(b["severity"]) or (a["severity"] == b["severity"] and String(a["key"]) < String(b["key"])))
+	return out
+
+
 ## Struct-signature part of a link's terms (keys the route memos kept across months): "" for a public link.
 static func sig(l: Dictionary) -> String:
 	if not is_private(l):

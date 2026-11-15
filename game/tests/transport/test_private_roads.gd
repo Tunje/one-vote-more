@@ -219,3 +219,38 @@ func test_the_owner_keeps_its_share_of_an_open_road() -> void:
 	if pubroad != lid:
 		check_eq(FreightRoads._room_mu(w, pubroad, firm), FreightRoads._room_mu(w, pubroad, other), "no reservations on a public road")
 
+
+func test_a_firms_case_for_a_road_and_its_own_needs() -> void:
+	var w := _game().world
+	var firm := _firm(w)
+	var d := _two(w)
+	var h := w.state_hash()
+	var c := Transport.private_road_case(w, firm, d[0], d[1])
+	check_eq(w.state_hash(), h, "pure")
+	check(bool(c["ok"]), "a case %s" % str(c.get("error", "")))
+	if not bool(c["ok"]):
+		return
+	check(int(c["cost"]) > 0 and int(c["months"]) > 0 and int(c["km"]) > 0, "priced")
+	check(bool(c["spec"]["keep_off_public"]) and c["spec"]["regime"] == "OWNER", "a ROAD project's spec")
+	var lp: Dictionary = c["law_plan"]
+	check(not (lp["tiles"] as Array).is_empty() and String(lp["tiles"][0]).contains(","), "tiles as land keys")
+	check(d[0] in lp["districts"] and (lp["tile_district"] as Dictionary).size() == (lp["tiles"] as Array).size(), "districts crossed, by tile")
+	check(lp.has("junction_over") and lp.has("essential"), "junctions and essential for the licence")
+	var plan := Transport.plan_link(w, c["spec"])
+	check(not Transport._runs_along(w, plan["path"]), "it never runs along a public road")
+	# built from the case: the firm's road, and its own works list
+	var spec: Dictionary = c["spec"].duplicate()
+	var lid := Transport.complete_road(w, {"id": "proj:c", "link": spec, "owner": firm, "district": d[0]})
+	check(lid != "" and String(Transport.private_link(w, lid).get("owner", "")) == firm, "built and owned")
+	var l: Dictionary = w.table("transport")["links"][lid]
+	l["cond"] = 300
+	var needs := Transport.private_road_needs(w, firm)
+	check_eq(needs.size(), 1, "one road to look after")
+	if needs.size() == 1:
+		check(needs[0]["why"] == "WORN" and needs[0]["key"] == "LINK:" + lid, "worn %s" % str(needs[0]["why"]))
+		var fixes := (needs[0]["options"] as Array).map(func(o): return String(o["fix"]))
+		check("REPAIR" in fixes and "PAVE" in fixes, "repair or upgrade on offer: %s" % str(fixes))
+		check(int(needs[0]["upkeep"]) > 0, "with its upkeep")
+	check(Transport.private_road_needs(w, _firm(w, firm)).is_empty(), "another firm has none")
+	var off := _game(1, 2, false).world
+	check(not bool(Transport.private_road_case(off, _firm(off), d[0], d[1])["ok"]), "flag off: no case")

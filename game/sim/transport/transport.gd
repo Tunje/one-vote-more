@@ -989,9 +989,16 @@ static func plan_link(world: WorldState, spec: Dictionary) -> Dictionary:
 				return out
 			for ti in old["path"].slice(1, old["path"].size() - 1):
 				avoid[int(ti)] = true
+		var keep_off := {}
+		if bool(spec.get("keep_off_public", false)):   # PRIVATE_ROADS: a firm's road keeps off the public roads
+			keep_off = _public_tiles(world, a, b)
+			avoid.merge(keep_off)
 		var path := plan_path(world, a, b, {}, avoid)
 		if path.is_empty():
 			out["error"] = "No path between the two ends"
+			return out
+		if not keep_off.is_empty() and _runs_along(world, path):
+			out["error"] = "The land leaves no way that keeps off the public roads"
 			return out
 		if not avoid.is_empty():
 			var shared := path.filter(func(ti): return avoid.has(int(ti))).size()
@@ -1369,6 +1376,19 @@ static func transfer_link(world: WorldState, lid: String, new_owner: String, why
 	return PrivateRoads.transfer_link(world, lid, new_owner, why)
 
 
+## A firm's case for its own road between two districts (Bob's rule 5): {ok, error, spec (a ROAD project's link
+## params), cost, months, km, freed_mu, freed_by_good, relieves [public link and junction ids], law_plan (Anni's
+## RoadLaw.may_build plan)}. Pure.
+static func private_road_case(world: WorldState, org: String, from_d: String, to_d: String, kind: String = "ROAD") -> Dictionary:
+	return PrivateRoads.road_case(world, org, from_d, to_d, kind)
+
+
+## The works on a firm's own roads (Bob's rule 6): [{key "LINK:<lid>", load_pm, cond, why CONGESTED|WORN|BOTH|OK,
+## options [{fix, type, spec, cost, months, cap_pm, load_after_pm, relief_pm}]}], worst first.
+static func private_road_needs(world: WorldState, org: String) -> Array:
+	return PrivateRoads.road_needs(world, org)
+
+
 ## State money put into a private link (step-in repairs, contributions), mcr.
 static func add_public_money(world: WorldState, lid: String, mcr: int) -> void:
 	PrivateRoads.add_public_money(world, lid, mcr)
@@ -1648,6 +1668,49 @@ static func _district_near(setl: Array, t: Vector2i) -> String:
 	return best
 
 
+## Public colony link tiles, except near two ends (where a private road joins the network): {tile: true}.
+static func _public_tiles(world: WorldState, a: Vector2i, b: Vector2i) -> Dictionary:
+	var out := {}
+	var links := _links(world)
+	for lid in links:
+		var l: Dictionary = links[lid]
+		if int(l.get("globe", 0)) == 1 or PrivateRoads.is_private(l):
+			continue
+		for ti in l["path"]:
+			var t := int_tile(int(ti))
+			if Vector2(t).distance_to(Vector2(a)) > 2.5 and Vector2(t).distance_to(Vector2(b)) > 2.5:
+				out[int(ti)] = true
+	return out
+
+
+## A path runs along a public link (two tiles in a row on one, away from its ends), as a private road may not:
+## crossing is fine.
+static func _runs_along(world: WorldState, path: Array) -> bool:
+	var on := {}
+	var links := _links(world)
+	for lid in links:
+		var l: Dictionary = links[lid]
+		if int(l.get("globe", 0)) == 1 or PrivateRoads.is_private(l):
+			continue
+		for ti in l["path"]:
+			if not on.has(int(ti)):
+				on[int(ti)] = {}
+			on[int(ti)][lid] = true
+	var ends := [int_tile(int(path[0])), int_tile(int(path[-1]))]
+	var near_end := func(ti: int) -> bool:   # where it joins the network (as _public_tiles leaves free)
+		var tv := int_tile(ti)
+		return Vector2(tv).distance_to(Vector2(ends[0])) <= 2.5 or Vector2(tv).distance_to(Vector2(ends[1])) <= 2.5
+	for i in range(1, path.size()):
+		if near_end.call(int(path[i - 1])) or near_end.call(int(path[i])):
+			continue
+		var u: Dictionary = on.get(int(path[i - 1]), {})
+		var v: Dictionary = on.get(int(path[i]), {})
+		for lid2 in u:
+			if v.has(lid2):
+				return true
+	return false
+
+
 ## The project params for one fix ({} if that fix is not on offer).
 static func fix_spec(world: WorldState, key: String, fix: String) -> Dictionary:
 	for o in traffic_fixes(world).get(key, {}).get("options", []):
@@ -1663,24 +1726,7 @@ static func _traffic_fixes(world: WorldState) -> Dictionary:
 		var l: Dictionary = links[lid]
 		if PrivateRoads.is_private(l):   # PRIVATE_ROADS: works on a company's road are the owner's
 			continue
-		var opts: Array = []
-		var k := String(l["kind"])
-		var globe := int(l.get("globe", 0)) == 1
-		if k != "PAVED":
-			opts.append(_fix_option(world, "ROAD" if k == "TRACK" else "PAVE", {"upgrade": lid}, l,
-				func(x): x["kind"] = KINDS[KINDS.find(k) + 1]; x["cond"] = 1000, 700 if k == "TRACK" else 800))
-		if not globe and k != "TRACK" and int(l.get("lanes", 1)) == 1:
-			opts.append(_fix_option(world, "LANES_2", {"lanes": lid}, l, func(x): x["lanes"] = 2, 850))
-		if not globe and int(l["bridges"]) > 0 and int(l.get("bridge_lanes", 1)) == 1 and int(l.get("lanes", 1)) == 2:
-			opts.append(_fix_option(world, "BRIDGE_2", {"bridge": lid}, l, func(x): x["bridge_lanes"] = 2, 900))
-		if not globe and k != "TRACK" and l["path"].size() >= 6:
-			var spec := {"a": int(l["path"][0]), "b": int(l["path"][-1]), "kind": "ROAD", "avoid": lid}
-			var plan := plan_link(world, spec)
-			if plan["ok"]:
-				var cap0 := link_capacity(l, world)
-				opts.append({"fix": "BYPASS", "cost": int(plan["cost"]), "months": int(plan["months"]),
-					"cap_pm": (cap0 + int(CAPACITY["ROAD"])) * 1000 / maxi(1, cap0), "acc_pm": 600, "spec": spec})
-		opts = opts.filter(func(o): return not o.is_empty())
+		var opts := _link_options(world, lid, l, true)
 		if not opts.is_empty():
 			out["LINK:" + lid] = {"options": opts}
 	var jt := junctions(world)
@@ -1700,6 +1746,28 @@ static func _traffic_fixes(world: WorldState) -> Dictionary:
 		if not opts2.is_empty():
 			out["NODE:" + jid] = {"options": opts2}
 	return out
+
+
+## The works on offer for one link: upgrade, a second lane, a second bridge, and (bypass true) a bypass road.
+static func _link_options(world: WorldState, lid: String, l: Dictionary, bypass: bool) -> Array:
+	var opts: Array = []
+	var k := String(l["kind"])
+	var globe := int(l.get("globe", 0)) == 1
+	if k != "PAVED":
+		opts.append(_fix_option(world, "ROAD" if k == "TRACK" else "PAVE", {"upgrade": lid}, l,
+			func(x): x["kind"] = KINDS[KINDS.find(k) + 1]; x["cond"] = 1000, 700 if k == "TRACK" else 800))
+	if not globe and k != "TRACK" and int(l.get("lanes", 1)) == 1:
+		opts.append(_fix_option(world, "LANES_2", {"lanes": lid}, l, func(x): x["lanes"] = 2, 850))
+	if not globe and int(l["bridges"]) > 0 and int(l.get("bridge_lanes", 1)) == 1 and int(l.get("lanes", 1)) == 2:
+		opts.append(_fix_option(world, "BRIDGE_2", {"bridge": lid}, l, func(x): x["bridge_lanes"] = 2, 900))
+	if bypass and not globe and k != "TRACK" and l["path"].size() >= 6:
+		var spec := {"a": int(l["path"][0]), "b": int(l["path"][-1]), "kind": "ROAD", "avoid": lid}
+		var plan := plan_link(world, spec)
+		if plan["ok"]:
+			var cap0 := link_capacity(l, world)
+			opts.append({"fix": "BYPASS", "cost": int(plan["cost"]), "months": int(plan["months"]),
+				"cap_pm": (cap0 + int(CAPACITY["ROAD"])) * 1000 / maxi(1, cap0), "acc_pm": 600, "spec": spec})
+	return opts.filter(func(o): return not o.is_empty())
 
 
 static func _fix_option(world: WorldState, fix: String, spec: Dictionary, l: Dictionary, change: Callable, acc_pm: int) -> Dictionary:
