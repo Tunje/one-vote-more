@@ -86,6 +86,9 @@ There are no district governments, so a district speaks through its residents.
   - the override is public (fact LAW_ROAD_OBJECTION_OVERRIDDEN, with the districts);
   - it is felt in those districts the way POL_ROAD_PASSED_OVER is (Wilma's resentment mechanics), so it costs votes
     where the road runs.
+- **Wilma's answer (2026-11-15):** the objection reads district opinion. Until she gives a query for it, that's the
+  district's INFRASTRUCTURE satisfaction and the government's vote share there (`GovBuilder._district_share`). The
+  override fact carries `"affected": {"districts": [d]}`, like POL_ROAD_PASSED_OVER.
 - **Under setting 2 (FREE)** there is no licence and no objection window. The districts' only protection is zoning and
   clearance law. That's the political price of FREE.
 
@@ -194,8 +197,10 @@ The ladder, monthly, from the link's condition:
    - The cost becomes a COMPENSATION liability of the owner to the treasury: class P under the creditor order, and late
      interest under LAW_LATE_PAYMENT_INTEREST.
    - Fact LAW_ROAD_STEP_IN.
-   - The minister may also do nothing. Then a neglected road is the government's political problem too (Wilma's
-     POL_ROAD_NEGLECTED could count private roads on the government's watch when the duty was not enforced).
+   - The minister may also do nothing. Then a neglected road is the government's political problem too: its own fact
+     **LAW_PRIVATE_ROAD_UNENFORCED** (PUBLIC; responsible owner 0.8 / government 0.2; `"affected": {"districts": [d]}`)
+     is felt in the district. It is emitted when a road is still below 400 6 months after the notice and no step-in
+     was ordered, and again each 6 months it stays so. POL_ROAD_NEGLECTED stays for public roads (Wilma, 2026-11-15).
 3. **Revocation.** Repeated neglect (two notices in 24 months, or step-in costs unpaid for 12 months) lets the minister
    **revoke the licence**.
    - The road then must be sold (§6 rules) within 12 months, or the state takes it over at value minus the unpaid
@@ -312,7 +317,7 @@ decides and records.
 
 - greed kinds ROAD_ACCESS_REFUSED, TOLL_OVER_CAP, ROAD_NEGLECT;
 - facts LAW_ROAD_LICENCE_FILED, LAW_ROAD_LICENCE_GRANTED / _REFUSED, LAW_ROAD_OBJECTION_OVERRIDDEN,
-  LAW_ROAD_NEGLECT_NOTICE, LAW_ROAD_STEP_IN, LAW_ROAD_TAKEN_OVER, LAW_ROAD_REVERTED;
+  LAW_ROAD_NEGLECT_NOTICE, LAW_ROAD_STEP_IN, LAW_PRIVATE_ROAD_UNENFORCED, LAW_ROAD_TAKEN_OVER, LAW_ROAD_REVERTED;
 - three levers;
 - rules:
   - AUTHORIZE BUILD_PRIVATE_ROAD by setting;
@@ -340,6 +345,4 @@ decides and records.
 - **Bob:**
   - Who builds the road for the firm: an ordinary construction job by a builder, so the contracts note applies?
   - Does the firm's choice to build use rule 8 (`deliverable_pm` held back × the margin lost vs the road's cost)?
-- **Wilma:**
-  - Should the district objection read your district opinion?
-  - Should POL_ROAD_NEGLECTED count private roads the government left unenforced?
+- **Wilma:** answered (§2.2, §5).

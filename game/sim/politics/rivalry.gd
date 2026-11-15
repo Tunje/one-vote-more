@@ -29,7 +29,8 @@ const QUESTION_P := 0.5             # chance a month at full rivalry, when there
 const QUESTIONS_MAX := 2            # parties questioning in one month
 ## government decisions the opposition can question (fact types), and how tempting each is
 const QUESTIONABLE := {"POL_PROJECT_ORDERED": 1.0, "POL_ROAD_PATCHED": 2.5, "POL_ROAD_PASSED_OVER": 2.5, "POL_GRANT_COVERAGE": 1.5, "POL_GRANT_FAVOURITISM": 3.0,
-	"POL_GRANT_PROGRAMME_FAILED": 3.0, "POL_WILDLIFE_OUTCRY": 2.0, "POL_BIRDS_MISSED": 1.0}
+	"POL_GRANT_PROGRAMME_FAILED": 3.0, "POL_WILDLIFE_OUTCRY": 2.0, "POL_BIRDS_MISSED": 1.0,
+	"LAW_TAKEOVER_OVERRIDDEN": 2.5, "LAW_EMERGENCY_DECLARED": 1.5}   # Anni: the minister overrode the competition authority; an emergency unlocks direct awards
 
 
 static func on(world: WorldState) -> bool:
@@ -136,7 +137,7 @@ static func _question(world: WorldState, st: Dictionary) -> void:
 		return
 	var members: Array = gov.get("members", [])
 	var decisions: Array = []
-	for f in world.facts.query("POL_", world.month, world.month):
+	for f in world.facts.query("", world.month, world.month, "PUBLIC"):
 		if QUESTIONABLE.has(String(f["type"])):
 			decisions.append(f)
 	if decisions.is_empty():
