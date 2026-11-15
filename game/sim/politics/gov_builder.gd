@@ -21,6 +21,7 @@ const QUARTER_MONTH := 1
 static func monthly(world: WorldState, st: Dictionary) -> void:
 	if world.table("econ").has("s"):
 		_grant_cover(world, st)
+		_road_budget_need(world, st)
 	if world.month % 3 != QUARTER_MONTH or not world.table("econ").has("s"):
 		return
 	var who := _actor(world, st)
@@ -205,6 +206,40 @@ const ROAD_GOOD_LOAD := 800          # a fix that leaves the road at or under th
 const ROAD_AHEAD_LOAD := 600         # a builder government wants room to spare
 const ROAD_THRIFTY := -0.2           # fiscal position at or under this: the cheapest thing that stops the jam
 const ROAD_BUILDER := 0.5            # spend + state at or over this: build ahead
+
+
+## The roads' case for the infrastructure budget (probe 2026-11-15: every overloaded road had a cure on offer, but the
+## infrastructure line had no headroom for it in most years, so nothing was ordered while 40-60% of freight was held).
+## While the roads hold freight back and the line cannot pay for the cheapest cure, the road department reports a need
+## for ECON_BUDGET_INFRASTRUCTURE (pol.state["lever_need"], permille, read by Legislature.propose like the regulator's).
+## A pressure on the budget vote, which parliament may still refuse.
+const ROAD_NEED_JAM := 50            # freight held (permille) from which the roads have a case
+const ROAD_NEED_BASE := 500
+const ROAD_NEED_PER_JAM := 3
+
+
+static func _road_budget_need(world: WorldState, st: Dictionary) -> void:
+	if not road_works_on(world):
+		return
+	var ln: Dictionary = st.get("lever_need", {})
+	var v := 0
+	var jam := FreightRoads.jam_share_pm(world)
+	if jam >= ROAD_NEED_JAM:
+		var cheapest := -1
+		for r in Transport.road_needs(world):
+			for o in r.get("options", []):
+				if int(o["load_after_pm"]) <= 1000 and (cheapest < 0 or int(o["cost"]) < cheapest):
+					cheapest = int(o["cost"])
+		if cheapest >= 0 and EconActions.headroom(world, "ECON_BUDGET_INFRASTRUCTURE") < cheapest * 11 / 10:
+			v = clampi(ROAD_NEED_BASE + ROAD_NEED_PER_JAM * jam, 0, 2000)
+	if v == 0:
+		ln.erase("ECON_BUDGET_INFRASTRUCTURE")
+	else:
+		ln["ECON_BUDGET_INFRASTRUCTURE"] = v
+	if ln.is_empty():
+		st.erase("lever_need")
+	else:
+		st["lever_need"] = ln
 
 
 static func road_works_on(world: WorldState) -> bool:

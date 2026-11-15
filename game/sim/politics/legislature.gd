@@ -394,6 +394,10 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	var guarded := fiscal_guard(world)
 	var room := fiscal_room(world) * (E151_ROOM_PULL / FISCAL_ROOM_PULL if e151(world) else 1.0)   # E151: reserves above target push harder
 	var need_levers: Dictionary = EconUtil.peek_st(world).get("lever_need", {}) if world.table("econ").has("s") else {}
+	var own_need: Dictionary = (world.peek("pol").get("state", {}) as Dictionary).get("lever_need", {})   # needs the government's own departments report (ROAD_WORKS)
+	if not own_need.is_empty():
+		need_levers = need_levers.duplicate()
+		need_levers.merge(own_need, true)
 	var step_fraction := CRISIS_STEP_FRACTION if crisis else STEP_FRACTION
 	var mem := _bill_memory(world) if allowed == "PARLIAMENT" else {"defeated": {}, "moved": {}}
 	var skill_gap := _skill_gap(world) if allowed == "PARLIAMENT" else 0.0
