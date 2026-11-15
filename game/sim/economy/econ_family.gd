@@ -435,8 +435,12 @@ static func _start(world: WorldState, ftype: String, d: String, gid: String, pct
 		"missed_this_month": false, "owner_group": gid, "sales_ema": {}, "contracts": [], "dividends_ytd": 0, "sold": {},
 		"family": true, "family_type": ftype}
 	world.ledger.open_account(EconUtil.acct(id))
+	world.table("org")[id]["grant_paid"] = 0  # what the government gave (mcr; 0 = self-funded), for news and blame later
+	world.table("org")[id]["grant_month"] = -1
 	if grant > 0:
 		var paid := EconFinance.gov_pay(world, EconUtil.acct(id), grant, "FAMILY_GRANT")
+		world.table("org")[id]["grant_paid"] = paid
+		world.table("org")[id]["grant_month"] = world.month
 		EconFinance._spend_line(world, k["lever"], paid)
 		s["fam_grant_total"] = int(s.get("fam_grant_total", 0)) + paid
 		var yr: Array = s.get("fam_grant_year", [])
