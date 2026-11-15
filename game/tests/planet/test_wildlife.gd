@@ -155,3 +155,51 @@ func test_in_the_game_deterministic_and_save_load() -> void:
 	c.step()
 	check_eq(c.world.state_hash(), a.world.state_hash(), "save/load/continue stays identical")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func test_danger_by_district_follows_the_attacks_formula() -> void:
+	var sim := EconSim.make(2, "BALANCED", {}, true)
+	for _m in 3:
+		sim.step()
+	var w := sim.world
+	var ds := {}
+	for s in ColonyLayout.settlements(w):
+		ds[String(s["district"])] = true
+	check(not ds.is_empty(), "districts")
+	for d in ds:
+		check_eq(PlanetWildlife.district_risk_pm(w, String(d)), 0, "ECO off: no risk")
+		check(not PlanetWildlife.dangerous_district(w, String(d)), "ECO off: never dangerous")
+	(w.meta["on"] as Array).append("ECO")
+	var h := w.state_hash()
+	var ch := PlanetWildlife.character(w)
+	var season := 1.6 - 0.8 * PlanetSeasons.mean_activity(w, Planet.landing(w))
+	var lam := 0.0   # the attack formula's monthly rate, summed over every site
+	for s in PlanetWildlife.sites(w):
+		lam += PlanetWildlife.ATTACK_BASE * float(ch["danger"]) * float(ch["boldness"]) * season * float(PlanetWildlife.levels(w, int(s["hex"]))["pred"]) / 1000.0 * float(s["exposure"])
+	var total := 0
+	for d in ds:
+		total += PlanetWildlife.district_risk_pm(w, String(d))
+	check(absi(total - roundi(lam * 12000.0)) <= ds.size(), "the districts add up to the colony's expected attacks a year (%d vs %d)" % [total, roundi(lam * 12000.0)])
+	check_eq(w.state_hash(), h, "pure")
+	# more predators: more risk at once (the memo key holds the food web), and the bar marks a district dangerous
+	var before := {}
+	for d in ds:
+		before[d] = PlanetWildlife.district_risk_pm(w, String(d))
+	var web := {}
+	for s in PlanetWildlife.sites(w):
+		web[str(int(s["hex"]))] = [1000, 1000, 1000, 1000, 3000]
+	w.table("planet")["web"] = web
+	var any := false
+	for d in ds:
+		var r := PlanetWildlife.district_risk_pm(w, String(d))
+		check(r >= int(before[d]), "more predators, more risk in %s (%d -> %d)" % [d, int(before[d]), r])
+		check_eq(PlanetWildlife.dangerous_district(w, String(d)), r >= PlanetWildlife.DANGER_PM, "dangerous from DANGER_PM")
+		any = any or r > int(before[d])
+	check(any, "the risk rose somewhere")
+	# no predators: no danger anywhere
+	for k in web:
+		web[k] = [1000, 1000, 1000, 1000, 0]
+	w.table("planet")["web"] = web.duplicate(true)
+	for d in ds:
+		check_eq(PlanetWildlife.district_risk_pm(w, String(d)), 0, "no predators, no risk in %s" % d)
+		check(not PlanetWildlife.dangerous_district(w, String(d)), "and not dangerous")

@@ -394,3 +394,53 @@ static func _attacks(world: WorldState, r: RandomNumberGenerator, ch: Dictionary
 		var injured := 0 if killed > 0 and r.randf() < 0.5 else 1 + (1 if r.randf() < 0.3 else 0)
 		out.append({"site": s, "killed": killed, "injured": injured})
 	return out
+
+
+# ================================================================== danger by district (Anni's duty of care, Bob's E175)
+
+## A district counts as having dangerous wildlife from this many milli-attacks a year (one attack in five years).
+const DANGER_PM := 200
+
+static var _risk_cache := {}
+
+
+## Expected attacks a year in a district × 1000 (0 without ECO), by the formula that drives the attacks: ATTACK_BASE ×
+## the world's danger × boldness × the year-round seasonal factor × the sum over the district's outdoor sites (farms,
+## family farms, mines, the settlement edge) of predators ‰ / 1000 × exposure, × 12. Uses the saved year-round levels,
+## so it does not swing with the seasons. Pure; memoised on a key of everything it reads.
+static func district_risk_pm(world: WorldState, d: String) -> int:
+	if not PlanetEcology.on(world):
+		return 0
+	return int(_risks(world).get(d, 0))
+
+
+## Dangerous wildlife in a district (Anni's duty of care: fencing and watch at the outdoor sites; false without ECO).
+static func dangerous_district(world: WorldState, d: String) -> bool:
+	return district_risk_pm(world, d) >= DANGER_PM
+
+
+## {district: milli-attacks a year}. Keyed on the seed, the colony layout (facilities, areas, map uses), the saved food
+## web and every outdoor facility's type, district and mothball state, so it never outlives what it read.
+static func _risks(world: WorldState) -> Dictionary:
+	var sig: Array = []
+	var fac: Dictionary = world.peek("facility")
+	for fid in EconUtil.sorted_keys(fac):
+		var f: Dictionary = fac[fid]
+		if String(f.get("type", "")) in OUTDOOR_SITES:
+			sig.append("%s%s%s%d" % [fid, String(f.get("type", "")), String(f.get("district", "")), 1 if bool(f.get("mothball", false)) else 0])
+	var key := "%d|%s|%d|%d" % [world.rng.derive_seed("planet.eco.web"), ColonyLayout.key(world), hash(world.peek("planet").get("web", {})), hash(sig)]
+	if not _risk_cache.has(key):
+		if _risk_cache.size() >= 64:
+			_risk_cache.clear()
+		var ch := character(world)
+		var season := 1.6 - 0.8 * PlanetSeasons.mean_activity(world, Planet.landing(world))
+		var per := ATTACK_BASE * float(ch["danger"]) * float(ch["boldness"]) * season * 12.0 * 1000.0
+		var acc := {}
+		for s in sites(world):
+			var d := String(s.get("district", ""))
+			acc[d] = float(acc.get(d, 0.0)) + per * float(levels(world, int(s["hex"]))["pred"]) / 1000.0 * float(s["exposure"])
+		var out := {}
+		for d2 in EconUtil.sorted_keys(acc):
+			out[d2] = roundi(float(acc[d2]))
+		_risk_cache[key] = out
+	return _risk_cache[key]
