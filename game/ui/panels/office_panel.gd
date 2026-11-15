@@ -6,6 +6,9 @@ extends VBoxContainer
 const Kit := preload("res://ui/panels/panel_kit.gd")
 const Gazette := preload("res://ui/panels/gazette_panel.gd")
 const TABS := ["Paper", "Reports", "Inbox", "Calls", "Calendar", "Visitors"]
+## Who decides (flag DELEGATION, Maja): the delegation sheet as an office tab; the term-start email opens it.
+const Desk := preload("res://sim/office/decision_desk.gd")
+const Sheet := preload("res://ui/panels/delegation_sheet.gd")
 const SQ := preload("res://sim/staff/staff_query.gd")
 const MONTHS := ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 const NOTE := {"STRONGLY_RECOMMEND": "I strongly recommend", "ON_BALANCE": "On balance I'd go with", "CAREFUL": "I'd be careful; perhaps"}
@@ -74,7 +77,7 @@ func refresh() -> void:
 	if desk_mode:
 		Kit.button(bar, "◀ Desk", func(): at_desk = true; refresh())
 	visited[tab] = w.month
-	for t in TABS:
+	for t in TABS + (["Delegation"] if Desk.on(w) else []):
 		var n := _count(w, t)
 		var b := Kit.button(bar, "%s%s" % [t, (" (%d)" % n) if n > 0 else ""], func(): tab = t; refresh())
 		b.disabled = t == tab
@@ -93,6 +96,7 @@ func refresh() -> void:
 		"Calls": _list(w, ["CALL"], "The phone is quiet.")
 		"Calendar": _calendar(w)
 		"Visitors": _visitors(w)
+		"Delegation": Sheet.build(body, w, status, func(): get_tree().call_group("pcs_refresh", "refresh_all"))
 
 
 func _count(w: WorldState, t: String) -> int:
@@ -153,10 +157,16 @@ func _item(w: WorldState, o: Dictionary) -> void:
 			if String(x.get("id", "")) == rec:
 				lbl = String(x.get("label", rec))
 		Kit.label(body, "%s: %s." % [NOTE.get(String(o.get("author_note", "")), "Recommended"), lbl], 12, Color("#8bc34a"))
+	var lv := Desk.item_level(w, o) if Desk.on(w) else ""
+	if lv != "":
+		Kit.label(body, "Decision level: %s." % String(Desk.LEVEL_NAMES[lv]).to_lower(), 11, Color("#aaaaaa"))
+	var pre := Desk.preselected(w, o) if Desk.on(w) else ""
 	var row := Kit.hbox(body)
 	for x in o.get("options", []):
 		var oid := String(x.get("id", ""))
-		Kit.button(row, String(x.get("label", oid)), func(): _answer(w, String(o["id"]), oid))
+		Kit.button(row, ("✓ " if oid == pre else "") + String(x.get("label", oid)), func(): _answer(w, String(o["id"]), oid))
+	if String(o.get("source", {}).get("system", "")) == "delegation":
+		Kit.button(body, "Open the delegation sheet (set each decision type)", func(): tab = "Delegation"; refresh())
 	var dflt := String(o.get("default_option", ""))
 	if dflt != "" and dl >= 0:
 		Kit.label(body, "If you don't answer: %s." % dflt.to_lower(), 11, Color("#aaaaaa"))

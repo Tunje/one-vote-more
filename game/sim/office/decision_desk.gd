@@ -34,7 +34,7 @@ const PRESETS := ["TRUSTING", "BALANCED", "HANDS_ON"]
 const PRESET_NAMES := {"TRUSTING": "Trust my ministers", "BALANCED": "Balanced", "HANDS_ON": "Hands-on"}
 const DEFAULT_PRESET := "BALANCED"
 const OUTSIDE_SKILL := 0.6          # a minister deciding outside their portfolio works at this share of their skill
-const SETUP_DEADLINE_M := 1
+const SETUP_DEADLINE_M := 2
 
 ## Decision types. portfolio: the office role (OfficeStaff.ROLES) of the minister it belongs to; "fallback" is used
 ## when that portfolio is not in the Cabinet (AGRICULTURE needs flag AGRI_MIN). FM = the First Minister's own.
