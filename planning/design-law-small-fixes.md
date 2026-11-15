@@ -1,7 +1,14 @@
 # Design note: three small law fixes (gouging, owner-operators, wildlife duty)
 
-Anni, 2026-11-15. From the law survey (§2.1, §2.4, §2.6). Agreed in principle by Wilma. Each needs Bob's agreement
-before code, behind his flags.
+Anni, 2026-11-15. From the law survey (§2.1, §2.4, §2.6). Agreed by Wilma and **by Bob (2026-11-15)**:
+1. Gouging: Bob's conduct pass calls MarketLaw.gouging / price_cap once a good has district prices (R8 step 2b for
+   MATERIAL / MINERAL / COMPONENT, then each sector); colony price until then.
+2. Owner-operators: econ_workload puts `owner_operator: true` on records of orgs whose household owns ≥ 50% (family
+   firms now, any org with the share register); the law's rule exception decides.
+3. Wildlife: Bob's flag **E175** (only with ECO). Fencing and watch = 3% of the site's wage bill a month (upkeep) at
+   LAW_SAFETY_STANDARD ≥ STANDARD; skipped (WILDLIFE_NEGLIGENCE via record_greed) when the firm lacks cash or its CEO's
+   risk ≥ 60 (family farms only when short of cash). `EconProduction.wildlife_duty_kept(world, fid)` is pure. **Terra**
+   calls `JO.on_wildlife_attack(world, attack_fact_id, kept)` where PlanetProvider resolves the attack.
 
 ## 1. Price gouging under district prices (R8 §3a)
 
