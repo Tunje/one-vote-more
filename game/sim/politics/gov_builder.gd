@@ -188,6 +188,12 @@ static func _road_needs(world: WorldState, st: Dictionary, busy: Dictionary, who
 		var spec: Dictionary = r["spec"]
 		if choose:
 			var o := road_option(r.get("options", []), spend, state, EconActions.headroom(world, line))
+			if int(r.get("cond", 1000)) < ROAD_REPAIR_FIRST:
+				# a badly worn road: repair first (back to full capacity in months), widen later (A/B 2026-11-15,
+				# planning/ab-road-works.md: bigger works relieve nothing until they are finished)
+				for x in r.get("options", []):
+					if String(x["fix"]) == "REPAIR" and int(x["cost"]) * 11 / 10 <= EconActions.headroom(world, line):
+						o = x
 			if o.is_empty():
 				continue
 			cost = int(o["cost"])
@@ -271,6 +277,7 @@ static func _road_feelings(world: WorldState, st: Dictionary, who: Dictionary) -
 ## to relieve a link or junction (Transport.road_needs "options") by its own character, and freight held back by the
 ## roads makes it order sooner and more. It may still choose badly: a thrifty government patches.
 const ROAD_WORKS_FLAG := "ROAD_WORKS"
+const ROAD_REPAIR_FIRST := 400       # condition under which a worn road is repaired before anything bigger
 const ROAD_JAM_BAR := 0.5            # the bar falls by this per 1 permille of freight held (times the government's will)
 const ROAD_JAM_PER_ORDER := 100.0    # one more road order a quarter per this much held freight (permille, times will)
 const ROAD_MAX_ORDERS := 4
