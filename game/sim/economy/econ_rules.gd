@@ -149,6 +149,7 @@ static func monthly(world: WorldState) -> void:
 	r8["plants"] = _plants(world, goods, deliver)
 	s["r8"] = r8
 	_freight_rules(world)
+	EconRulesMat.monthly(world)  # R8 step 2b (opt-in R8_MATERIAL): rule 5/6 counters
 
 
 ## The road half (Terra, FREIGHT_ROADS): 1000 when the flag or the function is absent.

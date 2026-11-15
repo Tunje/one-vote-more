@@ -44,6 +44,7 @@ static func run(world: WorldState) -> void:
 		t = EconUtil.prof(world, "FirmAI.EconEssentials.record", t)
 	if world.month_of_year() % 3 == 0:
 		_investment(world)
+		EconRulesMat.capacity(world)  # R8 step 2b (opt-in R8_MATERIAL): rule 5 for mines, smelters, component works
 		t = EconUtil.prof(world, "FirmAI._investment", t)
 		_entry(world)
 		t = EconUtil.prof(world, "FirmAI._entry", t)
@@ -172,6 +173,8 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 		_:
 			if good in EconData.MARKET_GOODS:
 				t = _producer_target(world, f, o, good)
+				if EconRulesMat.output_on(world, f["type"]):
+					t = EconRulesMat.target(world, f, good, t)  # R8 step 2b: rules 3/4
 	if bool(o.get("family", false)):
 		t = 1.0  # E160 / E162: a family works its own farm or oven fully
 	if good in EconData.MARKET_GOODS:
@@ -189,7 +192,7 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 			f["low_util_m"] += 1
 		else:
 			f["low_util_m"] = 0
-		if not f["mothball"] and f["low_util_m"] >= 12 and not _keeps_idle_plant(world, o):
+		if not f["mothball"] and f["low_util_m"] >= 12 and not _keeps_idle_plant(world, o) and not EconRulesMat.keeps(world, f):
 			var jobs := 0  # E115b: posts lost, for the papers
 			var req := EconLabor.required(f)
 			for t2 in req:
@@ -419,6 +422,7 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 			upkeep_qty[k3] = int(upkeep_qty.get(k3, 0)) + q3
 	var budgets := {}
 	var e116 := not EconUtil.off(world, "E116")
+	var vbids := EconRulesMat.value_bids(world)  # R8 step 2b (opt-in R8_MATERIAL): buyers bid what an input is worth to them
 	for k in EconUtil.sorted_keys(needs):
 		var parts: PackedStringArray = k.split("|")
 		var oid := parts[0]
@@ -450,6 +454,8 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 		var lim := int(s["prices"][good] * (1.1 if tight else EconData.INPUT_LIMIT_MULT)) + freight_allow
 		if o["type"] in EconData.PUBLIC_TYPES:
 			lim = s["prices"][good] * 2 + freight_allow  # public services and utilities outbid industry for inputs
+		if not tight:
+			lim = EconRulesMat.value_limit(world, good, lim, int(vbids.get(oid + "|" + good, 0)), freight_allow)
 		var staple_bakery: bool = good == "FOOD" and bakery_orgs.has(oid) and EconStaple.active(world)
 		if good == "FOOD" and bakery_orgs.has(oid) and not EconUtil.off(world, "D2") and not staple_bakery:
 			# D2 (Wilma): a bakery pays for food only what its fine food earns (1.2 per unit of food, at BAKERY_FOOD_SHARE of
@@ -621,6 +627,8 @@ static func _investment(world: WorldState) -> void:
 					by_type[f["type"]] = []
 				by_type[f["type"]].append(f)
 		for ftype in EconUtil.sorted_keys(by_type):
+			if EconRulesMat.capacity_on(world, ftype):
+				continue  # R8 step 2b: rule 5
 			var all_high := true
 			for f in by_type[ftype]:
 				if f["high_util_m"] < 6:
@@ -682,6 +690,8 @@ static func _expansion(world: WorldState) -> void:
 			continue
 		if f["mothball"] or f.get("steady_m", 0) < 3 or f.get("scale", 1000) >= 3000 or not EconData.BUILD.has(f["type"]):
 			continue
+		if EconRulesMat.capacity_on(world, f["type"]):
+			continue  # R8 step 2b: rule 5
 		if world.month - o.get("last_expand", -6) < 6:
 			continue
 		var good: String = EconData.RECIPES[f["type"]]["out"][0]
@@ -782,6 +792,8 @@ static func _new_plants(world: WorldState) -> void:
 	s["new_plant_last"] = last
 	for good in EconUtil.sorted_keys(PLANT_FOR):
 		var ftype: String = PLANT_FOR[good]
+		if EconRulesMat.capacity_on(world, ftype):
+			continue  # R8 step 2b: rule 5
 		var scarce := false
 		if good in ["ENERGY", "WATER"]:
 			var k := "E" if good == "ENERGY" else "W"
@@ -896,6 +908,8 @@ static func _essentials_planner(world: WorldState) -> void:
 	for ftype in types:
 		if world.month - int(last.get(ftype, -999)) < EconData.ESSENTIAL_GAP:
 			continue
+		if EconRulesMat.capacity_on(world, ftype):
+			continue  # R8 step 2b: rule 5 (CPW's smelters and component works decide like other owners)
 		var r: Dictionary = EconData.RECIPES[ftype]
 		var good: String = r["out"][0]
 		var cap := 0.0
@@ -1113,7 +1127,10 @@ static func _entry(world: WorldState) -> void:
 	var e128 := not EconUtil.off(world, "E128")
 	var climate := business_climate(world) if e128 else 1.0
 	var fails: Dictionary = _note_entry_failures(world) if e128 else {}
-	for ftype in ["FARM", "CONSUMERF", "SERVICEHUB", "PROCESSING", "MINE", "TEXTILE", "FURNITURE", "BAKERY"]:  # D2: consumer workshops
+	var entry_types: Array = ["FARM", "CONSUMERF", "SERVICEHUB", "PROCESSING", "MINE", "TEXTILE", "FURNITURE", "BAKERY"]  # D2: consumer workshops
+	if EconRulesMat.entry_on(world, "COMPONENTS"):
+		entry_types.append("COMPONENTS")  # R8 step 2b: component works get an entry path
+	for ftype in entry_types:
 		var good: String = EconData.RECIPES[ftype]["out"][0]
 		var price := float(s["prices"].get(good, 0))
 		if good == "SERVICES":
@@ -1136,6 +1153,8 @@ static func _entry(world: WorldState) -> void:
 			# 60 years were workshops, almost all failed or were never built, crowding out the farms that lasted)
 			if ftype in ["TEXTILE", "FURNITURE", "BAKERY"] and int(s.get("fill_last", {}).get(good, 1000)) >= ENTRY_D2_FILL 					and not (ftype == "BAKERY" and EconStaple.active(world)):  # E146: bakeries are food producers, gated like farms
 				hot = false
+		if EconRulesMat.entry_on(world, ftype) and world.month - int(fails.get(ftype, -9999)) >= ENTRY_FAIL_COOL_M:
+			hot = EconRulesMat.entry_hot(world, ftype, "d:1")  # R8 step 2b: rules 7/8, the forecast instead of the price test
 		hist[ftype] = hist.get(ftype, 0) + 1 if hot else 0
 		if hist[ftype] >= 2:
 			hot_list.append([ftype, price / maxf(1.0, uc)])
@@ -1187,6 +1206,8 @@ static func _entry(world: WorldState) -> void:
 			continue
 		var e := EconConstruction.estimate(ft)
 		var d: String = "d:3" if ft == "MINE" else (svc_district if ft == "SERVICEHUB" else g["district"])
+		if EconRulesMat.entry_on(world, ft):
+			d = EconRulesMat.entry_district(world, ft, g["district"])  # R8 step 2b: where the forecast is best
 		if best_cash < e * 4 / 10:
 			continue
 		if not LawBridge.allowed(world, "new", "BUILD_FACILITY", {"facility_type": ft, "district": d, "owner_kind": "COMPANY", "value_wref": 0}):

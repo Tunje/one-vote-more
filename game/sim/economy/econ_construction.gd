@@ -722,6 +722,7 @@ static func contractor_plans(world: WorldState) -> void:
 			if want <= 0 or budget <= 0:
 				continue
 			var lim := int(s["prices"][pair[0]] * EconData.INPUT_LIMIT_MULT) + 3 * int(EconUtil.lever(world, "ECON_FREIGHT_TARIFF", 5)) * S
+			lim = EconRulesMat.value_limit(world, pair[0], lim, EconRulesMat.builder_value(world, oid, pair[0]), 3 * int(EconUtil.lever(world, "ECON_FREIGHT_TARIFF", 5)) * S)  # R8 step 2b (opt-in R8_MATERIAL): value bids
 			want = mini(want, int(float(budget) * S / float(lim)))
 			if want > 0:
 				s["orders"].append({"buyer": oid, "acct": EconUtil.acct(oid), "district": hq, "good": pair[0], "qty": want,

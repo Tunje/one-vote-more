@@ -50,7 +50,29 @@ Probe, seeds 1 and 4 at year 30. Each cell is price / unit cost, then fill over 
 
 ## Seeds 1–3 × 60 years
 
-Pending. The arms are base12, r8v, valonly and r8v with rule 5 counted over 6 of the last 12 months, all with the forecast fix below.
+All arms carry the forecast fix. No arm has R8_FREIGHT. "r8vwin" is r8v with rule 5 counting busy months and months with unfilled orders over 6 of the last 12 months (12-bit masks) rather than 6 in a row.
+
+| Arm | Adults | Unemployment % | Food short ‰ | Real wage | Firms dead | Per seed (adults / food ‰) |
+|---|---|---|---|---|---|---|
+| base12 | 6512 | 18.7 | 55 | 3.01 | 142 | s1 5875 / 142, s2 7322 / 16, s3 6339 / 7 |
+| r8v | 5953 | 24.1 | 89 | 2.80 | 132 | s1 7379 / 70, s2 **4228 / 189**, s3 6253 / 8 |
+| valonly | **7449** | 27.1 | 39 | 2.78 | 124 | s1 7740 / 23, s2 7694 / 52, s3 6912 / 41 |
+| r8vwin | 7220 | 19.1 | **27** | **3.54** | 139 | s1 8116 / 59, s2 6096 / 12, s3 7448 / 11 |
+
+Rule-5 capacity steps over 60 years:
+- r8v: 18, 1 and 9 by seed;
+- r8vwin: 30, 12 and 14.
+
+On r8v's seed 2, MATERIAL ran at 3.5 × cost with 65% of orders filled and only one capacity step in 60 years. Busy months and months with unfilled orders seldom ran 6 in a row, so rule 5 never fired. The 6-of-12 window fixes that.
+
+## Verdict (2026-11-15)
+
+**r8vwin** is the materials candidate for v11:
+- **60 years:** +11% adults, half the hunger, +0.53 real wage, unemployment level.
+- **valonly:** has the most adults but +8.4 points of unemployment.
+- **Ported to the shared tree:** opt-in R8 + R8_MATERIAL, base unchanged. With the switch on you get value bids, rules 3–8 and the 6-of-12 window.
+- **Kill switches:** R8M_NOVALUE (value bids), R8M_NOOUT (rules 3/4), R8M_NOCAP (rules 5/6), R8M_NOENTRY (rules 7/8).
+- **Price rules 1/2** are kept only as an opt-in for further take-apart arms: R8M_PX.
 
 ## Reading
 

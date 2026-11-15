@@ -377,7 +377,9 @@ static func _update_prices(world: WorldState) -> void:
 			var fuc := _cheapest_cost(world, good)
 			if fuc > 0.0 and p < fuc:
 				p2 = maxf(p2, minf(fuc, p * (1.0 + EconData.ALPHA * DEADBAND_STEP)))
-		if cost_plus and not (good in COST_PLUS_EXEMPT):
+		if EconRulesMat.prices_on(world, good):
+			p2 = EconRulesMat.price(world, good, p, shortage, excess)  # R8 step 2b (opt-in R8_MATERIAL + R8M_PX): rules 1/2, dropped by the A/B
+		elif cost_plus and not (good in COST_PLUS_EXEMPT):
 			p2 = _cost_plus(world, good, p, shortage, excess)
 		if good == "FINE_FOOD" and EconStaple.dissatisfaction(world):
 			var cut := EconStaple.bread_cut(world, p, shortage, int(m.get("filled", 0)), _cheapest_cost(world, good))

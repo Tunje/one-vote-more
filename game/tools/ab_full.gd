@@ -52,6 +52,9 @@ func _init() -> void:
 	var cpi_sum := 0.0
 	var px_n := 0
 	var fr := {"cap": 0, "used": 0, "def": 0, "full": 0, "n": 0}
+	var matx := {}  # R8 step 2b: per material good, Y5+ sums of price ÷ full cost (%) and fill (‰)
+	for mg in ["MINERAL", "MATERIAL", "COMPONENT"]:
+		matx[mg] = {"pc": 0, "fill": 0, "n": 0}
 	var below_m := 0
 	var bld_y := []  # builders every 5 years: alive/crew/waiting tenders/mean wait months
 	var bld_last := {}  # builder oid → [rev12, wages12, contracts] at its last live month
@@ -254,6 +257,12 @@ func _init() -> void:
 			if int(fs.get("freight_cap", 0)) > 0 and int(fs.get("freight_used", 0)) * 100 >= int(fs.get("freight_cap", 0)) * 95:
 				fr["full"] += 1
 			fr["n"] += 1
+			for mg in matx:
+				var mt: String = {"MINERAL": "MINE", "MATERIAL": "PROCESSING", "COMPONENT": "COMPONENTS"}[mg]
+				matx[mg]["pc"] += int(100.0 * float(int(fs["prices"][mg])) / maxf(1.0, FirmAI.unit_cost(w, mt)))
+				var mms: Dictionary = fs.get("market_stats", {}).get(mg, {})
+				matx[mg]["fill"] += 1000 * int(mms.get("filled", 0)) / maxi(1, int(mms.get("wanted", 0))) if int(mms.get("wanted", 0)) > 0 else 1000
+				matx[mg]["n"] += 1
 			if float(int(EconUtil.st(w)["prices"]["FOOD"])) < EconMarket._cheapest_cost(w, "FOOD"):
 				below_m += 1
 		if m == 11 or m == 59 or m == 119:
@@ -437,6 +446,14 @@ func _init() -> void:
 	var fra: Array = EconUtil.st(w).get("r8_fr_actions", [])
 	money += " freight cap %d used %d deferred %d full_m %d depots %d scale %d fr_actions %d" % [fr["cap"] / 1000 / maxi(1, fr["n"]), fr["used"] / 1000 / maxi(1, fr["n"]),
 		fr["def"] / 1000 / maxi(1, fr["n"]), fr["full"], dep_n, dep_sc, fra.size()]
+	var mplants := {"MINE": 0, "PROCESSING": 0, "COMPONENTS": 0}
+	for fmx in w.table("facility"):
+		var fm2: Dictionary = w.table("facility")[fmx]
+		if mplants.has(fm2["type"]) and not fm2["mothball"]:
+			mplants[fm2["type"]] += int(fm2.get("scale", 1000))
+	for mg in ["MINERAL", "MATERIAL", "COMPONENT"]:
+		money += " mat_%s pc %d fill %d" % [mg, matx[mg]["pc"] / maxi(1, matx[mg]["n"]), matx[mg]["fill"] / maxi(1, matx[mg]["n"])]
+	money += " matcap mine %d proc %d comp %d mat_actions %d" % [mplants["MINE"], mplants["PROCESSING"], mplants["COMPONENTS"], (EconUtil.st(w).get("r8_mat_actions", []) as Array).size()]
 	var e148 := money + (" farms %d foodpx %d foodpx_avg %d cpi_avg %d food_below_cost_m %d farm_entrants %d farm_profit12 %d" % [farms, 100 * int(EconUtil.st(w)["prices"]["FOOD"]) / (EconData.BASE_PRICE["FOOD"] * EconUtil.S), int(px_sum / maxf(1.0, float(px_n))), int(cpi_sum / maxf(1.0, float(px_n))), below_m, farm_entrants(w), farm_profit(w)]) + " idle %d swings %d runway %.1f inv %d overdue %d invw %d" % [1000 * idle_n / maxi(1, plant_n), swings, runway_sum / maxf(1.0, float(n)), int(cv["open"]) / 1000, int(cv["overdue"]) / 1000, int(cv["written_ytd"]) / 1000]
 	var extra := e148 + " bak %d bakmonths %d baku %d staple %d privff %d raw %d" % [bak_now, bak_m, bak_u / maxi(1, bak_m), 1000 * st_g / maxi(1, st_w), 100 * ffp / maxi(1, ffa), raw_sum / maxi(1, n)]
 	var s2 := EconUtil.st(w)
