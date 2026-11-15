@@ -155,7 +155,36 @@ Reading:
 - Finding for the user: in this economy, a plan in trouble is almost always a bad plan. Buyers who can judge it refuse,
   and buyers who can't lose their money.
 
+## 6. Order-book retest (E165 + E165Q, ± E155BLD), fresh base on HEAD 6039704
+
+10 seeds × 30 years. R = R8 + R8_BUILDERS + R8_FREIGHT + R8_MATERIAL in every arm except base (the v11 candidates
+the order book has to live with). Base reproduces Bob's base13 exactly.
+
+| arm | flags | adults | unemp % | food ‰ | real | firms alive | firms dead | plans | opened | wait mo | builders alive Y30 | builder entries / deaths | matblk / builder-months |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| base | defaults | 4735 | 17.8 | 21.1 | 2.96 | 11.5 | 69.1 | 40.2 | 13.6 | 9.7 | 3.3 | 29.5 / 28.2 | 445 / 1437 (31%) |
+| r8 | R | 4715 | 18.5 | 14.6 | 3.05 | 20.4 | 62.5 | 40.7 | 12.6 | 8.2 | 3.3 | 21.4 / 20.1 | 447 / 1338 (33%) |
+| plan | R, E165, E165B | 4616 | 17.9 | 20.8 | 3.28 | 11.1 | 35.1 | 24.3 | 8.1 | 9.4 | 2.6 | 22.6 / 21.7 | 453 / 1416 (32%) |
+| book | plan + E165Q | 3811 | 18.4 | 29.4 | 2.73 | 6.0 | 33.4 | 6.3 | 2.2 | 18.6 | 2.7 | 27.7 / 27.0 | 365 / 1327 (28%) |
+| bookbld | book + E155BLD | 4085 | 16.9 | 57.5 | 2.80 | 17.4 | 21.6 | 30.0 | 8.4 | 35.8 | 10.1 | 16.8 / 8.7 | 1044 / 3393 (31%) |
+
+Adults per seed: plan 4215–5147; book 3588–4025 (below plan on all 10 seeds); bookbld 3516–4552. Food ‰ per seed for
+bookbld: 137, 14, 30, 188, 40, 12, 25, 14, 102, 13 (three seeds have hunger crises).
+
+Readings:
+- E165Q (founders see the builders' order book before planning) is still harmful with freight and material markets on:
+  −805 adults against plan, on every seed. Founders see long queues (wait 18.6 months) and stop planning (6.3 plans
+  against 24.3), so the colony ends with 6 private firms alive. The queue it reads is real, but the economy needs the
+  firms more than it gains from not waiting.
+- E155BLD (more builders) shortens nothing: builders alive go from 2.7 to 10.1 and the quoted wait doubles to 35.8
+  months. More builders means more half-paid crews competing for the same material, and food deaths jump to 57.5‰.
+- Material-blocked months stay about 30% of builder-months in every arm, with or without R8_MATERIAL's bidding (base
+  31%, r8 33%). R8_MATERIAL did not cure the builders' material shortage; buyers who bid what the input is worth
+  still leave builders blocked a third of the time. Why is not yet traced (whether builders lose the bidding or the
+  material is simply not there).
+- Recommendation: keep E165Q and E155BLD off for v11. plan (E165 + E165B) remains the order-book arm worth carrying:
+  −99 adults, best real income (3.28), firm deaths cut from 62.5 to 35.1.
+
 ## Still to do
 
-The order-book retest (E165 + E165Q on top of R8_BUILDERS, ± E155BLD) waits for Bob's freight and material steps (R8
-2a/2b), because the materials shortage was largely freight.
+Housing under the eight rules (R8_HOUSING): built, A/B next.
