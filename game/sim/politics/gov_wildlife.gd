@@ -14,6 +14,7 @@ extends RefCounted
 ##    like any bill (the lever's ideology and concern hints decide the other parties' votes).
 ## Nothing here knows what a policy will do beforehand; governments react to what has happened.
 
+const Desk := preload("res://sim/office/decision_desk.gd")   # who decides, step 1 (flag DELEGATION): counts decisions
 const LEVER := "ECO_WILDLIFE_POLICY"
 const POLICIES := ["PROTECT", "MANAGE", "CULL"]
 const REVIEW_MONTH := 3          # March
@@ -139,6 +140,7 @@ static func _review(world: WorldState, st: Dictionary) -> bool:
 		return false
 	if Legislature._pending_for(world, LEVER):
 		return false
+	Desk.note(world, "WILDLIFE_REVIEW")
 	var env := float(g.get("center", {}).get("ENVIRONMENT", 0)) / 100000.0
 	var attacks := float(world.indicators.read("PLANET_WILDLIFE_ATTACKS", "COLONY", 0)) / 1000.0
 	var web := float(world.indicators.read("PLANET_WEB_HEALTH", "COLONY", 1000000)) / 1000000.0

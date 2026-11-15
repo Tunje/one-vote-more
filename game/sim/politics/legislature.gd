@@ -9,6 +9,7 @@ extends RefCounted
 ## Law owns everything after that: validation, implementation task, lag, operative write, *_LEVER_EFFECTIVE fact.
 
 const LawOps := preload("res://sim/law/law_ops.gd")
+const Desk := preload("res://sim/office/decision_desk.gd")   # who decides, step 1 (flag DELEGATION): counts decisions
 const STEP_FRACTION := 0.10          # one clause moves a lever by 10% of its range
 const MAX_CLAUSES := 2
 const NEED_PASSES_GUARD := 1500   # lever_need (permille) from which a needed programme passes the fiscal guard
@@ -644,6 +645,7 @@ static func party_vote(party: Dictionary, clauses: Array, world: WorldState, gov
 ## Commander ordinance: no vote. Updates the commander's revealed ideology (the future player party identity).
 static func issue_ordinance(world: WorldState, clauses: Array, source_id: String = "") -> String:
 	var st: Dictionary = world.table("pol")["state"]
+	Desk.note(world, "ORDINANCE")
 	for c in clauses:
 		var def: Dictionary = world.lever_defs[c["lever"]]
 		var delta := clause_delta(def, c)
@@ -685,6 +687,7 @@ static func negotiate(world: WorldState, clauses: Array, gov: Dictionary, sat: D
 
 static func submit_bill(world: WorldState, clauses: Array, gov: Dictionary, sat: Dictionary, sal: Dictionary, bill_id: String = "", draft_quality: int = 50) -> Dictionary:
 	clauses = negotiate(world, clauses, gov, sat, sal, draft_quality)
+	Desk.note(world, "BILL")
 	var parties: Dictionary = world.table("party")
 	var votes := {}
 	var yes := 0

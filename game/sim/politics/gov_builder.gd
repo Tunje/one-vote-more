@@ -16,6 +16,8 @@ extends RefCounted
 ## State: pol.state["pw_roads"] (district -> month of the last public-works road, so roads are spread out).
 
 const QUARTER_MONTH := 1
+## Who decides, step 1 (flag DELEGATION): each decision taken here is counted by type. No-op without the flag.
+const Desk := preload("res://sim/office/decision_desk.gd")
 
 
 static func monthly(world: WorldState, st: Dictionary) -> void:
@@ -39,10 +41,12 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 		if p["owner"] == "gov" and p["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
 			busy[p["type"] + "|" + p["district"]] = true
 			if p["status"] == "TENDERABLE":
-				EconActions.enqueue(world, "ECON_RETENDER_PROJECT", {"project": pid})
+				if EconActions.enqueue(world, "ECON_RETENDER_PROJECT", {"project": pid}).get("ok", false):
+					Desk.note(world, "RETENDER_PROJECT")
 	# food emergency: any government opens the reserve
 	if int(s.get("food_shortfall", 0)) > 50:
-		EconActions.enqueue(world, "ECON_RELEASE_RESERVE", {"good": "FOOD", "qty": 1500})
+		if EconActions.enqueue(world, "ECON_RELEASE_RESERVE", {"good": "FOOD", "qty": 1500}).get("ok", false):
+			Desk.note(world, "FOOD_RESERVE_RELEASE")
 	# 1a. essentials (A39 / Bob's E110): food, power, water, materials, components. State-minded governments
 	#     build (the Colony Agricultural Board runs state farms, CPW the rest); market-minded ones offer a grant to
 	#     private builders; centrists offer first and build if the deficit persists. Incentives cost nothing until
@@ -108,6 +112,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 		if not opts.is_empty() and float(opts[0]["output_gain_pct"]) / 100.0 * eagerness >= 0.2:
 			var r: Dictionary = EconActions.enqueue(world, "ECON_UPGRADE_FACILITY", {"facility": opts[0]["facility"], "line": "ECON_BUDGET_INFRASTRUCTURE"})
 			if r.get("ok", false):
+				Desk.note(world, "UPGRADE_FACILITY")
 				world.add_fact({"type": "POL_PROJECT_ORDERED", "owner": "pol", "subjects": [], "responsible": [{"actor": {"kind": "GOVERNMENT" if who["by"] != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}],
 					"impact": {}, "magnitude": 35, "visibility": "PUBLIC", "data": {"type": "UPGRADE", "facility": opts[0]["facility"], "to_tier": opts[0]["next_tier"], "by": who["by"]}})
 	# 5. counter-cyclical public works: interventionist and spending governments fight unemployment by building.
@@ -433,6 +438,7 @@ static func _order(world: WorldState, st: Dictionary, busy: Dictionary, who: Dic
 	var r: Dictionary = EconActions.enqueue(world, "ECON_COMMISSION_PROJECT", params)
 	if not r.get("ok", false):
 		return 0
+	Desk.note(world, Desk.build_type(ftype, line))
 	world.add_fact({"type": "POL_PROJECT_ORDERED", "owner": "pol", "subjects": [{"kind": "PARTY", "id": who["by"]}] if who["by"] != "commander" else [],
 		"responsible": [{"actor": {"kind": "GOVERNMENT" if who["by"] != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}],
 		"impact": {}, "magnitude": 35, "visibility": "PUBLIC", "data": {"type": ftype, "district": d, "by": who["by"], "line": line}})
@@ -503,6 +509,7 @@ static func _grant_cover(world: WorldState, st: Dictionary) -> void:
 			ranked.sort_custom(func(a, b): return float(sc[a]) > float(sc[b]) or (float(sc[a]) == float(sc[b]) and String(a) < String(b)))
 			chosen = ranked.slice(0, n)
 		cover[kind] = chosen
+		Desk.note(world, "GRANT_COVERAGE")
 		var resp := [{"actor": {"kind": "GOVERNMENT" if who["by"] != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}]
 		world.add_fact({"type": "POL_GRANT_COVERAGE", "owner": "pol", "subjects": [], "responsible": resp,
 			"impact": {}, "magnitude": 25, "visibility": "PUBLIC", "data": {"kind": kind, "districts": chosen, "by": who["by"]}})
@@ -660,7 +667,8 @@ static func _essentials(world: WorldState, st: Dictionary, busy: Dictionary, who
 		elif not build and not offer_open:
 			var pct := clampi(25 + int(round(15.0 * spend)), 10, 50)
 			var cap := int(float(EconConstruction.estimate(ftype)) / float(EconUtil.S) * float(pct) / 100.0 * 1.5)
-			EconActions.enqueue(world, "ECON_OFFER_INCENTIVE", {"type": ftype, "grant_pct": pct, "months": 24, "cap": maxi(1, cap)})
+			if EconActions.enqueue(world, "ECON_OFFER_INCENTIVE", {"type": ftype, "grant_pct": pct, "months": 24, "cap": maxi(1, cap)}).get("ok", false):
+				Desk.note(world, "BUILDER_GRANT")
 
 
 static func _home(world: WorldState, ftype: String) -> String:
@@ -733,5 +741,6 @@ static func _housing_ahead(world: WorldState, st: Dictionary, busy: Dictionary, 
 	if EconEssentials.offers(world).has("HOUSING"):
 		return 0
 	var cap := int(float(EconConstruction.estimate("HOUSING")) / float(EconUtil.S) * 0.3 * 1.5)
-	EconActions.enqueue(world, "ECON_OFFER_INCENTIVE", {"type": "HOUSING", "grant_pct": 30, "months": 24, "cap": maxi(1, cap)})
+	if EconActions.enqueue(world, "ECON_OFFER_INCENTIVE", {"type": "HOUSING", "grant_pct": 30, "months": 24, "cap": maxi(1, cap)}).get("ok", false):
+		Desk.note(world, "BUILDER_GRANT")
 	return 0

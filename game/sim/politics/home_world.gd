@@ -18,6 +18,7 @@ extends RefCounted
 const CO := preload("res://sim/law/charter_ops.gd")
 const LQ := preload("res://sim/law/law_query.gd")
 const S := 1000
+const Desk := preload("res://sim/office/decision_desk.gd")   # who decides, step 1 (flag DELEGATION): counts decisions
 
 const SHIP_MIN := 18
 const SHIP_MAX := 30
@@ -279,12 +280,14 @@ static func _colony_politics(world: WorldState, st: Dictionary, h: Dictionary, r
 	if bsat < 50.0 and gov_sov > -15.0 and world.month - int(h["last_petition"]) >= PETITION_GAP:
 		var demands := {"LAW_CHARTER_QUOTA_SHARE": maxi(10, int(sv.get("quota_share", 40)) - 10),
 			"LAW_CHARTER_PRICE_PCT": mini(100, int(sv.get("price_pct", 35)) + 15)}
+		Desk.note(world, "CHARTER_PETITION")
 		if _parliament_vote(world, st, "PETITION", -15.0)["passed"]:
 			CO.petition_home(world, demands)
 			h["last_petition"] = world.month
 		return
 	# 2. open refusal after rejected petitions, by an independence-minded government
 	if not bool(sv.get("refusal", false)) and gov_sov > 25.0 and int(h["rejected_petitions"]) >= 1 and bsat < 35.0:
+		Desk.note(world, "CHARTER_REFUSAL")
 		if _parliament_vote(world, st, "REFUSAL", 15.0)["passed"]:
 			CO.refuse_quota(world)
 			h["refused_month"] = world.month
@@ -292,6 +295,7 @@ static func _colony_politics(world: WorldState, st: Dictionary, h: Dictionary, r
 	# 3. independence: a strongly independence-minded government and a colony leaning that way
 	if gov_sov > 35.0 and mood > 10.0 and (bool(sv.get("refusal", false)) or int(h["rejected_petitions"]) >= 2) 			and world.month - int(h.get("last_referendum", -1000)) >= REFERENDUM_RETRY_MONTHS 			and world.month - int(h.get("last_indep_vote", -1000)) >= 12:
 		h["last_indep_vote"] = world.month   # a failed vote waits a year
+		Desk.note(world, "INDEPENDENCE_VOTE")
 		var v := _parliament_vote(world, st, "INDEPENDENCE", 20.0)
 		var rec: Dictionary = CO.record_independence_vote(world, int(v["yes"]))
 		if rec.get("ok", false):

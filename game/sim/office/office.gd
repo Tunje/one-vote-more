@@ -17,6 +17,7 @@ const KINDS := ["PAPER", "REPORT", "EMAIL", "CALL", "MEETING", "CALENDAR"]
 const OPEN := ["NEW", "READ"]
 const KEEP_CLOSED_MONTHS := 12
 const SA := preload("res://sim/staff/staff_law_actions.gd")
+const Desk := preload("res://sim/office/decision_desk.gd")   # who decides, step 1 (flag DELEGATION): counts decisions
 ## Anni's O5 author engine (staff as authors, chief-of-staff sorting, delegation). Loaded when present.
 const AUTHOR_PATH := "res://sim/staff/office_staff.gd"
 
@@ -104,6 +105,7 @@ static func answer(world: WorldState, id: String, option_id: String, by: String 
 	o["answered_by"] = by
 	o["answer"] = option_id
 	o["answered_month"] = world.month
+	Desk.note_office(world, o)
 	return {"ok": true, "error": ""}
 
 
@@ -142,6 +144,7 @@ static func expire(world: WorldState) -> void:
 		o["status"] = "EXPIRED"
 		o["answer"] = dflt
 		o["answered_month"] = world.month
+		Desk.note_office(world, o)
 		world.add_fact({"type": "OFFICE_ITEM_EXPIRED", "owner": "pol", "subjects": [], "responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}],
 			"impact": {"GOVERNANCE": -1}, "magnitude": 20, "visibility": "OFFICIAL",
 			"data": {"item": id, "kind": o["kind"], "subject": o["subject"], "default": dflt, "label": String(opt.get("label", dflt)), "source": o["source"].duplicate()}})

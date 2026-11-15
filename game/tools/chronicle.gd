@@ -8,8 +8,10 @@ extends SceneTree
 ##   - every decision: bills (clauses, each party's vote, result), ordinances, lever changes, governments,
 ##     crises, scandals, court cases
 ##   - a yearly table of the colony's condition and a yearly log of notable events
-##   godot --headless --path game --script res://tools/chronicle.gd -- [years=100] [seed=1] [out.md]
+##   godot --headless --path game --script res://tools/chronicle.gd -- [years=100] [seed=1] [out.md] [learn] [+FLAG ...]
+##   (+FLAG switches an opt-in system on for this run, e.g. +DELEGATION adds section 11, the decisions by type and decade)
 const EconSim := preload("res://sim/economy/econ_sim.gd")
+const Desk := preload("res://sim/office/decision_desk.gd")
 
 const NOTABLE_ECON := ["ECON_STRIKE", "ECON_LOCKOUT", "ECON_LAYOFFS_MASS", "ECON_SOVEREIGN_DEFAULT", "ECON_GOV_BORROWED",
 	"ECON_FOOD_AID", "ECON_UTILITY_OUTAGE", "ECON_POLLUTION_THRESHOLD", "ECON_FACILITY_SOLD", "COMP_INSOLVENCY",
@@ -39,8 +41,11 @@ func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(out.get_base_dir())
 	var sim: Simulation = EconSim.make(seed_v, "BALANCED", {}, true)
 	w = sim.world
-	if args.size() > 3 and args[3] == "learn":
-		w.meta["learning_party"] = "auto"   # A53: the largest founding party learns its strategy
+	for a in args.slice(3):
+		if a == "learn":
+			w.meta["learning_party"] = "auto"   # A53: the largest founding party learns its strategy
+		elif a.begins_with("+") and not (w.meta["on"] as Array).has(a.substr(1)):
+			(w.meta["on"] as Array).append(a.substr(1))
 	var t0 := Time.get_ticks_msec()
 	var prev_levers := w.levers.duplicate(true)
 	for _m in years * 12:
@@ -258,7 +263,7 @@ func _render(seed_v: int, years: int) -> String:
 	L.append("")
 	L.append("Switched-on systems (opt-in features on in this run): %s." % ", ".join(PackedStringArray(Array(w.meta.get("on", [])).map(func(x): return str(x)))) if not Array(w.meta.get("on", [])).is_empty() else "Switched-on systems: none beyond the base game.")
 	L.append("")
-	L.append("Contents: 1 Summary · 2 Parties (why each appeared) · 3 Cabinets · 4 Elections (campaign and every voter group) · 5 Bills and decisions · 6 Lever changes · 7 Year-by-year condition · 8 Event log · 9 Unions, trade, industry and the press · 10 What the parties knew and believed")
+	L.append("Contents: 1 Summary · 2 Parties (why each appeared) · 3 Cabinets · 4 Elections (campaign and every voter group) · 5 Bills and decisions · 6 Lever changes · 7 Year-by-year condition · 8 Event log · 9 Unions, trade, industry and the press · 10 What the parties knew and believed" + (" · 11 Who decides (decisions by type and decade)" if Desk.on(w) else ""))
 	L.append("")
 	_summary(L)
 	_parties(L)
@@ -271,6 +276,7 @@ func _render(seed_v: int, years: int) -> String:
 	_society(L)
 	_knowledge(L)
 	_learning(L)
+	_desk(L, years)
 	return "\n".join(L)
 
 
@@ -980,3 +986,101 @@ func _inv_total() -> int:
 	for k in inv:
 		n += int(inv[k])
 	return n
+
+
+## 11. Who decides (flag DELEGATION, build step 1 of planning/design-delegation.md): every government decision the
+## systems reported, by type and decade. Nothing here changes who decides; it is the load a First Minister's desk would
+## carry if no minister took anything.
+func _desk(L: PackedStringArray, years: int) -> void:
+	if not Desk.on(w):
+		return
+	var dec := maxi(1, (years + 9) / 10)
+	var per := {}          # type -> [n per decade]
+	var tot_d: Array = []
+	tot_d.resize(dec)
+	tot_d.fill(0)
+	var peak_m := -1
+	var peak_n := 0
+	var t := w.peek("decision_case")
+	for k in t:
+		var m := int(k)
+		var d := mini(dec - 1, m / 120)
+		var n_m := 0
+		for ty in t[k]:
+			if not per.has(ty):
+				per[ty] = _zeros(dec)
+			per[ty][d] = int(per[ty][d]) + int(t[k][ty])
+			tot_d[d] = int(tot_d[d]) + int(t[k][ty])
+			n_m += int(t[k][ty])
+		if n_m > peak_n or (n_m == peak_n and m < peak_m):
+			peak_n = n_m
+			peak_m = m
+	L.append("## 11. Who decides: decisions by type and decade")
+	L.append("")
+	L.append("Every decision a government took, as the systems reported it (cases of a registered decision type; planning/design-delegation.md, step 1). Today nobody delegates anything: this is the load a First Minister would carry alone. Portfolio = the minister it belongs to (FM = the First Minister's own); ceiling = what the law fixes (MINISTER may decide alone, CABINET must reach the desk, PARLIAMENT is voted).")
+	L.append("")
+	var head := "| Type | Portfolio | Ceiling |"
+	var sep := "|---|---|---|"
+	for i in dec:
+		head += " Y%d-%d |" % [i * 10 + 1, mini(years, i * 10 + 10)]
+		sep += "---:|"
+	L.append(head + " Total |")
+	L.append(sep + "---:|")
+	var sums := {}
+	for ty in per:
+		var n := 0
+		for x in per[ty]:
+			n += int(x)
+		sums[ty] = n
+	var types: Array = per.keys()
+	types.sort_custom(func(a, b): return int(sums[a]) > int(sums[b]) or (int(sums[a]) == int(sums[b]) and String(a) < String(b)))
+	var by_port := {}
+	for ty in types:
+		var port := Desk.portfolio(w, String(ty))
+		var row := "| %s | %s | %s |" % [Desk.TYPES[ty]["name"], port, Desk.TYPES[ty]["ceiling"]]
+		if not by_port.has(port):
+			by_port[port] = _zeros(dec)
+		for i in dec:
+			row += " %d |" % int(per[ty][i])
+			by_port[port][i] = int(by_port[port][i]) + int(per[ty][i])
+		L.append(row + " %d |" % int(sums[ty]))
+	var row_t := "| **All decisions** | | |"
+	var row_m := "| **per month** | | |"
+	var grand := 0
+	for i in dec:
+		row_t += " **%d** |" % int(tot_d[i])
+		row_m += " %.1f |" % (float(tot_d[i]) / float(_dec_months(i, years)))
+		grand += int(tot_d[i])
+	L.append(row_t + " **%d** |" % grand)
+	L.append(row_m + " %.1f |" % (float(grand) / float(maxi(1, years * 12))))
+	L.append("")
+	L.append("Busiest month: %s with %d decisions." % [_date(peak_m), peak_n] if peak_m >= 0 else "No decisions were recorded.")
+	L.append("")
+	L.append("### By portfolio (decisions per month, by decade)")
+	L.append("")
+	var h2 := "| Portfolio |"
+	var s2 := "|---|"
+	for i in dec:
+		h2 += " Y%d-%d |" % [i * 10 + 1, mini(years, i * 10 + 10)]
+		s2 += "---:|"
+	L.append(h2)
+	L.append(s2)
+	var ports: Array = by_port.keys()
+	ports.sort()
+	for port in ports:
+		var r2 := "| %s |" % port
+		for i in dec:
+			r2 += " %.1f |" % (float(by_port[port][i]) / float(_dec_months(i, years)))
+		L.append(r2)
+	L.append("")
+
+
+static func _zeros(n: int) -> Array:
+	var z: Array = []
+	z.resize(n)
+	z.fill(0)
+	return z
+
+
+static func _dec_months(i: int, years: int) -> int:
+	return maxi(1, mini(120, years * 12 - i * 120))
