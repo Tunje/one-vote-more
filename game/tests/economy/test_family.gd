@@ -133,3 +133,29 @@ func test_a_family_counts_its_own_costs_not_a_companys() -> void:
 	EconFamily._grant_pct(w, "FAMFARM", "d:1", true)
 	check_eq(w.state_hash(), h, "asking what the grant would be changes nothing")
 	check_eq(s.get("fam_fail_found", {}), notes, "and notes nothing")
+
+
+func test_a_family_farms_where_the_land_is() -> void:
+	var sim: Simulation = preload("res://sim/economy/econ_sim.gd").make(2, "BALANCED", {}, true)
+	sim.run(12)
+	var w := sim.world
+	var anchors: Dictionary = ColonyLayout.econ_anchors(w)
+	var site := EconFamily.farm_site(w, "d:1")
+	check(EconData.DISTRICTS.has(site) and EconUtil.connected(site), "a connected district (%s)" % site)
+	var land := {}
+	for d in anchors:
+		land[d] = ColonyLayout.count_near(w, ColonyLayout.as_tile(anchors[d]), ColonyLayout.FAC_TERRAIN["FARM"], EconFamily.SITE_REACH)
+	check(int(land.get(site, 0)) > 0, "with farmland around it (%s)" % str(land))
+	var h := w.state_hash()
+	EconFamily.farm_site(w, "d:1")
+	check_eq(w.state_hash(), h, "asking changes nothing")
+	# every plot taken everywhere: the family stays home
+	var fac: Dictionary = w.table("facility")
+	var n := 0
+	for d in EconData.DISTRICTS:
+		for i in 60:
+			n += 1
+			fac["test:farm:%d" % n] = {"type": "FARM", "district": d, "org": "", "mothball": false}
+	check_eq(EconFamily.farm_site(w, "d:1"), "d:1", "no free land anywhere: its own district")
+	for i in n:
+		fac.erase("test:farm:%d" % (i + 1))

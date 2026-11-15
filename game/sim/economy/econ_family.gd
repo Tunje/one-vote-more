@@ -97,7 +97,8 @@ static func found(world: WorldState) -> void:
 				_note(s, ftype, "no_household")
 				break
 			var pct := _grant_pct(world, ftype, d)
-			if not _start(world, ftype, d, gid, pct):
+			var site := farm_site(world, d) if ftype == "FAMFARM" else d
+			if not _start(world, ftype, site, gid, pct, d):
 				_note(s, ftype, "money")
 				break
 			n += 1
@@ -460,6 +461,52 @@ static func _district(world: WorldState, ftype: String) -> String:
 	return best
 
 
+## Where a family puts its farm (user 2026-11-15: "farms could be placed in other places than where they came from, so
+## don't place all farms next to the same district; place them where they can produce good"). Every connected
+## district with power and water is scored by the farmland around its settlement that no farm has taken yet (a big
+## farm takes PLOTS_PER_FARM family plots), by how well its power and water are served, and a little by how far it is
+## from home. The best one; the family's own district when no map is there or no land is free anywhere.
+const PLOTS_PER_FARM := 6
+const SITE_REACH := 6                # tiles around a settlement a family will farm
+const SITE_HOP_COST := 0.15          # each hop from home takes this share off a site's worth
+
+
+static func farm_site(world: WorldState, home: String) -> String:
+	if not Terrain.ready(world):
+		return home   # no map (economy-only worlds): the family's own district
+	var s := EconUtil.peek_st(world)
+	var anchors: Dictionary = ColonyLayout.econ_anchors(world)
+	var taken := {}
+	for fid in world.peek("facility"):
+		var f: Dictionary = world.peek("facility")[fid]
+		if f["type"] == "FARM":
+			taken[f["district"]] = int(taken.get(f["district"], 0)) + PLOTS_PER_FARM
+		elif f["type"] == "FAMFARM":
+			taken[f["district"]] = int(taken.get(f["district"], 0)) + 1
+	for pid in world.peek("project"):
+		var p: Dictionary = world.peek("project")[pid]
+		if String(p.get("type", "")) == "FAMFARM" and p.get("status", "") in ["TENDER", "ACTIVE", "TENDERABLE", "PLANNING"]:
+			taken[p["district"]] = int(taken.get(p["district"], 0)) + 1
+	var best := home
+	var bv := 0.0
+	for d in EconUtil.sorted_keys(EconData.DISTRICTS):
+		if not EconUtil.connected(d) or not anchors.has(d):
+			continue
+		var sv: Array = s.get("util_served_hh", {}).get(d, [1.0, 1.0])
+		var served := minf(float(sv[0]), float(sv[1]))
+		if served < SERVED_MIN:
+			continue
+		var land := ColonyLayout.count_near(world, ColonyLayout.as_tile(anchors[d]), ColonyLayout.FAC_TERRAIN["FARM"], SITE_REACH) - int(taken.get(d, 0))
+		if land <= 0:
+			continue
+		var hops := maxi(0, EconUtil.hops(home, d)) if d != home else 0
+		var v := float(land) * served * maxf(0.2, 1.0 - SITE_HOP_COST * float(hops))
+		if v > bv:
+			bv = v
+			best = d
+	return best
+
+
 ## Output of family firms of this type already open or being built in district d (milli-units a month).
 static func _pending_out(world: WorldState, ftype: String, d: String) -> int:
 	var n := 0
@@ -508,7 +555,8 @@ static func startup_cost(world: WorldState, ftype: String) -> Dictionary:
 	return {"build": EconConstruction.estimate(ftype), "wc": run * WC_MONTHS, "course": course}
 
 
-static func _start(world: WorldState, ftype: String, d: String, gid: String, pct: int) -> bool:
+## `d`: where the plant stands; `home`: the district the family lives in and is hired from (a farm may stand elsewhere).
+static func _start(world: WorldState, ftype: String, d: String, gid: String, pct: int, home: String = "") -> bool:
 	var s := EconUtil.st(world)
 	var k: Dictionary = KINDS[ftype]
 	var c := startup_cost(world, ftype)
@@ -540,6 +588,7 @@ static func _start(world: WorldState, ftype: String, d: String, gid: String, pct
 		"missed_this_month": false, "owner_group": gid, "sales_ema": {}, "contracts": [], "dividends_ytd": 0, "sold": {},
 		"family": true, "family_type": ftype}
 	world.ledger.open_account(EconUtil.acct(id))
+	world.table("org")[id]["home"] = home if home != "" else d
 	world.table("org")[id]["grant_paid"] = 0  # what the government gave (mcr; 0 = self-funded), for news and blame later
 	world.table("org")[id]["grant_month"] = -1
 	if grant > 0:
@@ -621,7 +670,7 @@ static func on_open(world: WorldState, oid: String, fid: String) -> void:
 	if not is_family(world, oid):
 		return
 	var f: Dictionary = world.table("facility")[fid]
-	var hb := EconPop.hb_of(f["district"])
+	var hb := EconPop.hb_of(String(world.table("org")[oid].get("home", f["district"])))   # the family, wherever its farm stands
 	var occ := EconPop.person_occ(world, oid, f["type"], "G")
 	var req := EconLabor.required(f)
 	for t in ["S", "G"]:
