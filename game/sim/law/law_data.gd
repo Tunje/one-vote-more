@@ -204,7 +204,8 @@ static func m12_rules() -> Array:
 	var cc := {"source": "COLONIAL_CHARTER", "colonial": true}
 	var anyone := [{"field": "actor.kind", "op": "IN", "value": ["COMPANY", "HOUSEHOLD", "GOVERNMENT", "COMMANDER", "AUTHORITY"]}]
 	var pub := [{"field": "actor.kind", "op": "IN", "value": ["GOVERNMENT", "COMMANDER", "PARLIAMENT", "AUTHORITY"]}]
-	# Exclusive trade and the quota.
+	# Exclusive trade and the quota. A "colonial good" here is a reserved good (D5 reserved_goods): quota goods above the
+	# quota are the colony's to sell anywhere (E171, user order 2026-11-15; WITHHOLD_QUOTA covers the quota share).
 	out.append(_r("PROHIBIT", "SELL_COLONIAL_GOOD", anyone, [{"field": "p.buyer", "op": "NEQ", "value": "HOME_WORLD"}], cc))
 	out.append(_r("PROHIBIT", "WITHHOLD_QUOTA", anyone, [], cc))
 	out.append(_r("PROHIBIT", "OBSTRUCT_QUOTA", pub, [], cc))

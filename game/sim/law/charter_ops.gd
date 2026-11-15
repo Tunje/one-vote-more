@@ -18,6 +18,9 @@ const REFERENDUM_MIN_TURNOUT := 0.5      # of eligible voters
 const REFERENDUM_MONTHS := 3             # the referendum must follow the parliament vote within 3 months
 const EVASION_MEMORY := 36               # months a proven evasion justifies sanctions
 const CHARTER_LEVERS := ["LAW_CHARTER_QUOTA_SHARE", "LAW_CHARTER_PRICE_PCT", "LAW_CHARTER_EXPORT_LEVY"]
+## E171 (Bob; planning/design-charter-quota-law.md): the quota goods at founding, the same goods construction uses
+## (Wilma, 2026-11-15). The home world changes the list with home_world_designate (sov.quota_goods).
+const DEFAULT_QUOTA_GOODS := ["COMPONENT", "MATERIAL", "MINERAL"]
 
 
 static func sov(world: WorldState) -> Dictionary:
@@ -94,7 +97,9 @@ static func home_world_amend(world: WorldState, lever: String, value: int) -> Di
 	return {"ok": true, "from": old, "to": value}
 
 
-## What 88 delivers on a ship: {due, share_pct, price_pct, reason}. Not due when independent, declared, or refusing.
+## What 88 delivers on a ship: {due, share_pct, price_pct, reason, goods, epoch}. Not due when independent, declared,
+## or refusing (E171: while not due, owed quota is suspended: nothing accrues and the debt's ship counter pauses).
+## epoch rises on recognition and autonomy: Bob cancels carried quota debt when it changes (a restored charter keeps it).
 static func quota_due(world: WorldState) -> Dictionary:
 	var st: Dictionary = world.peek("law_state").get("s", {}).get("sovereignty", {})
 	var due := is_colonial(world) and not bool(st.get("refusal", false))
@@ -104,7 +109,72 @@ static func quota_due(world: WorldState) -> Dictionary:
 	elif not due:
 		reason = "REFUSAL"
 	return {"due": due, "share_pct": int(world.levers.get("LAW_CHARTER_QUOTA_SHARE", 40)) if is_colonial(world) else 0,
-		"price_pct": int(world.levers.get("LAW_CHARTER_PRICE_PCT", 35)), "reason": reason}
+		"price_pct": int(world.levers.get("LAW_CHARTER_PRICE_PCT", 35)), "reason": reason,
+		"goods": (st.get("quota_goods", DEFAULT_QUOTA_GOODS) as Array).duplicate() if is_colonial(world) else [],
+		"epoch": int(st.get("quota_epoch", 0))}
+
+
+## E171: the home world names (or drops) a quota good. Only while the colony is colonial.
+static func home_world_designate(world: WorldState, good: String, on: bool) -> Dictionary:
+	if not is_colonial(world):
+		return {"ok": false, "reason": "the home world can only set quota goods while the colony is colonial"}
+	var st := sov(world)
+	var qg: Array = (st.get("quota_goods", DEFAULT_QUOTA_GOODS) as Array).duplicate()
+	if on == (good in qg):
+		return {"ok": false, "reason": "unchanged"}
+	if on:
+		qg.append(good)
+		qg.sort()
+	else:
+		qg.erase(good)
+	st["quota_goods"] = qg
+	_fact(world, "LAW_CHARTER_QUOTA_GOOD", [HOME], [{"actor": HOME, "share": 1.0}], {"JOBS": -2 if on else 2}, 45,
+		{"good": good, "on": on})
+	return {"ok": true}
+
+
+static func e171(world: WorldState) -> bool:
+	return (world.meta.get("on", []) as Array).has("E171") and not (world.meta.get("off", []) as Array).has("E171")
+
+
+## E171: Bob calls this after loading every ship (refusal ships too, delivered 0, short_reason REFUSAL).
+## report = {goods: {g: {due, delivered, owed, short_reason}}, paid, market_value} (units and milli-credits).
+## short_reason: "" | HOLD_FULL | NOT_PRODUCED | SHIP_LOST | PORT_FULL | REFUSAL | WITHHELD.
+## A full hold or a lost ship is the home world's own; a full port is excused once, after that the government (the
+## party to the charter, which must provide public storage) is in breach: HOME_EVASION_FOUND cause NO_STORAGE, which
+## makes evasion_proven true (HOME_FINE / governor lawful). Producers' withholding is Bob's QUOTA_EVASION record.
+## -> the HOME_QUOTA_DELIVERED fact id ("" when E171 is off).
+static func record_delivery(world: WorldState, report: Dictionary) -> String:
+	if not e171(world):
+		return ""
+	var st := sov(world)
+	var goods: Dictionary = report.get("goods", {})
+	var port_short := 0
+	var refused := false
+	for g in Det.ordered(goods):
+		var r: Dictionary = goods[g]
+		var sr := String(r.get("short_reason", ""))
+		if sr == "PORT_FULL":
+			port_short += maxi(0, int(r.get("due", 0)) - int(r.get("delivered", 0)))
+		elif sr == "REFUSAL":
+			refused = true
+	var paid := int(report.get("paid", 0))
+	var value := int(report.get("market_value", 0))
+	var excused := false
+	if port_short > 0:
+		excused = not bool(st.get("port_excused", false))
+		st["port_excused"] = true
+	var data := {"goods": goods.duplicate(true), "paid": paid, "market_value": value, "burden": maxi(0, value - paid),
+		"share_pct": int(world.levers.get("LAW_CHARTER_QUOTA_SHARE", 40)), "price_pct": int(world.levers.get("LAW_CHARTER_PRICE_PCT", 35)),
+		"refusal": refused, "port_short": port_short, "port_excused": excused}
+	st["last_quota"] = data.duplicate(true)
+	st["last_quota"]["month"] = world.month
+	var fid := _fact(world, "HOME_QUOTA_DELIVERED", [HOME, GOVERNMENT], [], {}, 35, data)
+	if port_short > 0 and not excused and is_colonial(world):
+		_fact(world, "HOME_EVASION_FOUND", [HOME], [{"actor": GOVERNMENT, "share": 1.0}], {"GOVERNANCE": -3}, 50,
+			{"cause": "NO_STORAGE", "units": port_short, "records": [], "orgs": [], "evaded": 0,
+			"colony_enforces": bool(world.levers.get("LAW_ENFORCE_CHARTER", true))})
+	return fid
 
 
 # =====================================================================================  export terms (D5)
@@ -343,12 +413,14 @@ static func recognise_independence(world: WorldState) -> void:
 	_set_colonial_rules(world, "REPEALED")
 	world.levers["LAW_CHARTER_QUOTA_SHARE"] = 0
 	world.levers["LAW_CHARTER_EXPORT_LEVY"] = 0
+	st["quota_epoch"] = int(st.get("quota_epoch", 0)) + 1     # E171: carried quota debt is cancelled
 	_fact(world, "LAW_INDEPENDENCE_RECOGNISED", [HOME, PARLIAMENT], [], {"GOVERNANCE": 10, "FAIRNESS": 5}, 95, {})
 
 
 ## Negotiated autonomy: the charter binds again on softer terms {LAW_CHARTER_QUOTA_SHARE, LAW_CHARTER_PRICE_PCT}.
 static func grant_autonomy(world: WorldState, terms: Dictionary) -> void:
 	_back_under_charter(world, "AUTONOMY", terms, false)
+	sov(world)["quota_epoch"] = int(sov(world).get("quota_epoch", 0)) + 1     # E171: new terms cancel carried debt
 	_fact(world, "LAW_AUTONOMY_GRANTED", [HOME, PARLIAMENT], [], {"GOVERNANCE": 3}, 80, {"terms": terms})
 
 

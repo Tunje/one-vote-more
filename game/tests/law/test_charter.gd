@@ -29,7 +29,8 @@ func test_charter_entrenched() -> void:
 	var s := _world()
 	var w := s.world
 	check_eq(LQ.sovereignty(w)["status"], "COLONY", "starts as a colony")
-	check_eq(LQ.quota_due(w), {"due": true, "share_pct": 40, "price_pct": 35, "reason": ""}, "quota due at charter terms")
+	check_eq(LQ.quota_due(w), {"due": true, "share_pct": 40, "price_pct": 35, "reason": "", "goods": CO.DEFAULT_QUOTA_GOODS, "epoch": 0},
+		"quota due at charter terms")
 	check(not LawOps.check_change(w, "LAW_CHARTER_QUOTA_SHARE", 10, "LAW").is_empty(), "parliament cannot change the quota")
 	check(CO.home_world_amend(w, "LAW_CHARTER_QUOTA_SHARE", 55)["ok"], "the home world can")
 	check_eq(w.levers["LAW_CHARTER_QUOTA_SHARE"], 55, "Stamp Act moment")
