@@ -237,10 +237,12 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 			var fp := EconUtil.pay_upto(world, bid["acct"], EconUtil.acct(cta), f_cash, "FREIGHT")
 			if fp < f_cash:
 				EconCredit.invoice(world, bid["buyer"], cta, f_cash - fp, true)
+			EconFinance.pl_add(world, cta, "rev", freight)  # booked at the sale like the goods (fix: was missing on account)
 		elif freight > 0 and cta != "":
 			world.ledger.transfer(bid["acct"], EconUtil.acct(cta), freight, "FREIGHT", world.month)
 			EconFinance.pl_add(world, cta, "rev", freight)
-			s["freight_used"] += take * h
+		if h > 0:
+			s["freight_used"] += take * h  # trucks are used however the freight is paid (fix: on-account trade was not counted)
 		var wac := EconUtil.inv_wac(world, o["seller"], good, o["district"])
 		if o["seller"] == "origin":
 			EconUtil.qflow(world, good, "imported", take)  # backstop cargo, paid to the origin (EXTERNAL)
