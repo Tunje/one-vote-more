@@ -45,3 +45,33 @@ func test_no_space_shrinks() -> void:
 	check(int(EconWarehouse.summary(w)["no_space"]) > 0, "the shortage is reported")
 	check(not w.facts.query("ECON_STORAGE_SHORTAGE").is_empty(), "it makes news")
 	check(EconReport.goods_errors(w).is_empty(), "goods conserved: %s" % [EconReport.goods_errors(w)])
+
+
+## A holder that cannot pay the rent is "unpaid", not "no space": with room in the halls no shortage notice is raised.
+func test_unpaid_is_not_no_space() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["WAREHOUSE"]
+	sim.run(2)
+	var cta := EconFinance.org_by_key(w, "CTA")
+	var f := EconWarehouse._site(w, cta)
+	f["halls"] = 100  # plenty of room
+	var oid := ""
+	for k in EconUtil.sorted_keys(w.table("org")):
+		var o: Dictionary = w.table("org")[k]
+		if o["type"] == "PRIVATE" and o["status"] == "ACTIVE" and k != cta:
+			oid = k
+			break
+	var o: Dictionary = w.table("org")[oid]
+	o["sales_ema"]["MATERIAL"] = 0  # it "makes" MATERIAL but sells none: all its stock needs space
+	EconUtil.inv_add(w, oid, "MATERIAL", "d:1", 2000 * 1000, 0)
+	EconUtil.qflow(w, "MATERIAL", "imported", 2000 * 1000)
+	var acc := EconUtil.acct(oid)
+	w.ledger.transfer(acc, Ledger.EXTERNAL, w.ledger.balance(acc), "TEST", w.month)  # no cash for the rent
+	EconUtil.st(w)["storage_news_m"] = -99
+	var n0 := w.facts.query("ECON_STORAGE_SHORTAGE").size()
+	EconWarehouse.monthly(w)
+	var sm := EconWarehouse.summary(w)
+	check(int(sm["unpaid"]) > 0, "the unpaid stock is counted as unpaid: %s" % [sm])
+	check_eq(int(sm["no_space"]), 0, "not as no space")
+	check_eq(w.facts.query("ECON_STORAGE_SHORTAGE").size(), n0, "no shortage notice while the halls have room")

@@ -97,7 +97,8 @@ static func monthly(world: WorldState) -> void:
 	var inv: Dictionary = world.table("inv")
 	var rev := 0
 	var stored_all := 0
-	var short_all := 0
+	var short_all := 0  # no space: the halls could not take it (demand over capacity)
+	var unpaid_all := 0  # space was there but the holder could not pay the rent for it
 	var reserve_rent := 0
 	var shrunk := 0
 	for n in needs:
@@ -121,7 +122,8 @@ static func monthly(world: WorldState) -> void:
 			EconUtil.qflow(world, n["good"], "burned", lost)
 			shrunk += lost
 		stored_all += stored
-		short_all += unstored
+		short_all += int(n["need"]) - want
+		unpaid_all += maxi(0, want - stored)
 	if reserve_rent > 0:
 		EconFinance._spend_line(world, RESERVE_LINE, reserve_rent)
 	EconFinance.pl_add(world, cta, "rev", rev)
@@ -132,6 +134,7 @@ static func monthly(world: WorldState) -> void:
 	f["T"] = 1000
 	f["stored"] = stored_all
 	f["no_space"] = short_all
+	f["unpaid"] = unpaid_all
 	f["demand"] = demand
 	f["shrunk"] = shrunk
 	# growth: a new hall from MATERIAL when the halls run over 90%
@@ -151,7 +154,7 @@ static func monthly(world: WorldState) -> void:
 		s["storage_news_m"] = world.month
 		EconFacts.emit(world, "ECON_STORAGE_SHORTAGE", "d:1", [["COMPANY", cta]], [["COMPANY", cta, 0.5], ["GOVERNMENT", "government", 0.5]],
 			{"INFRASTRUCTURE": -5, "COST_OF_LIVING": -3}, 20, "PUBLIC",
-			{"no_space": short_all / S, "stored": stored_all / S, "halls": int(f["halls"]), "capacity": cap / S})
+			{"no_space": short_all / S, "unpaid": unpaid_all / S, "stored": stored_all / S, "halls": int(f["halls"]), "capacity": cap / S})
 
 
 ## {halls, capacity, stored, no_space, demand (units), posts} for probes and the coming panel.
@@ -161,4 +164,4 @@ static func summary(world: WorldState) -> Dictionary:
 	if f.is_empty():
 		return {}
 	return {"halls": int(f.get("halls", 0)), "capacity": int(f.get("halls", 0)) * CAPACITY / S, "stored": int(f.get("stored", 0)) / S,
-		"no_space": int(f.get("no_space", 0)) / S, "demand": int(f.get("demand", 0)) / S, "shrunk": int(f.get("shrunk", 0)) / S, "posts": EconLabor.staff_total(f["staff"]) / S}
+		"no_space": int(f.get("no_space", 0)) / S, "unpaid": int(f.get("unpaid", 0)) / S, "demand": int(f.get("demand", 0)) / S, "shrunk": int(f.get("shrunk", 0)) / S, "posts": EconLabor.staff_total(f["staff"]) / S}
