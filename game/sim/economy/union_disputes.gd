@@ -235,7 +235,7 @@ static func _ai_answer(world: WorldState, d: Dictionary) -> String:
 		var o: Dictionary = world.table("org").get(d["employer"], {})
 		if o.is_empty():
 			return "REFUSE"
-		var pl: Dictionary = o["pl_last"] if not o.get("pl_last", {}).is_empty() else o["pl"]
+		var pl: Dictionary = EconUnions.year_month_pl(o)  # judged by the year's average month, not last month
 		var profit := EconFinance.profit(pl)
 		var cost := float(d["size_pm"]) / 1000.0 * float(pl.get("wages", 0))
 		var hard := int(o["ceo"].get("risk", 50)) >= 70
@@ -438,12 +438,12 @@ static func _strike_month(world: WorldState, d: Dictionary, rng: RandomNumberGen
 		if o.is_empty() or o["status"] in ["LIQUIDATION", "DISSOLVED"]:
 			outcome = "LOST"
 		else:
-			var weak := world.ledger.balance(EconUtil.acct(d["employer"])) < 2 * EconFinance._monthly_costs(o)
+			var weak := world.ledger.balance(EconUtil.acct(d["employer"])) < 2 * EconUnions.year_month_costs(o)
 			if weak:
 				outcome = "WON"
 			else:
 				# a rich, profitable employer can outlast a union whose fund is thin; otherwise the sides settle
-				var strong: bool = world.ledger.balance(EconUtil.acct(d["employer"])) >= 6 * EconFinance._monthly_costs(o) and EconFinance.profit(o["pl_last"] if not o.get("pl_last", {}).is_empty() else o["pl"]) > 0
+				var strong: bool = world.ledger.balance(EconUtil.acct(d["employer"])) >= 6 * EconUnions.year_month_costs(o) and EconFinance.profit(EconUnions.year_month_pl(o)) > 0
 				var fund_f := clampf(Unions.strike_weeks(world, u["id"]) / 8.0, 0.0, 1.0)
 				var r := rng.randf()
 				if strong and r < clampf(0.12 * m * (1.2 - fund_f), 0.0, 0.8):

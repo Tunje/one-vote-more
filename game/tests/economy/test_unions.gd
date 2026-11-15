@@ -167,3 +167,28 @@ func test_essential_services_law() -> void:
 	w.levers["LAW_ESSENTIAL_SERVICES"] = "NONE"
 	EconUnions._strike(w, cpw, {"facs": [power[0]]}, "UTILITIES", 10 * EconUtil.S, "REAL_WAGES", rng)
 	check_eq(EconUnions.work_factor(w, f), EconUnions.STRIKE_WORK, "NONE: today's strike")
+
+
+func _row(rev: int, wages: int, cogs: int) -> Dictionary:
+	var r := {}
+	for k in EconFinance.PL_KEYS:
+		r[k] = 0
+	r["rev"] = rev
+	r["wages"] = wages
+	r["cogs"] = cogs
+	return r
+
+
+func test_unions_judge_an_employer_by_its_year_not_last_month() -> void:
+	# user via Wilma 2026-11-16: "I said to remove the limits from last month"
+	var o := {"pl_last": _row(0, 900, 0), "pl": {}, "pl_ring": []}
+	for i in 11:
+		o["pl_ring"].append(_row(1000, 400, 100))
+	o["pl_ring"].append(_row(0, 900, 0))  # one bad month
+	var pl := EconUnions.year_month_pl(o)
+	check(EconFinance.profit(pl) > 0, "a good year with one bad month is still a profitable employer (%d)" % EconFinance.profit(pl))
+	check_eq(int(pl["rev"]), 11000 / 12, "the average month of the year")
+	check(EconFinance.profit(o["pl_last"]) < 0, "though last month alone was a loss")
+	check_eq(EconUnions.year_month_costs(o), EconAnnual.avg_costs(o), "costs on the same rule")
+	var young := {"pl_last": _row(0, 900, 0), "pl": {}, "pl_ring": [_row(1000, 400, 0)]}
+	check_eq(int(EconUnions.year_month_pl(young)["wages"]), 900, "under three months of history: last month is all there is")

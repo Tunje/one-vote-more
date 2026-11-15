@@ -390,6 +390,25 @@ static func exposure(world: WorldState, oid: String) -> Dictionary:
 	return out
 
 
+## An employer's books as unions and donors read them (user via Wilma 2026-11-16: firms are judged by the year, never by
+## last month): the average month of its last twelve (EconAnnual's ring) once it has EconAnnual.MIN_M months of
+## history; before that, last month's (there is nothing else to go on).
+static func year_month_pl(o: Dictionary) -> Dictionary:
+	var n := EconAnnual.months(o)
+	if n >= EconAnnual.MIN_M:
+		var s := EconAnnual.sum12(o)
+		var out := {}
+		for k in s:
+			out[k] = int(s[k]) / n
+		return out
+	return o["pl_last"] if not o.get("pl_last", {}).is_empty() else o.get("pl", {})
+
+
+## The average month's running costs on the same rule.
+static func year_month_costs(o: Dictionary) -> int:
+	return EconAnnual.avg_costs(o) if EconAnnual.months(o) >= EconAnnual.MIN_M else EconFinance._monthly_costs(o)
+
+
 ## Write this month's offers (end of SETTLEMENT). Politics matches each to a party in POLITICS and books
 ## ledger.transfer(EconUtil.acct(from) → "party:<id>", amount_milli); a failed transfer means the offer lapsed.
 static func donation_offers(world: WorldState) -> void:
@@ -399,7 +418,7 @@ static func donation_offers(world: WorldState) -> void:
 		var o: Dictionary = world.table("org")[oid]
 		if not (o["type"] in ["PRIVATE", "COOPERATIVE"]) or o["status"] != "ACTIVE":
 			continue
-		var pl_m: Dictionary = o["pl_last"] if not o.get("pl_last", {}).is_empty() else o["pl"]  # last closed month (the current one is still being booked)
+		var pl_m: Dictionary = year_month_pl(o)  # the average month of the last year (not one month's figure)
 		var profit := EconFinance.profit(pl_m)
 		if profit <= 0:
 			continue
@@ -416,7 +435,7 @@ static func donation_offers(world: WorldState) -> void:
 		if prefers.is_empty():
 			continue
 		var cash := world.ledger.balance(EconUtil.acct(oid))
-		var spare := cash - DONATION_CASH_COVER * maxi(1, EconFinance._monthly_costs(o))
+		var spare := cash - DONATION_CASH_COVER * maxi(1, year_month_costs(o))
 		var amount := mini(int(float(profit) * DONATION_SHARE * minf(weight, 1.5)), spare)
 		if amount < DONATION_MIN:
 			continue
