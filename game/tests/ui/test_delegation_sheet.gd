@@ -5,6 +5,7 @@ extends TestCase
 const EconSim := preload("res://sim/economy/econ_sim.gd")
 const Desk := preload("res://sim/office/decision_desk.gd")
 const Sheet := preload("res://ui/panels/delegation_sheet.gd")
+const OS_ := preload("res://sim/staff/office_staff.gd")
 
 
 func _world(on: bool) -> WorldState:
@@ -61,3 +62,24 @@ func test_sheet_without_the_flag() -> void:
 	Sheet.build(body, _world(false), null, func(): pass)
 	check_eq(body.get_child_count(), 1, "one line: delegation is off")
 	body.free()
+
+
+func test_groups_follow_the_cabinet() -> void:
+	var w := _world(true)
+	var roles: Array = Desk.sheet(w).map(func(g): return String(g["role"]))
+	check_eq(roles[0], "FM", "the First Minister's own decisions first")
+	var ports: Array = OS_.portfolios(w)
+	var last := -1
+	for r in roles:
+		var i := ports.find(r)
+		if i >= 0:
+			check(i > last, "portfolios in the Cabinet's order (%s)" % str(roles))
+			last = i
+	if roles.has(""):
+		check_eq(roles[roles.size() - 1], "", "the unheld decisions last")
+
+
+func test_road_safety_limit_needs_the_flag() -> void:
+	var w := _world(true)
+	var r := Desk.execute(w, "SAFE_LIMIT", {"link": "nope", "kmh": 50})
+	check(not r.get("ok", true), "without ROAD_SAFETY a limit is refused: %s" % str(r))

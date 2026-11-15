@@ -66,6 +66,8 @@ const TYPES := {
 	"ROAD_LICENCE": {"name": "Licence for a private road", "portfolio": "ENGINEER", "ceiling": "MINISTER", "src": "road_law",
 		"note": "the Cabinet's for a road across 3+ districts"},
 	"ROAD_NEGLECT": {"name": "Neglected private road", "portfolio": "ENGINEER", "ceiling": "MINISTER", "src": "road_law", "routine": true},
+	"SPEED_LIMIT": {"name": "Speed limit on a road near people", "portfolio": "ENGINEER", "ceiling": "MINISTER", "src": "gov_builder", "routine": true},
+	"ROAD_PASS": {"name": "Over- or underpass, or a bypass, for safety", "portfolio": "ENGINEER", "ceiling": "MINISTER", "src": "gov_builder"},
 	"ROAD_TAKEOVER": {"name": "The state takes a private road", "portfolio": "ENGINEER", "ceiling": "MINISTER", "src": "road_law",
 		"note": "the Cabinet's when compulsory or above the state-aid threshold"},
 	# GovWildlife: the yearly (or after a death) wildlife policy review
@@ -298,10 +300,23 @@ static func sheet(world: WorldState) -> Array:
 		(groups[key]["types"] as Array).append({"type": ty, "name": String(TYPES[ty]["name"]), "level": level(world, ty),
 			"max_level": max_level(ty), "ceiling": String(TYPES[ty]["ceiling"]), "outside": outside_portfolio(world, ty),
 			"portfolio": portfolio(world, ty), "note": String(TYPES[ty].get("note", ""))})
+	# cabinet order (Wilma): the First Minister, the portfolios as the Cabinet lists them, the civil service, then nobody
+	var ports: Array = _os().portfolios(world)
+	var ro: Array = ports + (_os().role_order(world) as Array).filter(func(r): return not (r in ports))   # as OfficeStaff.cabinet lists them
+	order.sort_custom(func(a, b): return _group_rank(ro, String(a)) < _group_rank(ro, String(b)))
 	var out: Array = []
 	for k in order:
 		out.append(groups[k])
 	return out
+
+
+static func _group_rank(ro: Array, role: String) -> int:
+	if role == "FM":
+		return -1
+	if role == "":
+		return 1000
+	var i := ro.find(role)
+	return i if i >= 0 else 999
 
 
 static func _role_title(world: WorldState, role: String) -> String:
@@ -602,6 +617,75 @@ static func execute(world: WorldState, id: String, params: Dictionary) -> Dictio
 			return GovBuilder.commit_order(world, params)
 		"GOV_COVER":
 			return GovBuilder.commit_cover(world, params)
+		"SAFE_LIMIT":
+			var err := Transport.set_limit(world, String(params.get("link", "")), int(params.get("kmh", 0)))
+			return {"ok": err == "", "error": err}
+		"QUOTE_AWARD":
+			return commit_quote_award(world, params)
+		"QUOTE_REFUSE":
+			return commit_quote_refuse(world, params)
+		"GOV_UPGRADE":
+			return GovBuilder.commit_upgrade(world, params)
 		"WILDLIFE_BILL":
 			return GovWildlife.commit_policy(world, params)
 	return {"ok": false, "error": "Unknown case action " + id}
+
+
+
+# ======================================================================= step 3: builders' quotes (R8_BUILDERS)
+
+const QUOTE_WHY := {"price": "above our own estimate", "budget": "beyond what the budget line can take", "wait": "it could not start for too long"}
+
+
+## EconBuilders.award_round, for a public project with bids: award a quote or refuse them all, as a PUBLIC_QUOTE case.
+## The government's own rule (EconBuilders.refusal) sets the merit: the best acceptable bid, or refusing when none is.
+## The best-ranked bid is offered too even when the rule refuses it (a minister may pay over the estimate). Returns
+## true when the case took the decision (made now or waiting on the desk).
+static func quote_case(world: WorldState, p: Dictionary, ranked: Array, chosen: String, why: String) -> bool:
+	if ranked.is_empty():
+		return false
+	var pid := String(p["id"])
+	var est := int(p.get("est_cost", 0))
+	var opts: Array = []
+	var hid := {}
+	var offered := {}
+	for b in ranked:
+		var org := String(b["org"])
+		if offered.has(org) or not (org == chosen or org == String(ranked[0]["org"])):
+			continue
+		offered[org] = true
+		var oid := "AWARD_" + org
+		var name := String(world.peek("org").get(org, {}).get("name", org))
+		opts.append({"id": oid, "label": "Award it to %s (%d cr, %+d%% on our estimate; starts in %d months)" % [name, int(b["price"]) / EconUtil.S,
+			int(round(100.0 * (float(b["price"]) / float(maxi(1, est)) - 1.0))), int(b.get("wait", 0))],
+			"action": {"via": "DESK", "id": "QUOTE_AWARD", "params": {"project": pid, "org": org}}})
+		hid[oid] = {"merit": 30 if org == chosen else 0, "lean": {}}
+	opts.append({"id": "REFUSE", "label": "Refuse the quotes (the tender opens again in a few months)",
+		"action": {"via": "DESK", "id": "QUOTE_REFUSE", "params": {"project": pid, "why": why}}})
+	hid["REFUSE"] = {"merit": 30 if chosen == "" else 0, "lean": {}}
+	var lines: Array = ["%d builder(s) quoted for the public %s in %s; our estimate is %d cr." % [ranked.size(), String(p.get("type", "")).to_lower(),
+		String(world.peek("district").get(String(p.get("district", "")), {}).get("name", p.get("district", ""))), est / EconUtil.S]]
+	if chosen == "" and why != "":
+		lines.append("The best quote is %s." % String(QUOTE_WHY.get(why, why)))
+	decide(world, {"type": "PUBLIC_QUOTE", "ref": "QUOTE|" + pid, "subject": "Quotes for the public %s" % String(p.get("type", "")).to_lower(),
+		"lines": lines, "options": opts, "hidden": hid, "default": ("AWARD_" + chosen) if chosen != "" else "REFUSE"})
+	return true
+
+
+## Desk route QUOTE_AWARD: the contract, if the tender is still open and the bid still stands.
+static func commit_quote_award(world: WorldState, p: Dictionary) -> Dictionary:
+	var pid := String(p.get("project", ""))
+	var pr: Dictionary = world.peek("project").get(pid, {})
+	if pr.is_empty() or String(pr["status"]) != "TENDER" or not (pr["bids"] as Array).any(func(b): return String(b["org"]) == String(p.get("org", ""))):
+		return {"ok": true, "error": ""}   # the tender moved on meanwhile: nothing to award
+	EconConstruction.award(world, pid, String(p["org"]))
+	return {"ok": true, "error": ""}
+
+
+## Desk route QUOTE_REFUSE: refuse the quotes standing now (re-ranked).
+static func commit_quote_refuse(world: WorldState, p: Dictionary) -> Dictionary:
+	var pr: Dictionary = world.table("project").get(String(p.get("project", "")), {})
+	if pr.is_empty() or String(pr["status"]) != "TENDER" or (pr["bids"] as Array).is_empty():
+		return {"ok": true, "error": ""}
+	EconBuilders.refuse(world, pr, EconConstruction.ranked_bids(world, pr), String(p.get("why", "")))
+	return {"ok": true, "error": ""}

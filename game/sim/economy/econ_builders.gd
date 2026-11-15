@@ -301,6 +301,9 @@ static func award_round(world: WorldState) -> void:
 				break
 			if why == "":
 				why = r
+		if p["owner"] == "gov" and Desk.on(world):
+			if Desk.quote_case(world, p, ranked, chosen, why):
+				continue   # DELEGATION: decided by the minister now, or waiting on the desk (counted there)
 		if p["owner"] == "gov":
 			Desk.note(world, "PUBLIC_QUOTE")
 		if chosen != "":

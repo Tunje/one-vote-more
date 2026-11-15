@@ -18,6 +18,7 @@ extends RefCounted
 const QUARTER_MONTH := 1
 ## Who decides, step 1 (flag DELEGATION): each decision taken here is counted by type. No-op without the flag.
 const Desk := preload("res://sim/office/decision_desk.gd")
+const SafetyLaw := preload("res://sim/law/road_safety_law.gd")   # ROAD_SAFETY: Parliament's limit near homes (Anni)
 
 
 static func monthly(world: WorldState, st: Dictionary) -> void:
@@ -30,7 +31,6 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	var who := _who(world, st)
 	if who.is_empty():
 		return
-	var human: bool = bool(who.get("human", false))   # DELEGATION: only the decisions routed as cases act for a human government
 	_road_feelings(world, st, who)
 	var pos: Dictionary = who["pos"]
 	var spend := float(pos.get("FISCAL", 0)) / 100000.0          # -1..1
@@ -42,12 +42,19 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 		var p: Dictionary = world.table("project")[pid]
 		if p["owner"] == "gov" and p["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
 			busy[p["type"] + "|" + p["district"]] = true
-			if p["status"] == "TENDERABLE" and not human:
-				if EconActions.enqueue(world, "ECON_RETENDER_PROJECT", {"project": pid}).get("ok", false):
+			if p["status"] == "TENDERABLE" and _retender_due(world, st, String(pid), p):
+				if Desk.on(world):
+					_retender_case(world, String(pid), p)
+				elif EconActions.enqueue(world, "ECON_RETENDER_PROJECT", {"project": pid}).get("ok", false):
 					Desk.note(world, "RETENDER_PROJECT")
+	_retender_prune(world, st)
 	# food emergency: any government opens the reserve
-	if int(s.get("food_shortfall", 0)) > 50 and not human:
-		if EconActions.enqueue(world, "ECON_RELEASE_RESERVE", {"good": "FOOD", "qty": 1500}).get("ok", false):
+	if int(s.get("food_shortfall", 0)) > 50:
+		if Desk.on(world):
+			_simple_case(world, "FOOD_RESERVE_RELEASE", "RESERVE|FOOD", "Open the food reserve",
+				["Food is short: %d per mille of what people need goes unmet." % int(s.get("food_shortfall", 0))], "Release 1500 from the reserve",
+				{"via": "ECON", "id": "ECON_RELEASE_RESERVE", "params": {"good": "FOOD", "qty": 1500}}, 0)
+		elif EconActions.enqueue(world, "ECON_RELEASE_RESERVE", {"good": "FOOD", "qty": 1500}).get("ok", false):
 			Desk.note(world, "FOOD_RESERVE_RELEASE")
 	# 1a. essentials (A39 / Bob's E110): food, power, water, materials, components. State-minded governments
 	#     build (the Colony Agricultural Board runs state farms, CPW the rest); market-minded ones offer a grant to
@@ -58,6 +65,8 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	if Legislature.e151(world):
 		can_build = runway >= 3.0 - 1.5 * spend or not Legislature.fiscal_guard(world)   # E151: reserves target 6 months, not 24; capital projects may borrow
 	_essentials(world, st, busy, who, state, spend, can_build)
+	if Desk.on(world) and RoadSafety.on(world):
+		_safety_cases(world, st, who)   # who decides (Maja): road safety only as cases
 	if can_build:
 		_port_depot(world, st, busy, who, state, spend)
 	if not can_build:
@@ -108,10 +117,15 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 		var pr: Dictionary = world.table("project")[pid2]
 		if pr.get("type", "") == "UPGRADE" and pr["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
 			running = true
-	if not running and not human:
+	if not running:
 		var opts: Array = EconQuery.upgrade_options(world).filter(func(o): return o.get("enabled", false))
 		opts.sort_custom(func(a, b): return float(a["output_gain_pct"]) > float(b["output_gain_pct"]) or (a["output_gain_pct"] == b["output_gain_pct"] and String(a["facility"]) < String(b["facility"])))
-		if not opts.is_empty() and float(opts[0]["output_gain_pct"]) / 100.0 * eagerness >= 0.2:
+		if not opts.is_empty() and float(opts[0]["output_gain_pct"]) / 100.0 * eagerness >= 0.2 and Desk.on(world):
+			var fid := String(opts[0]["facility"])
+			_simple_case(world, "UPGRADE_FACILITY", "UPGRADE|" + fid, "Upgrade the %s" % String(world.peek("facility").get(fid, {}).get("type", fid)).to_lower(),
+				["An upgrade to tier %s would raise its output by %d%%." % [str(opts[0]["next_tier"]), int(opts[0]["output_gain_pct"])]], "Order the upgrade",
+				{"via": "DESK", "id": "GOV_UPGRADE", "params": {"facility": fid, "to_tier": opts[0]["next_tier"], "by": String(who["by"])}}, CASE_LEAN)
+		elif not opts.is_empty() and float(opts[0]["output_gain_pct"]) / 100.0 * eagerness >= 0.2:
 			var r: Dictionary = EconActions.enqueue(world, "ECON_UPGRADE_FACILITY", {"facility": opts[0]["facility"], "line": "ECON_BUDGET_INFRASTRUCTURE"})
 			if r.get("ok", false):
 				Desk.note(world, "UPGRADE_FACILITY")
@@ -723,10 +737,14 @@ static func _essentials(world: WorldState, st: Dictionary, busy: Dictionary, who
 		var build: bool = state > 0.15 or (state >= -0.15 and offer_open and int(e["margin_pct"]) < 0)
 		if build and can_build:
 			_order(world, st, busy, who, ftype, _home(world, ftype), "")
-		elif not build and not offer_open and not bool(who.get("human", false)):
+		elif not build and not offer_open:
 			var pct := clampi(25 + int(round(15.0 * spend)), 10, 50)
 			var cap := int(float(EconConstruction.estimate(ftype)) / float(EconUtil.S) * float(pct) / 100.0 * 1.5)
-			if EconActions.enqueue(world, "ECON_OFFER_INCENTIVE", {"type": ftype, "grant_pct": pct, "months": 24, "cap": maxi(1, cap)}).get("ok", false):
+			if Desk.on(world):
+				_simple_case(world, "BUILDER_GRANT", "GRANT|" + ftype, "Grant for a private %s" % ftype.to_lower(),
+					[_case_why(world, ftype, _home(world, ftype), ""), "A %d%% grant for 24 months, up to %d cr, to the builder who adds one." % [pct, maxi(1, cap)]],
+					"Offer the grant", {"via": "ECON", "id": "ECON_OFFER_INCENTIVE", "params": {"type": ftype, "grant_pct": pct, "months": 24, "cap": maxi(1, cap)}}, -CASE_LEAN)
+			elif EconActions.enqueue(world, "ECON_OFFER_INCENTIVE", {"type": ftype, "grant_pct": pct, "months": 24, "cap": maxi(1, cap)}).get("ok", false):
 				Desk.note(world, "BUILDER_GRANT")
 
 
@@ -797,10 +815,14 @@ static func _housing_ahead(world: WorldState, st: Dictionary, busy: Dictionary, 
 			if done == 0:
 				break
 		return done
-	if EconEssentials.offers(world).has("HOUSING") or bool(who.get("human", false)):
+	if EconEssentials.offers(world).has("HOUSING"):
 		return 0
 	var cap := int(float(EconConstruction.estimate("HOUSING")) / float(EconUtil.S) * 0.3 * 1.5)
-	if EconActions.enqueue(world, "ECON_OFFER_INCENTIVE", {"type": "HOUSING", "grant_pct": 30, "months": 24, "cap": maxi(1, cap)}).get("ok", false):
+	if Desk.on(world):
+		_simple_case(world, "BUILDER_GRANT", "GRANT|HOUSING", "Grant for private housing",
+			["Households are forming faster than homes are free.", "A 30%% grant for 24 months, up to %d cr, to developers who build." % maxi(1, cap)],
+			"Offer the grant", {"via": "ECON", "id": "ECON_OFFER_INCENTIVE", "params": {"type": "HOUSING", "grant_pct": 30, "months": 24, "cap": maxi(1, cap)}}, -CASE_LEAN)
+	elif EconActions.enqueue(world, "ECON_OFFER_INCENTIVE", {"type": "HOUSING", "grant_pct": 30, "months": 24, "cap": maxi(1, cap)}).get("ok", false):
 		Desk.note(world, "BUILDER_GRANT")
 	return 0
 
@@ -810,8 +832,8 @@ static func _housing_ahead(world: WorldState, st: Dictionary, busy: Dictionary, 
 ## decision type: the minister holding the type makes the call, or the case waits on the First Minister's desk
 ## (Desk.decide). The options carry what the government knows this month: the need, the estimate, the fixes on offer.
 ## merit = the government's own pick (CASE_MERIT; alternatives less), lean = which politics each option serves.
-## A human government's ministers propose too; the decisions not yet routed (re-tenders, the food reserve, workshop
-## upgrades, builder grants) are not taken for a human government.
+## A human government's ministers propose too; every decision of the programme is a case (re-tenders, the food
+## reserve, workshop upgrades and builder grants as yes / not-now cases).
 const CASE_MERIT := 30
 const CASE_ALT_MERIT := 15
 const CASE_LEAN := 2000      # ECON_ROLE (OfficeFeed.ai_answer's scale): building leans state, waiting market
@@ -990,3 +1012,147 @@ static func commit_cover(world: WorldState, p: Dictionary) -> Dictionary:
 			"impact": {"FAIRNESS": -4, "GOVERNANCE": -3}, "magnitude": 45, "visibility": "PUBLIC",
 			"data": {"kind": kind, "favoured": chosen.filter(func(d): return not (d in fair)), "passed_over": passed_over, "by": by}})
 	return {"ok": true, "error": ""}
+
+
+## Who decides, step 3 (the rest of the programme): a yes / not-now case for the decisions above that act through one
+## economy action. `lean` = the ECON_ROLE lean of saying yes (not now leans the other way).
+static func _simple_case(world: WorldState, ty: String, ref: String, subject: String, lines: Array, yes_label: String, action: Dictionary, lean: int, extra: Array = []) -> void:
+	if Desk.pending(world, ref):
+		return
+	var opts: Array = [{"id": "YES", "label": yes_label, "action": action}, {"id": "WAIT", "label": "Not now", "action": {}}]
+	var hid := {"YES": {"merit": CASE_MERIT, "lean": {"ECON_ROLE": lean}}, "WAIT": {"merit": 0, "lean": {"ECON_ROLE": -lean}}}
+	for x in extra:
+		opts.append({"id": x["id"], "label": x["label"], "action": x["action"]})
+		hid[x["id"]] = {"merit": int(x.get("merit", 0)), "lean": x.get("lean", {})}
+	Desk.decide(world, {"type": ty, "ref": ref, "subject": subject, "lines": lines, "options": opts, "hidden": hid, "default": "WAIT"})
+
+
+## A public project nobody bid for: tender it again, leave it, or cancel it.
+static func _retender_case(world: WorldState, pid: String, p: Dictionary) -> void:
+	var ftype := String(p.get("type", ""))
+	var d := String(p.get("district", ""))
+	var lines: Array = ["No builder bid for the %s in %s (tendered %d time(s); estimate %s)." % [ftype.to_lower().replace("_", " "), _dname(world, d),
+		int(p.get("tenders", 1)), _cr(int(p.get("est_cost", 0)))],
+		"%d builder(s) are working in the colony." % _builders(world)]
+	_simple_case(world, "RETENDER_PROJECT", "RETENDER|" + pid, "Tender again: %s in %s" % [ftype.to_lower().replace("_", " "), _dname(world, d)], lines,
+		"Tender it again", {"via": "ECON", "id": "ECON_RETENDER_PROJECT", "params": {"project": pid}}, 0,
+		[{"id": "CANCEL", "label": "Cancel the project", "action": {"via": "ECON", "id": "ECON_CANCEL_PROJECT", "params": {"project": pid}},
+			"merit": 0, "lean": {"ECON_ROLE": -CASE_LEAN}}])
+
+
+static func _builders(world: WorldState) -> int:
+	var n := 0
+	for oid in world.peek("org"):
+		var o: Dictionary = world.peek("org")[oid]
+		if bool(o.get("is_contractor", false)) and String(o.get("status", "")) in ["ACTIVE", "DISTRESSED"]:
+			n += 1
+	return n
+
+
+## Desk route GOV_UPGRADE: the workshop upgrade, as the programme ordered it.
+static func commit_upgrade(world: WorldState, p: Dictionary) -> Dictionary:
+	var r: Dictionary = EconActions.enqueue(world, "ECON_UPGRADE_FACILITY", {"facility": String(p.get("facility", "")), "line": "ECON_BUDGET_INFRASTRUCTURE"})
+	if not r.get("ok", false):
+		return r
+	var by := String(p.get("by", ""))
+	world.add_fact({"type": "POL_PROJECT_ORDERED", "owner": "pol", "subjects": [], "responsible": [{"actor": {"kind": "GOVERNMENT" if by != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}],
+		"impact": {}, "magnitude": 35, "visibility": "PUBLIC", "data": {"type": "UPGRADE", "facility": String(p.get("facility", "")), "to_tier": p.get("to_tier", 0), "by": by}})
+	return {"ok": true, "error": ""}
+
+
+## Re-tendering (Wilma, 2026-11-15: the same stuck project was re-tendered every quarter, 400-1000 times a century):
+## a public project nobody bid for is tendered again at most once every RETENDER_GAP_M months, sooner only when
+## something changed that could bring a bid: more headroom on its budget line, more builders working, a lower
+## estimate. pol.state["retender_m"] = {project id: {m, head, b, est}} (dropped once the project leaves the tender).
+## Off for A/B with world.meta["off"] has "RETENDER_YEARLY".
+const RETENDER_GAP_M := 12
+
+
+static func _retender_due(world: WorldState, st: Dictionary, pid: String, p: Dictionary) -> bool:
+	if EconUtil.off(world, "RETENDER_YEARLY"):
+		return true
+	var memo: Dictionary = st.get("retender_m", {})
+	var line := String(p.get("line", ""))
+	var now := {"m": world.month, "head": EconActions.headroom(world, line) if line != "" else 0, "b": _builders(world), "est": int(p.get("est_cost", 0))}
+	var was: Dictionary = memo.get(pid, {})
+	var due: bool = was.is_empty() or world.month - int(was["m"]) >= RETENDER_GAP_M or int(now["head"]) > int(was["head"]) \
+		or int(now["b"]) > int(was["b"]) or int(now["est"]) < int(was["est"])
+	if due:
+		memo[pid] = now
+		st["retender_m"] = memo
+	return due
+
+
+static func _retender_prune(world: WorldState, st: Dictionary) -> void:
+	if not st.has("retender_m"):
+		return
+	var memo: Dictionary = st["retender_m"]
+	for pid in EconUtil.sorted_keys(memo):
+		if not (String(world.peek("project").get(pid, {}).get("status", "")) in ["TENDER", "TENDERABLE"]):
+			memo.erase(pid)
+
+
+## Road safety (Terra's ROAD_SAFETY), as cases from the start (with DELEGATION; nothing decides them without it). Each
+## quarter the SAFETY_CASES worst links where fast traffic meets people on foot (Transport.safety_needs) get up to two
+## cases: SPEED_LIMIT (a limit, at once and free, or no change) and ROAD_PASS (an over- or underpass at the worst spot,
+## or a bypass, that the infrastructure line can pay for now, or not now). A link is brought again at most once every
+## SAFETY_GAP_M months (pol.state["safety_case_m"] {key: month}). Merit = the share of the danger an option removes,
+## less the slowdown a limit costs or the share of the line's headroom a work takes.
+const SAFETY_CASES := 2
+const SAFETY_GAP_M := 12
+
+
+static func _safety_cases(world: WorldState, st: Dictionary, who: Dictionary) -> void:
+	var seen: Dictionary = st.get("safety_case_m", {})
+	var line := "ECON_BUDGET_INFRASTRUCTURE"
+	var n := 0
+	for r in Transport.safety_needs(world):
+		if n >= SAFETY_CASES:
+			break
+		var lid := String(r["link"])
+		var rpm := maxi(1, int(r["risk_pm"]))
+		var place := _dname(world, String(r.get("district", "")))
+		var lines: Array = ["A %d km/h road near %s passes %d people's places on foot: about %.1f accidents a year (%.1f deaths)." % [int(r["kmh"]), place,
+			int(r["people"]), float(rpm) / 1000.0, float(int(r.get("deaths_pm", 0))) / 1000.0]]
+		var lim: Array = []
+		var hid_l := {}
+		var works: Array = []
+		var hid_w := {}
+		var head := EconActions.headroom(world, line)
+		for o in r.get("options", []):
+			var cut := float(rpm - int(o["risk_after_pm"])) / float(rpm)
+			if String(o["type"]) == "LIMIT":
+				var k := int(o["spec"]["kmh"])
+				var label := "No limit" if k == 0 else "Limit it to %d km/h" % k
+				if SafetyLaw.exempts(world, lid, k):
+					label += " (exempts it from the law's limit near homes)"   # Anni: the law marks the road exempt; a death there is ours
+				lim.append({"id": String(o["fix"]), "label": "%s (accidents %+d%%, %d trip-hours a month)" % [label, -roundi(100.0 * cut), int(o.get("hours_lost", 0))],
+					"action": {"via": "DESK", "id": "SAFE_LIMIT", "params": {"link": lid, "kmh": k}}})
+				var slow := float(int(r["kmh"]) - k) / float(maxi(1, int(r["kmh"]))) if k > 0 else 0.0
+				hid_l[String(o["fix"])] = {"merit": roundi(CASE_MERIT * cut - CASE_ALT_MERIT * slow), "lean": {"ECON_ROLE": CASE_LEAN}}
+			elif int(o["cost"]) * 11 / 10 <= head:
+				var params := {"type": "ROAD", "district": String(r.get("district", "")), "line": line, "link": (o["spec"] as Dictionary).duplicate(true)}
+				if EconActions.validate(world, "ECON_COMMISSION_PROJECT", params) != "":
+					continue
+				works.append({"id": String(o["fix"]), "label": "%s (%s, %d months; accidents %+d%%)" % [String(o["fix"]).capitalize(), _cr(int(o["cost"])), int(o["months"]), -roundi(100.0 * cut)],
+					"action": {"via": "DESK", "id": "GOV_ORDER", "params": {"params": params, "by": String(who["by"])}}})
+				hid_w[String(o["fix"])] = {"merit": roundi(CASE_MERIT * cut - CASE_ALT_MERIT * float(o["cost"]) / float(maxi(1, head))), "lean": {"ECON_ROLE": CASE_LEAN}}
+		var raised := false
+		if not lim.is_empty() and world.month - int(seen.get("L|" + lid, -9999)) >= SAFETY_GAP_M and not Desk.pending(world, "SAFE_LIMIT|" + lid):
+			lim.append({"id": "WAIT", "label": "No change", "action": {}})
+			hid_l["WAIT"] = {"merit": 0, "lean": {"ECON_ROLE": -CASE_LEAN}}
+			Desk.decide(world, {"type": "SPEED_LIMIT", "ref": "SAFE_LIMIT|" + lid, "subject": "Speed on the road near %s" % place,
+				"lines": lines, "options": lim, "hidden": hid_l, "default": "WAIT"})
+			seen["L|" + lid] = world.month
+			raised = true
+		if not works.is_empty() and world.month - int(seen.get("P|" + lid, -9999)) >= SAFETY_GAP_M and not Desk.pending(world, "SAFE_PASS|" + lid):
+			works.append({"id": "WAIT", "label": "Not now", "action": {}})
+			hid_w["WAIT"] = {"merit": 0, "lean": {"ECON_ROLE": -CASE_LEAN}}
+			Desk.decide(world, {"type": "ROAD_PASS", "ref": "SAFE_PASS|" + lid, "subject": "A safe crossing near %s" % place,
+				"lines": lines, "options": works, "hidden": hid_w, "default": "WAIT"})
+			seen["P|" + lid] = world.month
+			raised = true
+		if raised:
+			n += 1
+	if not seen.is_empty():
+		st["safety_case_m"] = seen

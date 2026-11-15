@@ -239,3 +239,69 @@ func test_neglect_options_carry_merit_and_lean_only_with_the_flag() -> void:
 	var h: Dictionary = RL._neglect_hidden(_road_world(true), dec)["options"]
 	check_eq(int(h["LEAVE"]["merit"]), 30, "the government's own choice")
 	check(int(h["LEAVE"]["lean"]["ECON_ROLE"]) < 0 and int(h["STEP_IN"]["lean"]["ECON_ROLE"]) > 0, "leaving leans market, stepping in state")
+
+
+# ------------------------------------------------------------------ the rest of the programme: yes / not-now cases
+
+func test_the_rest_of_the_programme_is_cases() -> void:
+	var sim := _sim(true)
+	sim.run(30)
+	var w := sim.world
+	Desk.set_level(w, "FOOD_RESERVE_RELEASE", "ME")
+	GovBuilder._simple_case(w, "FOOD_RESERVE_RELEASE", "RESERVE|FOOD", "Open the food reserve", ["Food is short."], "Release 1500 from the reserve",
+		{"via": "ECON", "id": "ECON_RELEASE_RESERVE", "params": {"good": "FOOD", "qty": 1500}}, 0)
+	check(Desk.pending(w, "RESERVE|FOOD"), "the reserve waits on the desk")
+	GovBuilder._simple_case(w, "FOOD_RESERVE_RELEASE", "RESERVE|FOOD", "again", [], "x", {}, 0)
+	var n := 0
+	for o in w.peek("office_item").values():
+		if String(o["source"].get("ref", "")) == "RESERVE|FOOD" and o["status"] in Office.OPEN:
+			n += 1
+			check_eq(String(o["default_option"]), "WAIT", "unanswered: the reserve stays shut")
+	check_eq(n, 1, "posted once")
+	# a stuck public project: tender again, leave it, or cancel it
+	var pid := ""
+	for k in EconUtil.sorted_keys(w.table("project")):
+		if String(w.table("project")[k]["owner"]) == "gov":
+			pid = String(k)
+	if pid != "":
+		Desk.set_level(w, "RETENDER_PROJECT", "ME")
+		GovBuilder._retender_case(w, pid, w.table("project")[pid])
+		var it: Dictionary = {}
+		for o in Office.items(w, ["EMAIL"]):
+			if String(o["source"].get("ref", "")) == "RETENDER|" + pid:
+				it = o
+		check_eq((it.get("options", []) as Array).map(func(x): return String(x["id"])), ["YES", "WAIT", "CANCEL"], "tender again, not now, or cancel")
+	# a human government's ministers bring these too: nothing is done unless they make the call or the player answers
+	var hs := _sim(true, false)
+	hs.run(24)
+	var hw := hs.world
+	for f in hw.facts.query("ECON_INCENTIVE_OFFERED", 0, hw.month):
+		check(String(f.get("data", {}).get("by", "")) != "x", "an offer only through a case")
+	check(Desk.total(Desk.counts(hw, 0, hw.month)) >= 0, "runs")
+
+
+# ------------------------------------------------------------------ builders' quotes (R8_BUILDERS)
+
+func test_quotes_are_a_case() -> void:
+	var sim := _sim(true)
+	sim.run(3)
+	var w := sim.world
+	w.table("org")["org:qa"] = {"id": "org:qa", "name": "Able Works"}
+	w.table("org")["org:qb"] = {"id": "org:qb", "name": "Bold Works"}
+	var est := 1000 * EconUtil.S
+	w.table("project")["prj:q"] = {"id": "prj:q", "owner": "gov", "status": "TENDER", "type": "SCHOOL", "district": "d:1", "est_cost": est,
+		"bids": [{"org": "org:qa", "price": est * 2, "wait": 1}, {"org": "org:qb", "price": est, "wait": 2}]}
+	var ranked: Array = [{"org": "org:qa", "price": est * 2, "wait": 1}, {"org": "org:qb", "price": est, "wait": 2}]
+	Desk.set_level(w, "PUBLIC_QUOTE", "ME")
+	check(Desk.quote_case(w, w.table("project")["prj:q"], ranked, "org:qb", "price"), "the case takes the decision")
+	var it: Dictionary = {}
+	for o in Office.items(w, ["EMAIL"]):
+		if String(o["source"].get("ref", "")) == "QUOTE|prj:q":
+			it = o
+	check_eq((it.get("options", []) as Array).map(func(x): return String(x["id"])), ["AWARD_org:qa", "AWARD_org:qb", "REFUSE"],
+		"the best-ranked bid, the acceptable one, or refuse")
+	check_eq(int(it["hidden"]["options"]["AWARD_org:qb"]["merit"]), 30, "the rule's pick carries the merit")
+	check_eq(String(it["default_option"]), "AWARD_org:qb", "unanswered: the government's own rule")
+	w.table("project")["prj:q"]["status"] = "CANCELLED"
+	check(Office.answer(w, String(it["id"]), "AWARD_org:qa")["ok"], "answered after the project moved on")
+	check_eq(String(w.table("project")["prj:q"]["status"]), "CANCELLED", "nothing is awarded on a closed tender")
