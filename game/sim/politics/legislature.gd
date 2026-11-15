@@ -184,6 +184,19 @@ static func fiscal_room(world: WorldState) -> float:
 	return room if found else 0.0
 
 
+## A lever definition may carry "requires": [flags] (Bob, family grants): it is only on the table when at least one of
+## those opt-in systems is switched on in this game (world.meta["on"], unless meta["off"] names it). No field = always.
+static func lever_available(world: WorldState, def: Dictionary) -> bool:
+	var req: Array = def.get("requires", [])
+	if req.is_empty():
+		return true
+	var on: Array = world.meta.get("on", [])
+	for f in req:
+		if on.has(f) and not EconUtil.off(world, String(f)):
+			return true
+	return false
+
+
 ## Pick the clauses an actor with position `pos` would propose.
 ## allowed: "COMMANDER" (founding-era ordinances) or "PARLIAMENT".
 const TRAINING_LEVERS := ["ECON_TRAINING_SUBSIDY", "ECON_BUDGET_TRAINING"]
@@ -404,6 +417,8 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 			continue
 		if _pending_for(world, lid) or exclude.has(lid):
 			continue
+		if not lever_available(world, def):
+			continue   # the lever belongs to a system that is switched off in this game
 		var r := _range(def)
 		var step := maxf(1.0, round(float(r[1] - r[0]) * step_fraction))
 		var cur := float(world.levers[lid])

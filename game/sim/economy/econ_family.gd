@@ -1,0 +1,614 @@
+class_name EconFamily
+extends RefCounted
+## Family enterprises with a government grant (user decisions via Wilma 2026-11-14). OPT-IN:
+##   E160 family farms — FAMFARM: a sixth of a FARM's plot, one household of 4 working adults (3 G + 1 S, about parity
+##        per worker with a big farm), 40 FOOD a month (six ≈ 86% of a FARM), water/energy and build cost a sixth.
+##        Founded where food sells at ≥ FOUND_MARK × a family farm's cost and the district's water and energy are not
+##        rationed. Grant lever ECON_FAMILY_FARM_GRANT (0–100% of build cost + start-up working capital, LAW).
+##   E162 family bakeries — FAMBAKERY: a sixth of a BAKERY, 4 adults (1 trained baker + 3 G), 43 bread from 42 FOOD;
+##        a neighbourhood shop founded in the district with the most unfilled staple bread (needs E146), at least one
+##        bakery's output. The grant (ECON_FAMILY_BAKERY_GRANT) also pays a baking course for one adult (G → S,
+##        counted as trained) and three months of flour and utilities (a new firm has no sales history for credit).
+## Both: a family firm is a PRIVATE org marked "family", owned by its household pool; its four people are hired
+## from that district's unemployed when it opens, with no hiring contest (and E158 never moves them). The family eats
+## its own produce first (taken from the firm's stock before the market clears); only the rest is sold. Grants are their
+## own spending category, paid through gov_pay; there is no clawback. A failed family firm goes through the normal
+## insolvency: its plant is sold to another buyer, never taken back by the state.
+## The government as regulator (user correction via Wilma 2026-11-14 — "grants would not be offered when there is no
+## need for more food"): a grant is an application approved only on need; the lever is how generous an approved grant
+## is. A family farm grant needs food to be short or dear (FOOD margin under NEED_MARGIN %, or a 12-month food
+## shortfall above NEED_SF ‰, or the food price above NEED_PRICE × the cheapest farm's unit cost); a family bakery grant
+## needs the district's bread gap (as for founding) and enough flour (FOOD margin ≥ NEED_MARGIN %, 12-month shortfall
+## ≤ BAK_SF ‰, and no farm grant needed — farms come first). At most GRANT_YEAR_MAX grants a year in all. A refused
+## family may still found with its own money and a bank loan, as without a grant.
+
+const S := EconUtil.S
+const LawOps := preload("res://sim/law/law_ops.gd")
+const FOUND_MARK := 1.3
+const FOUND_MAX := 4
+const ADULTS := 4
+const WC_MONTHS := 3
+const COURSE_M := 3
+const SERVED_MIN := 0.9  # households' share of their water and energy served in the district
+const NEED_MARGIN := 10  # % effective FOOD capacity over demand (E157 measure, recorded monthly)
+const NEED_SF := 10  # ‰ food shortfall, 12-month average
+const NEED_PRICE := 1.5  # × the cheapest farm's unit cost
+const BAK_SF := 2  # ‰: "no food shortfall" for bakery grants (12-month average)
+const GRANT_YEAR_MAX := 6
+const SF_HIST := 12
+## A grant is a time-limited programme (user ruling via Wilma 2026-11-14: "when a grant ends, they reset to zero so they
+## have to start over on where to put it; grants should be limited time for when you can apply"). Raising a grant lever
+## from 0 opens an application window of PROG_M months; changing the level inside it does not extend it. When it ends the
+## lever goes back to 0 by an enactment ("programme ended") and a public fact reports what it paid and refused. A new
+## programme needs a new decision. Founding with the family's own money is possible at any time.
+const PROG_M := 24
+## A family with an approved grant does not need savings for the rest (user decision via Wilma 2026-11-15): the bank
+## lends the whole remaining share of the package (the grant and the plant are its security; the bank's room still
+## applies). Nothing is repaid before the plant opens; then each month a third of the surplus (cash above
+## LOAN_KEEP_M months of running costs), up to the instalment of a LOAN_TERM_M-month annuity; a bad month pays less and
+## unpaid interest is added. Only LOAN_DEFAULT_M months in a row with nothing paid is a default, and the family firm
+## then has to sell (administration, the existing failure rule). Self-funded foundings keep the old rules.
+const LOAN_TERM_M := 144
+const LOAN_SHARE := 3  # one part in three of the surplus
+const LOAN_KEEP_M := 2
+const LOAN_DEFAULT_M := 12
+const KINDS := {"FAMFARM": {"flag": "E160", "lever": "ECON_FAMILY_FARM_GRANT", "good": "FOOD"},
+	"FAMBAKERY": {"flag": "E162", "lever": "ECON_FAMILY_BAKERY_GRANT", "good": "FINE_FOOD"}}
+
+
+static func _on(world: WorldState, flag: String) -> bool:
+	return world.meta.has("on") and (world.meta["on"] as Array).has(flag) and not EconUtil.off(world, flag)
+
+
+static func any_on(world: WorldState) -> bool:
+	return _on(world, "E160") or _on(world, "E162")
+
+
+static func is_family(world: WorldState, oid: String) -> bool:
+	return bool(world.table("org").get(oid, {}).get("family", false))
+
+
+# ------------------------------------------------------------------ founding (COMPANY_AI, quarterly)
+
+static func found(world: WorldState) -> void:
+	if not any_on(world):
+		return
+	var s := EconUtil.st(world)
+	var lf := int(EconQuery.labour(world)["labour_force"])
+	var cap := mini(FOUND_MAX, 2 + lf / 2000)
+	var n := 0
+	for ftype in ["FAMFARM", "FAMBAKERY"]:
+		var k: Dictionary = KINDS[ftype]
+		if not _on(world, k["flag"]):
+			continue
+		if ftype == "FAMBAKERY" and not EconStaple.active(world):
+			continue
+		var good: String = k["good"]
+		var uc := FirmAI.unit_cost(world, ftype)
+		if float(s["prices"][good]) < FOUND_MARK * uc:
+			_note(s, ftype, "price")
+			continue
+		while n < cap:
+			var d := _district(world, ftype)
+			if d == "":
+				break
+			var gid := _household(world, d)
+			if gid == "":
+				_note(s, ftype, "no_household")
+				break
+			var pct := _grant_pct(world, ftype, d)
+			if not _start(world, ftype, d, gid, pct):
+				_note(s, ftype, "money")
+				break
+			n += 1
+
+
+## The government's decision on a grant application: the lever's % if approved, else 0 (refusal noted by reason).
+static func _grant_pct(world: WorldState, ftype: String, d: String) -> int:
+	var s := EconUtil.st(world)
+	var pct := clampi(int(EconUtil.lever(world, KINDS[ftype]["lever"], 0)), 0, 100)
+	if pct <= 0 or not prog_open(world, ftype):
+		return 0
+	# the government names the districts a programme covers (gov_builder._grant_cover); not chosen yet → no grants
+	var cover: Dictionary = s.get("grant_cover", {})
+	var ck := cover_kind(ftype)
+	if not cover.has(ck):
+		_note(s, ftype, "grant_no_cover_yet")
+		return 0
+	if not (d in (cover[ck] as Array)):
+		_note(s, ftype, "grant_outside_districts")
+		_prog_count(world, ftype, "refused")
+		return 0
+	var ok := food_needed(world) if ftype == "FAMFARM" else flour_ok(world)
+	if not ok:
+		_note(s, ftype, "grant_no_need")
+		_prog_count(world, ftype, "refused")
+		return 0
+	var yr: Array = s.get("fam_grant_year", [])
+	var used := 0
+	for m in yr:
+		if int(m) > world.month - 12:
+			used += 1
+	if used >= GRANT_YEAR_MAX:
+		_note(s, ftype, "grant_ceiling")
+		_prog_count(world, ftype, "refused")
+		return 0
+	return pct
+
+
+static func _food_margin(world: WorldState) -> int:
+	var a: Array = EconUtil.peek_st(world).get("ess_hist", {}).get("FOOD", [])
+	return 100 if a.is_empty() else int(a[a.size() - 1])
+
+
+static func _sf12(world: WorldState) -> int:
+	var a: Array = EconUtil.peek_st(world).get("fam_sf_hist", [])
+	if a.is_empty():
+		return int(EconUtil.peek_st(world).get("food_shortfall", 0))
+	var t := 0
+	for v in a:
+		t += int(v)
+	return t / a.size()
+
+
+## The colony needs more food: short capacity, real hunger, or a price well above what farming costs.
+static func food_needed(world: WorldState) -> bool:
+	if _food_margin(world) < NEED_MARGIN or _sf12(world) > NEED_SF:
+		return true
+	var uc := minf(FirmAI.unit_cost(world, "FARM"), FirmAI.unit_cost(world, "FAMFARM"))
+	return float(EconUtil.st(world)["prices"]["FOOD"]) > NEED_PRICE * uc
+
+
+## Enough flour for another oven: food is not short and no farm grant is needed.
+static func flour_ok(world: WorldState) -> bool:
+	return _food_margin(world) >= NEED_MARGIN and _sf12(world) <= BAK_SF and not food_needed(world)
+
+
+## Monthly: family grant loans are repaid out of the family firm's surplus (see LOAN_*).
+static func service_loans(world: WorldState) -> void:
+	var s := EconUtil.st(world)
+	var fl: Dictionary = s.get("fam_loan_stats", {})
+	var behind := 0
+	for lid in EconUtil.sorted_keys(world.table("loan")):
+		var l: Dictionary = world.table("loan")[lid]
+		if not bool(l.get("family", false)) or int(l["principal"]) <= 0:
+			continue
+		var o: Dictionary = world.table("org").get(l["borrower"], {})
+		if o.is_empty() or o["status"] in ["FORMING", "LIQUIDATION", "DISSOLVED"]:
+			continue  # nothing before the plant opens
+		var acc := EconUtil.acct(l["borrower"])
+		var r := float(l["rate_ppm"]) / 1000000.0
+		var interest := int(float(l["principal"]) * r)
+		var n := maxi(1, int(l["term_left"]))
+		var annuity := int(float(l["principal"]) * r / (1.0 - pow(1.0 + r, -n))) if r > 0.0 else int(l["principal"]) / n
+		var keep := LOAN_KEEP_M * maxi(1, EconFinance._monthly_costs(o))
+		var surplus := maxi(0, world.ledger.balance(acc) - keep)
+		var pay := mini(surplus / LOAN_SHARE, annuity)
+		if pay > 0:
+			world.ledger.transfer(acc, EconUtil.BANK, pay, "LOAN_SERVICE", world.month)
+			s["bank_profit_ytd"] = int(s.get("bank_profit_ytd", 0)) + mini(pay, interest)
+			EconFinance.pl_add(world, l["borrower"], "interest", mini(pay, interest))
+			l["principal"] = int(l["principal"]) + interest - pay  # a bad month pays less; unpaid interest is added
+			l["term_left"] = maxi(1, int(l["term_left"]) - 1)
+			l["zero_m"] = 0
+			fl["paid"] = int(fl.get("paid", 0)) + pay
+		else:
+			l["principal"] = int(l["principal"]) + interest
+			l["zero_m"] = int(l.get("zero_m", 0)) + 1
+			behind += 1
+			if int(l["zero_m"]) >= LOAN_DEFAULT_M and o["status"] in ["ACTIVE", "DISTRESSED"]:
+				fl["defaulted"] = int(fl.get("defaulted", 0)) + 1
+				l["zero_m"] = 0
+				EconInsolvency._enter_administration(world, l["borrower"])  # has to sell: the existing failure rule
+	fl["behind"] = behind
+	s["fam_loan_stats"] = fl
+
+
+static func cover_kind(ftype: String) -> String:
+	return "FARM" if ftype == "FAMFARM" else "BAKERY"
+
+
+## Monthly: where a family firm is needed, by district, for the government's choice of coverage (integers, 0 = none).
+## FARM: while the colony needs food, the unemployed adults (persons) of districts where a family could farm (water and
+## energy served); BAKERY: while flour is sufficient, the district's unmet staple bread (units) beyond what is open or
+## being built.
+static func _publish_need_d(world: WorldState) -> void:
+	var s := EconUtil.st(world)
+	var food := _on(world, "E160") and food_needed(world)
+	var flour := _on(world, "E162") and flour_ok(world)
+	var farm := {}
+	var bak := {}
+	for d in EconUtil.sorted_keys(EconData.DISTRICTS):
+		if not EconUtil.connected(d):
+			continue
+		var sv: Array = s.get("util_served_hh", {}).get(d, [1.0, 1.0])
+		var served := float(sv[0]) >= SERVED_MIN and float(sv[1]) >= SERVED_MIN
+		farm[d] = PopStore.count(world, {"hb": EconPop.hb_of(d), "status": "UNEMPLOYED"}) if food and served else 0
+		bak[d] = maxi(0, int(s.get("staple_gap_d", {}).get(d, 0)) - _pending_out(world, "FAMBAKERY", d)) / S if flour else 0
+	s["family_need_d"] = {"FARM": farm, "BAKERY": bak}
+
+
+static func prog_open(world: WorldState, ftype: String) -> bool:
+	var pr: Dictionary = EconUtil.peek_st(world).get("fam_prog", {}).get(ftype, {})
+	return not pr.is_empty() and world.month < int(pr["until"])
+
+
+static func _prog_count(world: WorldState, ftype: String, what: String) -> void:
+	var pr: Dictionary = EconUtil.st(world).get("fam_prog", {}).get(ftype, {})
+	if not pr.is_empty():
+		pr[what] = int(pr[what]) + 1
+
+
+## Monthly: open a programme when its lever rises from 0; end it when its window is over (lever back to 0).
+static func _programmes(world: WorldState) -> void:
+	var s := EconUtil.st(world)
+	var progs: Dictionary = s.get("fam_prog", {})
+	s["fam_prog"] = progs
+	var prev: Dictionary = s.get("fam_lever_prev", {})
+	s["fam_lever_prev"] = prev
+	for ftype in ["FAMFARM", "FAMBAKERY"]:
+		if not _on(world, KINDS[ftype]["flag"]):
+			continue
+		var lid: String = KINDS[ftype]["lever"]
+		var lv := int(EconUtil.lever(world, lid, 0))
+		var pr: Dictionary = progs.get(ftype, {})
+		if not pr.is_empty():
+			pr["level"] = maxi(int(pr["level"]), lv)
+			var cv: Array = s.get("grant_cover", {}).get(cover_kind(ftype), [])
+			if not cv.is_empty() and (pr["cover"] as Array).is_empty():
+				pr["cover"] = cv.duplicate()
+			if world.month >= int(pr["until"]):
+				_end_programme(world, ftype, pr)
+				progs.erase(ftype)
+		elif lv > 0 and int(prev.get(ftype, 0)) == 0:
+			progs[ftype] = {"start": world.month, "until": world.month + PROG_M, "level": lv, "paid": 0, "refused": 0, "cover": []}
+		prev[ftype] = lv
+
+
+static func _end_programme(world: WorldState, ftype: String, pr: Dictionary) -> void:
+	var s := EconUtil.st(world)
+	var lid: String = KINDS[ftype]["lever"]
+	var id := world.new_id("enact")
+	var e := {"id": id, "lever": lid, "value": 0, "legal_level": "LAW", "source_bill": "programme ended",
+		"decided_month": world.month, "earliest_effective_month": world.month, "status": "LEGAL", "legal_month": world.month,
+		"from": world.levers.get(lid)}
+	world.table("enactment")[id] = e
+	# the end is part of the programme itself: in force at once (no new bill, no implementation task); a change of the
+	# grant still on its way through implementation is overtaken by it
+	LawOps._supersede(world, e)
+	LawOps.state(world)["legal_values"][lid] = 0
+	LawOps._make_effective(world, id, e)
+	var h: Array = s.get("fam_prog_hist", [])
+	h.append([ftype, int(pr["start"]), world.month - int(pr["start"]), int(pr["level"]), int(pr["paid"]), int(pr["refused"]), (pr["cover"] as Array).duplicate(), (pr.get("bands", {}) as Dictionary).duplicate()])
+	s["fam_prog_hist"] = h
+	EconFacts.emit(world, "ECON_GRANT_PROGRAMME_ENDED", "COLONY", [["GOVERNMENT", "government"]], [["GOVERNMENT", "government", 1.0]],
+		{}, 20, "PUBLIC", {"lever": lid, "type": ftype, "start": int(pr["start"]), "level": int(pr["level"]),
+		"paid": int(pr["paid"]), "refused": int(pr["refused"]), "districts": (pr["cover"] as Array).duplicate()})
+
+
+## Some district lacks at least one family bakery's bread beyond what is open or being built (pure read).
+static func bread_gap_any(world: WorldState) -> bool:
+	var s := EconUtil.peek_st(world)
+	var one := int(EconData.RECIPES["FAMBAKERY"]["out"][1]) * S
+	for d in EconUtil.sorted_keys(EconData.DISTRICTS):
+		if EconUtil.connected(d) and int(s.get("staple_gap_d", {}).get(d, 0)) - _pending_out(world, "FAMBAKERY", d) >= one:
+			return true
+	return false
+
+
+## Monthly: the regulator's need signal for the legislature (st["lever_need"], ‰): positive = the colony needs what the
+## grant pays for (farms: up to 2000 with the food shortfall), negative = no need while the grant is still offered.
+static func _publish_need(world: WorldState) -> void:
+	var s := EconUtil.st(world)
+	var ln: Dictionary = s.get("lever_need", {})
+	if _on(world, "E160"):
+		var v := 0
+		if food_needed(world):
+			v = 1000 + clampi(_sf12(world) * 20, 0, 1000)
+		elif int(EconUtil.lever(world, "ECON_FAMILY_FARM_GRANT", 0)) > 0:
+			v = -1000
+		ln["ECON_FAMILY_FARM_GRANT"] = v
+	if _on(world, "E162"):
+		var v2 := 0
+		if bread_gap_any(world) and flour_ok(world):
+			v2 = 1000
+		elif int(EconUtil.lever(world, "ECON_FAMILY_BAKERY_GRANT", 0)) > 0:
+			v2 = -1000
+		ln["ECON_FAMILY_BAKERY_GRANT"] = v2
+	s["lever_need"] = ln
+
+
+static func _note(s: Dictionary, ftype: String, why: String) -> void:
+	var f: Dictionary = s.get("fam_fail_found", {})
+	var key := ftype + "|" + why
+	f[key] = int(f.get(key, 0)) + 1
+	s["fam_fail_found"] = f
+
+
+## Farms: a district whose households get their water and energy (not rationed); the one with the most unemployed.
+## Bakeries: the district with the most unfilled staple bread, at least one family bakery's output.
+static func _district(world: WorldState, ftype: String) -> String:
+	var s := EconUtil.st(world)
+	var best := ""
+	var bv := -1
+	for d in EconUtil.sorted_keys(EconData.DISTRICTS):
+		if not EconUtil.connected(d):
+			continue
+		var sv: Array = s.get("util_served_hh", {}).get(d, [1.0, 1.0])
+		if float(sv[0]) < SERVED_MIN or float(sv[1]) < SERVED_MIN:
+			continue  # no family starts a farm or an oven without (most of its) power and water
+		var v := 0
+		if ftype == "FAMFARM":
+			v = PopStore.count(world, {"hb": EconPop.hb_of(d), "status": "UNEMPLOYED"})
+		else:
+			v = int(s.get("staple_gap_d", {}).get(d, 0))
+			if v < int(EconData.RECIPES["FAMBAKERY"]["out"][1]) * S:
+				continue
+			v -= _pending_out(world, ftype, d)
+			if v < int(EconData.RECIPES["FAMBAKERY"]["out"][1]) * S:
+				continue
+		if v > bv:
+			bv = v
+			best = d
+	if best == "" and ftype == "FAMBAKERY":
+		_note(s, ftype, "no_district")
+	return best
+
+
+## Output of family firms of this type already open or being built in district d (milli-units a month).
+static func _pending_out(world: WorldState, ftype: String, d: String) -> int:
+	var n := 0
+	for fid in world.table("facility"):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] == ftype and f["district"] == d and not f["mothball"]:
+			n += 1
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["type"] == ftype and p["district"] == d and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+			n += 1
+	return n * int(EconData.RECIPES[ftype]["out"][1]) * S
+
+
+## A common household pool (band I1–I3) of district d whose block has at least 4 unemployed adults.
+static func _household(world: WorldState, d: String) -> String:
+	var hb := EconPop.hb_of(d)
+	if PopStore.count(world, {"hb": hb, "status": "UNEMPLOYED"}) < ADULTS:  # (persons)
+		return ""
+	var best := ""
+	var bc := -1
+	for gid in EconUtil.sorted_keys(world.table("hh")):
+		var g: Dictionary = world.table("hh")[gid]
+		if g["district"] != d or not (g.get("band", "I3") in ["I1", "I2", "I3"]):
+			continue
+		var c := world.ledger.balance(EconUtil.hh_acct(gid))
+		if c > bc:
+			bc = c
+			best = gid
+	return best
+
+
+## Start-up cost (mcr): build estimate + WC_MONTHS of running inputs (+ a course for bakeries).
+static func startup_cost(world: WorldState, ftype: String) -> Dictionary:
+	var s := EconUtil.st(world)
+	var r: Dictionary = EconData.RECIPES[ftype]
+	var run := 0
+	for g in r["in"]:
+		if g in EconData.MARKET_GOODS:
+			run += EconUtil.val(int(r["in"][g]) * S, int(s["prices"][g]))
+		elif g == "ENERGY":
+			run += int(r["in"][g]) * int(EconUtil.lever(world, "ECON_UTILITY_TARIFF_ENERGY", 40)) * S
+		elif g == "WATER":
+			run += int(r["in"][g]) * int(EconUtil.lever(world, "ECON_UTILITY_TARIFF_WATER", 20)) * S
+	var course := int(s["wage"]["G"]) * COURSE_M if ftype == "FAMBAKERY" else 0
+	return {"build": EconConstruction.estimate(ftype), "wc": run * WC_MONTHS, "course": course}
+
+
+static func _start(world: WorldState, ftype: String, d: String, gid: String, pct: int) -> bool:
+	var s := EconUtil.st(world)
+	var k: Dictionary = KINDS[ftype]
+	var c := startup_cost(world, ftype)
+	var total := int(c["build"]) + int(c["wc"]) + int(c["course"])
+	var grant := total * pct / 100
+	var own := total - grant
+	var savings := world.ledger.balance(EconUtil.hh_acct(gid))
+	var loan := 0
+	var fam_loan := false
+	var room := EconBank.room(world) if EconBank.active(world) else world.ledger.balance(EconUtil.BANK) - EconData.BANK_MIN_CASH * S
+	if grant > 0 and own <= room:
+		# an approved grant: the bank lends the whole rest; the family's savings stay where they are
+		loan = own
+		savings = 0
+		fam_loan = true
+	else:
+		if grant > 0:
+			_note(s, ftype, "bank_no_room")  # no room at the bank: the old rules (savings and a build loan)
+	if not fam_loan and savings < own:
+		loan = mini(own - savings, int(c["build"]) * 7 / 10)  # a small bank loan for part of the build
+		if savings + loan < own:
+			return false
+	var g: Dictionary = world.table("hh")[gid]
+	var id := world.new_id("org")
+	world.table("org")[id] = {"id": id, "key": "FAM_" + id, "name": EconUtil.firm_name(world, d, "FAMILY", "& Family"), "type": "PRIVATE",
+		"hq": d, "status": "FORMING", "ceo": {"mgmt": 45, "risk": 25, "age_m": 38 * 12}, "reliability": 0, "is_contractor": false,
+		"crew": {}, "crew_target": {}, "premium_m": {"G": 0, "S": 0, "Sp": 0}, "tax_loss_cf": 0, "profit_q": 0, "pl": EconFinance.empty_pl(),
+		"pl_last": {}, "missed_streak": 0, "ok_streak": 0, "low_cash_streak": 0, "distress_months": 0, "admin_months": 0, "liq_months": 0,
+		"missed_this_month": false, "owner_group": gid, "sales_ema": {}, "contracts": [], "dividends_ytd": 0, "sold": {},
+		"family": true, "family_type": ftype}
+	world.ledger.open_account(EconUtil.acct(id))
+	if grant > 0:
+		var paid := EconFinance.gov_pay(world, EconUtil.acct(id), grant, "FAMILY_GRANT")
+		EconFinance._spend_line(world, k["lever"], paid)
+		s["fam_grant_total"] = int(s.get("fam_grant_total", 0)) + paid
+		var yr: Array = s.get("fam_grant_year", [])
+		yr.append(world.month)
+		while yr.size() > GRANT_YEAR_MAX * 2:
+			yr.pop_front()
+		s["fam_grant_year"] = yr
+		_prog_count(world, ftype, "paid")
+		var prb: Dictionary = s.get("fam_prog", {}).get(ftype, {})
+		if not prb.is_empty():
+			var bd: Dictionary = prb.get("bands", {})
+			var band: String = String(world.table("hh")[gid].get("band", "?"))
+			bd[band] = int(bd.get(band, 0)) + 1
+			prb["bands"] = bd
+		var gn: Dictionary = s.get("fam_grant_n", {})
+		gn[ftype] = int(gn.get(ftype, 0)) + 1
+		s["fam_grant_n"] = gn
+		if ftype == "FAMBAKERY" and int(c["course"]) > 0:
+			s["fam_course_total"] = int(s.get("fam_course_total", 0)) + int(c["course"]) * pct / 100
+	var from_hh := mini(own, savings)
+	if from_hh > 0:
+		world.ledger.transfer(EconUtil.hh_acct(gid), EconUtil.acct(id), from_hh, "EQUITY", world.month)
+	if loan > 0:
+		var lent := EconFinance.new_loan(world, id, loan, 0, true)
+		if fam_loan:
+			if lent:
+				for lid in world.table("loan"):
+					var l: Dictionary = world.table("loan")[lid]
+					if l["borrower"] == id:
+						l["family"] = true
+						l["zero_m"] = 0
+						l["term_left"] = LOAN_TERM_M
+				var fl: Dictionary = s.get("fam_loan_stats", {})
+				fl["n"] = int(fl.get("n", 0)) + 1
+				fl["amount"] = int(fl.get("amount", 0)) + loan
+				s["fam_loan_stats"] = fl
+			else:
+				_note(s, ftype, "bank_no_room_late")
+	if ftype == "FAMBAKERY":
+		# the course: one adult of the district learns to bake (General → Skilled), counted with the colony's training
+		var hb := EconPop.hb_of(d)
+		var keys := PopStore.select(world, {"hb": hb, "status": "UNEMPLOYED"})
+		for key in keys:
+			if int(world.peek("pop")[key]["skill"].get("G", 0)) >= 1 and EconPop.recompose(world, key, "skill", "G", "S", 1) > 0:  # (persons)
+				var h: Array = s.get("train_hist", [])
+				if h.is_empty():
+					h.append([0, 0])
+				h[h.size() - 1][0] = int(h[h.size() - 1][0]) + 1
+				s["train_hist"] = h
+				s["fam_courses"] = int(s.get("fam_courses", 0)) + 1
+				break
+	EconPop.make_owner(world, g["hb"], g["band"])
+	EconPop.sync(world)
+	EconConstruction.create(world, ftype, d, id, id, "")
+	var fd: Dictionary = s.get("fam_founded", {})
+	fd[ftype] = int(fd.get(ftype, 0)) + 1
+	s["fam_founded"] = fd
+	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", d, [["COMPANY", id]], [["COMPANY", id, 0.6], ["GOVERNMENT", "government", 0.4]],
+		{"JOBS": 2, "FAIRNESS": 2}, 10, "PUBLIC", {"type": ftype, "family": true, "grant_pct": pct}, {"districts": [d]})
+	return true
+
+
+# ------------------------------------------------------------------ opening: the family goes to work
+
+## Called when the family firm's plant opens (EconInsolvency, FORMING → ACTIVE): its four adults are hired from the
+## district's unemployed directly (no hiring contest).
+static func on_open(world: WorldState, oid: String, fid: String) -> void:
+	if not is_family(world, oid):
+		return
+	var f: Dictionary = world.table("facility")[fid]
+	var hb := EconPop.hb_of(f["district"])
+	var occ := EconPop.person_occ(world, oid, f["type"], "G")
+	var req := EconLabor.required(f)
+	for t in ["S", "G"]:
+		var need := int(req.get(t, 0)) / S
+		if need <= 0:
+			continue
+		if not f["staff"].has(t):
+			f["staff"][t] = {}
+		for sk in EconLabor.LOWER_TIERS[t]:
+			if need <= 0:
+				break
+			var got := EconPop.hire(world, hb, sk, occ, need)
+			if got > 0:
+				var key := EconPop.lab_key(hb, sk)
+				f["staff"][t][key] = int(f["staff"][t].get(key, 0)) + got * S
+				need -= got
+	EconPop.sync(world)
+
+
+# ------------------------------------------------------------------ the family eats first (TRADE, before clearing)
+
+static func self_supply(world: WorldState) -> void:
+	if not any_on(world):
+		return
+	var s := EconUtil.st(world)
+	# the regulator's view: last month's food shortfall (12-month history) and, each January, the two grant levers
+	var sh: Array = s.get("fam_sf_hist", [])
+	sh.append(int(s.get("food_shortfall", 0)))
+	while sh.size() > SF_HIST:
+		sh.pop_front()
+	s["fam_sf_hist"] = sh
+	if world.month % 12 == 0:
+		var lh: Array = s.get("fam_lever_hist", [])
+		lh.append([int(EconUtil.lever(world, "ECON_FAMILY_FARM_GRANT", 0)), int(EconUtil.lever(world, "ECON_FAMILY_BAKERY_GRANT", 0)),
+			1 if food_needed(world) else 0, 1 if flour_ok(world) else 0])
+		s["fam_lever_hist"] = lh
+	_programmes(world)
+	service_loans(world)
+	_publish_need(world)
+	_publish_need_d(world)
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if not KINDS.has(f["type"]) or f["mothball"]:
+			continue
+		var o: Dictionary = world.table("org").get(f["org"], {})
+		if not bool(o.get("family", false)) or not world.table("hh").has(o.get("owner_group", "")):
+			continue
+		var g: Dictionary = world.table("hh")[o["owner_group"]]
+		var good: String = KINDS[f["type"]]["good"]
+		# the family: four adults and their share of the pool's children
+		var adults := maxi(1, (int(g["lf"]) + int(g["nonpart"]) + int(g["owners"])) / S)
+		var persons := float(ADULTS) * (1.0 + float(int(g["children"]) / S) / float(adults))
+		var need := int(persons * EconData.NEED["FOOD"] * float(S))
+		if good == "FINE_FOOD":
+			need = need * int(EconStaple.SHARE_PM.get(g.get("band", "I3"), 600)) / 1000
+		var q := EconUtil.inv_take(world, f["org"], good, f["district"], mini(need, EconUtil.inv_get(world, f["org"], good, f["district"])))
+		if q <= 0:
+			continue
+		# the stock was offered for sale last month: what the family keeps comes off that offer too (else the market
+		# would sell food that is no longer there)
+		var left := q
+		for off in s.get("offers", []):
+			if left <= 0:
+				break
+			if off["seller"] == f["org"] and off["good"] == good and off["district"] == f["district"] and int(off["qty"]) > 0:
+				var cut := mini(left, int(off["qty"]))
+				off["qty"] = int(off["qty"]) - cut
+				left -= cut
+		g["bought"][good] = int(g["bought"].get(good, 0)) + q
+		var sf: Dictionary = s.get("fam_self", {})
+		sf[good] = int(sf.get(good, 0)) + q
+		s["fam_self"] = sf
+
+
+# ------------------------------------------------------------------ report
+
+## {founded {type}, alive {type}, sold {type} (plants now held by a non-family owner), out {type} (last month's output),
+##  grant_total, course_total, courses, fail_found {type|why}, failed_utility {type}} (counts / credits).
+static func view(world: WorldState) -> Dictionary:
+	var s := EconUtil.peek_st(world)
+	var alive := {}
+	var sold := {}
+	var out := {}
+	var dark := {}
+	for fid in world.peek("facility"):
+		var f: Dictionary = world.peek("facility")[fid]
+		if not KINDS.has(f["type"]):
+			continue
+		var o: Dictionary = world.peek("org").get(f["org"], {})
+		var fam := bool(o.get("family", false))
+		var dead: bool = o.get("status", "") in ["LIQUIDATION", "DISSOLVED"]
+		if fam and not dead and not f["mothball"]:
+			alive[f["type"]] = int(alive.get(f["type"], 0)) + 1
+			out[f["type"]] = int(out.get(f["type"], 0)) + int(f.get("out_last", 0)) / S
+		elif not fam:
+			sold[f["type"]] = int(sold.get(f["type"], 0)) + 1
+		if int(f.get("dark_m", 0)) >= 3:
+			dark[f["type"]] = int(dark.get(f["type"], 0)) + 1
+	return {"founded": s.get("fam_founded", {}), "alive": alive, "sold": sold, "out": out, "dark": dark,
+		"grant_total": int(s.get("fam_grant_total", 0)) / S, "course_total": int(s.get("fam_course_total", 0)) / S,
+		"courses": int(s.get("fam_courses", 0)), "fail_found": s.get("fam_fail_found", {}),
+		"grant_n": s.get("fam_grant_n", {}), "lever_hist": s.get("fam_lever_hist", []),
+		"prog_hist": s.get("fam_prog_hist", []), "prog_open": s.get("fam_prog", {}),
+		"loans": s.get("fam_loan_stats", {})}

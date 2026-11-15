@@ -166,6 +166,9 @@ static func levers() -> Array:
 		# §8c (Wilma): the state's subsidy to the bus fleet (parts and new buses, on top of the fares' fifth); spent only
 		# while FLEET is on. Default ≈ a normal fleet's maintenance and renewal (~16 buses × ~9k credits a year).
 		["ECON_BUDGET_PUBLIC_TRANSPORT", [0, 2000], 150, "LAW", {"ECON_ROLE": 0.01, "FISCAL": 0.01}, {"INFRASTRUCTURE": 30, "JOBS": 8, "GOVERNANCE": -6}, P, 1, false],
+		# E160 / E162 (opt-in): grants for family farms and bakeries, % of build cost + start-up (+ the baking course)
+		["ECON_FAMILY_FARM_GRANT", [0, 100], 0, "LAW", {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01}, {"COST_OF_LIVING": 25, "JOBS": 15, "FAIRNESS": 15, "GOVERNANCE": -10}, P, 1, false],
+		["ECON_FAMILY_BAKERY_GRANT", [0, 100], 0, "LAW", {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01}, {"COST_OF_LIVING": 25, "JOBS": 15, "FAIRNESS": 15, "GOVERNANCE": -10}, P, 1, false],
 		["ECON_BUDGET_SUBSIDIES", [0, 3000], 0, "LAW", {"ECON_ROLE": 0.03, "FISCAL": 0.01}, {"JOBS": 25, "FAIRNESS": -5, "GOVERNANCE": -8}, P, 1, false],
 		["ECON_BUDGET_RESERVE_PURCHASES", [0, 2000], 200, "LAW", {"ECON_ROLE": 0.01, "AUTONOMY": 0.01}, {"COST_OF_LIVING": 10, "GOVERNANCE": -5}, F, 1, false],
 	]
@@ -211,6 +214,10 @@ static func levers() -> Array:
 			d["concernsHigh"] = high[r[0]]
 		if low.has(r[0]):
 			d["concernsLow"] = low[r[0]]
+		if r[0] == "ECON_FAMILY_FARM_GRANT":
+			d["requires"] = ["E160"]  # opt-in feature levers: the legislature leaves them alone unless a flag is on
+		elif r[0] == "ECON_FAMILY_BAKERY_GRANT":
+			d["requires"] = ["E162"]
 		if r[0] in ["ECON_EMISSION_REDUCTION"]:
 			d["domain"] = "ENV"
 		if r[0] in ["ECON_BUDGET_HEALTH", "ECON_BUDGET_EDUCATION", "ECON_HEALTH_FEE", "ECON_SCHOOL_FEE", "ECON_BUDGET_ELDER_CARE", "ECON_BUDGET_CHILDCARE"]:

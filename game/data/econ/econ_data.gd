@@ -122,6 +122,9 @@ const RECIPES := {
 	"POWER":    {"labor": {"G": 10, "S": 10, "Sp": 2}, "in": {}, "out": ["ENERGY", 1200], "upkeep": 12, "poll": 2, "acc": 3, "hazard": "HIGH", "licence": "LICENCE_HAZARD", "occ": "MANUFACTURING"},
 	"WATERWORKS": {"labor": {"G": 8, "S": 6}, "in": {"ENERGY": 80}, "out": ["WATER", 1500], "upkeep": 3, "poll": 0, "acc": 2, "hazard": "LOW", "licence": "", "occ": "MANUFACTURING"},
 	"FARM":     {"labor": {"G": 28, "S": 2}, "in": {"WATER": 40, "ENERGY": 10}, "out": ["FOOD", 280], "upkeep": 1, "poll": 1, "acc": 3, "hazard": "LOW", "licence": "", "occ": "AGRICULTURE"},
+	# E160 / E162 (opt-in, EconFamily): family enterprises — a sixth of a FARM / a BAKERY, one household of 4 adults
+	"FAMFARM":  {"labor": {"G": 3, "S": 1}, "in": {"WATER": 7, "ENERGY": 2}, "out": ["FOOD", 40], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "AGRICULTURE"},
+	"FAMBAKERY": {"labor": {"G": 3, "S": 1}, "in": {"FOOD": 42, "ENERGY": 5, "WATER": 3}, "out": ["FINE_FOOD", 43], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "SERVICES"},
 	"MINE":     {"labor": {"G": 14, "S": 7}, "in": {"ENERGY": 50}, "out": ["MINERAL", 300], "upkeep": 3, "poll": 6, "acc": 8, "hazard": "MEDIUM", "licence": "LICENCE_EXTRACTION", "occ": "MINING"},
 	"PROCESSING": {"labor": {"G": 12, "S": 12}, "in": {"MINERAL": 300, "ENERGY": 80}, "out": ["MATERIAL", 220], "upkeep": 4, "poll": 8, "acc": 5, "hazard": "HIGH", "licence": "LICENCE_HAZARD", "occ": "MANUFACTURING"},
 	"COMPONENTS": {"labor": {"G": 6, "S": 12, "Sp": 3}, "in": {"MATERIAL": 50, "ENERGY": 50}, "out": ["COMPONENT", 45], "upkeep": 3, "poll": 4, "acc": 3, "hazard": "MEDIUM", "licence": "", "occ": "MANUFACTURING"},
@@ -160,6 +163,7 @@ const UPKEEP_COMPONENT := {"POWER": 2, "WATERWORKS": 1, "MINE": 1, "PROCESSING":
 # ---------- build bills: [WU, MATERIAL, COMPONENT, min months] (spec §4.4) ----------
 const BUILD := {
 	"HOUSING": [1200, 700, 20, 6], "FARM": [250, 250, 10, 3], "WATERWORKS": [500, 500, 60, 6],
+	"FAMFARM": [42, 42, 2, 2], "FAMBAKERY": [42, 33, 3, 2],  # E160 / E162: a sixth
 	"POWER": [800, 800, 150, 8], "MINE": [600, 400, 80, 6], "PROCESSING": [700, 700, 100, 8],
 	"COMPONENTS": [700, 600, 120, 8], "CONSUMERF": [500, 500, 60, 6], "MEDWORKS": [400, 300, 80, 6],
 	"SERVICEHUB": [200, 200, 10, 3], "CLINIC": [450, 400, 30, 6], "SCHOOL": [450, 450, 15, 6],

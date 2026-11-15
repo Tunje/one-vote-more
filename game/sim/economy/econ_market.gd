@@ -46,6 +46,7 @@ static func trade(world: WorldState) -> void:
 	s["market_stats"] = {}
 	var tariff := int(EconUtil.lever(world, "ECON_FREIGHT_TARIFF", 5)) * S
 	s["staple_m"] = {"want": 0, "got": 0}
+	EconFamily.self_supply(world)  # E160 / E162 (opt-in): the family eats its own produce first
 	if EconStaple.active(world):
 		# E146: bakery staples clear first; what households did not get is re-ordered as raw FOOD before FOOD clears
 		_clear(world, "FINE_FOOD", tariff)

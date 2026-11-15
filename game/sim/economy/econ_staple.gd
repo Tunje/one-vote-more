@@ -225,6 +225,8 @@ static func fallback(world: WorldState) -> void:
 		var got := mini(want, int(g["bought"].get("FINE_FOOD", 0)))  # the essentials class cleared before the luxury extra
 		g["ff_got"] = got
 		var gap := want - got
+		if EconFamily.any_on(world):
+			_note_gap_d(world, s, g, gap)
 		if gap > 0:
 			s["orders"].append({"buyer": gid + "~fb", "acct": EconUtil.hh_acct(gid), "district": g["district"], "good": "FOOD", "qty": gap,
 				"limit": pf * 3, "class": EconMarket.C_HH_ESS, "kind": "hh", "group": gid})
@@ -262,3 +264,13 @@ static func startup_capital(world: WorldState, oid: String, fid: String) -> void
 	if amt > 0:
 		world.ledger.transfer(EconUtil.hh_acct(founder), EconUtil.acct(oid), amt, "EQUITY", world.month)
 		s["startup_wc_m"] = int(s.get("startup_wc_m", 0)) + amt
+
+
+## E162: where staple bread is missing, by district (milli-units, this month) — family bakeries are founded there.
+static func _note_gap_d(world: WorldState, s: Dictionary, g: Dictionary, gap: int) -> void:
+	var sgd: Dictionary = s.get("staple_gap_d", {})
+	if int(s.get("staple_gap_m", -1)) != world.month:
+		sgd = {}
+		s["staple_gap_m"] = world.month
+	sgd[g["district"]] = int(sgd.get(g["district"], 0)) + maxi(0, gap)
+	s["staple_gap_d"] = sgd

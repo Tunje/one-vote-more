@@ -253,7 +253,7 @@ static func _eff(world: WorldState, f: Dictionary) -> float:
 static func _prio(ftype: String, hh_first: bool, s7: bool = false) -> int:
 	if ftype == "CLINIC":
 		return 0
-	if ftype in ["FARM", "DEPOT"]:
+	if ftype in ["FARM", "DEPOT", "FAMFARM"]:  # E160: family farms grow food like any farm
 		return 1  # E89: farms and freight share the household tier pro rata — strictly after households, a 20% shortage
 		          # meant no food grown (farms) or none delivered (depot), i.e. famine with full warehouses
 	if ftype in ["SCHOOL", "ADMIN"]:  # E66
@@ -448,7 +448,7 @@ static func _access(cap: Dictionary, need: Dictionary, _w: float) -> Dictionary:
 ## energy scales only part of a farm's output — with no power it works by hand at HAND_SHARE of normal, partial power
 ## scales linearly up to full. Water stays a hard limit. Other plants: output follows the energy served, as before.
 const HAND_SHARE := 0.6
-const HAND_TYPES := ["FARM"]
+const HAND_TYPES := ["FARM", "FAMFARM"]
 
 
 static func energy_factor(world: WorldState, ftype: String, served: float) -> float:
