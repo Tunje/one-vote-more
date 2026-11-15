@@ -215,11 +215,11 @@ static func monthly(world: WorldState) -> void:
 					if not o.is_empty() and not (o["status"] in ["NEW", "READ"]):
 						var ans := String(o.get("answer", ""))
 						var dflt := String(o.get("default_option", "GRANT"))
-						_decide(world, row, ans if ans in DECISIONS else dflt, "PLAYER")
+						_decide(world, row, ans if ans in DECISIONS else dflt, String(o.get("answered_by", "PLAYER")))
 					continue
 				if world.month < int(row["due"]):
 					continue
-				if Staff.autopilot(world, GOV):
+				if Staff.autopilot(world, GOV) and not Desk.on(world):   # DELEGATION: every government decides through the office
 					_decide(world, row, String(licence_decision(world, row)["choice"]), "AI")
 				else:
 					row["item"] = _post(world, row)
@@ -304,8 +304,14 @@ static func _post(world: WorldState, row: Dictionary) -> String:
 			{"id": "REFUSE", "label": "Refuse it", "action": {}}],
 		"default_option": String(ai["choice"]), "deadline": world.month + 2,
 		"source": {"system": "road_licence", "ref": String(row["id"])},
-		"hidden": {"options": {"GRANT": {"merit": 20, "lean": {"ECON_ROLE": -40000}}, "GRANT_COMMON_CARRIER": {"merit": 20, "lean": {}},
-			"REFUSE": {"merit": 0 if refusal_grounds(row).is_empty() else 10, "lean": {"ECON_ROLE": 40000}}}}})
+		"hidden": {"options": {"GRANT": {"merit": 20, "lean": {"ECON_ROLE": -_lean(world)}}, "GRANT_COMMON_CARRIER": {"merit": 20, "lean": {}},
+			"REFUSE": {"merit": 0 if refusal_grounds(row).is_empty() else 10, "lean": {"ECON_ROLE": _lean(world)}}}}})
+
+
+## Option lean for the office items: with DELEGATION on OfficeFeed.ai_answer's scale (Maja: at 40000 an AI First Minister
+## overrules the minister on ideology almost every time); without it as before.
+static func _lean(world: WorldState) -> int:
+	return Desk.CASE_LEAN_SCALE if Desk.on(world) else 40000
 
 
 static func _decide(world: WorldState, row: Dictionary, choice: String, by: String) -> void:
@@ -572,7 +578,7 @@ static func _neglect(world: WorldState, row: Dictionary, link: Dictionary) -> vo
 		row["greed"] = LawOps.record_greed(world, String(link["owner"]), {"kind": "ROAD_NEGLECT", "facility": lid,
 			"saving": int(link["upkeep"]) * CURE_MONTHS})
 		row["decide_at"] = world.month + CURE_MONTHS
-		if Staff.autopilot(world, GOV):
+		if Staff.autopilot(world, GOV) and not Desk.on(world):   # DELEGATION: every government decides through the office
 			_apply_neglect(world, row, String(neglect_decision(world, row, link)["choice"]), "AI")
 		else:
 			_ask(world, row, link)
@@ -659,7 +665,19 @@ static func _ask(world: WorldState, row: Dictionary, link: Dictionary) -> void:
 		"summary_lines": ["The road of %s is at %d%% condition and was not repaired after the notice." % [org_name, int(link["cond"]) / 10],
 			"Repairing it puts the cost on the owner. Leaving it is felt in %s." % ", ".join(link_districts(world, String(row["lid"])))],
 		"options": opts, "default_option": String(dec["choice"]), "deadline": world.month + 2,
-		"source": {"system": "road_neglect", "ref": String(row["lid"])}})
+		"source": {"system": "road_neglect", "ref": String(row["lid"])},
+		"hidden": _neglect_hidden(world, dec)})
+
+
+## DELEGATION: the government's own choice as merit, and which politics each answer serves (stepping in and revoking
+## lean state, leaving leans market), so a minister and an AI First Minister can weigh them. Without the flag: none.
+static func _neglect_hidden(world: WorldState, dec: Dictionary) -> Dictionary:
+	if not Desk.on(world):
+		return {}
+	var o := {}
+	for x in dec["options"]:
+		o[x] = {"merit": 30 if String(x) == String(dec["choice"]) else 10, "lean": {"ECON_ROLE": -_lean(world) if String(x) == "LEAVE" else _lean(world)}}
+	return {"options": o}
 
 
 static func _poll(world: WorldState, row: Dictionary) -> void:
@@ -670,7 +688,7 @@ static func _poll(world: WorldState, row: Dictionary) -> void:
 	var choice := ans if ans in NEGLECT_DECISIONS else String(o.get("default_option", "LEAVE"))
 	row["pending"] = ""
 	row["item"] = ""
-	_apply_neglect(world, row, choice, "PLAYER")
+	_apply_neglect(world, row, choice, String(o.get("answered_by", "PLAYER")))
 
 
 ## A failed owner (LIQUIDATION or DISSOLVED, or gone): the road may be sold with the estate for ESTATE_MONTHS; unsold,

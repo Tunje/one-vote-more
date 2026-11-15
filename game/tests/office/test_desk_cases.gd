@@ -133,3 +133,109 @@ func test_ai_government_runs_on_cases() -> void:
 		if String(o["source"].get("system", "")) == Desk.CASE_SYSTEM and o["status"] in Office.OPEN and int(o["month"]) < w.month - 2:
 			open_old += 1
 	check_eq(open_old, 0, "no case is left hanging past its deadline")
+
+
+# ------------------------------------------------------------------ system 2: the wildlife policy review
+
+func _eco_world() -> WorldState:
+	var sim: Simulation = EconSim.make(4, "BALANCED", {}, true)
+	sim.run(60)
+	(sim.world.meta["on"] as Array).append("ECO")
+	(sim.world.meta["on"] as Array).append(Desk.FLAG)
+	return sim.world
+
+
+func _attack(w: WorldState, killed: int) -> void:
+	w.add_fact({"type": "PLANET_WILDLIFE_ATTACK", "owner": "planet", "subjects": [], "responsible": [], "impact": {}, "magnitude": 40,
+		"visibility": "PUBLIC", "data": {"creature": "dusk stalker", "danger": 3, "killed": killed, "injured": 1, "site": "FAMFARM",
+			"district": "d:2", "place": "", "family_farm": true, "grant_funded": false, "grant_month": -1, "policy": "MANAGE"}})
+
+
+func test_the_wildlife_review_is_a_case() -> void:
+	var w := _eco_world()
+	var st: Dictionary = w.table("pol")["state"]
+	check(w.lever_defs.has(GovWildlife.LEVER), "the policy lever exists")
+	var g: Dictionary = st["government"]
+	check(not g.is_empty(), "an elected government")
+	g["center"]["ENVIRONMENT"] = -70000
+	w.levers[GovWildlife.LEVER] = "MANAGE"
+	st["wildlife_seen_m"] = w.month - 1
+	_attack(w, 2)
+	_attack(w, 1)
+	Desk.set_level(w, "WILDLIFE_REVIEW", "ME")
+	var bills0 := w.table("bill").size()
+	GovWildlife.monthly(w, st)
+	check_eq(w.table("bill").size(), bills0, "no bill before the case is decided")
+	check(Desk.pending(w, GovWildlife.CASE_REF), "the review waits on the desk")
+	var item: Dictionary = {}
+	for o in Office.items(w, ["EMAIL"]):
+		if String(o["source"].get("ref", "")) == GovWildlife.CASE_REF:
+			item = o
+	var ids: Array = (item.get("options", []) as Array).map(func(x): return String(x["id"]))
+	check_eq(ids, ["KEEP", "TO_PROTECT", "TO_CULL"], "keep, or one step either way")
+	check_eq(int(item["hidden"]["options"]["TO_CULL"]["merit"]), GovWildlife.CASE_MERIT, "after deaths the government's own pick is a step toward culling")
+	check(Office.answer(w, String(item["id"]), "TO_CULL")["ok"], "answered")
+	check_eq(w.table("bill").size(), bills0 + 1, "the bill is tabled when the case is decided")
+	# make the call: the Environment minister decides at once
+	st["wildlife_review"] = true
+	Desk.set_level(w, "WILDLIFE_REVIEW", "CALL")
+	if not Desk.holder_person(w, Desk.holder_role(w, "WILDLIFE_REVIEW")).is_empty():
+		var n0 := int(Desk.month_counts(w, w.month).get("WILDLIFE_REVIEW", 0))
+		w.levers[GovWildlife.LEVER] = "MANAGE"
+		w.table("enactment").clear()
+		GovWildlife._review(w, st)
+		check_eq(int(Desk.month_counts(w, w.month).get("WILDLIFE_REVIEW", 0)), n0 + 1, "the minister's call is counted")
+		check(not Desk.pending(w, GovWildlife.CASE_REF), "nothing waits on the desk")
+
+
+# ------------------------------------------------------------------ system 3: private-road licences and neglect
+
+const SF := preload("res://tests/support/staff_fixture.gd")
+const LawOps := preload("res://sim/law/law_ops.gd")
+const RL := preload("res://sim/law/road_law.gd")
+
+
+func _road_world(on: bool) -> WorldState:
+	var w := SF.bare_world()
+	LawOps.init_world(w)
+	w.meta["on"] = ["FREIGHT_ROADS", "PRIVATE_ROADS"] + ([Desk.FLAG] if on else [])
+	w.table("party")["P1"] = {"id": "P1", "name": "Gov", "status": "ACTIVE", "positions": {"ECON_ROLE": -50000}}
+	SF.set_pol(w, {"era": "PARLIAMENTARY", "player_party": "P1", "autoplay_player": true, "government": {"members": ["P1"], "pm_party": "P1"}})
+	return w
+
+
+func _plan(districts: Array) -> Dictionary:
+	return {"tiles": ["10,10", "11,10", "12,10"], "kind": "ROAD", "districts": districts, "regime": "OWNER"}
+
+
+func test_an_ai_licence_goes_through_the_office() -> void:
+	var off := _road_world(false)
+	var a := RL.apply_licence(off, "org:1", _plan(["D1", "D2"]))
+	off.month += RL.OBJECTION_MONTHS
+	RL.monthly(off)
+	check_eq(String(RL.licence(off, a)["status"]), "GRANTED", "without the flag an AI government decides at once")
+	var w := _road_world(true)
+	var id := RL.apply_licence(w, "org:1", _plan(["D1", "D2"]))
+	w.month += RL.OBJECTION_MONTHS
+	RL.monthly(w)
+	var row := RL.licence(w, id)
+	check_eq(String(row["status"]), "FILED", "with it the licence is a case")
+	var it := Office.get_item(w, String(row["item"]))
+	check_eq(Desk.case_type(it), "ROAD_LICENCE", "of type ROAD_LICENCE")
+	check_eq(int(it["hidden"]["options"]["REFUSE"]["lean"]["ECON_ROLE"]), Desk.CASE_LEAN_SCALE, "leans on the First Minister's scale")
+	check(Office.answer(w, String(row["item"]), "GRANT", "AI")["ok"], "the AI First Minister answers")
+	RL.monthly(w)
+	check(String(RL.licence(w, id)["status"]) == "GRANTED" and String(RL.licence(w, id)["by"]) == "AI", "granted, by whoever answered")
+	var big := RL.apply_licence(w, "org:2", _plan(["D1", "D2", "D3"]))
+	w.month += RL.OBJECTION_MONTHS
+	RL.monthly(w)
+	var it2 := Office.get_item(w, String(RL.licence(w, big)["item"]))
+	check(Desk._cabinet_case(w, it2), "three districts: a Cabinet matter whatever the level")
+
+
+func test_neglect_options_carry_merit_and_lean_only_with_the_flag() -> void:
+	var dec := {"options": ["STEP_IN", "LEAVE"], "choice": "LEAVE"}
+	check(RL._neglect_hidden(_road_world(false), dec).is_empty(), "without the flag the item is as before")
+	var h: Dictionary = RL._neglect_hidden(_road_world(true), dec)["options"]
+	check_eq(int(h["LEAVE"]["merit"]), 30, "the government's own choice")
+	check(int(h["LEAVE"]["lean"]["ECON_ROLE"]) < 0 and int(h["STEP_IN"]["lean"]["ECON_ROLE"]) > 0, "leaving leans market, stepping in state")

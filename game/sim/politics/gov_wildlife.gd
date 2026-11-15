@@ -136,10 +136,12 @@ static func _review(world: WorldState, st: Dictionary) -> bool:
 	if st.get("era", "") != "PARLIAMENTARY" or not world.lever_defs.has(LEVER):
 		return false
 	var g: Dictionary = st.get("government", {})
-	if g.is_empty() or (st.get("player_party", "") in g.get("members", []) and not st.get("autoplay_player", true)):
-		return false
+	if g.is_empty() or (st.get("player_party", "") in g.get("members", []) and not st.get("autoplay_player", true) and not Desk.on(world)):
+		return false   # with DELEGATION a human government's Environment minister brings the review (a case)
 	if Legislature._pending_for(world, LEVER):
 		return false
+	if Desk.on(world):
+		return _review_case(world, g)
 	Desk.note(world, "WILDLIFE_REVIEW")
 	var env := float(g.get("center", {}).get("ENVIRONMENT", 0)) / 100000.0
 	var attacks := float(world.indicators.read("PLANET_WILDLIFE_ATTACKS", "COLONY", 0)) / 1000.0
@@ -153,3 +155,57 @@ static func _review(world: WorldState, st: Dictionary) -> bool:
 	var cs := Intel.picture(world, "gov")
 	Legislature.submit_bill(world, [{"lever": LEVER, "from": cur, "to": to}], g, cs[0], cs[1], world.new_id("bill"), 50)
 	return true
+
+
+# ======================================================================= who decides (flag DELEGATION, step 3)
+## planning/design-delegation.md (Maja). With DELEGATION the review is a case of WILDLIFE_REVIEW: keep the policy, or
+## table a bill one step toward PROTECT or CULL. The government's own target (above) sets the merit; the options say
+## what the government knows: attacks, deaths and the food web over the last year. The Environment minister makes the
+## call, or the case waits on the desk; a bill chosen there is tabled when the case is decided.
+const CASE_MERIT := 30
+const CASE_ALT_MERIT := 15
+const CASE_LEAN := 2000      # ENVIRONMENT, on OfficeFeed.ai_answer's scale: toward PROTECT +, toward CULL -
+const CASE_REF := "WILDLIFE"
+
+
+static func _review_case(world: WorldState, g: Dictionary) -> bool:
+	if Desk.pending(world, CASE_REF):
+		return true
+	var env := float(g.get("center", {}).get("ENVIRONMENT", 0)) / 100000.0
+	var attacks := float(world.indicators.read("PLANET_WILDLIFE_ATTACKS", "COLONY", 0)) / 1000.0
+	var web := float(world.indicators.read("PLANET_WEB_HEALTH", "COLONY", 1000000)) / 1000000.0
+	var deaths := deaths_12m(world)
+	var want := target(env, attacks, float(deaths), web)
+	var cur := String(world.levers.get(LEVER, "MANAGE"))
+	if not (cur in POLICIES):
+		return true
+	var i := POLICIES.find(cur)
+	var pick := "KEEP"
+	if want != cur:
+		pick = "TO_" + String(POLICIES[i + (1 if POLICIES.find(want) > i else -1)])
+	var opts: Array = [{"id": "KEEP", "label": "Keep the policy (%s)" % cur.to_lower(), "action": {}}]
+	var hid := {"KEEP": {"merit": CASE_MERIT if pick == "KEEP" else CASE_ALT_MERIT, "lean": {}}}
+	for j in [i - 1, i + 1]:
+		if j < 0 or j >= POLICIES.size():
+			continue
+		var to := String(POLICIES[j])
+		var oid := "TO_" + to
+		opts.append({"id": oid, "label": "Table a bill: %s" % to.to_lower(),
+			"action": {"via": "DESK", "id": "WILDLIFE_BILL", "params": {"from": cur, "to": to}}})
+		hid[oid] = {"merit": CASE_MERIT if pick == oid else 0, "lean": {"ENVIRONMENT": CASE_LEAN if j < i else -CASE_LEAN}}
+	var lines: Array = ["Wildlife policy review: the policy is %s." % cur.to_lower(),
+		"Last year: %d attack(s) on people, %d killed; the food web near the colony is at %d%% of natural." % [int(round(attacks)), deaths, int(round(web * 100.0))]]
+	Desk.decide(world, {"type": "WILDLIFE_REVIEW", "ref": CASE_REF, "subject": "Wildlife policy review", "lines": lines,
+		"options": opts, "hidden": hid, "default": "KEEP"})
+	return true
+
+
+## Desk route WILDLIFE_BILL: table the chosen one-step bill (nothing if the policy moved or a bill is already pending).
+static func commit_policy(world: WorldState, p: Dictionary) -> Dictionary:
+	var st: Dictionary = world.table("pol")["state"]
+	var g: Dictionary = st.get("government", {})
+	if g.is_empty() or String(world.levers.get(LEVER, "")) != String(p.get("from", "")) or Legislature._pending_for(world, LEVER):
+		return {"ok": true, "error": ""}
+	var cs := Intel.picture(world, "gov")
+	Legislature.submit_bill(world, [{"lever": LEVER, "from": String(p["from"]), "to": String(p["to"])}], g, cs[0], cs[1], world.new_id("bill"), 50)
+	return {"ok": true, "error": ""}

@@ -35,6 +35,9 @@ const PRESET_NAMES := {"TRUSTING": "Trust my ministers", "BALANCED": "Balanced",
 const DEFAULT_PRESET := "BALANCED"
 const OUTSIDE_SKILL := 0.6          # a minister deciding outside their portfolio works at this share of their skill
 const SETUP_DEADLINE_M := 2
+## Option leans of the systems' cases, on OfficeFeed.ai_answer's scale (lean/1000 × the centre × 2 against a bonus of 1
+## for the recommendation): a strongly ideological First Minister overrules a minister, a centrist one follows.
+const CASE_LEAN_SCALE := 2000
 
 ## Decision types. portfolio: the office role (OfficeStaff.ROLES) of the minister it belongs to; "fallback" is used
 ## when that portfolio is not in the Cabinet (AGRICULTURE needs flag AGRI_MIN). FM = the First Minister's own.
@@ -599,4 +602,6 @@ static func execute(world: WorldState, id: String, params: Dictionary) -> Dictio
 			return GovBuilder.commit_order(world, params)
 		"GOV_COVER":
 			return GovBuilder.commit_cover(world, params)
+		"WILDLIFE_BILL":
+			return GovWildlife.commit_policy(world, params)
 	return {"ok": false, "error": "Unknown case action " + id}
