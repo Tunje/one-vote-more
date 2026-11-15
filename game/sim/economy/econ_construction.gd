@@ -176,8 +176,10 @@ static func bid_round(world: WorldState) -> void:
 			var allowance := 1.0 + 0.5 * float(o["ceo"]["risk"]) / 100.0
 			if _strategic_expansion(world, p):
 				allowance += 0.5
-			if load > allowance:
-				continue
+			var q := EconInsolvency.plan_q(world)
+			if load > allowance and not q:
+				continue  # (E165Q: a busy builder still bids, with a later start date)
+			var wait := int(float(committed(world, oid) + tentative.get(oid, 0)) / float(k)) if q else 0
 			var mgmt := float(o["ceo"]["mgmt"])
 			var est_wu := float(p["wu_total"]) * maxf(0.5, 1.0 + EconUtil.normal(world, "comp.bid", 0.25 * (1.0 - mgmt / 100.0)))
 			var wage_per_wu := _crew_wage(world, oid)
@@ -187,11 +189,53 @@ static func bid_round(world: WorldState) -> void:
 			if public_builder:
 				margin = 0.0 if p["owner"] == "gov" else 0.08
 			var dur := maxi(p["min_months"], int(ceil(est_wu / (0.6 * float(k)))))
-			p["bids"].append({"org": oid, "price": int(cost * (1.0 + margin)), "duration": dur, "reliability": o["reliability"]})
+			p["bids"].append({"org": oid, "price": int(cost * (1.0 + margin)), "duration": dur, "reliability": o["reliability"], "wait": wait})
 			tentative[oid] = tentative.get(oid, 0) + p["wu_total"]
 
 
 ## E113: does `owner` already have a project of `ftype` in tender or under way?
+## E165Q builder entry, graded (user via Wilma 2026-11-15: "five years was not meant to be a hard limit"): with
+## unstarted work in all books (accepted but not started, and open tenders with no bid) of r years for a standard
+## entrant's crew, and at least a year for the builders alive, a builder enters with a yearly chance (r − 1) / (ENTRY_BOOK_YEARS − 1):
+## none under a year, near-certain from about five years. Drawn each quarter from the comp.entry stream; at most one a year.
+const ENTRY_BOOK_YEARS := 5
+
+
+static func entrant_year(world: WorldState) -> int:
+	var n := 0
+	for t0 in EconData.BUILDER_CREW:
+		n += int(EconData.BUILDER_CREW[t0])
+	return n * S * 12  # 0.9 + 0.002 x 50 mgmt = 1.0 WU per worker-month
+
+
+static func backlog_wu(world: WorldState) -> int:
+	var b := 0
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["status"] == "ACTIVE" and int(p["start_month"]) > world.month:
+			b += int(p["wu_total"]) - int(p["wu_done"])
+		elif p["status"] == "TENDERABLE" or (p["status"] == "TENDER" and (p["bids"] as Array).is_empty()):
+			b += int(p["wu_total"])
+	return b
+
+
+static func book_entry(world: WorldState) -> bool:
+	var b := backlog_wu(world)
+	var alive := 0
+	for oid in world.table("org"):
+		var o: Dictionary = world.table("org")[oid]
+		if bool(o.get("is_contractor", false)) and o["type"] == "PRIVATE" and o["status"] in ["ACTIVE", "DISTRESSED"]:
+			alive += capacity(world, oid) * 12
+	if b < entrant_year(world) or b < alive:
+		return false
+	var r := float(b) / float(entrant_year(world))
+	var p_year := clampf((r - 1.0) / float(ENTRY_BOOK_YEARS - 1), 0.0, 1.0)
+	if p_year >= 1.0:
+		return true
+	var p_quarter := 1.0 - pow(1.0 - p_year, 1.0 / 4.0)  # _builder_entry runs quarterly
+	return world.rng.stream("comp.entry").randf() < p_quarter
+
+
 static func has_open_project(world: WorldState, owner: String, ftype: String) -> bool:
 	for pid in world.table("project"):
 		var p: Dictionary = world.table("project")[pid]
@@ -239,10 +283,10 @@ static func ranked_bids(world: WorldState, p: Dictionary) -> Array:
 	var min_dur := 1 << 30
 	for b in p["bids"]:
 		min_price = mini(min_price, b["price"])
-		min_dur = mini(min_dur, b["duration"])
+		min_dur = mini(min_dur, int(b["duration"]) + int(b.get("wait", 0)))  # E165Q: the founder weighs the whole time to opening
 	var out: Array = []
 	for b in p["bids"]:
-		var sc := wp * float(min_price) / float(b["price"]) + wr * float(b["reliability"]) / 100.0 + wd * float(min_dur) / float(b["duration"])
+		var sc := wp * float(min_price) / float(b["price"]) + wr * float(b["reliability"]) / 100.0 + wd * float(min_dur) / float(int(b["duration"]) + int(b.get("wait", 0)))
 		var c: Dictionary = b.duplicate()
 		c["score"] = int(sc * 1000)
 		out.append(c)
@@ -268,7 +312,14 @@ static func award(world: WorldState, pid: String, org_id: String) -> bool:
 	p["price"] = chosen["price"]
 	p["bid_duration"] = chosen["duration"]
 	p["status"] = "ACTIVE"
-	p["start_month"] = world.month
+	p["start_month"] = world.month + int(chosen.get("wait", 0))  # E165Q: the job waits in the builder's book until a crew is free
+	if int(chosen.get("wait", 0)) > 0:
+		var st0 := EconUtil.st(world)
+		var qw: Array = st0.get("q_waits", [])
+		qw.append([world.month, int(chosen["wait"])])
+		while not qw.is_empty() and int(qw[0][0]) <= world.month - 12:
+			qw.pop_front()
+		st0["q_waits"] = qw
 	# E76 escalation basis: material share of the price and the MATERIAL/COMPONENT prices at award
 	var st := EconUtil.st(world)
 	p["esc_mat_price"] = st["prices"]["MATERIAL"]
@@ -277,7 +328,10 @@ static func award(world: WorldState, pid: String, org_id: String) -> bool:
 	p["esc_comp_cost"] = EconUtil.val(p["comp_total"], st["prices"]["COMPONENT"])
 	world.table("org")[org_id]["contracts"].append(pid)
 	world.table("org")[org_id]["won_any"] = int(world.table("org")[org_id].get("won_any", 0)) + 1  # E138
-	_pay(world, p, p["price"] / 10)
+	if int(p["start_month"]) > world.month:
+		p["advance_due"] = true  # E165Q: the 10% advance is paid when the job starts
+	else:
+		_pay(world, p, p["price"] / 10)
 	EconFacts.emit(world, "ECON_CONTRACT_AWARDED", p["district"], [["GOVERNMENT", "government"], ["COMPANY", org_id]],
 		[["GOVERNMENT", "government", 1.0]] if p["owner"] == "gov" else [["COMPANY", p["owner"], 1.0]], {},
 		40 if rank > 0 else 15, "PUBLIC", {"project": pid, "price": p["price"], "override": rank > 0, "score_rank": rank + 1})
@@ -292,6 +346,7 @@ static func _pay(world: WorldState, p: Dictionary, amount: int) -> int:
 		paid = EconFinance.gov_pay(world, to, amount, "CONTRACT_PAYMENT")
 		EconFinance._spend_line(world, p["line"], paid)
 	else:
+		EconInsolvency.draw_plan_credit(world, p["owner"], amount)  # E165b (c): the plan's loan follows the build
 		paid = EconUtil.pay_upto(world, EconUtil.acct(p["owner"]), to, amount, "CONTRACT_PAYMENT")
 	EconFinance.pl_add(world, p["contractor"], "rev", paid)
 	p["paid"] += paid
@@ -304,7 +359,12 @@ static func progress(world: WorldState) -> void:
 		var o: Dictionary = world.table("org")[oid]
 		if not o["is_contractor"]:
 			continue
-		var active: Array = o["contracts"].filter(func(pid): return world.table("project")[pid]["status"] == "ACTIVE")
+		for pid0 in o["contracts"]:
+			var p0: Dictionary = world.table("project")[pid0]
+			if p0["status"] == "ACTIVE" and bool(p0.get("advance_due", false)) and int(p0["start_month"]) <= world.month:
+				p0.erase("advance_due")
+				_pay(world, p0, p0["price"] / 10)  # E165Q: a queued job starts
+		var active: Array = o["contracts"].filter(func(pid): return world.table("project")[pid]["status"] == "ACTIVE" and int(world.table("project")[pid]["start_month"]) <= world.month)
 		if active.is_empty():
 			continue
 		var k := capacity(world, oid)
@@ -578,6 +638,7 @@ static func contractor_plans(world: WorldState) -> void:
 		if not o["is_contractor"] or o["status"] in ["LIQUIDATION", "DISSOLVED"]:
 			continue
 		var need_wu := 0.0
+		var book_wu := 0
 		var mat := 0
 		var comp := 0
 		var strategic := false
@@ -585,6 +646,12 @@ static func contractor_plans(world: WorldState) -> void:
 			var p: Dictionary = world.table("project")[pid]
 			if p["status"] == "ACTIVE" and _strategic_expansion(world, p) and not EconUtil.off(world, "E95"):
 				strategic = true
+			if p["status"] == "ACTIVE" and int(p["start_month"]) > world.month:
+				# E165Q: a queued job: crews are hired ahead for jobs starting within 3 months; no material yet
+				book_wu += p["wu_total"] - p["wu_done"]
+				if int(p["start_month"]) - world.month <= 3:
+					need_wu += float(p["wu_total"]) / float(maxi(1, maxi(p["min_months"], p["bid_duration"])))
+				continue
 			if p["status"] != "ACTIVE" or p["unpaid_m"] >= 1:
 				continue  # E76: no material purchases for work the owner is not paying for
 			var months_left := maxi(1, p["start_month"] + p["bid_duration"] - world.month)
@@ -606,6 +673,8 @@ static func contractor_plans(world: WorldState) -> void:
 		var e138: bool = (world.meta.get("on", []) as Array).has("E138") and not EconUtil.off(world, "E138")
 		if e138:
 			max_mult = maxf(max_mult, 5.0)
+		if EconInsolvency.plan_q(world) and book_wu > 12 * capacity(world, oid):
+			max_mult = maxf(max_mult, 5.0)  # E165Q: more than a year in the book: take on another crew
 		var cap_n := minf(maxf(cur * 1.25, cur + 5.0), max_mult * float(base_n))
 		if o.get("blocked_last", false) and not strategic:
 			cap_n = cur * 0.85  # blocked crews shrink (E95: not while building strategic input capacity)

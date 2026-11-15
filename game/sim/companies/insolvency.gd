@@ -23,6 +23,8 @@ static func obligations(world: WorldState, oid: String) -> int:
 	var f: int = pl.get("wages", 0) + pl.get("interest", 0)
 	for lid in world.table("loan"):
 		var l: Dictionary = world.table("loan")[lid]
+		if bool(l.get("family", false)):
+			continue  # E160/E162 grant loans: paid from surplus, never "due" (default only after 12 months without payment)
 		if l["borrower"] == oid and l["term_left"] > 0 and world.month >= int(l.get("grace_until", -1)):  # E136: no principal in grace
 			f += l["principal"] / maxi(1, l["term_left"])
 	for lid in world.table("liability"):
@@ -81,7 +83,10 @@ static func _step(world: WorldState, oid: String) -> void:
 			for fid in world.table("facility"):
 				if world.table("facility")[fid]["org"] == oid:
 					o["status"] = "ACTIVE"
+					if planning_stage(world):
+						_open_plan(world, oid, fid)
 					EconStaple.startup_capital(world, oid, fid)  # E147 (opt-in): the founder funds the first months
+					EconFamily.on_open(world, oid, fid)  # E160 / E162: the family goes to work
 					break
 			if o["status"] == "FORMING":
 				var building := false
@@ -90,7 +95,29 @@ static func _step(world: WorldState, oid: String) -> void:
 					if p["owner"] == oid and p["status"] == "ACTIVE":
 						building = true
 				o["forming_idle"] = 0 if building else o.get("forming_idle", 0) + 1
-				if o["forming_idle"] >= 6:
+				if plan_q(world):
+					var pstate := plan_state(world, oid)
+					if pstate == "building":
+						o["build_started"] = true
+					var sig: Dictionary = EconUtil.st(world).get("entry_signal", {})
+					if pstate != "building" and not bool(o.get("build_started", false)) and o.has("entry_type") and int(sig.get(o["entry_type"], 0)) == 0:
+						o["sig_off"] = int(o.get("sig_off", 0)) + 1
+					else:
+						o["sig_off"] = 0
+					if int(o.get("sig_off", 0)) >= SIGNAL_OFF_M:
+						abandon_plan(world, oid, "no_reason")
+					elif bool(o.get("build_started", false)) and o["forming_idle"] >= 6:
+						abandon_plan(world, oid, "stalled")
+				elif planning_stage(world):
+					var age := world.month - int(o.get("planned_month", world.month))
+					if o["forming_idle"] >= 6 or age >= PLAN_MAX_M:
+						var cause := "limit" if o["forming_idle"] < 6 else "stalled"
+						for pid in world.table("project"):
+							var p0: Dictionary = world.table("project")[pid]
+							if p0["owner"] == oid and p0["status"] in ["TENDER", "TENDERABLE"] and cause == "stalled":
+								cause = "no_builder"
+						abandon_plan(world, oid, cause)
+				elif o["forming_idle"] >= 6:
 					for pid in EconUtil.sorted_keys(world.table("project")):
 						var p: Dictionary = world.table("project")[pid]
 						if p["owner"] == oid and p["status"] in ["TENDER", "TENDERABLE"]:
@@ -538,6 +565,144 @@ static func _find_buyer(world: WorldState, seller: String, f: Dictionary, reserv
 	# E119 (Wilma): no unrelated conglomerate either — only a firm of the same sector buys; otherwise the plant goes to
 	# a workers' co-op of its district or closes (liquidation_round / _forced_sale fall back to those)
 	return best
+
+
+## E165 (user ruling via Wilma 2026-11-15: "a company that needs a building would not start without the building ...
+## you can't fail before you exist"; opt-in): a new firm is a PLAN until its plant opens — no workers, office, wages or
+## inspections (those already skip FORMING firms) and no loan service (EconFinance._loan_service skips plans; interest
+## starts when the plant opens). COMP_COMPANY_PLANNED at creation, COMP_COMPANY_FOUNDED at opening; its age (the P&L
+## ring) counts from opening. A plan cannot fail: with no build under way for 6 months, or not open PLAN_MAX_M months
+## after it was made, it is ABANDONED — tenders and projects cancelled, its cash repays the bank (the rest is written
+## off), what is left goes back to the founder — not a liquidation, not a firm death, and no sector cooling (E128).
+const PLAN_MAX_M := 36
+
+
+static func planning_stage(world: WorldState) -> bool:
+	return (world.meta.get("on", []) as Array).has("E165") and not EconUtil.off(world, "E165")
+
+
+## E165b (opt-in on top of E165, Wilma 2026-11-15, after the E165 A/B lost 4779 → 4595 adults and half the bank's
+## capital): (a) no plan while every builder is booked (waiting tenders ≥ private builders); (b) a plan dropped for want
+## of a builder cools its sector for NO_BUILDER_COOL_M months (not the full failure cooling, not zero); (c) the plan's
+## bank loan is an approved credit drawn only as the builder is paid, so nothing idles and a stall loses only what was
+## built.
+const NO_BUILDER_COOL_M := 12
+
+
+static func plan_b(world: WorldState) -> bool:
+	return planning_stage(world) and ((world.meta.get("on", []) as Array).has("E165B") or (world.meta.get("on", []) as Array).has("E165Q"))
+
+
+## E165b (a) only: no plan while every builder is booked (the order book E165Q replaces it).
+static func plan_a(world: WorldState) -> bool:
+	return planning_stage(world) and (world.meta.get("on", []) as Array).has("E165B")
+
+
+## E165Q (user + Wilma 2026-11-15, "firms queue work up: we do this in three months"; opt-in, implies E165 and E165b
+## (c)): builders quote a start date from their order book as well as a price; the founder takes the best offer; an
+## accepted job waits in the builder's book and the plan waits with it at no cost. No plan is dropped for want of a
+## builder: it is withdrawn only when its sector's entry signal has been off for SIGNAL_OFF_M months (the founder's
+## reason has gone), or by the stall rule once building has started. Builders enter when the books hold
+## ENTRY_BOOK_YEARS of work for a standard entrant (EconConstruction.book_entry).
+const SIGNAL_OFF_M := 12
+
+
+static func plan_q(world: WorldState) -> bool:
+	return planning_stage(world) and (world.meta.get("on", []) as Array).has("E165Q")
+
+
+## A plan's state under E165Q: "no_offer" (tender without an accepted bid), "queued" (accepted, not started), "building".
+static func plan_state(world: WorldState, oid: String) -> String:
+	var st := "no_offer"
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["owner"] != oid or p["status"] != "ACTIVE":
+			continue
+		if int(p["start_month"]) <= world.month:
+			return "building"
+		st = "queued"
+	return st
+
+
+static func builder_free(world: WorldState) -> bool:
+	var waiting := 0
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["status"] == "TENDERABLE" or (p["status"] == "TENDER" and (p["bids"] as Array).is_empty()):
+			waiting += 1
+	var builders := 0
+	for oid in world.table("org"):
+		var o: Dictionary = world.table("org")[oid]
+		if bool(o.get("is_contractor", false)) and o["type"] == "PRIVATE" and o["status"] in ["ACTIVE", "DISTRESSED"]:
+			builders += 1
+	return waiting < maxi(1, builders)
+
+
+static func draw_plan_credit(world: WorldState, oid: String, amount: int) -> void:
+	var o: Dictionary = world.table("org").get(oid, {})
+	if o.is_empty() or int(o.get("plan_credit", 0)) <= 0 or o["status"] != "FORMING":
+		return
+	var short := amount - world.ledger.balance(EconUtil.acct(oid))
+	if short <= 0:
+		return
+	var draw := mini(short, int(o["plan_credit"]))
+	if EconFinance.new_loan(world, oid, draw, 0, true):
+		o["plan_credit"] = int(o["plan_credit"]) - draw
+
+
+static func _open_plan(world: WorldState, oid: String, fid: String) -> void:
+	var o: Dictionary = world.table("org")[oid]
+	o["opened_month"] = world.month
+	o.erase("plan_credit")
+	o["pl_ring"] = []
+	var s := EconUtil.st(world)
+	var ps: Dictionary = s.get("plan_stats", {})
+	ps["opened"] = int(ps.get("opened", 0)) + 1
+	ps["months_to_open"] = int(ps.get("months_to_open", 0)) + world.month - int(o.get("planned_month", world.month))
+	s["plan_stats"] = ps
+	var f: Dictionary = world.table("facility")[fid]
+	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", o["hq"], [["COMPANY", oid]], [["COMPANY", oid, 0.8], ["GOVERNMENT", "government", 0.2]],
+		{"JOBS": 3}, 15, "PUBLIC", {"type": f["type"], "planned_month": int(o.get("planned_month", world.month))}, {"districts": [o["hq"]]})
+
+
+static func abandon_plan(world: WorldState, oid: String, cause: String) -> void:
+	var o: Dictionary = world.table("org")[oid]
+	var acc := EconUtil.acct(oid)
+	for pid in EconUtil.sorted_keys(world.table("project")):
+		var p: Dictionary = world.table("project")[pid]
+		if p["owner"] == oid and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+			p["status"] = "CANCELLED"
+	var repaid := 0
+	var written := 0
+	for lid in EconUtil.sorted_keys(world.table("loan")):
+		var l: Dictionary = world.table("loan")[lid]
+		if l["borrower"] == oid and int(l["principal"]) > 0:
+			var paid := EconUtil.pay_upto(world, acc, EconUtil.BANK, int(l["principal"]), "PLAN_REPAY")
+			repaid += paid
+			written += int(l["principal"]) - paid
+			l["principal"] = 0
+	var rest := world.ledger.balance(acc)
+	if rest > 0:
+		var to := EconUtil.hh_acct(o["owner_group"]) if o["owner_group"] != "" and world.table("hh").has(o["owner_group"]) else EconUtil.TREASURY
+		world.ledger.transfer(acc, to, rest, "PLAN_RETURN", world.month)
+	o["status"] = "DISSOLVED"
+	o["plan_abandoned"] = true
+	o.erase("plan_credit")
+	o["entry_fail_noted"] = true  # no E128 cooling: a missing builder or money, not the market
+	if plan_b(world) and cause == "no_builder" and o.has("entry_type"):
+		# E165b (b): a shorter cooling — the full one minus what is left of NO_BUILDER_COOL_M
+		var fails: Dictionary = EconUtil.st(world).get("entry_fail", {})
+		fails[o["entry_type"]] = maxi(int(fails.get(o["entry_type"], -9999)), world.month - FirmAI.ENTRY_FAIL_COOL_M + NO_BUILDER_COOL_M)
+		EconUtil.st(world)["entry_fail"] = fails
+	var s := EconUtil.st(world)
+	var ps: Dictionary = s.get("plan_stats", {})
+	ps["abandoned_" + cause] = int(ps.get("abandoned_" + cause, 0)) + 1
+	ps["written_off"] = int(ps.get("written_off", 0)) + written
+	ps["written_off_" + cause] = int(ps.get("written_off_" + cause, 0)) + written
+	s["plan_stats"] = ps
+	EconFacts.emit(world, "COMP_PLAN_ABANDONED", o["hq"], [["COMPANY", oid]], [["COMPANY", oid, 1.0]], {}, 20, "PUBLIC",
+		{"cause": cause, "months": world.month - int(o.get("planned_month", world.month)), "repaid": repaid / S,
+		"written_off": written / S, "returned": maxi(0, rest) / S}, {"districts": [o["hq"]]})
 
 
 static func _waterfall(world: WorldState, oid: String) -> void:

@@ -246,6 +246,8 @@ static func _payroll(world: WorldState) -> void:
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		if world.table("org").has(f["org"]):
+			if bool(world.table("org")[f["org"]].get("family", false)):
+				continue  # E160 / E162: owner-operated — the family is paid by what it sells (payout), not wages
 			payers.append([f["org"], f["staff"], f["type"]])
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		var o: Dictionary = world.table("org")[oid]
@@ -471,10 +473,15 @@ static func _benefits(world: WorldState) -> void:
 
 static func _loan_service(world: WorldState) -> void:
 	var s := EconUtil.st(world)
+	var e165 := EconInsolvency.planning_stage(world)
 	for lid in EconUtil.sorted_keys(world.table("loan")):
 		var l: Dictionary = world.table("loan")[lid]
+		if e165 and world.table("org").has(l["borrower"]) and world.table("org")[l["borrower"]]["status"] == "FORMING":
+			continue  # E165: a plan pays no interest and no principal; service starts when the plant opens
 		if l["principal"] <= 0:
 			continue
+		if bool(l.get("family", false)):
+			continue  # E160/E162 grant loans: repaid from the family firm's surplus (EconFamily.service_loans)
 		var r := float(l["rate_ppm"]) / 1000000.0
 		if l["borrower"] == "gov":
 			var ratio := float(l["principal"]) / float(maxi(1, gov_revenue_12m(world)))

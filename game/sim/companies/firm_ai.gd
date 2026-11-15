@@ -46,6 +46,7 @@ static func run(world: WorldState) -> void:
 		t = EconUtil.prof(world, "FirmAI._investment", t)
 		_entry(world)
 		t = EconUtil.prof(world, "FirmAI._entry", t)
+		EconFamily.found(world)  # E160 / E162 (opt-in): family farms and bakeries
 		_builder_entry(world)
 		t = EconUtil.prof(world, "FirmAI._builder_entry", t)
 		_new_plants(world)
@@ -170,6 +171,8 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 		_:
 			if good in EconData.MARKET_GOODS:
 				t = _producer_target(world, f, o, good)
+	if bool(o.get("family", false)):
+		t = 1.0  # E160 / E162: a family works its own farm or oven fully
 	if good in EconData.MARKET_GOODS:
 		var old := float(f["T"]) / 1000.0
 		t = old + clampf(t - old, -0.20, 0.30)  # smoothed production planning (E45)
@@ -383,7 +386,7 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		var r: Dictionary = EconData.RECIPES[f["type"]]
-		if f["type"] == "BAKERY":
+		if f["type"] == "BAKERY" or f["type"] == "FAMBAKERY":
 			bakery_orgs[f["org"]] = true
 		if f["mothball"]:
 			if f.get("closed_unsafe", false):  # E84: overhaul of a plant closed as unsafe needs its full upkeep
@@ -602,6 +605,8 @@ static func _investment(world: WorldState) -> void:
 		var o: Dictionary = world.table("org")[oid]
 		if not (o["type"] in ["PRIVATE", "COOPERATIVE"]) or o["status"] != "ACTIVE" or o["is_contractor"]:
 			continue
+		if bool(o.get("family", false)):
+			continue  # E160 / E162: one family, one farm or bakery (expanding would mean hiring a crew)
 		if world.month - o.get("last_invest", -24) < 12:
 			continue
 		var by_type := {}
@@ -1016,7 +1021,10 @@ static func _builder_entry(world: WorldState) -> void:
 		# than their crews can do: in the D2 probe a bakery took 42 months for 250 WU while no tender sat unbid)
 		if p["status"] == "ACTIVE" and int(p.get("start_month", -1)) >= 0 				and world.month - int(p["start_month"]) > int(p.get("bid_duration", 0)) + LATE_CONTRACT_M:
 			stale += 1
-	if EconConstruction._private_builder_alive(world):
+	if EconInsolvency.plan_q(world):
+		if not EconConstruction.book_entry(world):
+			return  # E165Q: a builder enters when the order books hold ENTRY_BOOK_YEARS of work for it
+	elif EconConstruction._private_builder_alive(world):
 		# E117a (Wilma): the existing builders are at their crew ceiling and tenders sit unbid — a new builder enters
 		# (same founding as E87: equity from the richest household pool, at most one per 12 months)
 		if EconUtil.off(world, "E117") or stale < EconData.BUILDER_ENTRY_BACKLOG:
@@ -1034,7 +1042,7 @@ static func _builder_entry(world: WorldState) -> void:
 	var equity := EconData.BUILDER_EQUITY * S
 	# E155 (user, money fix): a construction company coming from the home world brings its own capital — 5 years of its
 	# running costs, from outside (new money), not a colony household's savings
-	var e155: bool = (world.meta.get("on", []) as Array).has("E155") and not EconUtil.off(world, "E155")
+	var e155: bool = ((world.meta.get("on", []) as Array).has("E155") and not EconUtil.off(world, "E155")) 		or (world.meta.get("on", []) as Array).has("E155BLD")  # E155BLD: only the home-world builders of E155
 	if not e155 and (best == "" or best_cash < equity * 2):
 		return
 	var g: Dictionary = world.table("hh")[best] if best != "" else {}
@@ -1063,6 +1071,7 @@ static func _builder_entry(world: WorldState) -> void:
 		EconPop.make_owner(world, g["hb"], g["band"])
 		EconPop.sync(world)
 	s["builder_entry_last"] = world.month
+	s["builder_entries"] = int(s.get("builder_entries", 0)) + 1
 	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", d, [["COMPANY", id]], [["COMPANY", id, 0.8], ["GOVERNMENT", "government", 0.2]],
 		{"JOBS": 3, "INFRASTRUCTURE": 2}, 20, "PUBLIC", {"type": "CONTRACTOR", "waiting_projects": waiting}, {"districts": [d]})
 
@@ -1132,6 +1141,8 @@ static func _entry(world: WorldState) -> void:
 			for pid in world.table("project"):
 				if world.table("project")[pid]["owner"] == oid:
 					forming_types[world.table("project")[pid]["type"]] = true
+			if EconInsolvency.plan_q(world) and EconInsolvency.plan_state(world, oid) != "no_offer":
+				continue  # E165Q: a plan with an accepted offer waits in a builder's book and holds no founding slot
 			forming += 1
 	var u_now := colony_unemployment(world)
 	var max_forming := mini(MAX_FORMING, 1 + (1 if u_now >= 0.08 else 0) + (1 if u_now >= 0.12 else 0))  # more entrants only with idle hands
@@ -1178,6 +1189,11 @@ static func _entry(world: WorldState) -> void:
 		break
 	if candidate == "":
 		return
+	if EconInsolvency.plan_a(world) and not EconInsolvency.builder_free(world):
+		var ps0: Dictionary = s.get("plan_stats", {})
+		ps0["skipped_no_builder"] = int(ps0.get("skipped_no_builder", 0)) + 1
+		s["plan_stats"] = ps0
+		return  # E165b (a): a founder talks to a builder first; with every builder booked, no plan is made
 	var id := world.new_id("org")
 	var mgmt := int(clampf(50.0 + EconUtil.normal(world, "comp.entry", 15.0), 10.0, 95.0))
 	var risk := world.rng.stream("comp.entry").randi_range(20, 80)
@@ -1191,11 +1207,22 @@ static func _entry(world: WorldState) -> void:
 	world.ledger.transfer(EconUtil.hh_acct(best), EconUtil.acct(id), est * 4 / 10, "EQUITY", world.month)
 	EconPop.make_owner(world, g["hb"], g["band"])
 	EconPop.sync(world)
-	if not EconFinance.new_loan(world, id, est * 6 / 10, 0, true):
+	if EconInsolvency.plan_b(world):
+		world.table("org")[id]["plan_credit"] = est * 6 / 10  # E165b (c): approved, drawn as the builder is paid
+	elif not EconFinance.new_loan(world, id, est * 6 / 10, 0, true):
 		pass  # builds with equity only; may stall on payments
 	EconConstruction.create(world, candidate, district, id, id, "")
-	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", district, [["COMPANY", id]], [["COMPANY", id, 0.8], ["GOVERNMENT", "government", 0.2]],
-		{"JOBS": 3}, 15, "PUBLIC", {"type": candidate}, {"districts": [district]})
+	if EconInsolvency.planning_stage(world):
+		# E165: a plan until its plant opens (EconInsolvency._open_plan emits COMP_COMPANY_FOUNDED then)
+		world.table("org")[id]["planned_month"] = world.month
+		var ps: Dictionary = s.get("plan_stats", {})
+		ps["plans"] = int(ps.get("plans", 0)) + 1
+		s["plan_stats"] = ps
+		EconFacts.emit(world, "COMP_COMPANY_PLANNED", district, [["COMPANY", id]], [["COMPANY", id, 1.0]],
+			{}, 10, "PUBLIC", {"type": candidate}, {"districts": [district]})
+	else:
+		EconFacts.emit(world, "COMP_COMPANY_FOUNDED", district, [["COMPANY", id]], [["COMPANY", id, 0.8], ["GOVERNMENT", "government", 0.2]],
+			{"JOBS": 3}, 15, "PUBLIC", {"type": candidate}, {"districts": [district]})
 	hist[candidate] = 0
 
 
