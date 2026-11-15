@@ -270,3 +270,25 @@ Each has ideology rows for Wilma to review.
 - closing a sale that review has blocked (exists as CLOSE_BLOCKED_TAKEOVER);
 - the employer's wildlife duty;
 - a state-aid rule.
+
+## 5. Added later the same day (Wilma's news, 2026-11-15)
+
+- **Private roads:** a separate note, planning/design-law-private-roads.md. It has three levers (LAW_PRIVATE_ROADS,
+  LAW_PRIVATE_ROAD_ACCESS, LAW_PRIVATE_TOLL_CAP), a road licence held by the Minister of Infrastructure, and the
+  Cabinet for takeovers and expropriations.
+- **Minister of Agriculture (flag AGRI_MIN):** with the flag on, the farm-side law decisions move from the Minister of
+  the Economy to Agriculture:
+  - the family-farm grant programme (E160/E162) and waiving its clawback (sales note §2.5);
+  - the fencing cost in a farm grant (wildlife, small-fixes note §3).
+  - ECO_WILDLIFE_POLICY stays with the Environment. Without the flag, nothing moves.
+- **Rivalries (flag RIVALRY):** POL_DECISION_QUESTIONED gives the opposition a public voice on decisions. The law
+  notes produce facts worth questioning:
+  - LAW_TAKEOVER_OVERRIDDEN;
+  - an overridden tender (ECON_CONTRACT_AWARDED `override`);
+  - LAW_ROAD_OBJECTION_OVERRIDDEN;
+  - a road licence refused with no ground;
+  - LAW_ROAD_TAKEN_OVER;
+  - ECON_STATE_STAKE.
+  - Wilma may add them to rivalry's list. Questioning has no legal effect; the courts act only on cases.
+- **Road facts:** POL_ROAD_PATCHED / PASSED_OVER / NEGLECTED are political. The law side meets them only on private
+  roads: the neglect ladder (private-roads note §5) decides who is responsible for a neglected private road.
