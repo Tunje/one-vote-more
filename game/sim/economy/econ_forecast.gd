@@ -81,7 +81,7 @@ static func first_year(world: WorldState, ftype: String, district: String, found
 	per_unit /= float(r["out"][1])
 	var capital := float(int(purchase.get("price", 0))) if buying else float(EconConstruction.estimate(ftype))
 	var loan := capital * LOAN_SHARE
-	var rate := EconData.BANK_FIRM_BASE_PM / 12.0
+	var rate := EconData.BANK_FIRM_BASE_PM  # already a monthly rate
 	var service := loan / float(LOAN_TERM_M) + loan * rate
 	var costs := crew * 12.0 + per_unit * volume / float(S) * 12.0 + float(r["upkeep"]) * float(int(s["prices"].get("MATERIAL", 0))) * 12.0 + service * 12.0
 	var profit := revenue - costs
