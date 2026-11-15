@@ -213,3 +213,21 @@ func test_a_new_coalition_reshuffles_a_replacement_does_not() -> void:
 	check_eq(w.facts.query("STAFF_CABINET_FORMED").size(), 2, "a new Cabinet")
 	var acting := OFS.cabinet(w).filter(func(c): return c["role"] in OFS.PORTFOLIOS and not c["minister"])
 	check_eq(acting.size(), 3, "civil servants act in the portfolios no minister holds")
+
+
+func test_a_minister_of_agriculture_when_switched_on() -> void:
+	var w := _cabinet_world()
+	OFS.fill_roles(w)
+	check(not OFS.cabinet(w).any(func(c): return c["role"] == "AGRICULTURE"), "no agriculture portfolio without the flag")
+	var w2 := _cabinet_world()
+	F.add(w2, "POLITICAL", {"ENV": 80, "ECON": 60, "LOGI": 60}, 50, 100, "party:2")
+	if not w2.meta.has("on"):
+		w2.meta["on"] = []
+	(w2.meta["on"] as Array).append("AGRI_MIN")
+	OFS.fill_roles(w2)
+	var agri: Array = OFS.cabinet(w2).filter(func(c): return c["role"] == "AGRICULTURE")
+	check_eq(agri.size(), 1, "the Cabinet has an agriculture portfolio")
+	if agri.size() == 1:
+		check(agri[0]["minister"], "held by a minister")
+		check_eq(String(agri[0]["title"]), "Minister of Agriculture", "with the title")
+	check_eq(OFS.cabinet(w2).filter(func(c): return c["minister"]).size(), 10, "ten ministers, ten portfolios")

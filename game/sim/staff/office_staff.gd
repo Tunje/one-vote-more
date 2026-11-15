@@ -28,9 +28,31 @@ const ROLES := {
 	"PARTY_WHIP": {"w": {"POLI": 1.0}, "axis": "REDISTRIBUTION"},
 	"SERVICES": {"w": {"PUBS": 1.0}, "axis": "REDISTRIBUTION"},
 	"ENVIRONMENT": {"w": {"ENV": 1.0}, "axis": "ECON_ROLE"},
+	"AGRICULTURE": {"w": {"ENV": 0.4, "ECON": 0.3, "LOGI": 0.3}, "axis": "ECON_ROLE"},
 }
 const ROLE_ORDER := ["CHIEF_OF_STAFF", "FINANCE", "LEGAL", "PRESS", "ENGINEER", "ECON_ADVISER", "LABOUR_LIAISON",
 	"HOME_LIAISON", "HR", "PARTY_WHIP", "SERVICES", "ENVIRONMENT"]
+## User 2026-11-15 ("Minister of agriculture ... make sure they exist"): a Minister of Agriculture (farms, family-farm
+## programmes, food stocks, wildlife on farms). Opt-in (flag AGRI_MIN) so games without it deal the Cabinet as before.
+## A Minister of Education follows when education has more to decide than a budget.
+const EXTRA_PORTFOLIOS := {"AGRI_MIN": ["AGRICULTURE"]}
+
+
+static func portfolios(world: WorldState) -> Array:
+	var out: Array = PORTFOLIOS.duplicate()
+	var on_list: Array = world.meta.get("on", [])
+	for flag in EXTRA_PORTFOLIOS:
+		if on_list.has(flag):
+			out.append_array(EXTRA_PORTFOLIOS[flag])
+	return out
+
+
+static func role_order(world: WorldState) -> Array:
+	var out: Array = ROLE_ORDER.duplicate()
+	for r in portfolios(world):
+		if not out.has(r):
+			out.append(r)
+	return out
 
 const BURY_P := 0.3                  # × (1 − chief skill)²
 const BURY_FROM := 70                # only important items can be buried
@@ -102,23 +124,23 @@ static func fill_roles(world: WorldState) -> void:
 	var sig := ",".join(Det.ordered(counts).map(func(k): return "%s:%d" % [k, int(counts[k])]))   # a new coalition, not a replacement
 	var reshuffle := String(cab.get("sig", "")) != sig
 	var taken := {}
-	for role in ROLE_ORDER:
+	for role in role_order(world):
 		var r: Dictionary = t.get(role, {})
 		var pid := String(r.get("person", ""))
 		var p := Ops.person(world, pid)
 		if pid != "" and (p.is_empty() or p["pool"] != "GOV" or not Ops.is_alive_active(p)):
 			pid = ""
 		var by := String(r.get("by", "AUTO"))
-		if reshuffle and pid != "" and by != "PLAYER" and role in PORTFOLIOS:
+		if reshuffle and pid != "" and by != "PLAYER" and role in portfolios(world):
 			pid = ""          # a new Cabinet: portfolios are dealt out again
-		if pid != "" and not (role in PORTFOLIOS) and by != "PLAYER" and _is_minister(p):
+		if pid != "" and not (role in portfolios(world)) and by != "PLAYER" and _is_minister(p):
 			pid = ""          # civil roles are the civil service's
 		if pid != "":
 			taken[pid] = true
 		t[role] = {"role": role, "person": pid, "since": int(r.get("since", world.month)) if pid != "" else world.month,
 			"by": by if pid != "" else "AUTO", "party": String(r.get("party", "")) if pid != "" else ""}
 	_deal_portfolios(world, t, ministers, taken)
-	for role in ROLE_ORDER:
+	for role in role_order(world):
 		if String(t[role]["person"]) != "":
 			continue
 		var best := ""
@@ -149,12 +171,14 @@ const PORTFOLIOS := ["FINANCE", "ECON_ADVISER", "LABOUR_LIAISON", "ENGINEER", "H
 const MINISTER_TITLES := {"FINANCE": "Minister of Finance", "ECON_ADVISER": "Minister of the Economy",
 	"LABOUR_LIAISON": "Minister of Labour", "ENGINEER": "Minister of Infrastructure",
 	"HOME_LIAISON": "Minister for Home-World Affairs", "SERVICES": "Minister of Public Services",
-	"ENVIRONMENT": "Minister of the Environment", "LEGAL": "Minister of Justice", "PARTY_WHIP": "Leader of the Assembly"}
+	"ENVIRONMENT": "Minister of the Environment", "AGRICULTURE": "Minister of Agriculture",
+	"LEGAL": "Minister of Justice", "PARTY_WHIP": "Leader of the Assembly"}
 ## Civil-service titles: the civil roles, and a civil servant acting in a portfolio.
 const CIVIL_TITLES := {"CHIEF_OF_STAFF": "Chief of Staff", "HR": "Head of Personnel", "PRESS": "Press Secretary",
 	"FINANCE": "Finance Secretary", "ECON_ADVISER": "Economic Adviser", "LABOUR_LIAISON": "Labour Liaison",
 	"ENGINEER": "Chief Engineer", "HOME_LIAISON": "Home-World Liaison", "SERVICES": "Services Secretary",
-	"ENVIRONMENT": "Environment Secretary", "LEGAL": "Legal Counsel", "PARTY_WHIP": "Assembly Liaison"}
+	"ENVIRONMENT": "Environment Secretary", "AGRICULTURE": "Agriculture Secretary",
+	"LEGAL": "Legal Counsel", "PARTY_WHIP": "Assembly Liaison"}
 const MINISTER_LEAN_PARTY := 0.6     # a minister's lean: this share of the party line, the rest their own
 
 
@@ -174,7 +198,7 @@ static func _appointees(world: WorldState) -> Array:
 
 
 static func _deal_portfolios(world: WorldState, t: Dictionary, ministers: Array, taken: Dictionary) -> void:
-	var open: Array = PORTFOLIOS.filter(func(r): return String(t[r]["person"]) == "" or not _is_minister(Ops.person(world, String(t[r]["person"]))) and String(t[r]["by"]) != "PLAYER")
+	var open: Array = portfolios(world).filter(func(r): return String(t[r]["person"]) == "" or not _is_minister(Ops.person(world, String(t[r]["person"]))) and String(t[r]["by"]) != "PLAYER")
 	var by_party := {}
 	var size := {}
 	for pid in ministers:
@@ -236,13 +260,14 @@ static func _party_lean(world: WorldState, p: Dictionary) -> void:
 ## ROLE_ORDER (portfolios first). Pure read.
 static func cabinet(world: WorldState) -> Array:
 	var out: Array = []
-	var roles: Array = PORTFOLIOS + ROLE_ORDER.filter(func(r): return not (r in PORTFOLIOS))
+	var ports := portfolios(world)
+	var roles: Array = ports + ROLE_ORDER.filter(func(r): return not (r in ports))
 	for role in roles:
 		var r: Dictionary = world.peek("office_role").get(role, {})
 		var p := Ops.person(world, String(r.get("person", "")))
 		if p.is_empty():
 			continue
-		var minister: bool = _is_minister(p) and role in PORTFOLIOS
+		var minister: bool = _is_minister(p) and role in ports
 		var pty := String(p.get("party_id", "")) if minister else ""
 		out.append({"role": role, "title": String(MINISTER_TITLES[role]) if minister else String(CIVIL_TITLES.get(role, role)),
 			"person": String(r["person"]), "name": String(p.get("name", "")), "party": pty,

@@ -361,7 +361,7 @@ static func grieve(world: WorldState, p: Dictionary, kind: String, ref: String =
 static func _portfolios(world: WorldState) -> Dictionary:
 	var out := {}
 	var t := world.peek("office_role")
-	for role in OFS.PORTFOLIOS:
+	for role in OFS.portfolios(world):
 		var pid := String(t.get(role, {}).get("person", ""))
 		if pid != "" and OFS._is_minister(Ops.person(world, pid)):
 			out[pid] = role
