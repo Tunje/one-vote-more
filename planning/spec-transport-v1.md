@@ -170,6 +170,66 @@ what causes these things?" Answer: measured traffic and accidents, studied by en
 - UI: the Transport window lists the latest report and its recommendations with an "order it" button; the map shows
   traffic load colours and accident spots.
 
+## T8. Freight on the roads (Terra, user via Wilma 2026-11-15) — sim/transport/freight_roads.gd, tests/transport/test_freight_roads.gd
+
+User: "Next thing you're going to run into is roads, they won't be able to take the new freight." / "also road
+expansions, not just quality".
+
+- **Before**: only commuters (buses, taxis) drove on the roads. Freight went by the economy's own district hops and
+  never touched the network. Over capacity, roads only got slower and wore faster: nothing was held up. On the year-100
+  save (seed 2), adding the freight as trucks would put the main signal junctions at 217% and the worn road to d:3 at
+  678%.
+- **Flag FREIGHT_ROADS** (opt-in; Bob A/Bs it). Agreed with Bob:
+  - `Transport.freight_room_mu(world, from_d, to_d)`: the milli-units the road route can still take this month.
+    Unlimited within a district or without a road.
+  - `Transport.add_freight_traffic(world, from_d, to_d, moved_mu, held_mu)`: the only write.
+    - Trucks = ceil(mu ÷ (UNITS_PER_TRUCK 25 × 1000)) × 2 (the empty return) × TRUCK_PCU 2 car-equivalents.
+    - They go on every link and junction of the route, so wear, the commuters' route factor and road_needs see them.
+  - `Transport.deliverable_pm(world, from_d, to_d)`: 0..1000.
+    - Last month's moved ÷ (moved + held) for the pair.
+    - If the roads held nothing back: the route's headroom, capacity × 1.25 ÷ last month's load, at most 1000.
+  - `Transport.district_jam_pm(world, d)`: the worst last-month load ‰ of the freight roads in the district.
+  - The allowance per link or junction:
+    - Up to capacity × JAM_ALLOW 1.25, freight takes what the commuters leave.
+    - Past that, trucks and commuters share the jam in proportion to last month's demand. Freight's demand counts at
+      least a quarter of the allowance.
+    - It runs down within the month as freight moves, so it cannot oscillate.
+    - Bob adds what the roads cut to freight_deferred, as he does for the depot cap.
+  - The month's freight routes ("froutes") and capacities ("fcap") are fixed in the NATURE tick and saved.
+    - Queries in the market loop read only the table: pure, about 0.05 ms a call.
+    - A link finished during the month carries freight from the next month.
+- **Worn paved roads** (with the flag): they lose capacity in steps instead of at a cliff.
+  - Under 40% condition a paved road works as a road (1,500 trips a month instead of 6,000).
+  - Under 15% it works as a track (300), as before.
+- **road_needs** (Wilma's gov_builder):
+  - With the flag, congestion is judged on the load projected 18 months ahead at the yearly trend. Each link and
+    junction keeps its monthly mean for the last two years. The trend is last year's mean less the year before's.
+  - A worn link's severity grows with its load: a quiet one counts half, one at capacity double.
+  - Every need lists all its options, flag or not:
+    `options: [{fix, type REPAIR|UPGRADE|WIDEN|NEW, spec, cost, months, cap_pm, load_after_pm, relief_pm}]`.
+    - Fixes: REPAIR; ROAD and PAVE (UPGRADE); LANES_2, BRIDGE_2, PRIORITY, ROUNDABOUT and SIGNALS (WIDEN); BYPASS
+      and NEW_LINK (NEW).
+  - Detours (flag only): two districts whose road route is at least 1.6 × the straight line, where a direct new road
+    would save at least 30% of the km.
+    - These are needs of their own: key "PAIR:a>b", why DETOUR, fix NEW_LINK (a new ROAD between the two district
+      nodes), plus road_km, new_km and trips.
+    - Severity = (‰ of km saved − 300) × min(trips, 1500) ÷ 500. trips is the pair's freight trucks and commuter
+      buses and taxis a month.
+    - A link on that route also lists the NEW_LINK option; its relief is the pair's trips leaving the route.
+- **News and measures**:
+  - TRANSPORT_FREIGHT_JAM (PUBLIC, once per spell): when the roads held back 20% or more of the freight coming to a
+    district. data: {district, where (the worst-loaded link or junction on the routes in), where_kind, load_pm,
+    held_pm, held_units}.
+  - TRANSPORT_FREIGHT_JAM_ENDED: when the share falls under 5%.
+  - No one is named responsible. Politics decides the blame.
+  - Indicator TRANSPORT_FREIGHT_JAM: the colony's share of freight held back, ‰.
+- **Shown**:
+  - Colony map: links and junctions carry a load stripe from last month (green from 50%, amber from 80%, red over
+    capacity), with or without the flag.
+  - The link panel gives the load, the freight trucks in it and the yearly growth.
+- **Left out**: freight on plants' own access tracks (plant to district, a second stage), freight within a district,
+  and storm closures holding up freight.
+
 ## Acceptance (century runs, 3 seeds)
 
 - No tourist ever visits a site without a road, a rover route or an airship route (tested).

@@ -406,7 +406,7 @@ func _init() -> void:
 	for lid in w.table("loan"):
 		if bool(w.table("loan")[lid].get("family", false)):
 			fam_out += int(w.table("loan")[lid]["principal"])
-	money += " famloans n %d amt %d paid %d behind %d defaulted %d outstanding %d bankcap %d progzero %d" % [int(fls.get("n", 0)), int(fls.get("amount", 0)) / 1000000,
+	money += " famloans n %d amt %d paid %d behind %d defaulted %d outstanding %d fambankcap %d progzero %d" % [int(fls.get("n", 0)), int(fls.get("amount", 0)) / 1000000,
 		int(fls.get("paid", 0)) / 1000000, int(fls.get("behind", 0)), int(fls.get("defaulted", 0)), fam_out / 1000000, EconBank.capital(w) / 1000000, prog_zero]
 	money += " progs %s gap F%d B%d" % [",".join(ph), gap_m["F"], gap_m["B"]]
 	money += " nneed F%d/%d B%d/%d govpath %s pmmoves %s" % [nn_m["F"], nn_paid["F"], nn_m["B"], nn_paid["B"], ",".join(gov_path), ",".join(pmv)]

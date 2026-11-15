@@ -154,10 +154,7 @@ static func monthly(world: WorldState) -> void:
 static func _road_pm(world: WorldState, d1: String, d2: String) -> int:
 	if not (world.meta.get("on", []) as Array).has("FREIGHT_ROADS"):
 		return 1000
-	var tr = load("res://sim/transport/transport.gd") if ResourceLoader.exists("res://sim/transport/transport.gd") else null
-	if tr == null or not tr.has_method("deliverable_pm"):
-		return 1000
-	return clampi(int(tr.deliverable_pm(world, d1, d2)), 0, 1000)
+	return clampi(Transport.deliverable_pm(world, d1, d2), 0, 1000)
 
 
 static func _plants(world: WorldState, goods: Dictionary, deliver: Dictionary) -> Dictionary:

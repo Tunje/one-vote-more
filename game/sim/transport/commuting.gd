@@ -111,8 +111,8 @@ static func link_factor(world: WorldState, l: Dictionary) -> int:
 	if Transport.closed_reason(world, l) != "":
 		return CLOSED_F
 	var f := 1000.0 * (1.0 + 0.8 * float(1000 - clampi(int(l["cond"]), 0, 1000)) / 1000.0)
-	f *= float(KIND_F.get(Transport.effective_kind(l), 1000)) / 1000.0
-	var cap := maxi(1, Transport.link_capacity(l))
+	f *= float(KIND_F.get(Transport.effective_kind(l, world), 1000)) / 1000.0
+	var cap := maxi(1, Transport.link_capacity(l, world))
 	var traffic := maxi(int(l.get("traffic", 0)), int(l.get("traffic_last", 0)))   # this month so far, or last month's
 	f *= 1.0 + 2.0 * maxf(0.0, float(traffic) / float(cap) - 0.8)
 	if int(l.get("lanes", 1)) >= 2:

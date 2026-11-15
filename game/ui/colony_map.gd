@@ -1377,6 +1377,9 @@ func _draw_network(_w: WorldState, t: float) -> void:
 				draw_polyline(pts, Color(0.2, 0.2, 0.2), 1.0)
 		for sp in l.get("spans", []):
 			_draw_bridge(pts, int(sp[0]), int(sp[1]), t, wdt, int(l.get("bridge_lanes", 1)), col)
+		var lc := _load_color(int(l.get("traffic_last", 0)) * 1000 / maxi(1, int(l["capacity"])))
+		if lc.a > 0.0:   # Terra (FREIGHT_ROADS follow-up): a busy link carries a stripe by last month's load
+			draw_polyline(pts, lc, maxf(1.0, wdt * 0.45))
 		if String(l["closed"]) != "" and pts.size() >= 2:
 			var m := pts[pts.size() / 2]
 			var r := maxf(4.0, t * 0.4)
@@ -1395,11 +1398,25 @@ func _draw_network(_w: WorldState, t: float) -> void:
 				draw_circle(p, r2, Color("#ffffff"))
 			_:
 				draw_circle(p, r2 * 0.7, Color("#bdbdbd"))
+		var jc := _load_color(int(j.get("traffic_last", 0)) * 1000 / maxi(1, int(j["capacity"])))
+		if jc.a > 0.0:
+			draw_arc(p, r2 + 1.5, 0.0, TAU, 16, jc, 2.0)
 		if selected.get("kind", "") == "JUNCTION" and selected.get("id", "") == j["id"]:
 			draw_arc(p, r2 + 3.0, 0.0, TAU, 20, Color("#fff3b0"), 2.0)
 		if t >= 16.0 and String(j["type"]) in ["PRIORITY", "SIGNALS"]:
 			var g := "P" if j["type"] == "PRIORITY" else "S"
 			draw_string(font, p + Vector2(-3, 4), g, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.BLACK)
+
+
+## Load stripe colour: none under half capacity, green to 80%, amber to capacity, red over it.
+static func _load_color(load_pm: int) -> Color:
+	if load_pm < 500:
+		return Color(0, 0, 0, 0)
+	if load_pm < 800:
+		return Color("#66bb6a")
+	if load_pm <= 1000:
+		return Color("#ffb300")
+	return Color("#e53935")
 
 
 ## The planned route of a new link in the Build tab (dashed yellow), and its two ends.
@@ -1571,8 +1588,9 @@ func link_text(w: WorldState, lid: String) -> String:
 	var lanes := int(l.get("lanes", 1))
 	t += "%d km · %d lane%s · condition %d%%" % [int(l["km"]), lanes, "" if lanes == 1 else "s", int(l["cond"]) / 10]
 	if String(l["effective"]) != String(l["kind"]):
-		t += " · [color=#ef5350]worn down to a track[/color]"
+		t += " · [color=#ef5350]worn down to a %s[/color]" % Transport.KIND_NAMES[l["effective"]]
 	t += "\nCapacity %d trips a month, last month %d" % [int(l["capacity"]), int(l["traffic"])]
+	t += _load_text(l)
 	for sp in l.get("spans", []):
 		var n := int(sp[1])
 		var bl := int(l.get("bridge_lanes", 1))
@@ -1587,6 +1605,17 @@ func link_text(w: WorldState, lid: String) -> String:
 	return t
 
 
+## Last month's load, the freight trucks in it and the yearly trend (FREIGHT_ROADS keeps the last two).
+func _load_text(x: Dictionary) -> String:
+	var lp := int(x.get("traffic_last", 0)) * 100 / maxi(1, int(x["capacity"]))
+	var t := "\nLoad last month: %s%d%%[/color]" % ["[color=#e53935]" if lp > 100 else ("[color=#ffb300]" if lp >= 80 else "[color=#cfcfcf]"), lp]
+	if int(x.get("fpcu_last", 0)) > 0:
+		t += ", of which freight trucks %d" % int(x["fpcu_last"])
+	if FreightRoads.trend(x) > 0:
+		t += " · growing by %d trips a month each year" % FreightRoads.trend(x)
+	return t
+
+
 func junction_text(w: WorldState, jid: String) -> String:
 	var j := {}
 	for x in _net.get("junctions", []):
@@ -1596,6 +1625,7 @@ func junction_text(w: WorldState, jid: String) -> String:
 		return "Unknown junction."
 	var t := "[b]%s[/b] (%d roads meet)\n" % [String(Transport.JUNCTION_NAMES[j["type"]]).capitalize(), int(j["branches"])]
 	t += "Capacity %d trips a month, last month %d · accident risk %d (a plain crossing = 100)" % [int(j["capacity"]), int(j["traffic"]), int(j["risk"])]
+	t += _load_text(j)
 	if int(j.get("acc", 0)) > 0:
 		t += "\nRecent accidents: %d" % int(j["acc"])
 	return t + "\n\n" + _fixes_text(w, "NODE:" + jid)

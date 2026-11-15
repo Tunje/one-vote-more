@@ -38,6 +38,7 @@ func indicator_defs() -> Array:
 		["PLANET_WILDLIFE_ATTACKS", "attacks in 12 months (milli)", [0, 100000], -1, {"good": 0, "bad": 6000}],   # ECO only
 		["PLANET_WEB_HEALTH", "weakest level ‰ (milli)", [0, 1000000], 1, {"good": 1000000, "bad": 300000}],   # ECO only
 		["PLANET_BIRDS", "flocks' size ‰ of natural (milli)", [0, 2000000], 1, {"good": 1000000, "bad": 400000}],   # ECO only (stage 3)
+		["TRANSPORT_FREIGHT_JAM", "‰ of freight held back by the roads (milli)", [0, 1000000], -1, {"good": 0, "bad": 300000}],   # FREIGHT_ROADS only
 	]:
 		# how much people care is politics' call (Wilma): the ecology's three measures reach voters; the weather ones don't yet
 		out.append({"id": row[0], "owner": OWNER, "unit": row[1], "range": row[2], "granularity": "COLONY",
@@ -71,6 +72,8 @@ func run_phase(phase: int, world: WorldState) -> void:
 		wild = PlanetWildlife.step_month(world)
 		birds = PlanetBirds.step_month(world)   # stage 3: the flocks' year and their arrivals at the colony
 	Transport.step_month(world)
+	if FreightRoads.on(world):
+		world.set_indicator(OWNER, "TRANSPORT_FREIGHT_JAM", "COLONY", FreightRoads.jam_share_pm(world) * 1000)
 	WasteMap.step_month(world)    # A45 W5: last month's sewage and leachate flow down the river   # A43 T1: the network wears, storms and mud close tracks (after this month's weather)
 	var home := Planet.landing(world)
 	var wx := PlanetClimate.weather(world, home)

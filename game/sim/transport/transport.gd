@@ -29,6 +29,7 @@ const CAPACITY := {"TRACK": 300, "ROAD": 1500, "PAVED": 6000}    # vehicle trips
 const WEAR := {"TRACK": 10, "ROAD": 5, "PAVED": 3}               # condition lost a month (of 1000) with no traffic
 const STORM_WEAR := {"TRACK": 30, "ROAD": 15, "PAVED": 8}        # per storm strength over the colony
 const WORN := 150                  # below this condition a road or paved road is only as good as a track
+const PAVED_WORN := 400           # FREIGHT_ROADS: below this a paved road is only as good as a road (a step, not a cliff)
 const ROVER_RANGE_HEX := 5         # rovers reach land hexes this many steps from the colony (no sea crossing)
 const AIRSHIP_RANGE_HEX := 80      # the whole hemisphere and more
 ## Path planning: cost of entering a tile (10 = open plain); a river tile needs a bridge.
@@ -84,7 +85,7 @@ static func _struct_sig(world: WorldState) -> int:
 	var links := _links(world)
 	for lid in links:
 		var l: Dictionary = links[lid]
-		parts.append("%s%s%s%d%d%d" % [lid, String(l["kind"]).substr(0, 1), effective_kind(l).substr(0, 1), int(l.get("lanes", 1)),
+		parts.append("%s%s%s%d%d%d" % [lid, String(l["kind"]).substr(0, 1), effective_kind(l, world).substr(0, 1), int(l.get("lanes", 1)),
 			int(l.get("bridge_lanes", 1)), (l.get("path", l.get("cells", [])) as Array).size()])
 	var jt: Dictionary = world.peek("transport").get("junctions", {})
 	for jid in jt:
@@ -258,8 +259,8 @@ static func junctions(world: WorldState) -> Dictionary:
 
 
 ## Trips a month a link carries before congestion: kind × lanes, and its river crossings kind × bridges.
-static func link_capacity(l: Dictionary) -> int:
-	var base := int(CAPACITY[effective_kind(l)])
+static func link_capacity(l: Dictionary, world: WorldState = null) -> int:
+	var base := int(CAPACITY[effective_kind(l, world)])
 	var cap := base * int(l.get("lanes", 1))
 	if int(l.get("bridges", 0)) > 0:
 		cap = mini(cap, base * int(l.get("bridge_lanes", 1)))
@@ -412,15 +413,21 @@ static func _storm(world: WorldState, cell: int) -> int:
 	return s
 
 
-## Kind a link works as: a worn-out road or paved road is only as good as a track.
-static func effective_kind(l: Dictionary) -> String:
-	return "TRACK" if int(l["cond"]) < WORN else String(l["kind"])
+## Kind a link works as: a worn-out road or paved road is only as good as a track. FREIGHT_ROADS (with the world
+## given): in steps, a worn paved road (under PAVED_WORN) first works as a road.
+static func effective_kind(l: Dictionary, world: WorldState = null) -> String:
+	var c := int(l["cond"])
+	if c < WORN:
+		return "TRACK"
+	if world != null and c < PAVED_WORN and String(l["kind"]) == "PAVED" and FreightRoads.on(world):
+		return "ROAD"
+	return String(l["kind"])
 
 
 ## Why a link is closed this month ("" = open): tracks close in storms (2+) and heavy rain (160% of normal),
 ## roads in strong storms (4+); paved roads stay open.
 static func closed_reason(world: WorldState, l: Dictionary) -> String:
-	var k := effective_kind(l)
+	var k := effective_kind(l, world)
 	if k == "PAVED":
 		return ""
 	var s := 0
@@ -518,9 +525,9 @@ static func network(world: WorldState) -> Dictionary:
 	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		var d := l.duplicate(true)
-		d["effective"] = effective_kind(l)
+		d["effective"] = effective_kind(l, world)
 		d["km"] = link_km(l)
-		d["capacity"] = link_capacity(l)
+		d["capacity"] = link_capacity(l, world)
 		d["closed"] = closed_reason(world, l)
 		ls.append(d)
 	var js: Array = []
@@ -592,7 +599,7 @@ static func _road_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_
 		var first := _road_route(world, a, node(world, "port"), ignore_weather) if a["id"] != "port" else _ok("ROAD", 0, 0, 0, [])
 		if not first["ok"]:
 			return first
-		var k := effective_kind(gl)
+		var k := effective_kind(gl, world)
 		var km := link_km(gl)
 		var hrs: int = int(first["time_h"]) + roundi(24.0 * km / _speed(k, int(gl["cond"])))
 		return _ok("ROAD", int(first["km"]) * 10 + km * 10, hrs, int(first["cost_index"]) + _cost(k, int(gl["cond"]), km * 10),
@@ -708,7 +715,7 @@ static func _build_graph(world: WorldState, ignore_weather: bool) -> Dictionary:
 			continue
 		if not ignore_weather and closed_reason(world, l) != "":
 			continue
-		var k := effective_kind(l)
+		var k := effective_kind(l, world)
 		var sp := _speed(k, int(l["cond"]))
 		var p: Array = l["path"]
 		for i in range(1, p.size()):
@@ -1177,7 +1184,7 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 	if worst != "" and int(links[worst]["cond"]) < 600:
 		# Wilma 2026-11-13: a worn link that is also congested is upgraded (which renews it too), not just repaired —
 		# a repaired track at twice its capacity wore out again within a few years, and nothing was ever upgraded
-		if String(links[worst]["kind"]) != "PAVED" and traffic_load(links[worst]) * 10 > link_capacity(links[worst]) * 8:
+		if String(links[worst]["kind"]) != "PAVED" and traffic_load(links[worst]) * 10 > link_capacity(links[worst], world) * 8:
 			return {"upgrade": worst}
 		return {"repair": worst}
 	# T7: the busiest bottleneck first (above 80% of capacity): a junction, a bridge, a second lane
@@ -1191,7 +1198,7 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 		var l3: Dictionary = links[lid3]
 		if int(l3.get("globe", 0)) == 1 or not ours.call(l3):
 			continue
-		if traffic_load(l3) * 10 > link_capacity(l3) * 8:
+		if traffic_load(l3) * 10 > link_capacity(l3, world) * 8:
 			if int(l3["bridges"]) > 0 and int(l3.get("bridge_lanes", 1)) < 2 and int(l3.get("lanes", 1)) == 2:
 				return {"bridge": lid3}
 			if l3["kind"] != "TRACK" and int(l3.get("lanes", 1)) == 1:
@@ -1251,7 +1258,7 @@ static func step_month(world: WorldState) -> void:
 			s = 0
 			for c in l["cells"]:
 				s = maxi(s, _storm(world, int(c)))
-		var cap := link_capacity(l)
+		var cap := link_capacity(l, world)
 		var over := maxi(0, int(l["traffic"]) - cap) * 10 / maxi(1, cap)
 		l["cond"] = clampi(int(l["cond"]) - int(WEAR[k]) - over - int(STORM_WEAR[k]) * s, 0, 1000)
 		l["traffic_last"] = int(l.get("traffic", 0))   # last month's count (read during the month, before new trips)
@@ -1270,6 +1277,7 @@ static func step_month(world: WorldState) -> void:
 		for jid2 in jt:
 			jt[jid2]["acc"] = int(jt[jid2].get("acc", 0)) / 2
 	_bump(world)
+	FreightRoads.step_month(world)   # FREIGHT_ROADS (opt-in): last month's freight, the yearly trend, jam facts
 	if closed > 0:
 		world.add_fact({"type": "TRANSPORT_LINKS_CLOSED", "owner": "transport", "subjects": [], "responsible": [], "impact": {},
 			"magnitude": clampi(10 + closed * 5, 0, 60), "visibility": "PUBLIC",
@@ -1295,6 +1303,28 @@ static func add_accident(world: WorldState, id: String, n: int = 1) -> void:
 		t["links"][id]["acc"] = int(t["links"][id].get("acc", 0)) + n
 	elif t.get("junctions", {}).has(id):
 		t["junctions"][id]["acc"] = int(t["junctions"][id].get("acc", 0)) + n
+
+
+# ================================================================== freight on the roads (FreightRoads, FREIGHT_ROADS)
+
+## Milli-units of freight the road route between two districts can still take this month (FreightRoads.BIG: no limit).
+static func freight_room_mu(world: WorldState, from_d: String, to_d: String) -> int:
+	return FreightRoads.freight_room_mu(world, from_d, to_d)
+
+
+## Freight moved between two districts (and what the roads held back): trucks onto the route. Bob's market.
+static func add_freight_traffic(world: WorldState, from_d: String, to_d: String, moved_mu: int, held_mu: int = 0) -> void:
+	FreightRoads.add_freight_traffic(world, from_d, to_d, moved_mu, held_mu)
+
+
+## Can it be delivered: 0..1000 for the pair this month (FreightRoads.deliverable_pm).
+static func deliverable_pm(world: WorldState, from_d: String, to_d: String) -> int:
+	return FreightRoads.deliverable_pm(world, from_d, to_d)
+
+
+## The worst load ‰ on the road routes from a district to the others (1000 = at capacity).
+static func district_jam_pm(world: WorldState, d: String) -> int:
+	return FreightRoads.district_jam_pm(world, d)
 
 
 # ================================================================== commuting (Commuting, agreed with Bob)
@@ -1386,8 +1416,16 @@ static func traffic_fixes(world: WorldState) -> Dictionary:
 ## 6× its capacity scores 5200; a worn-out quiet track 600).
 ## Fix choice: congested → the cheapest option that brings the load to NEED_LOAD_PM or under, else the biggest
 ## capacity gain; when also worn, only an upgrade (it renews the link); worn only → REPAIR. Pure, monthly memo.
+## FREIGHT_ROADS (user via Wilma 2026-11-15, "also road expansions, not just quality"): congestion is judged on the
+## load projected NEED_HORIZON months ahead at the yearly trend (proj_pm, trend), a worn link's severity grows with its
+## load, and pairs of districts joined only the long way round are needs of their own: key "PAIR:<a>><b>", why
+## DETOUR, fix NEW_LINK (road_km, new_km, trips). Every need carries "options": all the ways to relieve it
+## (_need_options), flag or not. Without the flag: proj_pm = load_pm, trend 0, no DETOUR needs, severity as before.
 const NEED_LOAD_PM := 800
 const NEED_COND := 600
+const NEED_HORIZON := 18
+const NEED_TYPE := {"REPAIR": "REPAIR", "ROAD": "UPGRADE", "PAVE": "UPGRADE", "LANES_2": "WIDEN", "BRIDGE_2": "WIDEN",
+	"PRIORITY": "WIDEN", "ROUNDABOUT": "WIDEN", "SIGNALS": "WIDEN", "BYPASS": "NEW", "NEW_LINK": "NEW"}
 
 
 static func road_needs(world: WorldState) -> Array:
@@ -1399,14 +1437,26 @@ static func _road_needs(world: WorldState) -> Array:
 	var fixes := traffic_fixes(world)
 	var setl := ColonyLayout.settlements(world)
 	var links := _links(world)
+	var fr := FreightRoads.on(world)
+	var dets := FreightRoads.detours(world)
+	var det_by := {}   # a link or junction on a detour route -> the detours through it
+	for dt in dets:
+		for id in dt["items"]:
+			if not det_by.has(id):
+				det_by[id] = []
+			det_by[id].append(dt)
 	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1:
 			continue
-		var cap := maxi(1, link_capacity(l))
-		var lpm := traffic_load(l) * 1000 / cap
+		var cap := maxi(1, link_capacity(l, world))
+		var load := traffic_load(l)
+		var lpm := load * 1000 / cap
+		var proj := _projected(l, load) if fr else load
+		var ppm := proj * 1000 / cap
+		var lpe := maxi(lpm, ppm)   # the load the fix must cure: projected over NEED_HORIZON with FREIGHT_ROADS
 		var cond := int(l["cond"])
-		var congested := lpm > NEED_LOAD_PM
+		var congested := lpe > NEED_LOAD_PM
 		var worn := cond < NEED_COND
 		if not congested and not worn:
 			continue
@@ -1414,7 +1464,7 @@ static func _road_needs(world: WorldState) -> Array:
 		if congested:
 			var opts: Array = fixes.get("LINK:" + lid, {}).get("options", []).filter(func(o):
 				return o["fix"] != "BYPASS" and (not worn or o["fix"] in ["ROAD", "PAVE"]))
-			opt = _cheapest_cure(opts, lpm)
+			opt = _cheapest_cure(opts, lpe)
 		if opt.is_empty() and worn:
 			var spec := {"repair": lid}
 			var plan := plan_link(world, spec)
@@ -1422,24 +1472,88 @@ static func _road_needs(world: WorldState) -> Array:
 				opt = {"fix": "REPAIR", "spec": spec, "cost": int(plan["cost"]), "months": int(plan["months"])}
 		if opt.is_empty():
 			continue
+		var options := _need_options(world, "LINK:" + lid, l, maxi(load, proj), cap, fixes, det_by.get(lid, []))
 		var mid := int_tile(int(l["path"][l["path"].size() / 2]))
+		var worn_sev := maxi(0, NEED_COND - cond)
+		if fr:   # a worn link that is busy goes first: a quiet one counts half, one at capacity double
+			worn_sev = worn_sev * (500 + mini(lpm, 1500)) / 1000
 		out.append({"key": "LINK:" + lid, "district": _district_near(setl, mid), "why": "BOTH" if congested and worn else ("CONGESTED" if congested else "WORN"),
-			"load_pm": lpm, "cond": cond, "fix": String(opt["fix"]), "spec": opt["spec"], "cost": int(opt["cost"]), "months": int(opt["months"]),
-			"severity": maxi(0, lpm - NEED_LOAD_PM) + maxi(0, NEED_COND - cond)})
+			"load_pm": lpm, "proj_pm": ppm, "trend": FreightRoads.trend(l) if fr else 0, "cond": cond, "fix": String(opt["fix"]), "spec": opt["spec"],
+			"cost": int(opt["cost"]), "months": int(opt["months"]), "severity": maxi(0, lpe - NEED_LOAD_PM) + worn_sev, "options": options})
 	var jt := junctions(world)
 	for jid in EconUtil.sorted_keys(jt):
 		var j: Dictionary = jt[jid]
-		var lpm2 := traffic_load(j) * 1000 / maxi(1, junction_capacity(world, j))
-		if lpm2 <= NEED_LOAD_PM:
+		var cap2 := maxi(1, junction_capacity(world, j))
+		var load2 := traffic_load(j)
+		var proj2 := _projected(j, load2) if fr else load2
+		var lpm2 := load2 * 1000 / cap2
+		var ppm2 := proj2 * 1000 / cap2
+		var lpe2 := maxi(lpm2, ppm2)
+		if lpe2 <= NEED_LOAD_PM:
 			continue
-		var opt2 := _cheapest_cure(fixes.get("NODE:" + jid, {}).get("options", []), lpm2)
+		var opt2 := _cheapest_cure(fixes.get("NODE:" + jid, {}).get("options", []), lpe2)
 		if opt2.is_empty():
 			continue
 		out.append({"key": "NODE:" + jid, "district": _district_near(setl, int_tile(int(j["tile"]))), "why": "CONGESTED", "load_pm": lpm2,
-			"cond": 1000, "fix": String(opt2["fix"]), "spec": opt2["spec"], "cost": int(opt2["cost"]), "months": int(opt2["months"]),
-			"severity": lpm2 - NEED_LOAD_PM})
+			"proj_pm": ppm2, "trend": FreightRoads.trend(j) if fr else 0, "cond": 1000, "fix": String(opt2["fix"]), "spec": opt2["spec"],
+			"cost": int(opt2["cost"]), "months": int(opt2["months"]), "severity": lpe2 - NEED_LOAD_PM,
+			"options": _need_options(world, "NODE:" + jid, j, maxi(load2, proj2), cap2, fixes, det_by.get(jid, []))})
+	for dt in dets:   # FREIGHT_ROADS: two districts joined only the long way round
+		var saved := (int(dt["road_km"]) - int(dt["new_km"])) * 1000 / maxi(1, int(dt["road_km"]))
+		var sev := maxi(0, saved - FreightRoads.DETOUR_SAVE_PM) * mini(int(dt["trips"]), 1500) / 500
+		if sev <= 0:
+			continue
+		var worst := 0
+		for id in dt["items"]:
+			worst = maxi(worst, FreightRoads.load_pm(world, String(id)))
+		var o := _detour_option(dt, 0, 1)
+		out.append({"key": "PAIR:%s>%s" % [dt["a"], dt["b"]], "district": String(dt["a"]), "why": "DETOUR", "load_pm": worst, "proj_pm": worst,
+			"trend": 0, "cond": 1000, "fix": "NEW_LINK", "spec": o["spec"], "cost": int(o["cost"]), "months": int(o["months"]), "severity": sev,
+			"options": [o], "road_km": int(dt["road_km"]), "new_km": int(dt["new_km"]), "trips": int(dt["trips"])})
 	out.sort_custom(func(a, b): return int(a["severity"]) > int(b["severity"]) or (a["severity"] == b["severity"] and String(a["key"]) < String(b["key"])))
 	return out
+
+
+## Load in NEED_HORIZON months at the link's or junction's yearly trend (FreightRoads.trend).
+static func _projected(x: Dictionary, load: int) -> int:
+	return load + FreightRoads.trend(x) * NEED_HORIZON / 12
+
+
+## Every way to relieve one link or junction, for the government to choose: repair, upgrade, widen (a lane, a second
+## bridge, a bigger junction) or build new (a bypass; a link between two districts joined the long way round).
+## → [{fix, type: REPAIR|UPGRADE|WIDEN|NEW, spec, cost, months, cap_pm (capacity after ÷ before ‰), load_after_pm,
+## relief_pm (load_pm − load_after_pm)}], cheapest first. load: the load to relieve (projected with FREIGHT_ROADS).
+static func _need_options(world: WorldState, key: String, x: Dictionary, load: int, cap: int, fixes: Dictionary, dets: Array) -> Array:
+	var out: Array = []
+	var lpm := load * 1000 / maxi(1, cap)
+	for o in fixes.get(key, {}).get("options", []):
+		var cap_pm := int(o["cap_pm"])
+		var after := lpm * 1000 / maxi(1, cap_pm)
+		out.append({"fix": String(o["fix"]), "type": String(NEED_TYPE.get(String(o["fix"]), "WIDEN")), "spec": o["spec"], "cost": int(o["cost"]),
+			"months": int(o["months"]), "cap_pm": cap_pm, "load_after_pm": after, "relief_pm": lpm - after})
+	if key.begins_with("LINK:") and int(x.get("cond", 1000)) < 950:
+		var spec := {"repair": String(x["id"])}
+		var plan := plan_link(world, spec)
+		if plan["ok"]:
+			var fresh := x.duplicate()
+			fresh["cond"] = 1000
+			var cap_pm2 := link_capacity(fresh, world) * 1000 / maxi(1, cap)
+			var after2 := lpm * 1000 / maxi(1, cap_pm2)
+			out.append({"fix": "REPAIR", "type": "REPAIR", "spec": spec, "cost": int(plan["cost"]), "months": int(plan["months"]),
+				"cap_pm": cap_pm2, "load_after_pm": after2, "relief_pm": lpm - after2})
+	for dt in dets:
+		out.append(_detour_option(dt, load, cap))
+	out.sort_custom(func(a, b): return int(a["cost"]) < int(b["cost"]) or (a["cost"] == b["cost"] and String(a["fix"]) < String(b["fix"])))
+	return out
+
+
+## A new link between two districts as an option: the pair's traffic leaves the old route.
+static func _detour_option(dt: Dictionary, load: int, cap: int) -> Dictionary:
+	var lpm := load * 1000 / maxi(1, cap)
+	var after := maxi(0, load - int(dt["trips"])) * 1000 / maxi(1, cap)
+	return {"fix": "NEW_LINK", "type": "NEW", "spec": (dt["spec"] as Dictionary).duplicate(), "cost": int(dt["cost"]), "months": int(dt["months"]),
+		"cap_pm": 1000, "load_after_pm": after, "relief_pm": lpm - after, "pair": [dt["a"], dt["b"]], "road_km": int(dt["road_km"]),
+		"new_km": int(dt["new_km"])}
 
 
 ## The cheapest option whose capacity brings load_pm to NEED_LOAD_PM or under; else the one with the biggest gain.
@@ -1493,7 +1607,7 @@ static func _traffic_fixes(world: WorldState) -> Dictionary:
 			var spec := {"a": int(l["path"][0]), "b": int(l["path"][-1]), "kind": "ROAD", "avoid": lid}
 			var plan := plan_link(world, spec)
 			if plan["ok"]:
-				var cap0 := link_capacity(l)
+				var cap0 := link_capacity(l, world)
 				opts.append({"fix": "BYPASS", "cost": int(plan["cost"]), "months": int(plan["months"]),
 					"cap_pm": (cap0 + int(CAPACITY["ROAD"])) * 1000 / maxi(1, cap0), "acc_pm": 600, "spec": spec})
 		opts = opts.filter(func(o): return not o.is_empty())
@@ -1525,7 +1639,7 @@ static func _fix_option(world: WorldState, fix: String, spec: Dictionary, l: Dic
 	var after := l.duplicate(true)
 	change.call(after)
 	return {"fix": fix, "cost": int(plan["cost"]), "months": int(plan["months"]),
-		"cap_pm": link_capacity(after) * 1000 / maxi(1, link_capacity(l)), "acc_pm": acc_pm, "spec": spec}
+		"cap_pm": link_capacity(after, world) * 1000 / maxi(1, link_capacity(l, world)), "acc_pm": acc_pm, "spec": spec}
 
 
 

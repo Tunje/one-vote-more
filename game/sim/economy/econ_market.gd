@@ -161,6 +161,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 	var good: String = bid["good"]
 	var cta := EconFinance.org_by_key(world, "CTA")
 	var credit := EconCredit.active(world)
+	var roads: bool = (world.meta.get("on", []) as Array).has("FREIGHT_ROADS")
 	var ranked := offers.duplicate()
 	ranked.sort_custom(func(a, b):
 		var pa: int = a["ask"] + EconUtil.hops(a["district"], bid["district"]) * tariff
@@ -214,6 +215,18 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 				var dd: Dictionary = s["freight_deferred"]
 				dd[bid["district"]] = dd.get(bid["district"], 0) + left
 				break
+			if roads:
+				# FREIGHT_ROADS (Terra): the road route's room this month; what the roads can't carry waits like freight
+				var room := Transport.freight_room_mu(world, o["district"], bid["district"])
+				if take > room:
+					# road room is per route: what this route can't carry is held on it (Terra's held_mu, R8's held-by-roads),
+					# and the buyer goes on to other districts' offers (the depot cap above is colony-wide, the roads are not)
+					var cut := take - room
+					Transport.add_freight_traffic(world, o["district"], bid["district"], 0, cut)
+					EconRules.note_held(world, good, o["district"], bid["district"], cut, true)
+					take = room
+					if take <= 0:
+						continue
 		var cash := world.ledger.balance(bid["acct"])
 		var unit_pay := unit
 		if bid["kind"] == "hh":
@@ -247,6 +260,8 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 		if h > 0:
 			s["freight_used"] += take * h  # trucks are used however the freight is paid (fix: on-account trade was not counted)
 			EconRules.note_move(world, o["district"], bid["district"], take)  # R8 (opt-in)
+			if roads:
+				Transport.add_freight_traffic(world, o["district"], bid["district"], take, 0)
 		var wac := EconUtil.inv_wac(world, o["seller"], good, o["district"])
 		if o["seller"] == "origin":
 			EconUtil.qflow(world, good, "imported", take)  # backstop cargo, paid to the origin (EXTERNAL)
