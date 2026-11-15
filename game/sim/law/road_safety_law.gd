@@ -185,11 +185,15 @@ static func exempt(world: WorldState, lid: String, by: String) -> void:
 			"decided_by": "MINISTER"})
 
 
-## The government declined a limit on this road in the last DECLINED_MONTHS: its SPEED_LIMIT case answered WAIT.
+## The government declined a limit on this road in the last DECLINED_MONTHS: its SPEED_LIMIT case answered WAIT, on the
+## desk (an office item) or by the minister at "make the call" (fact POL_CASE_CALLED).
 static func declined(world: WorldState, lid: String) -> bool:
 	for o in world.peek("office_item").values():
 		if String(o.get("source", {}).get("ref", "")) == "SAFE_LIMIT|" + lid and String(o.get("answer", "")) == "WAIT" \
 				and world.month - int(o.get("answered_month", -9999)) <= DECLINED_MONTHS:
+			return true
+	for f in Det.recent_facts(world, "POL_CASE_CALLED", world.month - DECLINED_MONTHS):   # decided at "make the call" (Maja)
+		if String(f["data"].get("ref", "")) == "SAFE_LIMIT|" + lid and String(f["data"].get("answer", "")) == "WAIT":
 			return true
 	return false
 

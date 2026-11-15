@@ -200,3 +200,15 @@ func test_a_neglected_private_road() -> void:
 	check(f.size() == 1 and f[0]["responsible"].size() == 1, "the owner's alone")
 	var c := _cases_for(w, a)
 	check(c.size() == 1 and String(c[0]["respondent"]["id"]) == "org:x" and float(c[0]["data"]["gov_share"]) == 0.0, "the owner pays")
+
+
+func test_a_limit_declined_at_make_the_call() -> void:
+	var w := _game().world
+	var lid := _fast_home_road(w)
+	check(not SL.declined(w, lid), "nothing declined yet")
+	w.add_fact({"type": "POL_CASE_CALLED", "owner": "pol", "subjects": [], "responsible": [], "impact": {}, "magnitude": 5,
+		"visibility": "OFFICIAL", "data": {"ref": "SAFE_LIMIT|" + lid, "type": "SPEED_LIMIT", "answer": "WAIT", "role": "ENGINEER", "person": ""}})
+	check(SL.declined(w, lid), "the minister's call to wait counts")
+	_accident(w, lid, "", false, 1)
+	SL.justice(w)
+	check_eq(w.facts.query("LAW_ROAD_DEATH_LIMIT_DECLINED").size(), 1, "and a death then is the government's")
