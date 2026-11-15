@@ -10,8 +10,12 @@ func _init() -> void:
 	var a := OS.get_cmdline_user_args()
 	var sim: Simulation = EconSim.make(int(a[0]), "BALANCED", {}, true)
 	var w := sim.world
+	var locks := {}
 	if a[2] != "base":
 		for fl in a[2].split(","):
+			if fl.contains("="):
+				locks[fl.split("=")[0]] = int(fl.split("=")[1])  # a lever forced every month (arms independent of government)
+				continue
 			if fl.begins_with("-"):
 				(w.meta["on"] as Array).erase(fl.substr(1))
 			elif not (w.meta["on"] as Array).has(fl):
@@ -47,8 +51,102 @@ func _init() -> void:
 	var idle_bm := 0  # builder-months with no started job (since the last 5-year mark)
 	var nobid_m := 0  # tender-months with no bid (same)
 	var ent := {}  # E165 report: entrant oid → {c: plan month, o: opening month, a12/a36 alive, j12/j36 jobs}
+	var famfood := 0.0
+	var allfood := 0.0
+	var fambread := 0.0
+	var allbread := 0.0
+	var nn_m := {"F": 0, "B": 0}  # months a grant lever was above 0 with no need
+	var nn_paid := {"F": 0, "B": 0}  # grants paid in such months
+	var gn_prev := {}
+	var lev_prev := {}
+	var pm_moves := {}  # pm party → [raises, cuts] of the two grant levers
+	var gov_path := []
+	var gap_m := {"F": 0, "B": 0}  # months the colony needed it but no programme was open
+	var guard_m := {}  # month → fiscal guard on
+	var was_open := {"FAMFARM": false, "FAMBAKERY": false}
+	var opened := {"elected": 0, "founders": 0}
+	var favour := 0
+	var failed_prog := 0
+	var fact_i := 0  # highest fact id seen
+	var fxs := {"comp": 0.0, "fam": 0.0, "flour": 0.0, "margin": 0.0, "n": 0.0, "compfarms": 0.0}
 	for m in int(a[1]) * 12:
+		for lk in locks:
+			w.levers[lk] = locks[lk]
 		sim.run(1)
+		var est := EconUtil.st(w)
+		var ln: Dictionary = est.get("lever_need", {})
+		var gn: Dictionary = est.get("fam_grant_n", {})
+		var gv: Dictionary = w.table("pol")["state"].get("government", {}) if w.table("pol").has("state") else {}
+		var pmp := String(gv.get("pm_party", ""))
+		var pmd: Dictionary = w.table("party").get(pmp, {})
+		var pos: Dictionary = pmd.get("positions", {})
+		var tag := "%s(r%d,e%d)" % [String(pmd.get("name", "-")).substr(0, 10).replace(" ", "_"), int(round(float(pos.get("REDISTRIBUTION", 0.0)) / 1000.0)), int(round(float(pos.get("ECON_ROLE", 0.0)) / 1000.0))]
+		for e in [["F", "ECON_FAMILY_FARM_GRANT", "FAMFARM"], ["B", "ECON_FAMILY_BAKERY_GRANT", "FAMBAKERY"]]:
+			var lv := int(w.levers.get(e[1], 0))
+			var need := int(ln.get(e[1], 0))
+			if need > 0 and not EconFamily.prog_open(w, e[2]):
+				gap_m[e[0]] += 1
+			if lv > 0 and need <= 0:
+				nn_m[e[0]] += 1
+				if int(gn.get(e[2], 0)) > int(gn_prev.get(e[2], 0)):
+					nn_paid[e[0]] += int(gn.get(e[2], 0)) - int(gn_prev.get(e[2], 0))
+			if lev_prev.has(e[1]) and lv != int(lev_prev[e[1]]):
+				var mv: Array = pm_moves.get(tag, [0, 0])
+				mv[0 if lv > int(lev_prev[e[1]]) else 1] += 1
+				pm_moves[tag] = mv
+			lev_prev[e[1]] = lv
+		gn_prev = gn.duplicate()
+		guard_m[w.month] = Legislature.fiscal_guard(w)
+		for ft in was_open:
+			var op := EconFamily.prog_open(w, ft)
+			if op and not was_open[ft]:
+				opened["elected" if pmp != "" else "founders"] += 1
+			was_open[ft] = op
+		# only the facts added since last month (ids F<n> only grow; compaction removes old ones, so no array index)
+		var top_id := fact_i
+		var fi2 := w.facts.facts.size() - 1
+		while fi2 >= 0:
+			var fct: Dictionary = w.facts.facts[fi2]
+			var nid := int(String(fct["id"]).substr(1))
+			if nid <= fact_i:
+				break
+			top_id = maxi(top_id, nid)
+			if fct["type"] == "POL_GRANT_FAVOURITISM":
+				favour += 1
+			elif fct["type"] == "POL_GRANT_PROGRAMME_FAILED":
+				failed_prog += 1
+			fi2 -= 1
+		fact_i = top_id
+		if m >= 60:
+			fxs["n"] += 1.0
+			var ehx: Array = est.get("ess_hist", {}).get("FOOD", [])
+			fxs["margin"] += float(int(ehx[ehx.size() - 1])) if not ehx.is_empty() else 0.0
+			for fid2 in w.table("facility"):
+				var f2: Dictionary = w.table("facility")[fid2]
+				var o2 := float(int(f2.get("out_last", 0))) / 1000.0
+				if f2["type"] == "FARM":
+					fxs["comp"] += o2
+					if not f2["mothball"]:
+						fxs["compfarms"] += 1.0
+				elif f2["type"] == "FAMFARM":
+					fxs["fam"] += o2
+				elif f2["type"] in ["BAKERY", "FAMBAKERY"]:
+					var r2: Dictionary = EconData.RECIPES[f2["type"]]
+					fxs["flour"] += o2 * float(r2["in"].get("FOOD", 0)) / float(r2["out"][1])
+		if m % 12 == 11:
+			gov_path.append("%d/%d@%s" % [int(w.levers.get("ECON_FAMILY_FARM_GRANT", 0)), int(w.levers.get("ECON_FAMILY_BAKERY_GRANT", 0)), tag])
+		if m >= 60:
+			for fid in w.table("facility"):
+				var fx: Dictionary = w.table("facility")[fid]
+				var ox := float(int(fx.get("out_last", 0)))
+				if fx["type"] in ["FARM", "FAMFARM"]:
+					allfood += ox
+					if fx["type"] == "FAMFARM":
+						famfood += ox
+				elif fx["type"] in ["BAKERY", "FAMBAKERY"]:
+					allbread += ox
+					if fx["type"] == "FAMBAKERY":
+						fambread += ox
 		for bo in w.table("org"):
 			var bx: Dictionary = w.table("org")[bo]
 			if not bool(bx.get("is_contractor", false)) or bx["type"] != "PRIVATE":
@@ -266,6 +364,53 @@ func _init() -> void:
 			b_alive += 1
 	money += " cpi1 %d cpi5 %d cpi10 %d runway1 %s runway5 %s" % [int(cpi_y.get(1, 0)), int(cpi_y.get(5, 0)), int(cpi_y.get(10, 0)), str(runway_y.get(1, "")), str(runway_y.get(5, ""))]
 	money += " builders %d/%d homecap %d" % [b_alive, b_dead, int(EconUtil.st(w).get("builder_home_capital", 0)) / 1000000000]
+	var fv: Dictionary = EconFamily.view(w)
+	money += " famfarm %d/%d/%d famfood%% %d fambak %d/%d/%d fambread%% %d grant %d course %d courses %d famdark %s famfail %s" % [
+		int(fv["founded"].get("FAMFARM", 0)), int(fv["alive"].get("FAMFARM", 0)), int(fv["sold"].get("FAMFARM", 0)), int(100.0 * famfood / maxf(1.0, allfood)),
+		int(fv["founded"].get("FAMBAKERY", 0)), int(fv["alive"].get("FAMBAKERY", 0)), int(fv["sold"].get("FAMBAKERY", 0)), int(100.0 * fambread / maxf(1.0, allbread)),
+		int(fv["grant_total"]) / 1000, int(fv["course_total"]) / 1000, int(fv["courses"]), JSON.stringify(fv["dark"]).replace(" ", ""), JSON.stringify(fv["fail_found"]).replace(" ", "")]
+	var lh := []
+	for e in fv["lever_hist"]:
+		lh.append("%d/%d%s%s" % [int(e[0]), int(e[1]), "F" if int(e[2]) == 1 else "", "B" if int(e[3]) == 1 else ""])
+	var pmv := []
+	for k2 in pm_moves:
+		pmv.append("%s:+%d/-%d" % [k2, pm_moves[k2][0], pm_moves[k2][1]])
+	var ph := []
+	var prog_zero := 0
+	for e in fv["prog_hist"]:
+		var bands := ""
+		if (e as Array).size() > 7:
+			for bk in EconUtil.sorted_keys(e[7]):
+				bands += "%s%d" % [String(bk), int(e[7][bk])]
+		ph.append("%s@%d:%dm/%d%%/p%d/r%d/%s/%s" % [String(e[0]).substr(3, 1), int(e[1]) / 12, int(e[2]), int(e[3]), int(e[4]), int(e[5]), "+".join((e[6] as Array).map(func(x): return String(x).replace("d:", ""))), bands])
+		if int(e[4]) == 0:
+			prog_zero += 1
+	var gb := {"n": 0, "guard": 0, "third": 0}
+	for bid in w.table("bill"):
+		var bl: Dictionary = w.table("bill")[bid]
+		var hit := false
+		for c in bl.get("clauses", []):
+			if String(c.get("lever", "")) in ["ECON_FAMILY_FARM_GRANT", "ECON_FAMILY_BAKERY_GRANT"] and int(c.get("to", 0)) > int(c.get("from", 0)):
+				hit = true
+		if hit:
+			gb["n"] += 1
+			if bool(guard_m.get(int(bl.get("month", -1)), false)):
+				gb["guard"] += 1
+			if (bl.get("clauses", []) as Array).size() >= 3:
+				gb["third"] += 1
+	var fn := maxf(1.0, fxs["n"])
+	money += " g4 opened_elected %d opened_founders %d grantbills %d guardpass %d third %d favour %d progfailed %d foodx comp %d fam %d flour %d margin %d compfarms %.1f" % [
+		opened["elected"], opened["founders"], gb["n"], gb["guard"], gb["third"], favour, failed_prog, int(fxs["comp"] / fn), int(fxs["fam"] / fn), int(fxs["flour"] / fn), int(fxs["margin"] / fn), fxs["compfarms"] / fn]
+	var fls: Dictionary = fv.get("loans", {})
+	var fam_out := 0
+	for lid in w.table("loan"):
+		if bool(w.table("loan")[lid].get("family", false)):
+			fam_out += int(w.table("loan")[lid]["principal"])
+	money += " famloans n %d amt %d paid %d behind %d defaulted %d outstanding %d bankcap %d progzero %d" % [int(fls.get("n", 0)), int(fls.get("amount", 0)) / 1000000,
+		int(fls.get("paid", 0)) / 1000000, int(fls.get("behind", 0)), int(fls.get("defaulted", 0)), fam_out / 1000000, EconBank.capital(w) / 1000000, prog_zero]
+	money += " progs %s gap F%d B%d" % [",".join(ph), gap_m["F"], gap_m["B"]]
+	money += " nneed F%d/%d B%d/%d govpath %s pmmoves %s" % [nn_m["F"], nn_paid["F"], nn_m["B"], nn_paid["B"], ",".join(gov_path), ",".join(pmv)]
+	money += " famgov farmgr %d bakgr %d levers %s" % [int(fv["grant_n"].get("FAMFARM", 0)), int(fv["grant_n"].get("FAMBAKERY", 0)), ",".join(lh)]
 	var e148 := money + (" farms %d foodpx %d foodpx_avg %d cpi_avg %d food_below_cost_m %d farm_entrants %d farm_profit12 %d" % [farms, 100 * int(EconUtil.st(w)["prices"]["FOOD"]) / (EconData.BASE_PRICE["FOOD"] * EconUtil.S), int(px_sum / maxf(1.0, float(px_n))), int(cpi_sum / maxf(1.0, float(px_n))), below_m, farm_entrants(w), farm_profit(w)]) + " idle %d swings %d runway %.1f inv %d overdue %d invw %d" % [1000 * idle_n / maxi(1, plant_n), swings, runway_sum / maxf(1.0, float(n)), int(cv["open"]) / 1000, int(cv["overdue"]) / 1000, int(cv["written_ytd"]) / 1000]
 	var extra := e148 + " bak %d bakmonths %d baku %d staple %d privff %d raw %d" % [bak_now, bak_m, bak_u / maxi(1, bak_m), 1000 * st_g / maxi(1, st_w), 100 * ffp / maxi(1, ffa), raw_sum / maxi(1, n)]
 	var s2 := EconUtil.st(w)
