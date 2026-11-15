@@ -272,10 +272,18 @@ func _update_opinion(world: WorldState, st: Dictionary) -> void:
 			perf += float(cell["salience"][c]) * sv / 1000.0
 		var hist: Array = cell["perf_hist"]
 		var trend := perf - float(hist[0]) if hist.size() >= 12 else 0.0
-		if trend > 0.0:   # v9 review (Ella's A/B): credit only new highs; climbing back to where you were is no gain (losses as before)
-			trend = maxf(0.0, perf - float(hist.max()))
-		if trend < 0.0:
-			trend *= 1.5  # bad news travels faster
+		if (world.meta.get("on", []) as Array).has("TREND2"):
+			# TREND2 (v11, Ella's A/B planning/ab-incumbent.md): only a move out of the year's range registers, a new
+			# 12-month high or a new 12-month low; wobble inside the range counts as nothing either way. Centres
+			# approval near 50 over a century (-2 instead of -12) and keeps the first elections under 42 %.
+			trend = 0.0
+			if hist.size() >= 12:
+				trend = maxf(0.0, perf - float(hist.max())) + minf(0.0, perf - float(hist.min()))
+		else:
+			if trend > 0.0:   # v9 review (Ella's A/B): credit only new highs; climbing back to where you were is no gain (losses as before)
+				trend = maxf(0.0, perf - float(hist.max()))
+			if trend < 0.0:
+				trend *= 1.5  # bad news travels faster
 		hist.append(int(perf))
 		if hist.size() > 12:
 			hist.pop_front()
@@ -545,6 +553,11 @@ func _active_parties(world: WorldState) -> Array:
 
 
 ## Government share used for retrospective voting. In the founding era the commander's record is the player party's.
+## Cost of ruling per year in office (utility): RULE_COST3 (opt-in, v11) halves the wear.
+static func _rule_cost(world: WorldState) -> float:
+	return PolDefs.COST_OF_RULING_V11 if (world.meta.get("on", []) as Array).has("RULE_COST3") else PolDefs.COST_OF_RULING_PER_YEAR
+
+
 func _gov_share(world: WorldState, st: Dictionary) -> Dictionary:
 	var out := {}
 	var gov: Dictionary = st["government"]
@@ -574,7 +587,7 @@ func vote_shares(world: WorldState, shock: Dictionary, per_cell_out: Dictionary 
 	for cell in PolVoters.all(world):
 		if cell["pop"] <= 0:
 			continue
-		var ctx := {"gov_share": gov_share, "prev_share": cell["prev_share"], "shock": shock, "tenure": st.get("tenure", {}), "campaign_u": Campaign.voter_utility(campaign, cell), "endorse": PartyLife.endorsement_bonus(cell, endorse)}
+		var ctx := {"gov_share": gov_share, "prev_share": cell["prev_share"], "shock": shock, "tenure": st.get("tenure", {}), "rule_cost": _rule_cost(world), "campaign_u": Campaign.voter_utility(campaign, cell), "endorse": PartyLife.endorsement_bonus(cell, endorse)}
 		var probs := VoteModel.probabilities(cell, parties, ctx)
 		var t := VoteModel.turnout(cell, parties)
 		per_cell_out[cell["key"]] = probs

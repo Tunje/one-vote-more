@@ -210,6 +210,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	elif martyrs(world).values().any(func(m): return int(m["at"]) == world.month):
 		_replan_tone(world, st, c)   # an order to arrest an opponent came out: the victim turns on the jailers
 	_persecution(world, st, c)
+	_questioned(world, c)
 	var spend := _spend(world, c, to_go, seg)
 	_ads(world, c, seg, spend)
 	_ground(world, c, spend)
@@ -394,7 +395,9 @@ static func pick_target(world: WorldState, st: Dictionary, p: Dictionary) -> Str
 	var members: Array = gov.get("members", [])
 	var pm := String(gov.get("pm_party", ""))
 	var base := ""
-	if pm != "" and not members.has(p["id"]) and world.peek("party").has(pm) and world.peek("party")[pm]["status"] == "ACTIVE":
+	if Rivalry.on(world):
+		base = _rival_target(world, p, members, pm)
+	elif pm != "" and not members.has(p["id"]) and world.peek("party").has(pm) and world.peek("party")[pm]["status"] == "ACTIVE":
 		base = pm
 	else:
 		var best_s := -1
@@ -421,6 +424,32 @@ static func pick_target(world: WorldState, st: Dictionary, p: Dictionary) -> Str
 		var sc := SCANDAL_TARGET_W * float(heat[qid])
 		if sc > best_score:
 			best_score = sc
+			best = qid
+	return best
+
+
+## RIVALRY (user 2026-11-15): aim at the party we are most at odds with (Rivalry.score: opposite positions plus grudges),
+## in or out of government. A party with no seats and under RIVAL_FLOOR support is not worth a campaign's fire.
+const RIVAL_PM_BONUS := 0.0   # A/B: even 0.1 sends 60% of the opposition's fire back at the governing party
+const RIVAL_FLOOR := 2000    # support per 100000, same bar as a place on the debate stage
+
+
+static func _rival_target(world: WorldState, p: Dictionary, members: Array, pm: String) -> String:
+	var pid := String(p["id"])
+	var mine := members.has(pid)
+	var best := ""
+	var best_s := -1.0
+	for q in PartyLife.active(world):
+		var qid := String(q["id"])
+		if qid == pid or (mine and members.has(qid)):
+			continue
+		if int(q.get("seats", 0)) <= 0 and int(q.get("support", 0)) < RIVAL_FLOOR:
+			continue
+		var s := float(Rivalry.score(world, pid, qid)) / 1000.0
+		if qid == pm and not mine:
+			s += RIVAL_PM_BONUS
+		if s > best_s:
+			best_s = s
 			best = qid
 	return best
 
@@ -957,6 +986,32 @@ static func _martyr_theme(world: WorldState, e: Dictionary, pid: String) -> void
 ## Campaign month: a detention now is an allegation of persecution (news + a small bump), a leader in a cell
 ## sends statements (a trickle), and a revealed order is a martyr story: sympathy every month by heat, a jolt
 ## in the month it comes out. Told once per campaign per order (POL_MARTYR_CAMPAIGN).
+## RIVALRY: an opposition party questioned a government decision this month (Rivalry, POL_DECISION_QUESTIONED). In a
+## campaign it lands when the decision was a bad one (favouritism, a failed programme, a patched road, an outcry):
+## momentum for the questioner, a smaller cost for the First Minister's party. Carping at an ordinary decision costs a little.
+const QUESTION_LINE := 40
+const QUESTION_HIT := -20
+const QUESTION_CARP := -10
+const QUESTION_BAD := ["POL_ROAD_PATCHED", "POL_GRANT_FAVOURITISM", "POL_GRANT_PROGRAMME_FAILED", "POL_WILDLIFE_OUTCRY", "POL_BIRDS_MISSED"]
+
+
+static func _questioned(world: WorldState, c: Dictionary) -> void:
+	if not Rivalry.on(world):
+		return
+	for f in world.facts.query("POL_DECISION_QUESTIONED", world.month, world.month):
+		var d: Dictionary = f.get("data", {})
+		var by := String(d.get("by", ""))
+		var against := String(d.get("against", ""))
+		if not c["parties"].has(by):
+			continue
+		if String(d.get("about", "")) in QUESTION_BAD:
+			_momentum(c, by, QUESTION_LINE)
+			if c["parties"].has(against):
+				_momentum(c, against, QUESTION_HIT)
+		else:
+			_momentum(c, by, QUESTION_CARP)
+
+
 static func _persecution(world: WorldState, st: Dictionary, c: Dictionary) -> void:
 	if EconUtil.off(world, "MARTYR"):
 		return
@@ -1224,6 +1279,7 @@ static func release(world: WorldState, c: Dictionary, pid: String, d: Dictionary
 		if not tl.is_empty():
 			tl["popularity"] = clampi(int(tl["popularity"]) - int(d["sev"]) / 3, 0, 100)
 	_momentum(c, tgt, -int(d["sev"]) * 5)
+	Rivalry.on_attack(world, pid, tgt, float(d["sev"]) / 50.0)
 	if seg.is_empty():
 		seg = segments(world)
 	_backfire(c, pid, seg, float(d["sev"]) * 0.5 * _total_pop(seg))

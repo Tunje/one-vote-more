@@ -88,6 +88,7 @@ const ELECTION_SHOCK_SD := 0.15  # per-party utility shock on election day
 const POLL_MOE_DEFAULT := 3.0    # percentage points (staff quality overrides; spec-staff S6)
 const BASE_TURNOUT := 0.78   # recalibrated: 100-year chronicles reached ~92% overall (2nd analysis)
 const COST_OF_RULING_PER_YEAR := 0.06   # utility per year in government (~3 pts per term)
+const COST_OF_RULING_V11 := 0.03   # RULE_COST3 (opt-in, v11; Ella's A/B planning/ab-incumbent.md): half the wear
 const COST_OF_RULING_CAP := 0.5
 const BETA_LEADER := 0.35            # leader popularity (0..100, 50 neutral) -> utility (M9)
 const SOCIAL_INFLUENCE := 0.005       # monthly pull of a cell toward its district mean (M9)

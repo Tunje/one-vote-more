@@ -42,7 +42,7 @@ static func utility(cell: Dictionary, party: Dictionary, ctx: Dictionary) -> flo
 	# Cost of ruling: every year in office wears a governing party down (capped).
 	var tenure_m: int = int(ctx.get("tenure", {}).get(pid, 0))
 	if tenure_m > 0:
-		u -= minf(PolDefs.COST_OF_RULING_CAP, PolDefs.COST_OF_RULING_PER_YEAR * float(tenure_m) / 12.0)
+		u -= minf(PolDefs.COST_OF_RULING_CAP, float(ctx.get("rule_cost", PolDefs.COST_OF_RULING_PER_YEAR)) * float(tenure_m) / 12.0)
 	# issue ownership: parties "own" concerns; matters more when the concern is unmet
 	var own: Dictionary = party.get("ownership", {})
 	var o := 0.0

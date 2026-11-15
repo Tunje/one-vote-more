@@ -85,6 +85,14 @@ static func main_rival(world: WorldState, a: String) -> String:
 	return "" if r.is_empty() or int(r[0][1]) <= 0 else String(r[0][0])
 
 
+## Released dirt (Campaign.release): the target holds it against the attacker. weight 1 = a typical (severity 50) story.
+const G_ATTACKED := 30
+static func on_attack(world: WorldState, attacker: String, target: String, weight: float) -> void:
+	if not on(world):
+		return
+	_add(world.table("pol")["state"], target, attacker, int(round(float(G_ATTACKED) * weight)))
+
+
 static func _add(st: Dictionary, a: String, b: String, by: int) -> void:
 	if a == b or a == "" or b == "":
 		return
