@@ -172,6 +172,96 @@ static func release_all(world: WorldState, org_id: String, ftype: String, staff:
 	return n
 
 
+# ======================================================================= violent deaths (Terra's wildlife attacks, ECO)
+
+## Plants whose crews work outdoors: an attack in the district takes their workers first.
+const OUTDOOR_TYPES := ["FARM", "FAMFARM", "MINE"]
+
+
+## Kills up to n people of `district` in an attack (Terra, ecology stage 2) and keeps jobs = people: a killed worker's
+## job slot leaves the facility's staff. Order: the workers of facility `fid` (if given); with where == "OUTDOOR" the
+## workers of the district's outdoor plants; then adults without a job (unemployed, not in the labour force, retired);
+## then the district's other workers; then children. Returns the number killed (the caller emits the fact).
+static func casualties(world: WorldState, district: String, n: int, where: String = "", fid: String = "") -> int:
+	if n <= 0:
+		return 0
+	var killed := 0
+	if fid != "" and world.table("facility").has(fid):
+		killed += _kill_staff(world, world.table("facility")[fid], n - killed)
+	if killed < n and where == "OUTDOOR":
+		for f_id in EconUtil.sorted_keys(world.table("facility")):
+			var f: Dictionary = world.table("facility")[f_id]
+			if killed >= n:
+				break
+			if f["district"] == district and f["type"] in OUTDOOR_TYPES:
+				killed += _kill_staff(world, f, n - killed)
+	var hb := hb_of(district)
+	for st in ["UNEMPLOYED", "NOT_IN_LF", "RETIRED"]:
+		if killed >= n:
+			break
+		killed += _kill_residents(world, {"hb": hb, "status": st}, n - killed)
+	if killed < n:
+		for f_id in EconUtil.sorted_keys(world.table("facility")):
+			var f: Dictionary = world.table("facility")[f_id]
+			if killed >= n:
+				break
+			if f["district"] == district:
+				killed += _kill_staff(world, f, n - killed)
+	if killed < n:
+		killed += _kill_residents(world, {"hb": hb, "status": "CHILD"}, n - killed)
+	if killed > 0:
+		sync(world)
+		var s := EconUtil.st(world)
+		s["violent_deaths"] = int(s.get("violent_deaths", 0)) + killed
+	return killed
+
+
+## Up to n of a facility's workers die: their job slots leave its staff, the people leave the population.
+static func _kill_staff(world: WorldState, f: Dictionary, n: int) -> int:
+	var killed := 0
+	for t in ["G", "S", "Sp"]:
+		while killed < n and EconLabor.tier_total(f["staff"], t) >= S:
+			var cut := remove_staff(f["staff"], t, 1)
+			if cut.is_empty():
+				break
+			var occ := person_occ(world, f["org"], f["type"], t)
+			for k in EconUtil.sorted_keys(cut):
+				var p := lab_parts(k)
+				if _kill_one(world, {"hb": p[0], "status": "EMPLOYED", "occ": occ}, p[1]):
+					killed += 1
+				else:
+					_mismatch(world, "casualty %s %s %s: no employed person found" % [p[0], occ, p[1]])
+	return killed
+
+
+static func _kill_residents(world: WorldState, filter: Dictionary, n: int) -> int:
+	var killed := 0
+	while killed < n:
+		var keys := PopStore.select(world, filter)
+		keys.sort()
+		var hit := false
+		for k in keys:
+			if int(world.peek("pop")[k]["n"]) > 0:
+				PopStore.death(world, k, 1)
+				killed += 1
+				hit = true
+				break
+		if not hit:
+			break
+	return killed
+
+
+## One person of `skill` matching `filter` dies (the first leaf, in key order). False when there is none.
+static func _kill_one(world: WorldState, filter: Dictionary, skill: String) -> bool:
+	var keys := PopStore.select(world, filter)
+	keys.sort()
+	for k in keys:
+		if int(world.peek("pop")[k]["skill"].get(skill, 0)) > 0:
+			PopStore.death(world, k, 1, {"skill": skill})
+			return true
+	return false
+
+
 static func _mismatch(world: WorldState, msg: String) -> void:
 	var s := EconUtil.st(world)
 	var m: Array = s.get("pop_mismatch", [])

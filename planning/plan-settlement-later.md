@@ -26,6 +26,15 @@ planned for later, also with this huge a map we might have to go into planning o
   services to new villages; whether districts follow settlements; how planning law and the parties come into it
   (growth against protection, centre against outskirts).
 
+## 3. Land-use rules per hex
+User, 2026-11-15: "This could lead to governments locking out certain types of building in some hexes, like we have
+agricultural land in real life."
+- A government could reserve a hex for farming, for nature, or for housing and industry, and forbid other building
+  there, as real zoning and protected farmland do.
+- Questions for when this is taken up: who sets it (law, so Anni's area) and at what level; what happens to buildings
+  already there; whether owners are compensated; how parties split (planet-first and farmers against developers and
+  industry); whether it can be bent for favoured firms, and what that costs politically when it comes out.
+
 ## Connects to
 - Terra's ecology and food pyramid (opt-in ECO), her planet map, transport and road needs.
 - Family farms and bakeries (E160/E162), six family farms to a plot, neighbourhood bakeries placed by demand.
