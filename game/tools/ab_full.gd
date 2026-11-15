@@ -44,6 +44,7 @@ func _init() -> void:
 	var px_sum := 0.0
 	var cpi_sum := 0.0
 	var px_n := 0
+	var fr := {"cap": 0, "used": 0, "def": 0, "full": 0, "n": 0}
 	var below_m := 0
 	var bld_y := []  # builders every 5 years: alive/crew/waiting tenders/mean wait months
 	var bld_last := {}  # builder oid → [rev12, wages12, contracts] at its last live month
@@ -238,6 +239,14 @@ func _init() -> void:
 			px_sum += 100.0 * float(int(EconUtil.st(w)["prices"]["FOOD"])) / float(EconData.BASE_PRICE["FOOD"] * EconUtil.S)
 			cpi_sum += float(int(EconUtil.st(w).get("cpi", 0))) / float(EconUtil.S)
 			px_n += 1
+			var fs := EconUtil.st(w)
+			fr["cap"] += int(fs.get("freight_cap", 0))
+			fr["used"] += int(fs.get("freight_used", 0))
+			for fd in fs.get("freight_deferred", {}):
+				fr["def"] += int(fs["freight_deferred"][fd])
+			if int(fs.get("freight_cap", 0)) > 0 and int(fs.get("freight_used", 0)) * 100 >= int(fs.get("freight_cap", 0)) * 95:
+				fr["full"] += 1
+			fr["n"] += 1
 			if float(int(EconUtil.st(w)["prices"]["FOOD"])) < EconMarket._cheapest_cost(w, "FOOD"):
 				below_m += 1
 		if m == 11 or m == 59 or m == 119:
@@ -411,6 +420,16 @@ func _init() -> void:
 	money += " progs %s gap F%d B%d" % [",".join(ph), gap_m["F"], gap_m["B"]]
 	money += " nneed F%d/%d B%d/%d govpath %s pmmoves %s" % [nn_m["F"], nn_paid["F"], nn_m["B"], nn_paid["B"], ",".join(gov_path), ",".join(pmv)]
 	money += " famgov farmgr %d bakgr %d levers %s" % [int(fv["grant_n"].get("FAMFARM", 0)), int(fv["grant_n"].get("FAMBAKERY", 0)), ",".join(lh)]
+	var dep_n := 0
+	var dep_sc := 0
+	for fdx in w.table("facility"):
+		var ffx: Dictionary = w.table("facility")[fdx]
+		if ffx["type"] == "DEPOT" and not ffx["mothball"]:
+			dep_n += 1
+			dep_sc += int(ffx.get("scale", 1000))
+	var fra: Array = EconUtil.st(w).get("r8_fr_actions", [])
+	money += " freight cap %d used %d deferred %d full_m %d depots %d scale %d fr_actions %d" % [fr["cap"] / 1000 / maxi(1, fr["n"]), fr["used"] / 1000 / maxi(1, fr["n"]),
+		fr["def"] / 1000 / maxi(1, fr["n"]), fr["full"], dep_n, dep_sc, fra.size()]
 	var e148 := money + (" farms %d foodpx %d foodpx_avg %d cpi_avg %d food_below_cost_m %d farm_entrants %d farm_profit12 %d" % [farms, 100 * int(EconUtil.st(w)["prices"]["FOOD"]) / (EconData.BASE_PRICE["FOOD"] * EconUtil.S), int(px_sum / maxf(1.0, float(px_n))), int(cpi_sum / maxf(1.0, float(px_n))), below_m, farm_entrants(w), farm_profit(w)]) + " idle %d swings %d runway %.1f inv %d overdue %d invw %d" % [1000 * idle_n / maxi(1, plant_n), swings, runway_sum / maxf(1.0, float(n)), int(cv["open"]) / 1000, int(cv["overdue"]) / 1000, int(cv["written_ytd"]) / 1000]
 	var extra := e148 + " bak %d bakmonths %d baku %d staple %d privff %d raw %d" % [bak_now, bak_m, bak_u / maxi(1, bak_m), 1000 * st_g / maxi(1, st_w), 100 * ffp / maxi(1, ffa), raw_sum / maxi(1, n)]
 	var s2 := EconUtil.st(w)

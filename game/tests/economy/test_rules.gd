@@ -60,3 +60,31 @@ func test_freight_held_is_measured() -> void:
 		for d in EconUtil.st(w)["r8"]["goods"][g]:
 			held += int(EconUtil.st(w)["r8"]["goods"][g][d]["hf"])
 	check(held > 0, "orders held for want of freight are counted (%d)" % held)
+
+
+## E172 rule 5: full trucks for 6 of 12 months → CTA extends a depot (an EXPAND project on a DEPOT).
+func test_freight_full_adds_capacity() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["R8", "R8_FREIGHT"]
+	sim.run(2)
+	while w.month % 3 != 2:
+		sim.run(1)
+	var s := EconUtil.st(w)
+	var full: Array = []
+	for i in 11:
+		full.append([100, 0])
+	s["r8_fr_hist"] = full
+	EconUtil.st(w)["freight_cap"] = 1000
+	EconUtil.st(w)["freight_used"] = 1000
+	w.month += 1  # the quarterly check
+	EconRules._freight_rules(w)
+	var expand := false
+	for pid in w.table("project"):
+		var p: Dictionary = w.table("project")[pid]
+		if p["type"] == "EXPAND" and w.table("facility").has(p.get("target", "")) and w.table("facility")[p["target"]]["type"] == "DEPOT":
+			expand = true
+	check(expand, "a depot extension is ordered")
+	check(not (s.get("r8_fr_actions", []) as Array).is_empty(), "the action is recorded")
+	w.month -= 1
+	check_eq(w.ledger.total(), 0, "ledger closed")

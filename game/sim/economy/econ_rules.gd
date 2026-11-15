@@ -148,6 +148,7 @@ static func monthly(world: WorldState) -> void:
 	s["r8"] = r8
 	r8["plants"] = _plants(world, goods, deliver)
 	s["r8"] = r8
+	_freight_rules(world)
 
 
 ## The road half (Terra, FREIGHT_ROADS): 1000 when the flag or the function is absent.
@@ -273,3 +274,92 @@ static func institution_needs(world: WorldState) -> Array:
 				"budget_now": budget_now / S, "budget_to_serve": to_serve / S, "plants": int(row["plants"]), "plants_open": int(row["open"]),
 				"crew_now": int(row["crew"]), "crew_to_serve": crew_to, "plants_needed": plants_needed})
 	return out
+
+
+# ------------------------------------------------------------------ R8 step 2a: freight (E172, switch R8_FREIGHT)
+## Rule 5: the transport operator (CTA) adds freight capacity when its trucks are full in FREIGHT_FULL_M of the last
+## 12 months, or when deferred freight exceeded FREIGHT_DEFER_PM ‰ of the month's trade in the last quarter: a +25%
+## extension of its smallest depot (an EXPAND project), or a new depot in the district with the most deferred freight
+## once every depot is at its largest. It borrows what its cash cannot cover. Rule 6: below FREIGHT_IDLE_PCT for
+## FREIGHT_IDLE_M months it mothballs its smallest depot (never the last). Rules 1/2 stay E150/E150B's tariff steps.
+## Rules 7/8 (a private haulier) wait for freight revenue split by depot owner (all freight pays CTA today).
+const FREIGHT_FULL_PCT := 95
+const FREIGHT_FULL_M := 6
+const FREIGHT_DEFER_PM := 50
+const FREIGHT_IDLE_PCT := 60
+const FREIGHT_IDLE_M := 12
+const DEPOT_MAX_SCALE := 3000
+
+
+static func _freight_rules(world: WorldState) -> void:
+	if not sector_on(world, "FREIGHT"):
+		return
+	var s := EconUtil.st(world)
+	var cap := int(s.get("freight_cap", 0))
+	var used := int(s.get("freight_used", 0))
+	var deferred := 0
+	for d in s.get("freight_deferred", {}):
+		deferred += int(s["freight_deferred"][d])
+	var hist: Array = s.get("r8_fr_hist", [])
+	hist.append([100 * used / maxi(1, cap), 1000 * deferred / maxi(1, used)])
+	while hist.size() > 12:
+		hist.pop_front()
+	s["r8_fr_hist"] = hist
+	if world.month % 3 != 0:
+		return
+	var cta := EconFinance.org_by_key(world, "CTA")
+	if cta == "":
+		return
+	var full := 0
+	var idle := 0
+	for h in hist:
+		if int(h[0]) >= FREIGHT_FULL_PCT:
+			full += 1
+		if int(h[0]) < FREIGHT_IDLE_PCT:
+			idle += 1
+	var defer_hi := false
+	for i in range(maxi(0, hist.size() - 3), hist.size()):
+		if int(hist[i][1]) > FREIGHT_DEFER_PM:
+			defer_hi = true
+	var depots: Array = []
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] == "DEPOT" and not f["mothball"]:
+			depots.append(fid)
+	var pending := false
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if not (p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]):
+			continue
+		if p["type"] == "DEPOT" or (p["type"] == "EXPAND" and world.table("facility").has(p.get("target", "")) and world.table("facility")[p["target"]]["type"] == "DEPOT"):
+			pending = true
+	var acts: Array = s.get("r8_fr_actions", [])
+	if (full >= FREIGHT_FULL_M or defer_hi) and not pending:
+		var smallest := ""
+		for fid in depots:
+			var sc := int(world.table("facility")[fid].get("scale", 1000))
+			if sc < DEPOT_MAX_SCALE and (smallest == "" or sc < int(world.table("facility")[smallest].get("scale", 1000))):
+				smallest = fid
+		var est := EconConstruction.estimate("DEPOT") / 4 if smallest != "" else EconConstruction.estimate("DEPOT")
+		if world.ledger.balance(EconUtil.acct(cta)) < est and not EconFinance.new_loan(world, cta, est - world.ledger.balance(EconUtil.acct(cta)), 0, true):
+			return  # no money and no bank room: the jam stays (reported)
+		if smallest != "":
+			EconConstruction.create_expansion(world, smallest, cta)
+			acts.append([world.month, "expand"])
+		else:
+			var best_d := "d:1"
+			var best_v := -1
+			for d in EconUtil.sorted_keys(s.get("freight_deferred", {})):
+				if int(s["freight_deferred"][d]) > best_v:
+					best_v = int(s["freight_deferred"][d])
+					best_d = d
+			EconConstruction.create(world, "DEPOT", best_d, cta, cta, "")
+			acts.append([world.month, "new_depot"])
+	elif idle >= FREIGHT_IDLE_M and depots.size() > 1:
+		var smallest2 := ""
+		for fid in depots:
+			if smallest2 == "" or int(world.table("facility")[fid].get("scale", 1000)) < int(world.table("facility")[smallest2].get("scale", 1000)):
+				smallest2 = fid
+		world.table("facility")[smallest2]["mothball"] = true
+		acts.append([world.month, "mothball"])
+	s["r8_fr_actions"] = acts
