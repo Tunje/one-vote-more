@@ -16,6 +16,15 @@ func phases() -> Array:
 	return [TickPhase.NATURE]
 
 
+
+## Wilma (politics): which concerns the ecology's measures feed, and how strongly (like LawData.INDICATOR_TUNING).
+## They are only written with ECO on, so a base game is unaffected.
+const ECO_CONCERNS := {
+	"PLANET_ECO_HARM": {"ENVIRONMENT_QUALITY": 0.6},
+	"PLANET_WILDLIFE_ATTACKS": {"SAFETY": 0.5},
+	"PLANET_WEB_HEALTH": {"ENVIRONMENT_QUALITY": 0.4},
+}
+
 func indicator_defs() -> Array:
 	var out: Array = []
 	for row in [
@@ -28,9 +37,9 @@ func indicator_defs() -> Array:
 		["PLANET_WILDLIFE_ATTACKS", "attacks in 12 months (milli)", [0, 100000], -1, {"good": 0, "bad": 6000}],   # ECO only
 		["PLANET_WEB_HEALTH", "weakest level ‰ (milli)", [0, 1000000], 1, {"good": 1000000, "bad": 300000}],   # ECO only
 	]:
-		# concerns stay empty for now: politics decides how much people care (Wilma)
+		# how much people care is politics' call (Wilma): the ecology's three measures reach voters; the weather ones don't yet
 		out.append({"id": row[0], "owner": OWNER, "unit": row[1], "range": row[2], "granularity": "COLONY",
-			"polarity": row[3], "concerns": {}, "normalize": row[4], "phase": TickPhase.NATURE,
+			"polarity": row[3], "concerns": ECO_CONCERNS.get(row[0], {}), "normalize": row[4], "phase": TickPhase.NATURE,
 			"visibility": "PUBLIC", "perceptionLag": 0})
 	return out
 
@@ -38,7 +47,7 @@ func indicator_defs() -> Array:
 ## ECO stage 2: how the colony treats wildlife (PlanetWildlife). Only on the table when ECO is on.
 func lever_defs() -> Array:
 	return [{"id": PlanetWildlife.POLICY_LEVER, "owner": OWNER, "type": "ENUM", "values": PlanetWildlife.POLICIES, "default": "MANAGE",
-		"legalLevel": "REGULATION", "foundingEra": "COMMANDER", "ideology": {"ENVIRONMENT": -6.0}, "concerns": {},
+		"legalLevel": "REGULATION", "foundingEra": "COMMANDER", "ideology": {"ENVIRONMENT": -6.0}, "concerns": {"SAFETY": 20, "ENVIRONMENT_QUALITY": -20},
 		"implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "fiscal": null, "domain": "ENV", "requires": ["ECO"]}]
 
 
