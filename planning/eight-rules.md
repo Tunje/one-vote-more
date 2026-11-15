@@ -160,6 +160,57 @@ The government's choosers (gov_builder) stay the government's but read the same 
 Each step: --check-only, unit tests per rule, A/B against the previous step, then on by default only after Wilma's
 review.
 
+## 3a. Addendum: answers to Wilma's review (2026-11-15)
+
+**1. Prices: one price per good per district.**
+- **What replaces the colony price:** each good gets a district price, s.prices_d[good][district], as services
+  already have. Rules 1 and 2 run per district on that district's reachable shortage and cover.
+- **How markets clear:**
+  - each district market clears its own sellers first;
+  - a buyer may buy from another district at that district's price plus freight (hops × tariff), while freight
+    capacity lasts.
+  - With trucks free, district prices stay within a freight margin of each other. With trucks full they split: bread
+    dear where it can't get through, cheap where it piles up. That gap is the signal for hauliers (freight rule 7),
+    founders (rule 7 picks the district) and producers' rule 5.
+- **The colony price stays as a derived number:** the volume-weighted average of the district prices. It's read by:
+  - **the CPI and wage indexing,** unchanged in meaning: the CPI becomes household-weighted over districts;
+    district CPIs become available as an indicator, but wages keep indexing on the colony CPI unless you decide
+    otherwise;
+  - **the charter and exports:** the home-price comparisons and _consign read the **port district's** price, since
+    that's where export goods are sold, and the quota's market value (E171) uses it too;
+  - **indicators and old code paths** that read s.prices[good] during the move: kept as the colony average, so
+    unmoved sectors see what they see today.
+- **Sellers' asks** stay the seller's small adjustment around its district price, by its own stock cover, as now.
+  They aren't the price.
+
+**2. Rule 6:** agreed. Unfilled reachable orders block a capacity cut only if they're at or above the plant's
+variable cost, the same test as rule 3. Orders below variable cost don't count anywhere in rules 3–6.
+
+**3. Rule 8 for builders and hauliers (and every sector):** added. **No new company while most incumbents in the
+sector lose money:** profit over 12 months < 0 for more than half of them, weighted by capacity. Long books or full
+trucks alone don't pull in entrants who then starve, which is what E165Q2 did. While incumbents lose money with full
+books, the signal goes to rule 1 (raise the bid margin or tariff) instead.
+
+**4. Institutions' budget request: the query.** EconRules.institution_needs(world) → one row per institution type and
+district:
+```
+{type: "CLINIC" | "SCHOOL" | "ELDERCARE" | "CHILDCARE" | "ADMIN",
+ district,
+ need,                 # clients this month (patients / pupils / cared-for people)
+ served,               # clients served at current crews
+ unmet,                # need − served
+ budget_line,          # the lever that pays for it (INSTITUTION_BUDGET / care line)
+ budget_now,           # credits a month going to this type in this district
+ budget_to_serve,      # credits a month that would serve all of the need at current wages and input prices
+ plants, plants_open,  # plants in the district, and how many are open
+ crew_now, crew_to_serve,  # posts filled now / posts needed to serve the need
+ plants_needed}        # extra plants if crew_to_serve exceeds what the open plants can hold
+```
+plus a colony total row per type. gov_builder and the legislature can read the gap (budget_to_serve − budget_now) as
+the cost of meeting need, and plants_needed as a build decision.
+
+**5.** Step 1 (signals only, base bit-identical) starts when you pass on the user's go.
+
 ## 4. The rest of the queue
 - **Absorbed into R8:** E170 (rules 7/8), E172 (freight), the order book's entry and crew rules, E168, E156.
 - **E171 (charter quota):** after step 2. It needs materials and freight to work first, because the quota competes
