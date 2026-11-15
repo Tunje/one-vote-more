@@ -311,6 +311,7 @@ static func _buy_services(world: WorldState) -> void:
 			left -= take
 			sold_d[f["district"]] = sold_d.get(f["district"], 0) + take
 			g["spent_goods"] = g.get("spent_goods", 0) + cost
+		EconRules.note_fill(world, "SERVICES", d, want, want - left)  # R8 (opt-in): service demand where the customer lives
 	for fid2 in hubs_by_d.values().reduce(func(acc, l): return acc + l, []):
 		var hf: Dictionary = world.table("facility")[fid2]
 		hf["svc_spare"] = int(hf["svc_cap"])  # E134: capacity left unsold this month (0 = sold out, demand was rationed)

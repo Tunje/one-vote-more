@@ -62,6 +62,7 @@ static func trade(world: WorldState) -> void:
 	_spoilage(world)
 	_update_prices(world)
 	_cpi(world)
+	EconRules.monthly(world)  # R8 step 1 (opt-in): the shared signals, measured only
 
 
 static func _import_arrivals(world: WorldState) -> void:
@@ -206,7 +207,9 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 		var take := mini(left, o["qty"])
 		if h > 0:
 			var fcap: int = s["freight_cap"] - s["freight_used"]
+			var before := take
 			take = mini(take, maxi(0, fcap / h))
+			EconRules.note_held(world, good, o["district"], bid["district"], before - take, false)  # R8 (opt-in)
 			if take <= 0:
 				var dd: Dictionary = s["freight_deferred"]
 				dd[bid["district"]] = dd.get(bid["district"], 0) + left
@@ -243,6 +246,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 			EconFinance.pl_add(world, cta, "rev", freight)
 		if h > 0:
 			s["freight_used"] += take * h  # trucks are used however the freight is paid (fix: on-account trade was not counted)
+			EconRules.note_move(world, o["district"], bid["district"], take)  # R8 (opt-in)
 		var wac := EconUtil.inv_wac(world, o["seller"], good, o["district"])
 		if o["seller"] == "origin":
 			EconUtil.qflow(world, good, "imported", take)  # backstop cargo, paid to the origin (EXTERNAL)
@@ -292,6 +296,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 	var ms2: Dictionary = s["market_stats"][good]
 	ms2["filled"] += got
 	ms2["wanted"] += want
+	EconRules.note_fill(world, good, bid["district"], want, got)  # R8 (opt-in)
 	var short: int = bid["qty"] - got
 	if short > 0:
 		if bid["kind"] == "hh":
