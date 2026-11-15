@@ -197,7 +197,10 @@ static func service_loans(world: WorldState) -> void:
 			l["zero_m"] = int(l.get("zero_m", 0)) + 1
 			behind += 1
 			if int(l["zero_m"]) >= LOAN_DEFAULT_M and o["status"] in ["ACTIVE", "DISTRESSED"]:
-				fl["defaulted"] = int(fl.get("defaulted", 0)) + 1
+				if not bool(l.get("defaulted", false)):
+					fl["defaulted"] = int(fl.get("defaulted", 0)) + 1  # loans in default, each counted once
+					l["defaulted"] = true
+				fl["default_events"] = int(fl.get("default_events", 0)) + 1
 				l["zero_m"] = 0
 				EconInsolvency._enter_administration(world, l["borrower"])  # has to sell: the existing failure rule
 	fl["behind"] = behind
@@ -281,9 +284,14 @@ static func _end_programme(world: WorldState, ftype: String, pr: Dictionary) -> 
 	var h: Array = s.get("fam_prog_hist", [])
 	h.append([ftype, int(pr["start"]), world.month - int(pr["start"]), int(pr["level"]), int(pr["paid"]), int(pr["refused"]), (pr["cover"] as Array).duplicate(), (pr.get("bands", {}) as Dictionary).duplicate()])
 	s["fam_prog_hist"] = h
+	var opened := 0
+	for gid2 in pr.get("grantees", []):
+		var og: Dictionary = world.table("org").get(gid2, {})
+		if not og.is_empty() and og["status"] in ["ACTIVE", "DISTRESSED"]:
+			opened += 1
 	EconFacts.emit(world, "ECON_GRANT_PROGRAMME_ENDED", "COLONY", [["GOVERNMENT", "government"]], [["GOVERNMENT", "government", 1.0]],
 		{}, 20, "PUBLIC", {"lever": lid, "type": ftype, "start": int(pr["start"]), "level": int(pr["level"]),
-		"paid": int(pr["paid"]), "refused": int(pr["refused"]), "districts": (pr["cover"] as Array).duplicate()})
+		"paid": int(pr["paid"]), "opened": opened, "refused": int(pr["refused"]), "districts": (pr["cover"] as Array).duplicate()})
 
 
 ## Some district lacks at least one family bakery's bread beyond what is open or being built (pure read).
@@ -449,6 +457,11 @@ static func _start(world: WorldState, ftype: String, d: String, gid: String, pct
 			yr.pop_front()
 		s["fam_grant_year"] = yr
 		_prog_count(world, ftype, "paid")
+		var prg: Dictionary = s.get("fam_prog", {}).get(ftype, {})
+		if not prg.is_empty():
+			var gl: Array = prg.get("grantees", [])
+			gl.append(id)
+			prg["grantees"] = gl
 		var prb: Dictionary = s.get("fam_prog", {}).get(ftype, {})
 		if not prb.is_empty():
 			var bd: Dictionary = prb.get("bands", {})
