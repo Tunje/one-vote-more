@@ -187,4 +187,4 @@ Readings:
 
 ## Still to do
 
-Housing under the eight rules (R8_HOUSING): built, A/B next.
+Housing under the eight rules: see planning/ab-r8-housing.md.

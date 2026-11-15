@@ -1266,6 +1266,9 @@ const DEV_EQUITY_PM := 100  # ‰ of the build cost a developer puts in (rental 
 static func _developers(world: WorldState) -> void:
 	if EconUtil.off(world, "E120"):
 		return
+	if EconRulesHousing.on(world):
+		EconRulesHousing.developers(world)  # R8 step 8 (opt-in R8_HOUSING, Otto): developers on rent and profit
+		return
 	var s := EconUtil.st(world)
 	var last: Dictionary = s.get("dev_last", {})
 	s["dev_last"] = last
