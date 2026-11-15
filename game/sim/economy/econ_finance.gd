@@ -597,10 +597,11 @@ static func _profit_tax_and_dividends(world: WorldState) -> void:
 			continue
 		var monthly_costs := maxi(1, _monthly_costs(o))
 		if o["type"] == "PUBLIC_ENTERPRISE":
-			var d := mini(int(after * pe_div), maxi(0, world.ledger.balance(acc) - monthly_costs))
+			var d := mini(int(after * pe_div), maxi(0, world.ledger.balance(acc) - EconPublicCo.pe_keep(world, monthly_costs)))
 			if d > 0:
 				world.ledger.transfer(acc, EconUtil.TREASURY, d, "DIVIDEND", world.month)
 				_gov_rev(world, d)
+				EconPublicCo.note_out(world, oid, d)
 		elif o["type"] == "PRIVATE" and o["owner_group"] != "" and (world.meta.get("on", []) as Array).has("PAYOUT"):
 			_payout_surplus(world, oid, o, monthly_costs)  # money-stock check: idle firm cash goes back to the owners
 		elif o["type"] == "PRIVATE" and o["owner_group"] != "":
@@ -653,6 +654,7 @@ static func _surplus_sweep(world: WorldState) -> void:
 			"PUBLIC_ENTERPRISE":
 				world.ledger.transfer(acc, EconUtil.TREASURY, amt, "PE_SURPLUS", world.month)
 				_gov_rev(world, amt)
+				EconPublicCo.note_out(world, oid, amt)
 			"PRIVATE":
 				if o["owner_group"] == "" or not world.table("hh").has(o["owner_group"]):
 					continue

@@ -37,8 +37,18 @@ func _init() -> void:
 	var runway_sum := 0.0
 	var runway_y := {}
 	var cpi_y := {}
+	var px_sum := 0.0
+	var cpi_sum := 0.0
+	var px_n := 0
+	var below_m := 0
 	for m in int(a[1]) * 12:
 		sim.run(1)
+		if m >= 60:  # Y5..end means of the food price and CPI (the end-of-run price is too noisy to compare arms)
+			px_sum += 100.0 * float(int(EconUtil.st(w)["prices"]["FOOD"])) / float(EconData.BASE_PRICE["FOOD"] * EconUtil.S)
+			cpi_sum += float(int(EconUtil.st(w).get("cpi", 0))) / float(EconUtil.S)
+			px_n += 1
+			if float(int(EconUtil.st(w)["prices"]["FOOD"])) < EconMarket._cheapest_cost(w, "FOOD"):
+				below_m += 1
 		if m == 11 or m == 59 or m == 119:
 			var yk := m / 12 + 1
 			cpi_y[yk] = int(EconUtil.st(w).get("cpi", 0)) / EconUtil.S
@@ -161,7 +171,7 @@ func _init() -> void:
 			b_alive += 1
 	money += " cpi1 %d cpi5 %d cpi10 %d runway1 %s runway5 %s" % [int(cpi_y.get(1, 0)), int(cpi_y.get(5, 0)), int(cpi_y.get(10, 0)), str(runway_y.get(1, "")), str(runway_y.get(5, ""))]
 	money += " builders %d/%d homecap %d" % [b_alive, b_dead, int(EconUtil.st(w).get("builder_home_capital", 0)) / 1000000000]
-	var e148 := money + (" farms %d foodpx %d" % [farms, 100 * int(EconUtil.st(w)["prices"]["FOOD"]) / (EconData.BASE_PRICE["FOOD"] * EconUtil.S)]) + " idle %d swings %d runway %.1f inv %d overdue %d invw %d" % [1000 * idle_n / maxi(1, plant_n), swings, runway_sum / maxf(1.0, float(n)), int(cv["open"]) / 1000, int(cv["overdue"]) / 1000, int(cv["written_ytd"]) / 1000]
+	var e148 := money + (" farms %d foodpx %d foodpx_avg %d cpi_avg %d food_below_cost_m %d farm_entrants %d farm_profit12 %d" % [farms, 100 * int(EconUtil.st(w)["prices"]["FOOD"]) / (EconData.BASE_PRICE["FOOD"] * EconUtil.S), int(px_sum / maxf(1.0, float(px_n))), int(cpi_sum / maxf(1.0, float(px_n))), below_m, farm_entrants(w), farm_profit(w)]) + " idle %d swings %d runway %.1f inv %d overdue %d invw %d" % [1000 * idle_n / maxi(1, plant_n), swings, runway_sum / maxf(1.0, float(n)), int(cv["open"]) / 1000, int(cv["overdue"]) / 1000, int(cv["written_ytd"]) / 1000]
 	var extra := e148 + " bak %d bakmonths %d baku %d staple %d privff %d raw %d" % [bak_now, bak_m, bak_u / maxi(1, bak_m), 1000 * st_g / maxi(1, st_w), 100 * ffp / maxi(1, ffa), raw_sum / maxi(1, n)]
 	var s2 := EconUtil.st(w)
 	var k := float(maxi(1, n))
@@ -170,3 +180,23 @@ func _init() -> void:
 		int(w.levers["ECON_INCOME_TAX_RATE"]), int(w.levers["ECON_SALES_TAX"]), alive, dead,
 		int(s2.get("distress_n", 0)), int(s2.get("distress_pos12_n", 0)), lines, ",".join(share), w.ledger.total()] + extra)
 	quit()
+
+
+static func farm_entrants(w: WorldState) -> int:
+	var n := 0
+	for oid in w.table("org"):
+		if String(w.table("org")[oid].get("entry_type", "")) == "FARM":
+			n += 1
+	return n
+
+
+## Profit of the last 12 months of every firm that runs a farm (thousand credits).
+static func farm_profit(w: WorldState) -> int:
+	var seen := {}
+	var t2 := 0
+	for fid in w.table("facility"):
+		var f: Dictionary = w.table("facility")[fid]
+		if f["type"] == "FARM" and not seen.has(f["org"]) and w.table("org").has(f["org"]):
+			seen[f["org"]] = true
+			t2 += EconPublicCo.result12(w.table("org")[f["org"]])
+	return t2 / 1000000

@@ -277,8 +277,12 @@ static func _pe_support(world: WorldState, oid: String) -> void:
 		for t in o["crew"]:
 			lifeline += EconLabor.tier_total(o["crew"], t) / EconUtil.S * EconFinance.wage_for(world, oid, t)
 	var cap := maxi(lifeline, EconActions.headroom(world, "ECON_BUDGET_SUBSIDIES"))
+	if EconPublicCo.b_on(world):
+		o["pe_req_m"] = world.month  # E150B (a): a company that asked for money does not cut its prices
 	if EconPublicCo.support_cap(world) >= 0:
 		cap = EconPublicCo.support_cap(world)  # E150: only what the voted subsidy line allows
+		if EconPublicCo.c_on(world):
+			cap = maxi(cap, lifeline)  # E150C: a utility's payroll is never left unpaid
 		if cap <= 0:
 			EconFacts.emit(world, "ECON_PE_FUNDING_REQUEST", o["hq"], [["COMPANY", oid]], [["GOVERNMENT", "government", 1.0]], {}, 30, "OFFICIAL",
 				{"amount": 0, "asked": maxi(0, costs - cash) / S})

@@ -24,6 +24,53 @@ const TARIFFS := {
 }
 
 
+## E150B (seed-3 collapse trace, Wilma 2026-11-15; opt-in with E150): the PE dividend took half of each quarter's
+## profit down to ONE month of costs, so CPW lived below half a month of cash, asked for support every month (0 under
+## E150) and still cut its tariffs to the floor because its P&L showed a surplus. Under E150B:
+##   (a) no tariff cut while the company is cash-short (cash < CASH_SHORT_M months of costs) or asked for funding in
+##       the last REQ_MEMORY_M months;
+##   (b) the surplus that justifies a cut is result12 minus what it paid to the treasury in 12 months (dividend+sweep);
+##   (d) a public enterprise keeps PE_KEEP_M months of costs before any dividend goes to the treasury (the E80 sweep
+##       already keeps SURPLUS_BUFFER_MONTHS).
+## E150C (separate arm on top): the E44 support of a utility is never capped below its payroll (the E62 lifeline).
+const CASH_SHORT_M := 2
+const REQ_MEMORY_M := 6
+const PE_KEEP_M := 6
+
+
+static func b_on(world: WorldState) -> bool:
+	return active(world) and (world.meta["on"] as Array).has("E150B")
+
+
+static func c_on(world: WorldState) -> bool:
+	return active(world) and (world.meta["on"] as Array).has("E150C")
+
+
+## Cash a public enterprise keeps before paying a dividend (mcr).
+static func pe_keep(world: WorldState, monthly_costs: int) -> int:
+	return monthly_costs * (PE_KEEP_M if b_on(world) else 1)
+
+
+## Money a public enterprise paid to the treasury (dividend, sweep): kept for 12 months (E150B (b)).
+static func note_out(world: WorldState, oid: String, amt: int) -> void:
+	if amt <= 0 or not b_on(world) or not world.table("org").has(oid):
+		return
+	var o: Dictionary = world.table("org")[oid]
+	var h: Array = o.get("pe_out", [])
+	h.append([world.month, amt])
+	while not h.is_empty() and int(h[0][0]) <= world.month - 12:
+		h.pop_front()
+	o["pe_out"] = h
+
+
+static func out12(world: WorldState, o: Dictionary) -> int:
+	var t := 0
+	for e in o.get("pe_out", []):
+		if int(e[0]) > world.month - 12:
+			t += int(e[1])
+	return t
+
+
 static func active(world: WorldState) -> bool:
 	return world.meta.has("on") and (world.meta["on"] as Array).has("E150") and not EconUtil.off(world, "E150")
 
@@ -60,6 +107,12 @@ static func quarterly(world: WorldState) -> void:
 			mult = 1.0 + STEP_UP
 		elif res > costs12(o) * SURPLUS_PCT / 100:
 			mult = 1.0 - STEP_DOWN
+			if b_on(world):
+				var cash := world.ledger.balance(EconUtil.acct(oid))
+				var short_cash := cash < CASH_SHORT_M * costs12(o) / 12
+				var asked := world.month - int(o.get("pe_req_m", -999)) < REQ_MEMORY_M
+				if short_cash or asked or res - out12(world, o) <= costs12(o) * SURPLUS_PCT / 100:
+					mult = 1.0  # (a)/(b): a cash-short company, or one whose surplus went to the treasury, keeps its prices
 		if mult == 1.0:
 			continue
 		var changed := []
