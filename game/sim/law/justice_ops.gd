@@ -929,13 +929,22 @@ static func _revert(world: WorldState, overturned: Dictionary) -> void:
 		world.levers[params["lever_id"]] = params["lawful_value"]
 
 
+## A firm's revenue over its last twelve months (mcr), never one month's (the user: firms are judged by the year).
+## Under twelve months of history (EconAnnual.MIN_M or more): the months it has, as a year. Under MIN_M: last month × 12.
+static func annual_rev(world: WorldState, org_id: String) -> float:
+	var o: Dictionary = world.peek("org").get(org_id, {})
+	var n := EconAnnual.months(o)
+	if n >= EconAnnual.MIN_M:
+		return float(EconAnnual.sum12(o).get("rev", 0)) * 12.0 / float(n)
+	return float((o.get("pl_last", {}) as Dictionary).get("rev", 0)) * 12.0
+
+
 ## Fines (spec §11.5): max(share x annual revenue, min W_ref) x LAW_FINE_SCALE, paid to gov:fines_revenue;
 ## any shortfall becomes a FINE liability (88's insolvency machine collects it). SEVERE also suspends licences.
 static func _fine(world: WorldState, org_id: String, cls: String, violation: String) -> int:
 	var spec: Array = FINE.get(cls, FINE["SERIOUS"])
 	var org: Dictionary = world.table("org").get(org_id, {})
-	var pl: Dictionary = org.get("pl_last", {})
-	var annual := float(pl.get("rev", 0)) * 12.0
+	var annual := annual_rev(world, org_id)
 	var floor_amt := float(spec[1]) * float(w_ref(world))
 	var base := maxf(float(spec[0]) * annual, floor_amt)
 	if String(world.peek("violation_track").get(violation, {}).get("kind", "")) == "DUMPING":
@@ -991,7 +1000,7 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 ## SMALL_FIRM_REV_WREF) PLAN_PARTS instalments over PLAN_MONTHS (v8: viable small firms died of lump sums). The economy
 ## pays each row when due (EconInsolvency); the creditor petitions only 12 months past a missed row (_petitions).
 static func _owe(world: WorldState, debtor: String, creditor: String, creditor_acct: String, amount: int, kind: String) -> void:
-	var annual := float(world.peek("org").get(debtor, {}).get("pl_last", {}).get("rev", 0)) * 12.0
+	var annual := annual_rev(world, debtor)
 	var small := annual < SMALL_FIRM_REV_WREF * float(w_ref(world))
 	var parts := PLAN_PARTS if small else 1
 	var left := amount

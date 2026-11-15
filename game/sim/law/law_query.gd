@@ -522,7 +522,7 @@ static func expected_sanction(world: WorldState, kind: String, org: String, para
 	var pm := 1.0 - (1.0 - float(p["inspect"])) * (1.0 - float(p["whistle"])) * (1.0 - float(p["leniency"]))
 	var ph := 1.0 - pow(1.0 - pm, float(horizon))
 	var f: Array = J.FINE.get(spec["class"], J.FINE["SERIOUS"])
-	var annual := float(world.peek("org").get(org, {}).get("pl_last", {}).get("rev", 0)) * 12.0
+	var annual := J.annual_rev(world, org)
 	var fine := maxf(float(f[0]) * annual, float(f[1]) * float(J.w_ref(world))) * float(world.levers.get("LAW_FINE_SCALE", 1000)) / 1000.0
 	out["p_detect_month"] = pm
 	out["p_detect_horizon"] = ph
