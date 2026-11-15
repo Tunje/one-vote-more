@@ -1,0 +1,30 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Y1 px 147850 uc 104292 big 8 moth 0 fam 0 T 937 out_big 1714 out_fam 0 S 2449 D 2326 filled 1811 wanted 2326 sf 109 stock 2275
+Y2 px 192448 uc 115464 big 10 moth 0 fam 0 T 922 out_big 1863 out_fam 0 S 2281 D 2196 filled 1936 wanted 2196 sf 99 stock 2200
+Y3 px 202985 uc 123783 big 10 moth 0 fam 0 T 777 out_big 2575 out_fam 0 S 4947 D 2402 filled 2399 wanted 2402 sf 2 stock 5072
+Y4 px 186080 uc 131425 big 11 moth 0 fam 0 T 736 out_big 2286 out_fam 0 S 4654 D 2487 filled 2487 wanted 2487 sf 2 stock 4410
+Y5 px 189813 uc 144602 big 11 moth 0 fam 0 T 887 out_big 2521 out_fam 0 S 2933 D 2714 filled 2667 wanted 2714 sf 26 stock 2782
+Y6 px 190909 uc 158944 big 12 moth 0 fam 0 T 863 out_big 2989 out_fam 0 S 3337 D 2909 filled 2900 wanted 2909 sf 5 stock 3417
+Y7 px 206358 uc 165041 big 10 moth 1 fam 0 T 890 out_big 2565 out_fam 0 S 3037 D 3024 filled 2726 wanted 3024 sf 103 stock 3027
+Y8 px 225509 uc 171000 big 13 moth 0 fam 0 T 771 out_big 3328 out_fam 0 S 4442 D 3208 filled 3208 wanted 3208 sf 1 stock 4538
+Y9 px 225509 uc 175105 big 13 moth 0 fam 0 T 802 out_big 3399 out_fam 0 S 4568 D 3335 filled 3335 wanted 3335 sf 8 stock 4607
+Y10 px 225509 uc 176345 big 13 moth 0 fam 0 T 824 out_big 3737 out_fam 0 S 5408 D 3654 filled 3654 wanted 3654 sf 1 stock 5416
+Y11 px 225509 uc 174515 big 14 moth 0 fam 0 T 818 out_big 3849 out_fam 0 S 5556 D 3708 filled 3708 wanted 3708 sf 5 stock 5595
+Y12 px 225509 uc 171759 big 14 moth 0 fam 0 T 828 out_big 4053 out_fam 0 S 6050 D 3918 filled 3918 wanted 3918 sf 1 stock 6100
+Y13 px 225509 uc 169187 big 15 moth 0 fam 0 T 770 out_big 4091 out_fam 0 S 6577 D 4014 filled 4014 wanted 4014 sf 5 stock 6535
+Y14 px 225509 uc 169239 big 15 moth 0 fam 0 T 820 out_big 4335 out_fam 0 S 6282 D 4260 filled 4260 wanted 4260 sf 1 stock 6283
+Y15 px 225509 uc 169672 big 15 moth 0 fam 0 T 865 out_big 4484 out_fam 0 S 6082 D 4374 filled 4374 wanted 4374 sf 4 stock 6137
+Y16 px 225509 uc 174104 big 17 moth 0 fam 0 T 807 out_big 4848 out_fam 0 S 7394 D 4624 filled 4624 wanted 4624 sf 1 stock 7535
+Y17 px 225509 uc 177262 big 18 moth 0 fam 0 T 801 out_big 4873 out_fam 0 S 7717 D 4883 filled 4883 wanted 4883 sf 4 stock 7657
+Y18 px 225509 uc 179106 big 18 moth 0 fam 0 T 824 out_big 5067 out_fam 0 S 7507 D 5001 filled 5001 wanted 5001 sf 1 stock 7516
+Y19 px 225509 uc 180869 big 19 moth 0 fam 0 T 828 out_big 5239 out_fam 0 S 7989 D 5260 filled 5260 wanted 5260 sf 5 stock 7984
+Y20 px 225509 uc 181920 big 20 moth 0 fam 0 T 805 out_big 5446 out_fam 0 S 8431 D 5343 filled 5343 wanted 5343 sf 4 stock 8529
+Y21 px 225509 uc 179863 big 21 moth 0 fam 0 T 811 out_big 5660 out_fam 0 S 9029 D 5551 filled 5551 wanted 5551 sf 3 stock 9084
+Y22 px 226616 uc 178019 big 21 moth 0 fam 0 T 839 out_big 5968 out_fam 0 S 9238 D 5836 filled 5803 wanted 5836 sf 1 stock 9348
+Y23 px 228782 uc 175491 big 23 moth 0 fam 0 T 800 out_big 5997 out_fam 0 S 10814 D 5887 filled 5822 wanted 5887 sf 2 stock 10902
+Y24 px 238495 uc 172633 big 23 moth 0 fam 0 T 812 out_big 5969 out_fam 0 S 10956 D 6169 filled 5846 wanted 6169 sf 15 stock 10982
+Y25 px 270588 uc 169517 big 23 moth 0 fam 0 T 828 out_big 6024 out_fam 0 S 12023 D 6285 filled 5814 wanted 6285 sf 52 stock 12110
+Y26 px 317449 uc 166834 big 23 moth 0 fam 0 T 878 out_big 6258 out_fam 0 S 13441 D 6607 filled 5784 wanted 6607 sf 84 stock 13743
+Y27 px 388603 uc 164607 big 23 moth 0 fam 0 T 848 out_big 6070 out_fam 0 S 16408 D 6872 filled 5850 wanted 6872 sf 104 stock 16395
+Y28 px 528709 uc 163001 big 23 moth 0 fam 0 T 868 out_big 5957 out_fam 0 S 16012 D 7101 filled 5757 wanted 7101 sf 139 stock 15978
