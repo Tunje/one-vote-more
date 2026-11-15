@@ -265,8 +265,16 @@ beside mothballing and scrapping: **sell a plant or a division as a going concer
 **Limits:**
 - **A firm can't sell its last plant and stay a firm.** Selling the last one is a sale of the company (its shares, 3b
   of E166's ownership), or the firm closes.
-- **Family firms sell only when they have to** (the user's ruling for E164): in distress, administration or
-  liquidation, never by choice. Families buy first at the floor price.
+- **Family firms: most won't sell while the farm or bakery still feeds them** (user, corrected 2026-11-15: "most
+  would not sell even if they earned less, only if they had to" was "mostly", not a hard rule). Each family firm has a
+  fixed **attachment**, pure from its id and the seed: three in four strongly attached, one in four less attached.
+  - **Strongly attached** families sell only when they have to (distress, administration, liquidation, a grant-loan
+    default).
+  - **Less attached** families may also sell by choice, when both hold:
+    - their income is below what four wage earners would make;
+    - an offer is worth at least three years of the firm's profit and at least its book value.
+  - **Forced sales apply to all.** Families buy first at the floor price.
+  - The same rule goes into E164's design.
 - **Public plants** sell only through the government's sale policy (E137): market-minded governments sell, state-minded
   ones keep; proceeds to the treasury.
 - Utilities (POWER, WATERWORKS, DEPOT) are never sold while the colony is short of them, which matches today's
