@@ -94,7 +94,7 @@ each job.
 - **Rule 8 (no new company):** no entrant is founded for work a concession holds (Bob's side).
 - **Public builder (CWD) bidding for a concession:** it may bid. If it bids at cost while dominant, it counts as
   predation (the competition law's PRICE_BELOW_COST rule) unless parliament exempts public builders by law. That needs
-  a new BOOL lever, **LAW_PUBLIC_BUILDER_AT_COST** (default false), so the choice is political, as §3c wants.
+  Otto's lever **ECON_PUBLIC_BUILDER_AT_COST** (0/1, default 0; econ_pic, requires R8_BUILDERS), at LAW level, so the choice is political, as §3c wants.
 - **Labour:** the reserved crew are ordinary employees. The retainer is paid to the firm, not the workers, and the firm
   still pays full wages.
 
@@ -113,7 +113,7 @@ each job.
 | End early without cause (compensation due) | **the Cabinet (First Minister)** | no | it's a spending decision with a political cost |
 | End all concessions of a class | **parliament** (a law) | no | a bill |
 | LAW_DIRECT_AWARD_THRESHOLD | **Minister of Finance** (REGULATION level, as today) | yes, within its range | none |
-| LAW_CONCESSION_MAX_YEARS, LAW_RETAINER_CAP, LAW_PUBLIC_BUILDER_AT_COST | **parliament** (LAW level) | no | a bill |
+| LAW_CONCESSION_MAX_YEARS, LAW_RETAINER_CAP, ECON_PUBLIC_BUILDER_AT_COST | **parliament** (LAW level) | no | a bill |
 
 Most decisions stay with one minister. Only large concessions, early termination without cause and the laws go
 higher.
@@ -148,7 +148,7 @@ the crews, the jobs, the retainer payment and the scoring.
 5. Early termination for cause pays nothing; without cause, it pays 6 months of retainer + 5%, owed by the treasury if
    it's empty.
 6. Insolvency ends it, and jobs go to tender.
-7. A dominant public builder bidding at cost is predation unless LAW_PUBLIC_BUILDER_AT_COST.
+7. A dominant public builder bidding at cost is predation unless ECON_PUBLIC_BUILDER_AT_COST.
 8. Flag off: nothing changes (deterministic).
 
 ## 6. For Wilma
@@ -159,7 +159,8 @@ New levers and their ideology (proposals):
   INFRASTRUCTURE +5 / GOVERNANCE −3.
 - **LAW_RETAINER_CAP** (0–60%, default 40): FISCAL +0.05 (a higher cap costs more). Concerns: INFRASTRUCTURE +4 /
   FISCAL −3.
-- **LAW_PUBLIC_BUILDER_AT_COST** (BOOL, default false): ECON_ROLE +15 (state-minded want it). Concerns: INFRASTRUCTURE
-  +3 / FAIRNESS −2 (from private builders).
+- **ECON_PUBLIC_BUILDER_AT_COST** (Otto's, 0/1, default 0; legalLevel LAW, so parliament decides, because 1 exempts the
+  public builder from the predation rule): ECON_ROLE +10 (state-minded want it). Concerns: INFRASTRUCTURE +8 / JOBS −4
+  (private builders undercut).
 
 One new rule (DIRECT_AWARD) and one new unlawful act (unlawful concession).

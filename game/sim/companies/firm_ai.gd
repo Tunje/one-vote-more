@@ -509,6 +509,9 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 ## Delegated award: tenders open for >= 1 month with bids are awarded to the top score
 ## unless world.meta["manual_award"] is set (player chooses via ECON_AWARD_CONTRACT).
 static func _auto_award(world: WorldState) -> void:
+	if EconBuilders.on(world):
+		EconBuilders.award_round(world)  # R8 step 4 (opt-in): clients may refuse the quotes; the tender reopens, the plan waits
+		return
 	for pid in EconUtil.sorted_keys(world.table("project")):
 		var p: Dictionary = world.table("project")[pid]
 		if p["status"] != "TENDER" or p["bids"].is_empty():
@@ -1031,6 +1034,8 @@ static func _builder_entry(world: WorldState) -> void:
 			return
 	elif waiting < EconData.BUILDER_ENTRY_BACKLOG:
 		return
+	if EconBuilders.on(world) and not EconBuilders.entry_ok(world):
+		return  # R8 rule 8 (opt-in): not while most builders lose money, nor while incumbents' spare crews can do the work
 	var best := ""
 	var best_cash := 0
 	for gid in EconUtil.sorted_keys(world.table("hh")):

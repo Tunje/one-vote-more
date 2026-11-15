@@ -131,6 +131,7 @@ static func committed(world: WorldState, oid: String) -> int:
 static func bid_round(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var tentative := {}  # contractor -> WU bid this round (so one round can't over-commit a firm)
+	var r8b := EconBuilders.on(world)  # R8 step 4 (opt-in): builders under the eight rules
 	var order: Array = EconUtil.sorted_keys(world.table("project"))
 	# E65: expansions of strategic inputs (mines, processing) are tendered first; private failed tenders retry quarterly
 	order.sort_custom(func(a, b):
@@ -143,6 +144,8 @@ static func bid_round(world: WorldState) -> void:
 			retender(world, pid)
 		if p["status"] != "TENDER" or not p["bids"].is_empty():
 			continue
+		if r8b and not EconBuilders.reopened(world, p):
+			continue  # R8: the client refused the last quotes; the tender opens again in a few months
 		if world.month - p["tender_month"] > 2:
 			p["status"] = "TENDERABLE"
 			# E118: the same project is re-tendered until it finds a builder; the papers hear of the first failure and of
@@ -160,7 +163,7 @@ static func bid_round(world: WorldState) -> void:
 				continue
 			var public_builder: bool = o["type"] == "PUBLIC_ENTERPRISE"
 			var e86 := not EconUtil.off(world, "E86")
-			if public_builder and (p["owner"] != "gov" and (not e86 or _private_builder_alive(world)) or (p["owner"] == "gov" and p.get("tenders", 0) < 1 and _private_builder_alive(world))):
+			if public_builder and (p["owner"] != "gov" and (not e86 or _private_builder_alive(world)) or (p["owner"] == "gov" and p.get("tenders", 0) < 1 and _private_builder_alive(world))) 					and not (r8b and EconBuilders.public_may_bid(world, p)):
 				continue  # E76: last resort only; E86: with no private builder left it also builds for private owners
 			# potential capacity: firms can re-hire to their founding crew, so idle crews still bid (E51)
 			var base_crew := 0
@@ -188,8 +191,12 @@ static func bid_round(world: WorldState) -> void:
 			var margin := 0.12 - 0.08 * float(o["ceo"]["risk"]) / 100.0
 			if public_builder:
 				margin = 0.0 if p["owner"] == "gov" else 0.08
+			if r8b:
+				margin = EconBuilders.margin(world, o, p)  # R8 rules 1/2: the builder's own margin
 			var dur := maxi(p["min_months"], int(ceil(est_wu / (0.6 * float(k)))))
 			p["bids"].append({"org": oid, "price": int(cost * (1.0 + margin)), "duration": dur, "reliability": o["reliability"], "wait": wait})
+			if r8b:
+				EconBuilders.note_bid(world, o)
 			tentative[oid] = tentative.get(oid, 0) + p["wu_total"]
 
 
@@ -328,6 +335,8 @@ static func award(world: WorldState, pid: String, org_id: String) -> bool:
 	p["esc_comp_cost"] = EconUtil.val(p["comp_total"], st["prices"]["COMPONENT"])
 	world.table("org")[org_id]["contracts"].append(pid)
 	world.table("org")[org_id]["won_any"] = int(world.table("org")[org_id].get("won_any", 0)) + 1  # E138
+	if EconBuilders.on(world):
+		EconBuilders.note_win(world, world.table("org")[org_id])
 	if int(p["start_month"]) > world.month:
 		p["advance_due"] = true  # E165Q: the 10% advance is paid when the job starts
 	else:
@@ -633,6 +642,12 @@ static func retender(world: WorldState, pid: String) -> void:
 ## Contractor AI: crew targets + material orders (COMPANY_AI).
 static func contractor_plans(world: WorldState) -> void:
 	var s := EconUtil.st(world)
+	var r8b := EconBuilders.on(world)  # R8 step 4 (opt-in)
+	if r8b:
+		var s8: Dictionary = s.get("r8", {})
+		r8_builder_signals(world, s8)
+		s["r8"] = s8
+		EconBuilders.step_margins(world)
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		var o: Dictionary = world.table("org")[oid]
 		if not o["is_contractor"] or o["status"] in ["LIQUIDATION", "DISSOLVED"]:
@@ -649,7 +664,7 @@ static func contractor_plans(world: WorldState) -> void:
 			if p["status"] == "ACTIVE" and int(p["start_month"]) > world.month:
 				# E165Q: a queued job: crews are hired ahead for jobs starting within 3 months; no material yet
 				book_wu += p["wu_total"] - p["wu_done"]
-				if int(p["start_month"]) - world.month <= 3:
+				if int(p["start_month"]) - world.month <= (EconBuilders.CREW_HORIZON_M if r8b else 3):
 					need_wu += float(p["wu_total"]) / float(maxi(1, maxi(p["min_months"], p["bid_duration"])))
 				continue
 			if p["status"] != "ACTIVE" or p["unpaid_m"] >= 1:
@@ -666,25 +681,29 @@ static func contractor_plans(world: WorldState) -> void:
 			base_n += base[t]
 		var cur := float(EconLabor.staff_total(o["crew"])) / S
 		var target_n := need_wu / S / (0.9 + 0.002 * float(o["ceo"]["mgmt"]))
-		# growth limits: ≤ +25%/month, ≤ 2× founding crew, no growth while material-blocked last month
-		var max_mult := 3.0 if o["type"] == "PUBLIC_ENTERPRISE" and not _private_builder_alive(world) else 2.0  # E86: sole builder
-		# E138 (opt-in; private-firm diagnosis 5, Terra's road waits): the colony's main builder sat at 2× its founding crew
-		# (160) with 5–15 projects, so every build crawled and tenders found nobody; crews may now grow to 5× with the backlog
-		var e138: bool = (world.meta.get("on", []) as Array).has("E138") and not EconUtil.off(world, "E138")
-		if e138:
-			max_mult = maxf(max_mult, 5.0)
-		if EconInsolvency.plan_q(world) and book_wu > 12 * capacity(world, oid):
-			max_mult = maxf(max_mult, 5.0)  # E165Q: more than a year in the book: take on another crew
-		var cap_n := minf(maxf(cur * 1.25, cur + 5.0), max_mult * float(base_n))
-		if o.get("blocked_last", false) and not strategic:
-			cap_n = cur * 0.85  # blocked crews shrink (E95: not while building strategic input capacity)
-		target_n = minf(target_n, cap_n)
-		if not o["contracts"].is_empty():
-			target_n = maxf(target_n, 0.6 * cur)
-		var core := 0.3
-		if e138 and o["contracts"].is_empty() and int(o.get("won_any", 0)) == 0:
-			core = 0.0  # E138: a new builder hires when it wins its first contract (idle founding crews drained 30k of equity)
-		target_n = maxf(target_n, core * float(base_n))  # core crew kept between contracts
+		if r8b:
+			# R8 rules 3-6: crews to the book, growth paid from cash, a slow shed, the core crew
+			target_n = EconBuilders.crew_target(world, oid, o, target_n, cur, float(base_n), bool(o.get("blocked_last", false)) and not strategic)
+		else:
+			# growth limits: ≤ +25%/month, ≤ 2× founding crew, no growth while material-blocked last month
+			var max_mult := 3.0 if o["type"] == "PUBLIC_ENTERPRISE" and not _private_builder_alive(world) else 2.0  # E86: sole builder
+			# E138 (opt-in; private-firm diagnosis 5, Terra's road waits): the colony's main builder sat at 2× its founding crew
+			# (160) with 5–15 projects, so every build crawled and tenders found nobody; crews may now grow to 5× with the backlog
+			var e138: bool = (world.meta.get("on", []) as Array).has("E138") and not EconUtil.off(world, "E138")
+			if e138:
+				max_mult = maxf(max_mult, 5.0)
+			if EconInsolvency.plan_q(world) and book_wu > 12 * capacity(world, oid):
+				max_mult = maxf(max_mult, 5.0)  # E165Q: more than a year in the book: take on another crew
+			var cap_n := minf(maxf(cur * 1.25, cur + 5.0), max_mult * float(base_n))
+			if o.get("blocked_last", false) and not strategic:
+				cap_n = cur * 0.85  # blocked crews shrink (E95: not while building strategic input capacity)
+			target_n = minf(target_n, cap_n)
+			if not o["contracts"].is_empty():
+				target_n = maxf(target_n, 0.6 * cur)
+			var core := 0.3
+			if e138 and o["contracts"].is_empty() and int(o.get("won_any", 0)) == 0:
+				core = 0.0  # E138: a new builder hires when it wins its first contract (idle founding crews drained 30k of equity)
+			target_n = maxf(target_n, core * float(base_n))  # core crew kept between contracts
 		for t in base:
 			o["crew_target"][t] = int(round(target_n * float(base[t]) / float(base_n)))
 		var hq: String = o["hq"]
@@ -702,3 +721,17 @@ static func contractor_plans(world: WorldState) -> void:
 				s["orders"].append({"buyer": oid, "acct": EconUtil.acct(oid), "district": hq, "good": pair[0], "qty": want,
 					"limit": lim, "class": EconMarket.C_FIRM if strategic else EconMarket.C_CONSTRUCTION, "kind": "org"})  # E56; E95: strategic input capacity buys with producers
 				budget -= EconUtil.val(want, lim)
+
+
+## R8 step 4 (Otto): the builders' signals into st["r8"]["builders"] (EconBuilders.signals: per builder and colony).
+## Called by contractor_plans each month under R8_BUILDERS.
+static func r8_builder_signals(world: WorldState, r8: Dictionary) -> void:
+	if not EconBuilders.on(world):
+		return
+	r8["builders"] = EconBuilders.signals(world)
+
+
+## For the E170 forecast's buildability leg (Bob): months to the earliest start a founder could be quoted now (-1: no
+## builder). Pure.
+static func quoted_wait(world: WorldState, plant_type: String, district: String) -> int:
+	return EconBuilders.quoted_wait(world, plant_type, district)

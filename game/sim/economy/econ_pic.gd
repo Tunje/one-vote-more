@@ -169,6 +169,9 @@ static func levers() -> Array:
 		# E160 / E162 (opt-in): grants for family farms and bakeries, % of build cost + start-up (+ the baking course)
 		["ECON_FAMILY_FARM_GRANT", [0, 100], 0, "LAW", {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01}, {"COST_OF_LIVING": 25, "JOBS": 15, "FAIRNESS": 15, "GOVERNANCE": -10}, P, 1, false],
 		["ECON_FAMILY_BAKERY_GRANT", [0, 100], 0, "LAW", {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01}, {"COST_OF_LIVING": 25, "JOBS": 15, "FAIRNESS": 15, "GOVERNANCE": -10}, P, 1, false],
+		# R8 step 4 (Otto, opt-in R8_BUILDERS): 1 = a public builder bids at cost on public work (else the market margin rule)
+		# (Anni: LAW, since at-cost bids by a dominant public builder are PRICE_BELOW_COST unless a law exempts them, E173)
+		["ECON_PUBLIC_BUILDER_AT_COST", [0, 1], 0, "LAW", {"ECON_ROLE": 10.0}, {"INFRASTRUCTURE": 8, "JOBS": -4}, R, 1, false],
 		["ECON_BUDGET_SUBSIDIES", [0, 3000], 0, "LAW", {"ECON_ROLE": 0.03, "FISCAL": 0.01}, {"JOBS": 25, "FAIRNESS": -5, "GOVERNANCE": -8}, P, 1, false],
 		["ECON_BUDGET_RESERVE_PURCHASES", [0, 2000], 200, "LAW", {"ECON_ROLE": 0.01, "AUTONOMY": 0.01}, {"COST_OF_LIVING": 10, "GOVERNANCE": -5}, F, 1, false],
 	]
@@ -218,6 +221,8 @@ static func levers() -> Array:
 			d["requires"] = ["E160"]  # opt-in feature levers: the legislature leaves them alone unless a flag is on
 		elif r[0] == "ECON_FAMILY_BAKERY_GRANT":
 			d["requires"] = ["E162"]
+		elif r[0] == "ECON_PUBLIC_BUILDER_AT_COST":
+			d["requires"] = ["R8_BUILDERS"]
 		if r[0] in ["ECON_EMISSION_REDUCTION"]:
 			d["domain"] = "ENV"
 		if r[0] in ["ECON_BUDGET_HEALTH", "ECON_BUDGET_EDUCATION", "ECON_HEALTH_FEE", "ECON_SCHOOL_FEE", "ECON_BUDGET_ELDER_CARE", "ECON_BUDGET_CHILDCARE"]:
