@@ -84,11 +84,11 @@ static func found(world: WorldState) -> void:
 		if ftype == "FAMBAKERY" and not EconStaple.active(world):
 			continue
 		var good: String = k["good"]
-		var uc := FirmAI.unit_cost(world, ftype)
 		while n < cap:
 			var d := _district(world, ftype)
 			if d == "":
 				break
+			var uc := family_unit_cost(world, ftype, _grant_pct(world, ftype, d, true))
 			if float(s["prices"][good]) < found_mark(world, d) * uc:
 				_note(s, ftype, "price")
 				break
@@ -140,6 +140,35 @@ static func found_mark(world: WorldState, d: String) -> float:
 	return maxf(FOUND_FLOOR, FOUND_MARK - HOPE_W * hardship(world, d) - IDLE_W * idleness(world, d))
 
 
+## What a unit costs a family to make (user 2026-11-15, after the audit of the founding sum): FirmAI.unit_cost judges
+## a family as a wage-paying company that bought its own building. It is neither:
+## - the family is owner-operated and pays itself no wages (EconFinance skips its payroll); its labour costs it what
+##   it gives up: the unemployment benefit, plus FAMILY_WORK_PREMIUM for the work, never more than the market wage;
+## - a grant pays grant_pct % of the building, so only the rest is the family's to recover.
+## Inputs, power, water and upkeep are as for any plant. Pure.
+const FAMILY_WORK_PREMIUM := 1.25
+
+
+static func family_unit_cost(world: WorldState, ftype: String, grant_pct: int) -> float:
+	var s := EconUtil.peek_st(world)
+	var r: Dictionary = EconData.RECIPES[ftype]
+	var keep := float(s["wage"]["G"]) * float(EconUtil.lever(world, "ECON_UNEMPLOYMENT_BENEFIT_RATE", 40)) / 100.0 * FAMILY_WORK_PREMIUM
+	var c := 0.0
+	for t in r["labor"]:
+		c += float(r["labor"][t]) * minf(float(s["wage"][t]), keep)
+	for g in r["in"]:
+		if g in EconData.MARKET_GOODS:
+			c += float(r["in"][g]) * float(s["prices"][g])
+		elif g == "ENERGY":
+			c += float(r["in"][g]) * float(EconUtil.lever(world, "ECON_UTILITY_TARIFF_ENERGY", 40)) * S
+		elif g == "WATER":
+			c += float(r["in"][g]) * float(EconUtil.lever(world, "ECON_UTILITY_TARIFF_WATER", 20)) * S
+	c += float(r["upkeep"]) * float(s["prices"]["MATERIAL"])
+	if EconData.BUILD.has(ftype):
+		c += float(EconConstruction.estimate(ftype)) / EconData.DEPRECIATION_MONTHS * float(100 - clampi(grant_pct, 0, 100)) / 100.0
+	return c / float(r["out"][1])
+
+
 ## A family firm the government paid a grant to has failed (user 2026-11-15: "grant farms failing is food for
 ## politics"). Reported once, when it goes into liquidation: public, the government's doing in part (more the fresher
 ## the grant), felt as bad government, with what was paid.
@@ -164,7 +193,8 @@ static func _failed_grantees(world: WorldState) -> void:
 
 
 ## The government's decision on a grant application: the lever's % if approved, else 0 (refusal noted by reason).
-static func _grant_pct(world: WorldState, ftype: String, d: String) -> int:
+## `dry`: only ask what the grant would be (the family's own sum before it applies); nothing is noted or counted.
+static func _grant_pct(world: WorldState, ftype: String, d: String, dry: bool = false) -> int:
 	var s := EconUtil.st(world)
 	var pct := clampi(int(EconUtil.lever(world, KINDS[ftype]["lever"], 0)), 0, 100)
 	if pct <= 0 or not prog_open(world, ftype):
@@ -173,16 +203,21 @@ static func _grant_pct(world: WorldState, ftype: String, d: String) -> int:
 	var cover: Dictionary = s.get("grant_cover", {})
 	var ck := cover_kind(ftype)
 	if not cover.has(ck):
-		_note(s, ftype, "grant_no_cover_yet")
+		if not dry:
+			_note(s, ftype, "grant_no_cover_yet")
 		return 0
 	if not (d in (cover[ck] as Array)):
-		_note(s, ftype, "grant_outside_districts")
-		_prog_count(world, ftype, "refused")
+		if not dry:
+			_note(s, ftype, "grant_outside_districts")
+		if not dry:
+			_prog_count(world, ftype, "refused")
 		return 0
 	var ok := food_needed(world) if ftype == "FAMFARM" else flour_ok(world)
 	if not ok:
-		_note(s, ftype, "grant_no_need")
-		_prog_count(world, ftype, "refused")
+		if not dry:
+			_note(s, ftype, "grant_no_need")
+		if not dry:
+			_prog_count(world, ftype, "refused")
 		return 0
 	var yr: Array = s.get("fam_grant_year", [])
 	var used := 0
@@ -190,8 +225,10 @@ static func _grant_pct(world: WorldState, ftype: String, d: String) -> int:
 		if int(m) > world.month - 12:
 			used += 1
 	if used >= GRANT_YEAR_MAX:
-		_note(s, ftype, "grant_ceiling")
-		_prog_count(world, ftype, "refused")
+		if not dry:
+			_note(s, ftype, "grant_ceiling")
+		if not dry:
+			_prog_count(world, ftype, "refused")
 		return 0
 	return pct
 

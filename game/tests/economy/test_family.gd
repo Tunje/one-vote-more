@@ -113,3 +113,23 @@ func test_a_failed_grant_firm_is_news_once() -> void:
 		check(int(f[0]["impact"]["GOVERNANCE"]) < 0, "it reflects on the government")
 		check_eq(int(f[0]["data"]["months_since_grant"]), 6, "it says how fresh the grant was")
 	w.table("org").erase(id)
+
+
+func test_a_family_counts_its_own_costs_not_a_companys() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["E160"]
+	sim.run(6)
+	var company := FirmAI.unit_cost(w, "FAMFARM")
+	var family := EconFamily.family_unit_cost(w, "FAMFARM", 0)
+	check(family < company, "a family that pays itself no wages has a lower cost (%.0f against %.0f)" % [family, company])
+	var granted := EconFamily.family_unit_cost(w, "FAMFARM", 80)
+	check(granted < family, "a grant for most of the building lowers what is left to recover (%.0f)" % granted)
+	check(EconFamily.family_unit_cost(w, "FAMFARM", 100) < granted, "a full grant leaves no building cost")
+	check(EconFamily.family_unit_cost(w, "FAMFARM", 100) > 0.0, "inputs and upkeep still cost")
+	var s := EconUtil.st(w)
+	var notes: Dictionary = (s.get("fam_fail_found", {}) as Dictionary).duplicate(true)
+	var h := w.state_hash()
+	EconFamily._grant_pct(w, "FAMFARM", "d:1", true)
+	check_eq(w.state_hash(), h, "asking what the grant would be changes nothing")
+	check_eq(s.get("fam_fail_found", {}), notes, "and notes nothing")
