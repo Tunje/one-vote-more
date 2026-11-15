@@ -62,3 +62,20 @@ reserved by use), belonging with town and village planning and the per-hex land-
 power of municipalities (user: they start with building and roads). It is probably the largest missing source of
 decisions for the First Minister's desk (Maja's desk count, chronicles/desk_count_v1: the code takes about 1.2 to 1.5
 decisions a month because whole areas, siting among them, have no decision at all).
+
+## Road speed, accidents near people, over- and underpasses (user 2026-11-15; reading confirmed by the user; queued)
+User: "I'm not sure pedestrians need to really be in game, but accidents should. Any high speed road near utility
+people walk to, and near districts, have chances for accidents; over and under passes reduce the chance. Also road
+types should not be speed." And: "this would mean a motorway around a village instead of through can be a thing."
+- No pedestrians as travellers.
+- A fast road close to where people go on foot (housing, and what they walk to: clinics, schools, shops, workplaces)
+  has a chance of accidents with injuries and deaths; faster road and more people nearby, higher chance.
+- Over- and underpasses at such a spot reduce the chance: a thing to build, or to skip.
+- Speed is its own property of a road, not its surface (track / road / paved sets what it carries and how it wears).
+  A speed limit becomes a decision: slower near a district costs travel time and freight, and saves lives.
+- So a fast road around a village instead of through it is a real choice (Terra's options already offer a BYPASS for
+  capacity; with this it also has a safety case).
+Today: accidents exist only for the transport fleet (vehicle condition and junction risk); nothing depends on where a
+road runs; speed follows the surface (SPEED in transport.gd). Flyovers do not exist (every meeting of roads is a level
+junction of four types). Deaths would go through the blame rules used for wildlife attacks and can be questioned by
+the opposition (Rivalry). Changes the core road model, so it needs its own A/B. Not started.
