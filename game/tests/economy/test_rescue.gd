@@ -1,8 +1,11 @@
 extends TestCase
-## E166 part 1 (EconPlanRescue + EconShares, opt-in on top of E165): plans in trouble sell a stake, get the bank's
-## help or the state's, or are withdrawn; the share register splits dividends.
+## E166 part 1 (EconPlanRescue + EconShares, opt-in on top of E165), second version: a plan that missed a payment may
+## sell a stake (all or nothing) or get the bank's or the state's help, judged by the founders' forecast; nobody
+## rescuing it leaves it to E165's own rules. The share register splits dividends.
 
 const S := EconUtil.S
+const GOOD := {"profit": 1000000000 * S, "costs": 1200 * S}  # a forecast anyone would back
+const BAD := {"profit": -1000 * S, "costs": 1200 * S}
 
 
 func _sim(on: Array) -> Simulation:
@@ -20,8 +23,9 @@ func _builder(w: WorldState) -> String:
 	return ""
 
 
-## A plan building `ftype`, started, with `cash` and a contract price of `price` of which nothing is paid yet.
-func _plan(w: WorldState, ftype: String, cash: int, price: int) -> String:
+## A plan building `ftype`, started, with `cash`, a contract price of `price` of which `paid` is paid, and (unless
+## `missed` is false) a missed payment.
+func _plan(w: WorldState, ftype: String, cash: int, price: int, paid: int = 0, missed: bool = true) -> String:
 	var id := w.new_id("org")
 	var gid: String = EconUtil.sorted_keys(w.table("hh"))[0]
 	w.table("org")[id] = {"id": id, "key": "NEW_" + id, "name": "Plan Ltd", "type": "PRIVATE", "hq": "d:1", "status": "FORMING",
@@ -41,9 +45,16 @@ func _plan(w: WorldState, ftype: String, cash: int, price: int) -> String:
 	p["start_month"] = w.month - 1
 	p["bid_duration"] = 12
 	p["price"] = price
-	p["paid"] = 0
+	p["paid"] = paid
+	p["unpaid_m"] = 1 if missed else 0
 	w.table("org")[b]["contracts"].append(pid)
 	return id
+
+
+func _window(w: WorldState, oid: String) -> Dictionary:
+	var o: Dictionary = w.table("org")[oid]
+	o["rescue"] = {"since": w.month, "shortfall": EconPlanRescue.shortfall(w, oid), "tried": []}
+	return o
 
 
 func _rich_household(w: WorldState, amount: int) -> String:
@@ -95,44 +106,74 @@ func test_off_no_windows() -> void:
 	check(not w.table("org")[oid].has("rescue"), "flag off: no rescue window")
 
 
+func test_paper_gap_is_not_trouble() -> void:
+	var w := _sim(["E165", "E166"]).world
+	var oid := _plan(w, "SERVICEHUB", 0, 100000 * S, 0, false)
+	check_eq(EconPlanRescue.shortfall(w, oid), 0, "a gap on paper without a missed payment is not trouble")
+	EconPlanRescue.monthly(w)
+	check(not w.table("org")[oid].has("rescue"), "no window")
+	var late := _plan(w, "SERVICEHUB", 0, 100000 * S)
+	check(EconPlanRescue.shortfall(w, late) >= 100000 * S, "a missed payment: the whole gap is the shortfall")
+
+
 func test_stake_rescue() -> void:
 	var w := _sim(["E165", "E166"]).world
-	var big := _plan(w, "SERVICEHUB", 1000 * S, 40000 * S)  # a gap far above what a minority stake in it is worth
-	var oid := _plan(w, "SERVICEHUB", 30000 * S, 40000 * S)
 	_rich_household(w, 10000000 * S)
-	EconPlanRescue.monthly(w)
-	var ob: Dictionary = w.table("org")[big]
-	check(ob.has("rescue") and EconShares.outside_pm(ob) == EconShares.OUTSIDE_MAX_PM, "a partial stake, capped at 49%: the window stays open")
-	var o: Dictionary = w.table("org")[oid]
-	check(not o.has("rescue"), "the window closed")
+	var bad := _plan(w, "SERVICEHUB", 30000 * S, 40000 * S)
+	var ob := _window(w, bad)
+	check(not EconPlanRescue._sell_stake(w, bad, ob, "SERVICEHUB", BAD), "nobody buys into a plan the forecast sees losing")
+	check_eq(EconShares.outside_pm(ob), 0, "no stake sold")
+	var oid := _plan(w, "SERVICEHUB", 30000 * S, 40000 * S)
+	var o := _window(w, oid)
+	var need := EconPlanRescue.need_of(int(o["rescue"]["shortfall"]), GOOD)
+	check(need > int(o["rescue"]["shortfall"]), "the need includes the running costs after opening")
+	var cash0 := w.ledger.balance(EconUtil.acct(oid))
+	check(EconPlanRescue._sell_stake(w, oid, o, "SERVICEHUB", GOOD), "a plan the forecast backs is rescued")
+	check(not o.has("rescue") and o.has("rescue_done"), "the window closed")
 	check(String(o.get("rescued", {}).get("kind", "")).begins_with("shares_"), "saved by a stake")
 	check(EconShares.outside_pm(o) > 0 and EconShares.outside_pm(o) <= EconShares.OUTSIDE_MAX_PM, "a minority stake")
-	check(w.ledger.balance(EconUtil.acct(oid)) >= 40000 * S, "the money it lacked arrived")
-	check_eq(w.facts.query("COMP_STAKE_SOLD").size(), 2, "public facts")
+	check_eq(w.ledger.balance(EconUtil.acct(oid)) - cash0, need, "the whole need arrived")
+	check(w.facts.query("COMP_STAKE_SOLD").size() >= 1, "public facts")
 	check_eq(w.ledger.total(), 0, "ledger closed")
 
 
-func test_no_rescue_withdraws() -> void:
+func test_all_or_nothing() -> void:
+	var w := _sim(["E165", "E166"]).world
+	_drain_households(w)
+	# a big plan, mostly built: a stake within 49%, but more money than any buyer can give
+	var oid := _plan(w, "SERVICEHUB", 0, 2000000000 * S, 1800000000 * S)
+	var o := _window(w, oid)
+	var cash0 := w.ledger.balance(EconUtil.acct(oid))
+	check(not EconPlanRescue._sell_stake(w, oid, o, "SERVICEHUB", GOOD), "not enough pledged")
+	check_eq(w.ledger.balance(EconUtil.acct(oid)), cash0, "no money moved")
+	check_eq(EconShares.outside_pm(o), 0, "no partial stake")
+	check_eq(int(EconUtil.st(w)["rescue_stats"].get("shares_no_buyers", 0)), 1, "counted")
+
+
+func test_no_rescue_waits() -> void:
 	var w := _sim(["E165", "E166"]).world
 	_drain_households(w)
 	var oid := _plan(w, "SERVICEHUB", 0, 1000000000 * S)  # beyond any buyer and the bank
-	for i in EconPlanRescue.RESCUE_M + 1:
+	for i in EconPlanRescue.RESCUE_M + 3:
 		EconPlanRescue.monthly(w)
 		w.month += 1
 	var o: Dictionary = w.table("org")[oid]
-	check_eq(o["status"], "DISSOLVED", "withdrawn after the window")
-	check_eq(int(EconUtil.st(w)["plan_stats"].get("abandoned_no_rescue", 0)), 1, "cause no_rescue")
+	check_eq(o["status"], "FORMING", "not withdrawn: it waits under the plan stage's own rules")
+	check(not o.has("rescue") and o.has("rescue_done"), "the window closed")
 	check_eq(int(EconUtil.st(w)["rescue_stats"]["failed"]), 1, "counted")
+	check_eq(int(EconUtil.st(w)["rescue_stats"]["windows"]), 1, "one window per plan")
 
 
-func test_bank_grace_from_opening() -> void:
+func test_bank_rescue_and_grace() -> void:
 	var w := _sim(["E165", "E166"]).world
 	_drain_households(w)
 	var oid := _plan(w, "SERVICEHUB", 0, 5000 * S)
 	EconFinance.new_loan(w, oid, 1000 * S, 0, false)
-	var o: Dictionary = w.table("org")[oid]
-	o["rescue"] = {"since": w.month - 1, "shortfall": EconPlanRescue.shortfall(w, oid), "tried": ["shares"]}
-	EconPlanRescue._bank(w, oid, o, "SERVICEHUB")
+	var o := _window(w, oid)
+	check(not EconPlanRescue._bank(w, oid, o, BAD), "the bank won't lend where the forecast can't repay")
+	check_eq(int(EconUtil.st(w)["rescue_stats"].get("bank_no_cover", 0)), 1, "counted")
+	check(EconPlanRescue._bank(w, oid, o, GOOD), "it lends where the forecast repays the debt")
+	check_eq(String(o["rescued"]["kind"]), "bank", "saved by the bank")
 	var any_grace := false
 	for lid in w.table("loan"):
 		var l: Dictionary = w.table("loan")[lid]
@@ -156,9 +197,9 @@ func test_government_rescue() -> void:
 	check_eq(EconActions.validate(w, "ECON_RESCUE_PLAN", {"org": oid, "form": "LOAN", "amount": 20000}), "", "a needed plant may be rescued")
 	check(EconActions.apply(w, "ECON_RESCUE_PLAN", {"org": oid, "form": "LOAN", "amount": 20000}), "applied")
 	check(o.has("gov_loan") and int(o["gov_loan"]["principal"]) > 0, "the state's loan is on the firm")
-	check(not o.has("rescue"), "saved")
 	check_eq(w.facts.query("ECON_PLAN_BAILOUT").size(), 1, "a public bailout fact")
 	# after opening and the grace, it repays the treasury
+	o.erase("rescue")
 	o["status"] = "ACTIVE"
 	EconPlanRescue.on_open(w, oid)
 	w.month += EconPlanRescue.EXT_M

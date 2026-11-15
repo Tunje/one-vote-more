@@ -131,3 +131,23 @@ firms keep today's path.
 
 **A/B asked for:** rescues by kind; saved plans alive at 12 and 36 months; bank stakes and write-offs avoided; public
 money spent and recovered.
+
+### Second version (Otto, Wilma's yes, 2026-11-15)
+
+The first version cost 188 adults, and only 9% of the plans it rescued were alive 36 months later (A/Bs and trace in
+planning/ab-r8-builders.md §5). E166 now works like this, still opt-in:
+- **Trigger:** a plan is in trouble only once a started build has a missed payment; a gap on paper is not trouble. One
+  window per plan.
+- **Need:** the shortfall plus 3 months of running costs from the founders' forecast (WC_M).
+- **Shares, all or nothing:** buyers pledge until the whole need is covered, else no money moves (no lost partial
+  stakes). Every buyer's test is its share of the forecast profit, at least 10% a year of what it pays (HURDLE_PM).
+  Households risk up to a third of their savings.
+- **The bank:** it tops up only if the forecast profit repays all the plan's debt within 5 years (DEBT_YEARS).
+- **The forecast:** EconForecast.first_year, what anyone can see that month, never the plan's true future. The old
+  price test (price ≥ 1.2 × unit cost at full output) is gone, because it passed every plan.
+- **No rescue:** the plan is not withdrawn; it waits under E165's rules (stalled, limit) and E76's cancellation by the
+  builder after 3 unpaid months.
+- **The government's ECON_RESCUE_PLAN:** unchanged, and not routed; it becomes a decision type on the delegation desk
+  later.
+
+Rescues will be rare until Bob's E170 forecast replaces the stub. Retest then against a fresh base from HEAD.

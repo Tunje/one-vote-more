@@ -5,28 +5,37 @@ extends RefCounted
 ## government could give a bailout, and banks give extensions for first payments or buy part of the company"). Design
 ## Bob (agreed by Wilma), built by Otto from Bob's draft on Anni's share register (EconShares); planning/
 ## design-e166-e169.md. OPT-IN "E166", on top of E165 (plans). Young opened firms (part 2) are a separate, later flag.
+## Second version (Wilma 2026-11-15, after the A/Bs in planning/ab-r8-builders.md §5: the first version's paper-gap
+## trigger and 4-month withdrawal cost 188 adults, and its rescued plans almost all died):
 ##
-## In trouble: a plan whose build has started and that missed a payment, or whose cash + undrawn plan credit is below
-## what is left of the contract price. Shortfall = what is left to pay − cash − credit. (A plan without a builder isn't
-## rescued: money doesn't make a builder appear.)
-## For RESCUE_M months, in this order, each the other side's choice:
-##   1. SHARES: a stake for the money. Buyers: profitable firms with free cash > BUYER_CASH_M months of their costs (same
-##      output good first), then I3–I5 household pools with savings; only where the plant's good sells at ≥ PRICE_TEST ×
-##      its unit cost. Stake = money ÷ (value built + cash + money); outside holders ≤ 490‰ (EconShares).
+## In trouble: a plan whose build has started and that has MISSED a payment (a gap on paper is not trouble). Shortfall
+## = what is left to pay − cash − undrawn plan credit (at least 1 credit while a payment is missed). The rescue need is
+## the shortfall plus WC_M months of the plan's forecast running costs (the opening buffer). (A plan without a builder
+## isn't rescued: money doesn't make a builder appear.) One window per plan, RESCUE_M months, in this order, each the
+## other side's choice, judged from what it can see that month: the founders' forecast EconForecast.first_year (never
+## the plan's true future, so a rescue may still fail):
+##   1. SHARES: buyers pledge until the whole need is covered, else no money moves. Buyers: profitable firms with free
+##      cash beyond BUYER_CASH_M months of their costs (same output good first), then I3–I5 households risking up to a
+##      third of their savings. Stake = need ÷ (value built + cash + need), outside holders ≤ 490‰ (EconShares). Each
+##      buyer wants its share of the forecast profit to be ≥ HURDLE_PM ‰ a year of what it pays.
 ##   2. THE BANK (from the 2nd month): interest-only first payments for EXT_M months after opening; a debt-for-equity
-##      swap of up to SWAP_PCT of the loan into a bank stake (≤ 300‰); a top-up loan of the shortfall if its room and
-##      capital floor allow and the price test passes.
-##   3. THE GOVERNMENT (Wilma's chooser, only for a plant the colony needs, after shares and the bank were tried):
-##      ECON_RESCUE_PLAN {org, form GRANT | LOAN | STAKE, amount (credits)}; public fact ECON_PLAN_BAILOUT.
-## No rescue in the window: E165's abandon_plan, cause "no_rescue" (with E169 the half-built work stays on the market).
+##      swap of up to SWAP_PCT of the loan into a bank stake (≤ 300‰); a top-up loan of the need if its room and capital
+##      floor allow and the forecast profit repays all the plan's debt within DEBT_YEARS.
+##   3. THE GOVERNMENT (not routed yet: a decision type for the delegation desk later; only for a plant the colony
+##      needs, after shares and the bank were tried): ECON_RESCUE_PLAN {org, form GRANT | LOAN | STAKE, amount
+##      (credits)}; public fact ECON_PLAN_BAILOUT.
+## No rescue in the window: the plan is NOT withdrawn; it waits under E165's own rules (stalled, limit), which may still
+## end it (with E169 the half-built work then stays on the market).
 ## Pure query for the chooser: in_trouble(world).
 
 const S := EconUtil.S
 const RESCUE_M := 4
-const PRICE_TEST := 1.2
 const EXT_M := 12
 const SWAP_PCT := 30
 const BUYER_CASH_M := 6
+const WC_M := 3  # the rescue also pays this many months of the forecast's running costs (the opening buffer)
+const HURDLE_PM := 100  # a stake buyer wants its share of the forecast profit to be ≥ 10% a year of what it pays
+const DEBT_YEARS := 5  # the bank lends only if the forecast profit repays all the plan's debt within this many years
 const GOV_RATE_PPM := 4000  # 0.4% a month
 const GOV_TERM_M := 120
 const STRATEGIC := ["FARM", "FAMFARM", "WATERWORKS", "POWER", "MINE", "PROCESSING", "COMPONENTS", "CLINIC", "DEPOT", "MEDWORKS", "BAKERY", "FAMBAKERY"]
@@ -65,6 +74,7 @@ static func _value(world: WorldState, oid: String) -> int:
 	return maxi(v, S)
 
 
+## 0 unless a started build has a missed payment; then what is missing (at least S).
 static func shortfall(world: WorldState, oid: String) -> int:
 	var o: Dictionary = world.peek("org").get(oid, {})
 	if o.is_empty() or o["status"] != "FORMING":
@@ -75,11 +85,25 @@ static func shortfall(world: WorldState, oid: String) -> int:
 		var p: Dictionary = world.peek("project")[pid]
 		if p["owner"] == oid and p["status"] == "ACTIVE" and int(p["start_month"]) <= world.month:
 			left += int(p["price"]) - int(p["paid"])
-			missed = missed or int(p["unpaid_m"]) >= 1
-	var gap := left - world.ledger.balance(EconUtil.acct(oid)) - int(o.get("plan_credit", 0))
-	if gap > 0:
-		return gap
-	return S if missed else 0
+			missed = missed or int(p.get("unpaid_m", 0)) >= 1
+	if not missed:
+		return 0
+	return maxi(S, left - world.ledger.balance(EconUtil.acct(oid)) - int(o.get("plan_credit", 0)))
+
+
+## The founders' forecast for the plan's plant, as anyone can make it this month.
+static func forecast(world: WorldState, oid: String) -> Dictionary:
+	var ft := plant_type(world, oid)
+	if ft == "":
+		return {}
+	return EconForecast.first_year(world, ft, String(world.peek("org")[oid]["hq"]))
+
+
+## The rescue need: the shortfall plus WC_M months of the forecast's running costs.
+static func need_of(shortfall_v: int, f: Dictionary) -> int:
+	if shortfall_v <= 0:
+		return 0
+	return shortfall_v + WC_M * maxi(0, int(f.get("costs", 0))) / 12
 
 
 ## The colony needs this plant: a strategic type, or its good is short (the essentials history, E157 margin).
@@ -91,14 +115,6 @@ static func needed(world: WorldState, ftype: String) -> bool:
 		return false
 	var a: Array = EconUtil.peek_st(world).get("ess_hist", {}).get(String(r["out"][0]), [])
 	return not a.is_empty() and int(a[a.size() - 1]) < 10
-
-
-static func price_ok(world: WorldState, ftype: String) -> bool:
-	var r: Dictionary = EconData.RECIPES.get(ftype, {})
-	if r.is_empty() or not (String(r["out"][0]) in EconData.MARKET_GOODS):
-		return true  # no market price (services, housing): judged by need, not price
-	var uc := FirmAI.unit_cost(world, ftype)
-	return uc <= 0.0 or float(EconUtil.peek_st(world)["prices"][String(r["out"][0])]) >= PRICE_TEST * uc
 
 
 ## Pure read for the government's chooser.
@@ -130,6 +146,8 @@ static func monthly(world: WorldState) -> void:
 			continue
 		if o.has("rescue"):
 			_step(world, oid, o)
+		elif o.has("rescue_done"):
+			continue  # one window per plan
 		elif shortfall(world, oid) > 0:
 			o["rescue"] = {"since": world.month, "shortfall": shortfall(world, oid), "tried": []}
 			_count(world, "windows")
@@ -143,24 +161,26 @@ static func _step(world: WorldState, oid: String, o: Dictionary) -> void:
 		_saved(world, o, String(rs.get("kind", "self")))
 		return
 	var age := world.month - int(rs["since"])
-	var ft := plant_type(world, oid)
-	if _sell_stake(world, oid, o, ft):
+	var f := forecast(world, oid)
+	if _sell_stake(world, oid, o, plant_type(world, oid), f):
 		return
 	if not ("shares" in rs["tried"]):
 		(rs["tried"] as Array).append("shares")
 	if age >= 1:
-		if _bank(world, oid, o, ft):
+		if _bank(world, oid, o, f):
 			return
 		if not ("bank" in rs["tried"]):
 			(rs["tried"] as Array).append("bank")
 	if age >= RESCUE_M:
+		# nobody rescued it: the plan is not withdrawn, it waits under E165's own rules (stalled, limit)
 		o.erase("rescue")
+		o["rescue_done"] = true
 		_count(world, "failed")
-		EconInsolvency.abandon_plan(world, oid, "no_rescue")
 
 
 static func _saved(world: WorldState, o: Dictionary, kind: String) -> void:
 	o.erase("rescue")
+	o["rescue_done"] = true
 	if kind != "self":
 		o["rescued"] = {"kind": kind, "month": world.month}
 		_count(world, "saved_" + kind)
@@ -170,16 +190,27 @@ static func _saved(world: WorldState, o: Dictionary, kind: String) -> void:
 
 # ------------------------------------------------------------------ 1. shares
 
-static func _sell_stake(world: WorldState, oid: String, o: Dictionary, ft: String) -> bool:
+## Buyers pledge until the whole need is covered; only then does money move. Every buyer's return is the same:
+## (its ‰ × forecast profit) ÷ what it pays = profit ÷ (value + need), tested against HURDLE_PM. `f` is the forecast.
+static func _sell_stake(world: WorldState, oid: String, o: Dictionary, ft: String, f: Dictionary) -> bool:
 	var rs: Dictionary = o["rescue"]
 	var room_pm := EconShares.OUTSIDE_MAX_PM - EconShares.outside_pm(o)
-	if room_pm <= 0 or not price_ok(world, ft):
+	var need := need_of(int(rs["shortfall"]), f)
+	if room_pm <= 0 or need <= 0:
+		return false
+	if f.is_empty() or int(f.get("profit", 0)) <= 0:
+		_count(world, "shares_no_profit")
+		return false
+	var v := _value(world, oid)
+	var pm := int(float(need) * 1000.0 / float(v + need))
+	if pm > room_pm:
+		_count(world, "shares_too_big")
+		return false
+	if int(f["profit"]) * 1000 / maxi(1, v + need) < HURDLE_PM:
+		_count(world, "shares_hurdle")
 		return false
 	var good := String(EconData.RECIPES.get(ft, {"out": [""]})["out"][0])
-	var need := int(rs["shortfall"])
-	var best := ""
-	var best_rank := 99
-	var best_spare := 0
+	var cands: Array = []  # [rank, -spare, holder key, most it gives]
 	for bid in EconUtil.sorted_keys(world.table("org")):
 		if bid == oid:
 			continue
@@ -187,51 +218,61 @@ static func _sell_stake(world: WorldState, oid: String, o: Dictionary, ft: Strin
 		if b["type"] != "PRIVATE" or b["status"] != "ACTIVE" or bool(b.get("is_contractor", false)) or EconPublicCo.result12(b) <= 0:
 			continue
 		var spare := world.ledger.balance(EconUtil.acct(bid)) - BUYER_CASH_M * maxi(1, EconFinance._monthly_costs(b))
-		if spare < need:
+		if spare <= 0:
 			continue
 		var bt := plant_type(world, bid)
 		var rank := 0 if good != "" and bt != "" and String(EconData.RECIPES.get(bt, {"out": [""]})["out"][0]) == good else 1
-		if rank < best_rank or (rank == best_rank and spare > best_spare):
-			best = "co:" + bid
-			best_rank = rank
-			best_spare = spare
-	if best == "":
-		for gid in EconUtil.sorted_keys(world.table("hh")):
-			var g: Dictionary = world.table("hh")[gid]
-			if not (String(g.get("band", "")) in ["I3", "I4", "I5"]):
-				continue
-			var sav := world.ledger.balance(EconUtil.hh_acct(gid))
-			if sav >= 3 * need and sav > best_spare:
-				best = "hh:" + gid
-				best_spare = sav
-	if best == "":
+		cands.append([rank, -spare, "co:" + bid, spare])
+	for gid in EconUtil.sorted_keys(world.table("hh")):
+		if not (String(world.table("hh")[gid].get("band", "")) in ["I3", "I4", "I5"]):
+			continue
+		var sav := world.ledger.balance(EconUtil.hh_acct(gid)) / 3  # a household risks up to a third of its savings
+		if sav > 0:
+			cands.append([2, -sav, "hh:" + gid, sav])
+	cands.sort_custom(_cand_before)
+	var pledges: Array = []
+	var got := 0
+	for c in cands:
+		if got >= need:
+			break
+		var give := mini(int(c[3]), need - got)
+		pledges.append([String(c[2]), give])
+		got += give
+	if got < need:
+		_count(world, "shares_no_buyers")
 		return false
-	var v := _value(world, oid)
-	var amount := need
-	var pm := int(float(amount) * 1000.0 / float(v + amount))
-	if pm > room_pm:
-		pm = room_pm
-		amount = int(float(v) * float(pm) / float(1000 - pm))
-	if amount <= 0 or pm <= 0:
-		return false
-	var src := EconUtil.acct(best.substr(3)) if best.begins_with("co:") else EconUtil.hh_acct(best.substr(3))
-	world.ledger.transfer(src, EconUtil.acct(oid), amount, "EQUITY_STAKE", world.month)
-	EconShares.add_stake(o, best, pm)
-	var kind := "shares_firm" if best.begins_with("co:") else "shares_hh"
+	var kind := "shares_hh" if String(pledges[0][0]).begins_with("hh:") else "shares_firm"
+	var left_pm := pm
+	for i in pledges.size():
+		var h: String = pledges[i][0]
+		var amt: int = pledges[i][1]
+		var hp: int = left_pm if i == pledges.size() - 1 else pm * amt / need
+		left_pm -= hp
+		var src := EconUtil.acct(h.substr(3)) if h.begins_with("co:") else EconUtil.hh_acct(h.substr(3))
+		world.ledger.transfer(src, EconUtil.acct(oid), amt, "EQUITY_STAKE", world.month)
+		EconShares.add_stake(o, h, hp)
+		EconFacts.emit(world, "COMP_STAKE_SOLD", o["hq"], [["COMPANY", oid]], [["COMPANY", oid, 1.0]], {}, 15, "PUBLIC",
+			{"org": oid, "buyer": h, "permille": hp, "amount": amt / S, "rescue": true})
 	_count(world, kind)
-	_count(world, "shares_amount", amount)
+	_count(world, "shares_amount", need)
+	_count(world, "shares_buyers", pledges.size())
 	rs["kind"] = kind
-	EconFacts.emit(world, "COMP_STAKE_SOLD", o["hq"], [["COMPANY", oid]], [["COMPANY", oid, 1.0]], {}, 15, "PUBLIC",
-		{"org": oid, "buyer": best, "permille": pm, "amount": amount / S, "rescue": true})
-	rs["shortfall"] = shortfall(world, oid)
-	if int(rs["shortfall"]) <= 0:
-		_saved(world, o, kind)
+	_saved(world, o, kind)
 	return true
+
+
+## Buyer order: same output good first, then other firms, then households; within a rank the most spare cash first.
+static func _cand_before(x: Array, y: Array) -> bool:
+	if int(x[0]) != int(y[0]):
+		return int(x[0]) < int(y[0])
+	if int(x[1]) != int(y[1]):
+		return int(x[1]) < int(y[1])
+	return String(x[2]) < String(y[2])
 
 
 # ------------------------------------------------------------------ 2. the bank
 
-static func _bank(world: WorldState, oid: String, o: Dictionary, ft: String) -> bool:
+static func _bank(world: WorldState, oid: String, o: Dictionary, f: Dictionary) -> bool:
 	var rs: Dictionary = o["rescue"]
 	var ext := false
 	for lid in EconUtil.sorted_keys(world.table("loan")):
@@ -242,10 +283,18 @@ static func _bank(world: WorldState, oid: String, o: Dictionary, ft: String) -> 
 			ext = true
 	if ext:
 		_count(world, "extensions")
-	var need := int(rs["shortfall"])
+	var need := need_of(int(rs["shortfall"]), f)
+	if need <= 0:
+		return false
+	# the forecast profit must repay all the plan's debt (with the top-up) within DEBT_YEARS, at the bank's monthly rate
+	var debt := EconFinance.debt_of(world, oid) + need
+	var service_y := debt / DEBT_YEARS + int(float(debt) * EconData.BANK_FIRM_BASE_PM * 12.0)
+	if f.is_empty() or int(f.get("profit", 0)) < service_y:
+		_count(world, "bank_no_cover")
+		return false
 	var floor_c := maxi(EconData.BANK_CASH * S, EconBank.loans(world) * EconMoney.CAPITAL_LOAN_PCT / 100)
 	var room := EconBank.room(world) if EconBank.active(world) else world.ledger.balance(EconUtil.BANK) - EconData.BANK_MIN_CASH * S
-	if need <= 0 or need > room or EconBank.capital(world) < floor_c or not price_ok(world, ft):
+	if need > room or EconBank.capital(world) < floor_c:
 		return false
 	var v := _value(world, oid)
 	var swapped := 0

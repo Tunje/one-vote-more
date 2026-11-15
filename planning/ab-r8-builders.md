@@ -119,6 +119,42 @@ general. A plan in trouble is mostly a bad plan, and the stake buyers (other fir
 Next step: trace where rescued plans die (before or after opening) and what the buyers lose, before changing the price
 test.
 
+**Trace (E166 arm, 10 seeds, 168 windows; scratch copy):**
+- The price test filters nothing: the good's price is a median 5.5× its unit cost, which assumes full output (test: 1.2×).
+- Windows open a median 3 months after the plan starts, when 10% of the contract is paid. The "shortfall" is a gap on
+  paper (left to pay − cash − credit) of 13–22% of the price. Plans start short, and no payment has been missed yet.
+- 90 windows failed and were withdrawn after 4 months. Buyers had already paid 13.7M credits for partial stakes in
+  them, all lost.
+- Rescued plans that opened died a median 12–15 months later. The rescue covered the build but no running costs.
+  Dividends returned 0.7M of the bank's 3.5M, 0.5M of firms' 9.0M and almost nothing of households' 8.5M.
+
+**Stricter rescues, 10 seeds, same copy (pre-fd5f422; the founders' forecast still had Bob's 12× interest slip):**
+- E166B: money moves only if pledges cover the whole need. The need includes 3 months of forecast running costs.
+  Buyers want ≥ 10% a year from their share of the forecast profit (EconForecast.first_year, visible that month). The
+  bank lends only if forecast profit repays all the plan's debt in 5 years.
+- E166T: a plan is in trouble only once it has missed a payment. One window per plan. A plan with no rescue is left to
+  E165's own rules (stalled, limit) instead of being withdrawn.
+
+| arm | adults | u % | food ‰ | real | plans opened | surv36 (opened) | windows | rescued | rescued alive 36 m |
+|---|---|---|---|---|---|---|---|---|---|
+| plan | 4854 | 16.5 | 12.6 | 3.02 | 14.4 | 63/138 | – | – | – |
+| + E166 | 4666 | 18.5 | 25.8 | 2.88 | 13.8 | 46/121 | 293 | 185 | 15/167 |
+| + E166 + B | 4698 | 17.6 | 26.7 | 3.05 | 5.0 | 15/41 | 307 | 42 | 0/41 |
+| + E166 + T | 4788 | 17.4 | 25.0 | 2.89 | 13.3 | 44/124 | 105 | 96 | 3/84 |
+| + E166 + B + T | 4839 | 16.3 | 20.9 | 2.87 | 13.6 | 55/125 | 104 | 7 | 0/6 |
+
+Reading:
+- Most of E166's harm was its own trigger and kill: a gap on paper opened the window, and 4 months without a rescue
+  withdrew plans that would otherwise often have opened. B alone makes it worse, since the forecast rejects almost
+  every plan (1178 "no profit"), so almost every window ends in withdrawal.
+- With a real trigger (T), 96 of 104 windows close by themselves (the plan pays its arrears) when the buyers are strict.
+  Loose buyers (T without B) rescue 96 plans, of which 3 of 84 are alive at 36 months.
+- B + T is near-neutral on adults (−15). It rescues almost nothing, because the forecast stub sees no profit in plans
+  in trouble. Seeds 2, 5, 8 and 9 are identical to plan. Food and real income are a little worse; the 6 rescues are
+  not enough to explain that, so it is likely noise.
+- Finding for the user: in this economy, a plan in trouble is almost always a bad plan. Buyers who can judge it refuse,
+  and buyers who can't lose their money.
+
 ## Still to do
 
 The order-book retest (E165 + E165Q on top of R8_BUILDERS, ± E155BLD) waits for Bob's freight and material steps (R8
