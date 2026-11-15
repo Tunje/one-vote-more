@@ -70,6 +70,15 @@ static func profit12(o: Dictionary) -> int:
 	return EconFinance.profit(sum12(o)) if months(o) > 0 else 0
 
 
+## The month's revenue a firm plans and borrows on (user 2026-11-14 and again 2026-11-16: "I said to remove the limits
+## from last month"): the average month of its last year once it has MIN_M months of history under E140, never one
+## month's figure. Before that, or without E140, last month's (there is nothing else to go on).
+static func plan_rev(world: WorldState, o: Dictionary) -> int:
+	if active(world) and months(o) >= MIN_M:
+		return avg_rev(o)
+	return int((o.get("pl_last", {}) as Dictionary).get("rev", 0))
+
+
 static func avg_rev(o: Dictionary) -> int:
 	var n := months(o)
 	return int(sum12(o).get("rev", 0)) / n if n > 0 else 0

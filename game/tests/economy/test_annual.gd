@@ -147,3 +147,27 @@ func test_run_closes() -> void:
 		if bool(w.table("loan")[lid].get("revolving", false)):
 			lines += 1
 	check(lines >= 0, "lines open: %d" % lines)
+
+
+## User 2026-11-16: "I said to remove the limits from last month". A firm plans and borrows on its year, so one bad
+## month does not close its credit, and one good month does not open it wide.
+func test_borrowing_reads_the_year_not_last_month() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["E140"]
+	sim.run(2)
+	var oid := _private(w)
+	check(oid != "", "a private firm")
+	var o: Dictionary = w.table("org")[oid]
+	_good_year(o)
+	check_eq(EconAnnual.plan_rev(w, o), 100000 * EconUtil.S, "the average month of the year")
+	(o["pl_last"] as Dictionary)["rev"] = 0     # last month: nothing sold
+	check_eq(EconAnnual.plan_rev(w, o), 100000 * EconUtil.S, "a month without sales does not change what it plans on")
+	(o["pl_last"] as Dictionary)["rev"] = 900000 * EconUtil.S
+	check_eq(EconAnnual.plan_rev(w, o), 100000 * EconUtil.S, "nor does one very good month")
+	o["pl_ring"] = []
+	check_eq(EconAnnual.plan_rev(w, o), 900000 * EconUtil.S, "with no history yet it has only last month to go on")
+	w.meta["on"] = []
+	_good_year(o)
+	(o["pl_last"] as Dictionary)["rev"] = 5 * EconUtil.S
+	check_eq(EconAnnual.plan_rev(w, o), 5 * EconUtil.S, "without yearly budgeting the old rule stands")

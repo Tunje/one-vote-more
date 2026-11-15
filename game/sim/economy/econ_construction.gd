@@ -715,6 +715,10 @@ static func contractor_plans(world: WorldState) -> void:
 		var hq: String = o["hq"]
 		var budget := world.ledger.balance(EconUtil.acct(oid)) - int(EconFinance._monthly_costs(o) * 0.5)
 		var mat_cost := EconUtil.val(maxi(0, mat - EconUtil.inv_get(world, oid, "MATERIAL", hq)), s["prices"]["MATERIAL"]) 			+ EconUtil.val(maxi(0, comp - EconUtil.inv_get(world, oid, "COMPONENT", hq)), s["prices"]["COMPONENT"])
+		if mat_cost > budget and EconAnnual.applies(world, o) and EconAnnual.months(o) >= EconAnnual.MIN_M:
+			# the yearly credit line every other firm buys its inputs on (E140): builders were the one kind of firm
+			# sized on this month's cash alone (Otto's trace: 80 % of their material-blocked months)
+			budget += EconAnnual.input_draw(world, oid, budget, mat_cost)
 		if mat_cost > budget:
 			budget += FirmAI._working_capital(world, oid, mat_cost - budget)
 		for pair in [["MATERIAL", mat], ["COMPONENT", comp]]:

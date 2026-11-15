@@ -440,7 +440,7 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 			if o["status"] == "ADMINISTRATION" and not EconUtil.off(world, "E119"):
 				# E119 (Wilma): the administrator runs the business — inputs are bought out of revenue (last month's sales),
 				# not out of cash above the wage bill, which starved every plant of a big employer in administration
-				var rev := int(o["pl_last"].get("rev", 0)) if not o.get("pl_last", {}).is_empty() else 0
+				var rev := EconAnnual.plan_rev(world, o) if not o.get("pl_last", {}).is_empty() else 0   # the year's average month
 				# (when the plants already stand idle there is no revenue: restart from up to a quarter of the cash)
 				budgets[oid] = maxi(int(budgets[oid]), mini(maxi(0, bal), maxi(int(float(rev) * ADMIN_INPUT_SHARE), maxi(0, bal) / 4)))
 		var want: int = needs[k] - EconUtil.inv_get(world, oid, good, d)
@@ -561,7 +561,7 @@ static func _working_capital(world: WorldState, oid: String, amount: int) -> int
 		var l: Dictionary = world.table("loan")[lid]
 		if l["borrower"] == oid and l["missed"] > 0:
 			return 0
-	var rev: int = o["pl_last"].get("rev", 0)
+	var rev: int = EconAnnual.plan_rev(world, o)   # the year's average month, not last month's revenue
 	var assets := world.ledger.balance(EconUtil.acct(oid))
 	for fid in world.table("facility"):
 		if world.table("facility")[fid]["org"] == oid:
