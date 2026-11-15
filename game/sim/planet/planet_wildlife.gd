@@ -27,7 +27,8 @@ const MAX_LEVEL := 3000
 const KEEP_OFF := 15          # a hex is saved while any level or its target is more than this ‰ off natural
 const COLLAPSE := 150         # a level near the colony under this: PLANET_WILDLIFE_COLLAPSE
 const RECOVER := 500          # back above this: PLANET_WILDLIFE_RECOVERY
-const BOOM := 1600            # pests or grazers above this: PLANET_WILDLIFE_BOOM
+const BOOM := 1600            # pests or grazers above this: PLANET_WILDLIFE_BOOM (once, until back under BOOM_EASED)
+const BOOM_EASED := 1200
 const SWARM_PER_MONTH := 0.006    # x the world's swarm factor: a pest swarm year every ~14 years
 const SWARM_ADD := 1500
 ## Yield losses (%): pollinators gone (x the crops' dependence), pests and grazers booming.
@@ -94,6 +95,22 @@ static func levels(world: WorldState, cell: int) -> Dictionary:
 	for i in LEVELS.size():
 		out[LEVELS[i]] = int(row[i])
 	return out
+
+
+## This month's living levels (display and news): insects and grazers dormant in the cold (PlanetSeasons.activity
+## against its yearly mean), insects thinner while birds stay. The saved levels are the year-round balance.
+static func levels_now(world: WorldState, cell: int, month: int) -> Dictionary:
+	var l := levels(world, cell)
+	var act := PlanetSeasons.activity(world, cell, month) / maxf(0.01, PlanetSeasons.mean_activity(world, cell))
+	var birds := 0.0
+	for b in PlanetBirds.present(world, cell, month):
+		birds += float(b["size"]) / 1000.0
+	var yr: Array = PlanetBirds.pressure(world, cell)
+	var bird_f := (1.0 + PlanetBirds.INSECT_K * float(yr[0])) / (1.0 + PlanetBirds.INSECT_K * birds) if float(yr[1]) > 0.0 else 1.0
+	l["pol"] = roundi(float(l["pol"]) * act)
+	l["pest"] = roundi(float(l["pest"]) * act * bird_f)
+	l["graz"] = roundi(float(l["graz"]) * (0.6 + 0.4 * act))
+	return l
 
 
 ## Farm yield lost to the food web in a hex (%, 0 when ECO is off): pollinators missing, pests and grazers booming.
@@ -221,6 +238,7 @@ static func step_month(world: WorldState) -> Dictionary:
 			swarm[int(j)] = true
 	var out := {}
 	var crossed: Array = []
+	var eased: Array = []
 	for c in cells:
 		if Planet.is_water(world, c):
 			continue
@@ -236,10 +254,15 @@ static func step_month(world: WorldState) -> Dictionary:
 		var k_pest := (hab + 3 * farm) * (1000 - tox / 5) / 1000
 		var pol_t := k_pol * 1000 / (700 + 3 * int(x[2]) / 10)
 		var pest_t := k_pest * 1000 / (400 + 6 * int(x[2]) / 10)
+		var bp: Array = PlanetBirds.pressure(world, c)   # stage 3: migrating birds eat pests where they stay (yearly share x size)
+		if float(bp[1]) > 0.0:
+			pest_t = roundi(float(pest_t) * (1.0 + PlanetBirds.INSECT_K * float(bp[1])) / (1.0 + PlanetBirds.INSECT_K * float(bp[0])))
 		var food := (3 * int(x[0]) + 7 * int(x[1])) / 10
 		var forg_t := hab * food / 1000 * 1000 / (500 + int(x[4]) / 2)
 		var graz_t := (hab + 2 * farm) * 1000 / (400 + 6 * int(x[4]) / 10)
 		var pred_t := hab * ((int(x[2]) + int(x[3])) / 2) / 1000
+		if float(bp[1]) > 0.0:   # and feed the predators
+			pred_t = roundi(float(pred_t) * (1.0 + PlanetBirds.PREY_K * float(bp[0])) / (1.0 + PlanetBirds.PREY_K * float(bp[1])))
 		if pol_name == "CULL" and near.has(c):
 			pred_t = pred_t * (150 if settled.has(c) else 400) / 1000
 		elif pol_name == "MANAGE" and settled.has(c):
@@ -264,8 +287,10 @@ static func step_month(world: WorldState) -> Dictionary:
 					crossed.append({"cell": c, "level": LEVELS[i], "kind": "COLLAPSE", "value": b})
 				elif a < RECOVER and b >= RECOVER and _was_collapsed(world, c, LEVELS[i]):
 					crossed.append({"cell": c, "level": LEVELS[i], "kind": "RECOVERY", "value": b})
-				elif i in [1, 3] and a <= BOOM and b > BOOM and not (i == 1 and swarm.has(c)):   # a swarm is its own fact
+				elif i in [1, 3] and a <= BOOM and b > BOOM and not (i == 1 and swarm.has(c)) and not _was_collapsed(world, c, LEVELS[i] + "|boom"):   # a swarm is its own fact; once until it eases
 					crossed.append({"cell": c, "level": LEVELS[i], "kind": "BOOM", "value": b})
+				elif i in [1, 3] and b < BOOM_EASED and _was_collapsed(world, c, LEVELS[i] + "|boom"):
+					eased.append("%d|%s|boom" % [c, LEVELS[i]])
 		var off := false   # kept while a level, or where it is heading, is off natural (small drifts must add up)
 		for i in 5:
 			off = off or absi(int(x[i]) - 1000) > KEEP_OFF or absi(clampi(int(tg[i]), 0, MAX_LEVEL) - 1000) > KEEP_OFF
@@ -278,8 +303,12 @@ static func step_month(world: WorldState) -> Dictionary:
 		var ck := "%d|%s" % [int(x2["cell"]), x2["level"]]
 		if x2["kind"] == "COLLAPSE":
 			col[ck] = world.month
+		elif x2["kind"] == "BOOM":
+			col[ck + "|boom"] = world.month
 		elif x2["kind"] == "RECOVERY":
 			col.erase(ck)
+	for ek in eased:
+		col.erase(ek)
 	t["web_col"] = col
 	var attacks := _attacks(world, r, ch)
 	var hist: Array = t.get("web_att", [])
@@ -350,7 +379,8 @@ static func _attacks(world: WorldState, r: RandomNumberGenerator, ch: Dictionary
 		var x := float(levels(world, int(s["hex"]))["pred"]) / 1000.0 * float(s["exposure"])
 		w.append(x)
 		total += x
-	var lam := ATTACK_BASE * float(ch["danger"]) * float(ch["boldness"]) * total
+	var g := PlanetSeasons.activity(world, Planet.landing(world), world.month)   # stage 3: hungrier, bolder in the lean months
+	var lam := ATTACK_BASE * float(ch["danger"]) * float(ch["boldness"]) * total * (1.6 - 0.8 * g)
 	var n := PlanetClimate._poisson(r, lam)
 	var out: Array = []
 	for _k in mini(n, 5):

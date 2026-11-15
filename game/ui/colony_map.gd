@@ -1469,6 +1469,7 @@ func _network_summary(_w: WorldState) -> String:
 			"" if _wild_marks.size() == 1 else "s", PlanetWildlife.creature(_w, "pred"), (", [color=#ef5350]%d killed[/color]" % dead) if dead > 0 else "",
 			PlanetWildlife.web_health(_w, Planet.landing(_w)), PlanetWildlife.policy(_w).to_lower()] + "
 "
+		t += _birds_line(_w)
 	return t + "\n"
 
 
@@ -1977,3 +1978,24 @@ func _crime_summary() -> String:
 
 func _view_month() -> int:
 	return session.world().month if session != null else 0
+
+
+const MONTH_NAMES := ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+
+## Stage 3 (ECO): which flocks are at the colony now and when the others are due.
+func _birds_line(w: WorldState) -> String:
+	var li := Planet.landing(w)
+	var parts: Array = []
+	for f in PlanetBirds.flocks(w):
+		var wh := PlanetBirds.where(w, f, w.month)
+		var sz := PlanetBirds.size(w, String(f["id"]))
+		if li in wh["cells"]:
+			parts.append("%s here (%s, %d%%)" % [f["name"], {"BREEDING": "breeding", "WINTER": "wintering", "NORTH": "passing", "SOUTH": "leaving"}[wh["phase"]], sz / 10])
+			continue
+		for k in range(1, 13):
+			if li in PlanetBirds.where(w, f, w.month + k)["cells"]:
+				parts.append("%s due in %s" % [f["name"], MONTH_NAMES[posmod(w.month + k, 12)]])
+				break
+	return ("[color=#ffd27a]Birds[/color]: " + " · ".join(parts) + "
+") if not parts.is_empty() else ""

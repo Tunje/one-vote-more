@@ -36,6 +36,7 @@ func indicator_defs() -> Array:
 		["PLANET_ECO_HARM", "‰ (milli)", [0, 1000000], -1, {"good": 0, "bad": 600000}],   # ECO only
 		["PLANET_WILDLIFE_ATTACKS", "attacks in 12 months (milli)", [0, 100000], -1, {"good": 0, "bad": 6000}],   # ECO only
 		["PLANET_WEB_HEALTH", "weakest level ‰ (milli)", [0, 1000000], 1, {"good": 1000000, "bad": 300000}],   # ECO only
+		["PLANET_BIRDS", "flocks' size ‰ of natural (milli)", [0, 2000000], 1, {"good": 1000000, "bad": 400000}],   # ECO only (stage 3)
 	]:
 		# how much people care is politics' call (Wilma): the ecology's three measures reach voters; the weather ones don't yet
 		out.append({"id": row[0], "owner": OWNER, "unit": row[1], "range": row[2], "granularity": "COLONY",
@@ -62,10 +63,12 @@ func run_phase(phase: int, world: WorldState) -> void:
 	PlanetClimate.step_month(world)
 	var crossed: Array = []
 	var wild := {}
+	var birds: Array = []
 	if PlanetEcology.on(world):   # ECO: pollution released, spread and absorbed; harmed land raises dust (own stream)
 		var pt := world.table("planet")
 		crossed = PlanetEcology.step_month(world, pt["storms"], pt["phenomena"])
 		wild = PlanetWildlife.step_month(world)
+		birds = PlanetBirds.step_month(world)   # stage 3: the flocks' year and their arrivals at the colony
 	Transport.step_month(world)
 	WasteMap.step_month(world)    # A45 W5: last month's sewage and leachate flow down the river   # A43 T1: the network wears, storms and mud close tracks (after this month's weather)
 	var home := Planet.landing(world)
@@ -81,6 +84,17 @@ func run_phase(phase: int, world: WorldState) -> void:
 		world.set_indicator(OWNER, "PLANET_WILDLIFE_ATTACKS", "COLONY", PlanetWildlife.attacks_last_year(world) * 1000)
 		world.set_indicator(OWNER, "PLANET_WEB_HEALTH", "COLONY", PlanetWildlife.web_health(world, home) * 1000)
 		_report_wild(world, wild)
+		world.set_indicator(OWNER, "PLANET_BIRDS", "COLONY", PlanetBirds.colony_index(world) * 1000)
+		_report_birds(world, birds)
+		var ex := PlanetSeasons.extreme(world, home, world.month)
+		if not ex.is_empty() and String(PlanetSeasons.extreme(world, home, world.month - 1).get("kind", "")) != String(ex["kind"]):   # once per spell
+			world.add_fact({"type": "PLANET_" + String(ex["kind"]), "owner": OWNER, "subjects": [], "responsible": [], "impact": {},
+				"magnitude": 35, "visibility": "PUBLIC", "data": {"hex": home, "temp_c": float(ex["temp_c"]), "anom_c": float(ex["anom_c"])}})
+	if PlanetSeasons.on(world) and posmod(world.month, 12) == PlanetSeasons.harvest_month(world, home) and world.month >= 6:
+		var hv := PlanetSeasons.harvest(world, home, world.month)
+		world.add_fact({"type": "PLANET_HARVEST", "owner": OWNER, "subjects": [], "responsible": [], "impact": {},
+			"magnitude": clampi(20 + absi(100 - int(hv["pct"])), 0, 100), "visibility": "PUBLIC",
+			"data": {"hex": home, "pct": int(hv["pct"]), "months": int(hv["months"]), "worst_drought": int(hv["worst_drought"])}})
 	for cell in Planet.settled(world):
 		for h in PlanetClimate.storms_at(world, cell) + PlanetClimate.phenomena_at(world, cell):
 			_report(world, cell, h)
@@ -151,3 +165,30 @@ func _report_wild(world: WorldState, wild: Dictionary) -> void:
 	if wild.get("swarm", false):
 		world.add_fact({"type": "PLANET_WILDLIFE_SWARM", "owner": OWNER, "subjects": [], "responsible": [], "impact": {}, "magnitude": 35,
 			"visibility": "PUBLIC", "data": {"hex": Planet.landing(world), "creature": PlanetWildlife.creature(world, "pest")}})
+
+
+## ECO stage 3: the flocks at the colony. ARRIVED (great when big or up 30%), FAILED ("the birds didn't come": with the
+## most harmed hex they use, so blame can reach along the route), GONE (a flock collapsed). PUBLIC, no one responsible.
+func _report_birds(world: WorldState, events: Array) -> void:
+	for e in events:
+		var f: Dictionary = e["flock"]
+		var d := {"flock": String(f["id"]), "name": String(f["name"]), "role": String(f["role"]), "size": int(e["size"])}
+		var mag := 25
+		match String(e["kind"]):
+			"ARRIVED":
+				d["last_year"] = int(e["last"])
+				d["phase"] = String(e["phase"])
+				d["great"] = bool(e["great"])
+				mag = 30 if e["great"] else 15
+			"FAILED":
+				d["last_year"] = int(e["last"])
+				d["phase"] = String(e["phase"])
+				var wh := PlanetBirds.worst_hex(world, f)
+				d["worst_hex"] = int(wh["cell"])
+				d["worst_harm"] = int(wh["harm"])
+				d["worst_is_colony"] = int(wh["cell"]) == Planet.landing(world)
+				mag = 40
+			"GONE":
+				mag = 50
+		world.add_fact({"type": "PLANET_BIRDS_" + String(e["kind"]), "owner": OWNER, "subjects": [], "responsible": [], "impact": {},
+			"magnitude": mag, "visibility": "PUBLIC", "data": d})

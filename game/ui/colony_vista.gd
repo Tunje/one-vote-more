@@ -79,6 +79,7 @@ static func gather(w: WorldState) -> Dictionary:
 	d["phenomena"] = ph
 	d["smoke"] = PlanetClimate.air_pollution(w, home)
 	d["harm"] = float(PlanetEcology.harm(w, home)) / 1000.0 if PlanetEcology.on(w) else 0.0   # ECO: browner, barer land
+	d["birds"] = PlanetBirds.present(w, home, w.month) if PlanetEcology.on(w) else []   # stage 3: flocks over the colony
 	d["eye"] = Terrain.landing(w)
 	d["look"] = look_dir(w)
 	d["seed"] = w.rng.derive_seed("ui.vista")
@@ -142,6 +143,7 @@ func _draw() -> void:
 	var hy := H * HORIZON
 	_draw_sky(W, hy)
 	_draw_far_hills(W, hy)
+	_draw_birds(W, hy)
 	_draw_ground(w, W, H, hy)
 	_draw_roads(w, W, H, hy)
 	_draw_things(w, W, H, hy)
@@ -190,6 +192,33 @@ func _draw_sky(W: float, hy: float) -> void:
 
 
 ## The land beyond the colony map: hazy ridges on the horizon (blue with distance).
+## Stage 3 (ECO): the flocks at the colony this month. Passing flocks cross the sky in V formations; breeding or
+## wintering flocks wheel low over the land in loose groups. More birds for a bigger flock.
+func _draw_birds(W: float, hy: float) -> void:
+	var k := 0
+	for b in _d.get("birds", []):
+		k += 1
+		var r := _rng(9100 + k)
+		var n := clampi(roundi(float(b["size"]) / 1000.0 * 9.0), 1, 16)
+		var col := Color(0.15, 0.15, 0.18, 0.85)
+		if String(b["phase"]) in ["NORTH", "SOUTH"]:
+			var lead := Vector2(r.randf_range(0.25, 0.75) * W, r.randf_range(0.12, 0.35) * hy)
+			var dirx := 1.0 if String(b["phase"]) == "NORTH" else -1.0
+			for i in n:
+				var row := (i + 1) / 2
+				var sgn := 1.0 if i % 2 == 0 else -1.0
+				var p := lead + Vector2(-dirx * row * 18.0, sgn * row * 9.0) if i > 0 else lead
+				_bird(p, 6.0, col)
+		else:
+			for i in n:
+				_bird(Vector2(r.randf_range(0.05, 0.95) * W, r.randf_range(0.55, 0.92) * hy), 4.0 + r.randf() * 2.0, col)
+
+
+func _bird(p: Vector2, s: float, col: Color) -> void:
+	draw_line(p + Vector2(-s, -s * 0.45), p, col, 1.6)
+	draw_line(p, p + Vector2(s, -s * 0.45), col, 1.6)
+
+
 func _draw_far_hills(W: float, hy: float) -> void:
 	var r := _rng(2)
 	for layer in 2:

@@ -675,6 +675,14 @@ func _build_weather(w: WorldState) -> void:
 				col.a = clampf(0.25 + 0.6 * f, 0.25, 0.85)
 				_blob(st, geo, int(k), 1.0 + RELIEF * (maxf(float(Planet.height(w, int(k))), 0.0) + 4.0), col, 1.0)
 				any = true
+	if PlanetEcology.on(w):   # stage 3: this month's snow line and the migrating flocks
+		for c in _snow_cells(w, posmod(w.month, 12)):
+			var cold := clampf(-float(c[1]) / 12.0, 0.25, 1.0)
+			_blob(st, geo, int(c[0]), 1.0 + RELIEF * (maxf(float(Planet.height(w, int(c[0]))), 0.0) + 3.0), Color(0.96, 0.97, 1.0, 0.35 + 0.5 * cold), 1.05)
+			any = true
+		for f in PlanetBirds.flocks(w):
+			_flock_marks(st, geo, w, f)
+			any = true
 	for s in pl.get("storms", []) + pl.get("phenomena", []):
 		if s.get("global", false):
 			continue
@@ -696,6 +704,72 @@ func _build_weather(w: WorldState) -> void:
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	st.set_material(mat)
 	_weather_mesh.mesh = st.commit()
+
+
+## Land cells below freezing in a month of the year, [[cell, temp_c]] (the planet's own climate: pure, cached per seed).
+static var _snow_cache := {}
+func _snow_cells(w: WorldState, moy: int) -> Array:
+	var key := "%d|%d|%d" % [Planet.seed_of(w), Planet.freq(w), moy]
+	if not _snow_cache.has(key):
+		# all twelve months in one pass of the planet (PlanetClimate.climate's temperature, inlined: no dictionaries)
+		var months: Array = []
+		for _m in 12:
+			months.append([])
+		var hs := Planet.heights(w)
+		var sp := PackedFloat32Array()
+		sp.resize(12)
+		for i in Planet.cell_count(w):
+			var h := hs[i]
+			if h < 0:
+				continue
+			var lat := Planet.lat_lon(i, Planet.freq(w)).x
+			var sl := sin(deg_to_rad(absf(lat)))
+			var tmean := 28.0 - 32.0 * sl * sl - 18.0 * sl * sl * sl * sl - PlanetClimate.LAPSE_C_PER_STEP * float(h)
+			if tmean > 20.0:
+				continue
+			var amp := (1.5 + 17.0 * sl) * (0.55 if Planet.is_coast(w, i) else 1.0) * (PlanetClimate.TILT_DEG / 26.0)
+			for m in 12:
+				var t := tmean + amp * PlanetClimate.season_phase(lat, m)
+				if t < 0.0:
+					months[m].append([i, snappedf(t, 0.1)])
+		for m in 12:
+			_snow_cache["%d|%d|%d" % [Planet.seed_of(w), Planet.freq(w), m]] = months[m]
+	return _snow_cache[key]
+
+
+## A flock this month: its route as faint dashes, and a V-shaped flight mark where it is (pointing the way it flies;
+## resting flocks sit over their range without a heading).
+func _flock_marks(st: SurfaceTool, geo: Dictionary, w: WorldState, f: Dictionary) -> void:
+	var cs: PackedVector3Array = geo["centers"]
+	var route: Array = f["route"]
+	var R := CLOUD_R * 0.985
+	var dash := Color(1.0, 0.92, 0.75, 0.35)
+	for i in range(0, route.size() - 1, 2):
+		_strip(st, cs[int(route[i])] * R, cs[int(route[i + 1])] * R, 0.0016, dash)
+	var wh := PlanetBirds.where(w, f, w.month)
+	var c: Vector3 = cs[int(wh["centre"])]
+	var cells: Array = wh["cells"]
+	var dir := Vector3.ZERO
+	if wh["phase"] in ["SOUTH", "NORTH"] and cells.size() > 1:
+		dir = (cs[int(cells[cells.size() - 1])] - cs[int(cells[0])]).normalized()
+	if dir.length() < 0.5:
+		dir = Vector3.UP.cross(c).normalized() if Vector3.UP.cross(c).length() > 0.01 else Vector3.RIGHT
+	var side := c.cross(dir).normalized()
+	var size := 0.012 * (0.6 + 0.4 * clampf(float(PlanetBirds.size(w, String(f["id"]))) / 1000.0, 0.0, 1.5))
+	var tip := c.normalized() * R + dir * size * 0.5
+	var col := Color(1.0, 0.85, 0.45, 0.95)
+	_strip(st, tip, tip - dir * size + side * size, 0.0022, col)
+	_strip(st, tip, tip - dir * size - side * size, 0.0022, col)
+
+
+## A thin band from a to b, lying on the sphere.
+func _strip(st: SurfaceTool, a: Vector3, b: Vector3, width: float, col: Color) -> void:
+	var n := ((a + b) * 0.5).normalized()
+	var side := n.cross(b - a).normalized() * width
+	for v in [a - side, a + side, b + side, a - side, b + side, b - side]:
+		st.set_color(col)
+		st.set_normal(n)
+		st.add_vertex(v)
 
 
 ## A soft hex-shaped blob over a cell (opaque centre fading to clear at the rim), `grow` times the cell's size.
@@ -900,6 +974,9 @@ Land harmed %d‰ · pollution %.0f (absorbs %d) · farm yields %d%%" % [hm, pol
 				parts.append("%s %d%%" % [PlanetWildlife.creature(w, k), int(lv[k]) / 10])
 			s += "
 Wildlife (of natural): " + " · ".join(parts)
+		for b in PlanetBirds.present(w, _hover, w.month):
+			s += "
+%s here (%s) · %d%% of their natural number" % [String(b["name"]).capitalize(), String(b["phase"]).to_lower().replace("south", "flying south").replace("north", "flying north"), int(b["size"]) / 10]
 	for site in PlanetSites.at_cell(w, _hover):
 		if site["where"] != "COLONY":
 			s += "\n★ %s: %s · attraction %d · this month %d%% · %d km, %d days from the colony" % [site["name"],

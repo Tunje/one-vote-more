@@ -291,6 +291,59 @@ animals that depend on them; real fodder for planet-first parties."
 - **Left out**: individual species, migration across the globe, disease from wildlife, hunting as an industry, and
   livestock.
 
+## Ecology, stage 3: seasons and migrating birds (user via Wilma, 2026-11-15) — sim/planet/planet_seasons.gd, planet_birds.gd, tests/planet/test_seasons.gd
+
+User: "Don't forget birds, preferably that migrate, and seasons. Terra's gotta make the planet feel real."
+
+- **Seasons that existed before**: 26° tilt with opposite hemispheres, a yearly temperature swing, yearly rain
+  (monsoons, wetter mid-latitude winters), `growing` in climate(), seasonal storms, and the vista's season palette
+  and snow. Nothing in the economy or on wild land used them, and the globe looked the same all year.
+- **Flag SEASONS** (opt-in; Bob A/Bs it before anyone switches it on):
+  - Farm and family-farm output × `PlanetSeasons.farm_pct` = `season_pct` × (100 − `drought_loss`).
+    - `season_pct` = 10% base plus 90% × growing, normalised so every hex's year averages 100. The year's food stays
+      as calibrated, but the harvest comes in the growing months and winter runs on stores.
+    - `drought_loss` is 5% a month from the 3rd dry month, up to 30%.
+  - `heating_pct` (yearly mean 100, degree-months under 15 °C) is a query only, for Bob's household energy.
+  - PLANET_HARVEST at the landing hex once a year, the month the growing season ends: {hex, pct, months,
+    worst_drought}. pct counts drought and, with ECO, harm and the food web.
+- **Under ECO**:
+  - Wild land through the year: `PlanetWildlife.levels_now` shows insects dormant in the cold (activity 0.25–1
+    against its yearly mean), grazers following, and insects thinner while birds stay. Saved levels remain the
+    year-round balance, so seasons never fire collapse or boom facts.
+  - Predators are bolder in the lean months: attack rate × (1.6 − 0.8 × activity).
+  - PLANET_HARD_WINTER: a winter month at least 3 °C colder than normal and below 0 °C. PLANET_HEATWAVE: a summer
+    month at least 3 °C hotter than normal. Both are reported once per spell at the landing hex: {hex, temp_c,
+    anom_c}.
+- **Birds** (`PlanetBirds`, under ECO), pure per seed:
+  - 2–3 flocks with names. Each has a role: the first breeds at the colony, the second passes over it, a third (60%
+    of worlds) winters there.
+  - Each flock has breeding and wintering ranges (a hex and its neighbours), a route of neighbouring hexes, an
+    arrival month and a leaving month, and 1–2 months in transit. Arrival shifts by −1..+1 month by year.
+  - Saved: planet "birds": {flock: [size ‰, last year's size, gone]}.
+  - Effects:
+    - Where a flock spends its year it holds pests down: pest target × (1 + presence) / (1 + presence × size).
+    - It feeds predators (×1.2 per unit of presence).
+    - Natural balance includes the birds, so a missing flock means more pests and lower yields.
+  - Yearly, at the end of breeding, size moves halfway to 1000 × breeding food (insects at the breeding range) ×
+    (1 − loss) × noise, where loss = 0.5 × the worst stopover + 2 × the mean harm/clearing along the route and
+    wintering range.
+- **Bird facts** (PUBLIC, no one responsible), at arrivals at the colony's hex or a neighbour (spring passage,
+  breeding and wintering arrivals; not the autumn passage south):
+  - PLANET_BIRDS_ARRIVED: {flock, name, role, size, last_year, phase, great (≥1300‰ or up 30%)}.
+  - PLANET_BIRDS_FAILED: under 400‰ or down 30%; adds worst_hex, worst_harm, worst_is_colony.
+  - PLANET_BIRDS_GONE: under 100‰, once.
+  - Indicator PLANET_BIRDS: the flocks' mean size, ‰.
+- **Shown**:
+  - Globe: the snow line by month (land below 0 °C in the planet's own climate, all 12 months computed in one pass
+    and cached per seed); each flock's route as faint dashes; a V flight mark where it is, sized by the flock;
+    flocks in the hover line.
+  - Vista: V formations crossing the sky on passage, and birds wheeling over the land while breeding or wintering.
+  - Colony map: a "Birds" line saying who is here and who is due when.
+- **Cost** (seed 1, windowed): a frame takes 0.54 ms with the layer against 0.52 ms without; the monthly rebuild
+  takes about 15 ms.
+- **Left out**: individual bird species beyond the flocks, a bird lever, disease, seasons in building and housing,
+  and day length.
+
 ## Next (proposed)
 1. Terrain.generate reads the landing region and its neighbours (coast → a sea edge, mountains → more hills,
    desert/forest → different local mix). Approved by Wilma (A35 follow-up).
