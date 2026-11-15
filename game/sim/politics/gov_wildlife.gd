@@ -47,6 +47,8 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 			deadly = true
 	for f in world.facts.query("PLANET_WILDLIFE_COLLAPSE", from_m, world.month):
 		_alarm(world, f)
+	for f in world.facts.query("PLANET_BIRDS_FAILED", from_m, world.month):
+		_birds_missed(world, f)
 	if deadly:
 		st["wildlife_review"] = true
 	if world.month_of_year() == REVIEW_MONTH or bool(st.get("wildlife_review", false)):
@@ -93,6 +95,20 @@ static func _alarm(world: WorldState, f: Dictionary) -> void:
 		"causes": [f.get("id", "")],
 		"data": {"group": d.get("group", ""), "creature": d.get("creature", ""), "colony": bool(d.get("colony", false)), "policy": policy,
 			"gov_share_pm": int(round(1000.0 * g))}})
+
+
+## Stage 3: "the birds didn't come this year". A sign people read as the land going wrong. When the worst-harmed place
+## on the flock's route is the colony's own hex, the government carries a good part of it (its pollution, its
+## clearing); harm further along the route is harder to pin on anyone.
+static func _birds_missed(world: WorldState, f: Dictionary) -> void:
+	var d: Dictionary = f["data"]
+	var own: bool = bool(d.get("worst_is_colony", false))
+	var g := 0.45 if own else 0.15
+	world.add_fact({"type": "POL_BIRDS_MISSED", "owner": "pol", "subjects": [],
+		"responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": g}, {"actor": {"kind": "NATURE", "id": "wildlife"}, "share": 1.0 - g}],
+		"impact": {"ENVIRONMENT_QUALITY": -6 if own else -3}, "magnitude": 40 if own else 30, "visibility": "PUBLIC", "causes": [f.get("id", "")],
+		"data": {"name": d.get("name", ""), "role": d.get("role", ""), "size": int(d.get("size", 0)), "last_year": int(d.get("last_year", 0)),
+			"worst_is_colony": own, "worst_harm": int(d.get("worst_harm", 0)), "gov_share_pm": int(round(1000.0 * g))}})
 
 
 ## What a government with ENVIRONMENT leaning `env` (-1..1) wants, given the last year: attacks, deaths, and the

@@ -246,6 +246,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"HOME_SANCTION": s = "The home world imposed a sanction: %s" % _kind(d.get("kind", ""))
 		"HOME_EXPEDITION_SENT": s = "[color=#ff5252][b]The home world has sent a punitive expedition[/b][/color]"
 		"POL_WILDLIFE_OUTCRY": s = "[color=#ff8a65][b]Outcry after %s attack%s[/b][/color]: %d killed, %d injured%s" % [str(d.get("creature", "a wildlife")), (" on a family farm" if d.get("family_farm", false) else ""), int(d.get("killed", 0)), int(d.get("injured", 0)), (", on a farm the government had just funded" if d.get("fresh_grant", false) else "")]
+		"POL_BIRDS_MISSED": s = "[color=#ff8a65]The %s did not come this year[/color]%s" % [str(d.get("name", "birds")), (": the land around the colony is blamed" if d.get("worst_is_colony", false) else "")]
 		"POL_WILDLIFE_ALARM": s = "[color=#ff8a65]Alarm: the %s near the colony have collapsed[/color]%s" % [str(d.get("group", "wildlife")), (" under the government's culling" if str(d.get("policy", "")) == "CULL" else "")]
 		"POL_GRANT_COVERAGE": s = "The government opened a family %s grant programme covering %d district(s)" % [String(d.get("kind", "")).to_lower(), (d.get("districts", []) as Array).size()]
 		"POL_GRANT_PROGRAMME_FAILED": s = ("[color=#ff8a65][b]The family %s grant programme ended without a single grant paid[/b], though the colony needed it[/color]" if d.get("needed", false) else "The family %s grant programme ended without a single grant paid") % String(d.get("kind", "")).to_lower()

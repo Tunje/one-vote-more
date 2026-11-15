@@ -73,3 +73,20 @@ func test_a_deadly_year_brings_a_culling_bill() -> void:
 				found = true
 				check_eq(String(c["to"]), "CULL", "one step from MANAGE toward CULL")
 	check(found, "the bill carries the wildlife policy")
+
+
+func test_the_birds_did_not_come() -> void:
+	var w := _world()
+	var st: Dictionary = w.table("pol")["state"]
+	st["wildlife_seen_m"] = w.month - 1
+	for own in [true, false]:
+		w.add_fact({"type": "PLANET_BIRDS_FAILED", "owner": "planet", "subjects": [], "responsible": [], "impact": {}, "magnitude": 30,
+			"visibility": "PUBLIC", "data": {"flock": 0, "name": "bell cranes", "role": "BREEDS", "size": 300, "last_year": 900,
+				"worst_hex": 1, "worst_harm": 500, "worst_is_colony": own}})
+	GovWildlife.monthly(w, st)
+	var out: Array = w.facts.query("POL_BIRDS_MISSED")
+	check_eq(out.size(), 2, "each failed arrival is noticed")
+	if out.size() == 2:
+		check(float(out[0]["responsible"][0]["share"]) > float(out[1]["responsible"][0]["share"]), "the government carries more when the colony's own land is the worst on the route")
+		check(int(out[0]["impact"].get("ENVIRONMENT_QUALITY", 0)) < int(out[1]["impact"].get("ENVIRONMENT_QUALITY", 0)), "and it weighs more on people")
+
