@@ -16,6 +16,7 @@ const FLAG := "PRIVATE_ROADS"
 const REGIMES := ["OWNER", "OPEN_TOLL", "OPEN_FREE"]
 const WHY := ["SALE", "TAKEOVER", "REVERTED", "REVOKED"]
 const FIELDS := ["owner", "regime", "toll", "reserved_pm", "build_cost", "public_money", "licence"]
+const TransportLaw := preload("res://sim/law/transport_law.gd")   # Anni's (no class_name): LAW_ROAD_TOLL
 
 
 ## On with FREIGHT_ROADS, and "meta.off wins" (the standing rule; Anni's RoadLaw.on reads the same).
@@ -270,6 +271,110 @@ static func road_needs(world: WorldState, org: String) -> Array:
 			"severity": maxi(0, lpm - Transport.NEED_LOAD_PM) + maxi(0, Transport.NEED_COND - cond), "options": opts})
 	out.sort_custom(func(a, b): return int(a["severity"]) > int(b["severity"]) or (a["severity"] == b["severity"] and String(a["key"]) < String(b["key"])))
 	return out
+
+
+# ================================================================== tolls (step 5)
+## Counted this month in transport "tolls" {lid: {"T|<payer org, '' = the carrier>": mu, "C|<home district>": trips}}.
+## A toll is due on a private OPEN_TOLL link (to its owner; not from the owner itself) and, with PRIVATE_ROADS, on a
+## public PAVED link when LAW_ROAD_TOLL is set (to "gov"; one toll path, Wilma 2026-11-15). A truck pays per trip
+## (there and back: 2 a load), a commuter vehicle (bus, taxi) toll ÷ TRUCK_PCU per trip.
+
+## Who is owed what per truck trip on a link for a payer: [owner ("gov" for the public toll), toll mcr] or [] for none.
+static func toll_due(world: WorldState, l: Dictionary, payer: String) -> Array:
+	if not on(world) or int(l.get("globe", 0)) == 1:
+		return []
+	if is_private(l):
+		if String(l.get("regime", "")) == "OPEN_TOLL" and String(l["owner"]) != payer and int(l.get("toll", 0)) > 0:
+			return [String(l["owner"]), int(l["toll"])]
+		return []
+	if String(l["kind"]) == "PAVED":
+		var pt: int = TransportLaw.road_toll(world)
+		if pt > 0:
+			return ["gov", pt]
+	return []
+
+
+static func _count(world: WorldState, lid: String, key: String, n: int) -> void:
+	var t := world.table("transport")
+	if not t.has("tolls"):
+		t["tolls"] = {}
+	if not t["tolls"].has(lid):
+		t["tolls"][lid] = {}
+	t["tolls"][lid][key] = int(t["tolls"][lid].get(key, 0)) + n
+
+
+## Freight on a link (FreightRoads.add_freight_traffic): counted if a toll is due.
+static func count_freight_toll(world: WorldState, id: String, x: Dictionary, org: String, mu: int) -> void:
+	if mu <= 0 or not x.has("path") or toll_due(world, x, org).is_empty():
+		return
+	_count(world, id, "T|" + org, mu)
+
+
+## Commuter vehicle trips on a link (Commuting.add_commute_traffic), by the commuters' home district.
+static func count_commuter_toll(world: WorldState, lid: String, home_d: String, trips: int) -> void:
+	if trips <= 0:
+		return
+	var l: Dictionary = Transport._links(world).get(lid, {})
+	if l.is_empty() or toll_due(world, l, "").is_empty():
+		return
+	_count(world, lid, "C|" + home_d, trips)
+
+
+## This month's tolls to book (Bob, once a month): [{link, owner (org or "gov"), payer (org; "" = the carrier, CTA),
+## district (CAR rows: the commuters' home), trips, mcr, kind TRUCK|CAR}], sorted. Pure.
+static func toll_bill(world: WorldState) -> Array:
+	var out: Array = []
+	var tolls: Dictionary = world.peek("transport").get("tolls", {})
+	var links := Transport._links(world)
+	for lid in EconUtil.sorted_keys(tolls):
+		var l: Dictionary = links.get(lid, {})
+		if l.is_empty():
+			continue
+		for k in EconUtil.sorted_keys(tolls[lid]):
+			var parts := String(k).split("|")
+			var truck: bool = parts[0] == "T"
+			var due := toll_due(world, l, parts[1] if truck else "")
+			if due.is_empty():
+				continue
+			var n := int(tolls[lid][k])
+			var trips := FreightRoads.trucks_pcu(n) / FreightRoads.TRUCK_PCU if truck else n
+			var mcr := trips * int(due[1]) if truck else trips * int(due[1]) / FreightRoads.TRUCK_PCU
+			out.append({"link": lid, "owner": String(due[0]), "payer": parts[1] if truck else "", "district": "" if truck else parts[1],
+				"trips": trips, "mcr": mcr, "kind": "TRUCK" if truck else "CAR"})
+	return out
+
+
+## Bob booked the bill: the counts start again (last month's are kept for the commuters' tolls by district).
+static func toll_bill_paid(world: WorldState) -> void:
+	var t := world.table("transport")
+	t["tolls_paid"] = commuter_tolls_now(world)
+	t["tolls"] = {}
+
+
+static func commuter_tolls_now(world: WorldState) -> Dictionary:
+	var out := {}
+	for r in toll_bill(world):
+		if r["kind"] == "CAR":
+			out[r["district"]] = int(out.get(r["district"], 0)) + int(r["mcr"])
+	return out
+
+
+## Tolls commuters paid last month, by their home district {d: mcr} (Wilma's COST_OF_LIVING). From the last booked
+## bill, or (if Bob has not booked yet) the counts as the NATURE tick left them.
+static func commuter_tolls(world: WorldState) -> Dictionary:
+	if not on(world):
+		return {}
+	return (world.peek("transport").get("tolls_paid", {}) as Dictionary).duplicate()
+
+
+## NATURE tick: counts Bob never booked are dropped after a month (nothing carries over).
+static func step_month(world: WorldState) -> void:
+	if not on(world):
+		return
+	var t := world.table("transport")
+	if t.has("tolls") and not (t["tolls"] as Dictionary).is_empty():
+		t["tolls_paid"] = commuter_tolls_now(world)
+		t["tolls"] = {}
 
 
 ## Struct-signature part of a link's terms (keys the route memos kept across months): "" for a public link.

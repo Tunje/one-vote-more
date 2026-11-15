@@ -254,3 +254,64 @@ func test_a_firms_case_for_a_road_and_its_own_needs() -> void:
 	check(Transport.private_road_needs(w, _firm(w, firm)).is_empty(), "another firm has none")
 	var off := _game(1, 2, false).world
 	check(not bool(Transport.private_road_case(off, _firm(off), d[0], d[1])["ok"]), "flag off: no case")
+
+
+func test_tolls_are_counted_billed_and_felt_at_home() -> void:
+	var w := _game().world
+	var firm := _firm(w)
+	var other := _firm(w, firm)
+	var d := _two(w)
+	var lid := _build(w, firm, {"kind": "PAVED", "regime": "OPEN_TOLL", "toll": 10})
+	w.month += 1
+	Transport.step_month(w)
+	check(lid in FreightRoads.route_ids(w, d[0], d[1]), "a cheap toll road carries the public freight")
+	var mu := FreightRoads.UNITS_PER_TRUCK * 1000 * 2   # two loads
+	Transport.add_freight_traffic(w, d[0], d[1], mu, 0, "FOOD", other)
+	Transport.add_freight_traffic(w, d[0], d[1], mu, 0, "FOOD")       # the carrier's freight
+	Transport.add_freight_traffic(w, d[0], d[1], mu, 0, "FOOD", firm)  # the owner pays no toll on its own road
+	Transport.add_commute_traffic(w, [{"from_d": d[0], "to_d": d[1], "buses_in_service": 1, "taxi_users": 0}])
+	var h := w.state_hash()
+	var bill := Transport.toll_bill(w)
+	check_eq(w.state_hash(), h, "the bill is pure")
+	var by := {}
+	for r in bill:
+		if r["link"] == lid:
+			by["%s|%s|%s" % [r["kind"], r["payer"], r["district"]]] = r
+	check(by.has("TRUCK|%s|" % other), "the other firm pays: %s" % str(by.keys()))
+	if by.has("TRUCK|%s|" % other):
+		var r: Dictionary = by["TRUCK|%s|" % other]
+		check(r["owner"] == firm and int(r["trips"]) == 4 and int(r["mcr"]) == 40, "two loads, there and back, 10 a trip %s" % str(r))
+	check(by.has("TRUCK||"), "the carrier pays for freight without a named firm")
+	check(not by.has("TRUCK|%s|" % firm), "the owner pays nothing on its own road")
+	var car_key := "CAR||%s" % d[0]
+	check(by.has(car_key), "commuters pay by home district")
+	if by.has(car_key):
+		var trips := 1 * Commuting.BUS_TRIPS_DAY * Commuting.WORK_DAYS
+		check(int(by[car_key]["trips"]) == trips and int(by[car_key]["mcr"]) == trips * 10 / FreightRoads.TRUCK_PCU, "a bus pays the car toll %s" % str(by[car_key]))
+	check(int(w.table("transport")["links"][lid].get("ytr", 0)) >= 8, "the road counts its truck trips")
+	Transport.toll_bill_paid(w)
+	check(Transport.toll_bill(w).is_empty(), "booked: the counts start again")
+	check(int(Transport.commuter_tolls(w).get(d[0], 0)) > 0, "what commuters paid, by home district")
+	# the public toll, on paved public roads, through the same counting
+	w.levers["LAW_ROAD_TOLL"] = 5
+	Transport.set_terms(w, lid, "OWNER", 0, 0)
+	for x in Transport._links(w).values():
+		if not PrivateRoads.is_private(x) and int(x.get("globe", 0)) == 0:
+			x["kind"] = "PAVED"
+	Transport._bump(w)
+	w.month += 1
+	Transport.step_month(w)   # the month's routes: the owner road is closed to others now
+	check(not lid in FreightRoads.route_ids(w, d[0], d[1], other), "others go the public way")
+	Transport.add_freight_traffic(w, d[0], d[1], mu, 0, "FOOD", other)
+	var gov := Transport.toll_bill(w).filter(func(r): return r["owner"] == "gov")
+	check(not gov.is_empty() and int(gov[0]["mcr"]) == int(gov[0]["trips"]) * int(PrivateRoads.TransportLaw.road_toll(w)), "the public toll on paved roads %s" % str(gov))
+	# a year on: last year's truck trips
+	w.month = 23
+	Transport.step_month(w)
+	w.month = 24
+	Transport.step_month(w)
+	check(Transport.truck_trips_last_year(w, lid) >= 8, "last year's truck trips (%d)" % Transport.truck_trips_last_year(w, lid))
+	var off := _game(1, 2, false).world
+	off.levers["LAW_ROAD_TOLL"] = 5
+	Transport.add_commute_traffic(off, [{"from_d": d[0], "to_d": d[1], "buses_in_service": 1, "taxi_users": 0}])
+	check(not off.peek("transport").has("tolls"), "flag off: no tolls counted")

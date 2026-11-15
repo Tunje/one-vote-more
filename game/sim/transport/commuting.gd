@@ -305,5 +305,6 @@ static func add_commute_traffic(world: WorldState, pairs: Array) -> void:
 		var cd := commute_d(world, fa, fb)
 		for lid in cd["links"]:
 			Transport.add_traffic(world, String(lid), trips)
+			PrivateRoads.count_commuter_toll(world, String(lid), fa, trips)   # PRIVATE_ROADS: tolls by home district
 		for jid in Transport.route_junctions(world, {"links": cd["links"]}):
 			Transport.add_traffic(world, String(jid), trips)

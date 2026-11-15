@@ -1302,6 +1302,7 @@ static func step_month(world: WorldState) -> void:
 			jt[jid2]["acc"] = int(jt[jid2].get("acc", 0)) / 2
 	_bump(world)
 	FreightRoads.step_month(world)   # FREIGHT_ROADS (opt-in): last month's freight, the yearly trend, jam facts
+	PrivateRoads.step_month(world)   # PRIVATE_ROADS: unbooked toll counts close
 	if closed > 0:
 		world.add_fact({"type": "TRANSPORT_LINKS_CLOSED", "owner": "transport", "subjects": [], "responsible": [], "impact": {},
 			"magnitude": clampi(10 + closed * 5, 0, 60), "visibility": "PUBLIC",
@@ -1387,6 +1388,26 @@ static func private_road_case(world: WorldState, org: String, from_d: String, to
 ## options [{fix, type, spec, cost, months, cap_pm, load_after_pm, relief_pm}]}], worst first.
 static func private_road_needs(world: WorldState, org: String) -> Array:
 	return PrivateRoads.road_needs(world, org)
+
+
+## This month's tolls to book (Bob): [{link, owner (org | "gov"), payer (org; "" the carrier), district, trips, mcr,
+## kind TRUCK|CAR}]. Then toll_bill_paid.
+static func toll_bill(world: WorldState) -> Array:
+	return PrivateRoads.toll_bill(world)
+
+
+static func toll_bill_paid(world: WorldState) -> void:
+	PrivateRoads.toll_bill_paid(world)
+
+
+## Tolls commuters paid last month by home district {d: mcr} (Wilma: COST_OF_LIVING).
+static func commuter_tolls(world: WorldState) -> Dictionary:
+	return PrivateRoads.commuter_tolls(world)
+
+
+## Truck trips on a private link last year (Anni's cost-recovery toll).
+static func truck_trips_last_year(world: WorldState, lid: String) -> int:
+	return int(_links(world).get(lid, {}).get("ytr_last", 0))
 
 
 ## State money put into a private link (step-in repairs, contributions), mcr.

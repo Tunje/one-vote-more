@@ -203,6 +203,9 @@ static func add_freight_traffic(world: WorldState, from_d: String, to_d: String,
 			var before := trucks_pcu(int(x.get("frt", 0)))
 			x["frt"] = int(x.get("frt", 0)) + moved_mu
 			x["traffic"] = int(x.get("traffic", 0)) + trucks_pcu(int(x["frt"])) - before
+			if PrivateRoads.is_private(x):   # truck trips a year, for Anni's cost-recovery toll
+				x["ytr"] = int(x.get("ytr", 0)) + (trucks_pcu(int(x["frt"])) - before) / TRUCK_PCU
+			PrivateRoads.count_freight_toll(world, String(id), x, org, moved_mu)
 
 
 ## Last month's load ‰ (traffic ÷ capacity) of a link or junction.
@@ -388,6 +391,9 @@ static func step_month(world: WorldState) -> void:
 		x["fcap"] = Transport.link_capacity(x, world) if t["links"].has(id) else Transport.junction_capacity(world, x)
 		x["ys"] = int(x.get("ys", 0)) + int(x.get("traffic_last", 0))
 		x["yn"] = int(x.get("yn", 0)) + 1
+		if year_end and x.has("ytr"):
+			x["ytr_last"] = int(x["ytr"])
+			x["ytr"] = 0
 		if year_end:
 			x["yp"] = int(x.get("yl", -1))
 			x["yl"] = int(x["ys"]) / maxi(1, int(x["yn"]))
