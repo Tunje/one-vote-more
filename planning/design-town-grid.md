@@ -76,7 +76,7 @@ how the homes sit on the land.
   a sprawling edge costs more than a home in a dense core. That is the first real reason to build up.
 - **Farmland lost.** A cell on fertile or native-crop land, or on land SITING reserves for farms, counts as farmland
   lost to the town.
-- **Growth.**
+- **Growth** (replaced by section 9, from the user's answer 3).
   - Outward: new HOUSE cells go at the free edge cell nearest the centre. Edge cells are taken ring by ring, skipping
     water, unbuildable terrain and land SITING reserves for another use.
   - Upward: an old cell is rebuilt as APARTMENT or TOWER when its block is renovated or replaced. The renovation wave
@@ -184,11 +184,125 @@ how the homes sit on the land.
 - the town view (UI);
 - the desk's decisions (Wilma, Maja).
 
-## 8. Questions for the user
+## 8. Questions for the user, and the answers (via Wilma, 2026-11-15)
 
-1. Is 100 m for a cell right, and are three forms enough (house, apartment, high-rise)? A row-house or terrace form
-   between house and apartment would be easy to add.
-2. Should the first towns start as houses only, with apartments only by rebuilding, or may a new block be built as
-   apartments from the start when it pays?
-3. Expect apartments in the larger towns and high-rises to be rare at today's colony sizes, unless land is reserved
-   around a town. Is that the intended feel, or should towns build up sooner?
+1. Is 100 m for a cell right, and are three forms enough (house, apartment, high-rise)?
+   **User: "Yes, enough for now."** 100 m cells; house, apartment and high-rise; no row-house yet.
+2. Should the first towns start as houses only, or may a new block be built as apartments from the start?
+   **User: "Up to the commander, I think."** So the allowed forms are a choice of whoever governs (the commander in the
+   founding era, later the government or a municipality), not a fixed rule. They are a policy per town or for the whole
+   colony, read by the growth step. The default is houses. It will become a decision type on Maja's desk and a law of
+   Anni's.
+3. Apartments in the larger towns, high-rises rare: is that the intended feel?
+   **User: "Yes, but also: schools, utilities and other things should affect where things are made, this to not get
+   perfect circular towns; like coastals building along the water, or staying close to schools and bakeries to get
+   good access, or near jobs, like Rydebäck that began as housing for a power plant."**
+   So growth is not ring by ring (section 4's "Growth" is replaced by section 9).
+
+## 9. Where a town grows: scoring cells (from the user's answer 3)
+
+New homes go to the free cells that draw people most, not to the next ring.
+
+- **Candidates:**
+  - the free cells next to the town's cells;
+  - the cells around the town centre, while the town is empty;
+  - cells within about 1 km of a workplace within 12 km of the centre. A new neighbourhood can start at a plant, a
+    mine or the port, away from the centre, as Rydebäck did.
+- **A block's cells.** A block takes its first cell at the best score. Its other cells go to the best free cells next
+  to the ones it already has.
+- **The score** is the sum of these parts. Each part is kept, so a site case can show why.
+
+  | Part | Kind | Drawn from |
+  |---|---|---|
+  | jobs | draw | the nearest workplace (any facility that is not housing), or the port |
+  | school | draw | the nearest school |
+  | clinic | draw | the nearest clinic |
+  | shops | draw | the nearest shop or bakery |
+  | utilities | draw | closeness to cells already built (water and power are laid there); far from them is worse |
+  | water | draw | the shore or a river close by |
+  | road | draw | a colony road close by |
+  | centre | draw | closeness to the town centre (a town keeps a core) |
+  | fast_road | penalty | a fast road within 300 m, worse the faster it is (ROAD_SAFETY's speed) |
+  | industry | penalty | a mine, plant or depot within 1 km |
+  | noise | random | a little randomness per seed and cell, so two towns do not come out alike |
+
+  Land reserved by SITING for a use housing may not have is refused outright, as SITING refuses it everywhere. It is
+  shown as the reason, not as a penalty.
+- **What it makes:** towns stretch along shores and roads, cluster around schools and works, and keep away from fast
+  roads and mines.
+- **The query is pure:** `TownGrid.cell_score(world, town, cell, ftype)` and `TownGrid.site_scores(world, town, ftype,
+  n)`, with the parts.
+- **Computed today:** every draw above, from facility positions, their types, the terrain, the roads and the town's own
+  cells.
+- **Needs an owner:**
+  - jobs weighted by the number of jobs at each workplace (Bob's and Otto's data; today each workplace counts the
+    same);
+  - what a household type wants most (Otto: a family weighs the school more, the old the clinic);
+  - utilities really laid by Bob's networks (today, "built cells" stand in for them).
+- **The allowed forms** are a policy: `TownGrid.set_forms(world, town or "*", forms)`. The first form listed is what a
+  new block is built as, unless the block names another allowed form. The default is ["HOUSE"]. A change is a public
+  fact, TOWN_FORMS_SET.
+
+## 10. A grid only when it is needed (the user, via Wilma, 2026-11-15)
+
+User: "like the main map, maps should not become the next level until necessary."
+
+- **Until it is due**, a settlement has no grid. A new camp or village is a number of homes on its country tile: nothing
+  is stored, and there are no forms and no streets.
+- **The step up.** When the settlement is due, it gets its grid. The homes and town buildings already there are laid out
+  on it at once, in the order they were built, by the same draw scoring. This is deterministic, and it makes a public
+  fact, TOWN_GRID_LAID, with: town, why, homes, buildings, cells.
+- **What makes a settlement due** (proposed, as built): any one of these.
+  - **Homes:** 250 homes or more (`GRID_HOMES`, about 500 adults). Where things stand now matters for a few hundred
+    households.
+  - **Uses competing for land:** 100 homes or more and at least 3 town buildings of at least 2 kinds (`GRID_SOME_HOMES`,
+    `GRID_BUILDINGS`). Shops, a school and a clinic compete with the homes for the same land.
+  - **Designated a municipality:** `TownGrid.step_up(world, town, "designated")`, called by whoever designates (Anni,
+    Wilma). The user's floor for that is about 1,000 adults.
+  - In seed 1 the four larger district towns are due at the start and two are not.
+- **A settlement without a grid** gets tile-level answers from the queries:
+  - `form_of` is "HOUSE" (a village is houses);
+  - `connection_m` is the HOUSE figure;
+  - `centre_km` is the distance from the building's tile to the settlement's tile;
+  - `footprint` is the settlement's homes on its own tile;
+  - `homes_in_tile` counts blocks on their own country tile.
+- **Upward the same way:** no high-rise exists in a town until it has apartments. TOWER is left out of the allowed
+  forms until then, even when the policy lists it.
+
+## 11. What a home there is worth, and why a town builds up (the user, via Wilma, 2026-11-15)
+
+User: "There needs to be a lucrativity score for buildings made; view, like the ocean or rivers, or nearness to things
+makes it more expensive, like the houses in Höganäs: the closer to the coast you get the more expensive they get; it
+can even shift from road to road. The step-up should come from many factors: an apartment complex on the beach may be
+more attractive because you can rent them all out, or a school district has no more space, or, the most common, they
+are simply cheaper living."
+
+- **Location value per cell**: `TownGrid.value(world, cell)` → {value_pm, score, parts}. It is pure.
+  - value_pm: 1000 is an ordinary cell, plus 100 ‰ for each point of score, never below 300.
+  - The parts:
+    - view (the sea or a river within 300 m);
+    - the shore (within 1 km);
+    - jobs, school, clinic, shops and bakeries;
+    - a road;
+    - utilities laid (any built cell within 1 km);
+    - minus a fast road beside the cell, and minus a mine, plant or depot within 1 km.
+  - It is per cell, so it changes from one street to the next.
+  - It has no randomness, so it stays the same month to month unless something near the cell changes.
+  - The growth score in section 9 is this value plus the pull of the town centre and the seeded noise.
+- **Rent and price** follow the value. Otto's housing reads `value(cell)` to set what a home there rents or sells for,
+  so the same house costs more by the water. TownGrid only publishes the value; Otto owns rents.
+- **Building up** is a builder's or owner's decision from several motives, not one rule. What each motive reads from
+  the grid:
+  - **Dear land** (the beach complex): where the value is high, a block that can be let in full earns more as
+    apartments than as ten houses. It reads `value(cell)` and the homes per cell in `form_table()`.
+  - **No room left where people want to be:** a school's or a workplace's reach is full, so the only way to add homes
+    there is upward. It reads `TownGrid.catchment(world, fid)` → {reach_km, cells, free, homes, full}.
+    - Reach: school 1.5 km, clinic 2 km, a workplace 3 km.
+    - The reach is full when fewer free cells are left than one 50-home block of houses takes (5).
+  - **Cheaper living**, the most common motive: apartments cost less per home to build and to connect, so they house
+    people who cannot pay for a house. It reads `form_table()` → per form: homes per cell, storeys, land per home (HOUSE
+    1,000 m², APARTMENT about 170 m², TOWER 50 m²) and connection metres per home; also `connection_m(fid)` for a
+    block.
+- **The choosing** is Otto's (developers under R8) and the government's (the allowed forms are the commander's choice,
+  section 8). TownGrid applies a choice with `set_form(fid, form)`, or reads it from a new block's "form" field.
+
