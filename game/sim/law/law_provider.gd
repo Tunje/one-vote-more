@@ -76,6 +76,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			Ops.run_pipeline(world)
 			CD.check_revocation(world)
 			preload("res://sim/law/competition_law.gd").monthly(world)     # merger reviews that are due
+			preload("res://sim/law/road_law.gd").monthly(world)     # private-road licences and appeals (opt-in PRIVATE_ROADS)
 		TickPhase.JUSTICE:
 			Ops.process_permits(world)
 			Ops.discover(world)

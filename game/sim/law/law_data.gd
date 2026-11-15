@@ -27,7 +27,9 @@ const ACTIONS := ["ZONE_DISTRICT", "BUILD_FACILITY", "DEMOLISH_FACILITY", "OPERA
 	# MEDIA v1 (spec-media-v1 8.3): suppressing a report (a restriction of expression)
 	"CENSOR_REPORT",
 	# P1c police (sim/law/police.gd): misconduct by the police, and arresting the government's opponents
-	"DETAIN_UNLAWFULLY", "USE_EXCESSIVE_FORCE", "SEARCH_UNLAWFULLY", "TAKE_BRIBE", "POLITICAL_ARREST"]
+	"DETAIN_UNLAWFULLY", "USE_EXCESSIVE_FORCE", "SEARCH_UNLAWFULLY", "TAKE_BRIBE", "POLITICAL_ARREST",
+	# private roads (sim/law/road_law.gd, opt-in PRIVATE_ROADS)
+	"NEGLECT_ROAD", "REFUSE_ROAD_ACCESS", "TOLL_ABOVE_CAP"]
 
 ## M11 greed conduct (88 reports it with LawOps.record_greed). action = the rules-engine action that decides legality;
 ## channel = who can detect it (SAFETY inspectorate, ENV inspectorate, MARKET competition/consumer authority);
@@ -61,6 +63,11 @@ const GREED_KINDS := {
 	"EXCESSIVE_FORCE": {"action": "USE_EXCESSIVE_FORCE", "channel": "OVERSIGHT", "class": "SERIOUS"},
 	"IMPROPER_SEARCH": {"action": "SEARCH_UNLAWFULLY", "channel": "OVERSIGHT", "class": "MINOR"},
 	"POLICE_CORRUPTION": {"action": "TAKE_BRIBE", "channel": "OVERSIGHT", "class": "SERIOUS"},
+	# Private roads (opt-in PRIVATE_ROADS, sim/law/road_law.gd; its rules are added only with the flag). Neglect is
+	# recorded by the law's own ladder; refusing access and tolls over the cap by the owner's firm AI (Bob).
+	"ROAD_NEGLECT": {"action": "NEGLECT_ROAD", "channel": "SAFETY", "class": "MINOR"},
+	"ROAD_ACCESS_REFUSED": {"action": "REFUSE_ROAD_ACCESS", "channel": "MARKET", "class": "MINOR"},
+	"TOLL_OVER_CAP": {"action": "TOLL_ABOVE_CAP", "channel": "MARKET", "class": "MINOR"},
 }
 const POLICE_KINDS := ["UNLAWFUL_DETENTION", "EXCESSIVE_FORCE", "IMPROPER_SEARCH", "POLICE_CORRUPTION"]
 ## Emergency levers: settable only while a state of emergency is in force; revert to default when it ends.
@@ -783,4 +790,24 @@ const LEVERS := [
 	{"id": "LAW_EMERGENCY_PRESS_CONTROL", "owner": "law", "type": "BOOL", "default": false,
 		"legalLevel": "REGULATION", "foundingEra": "COMMANDER", "ideology": {}, "emergency": true,
 		"fiscal": "", "implementation": "STAFF_T_IMPL_ADMIN", "lag": 0, "scope": "COLONY", "domain": "ADMIN"},
+	# Private roads (planning/design-law-private-roads.md; opt-in PRIVATE_ROADS on FREIGHT_ROADS, sim/law/road_law.gd).
+	# May a company build its own road: 0 forbidden / 1 by licence from the Minister of Infrastructure / 2 free.
+	{"id": "LAW_PRIVATE_ROADS", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 2], "default": 1,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": -6, "INSTITUTIONS": -2},
+		"concerns": {"INFRASTRUCTURE": 10, "FAIRNESS": -4},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON",
+		"requires": ["PRIVATE_ROADS"]},
+	# Access to private roads between districts: 0 the owner chooses (competition law still opens an essential road) /
+	# 1 common carriage (open to all at the posted toll; the owner keeps at most half the capacity).
+	{"id": "LAW_PRIVATE_ROAD_ACCESS", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 1], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 6, "REDISTRIBUTION": 3},
+		"concerns": {"FAIRNESS": 4, "JOBS": 2, "INFRASTRUCTURE": -3},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON",
+		"requires": ["PRIVATE_ROADS"]},
+	# Highest toll on an open private road, % of its cost-recovery toll (upkeep + build cost over 20 years); 300 = no cap.
+	{"id": "LAW_PRIVATE_TOLL_CAP", "owner": "law", "legislative": true, "type": "NUMBER", "range": [100, 300], "default": 200,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": -0.05},
+		"concerns": {"COST_OF_LIVING": -5, "INFRASTRUCTURE": 3},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON",
+		"requires": ["PRIVATE_ROADS"]},
 ]

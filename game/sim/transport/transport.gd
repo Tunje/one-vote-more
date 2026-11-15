@@ -85,8 +85,8 @@ static func _struct_sig(world: WorldState) -> int:
 	var links := _links(world)
 	for lid in links:
 		var l: Dictionary = links[lid]
-		parts.append("%s%s%s%d%d%d" % [lid, String(l["kind"]).substr(0, 1), effective_kind(l, world).substr(0, 1), int(l.get("lanes", 1)),
-			int(l.get("bridge_lanes", 1)), (l.get("path", l.get("cells", [])) as Array).size()])
+		parts.append("%s%s%s%d%d%d%s" % [lid, String(l["kind"]).substr(0, 1), effective_kind(l, world).substr(0, 1), int(l.get("lanes", 1)),
+			int(l.get("bridge_lanes", 1)), (l.get("path", l.get("cells", [])) as Array).size(), PrivateRoads.sig(l)])
 	var jt: Dictionary = world.peek("transport").get("junctions", {})
 	for jid in jt:
 		parts.append("%s%s" % [jid, String(jt[jid].get("type", ""))])
@@ -1107,6 +1107,7 @@ static func complete_road(world: WorldState, p: Dictionary) -> String:
 	var tt := world.table("transport")
 	tt["junctions"] = _derive_junctions(links, tt.get("junctions", {}))
 	_bump(world)
+	PrivateRoads.on_built(world, lid, p, plan)   # PRIVATE_ROADS: a firm's road is its own
 	var l: Dictionary = links[lid]
 	var ftype := "TRANSPORT_LINK_OPENED" if plan["job"] in ["NEW", "GLOBE"] else ("TRANSPORT_LINK_REPAIRED" if plan["job"] == "REPAIR" else "TRANSPORT_LINK_UPGRADED")
 	world.add_fact({"type": ftype, "owner": "transport", "subjects": [], "responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}] if p.get("owner", "gov") == "gov" else [],
@@ -1160,6 +1161,8 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 				best = String(s["district"])
 		return best == district
 	var ours := func(l: Dictionary) -> bool:   # a link serves the districts of its ends and of its middle
+		if PrivateRoads.is_private(l):   # PRIVATE_ROADS: a company's road is not the government's to work on
+			return false
 		var pth: Array = l["path"]
 		return mine.call(int_tile(int(pth[pth.size() / 2]))) or mine.call(int_tile(int(pth[0]))) or mine.call(int_tile(int(pth[-1])))
 	for n in nodes(world):
@@ -1327,6 +1330,34 @@ static func district_jam_pm(world: WorldState, d: String) -> int:
 	return FreightRoads.district_jam_pm(world, d)
 
 
+# ================================================================== private roads (PrivateRoads, PRIVATE_ROADS)
+
+## A private link's record: {} for a public link, else {id, owner, regime, toll, reserved_pm, build_cost, public_money,
+## licence, cond, kind, km, lanes, ytr_last}.
+static func private_link(world: WorldState, lid: String) -> Dictionary:
+	return PrivateRoads.link(world, lid)
+
+
+## Private links of an org ("" = all), sorted.
+static func private_links(world: WorldState, org: String = "") -> Array:
+	return PrivateRoads.links_of(world, org)
+
+
+## The owner's terms: regime OWNER | OPEN_TOLL | OPEN_FREE, toll (mcr per truck trip), reserved share ‰. → "" or why not.
+static func set_terms(world: WorldState, lid: String, regime: String, toll: int, reserved_pm: int) -> String:
+	return PrivateRoads.set_terms(world, lid, regime, toll, reserved_pm)
+
+
+## A change of hands: new_owner an org, or "" (the colony's). why SALE | TAKEOVER | REVERTED | REVOKED. → "" or why not.
+static func transfer_link(world: WorldState, lid: String, new_owner: String, why: String) -> String:
+	return PrivateRoads.transfer_link(world, lid, new_owner, why)
+
+
+## State money put into a private link (step-in repairs, contributions), mcr.
+static func add_public_money(world: WorldState, lid: String, mcr: int) -> void:
+	PrivateRoads.add_public_money(world, lid, mcr)
+
+
 # ================================================================== commuting (Commuting, agreed with Bob)
 
 ## Who works where: [{from_d, to_d, n, fid}] (Commuting.commutes).
@@ -1451,7 +1482,7 @@ static func _road_needs(world: WorldState) -> Array:
 			det_by[id].append(dt)
 	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
-		if int(l.get("globe", 0)) == 1:
+		if int(l.get("globe", 0)) == 1 or PrivateRoads.is_private(l):   # PRIVATE_ROADS: the owner's (private_road_needs)
 			continue
 		var cap := maxi(1, link_capacity(l, world))
 		var load := traffic_load(l)
@@ -1614,6 +1645,8 @@ static func _traffic_fixes(world: WorldState) -> Dictionary:
 	var links := _links(world)
 	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
+		if PrivateRoads.is_private(l):   # PRIVATE_ROADS: works on a company's road are the owner's
+			continue
 		var opts: Array = []
 		var k := String(l["kind"])
 		var globe := int(l.get("globe", 0)) == 1

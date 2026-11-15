@@ -1591,6 +1591,13 @@ func link_text(w: WorldState, lid: String) -> String:
 		t += " · [color=#ef5350]worn down to a %s[/color]" % Transport.KIND_NAMES[l["effective"]]
 	t += "\nCapacity %d trips a month, last month %d" % [int(l["capacity"]), int(l["traffic"])]
 	t += _load_text(l)
+	if String(l.get("owner", "")) != "":   # PRIVATE_ROADS: a company's road
+		var oname := String(w.peek("org").get(String(l["owner"]), {}).get("name", l["owner"]))
+		var terms := {"OWNER": "for its own freight only", "OPEN_FREE": "open to all, free",
+			"OPEN_TOLL": "open to all, toll %s a truck" % _money(float(l.get("toll", 0)) / EconUtil.S)}
+		t += "\n[color=#ffd75e]Private road of %s[/color] · %s" % [oname, String(terms.get(String(l.get("regime", "OWNER")), ""))]
+		if int(l.get("reserved_pm", 0)) > 0:
+			t += " · %d%% kept for the owner" % (int(l["reserved_pm"]) / 10)
 	for sp in l.get("spans", []):
 		var n := int(sp[1])
 		var bl := int(l.get("bridge_lanes", 1))
