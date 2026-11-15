@@ -34,6 +34,9 @@ func test_an_order_at_each_level() -> void:
 	check_eq(int(Desk.month_counts(w, w.month).get("BUILD_HOUSING", 0)), n0 + 1, "counted when the minister decides")
 	var calls: Array = w.peek("delegation").get("calls", [])
 	check(calls.any(func(x): return x["type"] == "BUILD_HOUSING"), "the summary will list it")
+	var cf: Array = w.facts.query(Desk.CALL_FACT, w.month, w.month)
+	check(cf.any(func(f): return String(f["data"]["ref"]) == "ORDER|HOUSING|%s|" % params["district"] and String(f["data"]["answer"]) in ["ORDER", "WAIT"]),
+		"the minister's call is on record (ref and answer)")
 	check(not Desk.pending(w, "ORDER|HOUSING|%s|" % params["district"]), "nothing waits on the desk")
 	# leave it to me: the case waits with its options; answering it orders the block
 	Desk.set_level(w, "BUILD_HOUSING", "ME")

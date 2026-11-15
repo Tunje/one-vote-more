@@ -548,6 +548,11 @@ static func decide(world: WorldState, spec: Dictionary) -> String:
 		note(world, ty)
 		if not r.get("ok", false):
 			return ""
+		# A minister's call leaves no office item: the record other systems read (Anni's road-safety law reads the
+		# declined limits: data.ref, data.answer). OFFICIAL, no impact: the decision itself is not news.
+		world.add_fact({"type": CALL_FACT, "owner": "pol", "subjects": [], "responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}],
+			"impact": {}, "magnitude": 5, "visibility": "OFFICIAL",
+			"data": {"ref": String(spec["ref"]), "type": ty, "answer": pick, "role": role, "person": String(p.get("id", ""))}})
 		var d := _d(world)
 		if not d.has("calls"):
 			d["calls"] = []
@@ -567,6 +572,7 @@ static func decide(world: WorldState, spec: Dictionary) -> String:
 
 
 const CASE_SYSTEM := "gov_case"
+const CALL_FACT := "POL_CASE_CALLED"   # one per decision a minister makes at "make the call" (step 3 cases)
 const CASE_DEADLINE_M := 2
 const PICK_MERIT := 1.0             # weight of the system's judgement, times the minister's skill
 const PICK_LEAN := 40.0             # weight of the minister's politics, times (1 − skill)
