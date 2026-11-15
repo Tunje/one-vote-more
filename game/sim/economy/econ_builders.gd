@@ -289,6 +289,8 @@ static func award_round(world: WorldState) -> void:
 			continue
 		if p["owner"] == "gov" and world.meta.get("manual_award", false) and world.month - p["tender_month"] < 3:
 			continue
+		if p["owner"] == "gov" and Desk.on(world) and Desk.pending(world, "QUOTE|" + String(pid)):
+			continue  # DELEGATION (Maja): the quote waits on the First Minister's desk
 		var ranked := EconConstruction.ranked_bids(world, p)
 		var why := ""
 		var chosen := ""
@@ -305,6 +307,14 @@ static func award_round(world: WorldState) -> void:
 			EconConstruction.award(world, pid, chosen)
 		else:
 			_refuse(world, p, ranked, why)
+
+
+## The client refuses every quote on `p`: the tender reopens after QUOTE_REOPEN_M months (the plan is never cancelled).
+## Public entry for the decision desk (Maja, DELEGATION), which commits a minister's REFUSE through it.
+static func refuse(world: WorldState, p: Dictionary, ranked: Array, why: String) -> void:
+	if ranked.is_empty():
+		return
+	_refuse(world, p, ranked, why)
 
 
 static func _refuse(world: WorldState, p: Dictionary, ranked: Array, why: String) -> void:

@@ -87,6 +87,38 @@ r8b3 is the fix above, 10 × 30.
 - Unemployment is level with base.
 - Rule 8 blocked 4.3 entries a run while most builders lost money.
 
+## 5. E169 (half-built buildings) and E166 (plan rescues), against base12 (HEAD 3a9b5d6)
+
+Base on HEAD reproduces base12 exactly (4739 / 17.2 / 18.0 / 3.11, firms dead 68.6).
+
+**E169, 20 seeds** (seeds 1–10 pre-9f95b56 plus seeds 11–20, both arms in the same copy):
+
+| arm | adults | u % | food ‰ | real | priv alive | priv dead | opened | builders alive Y30 | crew Y30 | failed tenders |
+|---|---|---|---|---|---|---|---|---|---|---|
+| plan (E165, E165B) | 4750 | 17.6 | 24.9 | 2.86 | 11.6 | 43.4 | 11.7 | 3.9 | 268 | 439 |
+| + E169 | 4721 | 18.7 | 26.1 | 2.75 | 8.2 | 43.5 | 10.1 | 2.9 | 188 | 376 |
+
+Reading: E169 is neutral to slightly worse (−29 adults, within noise). Builders lose work, because a takeover tenders
+only the remaining work (fewer builders and a smaller crew at Y30). Most shells decay unsold (217 of 313 left behind in the E166 + E169 arm, 69%).
+
+**E166, 10 seeds on HEAD:**
+
+| arm | adults | u % | food ‰ | real | priv alive | priv dead | plans | opened | surv36 (opened plans) | rescued, alive at 36 m |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | 4739 | 17.2 | 18.0 | 3.11 | 11.0 | 68.6 | 39.8 | 13.6 | – | – |
+| plan | 4854 | 16.5 | 12.6 | 3.02 | 14.8 | 45.0 | 29.3 | 14.4 | 63/138 | – |
+| + E166 | 4666 | 18.5 | 25.8 | 2.88 | 15.2 | 44.0 | 32.0 | 13.8 | 46/121 | 15/167 |
+| + E166 + E169 | 4766 | 17.1 | 16.1 | 3.14 | 8.4 | 46.1 | 28.8 | 13.4 | 45/126 | 10/161 |
+
+Rescues by kind (10-seed sums, E166 arm): stakes bought by firms 133, by households 28, bank top-ups 24, plans that
+saved themselves during the window 17, failed and withdrawn 89. The state never rescued (no AI uses ECON_RESCUE_PLAN yet).
+
+Reading: E166 as built is harmful. It costs 188 adults against plan, doubles food shortfall and lowers real income. The
+plans it rescues almost all fail later: 9% are alive 36 months after the rescue, against 46% of opened plans in
+general. A plan in trouble is mostly a bad plan, and the stake buyers (other firms in 83% of stake rescues) lose their money.
+Next step: trace where rescued plans die (before or after opening) and what the buyers lose, before changing the price
+test.
+
 ## Still to do
 
 The order-book retest (E165 + E165Q on top of R8_BUILDERS, ± E155BLD) waits for Bob's freight and material steps (R8
