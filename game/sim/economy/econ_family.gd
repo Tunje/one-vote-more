@@ -91,6 +91,10 @@ static func found(world: WorldState) -> void:
 			var d := _district(world, ftype)
 			if d == "":
 				break
+			var r8why := EconRulesFood.family_entry_block(world, ftype, d)  # R8 step 3 (opt-in R8_FOOD): rules 7/8
+			if r8why != "":
+				_note(s, ftype, r8why)
+				break
 			var uc := family_unit_cost(world, ftype, _grant_pct(world, ftype, d, true))
 			if float(s["prices"][good]) < found_mark(world, d) * uc:
 				_note(s, ftype, "price")

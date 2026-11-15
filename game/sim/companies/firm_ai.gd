@@ -175,7 +175,7 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 				t = _producer_target(world, f, o, good)
 				if EconRulesMat.output_on(world, f["type"]):
 					t = EconRulesMat.target(world, f, good, t)  # R8 step 2b: rules 3/4
-	if bool(o.get("family", false)):
+	if EconRulesFood.family_full_output(world, o):
 		t = 1.0  # E160 / E162: a family works its own farm or oven fully
 	if good in EconData.MARKET_GOODS:
 		var old := float(f["T"]) / 1000.0
@@ -508,6 +508,8 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 				# floor: full unit cost (labor included), 90% when active, 70% when distressed; never below material cost
 				var ftype := _type_of_output(world, oid, good)
 				var full := unit_cost(world, ftype) if ftype != "" else 0.0
+				if ftype != "" and bool(o.get("family", false)) and EconRulesFood.famask_on(world):
+					full = EconRulesFood.family_full_cost(world, oid, ftype)  # R8 step 3 (opt-in R8_FOOD): a family asks its own cost
 				var floor_c := maxi(EconUtil.inv_wac(world, oid, good, d), int(full * (0.9 if o["status"] == "ACTIVE" else 0.7)))
 				ask = maxi(ask, floor_c)
 				s["offers"].append({"seller": oid, "acct": EconUtil.acct(oid), "district": d, "good": good, "qty": q, "ask": ask})

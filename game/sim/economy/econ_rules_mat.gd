@@ -31,6 +31,9 @@ extends RefCounted
 const S := EconUtil.S
 const TYPE_FOR := {"MINERAL": "MINE", "MATERIAL": "PROCESSING", "COMPONENT": "COMPONENTS"}
 const GOOD_FOR := {"MINE": "MINERAL", "PROCESSING": "MATERIAL", "COMPONENTS": "COMPONENT"}
+## R8 step 3 (opt-in R8_FOOD): rules 3–6 also for the food companies' plants (families follow their sales instead:
+## EconRulesFood). Kill switches R8F_NOOUT, R8F_NOCAP.
+const FOOD_GOOD_FOR := {"FARM": "FOOD", "BAKERY": "FINE_FOOD"}
 const STEP := 0.03
 const STEP_UP := 0.05
 const MARKUP := 1.2
@@ -57,11 +60,27 @@ static func prices_on(world: WorldState, good: String) -> bool:
 
 
 static func output_on(world: WorldState, ftype: String) -> bool:
-	return GOOD_FOR.has(ftype) and _part(world, "R8M_NOOUT")
+	return _rule_on(world, ftype, "NOOUT")
 
 
 static func capacity_on(world: WorldState, ftype: String) -> bool:
-	return GOOD_FOR.has(ftype) and _part(world, "R8M_NOCAP")
+	return _rule_on(world, ftype, "NOCAP")
+
+
+## The good a plant type makes under the eight rules' output and capacity rules ("" when its sector is off).
+static func good_of(world: WorldState, ftype: String) -> String:
+	if GOOD_FOR.has(ftype) and on(world):
+		return String(GOOD_FOR[ftype])
+	if FOOD_GOOD_FOR.has(ftype) and EconRulesFood.on(world):
+		return String(FOOD_GOOD_FOR[ftype])
+	return ""
+
+
+static func _rule_on(world: WorldState, ftype: String, part: String) -> bool:
+	if good_of(world, ftype) == "":
+		return false
+	var kill := ("R8M_" if GOOD_FOR.has(ftype) else "R8F_") + part
+	return not (world.meta.get("on", []) as Array).has(kill)
 
 
 static func entry_on(world: WorldState, ftype: String) -> bool:
@@ -139,12 +158,12 @@ static func target(world: WorldState, f: Dictionary, good: String, t: float) -> 
 # ------------------------------------------------------------------ monthly counters (EconRules.monthly)
 
 static func monthly(world: WorldState) -> void:
-	if not on(world):
+	if not on(world) and not EconRulesFood.on(world):
 		return
 	var pl: Dictionary = EconUtil.st(world)["r8"].get("plants", {})
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
-		if not GOOD_FOR.has(f["type"]):
+		if good_of(world, String(f["type"])) == "":
 			continue
 		var p: Dictionary = pl.get(fid, {})
 		if p.is_empty():
@@ -178,7 +197,7 @@ static func keeps(world: WorldState, f: Dictionary) -> bool:
 # ------------------------------------------------------------------ rule 5 (quarterly, FirmAI.run)
 
 static func capacity(world: WorldState) -> void:
-	if not on(world) or (world.meta.get("on", []) as Array).has("R8M_NOCAP"):
+	if not on(world) and not EconRulesFood.on(world):
 		return
 	var s := EconUtil.st(world)
 	var acts: Array = s.get("r8_mat_actions", [])
@@ -186,7 +205,7 @@ static func capacity(world: WorldState) -> void:
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		var ftype := String(f["type"])
-		if not GOOD_FOR.has(ftype) or f["mothball"] or done.has(ftype):
+		if not capacity_on(world, ftype) or f["mothball"] or done.has(ftype):
 			continue
 		if int(f.get("r8_hi_m", 0)) < HI_M or int(f.get("r8_unf_m", 0)) < UNF_M:
 			continue
@@ -196,7 +215,7 @@ static func capacity(world: WorldState) -> void:
 		var pe: bool = o["type"] == "PUBLIC_ENTERPRISE"
 		if not (o["type"] in ["PRIVATE", "COOPERATIVE"] or pe):
 			continue
-		var good := String(GOOD_FOR[ftype])
+		var good := good_of(world, ftype)
 		if float(int(s["prices"].get(good, 0))) < ADD_MARGIN * FirmAI.unit_cost(world, ftype):
 			continue
 		if not pe and EconPublicCo.result12(o) < 0:

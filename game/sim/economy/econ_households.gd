@@ -473,7 +473,7 @@ static func _post_orders(world: WorldState) -> void:
 				"limit": int(s["prices"].get("FINE_FOOD", 0)) * 3, "class": EconMarket.C_HH_ESS, "kind": "hh", "group": gid})
 		if food_q - ff_q > 0:
 			s["orders"].append({"buyer": gid, "acct": EconUtil.hh_acct(gid), "district": g["district"], "good": "FOOD", "qty": food_q - ff_q,
-				"limit": pf * 3, "class": EconMarket.C_HH_ESS, "kind": "hh"})
+				"limit": EconRulesFood.hh_limit(world, "FOOD", pf * 3, maxi(0, world.ledger.balance(EconUtil.hh_acct(gid)) - util_res), food_q - ff_q, float(pf_eff) / maxf(1.0, float(pf))), "class": EconMarket.C_HH_ESS, "kind": "hh"})
 		if cmin > 0:
 			s["orders"].append({"buyer": gid, "acct": EconUtil.hh_acct(gid), "district": g["district"], "good": "CONSUMER", "qty": cmin,
 				"limit": pc * 3, "class": EconMarket.C_HH_ESS, "kind": "hh"})
