@@ -135,6 +135,12 @@ func test_the_road_that_frees_most_freight_goes_first() -> void:
 	dear["key"] = "LINK:d"
 	dear["options"] = [{"fix": "NEW_LINK", "cost": 9000, "load_after_pm": 500, "relief_pm": 800, "spec": {}}]
 	check(GovBuilder.road_benefit(dear) < GovBuilder.road_benefit(food), "the same freight freed for nine times the money is worth less")
+	var bystander := food.duplicate()
+	bystander["bottleneck_mu"] = 0
+	var choke := food.duplicate()
+	choke["bottleneck_mu"] = 3000
+	check_eq(GovBuilder.road_benefit(bystander), 0.0, "a road on a jammed route that is not the bottleneck frees nothing")
+	check_eq(GovBuilder.road_benefit(choke), GovBuilder.road_benefit(food), "the bottleneck frees it all")
 
 
 func test_tolls_are_felt_where_the_commuters_live() -> void:

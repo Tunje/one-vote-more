@@ -282,3 +282,39 @@ func test_road_needs_say_what_each_road_would_free() -> void:
 	check(FreightRoads.held_through(w) is Dictionary, "held_through skips it")
 	_next_month(w)
 	check(true, "the jam facts skip it too")
+
+
+func test_held_freight_is_credited_to_the_bottleneck() -> void:
+	var w := _game(1, 4).world
+	var p := _pair(w)
+	var ids := FreightRoads.route_ids(w, p[0], p[1])
+	check(ids.size() >= 2, "a route of two or more items")
+	w.table("transport")["fpairs"] = {}
+	w.table("transport")["fheld"] = {}
+	Transport.add_freight_traffic(w, p[0], p[1], 0, 300000, "FOOD")
+	_next_month(w)
+	var worst := String(ids[0])
+	for id in ids:
+		var x := FreightRoads._item(w, String(id))
+		x["traffic_last"] = int(x["fcap"]) * (3 if String(id) == worst else 2)
+	Transport._bump(w)
+	var by := {}
+	for n in Transport.road_needs(w):
+		by[String(n["key"]).substr(5)] = n
+	for id in ids:
+		if by.has(id):
+			check_eq(int(by[id]["held_mu"]), 300000, "held on the whole route at %s" % id)
+			check_eq(int(by[id]["bottleneck_mu"]), 300000 if String(id) == worst else 0, "freed only at the bottleneck: %s" % id)
+	# two equal bottlenecks share it
+	var second := String(ids[1])
+	FreightRoads._item(w, second)["traffic_last"] = int(FreightRoads._item(w, second)["fcap"]) * 3   # the same load
+	Transport._bump(w)
+	var tot := 0
+	var bn := {}
+	for n in Transport.road_needs(w):
+		if not String(n["key"]).begins_with("PAIR:"):
+			tot += int(n.get("bottleneck_mu", 0))
+			bn[String(n["key"]).substr(5)] = int(n.get("bottleneck_mu", 0))
+	check_eq(tot, 300000, "shared, never counted twice")
+	if bn.has(worst) and bn.has(second):
+		check(int(bn[worst]) == 150000 and int(bn[second]) == 150000, "two equal bottlenecks share it equally %s" % str(bn))

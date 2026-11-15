@@ -340,6 +340,10 @@ static func road_benefit(r: Dictionary) -> float:
 		held = float(r.get("held_mu", 0))
 	for g in by_good:
 		held += float(by_good[g]) * (float(ROAD_FOOD_WEIGHT) if String(g) in ["FOOD", "BREAD"] else 1.0)
+	if r.has("bottleneck_mu"):
+		# only what this item itself holds back: held freight is credited to every item on a jammed route, but only
+		# the route's most loaded item frees it (Terra's bottleneck_mu; A/B 2026-11-15: ranking by held_mu did harm)
+		held *= float(r["bottleneck_mu"]) / maxf(1.0, float(r.get("held_mu", 0)))
 	var cost := 0
 	for o in r.get("options", []):
 		if int(o["load_after_pm"]) <= 1000 and (cost == 0 or int(o["cost"]) < cost):

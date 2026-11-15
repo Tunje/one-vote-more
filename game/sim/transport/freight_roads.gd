@@ -242,7 +242,8 @@ static func district_jam_pm(world: WorldState, d: String) -> int:
 
 ## What a road would free (Wilma 2026-11-15, user: "what road is going to help the colony more"): last month's freight
 ## held back by the roads on every link and junction it would have used, {id: {held (mu), goods {good: mu}, to
-## {district: mu}}}, along last month's routes. Monthly memo (it reads only last month's records).
+## {district: mu}, bottleneck (mu: held credited only to the route's most loaded items last month, ties sharing)}},
+## along last month's routes. Monthly memo (it reads only last month's records).
 static func held_through(world: WorldState) -> Dictionary:
 	if not on(world):
 		return {}
@@ -263,11 +264,26 @@ static func _held_through(world: WorldState) -> Dictionary:
 		if ab.size() != 2:   # not a pair key ("a>b"): skip it rather than fail
 			continue
 		var goods: Dictionary = fh.get(k, {"?": held})
-		for id in routes.get(_pk(ab[0], ab[1]), []):
+		var ids: Array = routes.get(_pk(ab[0], ab[1]), [])
+		# the bottleneck: the items at the route's highest load last month (ties share); only they free the freight
+		var top := -1
+		var tops: Array = []
+		for id in ids:
+			var lp := load_pm(world, String(id))
+			if lp > top:
+				top = lp
+				tops = [id]
+			elif lp == top:
+				tops.append(id)
+		for id in ids:
 			if not out.has(id):
-				out[id] = {"held": 0, "goods": {}, "to": {}}
+				out[id] = {"held": 0, "goods": {}, "to": {}, "bottleneck": 0}
 			var row: Dictionary = out[id]
 			row["held"] = int(row["held"]) + held
+			var ti := tops.find(id)
+			if ti >= 0:
+				var share := held / tops.size()
+				row["bottleneck"] = int(row["bottleneck"]) + (held - share * (tops.size() - 1) if ti == 0 else share)
 			row["to"][ab[1]] = int(row["to"].get(ab[1], 0)) + held
 			for g in goods:
 				row["goods"][g] = int(row["goods"].get(g, 0)) + int(goods[g])

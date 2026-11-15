@@ -1512,7 +1512,8 @@ static func traffic_fixes(world: WorldState) -> Dictionary:
 ## With the flag, each need also says what it would free (Wilma 2026-11-15, the user: "what road is going to help the
 ## colony more"), from last month: held_mu (freight held back by the roads on routes through it), held_by_good {good:
 ## mu} ("?" where the market named none), to_districts {district: mu} (where it was bound), trips (car-equivalents
-## through it last month; for a DETOUR, the pair's trips as before).
+## through it last month; for a DETOUR, the pair's trips as before), bottleneck_mu (held_mu credited only where this
+## link or junction was the route's most loaded last month, ties sharing; a DETOUR frees all its pair's held freight).
 const NEED_LOAD_PM := 800
 const NEED_COND := 600
 const NEED_HORIZON := 18
@@ -1617,6 +1618,7 @@ static func _road_needs(world: WorldState) -> Array:
 				var x: Dictionary = links.get(id, jt2.get(id, {}))
 				r["trips"] = int(x.get("traffic_last", 0))
 			r["held_mu"] = int(hb.get("held", 0))
+			r["bottleneck_mu"] = int(hb.get("held", 0)) if key.begins_with("PAIR:") else int(hb.get("bottleneck", 0))
 			r["held_by_good"] = (hb.get("goods", {}) as Dictionary).duplicate()
 			r["to_districts"] = (hb.get("to", {}) as Dictionary).duplicate()
 	out.sort_custom(func(a, b): return int(a["severity"]) > int(b["severity"]) or (a["severity"] == b["severity"] and String(a["key"]) < String(b["key"])))
