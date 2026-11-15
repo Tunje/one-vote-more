@@ -91,3 +91,20 @@ eat it; it would reduce food made too but increase happiness".
 - Each crop needs its eight rules and buyers who bid what it is worth to them (Bob's food step, R8_FOOD, keeps the
   farm's crop a single field so the switch can be added without rework). Cattle and Terra's predators (ECO) go together.
 Not started.
+
+## Town grids and housing form (user 2026-11-15; queued after v11, a free session may code it without game runs)
+User: "I am thinking of it as something the game should model; 50 homes on 3x3 km is most likely separate housing,
+just based on space alone"; on a finer scale: "The two level seems good, that way we can have small housing at start,
+get apartments and eventually highrises; the towns and cities would look more like real ones."
+- Two levels: the 3 km tile stays for the country (farms, mines, roads between settlements, wildlife); each
+  settlement gets its own fine grid (about 100-300 m a cell) that exists only where a town is. Homes, shops, the
+  clinic, streets, crossings and passes live there.
+- Housing form per block: small houses at the start, then apartments, eventually high-rises. A cell takes about ten
+  houses or one apartment block, so a town grows outward or upward.
+- At today's scale land never forces apartments (a 900 ha tile would hold 9,000-18,000 houses), so the reasons must
+  be the real ones: the cost of reaching each home with road, pipe and cable; distance to work and services; how fast
+  and cheaply many homes can be built; what families prefer (a house over a flat); farmland lost at the town's edge.
+- Belongs with town planning, land reserved by use (Terra's SITING), who picks a site, road safety near homes, and
+  municipalities (building and roads first).
+Today: a housing block is 50 homes with no form (EconRulesHousing.BLOCK_UNITS); a tile records a number of homes;
+an area splits above 800 residents.
