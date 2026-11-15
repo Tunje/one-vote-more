@@ -37,6 +37,8 @@ const TYPES := {
 	"GRANT_COVERAGE": {"name": "Where a family grant programme lands", "portfolio": "AGRICULTURE", "fallback": "ECON_ADVISER", "ceiling": "MINISTER", "src": "gov_builder"},
 	# GovWildlife: the yearly (or after a death) wildlife policy review
 	"WILDLIFE_REVIEW": {"name": "Wildlife policy review", "portfolio": "ENVIRONMENT", "ceiling": "MINISTER", "src": "gov_wildlife"},
+	# FirmAI (Bob): the treasury pays for a public company's investment when no loan is to be had
+	"PE_INVESTMENT": {"name": "Treasury funds a public company's investment", "portfolio": "FINANCE", "ceiling": "MINISTER", "src": "firm_ai"},
 	# Legislature: laws
 	"BILL": {"name": "Table a bill", "portfolio": "FM", "ceiling": "PARLIAMENT", "src": "legislature"},
 	"ORDINANCE": {"name": "Commander's ordinance", "portfolio": "FM", "ceiling": "CABINET", "src": "legislature"},

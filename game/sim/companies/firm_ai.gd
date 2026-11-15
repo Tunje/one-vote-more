@@ -1,5 +1,6 @@
 class_name FirmAI
 extends RefCounted
+const DecisionDesk := preload("res://sim/office/decision_desk.gd")
 ## COMPANY_AI phase (spec §9): rule-based firm decisions for next month.
 ## Producers: targets, mothballing, input orders, sale asks. Utilities/institutions: demand/budget targets.
 ## Contractors: crews, materials, bids. Quarterly: investment, entry. CEO turnover. Wage index.
@@ -861,6 +862,7 @@ static func _new_plants(world: WorldState) -> void:
 			if not EconFinance.new_loan(world, best, loan, 0, true):
 				if o2["type"] == "PUBLIC_ENTERPRISE" and not (not EconUtil.off(world, "E110") and EconEssentials.human_governs(world)):
 					var paid := EconFinance.gov_pay(world, EconUtil.acct(best), need, "PE_INVESTMENT")
+					DecisionDesk.note(world, "PE_INVESTMENT")  # Maja's delegation counter (opt-in DELEGATION)
 					EconFinance._spend_line(world, "ECON_BUDGET_INFRASTRUCTURE", paid)
 					if paid < need / 2:
 						continue
@@ -951,6 +953,7 @@ static func _essentials_planner(world: WorldState) -> void:
 			if e110 and EconEssentials.human_governs(world):
 				continue  # E110: no treasury money behind a human government's back
 			var paid := EconFinance.gov_pay(world, EconUtil.acct(owner), need, "PE_INVESTMENT")
+			DecisionDesk.note(world, "PE_INVESTMENT")  # Maja's delegation counter (opt-in DELEGATION)
 			EconFinance._spend_line(world, "ECON_BUDGET_INFRASTRUCTURE", paid)
 		var home := district if district != "" else ("d:2" if ftype == "FARM" else "d:4")
 		var pid2 := EconConstruction.create_upgrade(world, up_fid, owner, "") if up_fid != "" else EconConstruction.create(world, ftype, home, owner, owner, "")
