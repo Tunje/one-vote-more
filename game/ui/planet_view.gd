@@ -666,6 +666,15 @@ func _build_weather(w: WorldState) -> void:
 		if v >= 1.0:
 			_blob(st, geo, int(k), 1.0 + RELIEF * 60.0, Color(0.45, 0.33, 0.2, clampf(v / 90.0, 0.08, 0.55)), 1.1)
 			any = true
+	if PlanetEcology.on(w):   # ECO: harmed land tinted brown (some harm) to ash grey (heavy harm), under the clouds
+		for k in pl.get("eco", {}):
+			var hm := int(pl["eco"][k][1])
+			if hm >= 100:
+				var f := float(hm) / 1000.0
+				var col := Color(0.5, 0.36, 0.18).lerp(Color(0.42, 0.42, 0.4), f)
+				col.a = clampf(0.25 + 0.6 * f, 0.25, 0.85)
+				_blob(st, geo, int(k), 1.0 + RELIEF * (maxf(float(Planet.height(w, int(k))), 0.0) + 4.0), col, 1.0)
+				any = true
 	for s in pl.get("storms", []) + pl.get("phenomena", []):
 		if s.get("global", false):
 			continue
@@ -853,6 +862,8 @@ func _update_info() -> void:
 	var warm := PlanetClimate.warming_c(w)
 	if warm >= 0.01:
 		notes.append("warming +%.2f °C" % warm)
+	if PlanetEcology.on(w):
+		notes.append("life: " + String(PlanetEcology.TRAIT_NAMES[PlanetEcology.character(w)["trait"]]))
 	head += "\n" + " · ".join(notes)
 	var hits := colony_hits(w)
 	if not hits.is_empty():
@@ -874,6 +885,12 @@ func _update_info() -> void:
 	var air := PlanetClimate.air_pollution(w, _hover)
 	if air >= 1.0:
 		s += " · smoke %.0f" % air
+	if PlanetEcology.on(w):
+		var hm := PlanetEcology.harm(w, _hover)
+		var pol := PlanetEcology.pollution(w, _hover)
+		if hm > 0 or pol >= 1.0:
+			s += "
+Land harmed %d‰ · pollution %.0f (absorbs %d) · farm yields %d%%" % [hm, pol, PlanetEcology.capacity(w, _hover), PlanetEcology.yield_pct(w, _hover)]
 	for site in PlanetSites.at_cell(w, _hover):
 		if site["where"] != "COLONY":
 			s += "\n★ %s: %s · attraction %d · this month %d%% · %d km, %d days from the colony" % [site["name"],

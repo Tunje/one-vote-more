@@ -110,6 +110,8 @@ static func produce(world: WorldState) -> void:
 		_consume_inputs(world, f, act)
 		_upkeep(world, f, t > 0.0)
 		var out_qty := int(float(r["out"][1]) * S * act * _eff(world, f) * EconUtil.fscale(f) * EconUtil.tier_out(f))  # E106 tier
+		if f["type"] in ["FARM", "FAMFARM"] and PlanetEcology.on(world):  # Terra ECO (opt-in): harmed land yields less
+			out_qty = out_qty * PlanetEcology.yield_pct(world, PlanetEcology.district_hex(world, String(f["district"]))) / 100
 		f["out_last"] = out_qty
 		var good: String = r["out"][0]
 		if good in EconData.MARKET_GOODS:

@@ -78,6 +78,7 @@ static func gather(w: WorldState) -> Dictionary:
 	d["storm"] = storm
 	d["phenomena"] = ph
 	d["smoke"] = PlanetClimate.air_pollution(w, home)
+	d["harm"] = float(PlanetEcology.harm(w, home)) / 1000.0 if PlanetEcology.on(w) else 0.0   # ECO: browner, barer land
 	d["eye"] = Terrain.landing(w)
 	d["look"] = look_dir(w)
 	d["seed"] = w.rng.derive_seed("ui.vista")
@@ -274,6 +275,8 @@ func _draw_ground(w: WorldState, W: float, H: float, hy: float) -> void:
 				col = Color("#8a7a62")
 			elif wk == "CEMETERY":
 				col = Color("#6f8a68")
+			if not code in ["r", Terrain.SEA] and float(_d.get("harm", 0.0)) > 0.0:   # ECO: harmed land browns and greys
+				col = col.lerp(Color("#8a7d62"), float(_d["harm"]) * 0.6)
 			if code in ["r", Terrain.SEA] and float(_d["temp"]) < -3.0:
 				col = Color("#cfe0ea")   # ice
 			# light from the south-west: slopes facing us are brighter, far land fades into haze

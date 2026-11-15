@@ -99,7 +99,7 @@ static func _anom(world: WorldState, cell: int, month: int, which: int) -> float
 
 
 static func _rain_pct(world: WorldState, cell: int, month: int) -> int:
-	return roundi(100.0 * exp(0.8 * _anom(world, cell, month, 0)))
+	return roundi(100.0 * exp(0.8 * _anom(world, cell, month, 0) * PlanetEcology.rough(world, cell)))   # ECO: harmed land swings wider
 
 
 ## Weather of any hex in a month: {rain_pct (100 = normal), rain_mm, temp_c, temp_anom_c, drought_months}.
@@ -293,6 +293,11 @@ static func _pick(world: WorldState, r: RandomNumberGenerator, cs: PackedVector3
 		if ok.call(i):
 			return i
 	return -1
+
+
+## A storm track for other planet modules (PlanetEcology: dust and spores from harmed land).
+static func track(world: WorldState, cs: PackedVector3Array, nb: Array, r: RandomNumberGenerator, start: int, kind: String, strength: int, steps: int) -> Dictionary:
+	return _track(world, cs, nb, r, start, kind, strength, steps)
 
 
 ## A storm's track: it moves with the wind one hex per step, strengthening over warm sea (cyclones) and

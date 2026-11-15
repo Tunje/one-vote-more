@@ -24,6 +24,7 @@ func indicator_defs() -> Array:
 		["PLANET_DROUGHT_MONTHS", "months (milli)", [0, 24000], -1, {"good": 0, "bad": 6000}],
 		["PLANET_AIR_POLLUTION", "index (milli)", [0, 100000], -1, {"good": 0, "bad": 60000}],
 		["PLANET_WARMING", "°C (milli)", [0, 10000], -1, {"good": 0, "bad": 2000}],
+		["PLANET_ECO_HARM", "‰ (milli)", [0, 1000000], -1, {"good": 0, "bad": 600000}],   # ECO only
 	]:
 		# concerns stay empty for now: politics decides how much people care (Wilma)
 		out.append({"id": row[0], "owner": OWNER, "unit": row[1], "range": row[2], "granularity": "COLONY",
@@ -41,6 +42,10 @@ func run_phase(phase: int, world: WorldState) -> void:
 		return
 	Planet.generate(world)   # worlds set up before the planet existed
 	PlanetClimate.step_month(world)
+	var crossed: Array = []
+	if PlanetEcology.on(world):   # ECO: pollution released, spread and absorbed; harmed land raises dust (own stream)
+		var pt := world.table("planet")
+		crossed = PlanetEcology.step_month(world, pt["storms"], pt["phenomena"])
 	Transport.step_month(world)
 	WasteMap.step_month(world)    # A45 W5: last month's sewage and leachate flow down the river   # A43 T1: the network wears, storms and mud close tracks (after this month's weather)
 	var home := Planet.landing(world)
@@ -50,6 +55,9 @@ func run_phase(phase: int, world: WorldState) -> void:
 	world.set_indicator(OWNER, "PLANET_DROUGHT_MONTHS", "COLONY", int(wx["drought_months"]) * 1000)
 	world.set_indicator(OWNER, "PLANET_AIR_POLLUTION", "COLONY", roundi(PlanetClimate.air_pollution(world, home) * 1000.0))
 	world.set_indicator(OWNER, "PLANET_WARMING", "COLONY", roundi(PlanetClimate.warming_c(world) * 1000.0))
+	if PlanetEcology.on(world):
+		world.set_indicator(OWNER, "PLANET_ECO_HARM", "COLONY", PlanetEcology.harm(world, home) * 1000)
+		_report_eco(world, crossed)
 	for cell in Planet.settled(world):
 		for h in PlanetClimate.storms_at(world, cell) + PlanetClimate.phenomena_at(world, cell):
 			_report(world, cell, h)
@@ -64,3 +72,27 @@ func _report(world: WorldState, cell: int, h: Dictionary) -> void:
 	world.add_fact({"type": "PLANET_" + kind, "owner": OWNER, "subjects": [], "responsible": [], "impact": {},
 		"magnitude": clampi(10 + st * 15, 0, 100), "visibility": "PUBLIC",
 		"data": {"hex": cell, "kind": kind, "strength": st, "name": String(PlanetClimate.NAMES.get(kind, kind.to_lower().replace("_", " ")))}})
+
+
+## ECO: land near the colony (a settled hex or a neighbour) crossing a harm level. Rising: PLANET_ECO_DAMAGE with the
+## level; falling back under the first level: PLANET_ECO_RECOVERY. Pollution has many authors, so no one is named
+## responsible here; politics decides the blame.
+func _report_eco(world: WorldState, crossed: Array) -> void:
+	if crossed.is_empty():
+		return
+	var near := {}
+	for c in Planet.settled(world):
+		near[int(c)] = true
+		for j in Planet.neighbors(world, int(c)):
+			near[int(j)] = true
+	for x in crossed:
+		var c := int(x["cell"])
+		if not near.has(c):
+			continue
+		var rising: bool = int(x["new"]) > int(x["old"])
+		if not rising and int(x["level"]) != PlanetEcology.LEVELS[0]:
+			continue
+		var lv := int(x["level"])
+		world.add_fact({"type": "PLANET_ECO_DAMAGE" if rising else "PLANET_ECO_RECOVERY", "owner": OWNER, "subjects": [], "responsible": [],
+			"impact": {}, "magnitude": clampi(20 + lv / 20, 0, 100) if rising else 30, "visibility": "PUBLIC",
+			"data": {"hex": c, "harm": int(x["new"]), "level": lv, "colony": c == Planet.landing(world)}})

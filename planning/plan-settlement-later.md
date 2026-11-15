@@ -18,6 +18,17 @@ planned for later, also with this huge a map we might have to go into planning o
   greater risk of wildlife attacks on outlying farms; what happens to worn-out central farmland (housing, rest and
   recovery, industry).
 
+User, 2026-11-15, settling the first question: "On moving they would have to shut down and be rebuilt; this could be
+something the government gives incentives to, but some farmers should resist."
+- Moving = a new farm is built further out FIRST, and the old one shuts down only once the new one is open (user,
+  correcting the order: "they don't shut down until after the new is built, or we will have famines every time").
+  The new farm waits as a plan in the builders' order book while the old one keeps producing; no gap in output.
+- The government can offer an incentive to move (a grant programme like the family grants: time-limited, by need,
+  with its coverage and its politics).
+- Some farmers refuse, whatever is offered (the user on selling: "most would not sell even if they earned less, only if
+  they had to"). A trait per farmer or family, so a relocation scheme never clears everyone, and pressure on holdouts
+  becomes political.
+
 ## 2. Planning towns and villages
 - The planet has 10,242 hexes and a century-old colony touches perhaps 10 to 40 of them. With that much room, where
   things are built becomes a question of its own: one growing town, or a town with villages around it.

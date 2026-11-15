@@ -196,6 +196,42 @@ and greenhouse warming are Terra's physical model; Bob reads them. Politics read
   the landing hex; stars and names on the colony map, and the site in the tile panel.
 - Bob owns visitors, hotels and spending; Wilma owns news and resentment.
 
+## Ecology, stage 1: pollution on the land (user order via Wilma, 2026-11-15; opt-in flag ECO) — sim/planet/planet_ecology.gd, tests/planet/test_ecology.gd
+
+User: "something with a little randomness so the planet feels different every time, potentially affected by pollution,
+maybe weather can get rougher, maybe the pollution is only released in your hex then spreads to surrounding."
+Rougher weather is local, over the land the colony harmed ("exactly what I wanted"). Global warming stays as A40 set it.
+
+- **State**: planet table key "eco": {"<cell>": [poll_milli, harm‰]}, only for hexes the colony touched (a hex
+  drops out under 0.5 units with no harm; a founding colony touches ~200 hexes after 30 years).
+- **Random per world** (pure in the seed, nothing saved): `character()` gives resilience and sensitivity (each
+  ×0.5–2) and one trait: SCRUBBER (pollution breaks down twice as fast), FRAGILE (harm costs twice the harvest),
+  SPORE_PRONE (harmed land releases SPORE_BLOOM), or HARDY. `vitality(cell)` is the richness of the living layer, by
+  biome × seeded noise (0 at sea).
+- **Release and spread**: each economic district's emissions (Bob's recipe `poll` × activity) are released at the
+  hex of the district's centre tile. To-do for Bob: per-facility emissions at the facility's own tile. Each month:
+  12% drifts downwind, 6% spreads to all neighbours, 5% runs downstream (land), 3% breaks down (× resilience,
+  ×2 SCRUBBER), and the rest stays.
+- **Harm**: capacity = (100 + vitality/4) / sensitivity units. Harm moves toward 1000·(1 − capacity/load): it rises
+  by 1.5% of the gap a month (× sensitivity) and heals by 0.4% (× resilience), so damage takes years and recovery
+  decades.
+- **Effects (ECO only)**:
+  - Rain anomalies over a harmed hex swing up to (1 + ROUGH) = 1.6× wider (`PlanetClimate._rain_pct`).
+  - Dust storms rise from land harmed above 400‰, on their own stream `planet.eco`.
+  - Farm and family-farm output × `yield_pct` of the district's hex: −30% at full harm, −60% if FRAGILE
+    (EconProduction, one guarded line).
+  - Indicator PLANET_ECO_HARM (landing hex, milli-‰).
+  - Facts PLANET_ECO_DAMAGE at 300/600/900‰ and PLANET_ECO_RECOVERY back under 300 (settled hexes and their
+    neighbours, PUBLIC, no one responsible).
+  - Globe: harmed land is tinted brown, turning ash grey; the hover line shows harm, pollution, capacity and
+    yield; the header names the planet's trait. Vista: the ground browns with the landing hex's harm.
+- **Calibration** (founding colony, ~60–100 units a month): by year 30 the landing hex has 390‰ harm on sensitive
+  seed 1 and 143‰ on seed 3, with no dust storms yet. A careful colony (under ~20 units) does no harm.
+- **Left out**: health (Bob's district pollution index covers it), species, ocean chemistry, clean-up and
+  restoration, ecology per colony-map tile, and any change to global warming.
+- **Stage 2 (agreed, next)**: a food pyramid per hex (pollinators, pests, foragers, grazers, predators), wildlife
+  attacks as facts, and lever ECO_WILDLIFE_POLICY.
+
 ## Next (proposed)
 1. Terrain.generate reads the landing region and its neighbours (coast → a sea edge, mountains → more hills,
    desert/forest → different local mix). Approved by Wilma (A35 follow-up).
