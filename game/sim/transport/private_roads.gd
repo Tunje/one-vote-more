@@ -150,6 +150,26 @@ static func add_public_money(world: WorldState, lid: String, mcr: int) -> void:
 		links[lid]["public_money"] = int(links[lid].get("public_money", 0)) + maxi(0, mcr)
 
 
+## What a truck-hour is worth when a route weighs a toll against time (mcr). Bob's EconRules.truck_trip_cost replaces
+## it when it exists (agreed 2026-11-15); until then 1 credit an hour.
+const TRUCK_HOUR_MCR := 1000
+
+
+## A toll as hours_x100 on the route weight.
+static func toll_hours_x100(world: WorldState, toll_mcr: int) -> int:
+	return roundi(float(maxi(0, toll_mcr)) * 100.0 / float(TRUCK_HOUR_MCR))
+
+
+## Firms that own private roads, sorted.
+static func owners(world: WorldState) -> Array:
+	var out := {}
+	var links := Transport._links(world)
+	for lid in links:
+		if is_private(links[lid]):
+			out[String(links[lid]["owner"])] = true
+	return EconUtil.sorted_keys(out)
+
+
 ## Struct-signature part of a link's terms (keys the route memos kept across months): "" for a public link.
 static func sig(l: Dictionary) -> String:
 	if not is_private(l):

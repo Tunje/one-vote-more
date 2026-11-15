@@ -548,12 +548,13 @@ static func link_km(l: Dictionary) -> int:
 
 ## Route between two nodes by a mode: "ROAD" (the built network), "ROVER", "AIRSHIP" or "BEST" (road, else rover,
 ## else airship). → {ok, mode, time_days, time_h, km, cost_index, links: [lid], reason}. ignore_weather: the usual
-## route (closures and groundings left out).
-static func route(world: WorldState, from_id: String, to_id: String, mode: String = "BEST", ignore_weather: bool = false) -> Dictionary:
+## route (closures and groundings left out). view (PRIVATE_ROADS): "" the public network (public links and open private
+## roads, tolls weighed against time), "org:<id>" that plus the org's own private roads, toll-free for it.
+static func route(world: WorldState, from_id: String, to_id: String, mode: String = "BEST", ignore_weather: bool = false, view: String = "") -> Dictionary:
 	if mode == "BEST":   # the cheapest kind of trip that works; on failure, why the road does not
 		var first := {}
 		for m in ["ROAD", "ROVER", "AIRSHIP"]:
-			var r := route(world, from_id, to_id, m, ignore_weather)
+			var r := route(world, from_id, to_id, m, ignore_weather, view)
 			if r["ok"]:
 				return r
 			if first.is_empty():
@@ -565,7 +566,7 @@ static func route(world: WorldState, from_id: String, to_id: String, mode: Strin
 		return _fail(mode, "UNKNOWN_NODE")
 	match mode:
 		"ROAD":
-			return _road_route(world, a, b, ignore_weather)
+			return _road_route(world, a, b, ignore_weather, view)
 		"ROVER":
 			return _rover_route(world, a, b, ignore_weather)
 		"AIRSHIP":
@@ -583,7 +584,7 @@ static func _ok(mode: String, km_x10: int, hours: int, cost: int, links: Array) 
 
 
 ## Over the built network: colony links (tile graph) and, to a globe site, the globe road from the port.
-static func _road_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_weather: bool) -> Dictionary:
+static func _road_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_weather: bool, view: String = "") -> Dictionary:
 	if int(b["tile"]) < 0:   # a globe site: to the port, then the globe road
 		var gl := {}
 		var links := _links(world)
@@ -596,7 +597,7 @@ static func _road_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_
 			return _fail("ROAD", "NO_LINK")
 		if not ignore_weather and closed_reason(world, gl) != "":
 			return _fail("ROAD", "CLOSED")
-		var first := _road_route(world, a, node(world, "port"), ignore_weather) if a["id"] != "port" else _ok("ROAD", 0, 0, 0, [])
+		var first := _road_route(world, a, node(world, "port"), ignore_weather, view) if a["id"] != "port" else _ok("ROAD", 0, 0, 0, [])
 		if not first["ok"]:
 			return first
 		var k := effective_kind(gl, world)
@@ -605,8 +606,8 @@ static func _road_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_
 		return _ok("ROAD", int(first["km"]) * 10 + km * 10, hrs, int(first["cost_index"]) + _cost(k, int(gl["cond"]), km * 10),
 			first["links"] + [gl["id"]])
 	if int(a["tile"]) < 0:
-		return _road_route(world, b, a, ignore_weather)   # symmetric
-	return _tile_route(world, a, b, ignore_weather)
+		return _road_route(world, b, a, ignore_weather, view)   # symmetric
+	return _tile_route(world, a, b, ignore_weather, view)
 
 
 static func _speed(kind: String, cond: int) -> float:
@@ -621,11 +622,11 @@ static func _cost(kind: String, cond: int, km_x10: int) -> int:
 ## Dijkstra over the colony graph. Vertices: link tiles (ints) and nodes (negative ids). Edges: consecutive tiles of
 ## open links; a settlement's streets to the link tiles and nodes inside its town; any other node to link tiles
 ## next to it (an access lane).
-static func _tile_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_weather: bool) -> Dictionary:
+static func _tile_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_weather: bool, view: String = "") -> Dictionary:
 	if a["id"] == b["id"] or (String(a["town"]) != "" and a["town"] == b["town"]):
 		var km_x10 := roundi(Vector2(int_tile(int(a["tile"]))).distance_to(Vector2(int_tile(int(b["tile"])))) * KM_PER_TILE * 10.0)
 		return _ok("ROAD", km_x10, roundi(24.0 * km_x10 / 10.0 / SPEED["STREET"]), _cost("STREET", 1000, km_x10), [])
-	var g := _graph(world, ignore_weather)
+	var g := _graph(world, ignore_weather, view)
 	var adj: Dictionary = g["adj"]
 	var setl := ColonyLayout.settlements(world)
 	var towns := {}
@@ -635,15 +636,15 @@ static func _tile_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_
 	var starts := _attach(a, adj, towns)
 	var goals := _attach(b, adj, towns)
 	if starts.is_empty() or goals.is_empty():
-		if not ignore_weather and _tile_route(world, a, b, true)["ok"]:
+		if not ignore_weather and _tile_route(world, a, b, true, view)["ok"]:
 			return _fail("ROAD", "CLOSED")
 		return _fail("ROAD", "OFF_NETWORK_FROM" if starts.is_empty() else "OFF_NETWORK_TO")
-	var best := {}   # vertex -> [hours_x100, prev, edge lid, km_x10, cost]
+	var best := {}   # vertex -> [weight (hours_x100, plus tolls as hours), prev, edge lid, km_x10, cost, the edge's real hours_x100]
 	var heap: Array = []
 	var keymap: Array = []   # heap holds ints: hours_x100 << 20 | index into keymap
 	for v in starts:
 		var e: Array = starts[v]
-		best[v] = [e[0], null, "", e[1], e[2]]
+		best[v] = [e[0], null, "", e[1], e[2], e[0]]
 		keymap.append(v)
 		_hpush(heap, (int(e[0]) << 20) | (keymap.size() - 1))
 	var done := {}
@@ -663,17 +664,18 @@ static func _tile_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_
 				reached = v
 		if t > reached_t:
 			break
-		for e in adj.get(v, []):   # e = [to, hours_x100, lid, km_x10, cost]
+		for e in adj.get(v, []):   # e = [to, weight_x100, lid, km_x10, cost, hours_x100]
 			var nt: int = t + int(e[1])
 			if not best.has(e[0]) or nt < int(best[e[0]][0]):
-				best[e[0]] = [nt, v, e[2], e[3], e[4]]
+				best[e[0]] = [nt, v, e[2], e[3], e[4], e[5]]
 				keymap.append(e[0])
 				_hpush(heap, (nt << 20) | (keymap.size() - 1))
 	if reached == null:
-		return _fail("ROAD", "CLOSED" if not ignore_weather and _tile_route(world, a, b, true)["ok"] else "NO_ROUTE")
+		return _fail("ROAD", "CLOSED" if not ignore_weather and _tile_route(world, a, b, true, view)["ok"] else "NO_ROUTE")
 	var lids: Array = []
 	var km := int(goals[reached][1])
 	var cost := int(goals[reached][2])
+	var hrs := int(goals[reached][0])   # the real time (the weight also counts tolls)
 	var cur = reached
 	while cur != null:
 		var rec: Array = best[cur]
@@ -681,9 +683,10 @@ static func _tile_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_
 			lids.append(rec[2])
 		km += int(rec[3])
 		cost += int(rec[4])
+		hrs += int(rec[5])
 		cur = rec[1]
 	lids.reverse()
-	return _ok("ROAD", km, roundi(float(reached_t) / 100.0), cost, lids)
+	return _ok("ROAD", km, roundi(float(hrs) / 100.0), cost, lids)
 
 
 ## Start or goal edges for a node: {vertex: [hours_x100, km_x10, cost]}.
@@ -701,23 +704,34 @@ static func _attach(n: Dictionary, adj: Dictionary, towns: Dictionary) -> Dictio
 	return out
 
 
-## The colony tile graph of open links: {adj: {tile: [[to, hours_x100, lid, km_x10, cost], ...]}}.
-static func _graph(world: WorldState, ignore_weather: bool) -> Dictionary:
-	return _memoised(world, "graph%d" % int(ignore_weather), func(): return _build_graph(world, ignore_weather))
+## The colony tile graph of open links: {adj: {tile: [[to, weight_x100, lid, km_x10, cost, hours_x100], ...]}}.
+## view (PRIVATE_ROADS): see route(). A private OWNER road is in its owner's view only; an OPEN_TOLL road's toll is
+## added to the weight as hours (PrivateRoads.toll_hours_x100), spread over its tiles, except for its owner.
+static func _graph(world: WorldState, ignore_weather: bool, view: String = "") -> Dictionary:
+	return _memoised(world, "graph%d%s" % [int(ignore_weather), view], func(): return _build_graph(world, ignore_weather, view))
 
 
-static func _build_graph(world: WorldState, ignore_weather: bool) -> Dictionary:
+static func _build_graph(world: WorldState, ignore_weather: bool, view: String = "") -> Dictionary:
 	var adj := {}
 	var links := _links(world)
+	var priv := PrivateRoads.on(world)
 	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1:
 			continue
 		if not ignore_weather and closed_reason(world, l) != "":
 			continue
+		var toll_h := 0
+		if priv and PrivateRoads.is_private(l):
+			var mine := view == "org:" + String(l["owner"])
+			if String(l.get("regime", "OWNER")) == "OWNER" and not mine:
+				continue
+			if String(l.get("regime", "")) == "OPEN_TOLL" and not mine:
+				toll_h = PrivateRoads.toll_hours_x100(world, int(l.get("toll", 0)))
 		var k := effective_kind(l, world)
 		var sp := _speed(k, int(l["cond"]))
 		var p: Array = l["path"]
+		var per_tile := toll_h / maxi(1, p.size() - 1)
 		for i in range(1, p.size()):
 			var u := int(p[i - 1])
 			var v := int(p[i])
@@ -729,8 +743,8 @@ static func _build_graph(world: WorldState, ignore_weather: bool) -> Dictionary:
 				adj[u] = []
 			if not adj.has(v):
 				adj[v] = []
-			adj[u].append([v, e_h, lid, km_x10, c])
-			adj[v].append([u, e_h, lid, km_x10, c])
+			adj[u].append([v, e_h + per_tile, lid, km_x10, c, e_h])
+			adj[v].append([u, e_h + per_tile, lid, km_x10, c, e_h])
 	return {"adj": adj}
 
 
@@ -1311,18 +1325,20 @@ static func add_accident(world: WorldState, id: String, n: int = 1) -> void:
 # ================================================================== freight on the roads (FreightRoads, FREIGHT_ROADS)
 
 ## Milli-units of freight the road route between two districts can still take this month (FreightRoads.BIG: no limit).
-static func freight_room_mu(world: WorldState, from_d: String, to_d: String) -> int:
-	return FreightRoads.freight_room_mu(world, from_d, to_d)
+## org (PRIVATE_ROADS): the firm whose own private roads may carry this freight (Bob: the buyer if it owns a road on
+## the route, else the seller); "" the public network.
+static func freight_room_mu(world: WorldState, from_d: String, to_d: String, org: String = "") -> int:
+	return FreightRoads.freight_room_mu(world, from_d, to_d, org)
 
 
 ## Freight moved between two districts (and what the roads held back): trucks onto the route. Bob's market.
-static func add_freight_traffic(world: WorldState, from_d: String, to_d: String, moved_mu: int, held_mu: int = 0, good: String = "") -> void:
-	FreightRoads.add_freight_traffic(world, from_d, to_d, moved_mu, held_mu, good)
+static func add_freight_traffic(world: WorldState, from_d: String, to_d: String, moved_mu: int, held_mu: int = 0, good: String = "", org: String = "") -> void:
+	FreightRoads.add_freight_traffic(world, from_d, to_d, moved_mu, held_mu, good, org)
 
 
 ## Can it be delivered: 0..1000 for the pair this month (FreightRoads.deliverable_pm).
-static func deliverable_pm(world: WorldState, from_d: String, to_d: String) -> int:
-	return FreightRoads.deliverable_pm(world, from_d, to_d)
+static func deliverable_pm(world: WorldState, from_d: String, to_d: String, org: String = "") -> int:
+	return FreightRoads.deliverable_pm(world, from_d, to_d, org)
 
 
 ## The worst load ‰ on the road routes from a district to the others (1000 = at capacity).

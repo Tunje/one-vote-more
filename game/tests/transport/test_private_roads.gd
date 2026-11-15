@@ -127,3 +127,63 @@ func test_flag_off_and_save_load() -> void:
 	c.step()
 	check_eq(c.world.state_hash(), a.world.state_hash(), "save/load/continue stays identical")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+## The first two districts.
+func _two(w: WorldState) -> Array:
+	var ds: Array = []
+	for s in ColonyLayout.settlements(w):
+		if not String(s["district"]) in ds:
+			ds.append(String(s["district"]))
+	return [ds[0], ds[1]]
+
+
+func _road_route(w: WorldState, d: Array, view: String = "") -> Dictionary:
+	var a := Commuting.district_node(w, d[0])
+	var b := Commuting.district_node(w, d[1])
+	return Transport.route(w, String(a["id"]), String(b["id"]), "ROAD", true, view)
+
+
+func test_who_may_drive_where_and_tolls_against_time() -> void:
+	var w := _game().world
+	var firm := _firm(w)
+	var d := _two(w)
+	var lid := _build(w, firm, {"kind": "PAVED", "regime": "OWNER"})
+	check(not lid in _road_route(w, d)["links"], "an owner road is not on the public network")
+	check(not lid in Transport.commute_d(w, d[0], d[1])["links"], "nor on the commute")
+	var own := _road_route(w, d, "org:" + firm)
+	check(lid in own["links"], "its owner drives on it (%s)" % str(own["links"]))
+	check(not lid in _road_route(w, d, "org:" + _firm(w, firm))["links"], "another firm doesn't")
+	Transport.set_terms(w, lid, "OPEN_FREE", 0, 0)
+	var free := _road_route(w, d)
+	check(lid in free["links"], "open and free: everyone uses it")
+	check(lid in Transport.commute_d(w, d[0], d[1])["links"], "commuters too")
+	Transport.set_terms(w, lid, "OPEN_TOLL", 1000000000, 0)
+	check(not lid in _road_route(w, d)["links"], "a dear toll: the public goes round")
+	var own2 := _road_route(w, d, "org:" + firm)
+	check(lid in own2["links"], "the owner pays no toll on its own road")
+	check_eq(int(own2["time_h"]), int(free["time_h"]), "the time is the real time, the toll only weighs the choice")
+	Transport.set_terms(w, lid, "OPEN_TOLL", 1, 0)
+	check(lid in _road_route(w, d)["links"], "a cheap toll: worth the time saved")
+
+
+func test_a_firms_freight_takes_its_own_road() -> void:
+	var w := _game().world
+	var firm := _firm(w)
+	var d := _two(w)
+	var lid := _build(w, firm, {"kind": "PAVED", "regime": "OWNER"})
+	w.month += 1
+	Transport.step_month(w)   # the month's freight routes are fixed in NATURE
+	var fr: Dictionary = w.peek("transport")["froutes"]
+	check(fr.has("%s|%s" % [firm, FreightRoads._pk(d[0], d[1])]), "the firm's own route is kept: %s" % str(fr.keys()))
+	check(lid in FreightRoads.route_ids(w, d[0], d[1], firm), "its freight goes on its road")
+	check(not lid in FreightRoads.route_ids(w, d[0], d[1]), "nobody else's does")
+	check(not lid in FreightRoads.route_ids(w, d[0], d[1], _firm(w, firm)), "not another firm's either")
+	var links: Dictionary = w.table("transport")["links"]
+	var t0 := int(links[lid]["traffic"])
+	Transport.add_freight_traffic(w, d[0], d[1], 50000, 0, "FOOD", firm)
+	check(int(links[lid]["traffic"]) > t0, "trucks on the owner's road")
+	var t1 := int(links[lid]["traffic"])
+	Transport.add_freight_traffic(w, d[0], d[1], 50000, 0, "FOOD")
+	check_eq(int(links[lid]["traffic"]), t1, "public freight stays off it")
+	check(Transport.freight_room_mu(w, d[0], d[1], firm) > 0, "room on the firm's route")

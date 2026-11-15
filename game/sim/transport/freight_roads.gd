@@ -52,15 +52,30 @@ static func trucks_pcu(mu: int) -> int:
 	return ceili(float(mu) / float(UNITS_PER_TRUCK * 1000)) * 2 * TRUCK_PCU
 
 
-## The road route between two districts: {links: [lid], juncs: [jid]} ({} for none). Monthly memo.
-static func route_items(world: WorldState, from_d: String, to_d: String) -> Dictionary:
+## The road route between two districts: {links: [lid], juncs: [jid]} ({} for none). Monthly memo. org
+## (PRIVATE_ROADS): that firm's view (the public network plus its own private roads).
+static func route_items(world: WorldState, from_d: String, to_d: String, org: String = "") -> Dictionary:
 	if from_d == to_d:
 		return {}
-	return Transport._memoised(world, "froute|%s|%s" % [from_d, to_d], func():
-		var cd := Transport.commute_d(world, from_d, to_d)
-		if not bool(cd["ok"]) or (cd["links"] as Array).is_empty():
+	return Transport._memoised(world, "froute|%s|%s|%s" % [from_d, to_d, org], func():
+		var lids: Array = []
+		if org == "":
+			var cd := Transport.commute_d(world, from_d, to_d)
+			if not bool(cd["ok"]):
+				return {}
+			lids = cd["links"]
+		else:
+			var a := Commuting.district_node(world, from_d)
+			var b := Commuting.district_node(world, to_d)
+			if a.is_empty() or b.is_empty():
+				return {}
+			var r := Transport.route(world, String(a["id"]), String(b["id"]), "ROAD", true, "org:" + org)
+			if not bool(r["ok"]):
+				return {}
+			lids = r["links"]
+		if lids.is_empty():
 			return {}
-		return {"links": (cd["links"] as Array).duplicate(), "juncs": Transport.route_junctions(world, {"links": cd["links"]})})
+		return {"links": lids.duplicate(), "juncs": Transport.route_junctions(world, {"links": lids})})
 
 
 static func _pk(a: String, b: String) -> String:
@@ -68,14 +83,16 @@ static func _pk(a: String, b: String) -> String:
 
 
 ## This month's freight route between two districts: link and junction ids ([] for none). From the table once the
-## NATURE tick has fixed it, else computed.
-static func route_ids(world: WorldState, from_d: String, to_d: String) -> Array:
+## NATURE tick has fixed it, else computed. org (PRIVATE_ROADS): that firm's route where its own roads change it.
+static func route_ids(world: WorldState, from_d: String, to_d: String, org: String = "") -> Array:
 	if from_d == to_d:
 		return []
 	var t := world.peek("transport")
 	if t.has("froutes"):
+		if org != "" and t["froutes"].has("%s|%s" % [org, _pk(from_d, to_d)]):
+			return t["froutes"]["%s|%s" % [org, _pk(from_d, to_d)]]
 		return t["froutes"].get(_pk(from_d, to_d), [])
-	var r := route_items(world, from_d, to_d)
+	var r := route_items(world, from_d, to_d, org if PrivateRoads.on(world) else "")
 	return [] if r.is_empty() else r["links"] + r["juncs"]
 
 
@@ -121,10 +138,10 @@ static func _room_mu(world: WorldState, id: String) -> int:
 	return maxi(0, trucks * UNITS_PER_TRUCK * 1000 - int(x.get("frt", 0)))
 
 
-static func freight_room_mu(world: WorldState, from_d: String, to_d: String) -> int:
+static func freight_room_mu(world: WorldState, from_d: String, to_d: String, org: String = "") -> int:
 	if not on(world) or from_d == to_d:
 		return BIG
-	var ids := route_ids(world, from_d, to_d)
+	var ids := route_ids(world, from_d, to_d, org)
 	if ids.is_empty():
 		return BIG
 	var room := BIG
@@ -133,7 +150,7 @@ static func freight_room_mu(world: WorldState, from_d: String, to_d: String) -> 
 	return room
 
 
-static func add_freight_traffic(world: WorldState, from_d: String, to_d: String, moved_mu: int, held_mu: int = 0, good: String = "") -> void:
+static func add_freight_traffic(world: WorldState, from_d: String, to_d: String, moved_mu: int, held_mu: int = 0, good: String = "", org: String = "") -> void:
 	if not on(world) or from_d == to_d or (moved_mu <= 0 and held_mu <= 0):
 		return
 	Transport.ensure(world)
@@ -152,7 +169,7 @@ static func add_freight_traffic(world: WorldState, from_d: String, to_d: String,
 			t["fheld"][k] = {}
 		var g := good if good != "" else "?"
 		t["fheld"][k][g] = int(t["fheld"][k].get(g, 0)) + held_mu
-	for id in route_ids(world, from_d, to_d):
+	for id in route_ids(world, from_d, to_d, org):
 		var x := _item(world, String(id))
 		if x.is_empty():
 			continue
@@ -169,14 +186,14 @@ static func load_pm(world: WorldState, id: String) -> int:
 	return int(x.get("traffic_last", 0)) * 1000 / maxi(1, _cap(world, id, x))
 
 
-static func deliverable_pm(world: WorldState, from_d: String, to_d: String) -> int:
+static func deliverable_pm(world: WorldState, from_d: String, to_d: String, org: String = "") -> int:
 	if not on(world) or from_d == to_d:
 		return 1000
 	var p: Array = world.peek("transport").get("fpairs_last", {}).get("%s>%s" % [from_d, to_d], [0, 0])
 	if int(p[1]) > 0:
 		return int(p[0]) * 1000 / maxi(1, int(p[0]) + int(p[1]))
 	var out := 1000
-	for id in route_ids(world, from_d, to_d):
+	for id in route_ids(world, from_d, to_d, org):
 		var x := _item(world, String(id))
 		out = mini(out, _cap(world, String(id), x) * JAM_ALLOW_PM / maxi(1, int(x.get("traffic_last", 0))))
 	return out
@@ -361,6 +378,19 @@ static func step_month(world: WorldState) -> void:
 			routes[_pk(String(ds[i]), String(ds[j]))] = r["links"] + r["juncs"]
 			for id in r["links"] + r["juncs"]:
 				on_route[id] = true
+	if PrivateRoads.on(world):   # each road-owning firm's own routes, where its roads change them ("org|a|b")
+		for org in PrivateRoads.owners(world):
+			for i in ds.size():
+				for j in range(i + 1, ds.size()):
+					var ro := route_items(world, String(ds[i]), String(ds[j]), String(org))
+					if ro.is_empty():
+						continue
+					var ids_o: Array = ro["links"] + ro["juncs"]
+					var pk := _pk(String(ds[i]), String(ds[j]))
+					if ids_o != routes.get(pk, []):
+						routes["%s|%s" % [org, pk]] = ids_o
+						for id in ids_o:
+							on_route[id] = true
 	t["froutes_last"] = t.get("froutes", {})
 	t["froutes"] = routes
 	var setl := ColonyLayout.settlements(world)
