@@ -70,6 +70,11 @@ const TYPES := {
 	"ROAD_PASS": {"name": "Over- or underpass, or a bypass, for safety", "portfolio": "ENGINEER", "ceiling": "MINISTER", "src": "gov_builder"},
 	"ROAD_TAKEOVER": {"name": "The state takes a private road", "portfolio": "ENGINEER", "ceiling": "MINISTER", "src": "road_law",
 		"note": "the Cabinet's when compulsory or above the state-aid threshold"},
+	# HiringCentre (HIRING_CENTRE, Ella): training the unemployed to become specialists. Whether the trained find posts
+	# is not known beforehand. A private owner opening or converting a centre for fees is a company decision, not these.
+	"HIRING_FUND_SEATS": {"name": "Fund training seats", "portfolio": "LABOUR_LIAISON", "ceiling": "MINISTER", "src": "hiring_centre", "routine": true},
+	"HIRING_BUILD_CENTRE": {"name": "Build a skill centre", "portfolio": "LABOUR_LIAISON", "ceiling": "MINISTER", "src": "hiring_centre"},
+	"HIRING_CONVERT_BUILDING": {"name": "Convert a building into a skill centre", "portfolio": "LABOUR_LIAISON", "ceiling": "MINISTER", "src": "hiring_centre"},
 	# GovWildlife: the yearly (or after a death) wildlife policy review
 	"WILDLIFE_REVIEW": {"name": "Wildlife policy review", "portfolio": "ENVIRONMENT", "ceiling": "MINISTER", "src": "gov_wildlife"},
 	# FirmAI (Bob): the treasury pays for a public company's investment when no loan is to be had
