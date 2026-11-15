@@ -159,3 +159,21 @@ func test_a_family_farms_where_the_land_is() -> void:
 	check_eq(EconFamily.farm_site(w, "d:1"), "d:1", "no free land anywhere: its own district")
 	for i in n:
 		fac.erase("test:farm:%d" % (i + 1))
+
+
+func test_no_grant_and_no_founding_while_food_piles_up() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["E160"]
+	sim.run(6)
+	var s := EconUtil.st(w)
+	s["fam_sf_hist"] = [200]
+	s["market_stats"]["FOOD"] = {"S": 5000000, "D": 4000000, "filled": 3200000, "wanted": 4000000}
+	check(not EconFamily.food_glut(w), "a month and a quarter of food on offer is no glut")
+	check(EconFamily.food_needed(w), "hunger without a glut: more food is needed")
+	s["market_stats"]["FOOD"] = {"S": 60000000, "D": 5000000, "filled": 4000000, "wanted": 5000000}
+	check(EconFamily.food_glut(w), "twelve months of food on offer is a glut")
+	check(not EconFamily.food_needed(w), "hunger in a glut is not for want of farms: no grant")
+	var orgs := w.table("org").size()
+	EconFamily.found(w)
+	check_eq(w.table("org").size(), orgs, "and no family founds a farm")

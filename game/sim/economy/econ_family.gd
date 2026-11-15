@@ -83,6 +83,9 @@ static func found(world: WorldState) -> void:
 			continue
 		if ftype == "FAMBAKERY" and not EconStaple.active(world):
 			continue
+		if ftype == "FAMFARM" and food_glut(world):
+			_note(s, ftype, "glut")   # the eighth rule: nobody starts a farm while food is piling up unsold
+			continue
 		var good: String = k["good"]
 		while n < cap:
 			var d := _district(world, ftype)
@@ -249,8 +252,24 @@ static func _sf12(world: WorldState) -> int:
 	return t / a.size()
 
 
-## The colony needs more food: short capacity, real hunger, or a price well above what farming costs.
+## Food is piling up unsold: last month's market had more than GLUT_COVER times the food buyers wanted on offer.
+## (User 2026-11-15: "I hope government grants aren't given for farms when we are over producing?" They were: with a
+## year of food in stock and a fifth of orders unfilled, the shortfall alone read as a need for more farms; probe in
+## planning/ab-family.md.) In a glut hunger is not for want of farms: no grant is approved, and no family founds.
+const GLUT_COVER := 3.0
+
+
+static func food_glut(world: WorldState) -> bool:
+	var ms: Dictionary = (EconUtil.peek_st(world).get("market_stats", {}) as Dictionary).get("FOOD", {})
+	var wanted := float(maxi(int(ms.get("D", 0)), int(ms.get("wanted", 0))))
+	return wanted > 0.0 and float(ms.get("S", 0)) > GLUT_COVER * wanted
+
+
+## The colony needs more food: short capacity, real hunger, or a price well above what farming costs; never while
+## food is piling up unsold.
 static func food_needed(world: WorldState) -> bool:
+	if food_glut(world):
+		return false
 	if _food_margin(world) < NEED_MARGIN or _sf12(world) > NEED_SF:
 		return true
 	var uc := minf(FirmAI.unit_cost(world, "FARM"), FirmAI.unit_cost(world, "FAMFARM"))
