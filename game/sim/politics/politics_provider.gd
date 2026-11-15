@@ -751,7 +751,7 @@ func _adapt_parties(world: WorldState) -> void:
 		var target := PartyGen.exaggerate(vmean, cmean)
 		for ax in PolDefs.AXES:
 			p["positions"][ax] += int(round((float(target[ax]) - float(p["positions"][ax])) * 0.10 * Learn.mult(p, "G_DRIFT")))   # A53 gene
-		p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs)
+		p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs, world)
 
 
 # ======================= M9: party life & opinion dynamics =======================

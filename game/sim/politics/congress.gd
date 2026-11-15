@@ -142,7 +142,7 @@ static func _resolve(world: WorldState, st: Dictionary, race: Dictionary) -> voi
 	fs[int(w["faction"])]["discontent"] = 20
 	var loser := 1 - int(w["faction"])
 	fs[loser]["discontent"] = mini(100, int(fs[loser]["discontent"]) + 15 + (5 if narrow else 0))
-	p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs)
+	p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs, world)
 	world.add_fact({"type": "POL_LEADER_CHANGED", "owner": "pol", "subjects": [{"kind": "PARTY", "id": p["id"]}],
 		"responsible": [], "impact": {}, "magnitude": 55, "visibility": "PUBLIC",
 		"data": {"party": p["id"], "old": old_name, "new": nl["name"], "reason": race["reason"], "faction": int(w["faction"]),
@@ -206,7 +206,7 @@ static func hold_congress(world: WorldState, st: Dictionary, p: Dictionary, seg:
 		var target := members_mean(p)
 		var d := int(round(float(target - int(p["positions"][ax])) * MOTION_PULL))
 		p["positions"][ax] = clampi(int(p["positions"][ax]) + d, -100 * S, 100 * S)
-		p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs)
+		p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs, world)
 		row["shift"] = d
 	# a discontented faction tables a motion against the leadership
 	var fs: Array = p["factions"]
@@ -250,7 +250,7 @@ static func _apply_motion(world: WorldState, p: Dictionary, row: Dictionary, cho
 			m["moved"] = pts
 		else:
 			p["positions"][m["axis"]] = clampi(int(p["positions"][m["axis"]]) + int(m["points"]) * S, -100 * S, 100 * S)
-			p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs)
+			p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs, world)
 			m["moved"] = int(m["points"])
 		f["discontent"] = maxi(0, int(f["discontent"]) - 20)
 		m["status"] = "ACCEPTED"

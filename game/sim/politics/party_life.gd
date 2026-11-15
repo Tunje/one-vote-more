@@ -146,7 +146,7 @@ static func leadership_contest(world: WorldState, st: Dictionary, p: Dictionary,
 	p["positions"][ax] += int(round(float(pole - int(p["positions"][ax])) * LEADER_PLATFORM_PULL))
 	fs[winner]["discontent"] = 20
 	fs[1 - winner]["discontent"] = mini(100, int(fs[1 - winner]["discontent"]) + 15)
-	p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs)
+	p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs, world)
 	world.add_fact({"type": "POL_LEADER_CHANGED", "owner": "pol", "subjects": [{"kind": "PARTY", "id": p["id"]}],
 		"responsible": [], "impact": {}, "magnitude": 55, "visibility": "PUBLIC",
 		"data": {"party": p["id"], "old": old_name, "new": p["leader"]["name"], "reason": reason, "faction": winner}})
@@ -693,7 +693,7 @@ static func merge(world: WorldState, st: Dictionary, big: Dictionary, small: Dic
 	if not big["is_player"]:
 		for ax in PolDefs.AXES:
 			big["positions"][ax] = int(round((float(big["positions"][ax]) * wb + float(small["positions"][ax]) * ws) / (wb + ws)))
-		big["commitments"] = PartyGen.commitments(big["positions"], world.lever_defs)
+		big["commitments"] = PartyGen.commitments(big["positions"], world.lever_defs, world)
 	for c in small["ownership"]:
 		big["ownership"][c] = maxi(int(big["ownership"].get(c, 0)), int(small["ownership"][c]) - 10)
 	big["seats"] = int(big["seats"]) + int(small["seats"])

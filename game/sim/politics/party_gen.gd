@@ -142,11 +142,16 @@ static func ownership(pos: Dictionary) -> Dictionary:
 
 ## Commitments as lever-direction pairs (DECISIONS A9). Alignment = normalised dot product of the lever's
 ## ideology slope with the party's position, in -100..100.
-static func commitments(pos: Dictionary, lever_defs: Dictionary) -> Array:
+## With `world`: levers whose feature is switched off ("requires", Legislature.lever_available) are left out; parties
+## held commitments on laws parliament could never draft, and those reached agendas and coalition deals (Anni's probe,
+## 2026-11-15).
+static func commitments(pos: Dictionary, lever_defs: Dictionary, world: WorldState = null) -> Array:
 	var out: Array = []
 	for lid in lever_defs:
 		var ideo: Dictionary = lever_defs[lid].get("ideology", {})
 		if ideo.is_empty():
+			continue
+		if world != null and not Legislature.lever_available(world, lever_defs[lid]):
 			continue
 		var dot := 0.0
 		var norm := 0.0
@@ -173,7 +178,7 @@ static func make_party(world: WorldState, pos: Dictionary, party_name: String, i
 	var p := {
 		"id": id, "name": party_name, "color": PolDefs.PARTY_COLORS[color_idx % PolDefs.PARTY_COLORS.size()],
 		"is_player": is_player, "founded_month": world.month, "positions": pos.duplicate(),
-		"ownership": ownership(pos), "commitments": commitments(pos, world.lever_defs),
+		"ownership": ownership(pos), "commitments": commitments(pos, world.lever_defs, world),
 		"leader": PartyLife.make_leader(world, 0), "seats": 0, "kind": "FOUNDING", "support": 0,
 		"credibility": 50, "agenda": [], "trust_in_player": 50, "status": "ACTIVE", "low_since": -1,
 	}

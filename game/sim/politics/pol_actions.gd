@@ -172,7 +172,7 @@ static func player_shift_platform(world: WorldState, axis: String, delta_points:
 	moved[axis] = int(moved.get(axis, 0)) + absi(delta_points)
 	p["platform_moves"][y] = moved
 	p["credibility"] = maxi(0, int(p["credibility"]) - int(ceil(absi(delta_points) / 5.0)))
-	p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs)
+	p["commitments"] = PartyGen.commitments(p["positions"], world.lever_defs, world)
 	p["ownership"] = PartyGen.ownership(p["positions"])
 	world.add_fact({"type": "POL_PLATFORM_CHANGED", "owner": "pol", "subjects": [{"kind": "PARTY", "id": p["id"]}],
 		"responsible": [{"actor": {"kind": "PARTY", "id": p["id"]}, "share": 1.0}], "impact": {},

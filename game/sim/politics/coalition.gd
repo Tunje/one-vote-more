@@ -166,6 +166,8 @@ static func feasible(world: WorldState, lever: String, dir: int) -> bool:
 	if not world.lever_defs.has(lever):
 		return false
 	var def: Dictionary = world.lever_defs[lever]
+	if not Legislature.lever_available(world, def):
+		return false   # the feature is switched off: nobody can deliver this
 	# only what parliament can actually table (v4 review: deals on charter enforcement and eviction notice could
 	# never be delivered because the drafting code skips law-owned and non-numeric levers)
 	if def["type"] != "NUMBER" or not (String(def.get("legalLevel", "")) in ["LAW", "REGULATION"]):
