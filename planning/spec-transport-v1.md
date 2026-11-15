@@ -230,6 +230,66 @@ expansions, not just quality".
 - **Left out**: freight on plants' own access tracks (plant to district, a second stage), freight within a district,
   and storm closures holding up freight.
 
+## T9. Road speed, accidents near people, over- and underpasses (Terra, the user's design via Wilma 2026-11-15) — sim/transport/road_safety.gd, tests/transport/test_road_safety.gd
+
+User: "accidents should [be in the game]. Any high speed road near utility people walk to, and near districts, have
+chances for accidents; over and under passes reduce the chance. Also road types should not be speed." / "a motorway
+around a village instead of through can be a thing."
+
+The design is in plan-settlement-later.md.
+
+- **Flag ROAD_SAFETY**: opt-in, base unchanged without it.
+  - No A/B run yet: the user said to wait while the machine runs v11.
+  - Unit tests only so far.
+- **Speed apart from surface**:
+  - A link is driven at its surface's design speed (track 40, road 80, paved 110 km/h), or at its limit, less for
+    wear.
+  - `Transport.set_limit(world, lid, kmh)` sets a limit (30 / 50 / 70 / 90; 0 lifts it). It costs nothing and takes
+    effect at once, and the news gets TRANSPORT_SPEED_LIMIT_SET.
+  - A limit slows every trip on the link (the route graph's speed), and it is part of the network's shape (route
+    memos).
+  - The surface keeps capacity and wear.
+- **People near a road**: a link tile is a spot when it is within 1 tile (3 km) of people on foot.
+  - Weights:
+    - a town's tiles: 2;
+    - housing: 3;
+    - clinic, school, shop, service hub, child or elder care: 2;
+    - offices, police, other workplaces: 1.
+  - Spots are pure in the layout and the network.
+- **Accidents** (NATURE tick, stream transport.safety):
+  - Expected accidents a month on a link = 0.002 × Σ spot weight (less what a pass there takes away) ×
+    ((km/h − 30) ÷ 40)² × last month's trips ÷ 1000 (0.2..3).
+  - The chance to kill rises with speed, from 5% to 60%.
+  - Deaths go through EconPop.casualties (the nearby workplace's staff first, then the district).
+  - Each accident is a fact, TRANSPORT_ROAD_ACCIDENT (PUBLIC, no one responsible; Wilma does blame and politics), with:
+    - where it happened: district, link, tile, the people weight and what stood near, the facility, and the road's
+      owner if private;
+    - the road: km/h, limit, kind;
+    - pass_here;
+    - pass_refused: a pass had been on offer for 3 or more months and was not built, with offered_since;
+    - killed and injured.
+- **Choices**: `Transport.safety_needs(world)` lists links with one expected accident in 10 years or more, worst first.
+  - Each row: {key "SAFE:<lid>", link, district, kmh, limit, people, risk_pm, deaths_pm, spot, offered_since, options}.
+  - Each option is {fix, type, spec, cost, months, risk_after_pm, hours_lost}.
+  - Options on offer:
+    - LIMIT_<k> or LIMIT_NONE (type LIMIT): no cost, but `hours_lost` trip-hours a month. Applied with set_limit.
+    - OVERPASS (cuts 70% of the danger within 1 tile) or UNDERPASS (85%, dearer) at the worst uncovered spot. This is
+      a ROAD project {pass: lid, tile, type}; when done: TRANSPORT_PASS_OPENED.
+    - BYPASS (type NEW), the capacity option with its safety case: through traffic leaves, a guessed 30% of the
+      danger stays.
+- **Flyovers**: a junction type FLYOVER (capacity 6,000, accident risk 10 against a plain crossing's 100). It is
+  offered in traffic_fixes and built by a ROAD project {junction, type FLYOVER}, only with the flag.
+- **Saved** (only with the flag):
+  - per link: "limit" and "passes";
+  - transport: "safety_offered" {lid: month} and "safety_acc" (the months of the last year's accidents).
+- **Shown**: the link panel gives the speed, the limit and the passes.
+- **Left out**:
+  - pedestrians as travellers;
+  - speed in the commuters' route factor beyond time;
+  - accidents on globe roads;
+  - a pass drawn on the map;
+  - the A/B (later, when the machine is free).
+
 ## Acceptance (century runs, 3 seeds)
 
 - No tourist ever visits a site without a road, a rover route or an airship route (tested).

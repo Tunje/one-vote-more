@@ -10,7 +10,7 @@ extends RefCounted
 
 ## Route factor ‰ by road kind (1000 = a good road), and at a junction passed by type.
 const KIND_F := {"TRACK": 1300, "ROAD": 1000, "PAVED": 850, "STREET": 1000}
-const JUNCTION_F := {"CROSSING": 1100, "PRIORITY": 1050, "ROUNDABOUT": 950, "SIGNALS": 900}
+const JUNCTION_F := {"CROSSING": 1100, "PRIORITY": 1050, "ROUNDABOUT": 950, "SIGNALS": 900, "FLYOVER": 800}
 const JUNCTION_KM := 3          # a junction weighs like this many km of road in the route's average
 const CLOSED_F := 2500          # a link closed by this month's weather (storm, mud)
 const NO_ROAD_F := 3000         # no road between the two: cross-country

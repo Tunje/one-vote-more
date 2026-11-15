@@ -47,13 +47,14 @@ const BILL_HEX := {"TRACK": [180, 60, 0], "ROAD": [600, 520, 15], "PAVED": [1000
 const TERRAIN_WU := {"h": 15, "k": 20, "o": 18, "x": 18}         # ×10: hills cost 1.5× the work
 ## T7 traffic engineering. Capacity of a link = CAPACITY[kind] × lanes; its river crossings carry CAPACITY[kind] ×
 ## bridge_lanes (a second bridge doubles them). Junctions (tiles where three or more road branches meet) have a type.
-const JUNCTION_TYPES := ["CROSSING", "PRIORITY", "ROUNDABOUT", "SIGNALS"]
+## FLYOVER (ROAD_SAFETY only): the roads cross on two levels, with ramps; built only where the flag is on.
+const JUNCTION_TYPES := ["CROSSING", "PRIORITY", "ROUNDABOUT", "SIGNALS", "FLYOVER"]
 const JUNCTION_NAMES := {"CROSSING": "plain crossing", "PRIORITY": "priority junction", "ROUNDABOUT": "roundabout",
-	"SIGNALS": "signal-controlled junction"}
-const JUNCTION_CAPACITY := {"CROSSING": 400, "PRIORITY": 900, "ROUNDABOUT": 2000, "SIGNALS": 3000}   # trips a month
+	"SIGNALS": "signal-controlled junction", "FLYOVER": "flyover"}
+const JUNCTION_CAPACITY := {"CROSSING": 400, "PRIORITY": 900, "ROUNDABOUT": 2000, "SIGNALS": 3000, "FLYOVER": 6000}   # trips a month
 ## Relative risk of a serious accident per trip (100 = a plain crossing); Bob turns counts into accidents.
-const JUNCTION_RISK := {"CROSSING": 100, "PRIORITY": 70, "ROUNDABOUT": 25, "SIGNALS": 45}
-const BILL_JUNCTION := {"PRIORITY": [15, 8, 0], "ROUNDABOUT": [110, 140, 2], "SIGNALS": [50, 40, 14]}
+const JUNCTION_RISK := {"CROSSING": 100, "PRIORITY": 70, "ROUNDABOUT": 25, "SIGNALS": 45, "FLYOVER": 10}
+const BILL_JUNCTION := {"PRIORITY": [15, 8, 0], "ROUNDABOUT": [110, 140, 2], "SIGNALS": [50, 40, 14], "FLYOVER": [400, 500, 10]}
 const LANE_SHARE := 70             # a second lane costs this % of the link's bill (bridges excluded)
 const PLANT_FREE_TYPES := ["HOUSING", "CLINIC", "SCHOOL", "ADMIN", "SERVICEHUB", "POLICE_STATION"]   # in-town services, not plants
 
@@ -86,7 +87,7 @@ static func _struct_sig(world: WorldState) -> int:
 	for lid in links:
 		var l: Dictionary = links[lid]
 		parts.append("%s%s%s%d%d%d%s" % [lid, String(l["kind"]).substr(0, 1), effective_kind(l, world).substr(0, 1), int(l.get("lanes", 1)),
-			int(l.get("bridge_lanes", 1)), (l.get("path", l.get("cells", [])) as Array).size(), PrivateRoads.sig(l)])
+			int(l.get("bridge_lanes", 1)), (l.get("path", l.get("cells", [])) as Array).size(), PrivateRoads.sig(l) + RoadSafety.sig(l)])
 	var jt: Dictionary = world.peek("transport").get("junctions", {})
 	for jid in jt:
 		parts.append("%s%s" % [jid, String(jt[jid].get("type", ""))])
@@ -729,7 +730,7 @@ static func _build_graph(world: WorldState, ignore_weather: bool, view: String =
 			if String(l.get("regime", "")) == "OPEN_TOLL" and not mine:
 				toll_h = PrivateRoads.toll_hours_x100(world, int(l.get("toll", 0)))
 		var k := effective_kind(l, world)
-		var sp := _speed(k, int(l["cond"]))
+		var sp := _speed(k, int(l["cond"])) * RoadSafety.speed_factor(world, l)   # ROAD_SAFETY: a limit, not the surface
 		var p: Array = l["path"]
 		var per_tile := toll_h / maxi(1, p.size() - 1)
 		for i in range(1, p.size()):
@@ -916,6 +917,11 @@ static func plan_link(world: WorldState, spec: Dictionary) -> Dictionary:
 		out["km"] = link_km(l2)
 		out["path"] = l2["path"].duplicate()
 		out["bridges"] = int(l2["bridges"])
+	elif spec.has("pass"):   # ROAD_SAFETY: an overpass or underpass for people on foot
+		var pb := RoadSafety.plan_pass(world, spec, out)
+		if pb.is_empty():
+			return out
+		bill = pb
 	elif spec.has("junction"):
 		var js := junctions(world)
 		var jid := String(spec["junction"])
@@ -923,7 +929,7 @@ static func plan_link(world: WorldState, spec: Dictionary) -> Dictionary:
 		if not js.has(jid):
 			out["error"] = "Unknown junction '%s'" % jid
 			return out
-		if not to in BILL_JUNCTION:
+		if not to in BILL_JUNCTION or (to == "FLYOVER" and not RoadSafety.on(world)):
 			out["error"] = "A junction can become PRIORITY, ROUNDABOUT or SIGNALS"
 			return out
 		if String(js[jid]["type"]) == to:
@@ -1116,6 +1122,8 @@ static func complete_road(world: WorldState, p: Dictionary) -> String:
 		"BRIDGE":
 			lid = String(spec["bridge"])
 			links[lid]["bridge_lanes"] = 2
+		"PASS":
+			lid = RoadSafety.build_pass(world, spec)
 		"JUNCTION":
 			var jid := String(spec["junction"])
 			world.table("transport")["junctions"][jid]["type"] = String(plan["kind"])
@@ -1130,7 +1138,7 @@ static func complete_road(world: WorldState, p: Dictionary) -> String:
 	_bump(world)
 	PrivateRoads.on_built(world, lid, p, plan)   # PRIVATE_ROADS: a firm's road is its own
 	var l: Dictionary = links[lid]
-	var ftype := "TRANSPORT_LINK_OPENED" if plan["job"] in ["NEW", "GLOBE"] else ("TRANSPORT_LINK_REPAIRED" if plan["job"] == "REPAIR" else "TRANSPORT_LINK_UPGRADED")
+	var ftype := "TRANSPORT_LINK_OPENED" if plan["job"] in ["NEW", "GLOBE"] else ("TRANSPORT_LINK_REPAIRED" if plan["job"] == "REPAIR" else ("TRANSPORT_PASS_OPENED" if plan["job"] == "PASS" else "TRANSPORT_LINK_UPGRADED"))
 	world.add_fact({"type": ftype, "owner": "transport", "subjects": [], "responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}] if p.get("owner", "gov") == "gov" else [],
 		"impact": {"INFRASTRUCTURE": 4 if plan["job"] != "REPAIR" else 2}, "magnitude": 25 if plan["job"] != "REPAIR" else 10,
 		"visibility": "PUBLIC", "data": {"link": lid, "job": String(plan["job"]), "kind": String(l["kind"]), "lanes": int(l.get("lanes", 1)), "km": link_km(l), "site": String(l.get("site", "")),
@@ -1303,6 +1311,7 @@ static func step_month(world: WorldState) -> void:
 	_bump(world)
 	FreightRoads.step_month(world)   # FREIGHT_ROADS (opt-in): last month's freight, the yearly trend, jam facts
 	PrivateRoads.step_month(world)   # PRIVATE_ROADS: unbooked toll counts close
+	RoadSafety.step_month(world)     # ROAD_SAFETY: accidents near people on fast roads
 	if closed > 0:
 		world.add_fact({"type": "TRANSPORT_LINKS_CLOSED", "owner": "transport", "subjects": [], "responsible": [], "impact": {},
 			"magnitude": clampi(10 + closed * 5, 0, 60), "visibility": "PUBLIC",
@@ -1352,6 +1361,23 @@ static func deliverable_pm(world: WorldState, from_d: String, to_d: String, org:
 ## The worst load ‰ on the road routes from a district to the others (1000 = at capacity).
 static func district_jam_pm(world: WorldState, d: String) -> int:
 	return FreightRoads.district_jam_pm(world, d)
+
+
+# ================================================================== road safety (RoadSafety, ROAD_SAFETY)
+
+## Set (one of RoadSafety.LIMITS, km/h) or lift (0) a link's speed limit: no cost, at once. → "" or why not.
+static func set_limit(world: WorldState, lid: String, kmh: int) -> String:
+	return RoadSafety.set_limit(world, lid, kmh)
+
+
+## Links where fast traffic meets people on foot, worst first, with the choices: limits, passes, a bypass.
+static func safety_needs(world: WorldState) -> Array:
+	return RoadSafety.safety_needs(world)
+
+
+## Accidents near people in the last 12 months.
+static func road_accidents_last_year(world: WorldState) -> int:
+	return RoadSafety.accidents_last_year(world)
 
 
 # ================================================================== private roads (PrivateRoads, PRIVATE_ROADS)
@@ -1757,7 +1783,7 @@ static func _traffic_fixes(world: WorldState) -> Dictionary:
 		var j: Dictionary = jt[jid]
 		var cur := String(j["type"])
 		var opts2: Array = []
-		for to in ["PRIORITY", "ROUNDABOUT", "SIGNALS"]:
+		for to in ["PRIORITY", "ROUNDABOUT", "SIGNALS"] + (["FLYOVER"] if RoadSafety.on(world) else []):
 			if JUNCTION_TYPES.find(to) <= JUNCTION_TYPES.find(cur) or (to == "PRIORITY" and cur != "CROSSING"):
 				continue
 			var spec2 := {"junction": jid, "type": to}

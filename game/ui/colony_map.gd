@@ -1591,6 +1591,12 @@ func link_text(w: WorldState, lid: String) -> String:
 		t += " · [color=#ef5350]worn down to a %s[/color]" % Transport.KIND_NAMES[l["effective"]]
 	t += "\nCapacity %d trips a month, last month %d" % [int(l["capacity"]), int(l["traffic"])]
 	t += _load_text(l)
+	if RoadSafety.on(w):   # ROAD_SAFETY: speed apart from the surface, passes for people on foot
+		t += "\nSpeed %d km/h" % RoadSafety.kmh(w, l)
+		t += " (limit %d)" % int(l["limit"]) if int(l.get("limit", 0)) > 0 else " (no limit: the %s's design speed)" % Transport.KIND_NAMES[l["effective"]]
+		var np := (l.get("passes", []) as Array).size()
+		if np > 0:
+			t += " · %d pass%s for people on foot" % [np, "" if np == 1 else "es"]
 	if String(l.get("owner", "")) != "":   # PRIVATE_ROADS: a company's road
 		var oname := String(w.peek("org").get(String(l["owner"]), {}).get("name", l["owner"]))
 		var terms := {"OWNER": "for its own freight only", "OPEN_FREE": "open to all, free",
