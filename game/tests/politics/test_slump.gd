@@ -77,3 +77,25 @@ func test_hunger_protects_food_assistance_and_the_benefit_floor() -> void:
 		check(float(c["to"]) > 50.0, "no cuts to food help while people go hungry: %s" % str(c))
 	EconUtil.st(w)["food_shortfall"] = 0
 	check(not Legislature.protected_levers(w).has("ECON_FOOD_ASSISTANCE"), "no protection without hunger")
+
+
+## v10 (seed 3): cash aid is no remedy when the food is not there. With a fifth of food orders unfilled the food
+## assistance lever loses its protection (more aid only bids the price up); the benefit floor keeps its own.
+func test_food_aid_is_not_protected_when_food_is_scarce() -> void:
+	var w := _world()
+	_set_unemp(w, 5)
+	var s := EconUtil.st(w)
+	s["sovereign_default"] = false
+	s["food_shortfall"] = 300
+	if not s.has("market_stats"):
+		s["market_stats"] = {}
+	s["market_stats"]["FOOD"] = {"wanted": 1000000, "filled": 1000000, "D": 1000000, "S": 1000000}
+	check(Legislature.protected_levers(w).has("ECON_FOOD_ASSISTANCE"), "hunger with every order filled: people can't afford it, aid is protected")
+	s["market_stats"]["FOOD"]["filled"] = 900000
+	var half: Dictionary = Legislature.protected_levers(w)
+	check(half.has("ECON_FOOD_ASSISTANCE") and not bool(half["ECON_FOOD_ASSISTANCE"][1]), "10% unfilled: weaker, and no longer a hard protection")
+	s["market_stats"]["FOOD"]["filled"] = 800000
+	var out: Dictionary = Legislature.protected_levers(w)
+	check(not out.has("ECON_FOOD_ASSISTANCE"), "20% unfilled: the food isn't there, aid is not protected")
+	check(out.has("ECON_BENEFIT_FLOOR"), "the benefit floor keeps its hunger protection")
+

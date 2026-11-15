@@ -307,7 +307,7 @@ static func protected_levers(world: WorldState) -> Dictionary:
 		var h0 := hunger(world)
 		if h0 >= HUNGER_FROM:
 			out["ECON_FOOD_ASSISTANCE"] = [clampf((h0 - HUNGER_FROM) / 0.10, 0.0, 2.0), false]
-		return out
+		return _when_food_is_there(world, out)
 	var u := unemployment(world)
 	var sl := _slump(world)
 	if sl > 0.0:
@@ -326,6 +326,34 @@ static func protected_levers(world: WorldState) -> Dictionary:
 	if ds > 0.0:
 		var cur: Array = out.get("ECON_FOOD_ASSISTANCE", [0.0, false])
 		out["ECON_FOOD_ASSISTANCE"] = [maxf(float(cur[0]), ds), bool(cur[1]) or dep >= FOOD_DEP_DEEP]
+	return _when_food_is_there(world, out)
+
+
+## v10 chronicles (seed 3, Bob's trace): food aid grew 45-fold to 60-70% of all spending while the share of need actually
+## bought FELL from 99% to 72%. Aid is need x price x lever, so when the food is not there it only bids the price up; the
+## guard above then made governments cut every other budget to zero instead. Cash aid is protected as a remedy only for
+## "can't afford": as the share of FOOD orders the market could not fill rises past FOOD_SCARCE_FROM the protection
+## fades, and it is gone at FOOD_SCARCE_FULL. (The benefit floor keeps its hunger protection: it is income, not food.)
+const FOOD_SCARCE_FROM := 0.05
+const FOOD_SCARCE_FULL := 0.15
+
+
+static func food_scarce(world: WorldState) -> float:
+	if not world.table("econ").has("s"):
+		return 0.0
+	var m: Dictionary = (EconUtil.peek_st(world).get("market_stats", {}) as Dictionary).get("FOOD", {})
+	var wanted := float(m.get("wanted", 0))
+	return 0.0 if wanted <= 0.0 else clampf((wanted - float(m.get("filled", 0))) / wanted, 0.0, 1.0)
+
+
+static func _when_food_is_there(world: WorldState, out: Dictionary) -> Dictionary:
+	if not out.has("ECON_FOOD_ASSISTANCE"):
+		return out
+	var k := 1.0 - clampf((food_scarce(world) - FOOD_SCARCE_FROM) / (FOOD_SCARCE_FULL - FOOD_SCARCE_FROM), 0.0, 1.0)
+	if k <= 0.0:
+		out.erase("ECON_FOOD_ASSISTANCE")
+	elif k < 1.0:
+		out["ECON_FOOD_ASSISTANCE"] = [float(out["ECON_FOOD_ASSISTANCE"][0]) * k, false]
 	return out
 
 
