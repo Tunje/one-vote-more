@@ -131,6 +131,9 @@ static func case_type(item: Dictionary) -> String:
 	var sys := String(item.get("source", {}).get("system", ""))
 	if sys in ["delegation", "delegation_summary"]:
 		return ""
+	var ht := String(item.get("hidden", {}).get("case_type", ""))
+	if ht != "":
+		return ht
 	if SOURCE_TYPE.has(sys):
 		return String(SOURCE_TYPE[sys])
 	return String(OFFICE_TYPE.get(String(item.get("category", "")), "OFFICE_OTHER"))
@@ -433,7 +436,11 @@ static func _summary(world: WorldState, player: bool, decided: Array) -> void:
 		if lv == "SUGGEST" or lv == "ME":
 			waiting.append({"item": String(o["id"]), "type": case_type(o), "level": lv, "subject": String(o.get("subject", "")),
 				"preselected": preselected(world, o)})
-	_d(world)["summary"] = {"month": world.month, "decided": decided, "waiting": waiting}
+	var d := _d(world)
+	var calls: Array = (d.get("calls", []) as Array).filter(func(x): return int(x["month"]) == world.month)
+	d["calls"] = []
+	decided = calls + decided
+	d["summary"] = {"month": world.month, "decided": decided, "waiting": waiting}
 	if not player or (decided.is_empty() and waiting.is_empty()):
 		return
 	var lines: Array = []
@@ -491,3 +498,105 @@ static func total(c: Dictionary) -> int:
 	for k in c:
 		n += int(c[k])
 	return n
+
+
+# ======================================================================= step 3: the systems' cases
+
+## A system's decision as a case (step 3). spec = {type, ref (unique per open case, e.g. "ORDER|HOUSING|d:3"), subject,
+## lines [..], options [{id, label, action}], hidden {option_id: {merit, lean {axis: milli}}}, default, cabinet?}.
+## The options carry only what the government knows this month; merit = the system's own judgement (the code's
+## choice), lean = which politics each option serves (on OfficeFeed.ai_answer's scale).
+##   CALL     the minister picks with their lean and skill and the action runs now; returns the option id ("" when
+##            its action failed); the monthly summary lists it.
+##   SUGGEST / ME   the case goes to the desk (an EMAIL authored by the minister holding the type, pre-selected at
+##            SUGGEST); returns "PENDING". An AI First Minister answers it at the end of the month; the player answers
+##            or it falls to `default` at the deadline.
+static func decide(world: WorldState, spec: Dictionary) -> String:
+	var ty := String(spec["type"])
+	assert(TYPES.has(ty), "unregistered decision type " + ty)
+	var lv := level(world, ty, bool(spec.get("cabinet", false)))
+	var role := holder_role(world, ty)
+	var p := holder_person(world, role)
+	var hid: Dictionary = spec.get("hidden", {})
+	var pick := minister_pick(world, ty, spec["options"], hid, String(spec.get("default", "")))
+	if lv == "CALL":
+		var act: Dictionary = {}
+		var label := pick
+		for x in spec["options"]:
+			if String(x.get("id", "")) == pick:
+				act = x.get("action", {})
+				label = String(x.get("label", pick))
+		var r: Dictionary = Office._do(world, act)
+		note(world, ty)
+		if not r.get("ok", false):
+			return ""
+		var d := _d(world)
+		if not d.has("calls"):
+			d["calls"] = []
+		(d["calls"] as Array).append({"month": world.month, "type": ty, "role": role, "person": String(p.get("id", "")), "name": String(p.get("name", "")),
+			"item": "", "subject": String(spec.get("subject", "")), "answer": pick, "label": label, "outside": outside_portfolio(world, ty), "why": ""})
+		return pick
+	var h2 := {"options": hid.duplicate(true), "case_type": ty}
+	var lines: Array = spec.get("lines", [])
+	var id := Office.post(world, {"kind": "EMAIL", "role": role if role != "FM" else "CHIEF_OF_STAFF", "category": "CASE", "priority": int(spec.get("priority", 50)),
+		"subject": String(spec.get("subject", "")), "summary": " ".join(lines), "summary_lines": lines, "options": spec["options"],
+		"default_option": String(spec.get("default", "")), "deadline": world.month + CASE_DEADLINE_M,
+		"source": {"system": CASE_SYSTEM, "ref": String(spec["ref"])}, "hidden": h2})
+	var o := Office.get_item(world, id)
+	if not o.is_empty() and not p.is_empty() and pick != "":
+		o["recommendation"] = pick   # the minister's own choice, as they would make the call
+	return "PENDING"
+
+
+const CASE_SYSTEM := "gov_case"
+const CASE_DEADLINE_M := 2
+const PICK_MERIT := 1.0             # weight of the system's judgement, times the minister's skill
+const PICK_LEAN := 40.0             # weight of the minister's politics, times (1 − skill)
+
+
+## The option the minister holding `type` would choose: the system's judgement (merit) weighed by their skill, bent by
+## their lean (the less skilled, the more), blurred by inexperience. A minister outside their portfolio works at
+## OUTSIDE_SKILL of their skill. Nobody holds it: the default.
+static func minister_pick(world: WorldState, type: String, options: Array, hid: Dictionary, dflt: String) -> String:
+	var role := holder_role(world, type)
+	var p := holder_person(world, role)
+	if p.is_empty() or options.is_empty():
+		return dflt
+	var OSx := _os()
+	var sk := float(OSx.role_skill(p, role)) / 100.0
+	if outside_portfolio(world, type):
+		sk *= OUTSIDE_SKILL
+	var tr: Dictionary = OSx.traits(p)
+	var lean: Dictionary = tr.get("lean", {})
+	var rng := world.rng.stream("pol.delegation")
+	var best := dflt
+	var bv := -INF
+	for x in options:
+		var oid := String(x.get("id", ""))
+		var h: Dictionary = hid.get(oid, {})
+		var al := 0.0
+		for ax in h.get("lean", {}):
+			al += float(h["lean"][ax]) / 1000.0 * float(lean.get(ax, 0)) / 100000.0
+		var v := float(h.get("merit", 0)) * sk * PICK_MERIT + clampf(al, -1.0, 1.0) * (1.0 - sk) * PICK_LEAN + rng.randfn(0.0, 1.0) * (1.0 - sk) * 33.0
+		if v > bv:
+			bv = v
+			best = oid
+	return best
+
+
+## An open case with this ref is waiting on the desk (the system must not post it again).
+static func pending(world: WorldState, ref: String) -> bool:
+	for o in world.peek("office_item").values():
+		if o["status"] in Office.OPEN and String(o["source"].get("system", "")) == CASE_SYSTEM and String(o["source"].get("ref", "")) == ref:
+			return true
+	return false
+
+
+## Office action route "DESK": the systems' own commit functions, run when a case is decided.
+static func execute(world: WorldState, id: String, params: Dictionary) -> Dictionary:
+	match id:
+		"GOV_ORDER":
+			return GovBuilder.commit_order(world, params)
+		"GOV_COVER":
+			return GovBuilder.commit_cover(world, params)
+	return {"ok": false, "error": "Unknown case action " + id}

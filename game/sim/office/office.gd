@@ -158,4 +158,6 @@ static func _do(world: WorldState, action: Dictionary) -> Dictionary:
 			return EconActions.enqueue(world, String(action["id"]), action.get("params", {}))
 		"STAFF":
 			return SA.apply(world, {"id": String(action["id"]), "actor": action.get("actor", {"kind": "GOVERNMENT", "id": "government"}), "args": action.get("args", {})})
+		"DESK":   # who decides, step 3 (flag DELEGATION): a system's case, committed by that system
+			return Desk.execute(world, String(action["id"]), action.get("params", {}))
 	return {"ok": false, "error": "Unknown action route"}
