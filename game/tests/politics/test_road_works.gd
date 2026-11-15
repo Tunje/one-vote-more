@@ -135,3 +135,16 @@ func test_the_road_that_frees_most_freight_goes_first() -> void:
 	dear["key"] = "LINK:d"
 	dear["options"] = [{"fix": "NEW_LINK", "cost": 9000, "load_after_pm": 500, "relief_pm": 800, "spec": {}}]
 	check(GovBuilder.road_benefit(dear) < GovBuilder.road_benefit(food), "the same freight freed for nine times the money is worth less")
+
+
+func test_tolls_are_felt_where_the_commuters_live() -> void:
+	check_eq(GovBuilder.toll_impact(1000, 1000, 100000), 0, "a trifle goes unnoticed")
+	check(GovBuilder.toll_impact(500000, 1000, 100000) < 0, "half a percent of a wage per head is noticed")
+	check(GovBuilder.toll_impact(5000000, 1000, 100000) < GovBuilder.toll_impact(500000, 1000, 100000), "more toll, more felt")
+	check_eq(GovBuilder.toll_impact(99000000, 1000, 100000), -GovBuilder.TOLL_MAX_IMPACT, "up to a limit")
+	check_eq(GovBuilder.toll_impact(5000, 0, 100000), 0, "nobody lives there")
+	var w: WorldState = EconSim.make(2, "BALANCED", {}, true).world
+	w.month = GovBuilder.QUARTER_MONTH
+	var before := w.facts.query("POL_ROAD_TOLLS_FELT").size()
+	GovBuilder._toll_feelings(w)
+	check_eq(w.facts.query("POL_ROAD_TOLLS_FELT").size(), before, "nothing without private roads")

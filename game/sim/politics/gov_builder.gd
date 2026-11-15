@@ -24,6 +24,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	if world.table("econ").has("s"):
 		_grant_cover(world, st)
 		_road_budget_need(world, st)
+		_toll_feelings(world)
 	if world.month % 3 != QUARTER_MONTH or not world.table("econ").has("s"):
 		return
 	var who := _actor(world, st)
@@ -362,6 +363,45 @@ static func road_ranking(world: WorldState, needs: Array, members: Array) -> Arr
 		rows.append([sc, i])
 	rows.sort_custom(func(a, b): return a[0] > b[0] or (a[0] == b[0] and a[1] < b[1]))
 	return rows.map(func(x): return needs[x[1]])
+
+
+## Road tolls paid by commuters are felt as cost of living where they live (PRIVATE_ROADS; Terra's
+## Transport.commuter_tolls: last month's tolls by home district, private and public roads together). Once a quarter,
+## a district whose commuters paid more than TOLL_FELT_PM of a reference wage per head gets POL_ROAD_TOLLS_FELT,
+## felt there only. The government carries half: it allowed the tolls, set the cap, or charges them itself.
+const TOLL_FELT_PM := 2              # permille of a reference monthly wage per head from which tolls are noticed
+const TOLL_FULL_PM := 20             # ... and at which the feeling is strongest
+const TOLL_MAX_IMPACT := 6
+
+
+static func toll_impact(toll_mcr: int, heads: int, wage_mcr: int) -> int:
+	if heads <= 0 or wage_mcr <= 0:
+		return 0
+	var pm := float(toll_mcr) / float(heads) * 1000.0 / float(wage_mcr)
+	if pm < float(TOLL_FELT_PM):
+		return 0
+	return -maxi(1, int(round(float(TOLL_MAX_IMPACT) * clampf(pm / float(TOLL_FULL_PM), 0.0, 1.0))))
+
+
+static func _toll_feelings(world: WorldState) -> void:
+	if world.month % 3 != QUARTER_MONTH or not PrivateRoads.on(world):
+		return
+	var tolls: Dictionary = Transport.commuter_tolls(world)
+	if tolls.is_empty():
+		return
+	var heads := {}
+	for c in PolVoters.all(world):
+		var d := String(c.get("district", ""))
+		heads[d] = int(heads.get(d, 0)) + int(c.get("pop", 0))
+	var wage: int = load("res://sim/staff/staff_ops.gd").w_ref_milli(world)
+	for d in EconUtil.sorted_keys(tolls):
+		var imp := toll_impact(int(tolls[d]), int(heads.get(d, 0)), wage)
+		if imp == 0:
+			continue
+		world.add_fact({"type": "POL_ROAD_TOLLS_FELT", "owner": "pol", "subjects": [],
+			"responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 0.5}], "impact": {"COST_OF_LIVING": imp},
+			"affected": {"districts": [String(d)]}, "magnitude": 15 + 3 * absi(imp), "visibility": "PUBLIC",
+			"data": {"district": String(d), "tolls_mcr": int(tolls[d]), "heads": int(heads.get(d, 0))}})
 
 
 static func road_works_on(world: WorldState) -> bool:
