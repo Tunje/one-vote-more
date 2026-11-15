@@ -79,3 +79,15 @@ Today: accidents exist only for the transport fleet (vehicle condition and junct
 road runs; speed follows the surface (SPEED in transport.gd). Flyovers do not exist (every meeting of roads is a level
 junction of four types). Deaths would go through the blame rules used for wildlife attacks and can be questioned by
 the opposition (Rivalry). Changes the core road model, so it needs its own A/B. Not started.
+
+## Three farm crops (user 2026-11-15; decided: after v11, as its own step)
+User: "No splitting, a farm grows one or the other, same space"; "three types of farm crops: cotton for clothes,
+grain for food with a by-product of hay, and beef; beef being more expensive but increasing enjoyment by those that
+eat it; it would reduce food made too but increase happiness".
+- A farm (big or family) grows one crop on its whole plot; switching takes time (cattle longest: a herd is built up).
+- Grain: today's food; hay comes with it. Cotton: the input of the textile workshops (CLOTHING). Beef: uses the hay,
+  dearer, feeds fewer per plot, a step above bread in what people like to eat (as bread is above raw food, E146).
+- A second and third thing to grow is also the farmers' answer to a food glut.
+- Each crop needs its eight rules and buyers who bid what it is worth to them (Bob's food step, R8_FOOD, keeps the
+  farm's crop a single field so the switch can be added without rework). Cattle and Terra's predators (ECO) go together.
+Not started.
