@@ -85,12 +85,12 @@ static func found(world: WorldState) -> void:
 			continue
 		var good: String = k["good"]
 		var uc := FirmAI.unit_cost(world, ftype)
-		if float(s["prices"][good]) < FOUND_MARK * uc:
-			_note(s, ftype, "price")
-			continue
 		while n < cap:
 			var d := _district(world, ftype)
 			if d == "":
+				break
+			if float(s["prices"][good]) < found_mark(world, d) * uc:
+				_note(s, ftype, "price")
 				break
 			var gid := _household(world, d)
 			if gid == "":
@@ -101,6 +101,66 @@ static func found(world: WorldState) -> void:
 				_note(s, ftype, "money")
 				break
 			n += 1
+
+
+## What a family asks of the price before it founds, as a multiple of its unit cost, in district d (user 2026-11-15:
+## "two factors are missing from the calc: hopes for betterment, a weight that weights how bad the living is there;
+## their own farm should look like an improvement in a starving district; and unemployment as counter weight to
+## non-profit"). From FOUND_MARK it falls with
+## - hardship: how short of food people are (the colony's 12-month shortfall, and the district's own unbought and
+##   undelivered food where that is measured): a family that eats its own produce first sees a farm as a way out;
+## - idleness: the district's unemployment: a family with no work accepts a firm that pays little.
+## Never under FOUND_FLOOR: below that the firm could not buy its inputs. A firm founded under 1.0 may well fail; that
+## is the family's and the grant-giving government's risk, and nobody knows beforehand.
+const FOUND_FLOOR := 0.6
+const HOPE_W := 0.4
+const HOPE_FULL_SF := 50.0           # permille of food shortfall at which hardship counts in full
+const HOPE_FULL_GAP := 200.0         # permille of the district's food need unbought or undelivered, likewise
+const IDLE_W := 0.4
+const IDLE_FULL := 0.25              # district unemployment rate at which idleness counts in full
+
+
+static func hardship(world: WorldState, d: String) -> float:
+	var s := EconUtil.peek_st(world)
+	var h := float(_sf12(world)) / HOPE_FULL_SF
+	var gap := float(int(s.get("food_unaff_d", {}).get(d, 0)) + int(s.get("food_scarce_d", {}).get(d, 0)))
+	return clampf(maxf(h, gap / HOPE_FULL_GAP), 0.0, 1.0)
+
+
+static func idleness(world: WorldState, d: String) -> float:
+	var hb := EconPop.hb_of(d)
+	var un := float(PopStore.count(world, {"hb": hb, "status": "UNEMPLOYED"}))
+	var em := float(PopStore.count(world, {"hb": hb, "status": "EMPLOYED"}))
+	if un + em <= 0.0:
+		return 0.0
+	return clampf(un / (un + em) / IDLE_FULL, 0.0, 1.0)
+
+
+static func found_mark(world: WorldState, d: String) -> float:
+	return maxf(FOUND_FLOOR, FOUND_MARK - HOPE_W * hardship(world, d) - IDLE_W * idleness(world, d))
+
+
+## A family firm the government paid a grant to has failed (user 2026-11-15: "grant farms failing is food for
+## politics"). Reported once, when it goes into liquidation: public, the government's doing in part (more the fresher
+## the grant), felt as bad government, with what was paid.
+const GRANT_FAIL_FRESH_M := 60
+
+
+static func _failed_grantees(world: WorldState) -> void:
+	var orgs: Dictionary = world.table("org")
+	for oid in EconUtil.sorted_keys(orgs):
+		var o: Dictionary = orgs[oid]
+		if not bool(o.get("family", false)) or int(o.get("grant_paid", 0)) <= 0 or bool(o.get("grant_fail_told", false)):
+			continue
+		if not (String(o.get("status", "")) in ["LIQUIDATION", "DISSOLVED"]):
+			continue
+		o["grant_fail_told"] = true
+		var age := world.month - int(o.get("grant_month", world.month))
+		var share := clampf(0.7 - 0.5 * float(age) / float(GRANT_FAIL_FRESH_M), 0.2, 0.7)
+		EconFacts.emit(world, "ECON_GRANT_FIRM_FAILED", String(o.get("hq", "")), [["COMPANY", oid]],
+			[["GOVERNMENT", "government", share], ["NATURE", "market", 1.0 - share]], {"GOVERNANCE": -3, "FAIRNESS": -1}, 35, "PUBLIC",
+			{"org": oid, "type": String(o.get("family_type", "")), "district": String(o.get("hq", "")), "grant_paid": int(o["grant_paid"]),
+				"months_since_grant": age})
 
 
 ## The government's decision on a grant application: the lever's % if approved, else 0 (refusal noted by reason).
@@ -563,6 +623,7 @@ static func self_supply(world: WorldState) -> void:
 		s["fam_lever_hist"] = lh
 	_programmes(world)
 	service_loans(world)
+	_failed_grantees(world)
 	_publish_need(world)
 	_publish_need_d(world)
 	for fid in EconUtil.sorted_keys(world.table("facility")):

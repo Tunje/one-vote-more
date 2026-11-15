@@ -74,3 +74,42 @@ func test_run_closes() -> void:
 	sim.run(36)
 	check_eq(sim.world.ledger.total(), 0, "ledger closed")
 	check(EconPop.check(sim.world).is_empty(), "jobs equal people")
+
+
+func test_hardship_and_idleness_lower_what_a_family_asks() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["E160"]
+	sim.run(6)
+	var s := EconUtil.st(w)
+	var d := "d:1"
+	s["fam_sf_hist"] = [0]
+	s["food_shortfall"] = 0
+	s["food_scarce_d"] = {}
+	s["food_unaff_d"] = {}
+	var calm := EconFamily.found_mark(w, d)
+	check(calm <= EconFamily.FOUND_MARK and calm >= EconFamily.FOUND_FLOOR, "within its bounds (%.2f)" % calm)
+	s["food_scarce_d"] = {d: 200}
+	check(is_equal_approx(EconFamily.hardship(w, d), 1.0), "a district going without a fifth of its food: full hardship")
+	check(EconFamily.found_mark(w, d) < calm - 0.3, "their own farm looks like a way out")
+	s["food_scarce_d"] = {}
+	var idle := EconFamily.idleness(w, d)
+	check(idle >= 0.0 and idle <= 1.0, "idleness is a share (%.2f)" % idle)
+	check(is_equal_approx(EconFamily.found_mark(w, d), maxf(EconFamily.FOUND_FLOOR, EconFamily.FOUND_MARK - EconFamily.HOPE_W * EconFamily.hardship(w, d) - EconFamily.IDLE_W * idle)), "unemployment counts against the missing profit")
+
+
+func test_a_failed_grant_firm_is_news_once() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["E160"]
+	sim.run(2)
+	var id := w.new_id("org")
+	w.table("org")[id] = {"id": id, "family": true, "family_type": "FAMFARM", "hq": "d:2", "status": "LIQUIDATION", "grant_paid": 5000000, "grant_month": w.month - 6}
+	EconFamily._failed_grantees(w)
+	EconFamily._failed_grantees(w)
+	var f: Array = w.facts.query("ECON_GRANT_FIRM_FAILED")
+	check_eq(f.size(), 1, "reported once")
+	if f.size() == 1:
+		check(int(f[0]["impact"]["GOVERNANCE"]) < 0, "it reflects on the government")
+		check_eq(int(f[0]["data"]["months_since_grant"]), 6, "it says how fresh the grant was")
+	w.table("org").erase(id)
