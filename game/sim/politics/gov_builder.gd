@@ -157,6 +157,14 @@ static func _road_needs(world: WorldState, st: Dictionary, busy: Dictionary, who
 		return 0
 	var bar := clampf(ROAD_NEED_BAR - 200.0 * spend - 100.0 * state, 100.0, 800.0)
 	var n_max := 1 + (1 if spend + state > 0.3 else 0)
+	var choose := road_works_on(world)
+	if choose:
+		# freight held back by the roads presses every government, the willing ones harder (a pressure, not a duty)
+		var jam := float(FreightRoads.jam_share_pm(world))
+		var will := clampf(0.6 + spend + 0.5 * state, 0.2, 1.5)
+		bar = clampf(bar - ROAD_JAM_BAR * jam * will, 60.0, 800.0)
+		n_max += int(jam * will / ROAD_JAM_PER_ORDER)
+		n_max = mini(n_max, ROAD_MAX_ORDERS)
 	var done_keys: Dictionary = st.get("road_need_keys", {})
 	var line := "ECON_BUDGET_INFRASTRUCTURE"
 	var done := 0
@@ -167,13 +175,79 @@ static func _road_needs(world: WorldState, st: Dictionary, busy: Dictionary, who
 		if world.month - int(done_keys.get(key, -9999)) < ROAD_NEED_GAP:
 			continue
 		var cost := int(r.get("cost", 0))
+		var spec: Dictionary = r["spec"]
+		if choose:
+			var o := road_option(r.get("options", []), spend, state, EconActions.headroom(world, line))
+			if o.is_empty():
+				continue
+			cost = int(o["cost"])
+			spec = o["spec"]
+			if int(o["load_after_pm"]) > 1000:
+				_road_patch_fact(world, who, r, o)
 		if EconActions.headroom(world, line) < cost * 11 / 10:
 			continue
-		if _order(world, st, busy, who, "ROAD", str(r["district"]), line, {"link": (r["spec"] as Dictionary).duplicate(true)}) > 0:
+		if _order(world, st, busy, who, "ROAD", str(r["district"]), line, {"link": spec.duplicate(true)}) > 0:
 			done_keys[key] = world.month
 			done += 1
 	st["road_need_keys"] = done_keys
 	return done
+
+
+## Road works by choice (user 2026-11-15: "roads won't take the new freight ... another job for builders and for the
+## government to argue about"). Opt-in flag ROAD_WORKS, on top of FREIGHT_ROADS: the government picks among every way
+## to relieve a link or junction (Transport.road_needs "options") by its own character, and freight held back by the
+## roads makes it order sooner and more. It may still choose badly: a thrifty government patches.
+const ROAD_WORKS_FLAG := "ROAD_WORKS"
+const ROAD_JAM_BAR := 0.5            # the bar falls by this per 1 permille of freight held (times the government's will)
+const ROAD_JAM_PER_ORDER := 100.0    # one more road order a quarter per this much held freight (permille, times will)
+const ROAD_MAX_ORDERS := 4
+const ROAD_GOOD_LOAD := 800          # a fix that leaves the road at or under this load is a cure
+const ROAD_AHEAD_LOAD := 600         # a builder government wants room to spare
+const ROAD_THRIFTY := -0.2           # fiscal position at or under this: the cheapest thing that stops the jam
+const ROAD_BUILDER := 0.5            # spend + state at or over this: build ahead
+
+
+static func road_works_on(world: WorldState) -> bool:
+	return (world.meta.get("on", []) as Array).has(ROAD_WORKS_FLAG) and FreightRoads.on(world)
+
+
+## The option this government takes among `opts` (cheapest first; each {fix, cost, load_after_pm, relief_pm, spec}),
+## with `headroom` on the budget line. {} when it can afford none. Pure.
+## - thrifty: the cheapest that brings the load to 1000 or under; failing that the cheapest of all (a patch).
+## - builder: the cheapest that leaves the load at ROAD_AHEAD_LOAD or under; failing that as the others.
+## - others: the cheapest cure (ROAD_GOOD_LOAD or under); failing that the biggest relief.
+static func road_option(opts: Array, spend: float, state: float, headroom: int) -> Dictionary:
+	var can: Array = opts.filter(func(o): return int(o["cost"]) * 11 / 10 <= headroom)
+	if can.is_empty():
+		return {}
+	var want := ROAD_GOOD_LOAD
+	if spend <= ROAD_THRIFTY:
+		want = 1000
+	elif spend + state >= ROAD_BUILDER:
+		want = ROAD_AHEAD_LOAD
+	for target in [want, ROAD_GOOD_LOAD] if want < ROAD_GOOD_LOAD else [want]:
+		for o in can:
+			if int(o["load_after_pm"]) <= int(target):
+				return o
+	if spend <= ROAD_THRIFTY:
+		return can[0]
+	var best: Dictionary = can[0]
+	for o in can:
+		if int(o["relief_pm"]) > int(best["relief_pm"]):
+			best = o
+	return best
+
+
+## The government ordered a fix that leaves the road over its capacity: public, and its own doing.
+static func _road_patch_fact(world: WorldState, who: Dictionary, r: Dictionary, o: Dictionary) -> void:
+	var better := 0
+	for x in r.get("options", []):
+		if int(x["load_after_pm"]) <= 1000:
+			better += 1
+	world.add_fact({"type": "POL_ROAD_PATCHED", "owner": "pol", "subjects": [{"kind": "PARTY", "id": who["by"]}] if who["by"] != "commander" else [],
+		"responsible": [{"actor": {"kind": "GOVERNMENT" if who["by"] != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}],
+		"impact": {}, "magnitude": 25, "visibility": "PUBLIC", "data": {"key": str(r["key"]), "district": str(r["district"]), "fix": String(o["fix"]),
+			"cost": int(o["cost"]), "load_after_pm": int(o["load_after_pm"]), "cures_on_offer": better, "by": who["by"]}})
 
 
 ## Who decides: the AI government in parliament, or the commander in the founding era when the player's
