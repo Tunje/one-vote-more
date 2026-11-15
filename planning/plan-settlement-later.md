@@ -108,3 +108,18 @@ get apartments and eventually highrises; the towns and cities would look more li
   municipalities (building and roads first).
 Today: a housing block is 50 homes with no form (EconRulesHousing.BLOCK_UNITS); a tile records a number of homes;
 an area splits above 800 residents.
+
+### Further rulings on town grids (user 2026-11-15)
+- Cell size 100 m and three forms: "Yes, enough for now."
+- Houses only at first or apartments from the start: "Up to the commander, I think." (a choice of whoever governs)
+- Not perfect circles: "schools, utilities and other things should affect where things are made ... like coastals
+  building along the water, or staying close to schools and bakeries to get good access, or near jobs, like Rydebäck
+  that began as housing for a power plant."
+- No finer level before it is needed: "like the main map, maps should not become the next level until necessary."
+- Location value: "There needs to be a lucrativity score for buildings made; view, like the ocean or rivers, or
+  nearness to things makes it more expensive, like the houses in Höganäs: the closer to the coast you get the more
+  expensive they get; it can even shift from road to road."
+- Why a town builds upward: "The step-up should come from many factors: an apartment complex on the beach may be
+  more attractive because you can rent them all out, or a school district has no more space, or, the most common,
+  they are simply cheaper living."
+Design note: planning/design-town-grid.md (Terra). Groundwork under flag TOWN_GRID, unit tests only.
