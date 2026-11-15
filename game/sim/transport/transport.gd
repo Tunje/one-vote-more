@@ -1312,6 +1312,7 @@ static func step_month(world: WorldState) -> void:
 	FreightRoads.step_month(world)   # FREIGHT_ROADS (opt-in): last month's freight, the yearly trend, jam facts
 	PrivateRoads.step_month(world)   # PRIVATE_ROADS: unbooked toll counts close
 	RoadSafety.step_month(world)     # ROAD_SAFETY: accidents near people on fast roads
+	Siting.step_month(world)         # SITING: a built project's chosen site goes to its facility
 	if closed > 0:
 		world.add_fact({"type": "TRANSPORT_LINKS_CLOSED", "owner": "transport", "subjects": [], "responsible": [], "impact": {},
 			"magnitude": clampi(10 + closed * 5, 0, 60), "visibility": "PUBLIC",

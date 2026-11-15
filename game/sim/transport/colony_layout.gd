@@ -29,7 +29,7 @@ static var _cache := {}
 ## rebuilding the layout cost seconds a month).
 static func key(w: WorldState) -> String:
 	var fac: Dictionary = w.peek("facility")
-	return "%s|%d|%d" % [_land_key(w), fac.size(), hash(fac.keys())]
+	return "%s|%d|%d%s" % [_land_key(w), fac.size(), hash(fac.keys()), Siting.sig(w)]
 
 
 ## The part without the facilities: what the settlements depend on (terrain, areas, map uses).
@@ -154,12 +154,18 @@ static func _facility_tiles(w: WorldState, anchors: Dictionary) -> Dictionary:
 		taken[k] = true
 	var fac: Dictionary = w.peek("facility")
 	var ids: Array = EconUtil.sorted_keys(fac)
+	var pins := Siting.pins(w)   # SITING: chosen and kept sites ({} without the flag)
 	for fid in ids:   # facilities that already stand on a tile
 		var tv = fac[fid].get("tile", null)
+		if tv == null and pins["fac"].has(fid):
+			tv = pins["fac"][fid]
 		if tv != null:
 			var t := as_tile(tv)
 			out[fid] = t
 			taken[Terrain.key(t.x, t.y)] = true
+	for k in pins["pending"]:   # SITING: a site chosen for a building still to be built
+		taken[k] = true
+	var blocked := {}   # SITING: kind -> tiles reserved for another use
 	for k in anchors:
 		taken[Terrain.key(anchors[k].x, anchors[k].y)] = true
 	for fid in ids:
@@ -171,9 +177,15 @@ static func _facility_tiles(w: WorldState, anchors: Dictionary) -> Dictionary:
 			var c := AreaStore.centroid(w, String(f["area"]))
 			a = Vector2i(roundi(c.x), roundi(c.y))
 		var codes: Array = FAC_TERRAIN.get(String(f["type"]), BUILD_TERRAIN)
-		var t := nearest_untaken(w, a, codes, taken, 40)
+		var bl := {}
+		if Siting.on(w):
+			var kd := Siting.kind_of(String(f["type"]))
+			if not blocked.has(kd):
+				blocked[kd] = Siting.blocked(w, String(f["type"]))
+			bl = blocked[kd]
+		var t := nearest_untaken(w, a, codes, taken, 40, bl)
 		if t.x < 0:
-			t = nearest_untaken(w, a, BUILD_TERRAIN + ["k", "o", "x"], taken, 40)
+			t = nearest_untaken(w, a, BUILD_TERRAIN + ["k", "o", "x"], taken, 40, bl)
 		if t.x >= 0:
 			out[fid] = t
 			taken[Terrain.key(t.x, t.y)] = true
@@ -194,9 +206,10 @@ static func as_tile(v) -> Vector2i:
 	return Vector2i(-1, -1)
 
 
-## Nearest tile to `a` of one of `codes` that is not taken; ties go to the first in rows-then-columns order.
+## Nearest tile to `a` of one of `codes` that is not taken (nor `blocked`: SITING, land reserved for another use);
+## ties go to the first in rows-then-columns order.
 ## Deterministic. Searched ring by ring and stopped once no nearer tile can come (the same answer as a full scan).
-static func nearest_untaken(w: WorldState, a: Vector2i, codes: Array, taken: Dictionary, reach: int) -> Vector2i:
+static func nearest_untaken(w: WorldState, a: Vector2i, codes: Array, taken: Dictionary, reach: int, blocked: Dictionary = {}) -> Vector2i:
 	var best := Vector2i(-1, -1)
 	var bd := INF
 	for r in reach + 1:
@@ -208,10 +221,32 @@ static func nearest_untaken(w: WorldState, a: Vector2i, codes: Array, taken: Dic
 			var step := 1 if absi(yy - a.y) == r else 2 * r
 			var xx := a.x - r
 			while xx <= a.x + r:
-				if xx >= 0 and xx < Terrain.W and not taken.has(Terrain.key(xx, yy)) and Terrain.at(w, xx, yy) in codes:
+				if xx >= 0 and xx < Terrain.W and not taken.has(Terrain.key(xx, yy)) and Terrain.at(w, xx, yy) in codes 						and (blocked.is_empty() or not blocked.has(Terrain.key(xx, yy))):
 					var d := Vector2(xx - a.x, yy - a.y).length()
 					if d < bd or (d == bd and (yy < best.y or (yy == best.y and xx < best.x))):
 						bd = d
 						best = Vector2i(xx, yy)
 				xx += maxi(1, step)
 	return best
+
+
+# ================================================================== site choice (Siting, flag SITING)
+
+## Candidate tiles for a building of this type in a district, with what stands near each (Siting.site_options). Pure.
+static func site_options(w: WorldState, ftype: String, district: String, n: int = 5) -> Array:
+	return Siting.site_options(w, ftype, district, n)
+
+
+## Use this tile for a facility opened this month or a building project still to be built. → "" or why not.
+static func place_at(w: WorldState, fid_or_project: String, tile) -> String:
+	return Siting.place_at(w, fid_or_project, tile)
+
+
+## Reserve tiles for a use (FARMLAND / HOUSING / INDUSTRY / NATURE / OPEN; "" lifts it). → "" or why not.
+static func set_use(w: WorldState, tiles: Array, use: String, by: String = "gov") -> String:
+	return Siting.set_use(w, tiles, use, by)
+
+
+## The use a tile is reserved for ("" = none).
+static func use_at(w: WorldState, tile) -> String:
+	return Siting.use_at(w, tile)

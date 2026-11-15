@@ -290,6 +290,45 @@ The design is in plan-settlement-later.md.
   - a pass drawn on the map;
   - the A/B (later, when the machine is free).
 
+## T10. Site choice groundwork: land reserved by use, site options, a chosen site (Terra, Wilma's queued job 2026-11-15) — sim/transport/siting.gd, tests/transport/test_siting.gd
+
+From plan-settlement-later.md, "Who picks where a building goes". Today the spot inside a district is the nearest free
+tile of suitable terrain, and nothing weighs one site against another.
+
+- **Flag SITING**: opt-in, base unchanged without it. Unit tests only (no game runs while the machine runs v11).
+- **Land reserved by use**: `ColonyLayout.set_use(world, tiles, use, by)` marks tiles FARMLAND / HOUSING / INDUSTRY /
+  NATURE / OPEN ("" lifts it); `use_at(world, tile)` reads it. `Siting.tiles_around(world, centre, r)` gives the land
+  tiles of an area.
+  - What may stand where:
+    - FARMLAND: farms only.
+    - HOUSING: homes, plus shops and services.
+    - INDUSTRY: works, mines, power, depots and the like, plus shops and services.
+    - NATURE: nothing.
+    - OPEN or unreserved: anything.
+  - The layout does not place a new building on land reserved for another use. Buildings already standing there keep
+    their tile: they are pinned when the land is marked, so nothing on the map moves.
+  - Each change is a public fact, LAND_USE_SET, with: district, use, tiles, tile, was (the old uses), kept (buildings
+    standing against the new use), by.
+- **Site options**: `ColonyLayout.site_options(world, ftype, district, n := 5)` (pure) gives candidate tiles.
+  - The first is where the layout would put the building today (default). The others are spread over the free
+    suitable land within 6 tiles of the district's settlements.
+  - Each row: {tile, default, terrain, use, town_km, road_km, homes, near [{fid, type, km}] (within 3 tiles), mine_km,
+    depot_km, farmland_lost, road}.
+  - road is {link, kmh, risk_pm, added_pm}: the fastest road within a tile, its ROAD_SAFETY danger now, and how much
+    this building's people would add.
+- **A chosen site**: `ColonyLayout.place_at(world, fid_or_project, tile)`.
+  - It works for a facility opened this month, or for a building project not yet built. A project's site is held
+    while it is built, and its facility stands there from the month it opens (found through its
+    ECON_PROJECT_COMPLETED fact; the NATURE tick then moves the site to the facility).
+  - Refused: unsuitable terrain, a taken tile, land reserved for another use, a tile in another district, a building
+    already standing.
+- **Nothing chooses yet**: without a choice the old placement stands. The government side (cases, neighbours
+  objecting, municipalities) is Wilma's and Maja's.
+- **Saved** (only with the flag): table "siting" {use, placed, rev}. rev is part of ColonyLayout.key, so the layout
+  memo stays pure in its key.
+- **Left out**: housing areas (AreaStore) growing onto reserved land is not refused yet (`Siting.fits(use, ftype)` is
+  there for it); no map drawing of reservations.
+
 ## Acceptance (century runs, 3 seeds)
 
 - No tourist ever visits a site without a road, a rover route or an airship route (tested).
