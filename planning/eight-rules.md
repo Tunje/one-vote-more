@@ -211,6 +211,113 @@ the cost of meeting need, and plants_needed as a build decision.
 
 **5.** Step 1 (signals only, base bit-identical) starts when you pass on the user's go.
 
+## 3b. Selling parts of a company (every company; user, 2026-11-15)
+
+"All companies should be able to sell parts of themselves." This adds a third option to **rule 6 (reduce capacity)**
+beside mothballing and scrapping: **sell a plant or a division as a going concern.** What changes hands:
+- the plant itself;
+- its crew (they move with it, no layoffs);
+- its stock of what it makes and uses;
+- its customers (its share of sales history, so the buyer's planning starts warm);
+- for builders, the crew's share of the order book.
+
+**One sale mechanism for every case:** a plant offered for sale, with its terms, open to buyers for a while. It serves:
+- rule 6's voluntary sale;
+- the rescue of a firm short of cash (E166);
+- plants sold in liquidation (today's _find_buyer and worker buy-out);
+- forced sales of closed plants (E91);
+- family buy-outs (E164);
+- half-built buildings (E169);
+- a public builder's parts (3c);
+- public plants under the government's sale policy (E137 reprivatisation).
+
+**When a firm sells** (rule 6):
+- a plant its owner can't use fully: utilisation below the rule-6 bar while another firm's forecast says it could use
+  it; or
+- a plant it can't afford to keep: its share of costs exceeds what it earns, and the firm's cash is below
+  [YOUNG_CASH_M]-style months of costs; or
+- **a firm short of cash that would rather sell a part than fail.** This sits next to E166: within the rescue window,
+  selling a plant comes before a stake, the bank and the government, if a buyer is found.
+
+**The buyers are the other side of rules 5 and 7:**
+- an existing firm can add capacity by **buying a plant instead of building one**: no wait in the builders' books.
+  Rule 5 compares buying with building and takes the better one;
+- a founder can **start a company by buying a plant** instead of planning a build: cheaper and less risky, because
+  the plant, its crew and its customers exist. The E170 forecast applies to a purchase as to a build, using the
+  plant's real output and sales;
+- **who may bid:** any firm passing rule 5 for that good, or a founder passing rule 7, in a reachable district.
+
+**The price:**
+- **the seller's floor:** the larger of the plant's book value × [0.6] (the liquidation discount today) and what it
+  would fetch scrapped;
+- **the buyer's offer:** the value its own forecast supports, i.e. the present value of the plant's expected profit
+  over [5] years (with the forecast's error), capped at the cost of building the same plant new;
+- a sale happens at the midpoint of the offer and the floor, when the offer is at least the floor;
+- the best offer within [3] months wins; with none, the seller falls back to mothball or scrap (rule 6), or to
+  insolvency if it's in distress.
+
+**Loans and crews:**
+- **Loans:** a loan secured on the plant moves with it to the buyer, rescheduled (E152's pass_debt, by book share), or
+  is repaid from the price first. The bank chooses, by the buyer's standing.
+- **Crews:** they move with the plant. Their job slots go from the seller's staff to the buyer's (jobs stay equal to
+  people), and their occupation follows the buyer (realign).
+
+**Limits:**
+- **A firm can't sell its last plant and stay a firm.** Selling the last one is a sale of the company (its shares, 3b
+  of E166's ownership), or the firm closes.
+- **Family firms sell only when they have to** (the user's ruling for E164): in distress, administration or
+  liquidation, never by choice. Families buy first at the floor price.
+- **Public plants** sell only through the government's sale policy (E137): market-minded governments sell, state-minded
+  ones keep; proceeds to the treasury.
+- Utilities (POWER, WATERWORKS, DEPOT) are never sold while the colony is short of them, which matches today's
+  public-only rule.
+
+## 3c. Public builders and concessions (user, 2026-11-15; designed into step 4)
+
+**a. A public building company the government can found or enlarge.** Today CWD is only a contractor of last resort.
+- Under R8 the government reads the same builder signals as private founders:
+  - the books (backlog in entrant-years, waits, public work waiting);
+  - builders' profit over 12 months;
+  - the material margin.
+- Its choices:
+  - **found** a public builder (a CWD-like enterprise with its own crews);
+  - **enlarge** one (more crews, by rule 5's crew growth);
+  - **leave it** to private entry.
+- The rule-8 test applies: not while incumbents lose money. A public builder that bids at cost (no margin) would undercut
+  private builders, so its bids carry the same margin rule as private ones unless the government chooses otherwise. That
+  choice is exposed to gov_builder and the legislature, so it can be political.
+
+**b. A public builder can be sold in parts** (3b's mechanism): a crew with its equipment and its share of the order
+book is spun off.
+- **Buyers:** a private firm or a new building company. This is a cheaper and safer start than from nothing, because
+  the crew and work exist.
+- **Who decides:** the government (E137's sale policy): market-minded governments sell, state-minded ones keep.
+- **Price and proceeds:** 3b's price rule (book value of equipment and capital against what the book's work is worth);
+  proceeds to the treasury.
+
+**c. Concessions: a private builder appointed for a class of public work** (roads first; later also water mains, public
+buildings).
+- **The tender:** the government tenders a **concession** for [N] years, by default 5.
+  - Builders bid a price basis (a margin over the estimate) and a retainer rate.
+  - The government picks one by score (price, reliability, crew size) or by choice. Favouritism can enter here:
+    choosing a lower-ranked bidder is a public fact (as ECON_CONTRACT_AWARDED's override is today) that Wilma's
+    politics can use.
+- **While it runs:**
+  - every public job of that class goes to the concessionaire without a tender, at the agreed basis;
+  - its crews are hired for that work (rule 3 for builders);
+  - it still takes private work.
+- **The retainer:** in months with no concession work, the government pays [40%] of the wages of the crew reserved for
+  the concession (the "sort of part of the wages"), from the INFRASTRUCTURE line.
+  - **Cost against tendering each job:** the retainer is paid only in idle months.
+  - **The gain:** no tender delays, and a crew that exists when roads are needed.
+  - I'll report retainer paid, months idle, and the price basis against the tenders it replaced, so the trade-off is
+    visible.
+- **How it ends:**
+  - at the end of the term, renewed by a new tender;
+  - early, by the government for poor performance (late jobs past a bar, as _check_late) with a public fact;
+  - by the concessionaire's insolvency (its open jobs go back to tender).
+- **Rule 8 sees concessions:** an entrant isn't founded for work a concession already holds.
+
 ## 4. The rest of the queue
 - **Absorbed into R8:** E170 (rules 7/8), E172 (freight), the order book's entry and crew rules, E168, E156.
 - **E171 (charter quota):** after step 2. It needs materials and freight to work first, because the quota competes
