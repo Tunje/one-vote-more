@@ -346,6 +346,14 @@ static func _update_prices(world: WorldState) -> void:
 			var fc := _cheapest_cost(world, good)
 			if fc > 0.0 and p2 > SURPLUS_START * fc:
 				p2 = maxf(SURPLUS_FLOOR * fc, p2 * (1.0 - SURPLUS_DRIFT))
+		# E168 (seed-1/3 probes, Wilma 2026-11-15; opt-in): between "more than 5% unfilled" (up) and "over 2 months of
+		# cover" (down) a price never moves, and FOOD sat frozen at 0.64 × the farms' unit cost for years while orders went
+		# unfilled and farms ran full — no profit to grow, no founding signal. Inside that band, with any shortage, a FOOD
+		# price below the cheapest farm's unit cost drifts up by DEADBAND_STEP × ALPHA a month, never above that cost.
+		if good == "FOOD" and shortage > 0.0 and shortage <= 0.05 and excess <= 0.0 and (world.meta.get("on", []) as Array).has("E168") 				and not EconUtil.off(world, "E168"):
+			var fuc := _cheapest_cost(world, good)
+			if fuc > 0.0 and p < fuc:
+				p2 = maxf(p2, minf(fuc, p * (1.0 + EconData.ALPHA * DEADBAND_STEP)))
 		if cost_plus and not (good in COST_PLUS_EXEMPT):
 			p2 = _cost_plus(world, good, p, shortage, excess)
 		if good == "FINE_FOOD" and EconStaple.dissatisfaction(world):
@@ -365,6 +373,7 @@ const COST_PLUS_STEP := 0.03
 ## A/B 5 × 30 y: with FOOD included the food shortfall doubled (12 → 29‰; a 3% monthly cap is too slow in a real food
 ## shortage) — the E139 lesson again; food keeps the old market rule
 const COST_PLUS_EXEMPT := ["FOOD"]
+const DEADBAND_STEP := 0.25  # E168: a quarter of the normal price step
 const MARKUP := {"FOOD": 1.15, "MINERAL": 1.2, "MATERIAL": 1.2, "COMPONENT": 1.2, "FINE_FOOD": 1.2, "MEDICAL": 1.25,
 	"CONSUMER": 1.3, "CLOTHING": 1.3, "FURNISHINGS": 1.3}
 

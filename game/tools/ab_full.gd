@@ -41,8 +41,101 @@ func _init() -> void:
 	var cpi_sum := 0.0
 	var px_n := 0
 	var below_m := 0
+	var bld_y := []  # builders every 5 years: alive/crew/waiting tenders/mean wait months
+	var bld_last := {}  # builder oid → [rev12, wages12, contracts] at its last live month
+	var bld_dead := {"no_work": 0, "loss": 0, "other": 0}
+	var idle_bm := 0  # builder-months with no started job (since the last 5-year mark)
+	var nobid_m := 0  # tender-months with no bid (same)
+	var ent := {}  # E165 report: entrant oid → {c: plan month, o: opening month, a12/a36 alive, j12/j36 jobs}
 	for m in int(a[1]) * 12:
 		sim.run(1)
+		for bo in w.table("org"):
+			var bx: Dictionary = w.table("org")[bo]
+			if not bool(bx.get("is_contractor", false)) or bx["type"] != "PRIVATE":
+				continue
+			if bx["status"] in ["LIQUIDATION", "DISSOLVED"]:
+				if bld_last.has(bo):
+					var bl: Array = bld_last[bo]
+					var why := "no_work" if int(bl[0]) < int(bl[1]) * 3 / 10 else ("loss" if int(bl[0]) < int(bl[1]) else "other")
+					bld_dead[why] += 1
+					bld_last.erase(bo)
+			else:
+				var bp := EconAnnual.sum12(bx)
+				bld_last[bo] = [int(bp.get("rev", 0)), int(bp.get("wages", 0)), (bx.get("contracts", []) as Array).size()]
+		for bo2 in bld_last:
+			var started := false
+			for pj2 in w.table("org")[bo2].get("contracts", []):
+				var pq: Dictionary = w.table("project")[pj2]
+				if pq["status"] == "ACTIVE" and int(pq["start_month"]) <= w.month:
+					started = true
+			if not started:
+				idle_bm += 1
+		for pj3 in w.table("project"):
+			var pz: Dictionary = w.table("project")[pj3]
+			if pz["status"] == "TENDERABLE" or (pz["status"] == "TENDER" and (pz["bids"] as Array).is_empty()):
+				nobid_m += 1
+		if w.month % 60 == 0:
+			var queued := 0
+			var building := 0
+			for pj4 in w.table("project"):
+				var pv: Dictionary = w.table("project")[pj4]
+				if pv["status"] == "ACTIVE":
+					if int(pv["start_month"]) > w.month:
+						queued += 1
+					else:
+						building += 1
+			var qwv: Array = EconUtil.st(w).get("q_waits", [])
+			var qsum := 0
+			for qe in qwv:
+				qsum += int(qe[1])
+			var states := {"no_offer": 0, "queued": 0, "building": 0}
+			for po in w.table("org"):
+				if w.table("org")[po]["status"] == "FORMING":
+					states[EconInsolvency.plan_state(w, po)] += 1
+			var failed_t := 0
+			for pj5 in w.table("project"):
+				failed_t += int(w.table("project")[pj5].get("tenders_failed", 0))
+			bld_y.append("Y%d:q%d/b%d/wait%.1f/idle%d/nobid%d/book%.1f/entries%d/plans%d-%d-%d/tfail%d" % [w.month / 12, queued, building,
+				float(qsum) / maxf(1.0, float(qwv.size())), idle_bm, nobid_m, float(EconConstruction.backlog_wu(w)) / float(EconConstruction.entrant_year(w)),
+				int(EconUtil.st(w).get("builder_entries", 0)), states["no_offer"], states["queued"], states["building"], failed_t])
+			idle_bm = 0
+			nobid_m = 0
+			var crew := 0
+			for bo in bld_last:
+				for tier in w.table("org")[bo].get("crew", {}):
+					for kk in w.table("org")[bo]["crew"][tier]:
+						crew += int(w.table("org")[bo]["crew"][tier][kk]) / 1000
+			var wt := 0
+			var wsum := 0
+			for pj in w.table("project"):
+				var pp: Dictionary = w.table("project")[pj]
+				if pp["status"] == "TENDERABLE" or (pp["status"] == "TENDER" and (pp["bids"] as Array).is_empty()):
+					wt += 1
+					wsum += w.month - int(pp.get("tender_month", w.month))
+			bld_y.append("Y%d:%d/%d/%d/%d" % [w.month / 12, bld_last.size(), crew, wt, wsum / maxi(1, wt)])
+		for eo in w.table("org"):
+			var ox: Dictionary = w.table("org")[eo]
+			if not ox.has("entry_type"):
+				continue
+			if not ent.has(eo):
+				ent[eo] = {"c": w.month, "o": -1}
+			var er: Dictionary = ent[eo]
+			var gone: bool = ox["status"] in ["LIQUIDATION", "DISSOLVED"]
+			if int(er["o"]) < 0 and ox["status"] != "FORMING" and not gone:
+				er["o"] = w.month
+			if int(er["o"]) >= 0:
+				for k2 in [12, 36]:
+					if w.month == int(er["o"]) + k2:
+						er["a%d" % k2] = 0 if gone else 1
+						var jobs := 0
+						if not gone:
+							for fj in w.table("facility"):
+								var fx2: Dictionary = w.table("facility")[fj]
+								if fx2["org"] == eo:
+									for tier in fx2.get("staff", {}):
+										for kk in fx2["staff"][tier]:
+											jobs += int(fx2["staff"][tier][kk]) / 1000
+						er["j%d" % k2] = jobs
 		if m >= 60:  # Y5..end means of the food price and CPI (the end-of-run price is too noisy to compare arms)
 			px_sum += 100.0 * float(int(EconUtil.st(w)["prices"]["FOOD"])) / float(EconData.BASE_PRICE["FOOD"] * EconUtil.S)
 			cpi_sum += float(int(EconUtil.st(w).get("cpi", 0))) / float(EconUtil.S)
@@ -119,6 +212,8 @@ func _init() -> void:
 		var o: Dictionary = w.table("org")[oid]
 		if o["type"] != "PRIVATE":
 			continue
+		if bool(o.get("plan_abandoned", false)):
+			continue  # E165: a dropped plan is not a firm death
 		if o["status"] in ["LIQUIDATION", "DISSOLVED"]:
 			dead += 1
 		else:
@@ -175,6 +270,30 @@ func _init() -> void:
 	var extra := e148 + " bak %d bakmonths %d baku %d staple %d privff %d raw %d" % [bak_now, bak_m, bak_u / maxi(1, bak_m), 1000 * st_g / maxi(1, st_w), 100 * ffp / maxi(1, ffa), raw_sum / maxi(1, n)]
 	var s2 := EconUtil.st(w)
 	var k := float(maxi(1, n))
+	var pr := {"plans": 0, "opened": 0, "never": 0, "forming": 0, "mo": 0, "n12": 0, "a12": 0, "n36": 0, "a36": 0, "j12": 0, "j36": 0}
+	for eo in ent:
+		var er: Dictionary = ent[eo]
+		var ox: Dictionary = w.table("org")[eo]
+		pr["plans"] += 1
+		if int(er["o"]) >= 0:
+			pr["opened"] += 1
+			pr["mo"] += int(er["o"]) - int(er["c"])
+			for k2 in [12, 36]:
+				if er.has("a%d" % k2):
+					pr["n%d" % k2] += 1
+					pr["a%d" % k2] += int(er["a%d" % k2])
+					pr["j%d" % k2] += int(er["j%d" % k2])
+		elif ox["status"] == "FORMING":
+			pr["forming"] += 1
+		else:
+			pr["never"] += 1
+	var ps: Dictionary = EconUtil.st(w).get("plan_stats", {})
+	extra += " plans %d opened %d never %d forming %d mo %.1f surv12 %d/%d surv36 %d/%d jobs12 %d jobs36 %d ab_nob %d ab_stall %d ab_lim %d wo %d wo_nob %d wo_stall %d wo_lim %d" % [
+		pr["plans"], pr["opened"], pr["never"], pr["forming"], float(pr["mo"]) / maxf(1.0, float(pr["opened"])), pr["a12"], pr["n12"], pr["a36"], pr["n36"],
+		pr["j12"], pr["j36"], int(ps.get("abandoned_no_builder", 0)), int(ps.get("abandoned_stalled", 0)), int(ps.get("abandoned_limit", 0)),
+		int(ps.get("written_off", 0)) / 1000000, int(ps.get("written_off_no_builder", 0)) / 1000000, int(ps.get("written_off_stalled", 0)) / 1000000, int(ps.get("written_off_limit", 0)) / 1000000]
+	extra += " ab_noreason %d" % int(ps.get("abandoned_no_reason", 0))
+	extra += " skipped_nob %d bld %s blddead nowork %d loss %d other %d" % [int(ps.get("skipped_no_builder", 0)), ",".join(bld_y), bld_dead["no_work"], bld_dead["loss"], bld_dead["other"]]
 	print("AB %s s%s adults %d u %.1f food %.0f unaff %.0f scarce %.0f assist %.0f real %.2f tax %d/%d priv alive %d dead %d distress %d pos12 %d lines %d share %s ledger %d" % [
 		a[3], a[0], adults, su / k, sf / k, sua / k, ssc / k, sap / k, sr / k,
 		int(w.levers["ECON_INCOME_TAX_RATE"]), int(w.levers["ECON_SALES_TAX"]), alive, dead,
