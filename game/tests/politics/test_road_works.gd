@@ -120,3 +120,18 @@ func test_a_district_passed_over_for_another_road_resents_it() -> void:
 	GovBuilder._road_feelings(w, st, who)
 	check(not (st.get("road_wait", {}) as Dictionary).has(bad), "a road ordered for them ends the wait")
 	check_eq(w.facts.query("POL_ROAD_PASSED_OVER").filter(func(f): return String(f["data"]["district"]) == bad).size(), 7, "and no new complaint from them")
+
+
+func test_the_road_that_frees_most_freight_goes_first() -> void:
+	var w: WorldState = EconSim.make(2, "BALANCED", {}, true).world
+	var cure := [{"fix": "LANE", "cost": 1000, "load_after_pm": 700, "relief_pm": 600, "spec": {}}]
+	var quarry := {"key": "LINK:q", "district": "d:1", "severity": 900, "held_mu": 4000, "held_by_good": {"MINERAL": 4000}, "options": cure}
+	var food := {"key": "LINK:f", "district": "d:1", "severity": 500, "held_mu": 3000, "held_by_good": {"FOOD": 3000}, "options": cure}
+	var quiet := {"key": "LINK:x", "district": "d:1", "severity": 700, "held_mu": 0, "held_by_good": {}, "options": cure}
+	check(GovBuilder.road_benefit(food) > GovBuilder.road_benefit(quarry), "held food counts for more than held ore")
+	var order: Array = GovBuilder.road_ranking(w, [quarry, quiet, food], []).map(func(r): return String(r["key"]))
+	check_eq(order, ["LINK:f", "LINK:q", "LINK:x"], "food road, then the quarry road, then the merely busy one")
+	var dear := food.duplicate()
+	dear["key"] = "LINK:d"
+	dear["options"] = [{"fix": "NEW_LINK", "cost": 9000, "load_after_pm": 500, "relief_pm": 800, "spec": {}}]
+	check(GovBuilder.road_benefit(dear) < GovBuilder.road_benefit(food), "the same freight freed for nine times the money is worth less")

@@ -170,6 +170,8 @@ static func _road_needs(world: WorldState, st: Dictionary, busy: Dictionary, who
 	var done_keys: Dictionary = st.get("road_need_keys", {})
 	var line := "ECON_BUDGET_INFRASTRUCTURE"
 	var done := 0
+	if choose:
+		needs = road_ranking(world, needs.filter(func(r): return float(r.get("severity", 0)) >= bar), (st.get("government", {}) as Dictionary).get("members", []))
 	for r in needs:
 		if done >= n_max or float(r.get("severity", 0)) < bar:
 			break
@@ -304,6 +306,57 @@ static func _road_budget_need(world: WorldState, st: Dictionary) -> void:
 		st.erase("lever_need")
 	else:
 		st["lever_need"] = ln
+
+
+## Which road first (user 2026-11-15: "road priority, what road is going to help the colony more"). Each need is scored
+## by what it would free: the freight the roads held back on it last month (Terra's held_mu, food counted
+## ROAD_FOOD_WEIGHT times) per unit of the cheapest cure's cost, relative to the best on the list; plus a share for
+## how overloaded it is; plus the government's lean toward districts that vote for it (as with the grant programmes:
+## every government leans, and a district passed over for the government's own voters resents it).
+## → the needs, best first. Pure.
+const ROAD_FOOD_WEIGHT := 3
+const ROAD_W_BENEFIT := 1.0
+const ROAD_W_SEVERITY := 0.3
+const ROAD_W_OWN_VOTERS := 0.4
+
+
+static func road_benefit(r: Dictionary) -> float:
+	var held := 0.0
+	var by_good: Dictionary = r.get("held_by_good", {})
+	if by_good.is_empty():
+		held = float(r.get("held_mu", 0))
+	for g in by_good:
+		held += float(by_good[g]) * (float(ROAD_FOOD_WEIGHT) if String(g) in ["FOOD", "BREAD"] else 1.0)
+	var cost := 0
+	for o in r.get("options", []):
+		if int(o["load_after_pm"]) <= 1000 and (cost == 0 or int(o["cost"]) < cost):
+			cost = int(o["cost"])
+	if cost <= 0:
+		cost = maxi(1, int(r.get("cost", 1)))
+	return held / float(cost)
+
+
+static func road_ranking(world: WorldState, needs: Array, members: Array) -> Array:
+	if needs.is_empty():
+		return needs
+	var top_b := 0.0
+	var top_s := 1.0
+	for r in needs:
+		top_b = maxf(top_b, road_benefit(r))
+		top_s = maxf(top_s, float(r.get("severity", 0)))
+	var rows: Array = []
+	var shares := {}
+	for i in needs.size():
+		var r: Dictionary = needs[i]
+		var d := str(r["district"])
+		if not shares.has(d):
+			shares[d] = _district_share(world, d, members) if not members.is_empty() else 0.0
+		var sc := ROAD_W_SEVERITY * float(r.get("severity", 0)) / top_s + ROAD_W_OWN_VOTERS * float(shares[d])
+		if top_b > 0.0:
+			sc += ROAD_W_BENEFIT * road_benefit(r) / top_b
+		rows.append([sc, i])
+	rows.sort_custom(func(a, b): return a[0] > b[0] or (a[0] == b[0] and a[1] < b[1]))
+	return rows.map(func(x): return needs[x[1]])
 
 
 static func road_works_on(world: WorldState) -> bool:
