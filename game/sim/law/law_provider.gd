@@ -77,6 +77,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			CD.check_revocation(world)
 			preload("res://sim/law/competition_law.gd").monthly(world)     # merger reviews that are due
 			preload("res://sim/law/road_law.gd").monthly(world)     # private-road licences and appeals (opt-in PRIVATE_ROADS)
+			preload("res://sim/law/road_safety_law.gd").monthly(world)     # default and ministerial speed limits (opt-in ROAD_SAFETY)
 		TickPhase.JUSTICE:
 			Ops.process_permits(world)
 			Ops.discover(world)
@@ -84,6 +85,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			Ops.Justice.run(world)
 			PF.run(world)
 			Land.tick(world)
+			preload("res://sim/law/road_safety_law.gd").justice(world)     # liability for road deaths (opt-in ROAD_SAFETY)
 			preload("res://sim/law/crime.gd").monthly(world)     # P1a offences (opt-in CRIME), before the press reports
 			preload("res://sim/law/police.gd").monthly(world)    # P1c misconduct, trust, arrests (opt-in POLICE)
 			preload("res://sim/law/criminal.gd").monthly(world)  # P2a charges, courts, sentences, cells (opt-in PRISONS)

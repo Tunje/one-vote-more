@@ -33,7 +33,9 @@ const QUESTIONABLE := {"POL_PROJECT_ORDERED": 1.0, "POL_ROAD_PATCHED": 2.5, "POL
 	"LAW_TAKEOVER_OVERRIDDEN": 2.5, "LAW_EMERGENCY_DECLARED": 1.5,
 	"LAW_ROAD_OBJECTION_OVERRIDDEN": 2.0, "LAW_ROAD_REFUSAL_UNGROUNDED": 2.0, "LAW_ROAD_LICENCE_QUASHED": 2.5, "LAW_PRIVATE_ROAD_UNENFORCED": 2.0,
 	"LAW_ROAD_TAKEN_OVER": 2.0, "LAW_ROAD_STEP_IN": 1.0, "ECON_PUBLIC_QUOTE_REFUSED": 1.0,
-	"ECON_GRANT_FIRM_FAILED": 3.0}   # a family firm the government paid for has failed   # Anni: the minister overrode the competition authority; an emergency unlocks direct awards
+	"ECON_GRANT_FIRM_FAILED": 3.0,
+	"LAW_ROAD_LIABLE_PASS": 2.5, "LAW_ROAD_LIABLE_NEGLECT": 1.5, "LAW_ROAD_DEATH_LIMIT_DECLINED": 2.0, "LAW_ROAD_DEATH_EXEMPT": 2.5,
+	"LAW_SPEED_EXEMPTION": 1.0}   # a family firm the government paid for has failed   # Anni: the minister overrode the competition authority; an emergency unlocks direct awards
 
 
 static func on(world: WorldState) -> bool:

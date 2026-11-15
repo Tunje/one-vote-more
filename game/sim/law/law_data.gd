@@ -810,4 +810,11 @@ const LEVERS := [
 		"concerns": {"COST_OF_LIVING": -5, "INFRASTRUCTURE": 3},
 		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON",
 		"requires": ["PRIVATE_ROADS"]},
+	# Default speed limit on roads with homes, a school or childcare in reach (road_safety_law.gd): 0 none, 1 → 70,
+	# 2 → 50, 3 → 30 km/h. Pre-sets limits; costs those roads' travel time.
+	{"id": "LAW_SPEED_NEAR_HOMES", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 3], "default": 0,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 1.5},
+		"concerns": {"SAFETY": 4, "INFRASTRUCTURE": -2},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW",
+		"requires": ["ROAD_SAFETY"]},
 ]
