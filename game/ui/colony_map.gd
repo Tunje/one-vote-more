@@ -117,6 +117,8 @@ var _draw_groups: HFlowContainer
 var _draw_name: LineEdit
 var _act_btn: Button
 var _act2_btn: Button
+var _town_btn: Button          # TOWN_GRID: open the selected settlement's town view
+var _town_view: TownView
 
 
 func _ready() -> void:
@@ -210,7 +212,35 @@ func _ready() -> void:
 	_act2_btn.pressed.connect(func(): selected = {}; build_tile = Vector2i(-1, -1); road_a = Vector2i(-1, -1); road_b = Vector2i(-1, -1); last_message = ""; _update_panel(); queue_redraw())
 	_act2_btn.text = "Clear"
 	acts.add_child(_act2_btn)
+	_town_btn = Button.new()
+	_town_btn.text = "Town view"
+	_town_btn.visible = false
+	_town_btn.pressed.connect(func(): open_town_view(town_for_selection()))
+	acts.add_child(_town_btn)
 	_update_panel()
+
+
+## TOWN_GRID: the selected settlement or area, if it has a town grid ("" otherwise).
+func town_for_selection() -> String:
+	var w := _world()
+	if w == null or not TownGrid.on(w) or not String(selected.get("kind", "")) in ["SETTLEMENT", "AREA"]:
+		return ""
+	var tid := String(selected.get("id", ""))
+	return tid if TownGrid.has_grid(w, tid) else ""
+
+
+## Open a town in 3D over the map (TownView); its "Colony map" button comes back here.
+func open_town_view(tid: String) -> void:
+	if tid == "":
+		return
+	if _town_view == null:
+		_town_view = TownView.new()
+		_town_view.session = session
+		_town_view.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_town_view.closed.connect(func(): _town_view.visible = false)
+		add_child(_town_view)
+	_town_view.visible = true
+	_town_view.open_town(tid)
 
 
 func _small_button(parent: Node, text: String, cb: Callable) -> Button:
@@ -971,6 +1001,8 @@ func _update_panel() -> void:
 	_road_kind_pick.visible = build_type == "ROAD"
 	_draw_box.visible = mode == "DRAW" and not plan.is_empty()
 	_act_btn.visible = mode in ["BUILD", "DRAW"] or (mode == "INSPECT" and selected.get("kind", "") in ["LINK", "JUNCTION"])
+	if _town_btn != null:
+		_town_btn.visible = town_for_selection() != ""
 	var w := _world()
 	if w == null or not Terrain.ready(w):
 		_info.text = "No colony map yet."
