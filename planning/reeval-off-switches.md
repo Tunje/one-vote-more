@@ -220,4 +220,24 @@ How it was missed: Wilma tracked "the sector's switch is on", not "the sector ha
 into the v11 description and still called it the eight rules; let an A/B score decide against a standing ruling; and
 never gave the user this table after v11.
 
+### The prerequisite found: the material chain rots (Otto's trace, Bob's cause, 2026-11-16)
+
+Otto, seed 3, 60 years, NEWWAY against v11: from year 20 every mine and processing plant loses about a condition
+point a month while running flat out; they close as unsafe around months 270-286, are patched to 50 and close again;
+from year 29 no material is made; builders are blocked for material in 59 of 60 builder-months. Nothing restarts it:
+no MATERIAL or COMPONENT was imported in 60 years in either arm (the import backstop needs HOME_SUPPORT, which is
+false in every full game; the ship's merchants carry only consumer goods and medicine); capacity rule 5 and entry
+rule 7 refuse while the price is under cost; a new mine needs 400 material and 80 components nobody has. v11 escaped
+because the government and CPW built extra chain plants in years 4-6; under NEWWAY those jobs waited in the books.
+
+Bob, the cause: a plant's upkeep is taken only from its owner's own stock, but the owner offers its whole stock for
+sale and in a shortage all of it sells; buying it back is capped by the owner's cash. A cash-short owner gives its
+plants no upkeep while it sells everything it makes. Fix behind OWN_FIRST: a producer keeps back what its own plants
+need that month. Seed 3, economy-only, 40 years: without it mine upkeep is 0% in most samples from year 4 and no
+material from year 22; with it every chain plant stays at condition 99-100 and material is mostly filled at 215-270.
+One seed.
+
+Open with the user: whether material and components may come from the home world when the colony has no working
+producer.
+
 (more filled in as the reviews and runs come in)
