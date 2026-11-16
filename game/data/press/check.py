@@ -84,9 +84,7 @@ for name in sorted(os.listdir(idir)) if os.path.isdir(idir) else []:
         continue
     with open(os.path.join(idir, name), "rb") as fh:
         head = fh.read(24)
-    if head[:8] != b"PNG
-
-":
+    if head[1:4] != b"PNG":
         problem(name, "not a PNG file")
         continue
     wpx, hpx = struct.unpack(">II", head[16:24])
