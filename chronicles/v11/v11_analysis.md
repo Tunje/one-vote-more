@@ -99,7 +99,7 @@ Approval by decade (v11): seed 1: 53, 49, 46, 46, 44, 48, 44, 42, 44, 41. Seed 2
 | Seed 3: real income, century average (year 100) | 128 (99) | 123 (102) | 160 (182) |
 | Seed 3: approval average, years under 25% | 33.9%, 14 | 35.5%, 10 | 45.2%, 0 |
 
-Seed 2 with the v10 switches was still running when this was written; see the addendum at the end if it is there.
+Seed 2 with the v10 switches finished after the rest; it is in the addendum at the end.
 
 Reading: the every-game changes of 16 November, of which the credit change is by far the largest, lower the v10
 colony over a century (seed 1 by a third in adults and in real income). The v11 pieces more than make up for it on
@@ -146,3 +146,21 @@ unemployment that builds after year 20, and seed 2.
 - The bank ruling, the hiring market (Ella), empty buildings sold and reused (Otto), sellers setting their own prices
   (v12).
 - Unemployment after year 20 as a problem in its own right: why workplaces do not keep up with people.
+
+## Addendum: seed 2 with only the v10 switches, on the same code
+| Seed 2 | Old v10 | v10 switches, tonight's code | v11 |
+|---|---|---|---|
+| Adults at year 100 | 16,194 | 14,311 | 9,926 |
+| Unemployment, century average | 21.9% | 24.6% | 36.5% |
+| Unemployment by decade | 13, 10, 19, 28, 20, 27, 25, 26, 26, 24 | 11, 13, 11, 16, 12, 28, 42, 44, 39, 29 | 7, 15, 34, 43, 44, 47, 48, 42, 43, 43 |
+| Real income, century average | 161 | 152 | 140 |
+| Approval average, years under 25% | 37.7%, 8 | 36.1%, 13 | 45.4%, 0 |
+| Bank failures / credit crunches | not counted | 5 / 17 | 1 / 3 |
+| Shortage events, all goods | 238 | 1,325 | 1,109 |
+
+On seed 2 the picture is the reverse of seeds 1 and 3: the v11 pieces themselves cost 4,400 adults against the same
+code without them (9,926 against 14,311), on top of the 1,900 the every-game changes cost against the old v10. So the
+three seeds do not agree: v11's pieces are worth four times the adults on seed 1, two thirds more on seed 3, and a
+third fewer on seed 2. Spoken: on seed two, version eleven is the worse choice; on the other two it is much the
+better one. With only the version ten switches, seed two's bank fails five times and has seventeen credit crunches in
+the century, which fits the reading that the credit change overloads the bank.
