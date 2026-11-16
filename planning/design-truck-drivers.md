@@ -1,7 +1,9 @@
 # Truck drivers and truck workshops
 
-Status: an idea of the user's, discussed with Wilma on 2026-11-16. NOT ordered to be built. The user: "what do you
-think? No not make think".
+Status: ORDERED by the user on 2026-11-16 ("Get it started"), after being discussed as an idea the same day ("what do
+you think? No not make think"). Owners: Bob builds the truck drivers and the trucks (family haulier, grant after the
+plan, special orders at the components works); Ella builds the truck workshops (repairs, and better trucks). They
+agree the truck record between them. The numbers under "Not settled" are to be proposed by them, labelled theirs.
 
 ## Why it came up
 
