@@ -670,7 +670,24 @@ static func forecast(world: WorldState, typ: String, d: String, err: float = 0.0
 	for f in _private_plants(world, typ, false):
 		if String(f["district"]) in reach:
 			all_places += places(world, f)
-	return maxi(0, int(float(_avg_share(buyers, all_places, own)) * (1.0 + err)))
+	all_places += _building_places(world, typ, reach)
+	return maxi(0, int(float(_avg_share(world, typ, d, buyers, all_places, own)) * (1.0 + err)))
+
+
+## The places being built in reach (persons): new plants of `typ` still projects (tendered, planned or under way, by
+## anyone) at a new plant's places (× their lot size), and extensions of its plants at a quarter of a plant.
+static func _building_places(world: WorldState, typ: String, reach: Array) -> int:
+	var n := 0
+	var fac: Dictionary = world.peek("facility")
+	for pid in EconUtil.sorted_keys(world.peek("project")):
+		var pr: Dictionary = world.peek("project")[pid]
+		if not (String(pr.get("status", "")) in ["TENDER", "TENDERABLE", "ACTIVE", "PLANNING"]):
+			continue
+		if pr["type"] == typ and String(pr["district"]) in reach:
+			n += new_places(typ) * int(pr.get("size_pm", 1000)) / 1000
+		elif pr["type"] == "EXPAND" and fac.has(pr.get("target", "")) and fac[pr["target"]]["type"] == typ and String(pr["district"]) in reach:
+			n += new_places(typ) / 4
+	return n
 
 
 ## The places a new plant of `typ` offers at a full crew (persons).
@@ -680,12 +697,14 @@ static func new_places(typ: String) -> int:
 	return plant_out(typ)
 
 
-## A newcomer's share of the demand on the average: `demand` shared evenly among `all_places` (its own included),
-## its `own` places' part, at most its places. (The slot for the shared average function.)
-static func _avg_share(demand: int, all_places: int, own: int) -> int:
+## A newcomer's share of the demand on the average: `demand` shared by capacity among `all_places` (its own
+## included), its `own` places' part, at most its places. Bob's shared function (EconForecast.share_of_work), on the
+## clients and places in reach (persons).
+static func _avg_share(world: WorldState, typ: String, d: String, demand: int, all_places: int, own: int) -> int:
 	if all_places <= 0:
 		return 0
-	return mini(own, int(float(demand) * float(own) / float(all_places)))
+	var mu := EconForecast.share_of_work(world, typ, d, float(own * S), "", float(demand * S), float(maxi(0, all_places - own) * S))
+	return mini(own, int(mu / float(S)))
 
 
 ## Pool g's clients of a type, all of them (persons): the residents, the school-age children, the retired, or the

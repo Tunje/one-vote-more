@@ -399,3 +399,16 @@ func test_founders_read_the_average_not_the_leftovers() -> void:
 		c["scale"] = int(c.get("scale", 1000)) * 4
 	var n4 := EconInst.forecast(w, "CLINIC", d)
 	check(n4 < n, "more places in reach, a smaller share (%d -> %d)" % [n, n4])
+
+
+func test_founders_count_the_plants_being_built() -> void:
+	var sim := _sim()
+	var w := sim.world
+	sim.run(2)
+	w.levers["ECON_BUDGET_HEALTH"] = 4000
+	EconInst.monthly(w)
+	var d := String(_clinics(w)[0]["district"])
+	var n := EconInst.forecast(w, "CLINIC", d)
+	EconConstruction.create(w, "CLINIC", d, "gov", "HEALTH", "ECON_BUDGET_HEALTH")
+	var nb := EconInst.forecast(w, "CLINIC", d)
+	check(nb < n, "a clinic being built in reach shares the clients too (%d -> %d)" % [n, nb])
