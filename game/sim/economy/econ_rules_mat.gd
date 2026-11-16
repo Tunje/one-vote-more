@@ -460,6 +460,14 @@ static func capacity(world: WorldState) -> void:
 	var s := EconUtil.st(world)
 	var acts: Array = s.get("r8_mat_actions", [])
 	var done := {}
+	# MATERIAL, the one item under repair. The user, 2026-11-16, when a maker sold out everything it made for twelve
+	# years at up to six times its cost and added nothing: "So you over complicated it!!! It's simple if you sell out all
+	# your producing produce MORE!!!" and "if your selling out and all plants at max build a new one, the price at that
+	# point will have crimbed enough and of course money is a limitor". So for the processing plants there are no
+	# 6-of-12 windows, no price test, no size limit and no wait for an earlier project: _sold_out_builds.
+	if capacity_on(world, "PROCESSING"):
+		_sold_out_builds(world, "PROCESSING", "MATERIAL", acts)
+		done["PROCESSING"] = true
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		var ftype := String(f["type"])
@@ -512,6 +520,46 @@ static func capacity(world: WorldState) -> void:
 		EconFacts.emit(world, "COMP_INVESTMENT", f["district"], [["COMPANY", f["org"]]], [["COMPANY", f["org"], 1.0]], {"JOBS": 2}, 15,
 			"PUBLIC", {"type": ftype, "reason": "orders", "good": good})
 	s["r8_mat_actions"] = acts
+
+
+## Rule 5 as the user stated it: a company that sold everything it put on the market, with every one of its plants of
+## this type open and at full output, builds one more. Money is the only limiter (its cash, a loan, or for a public
+## company the treasury, as before). Checked each quarter with the other capacity rules.
+static func _sold_out_builds(world: WorldState, ftype: String, good: String, acts: Array) -> void:
+	var s := EconUtil.st(world)
+	var by_org := {}
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] != ftype:
+			continue
+		var row: Dictionary = by_org.get(f["org"], {"n": 0, "max": true, "d": String(f["district"])})
+		row["n"] = int(row["n"]) + 1
+		if f["mothball"] or int(f.get("target", 1000)) < 1000:
+			row["max"] = false
+		by_org[f["org"]] = row
+	for oid in EconUtil.sorted_keys(by_org):
+		var o: Dictionary = world.table("org").get(oid, {})
+		if o.is_empty() or o["status"] != "ACTIVE" or o["is_contractor"]:
+			continue
+		var pe: bool = o["type"] == "PUBLIC_ENTERPRISE"
+		if not (o["type"] in ["PRIVATE", "COOPERATIVE"] or pe):
+			continue
+		var sold := int((o.get("sold", {}) as Dictionary).get(good, 0))
+		var unsold := int((s.get("unsold_px_by", {}) as Dictionary).get(String(oid) + "|" + good, 0))
+		if sold <= 0 or unsold > 0 or not bool(by_org[oid]["max"]):
+			continue  # it did not sell out, or a plant of its own still has room
+		var d: String = by_org[oid]["d"]
+		var cost := EconConstruction.estimate(ftype)
+		if not LawBridge.allowed(world, oid, "BUILD_FACILITY", {"facility_type": ftype, "district": d, "owner_kind": "COMPANY",
+				"value_wref": cost / maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))}):
+			continue
+		if not _finance(world, String(oid), cost, pe):
+			continue
+		EconConstruction.create(world, ftype, d, oid, oid, "")
+		o["last_invest"] = world.month
+		acts.append([world.month, ftype, "new_sold_out"])
+		EconFacts.emit(world, "COMP_INVESTMENT", d, [["COMPANY", oid]], [["COMPANY", oid, 1.0]], {"JOBS": 2}, 15, "PUBLIC",
+			{"type": ftype, "reason": "sold_out", "good": good})
 
 
 static func _expand_pending(world: WorldState, fid: String) -> bool:

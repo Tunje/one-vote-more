@@ -363,6 +363,14 @@ in storage should never have triggered the damned reduction!!!"; on the rule tha
 still read the whole store: "Ignore the stoch in that other place too". And: "Only fix this item for now once we
 have it right we fix the rest" (the item: the material price; the other sectors hold rule nine until it is right).
 
+**Adding capacity, the user's rule (verbatim), when a material maker sold out for twelve years at up to six times cost
+and added nothing:** "THE OTHER RULES ARE LITERALLY MADE TO ADD CAPACITY!!! THERE IS A RULE FOR IT IN MY RULE SET!!!!";
+"So you over complicated it!!! It's simple if you sell out all your producing produce MORE!!!"; "you can add in if
+your selling out and all plants at max build a new one, the price at that point will have crimbed enough and of
+course money is a limitor". As built it had six conditions (85% use in 6 of 12 months, unfilled orders in 6 of 12,
+price at least 1.1 times cost, no other project open, at most three times its size, money). Now, for the processing
+plants only: sold out and every plant at full output, it builds one more; money is the only limiter.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and

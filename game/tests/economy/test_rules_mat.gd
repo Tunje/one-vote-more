@@ -77,6 +77,8 @@ func test_unfilled_orders_block_mothballing() -> void:
 	check(false, "a smelter exists")
 
 
+## The windowed rule 5, still in force for mines and components works. Processing plants (MATERIAL) follow the user's
+## simple rule since 2026-11-16: tests/economy/test_sold_out_builds.gd.
 func test_busy_plant_with_orders_expands() -> void:
 	var sim := _sim(true)
 	sim.run(3)
@@ -85,17 +87,17 @@ func test_busy_plant_with_orders_expands() -> void:
 	var target := ""
 	for fid in EconUtil.sorted_keys(w.table("facility")):
 		var f: Dictionary = w.table("facility")[fid]
-		if f["type"] == "PROCESSING" and not f["mothball"] and w.table("org")[f["org"]]["type"] == "PUBLIC_ENTERPRISE":
+		if f["type"] == "COMPONENTS" and not f["mothball"] and w.table("org")[f["org"]]["type"] == "PUBLIC_ENTERPRISE":
 			target = fid  # (private smelters are still in their start-up loss: rule 5 waits for a profitable year)
 			break
 	var f0: Dictionary = w.table("facility")[target]
 	f0["r8_hi_m"] = 6
 	f0["r8_unf_m"] = 6
-	s["prices"]["MATERIAL"] = int(2.0 * FirmAI.unit_cost(w, "PROCESSING"))
+	s["prices"]["COMPONENT"] = int(2.0 * FirmAI.unit_cost(w, "COMPONENTS"))
 	w.ledger.transfer(Ledger.EXTERNAL, EconUtil.acct(f0["org"]), 5000000 * EconUtil.S, "TEST", w.month)
 	EconRulesMat.capacity(w)
 	var acts: Array = s.get("r8_mat_actions", [])
-	check(acts.size() == 1 and String(acts[0][1]) == "PROCESSING", "one capacity step for the smelters (%s)" % str(acts))
+	check(acts.size() == 1 and String(acts[0][1]) == "COMPONENTS", "one capacity step for the components works (%s)" % str(acts))
 	check(int(f0["r8_hi_m"]) == 0, "counters reset after the step")
 	EconRulesMat.capacity(w)
 	check((s.get("r8_mat_actions", []) as Array).size() == 1, "no second step while the first is open")
