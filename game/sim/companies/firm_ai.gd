@@ -542,24 +542,25 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 				var full := unit_cost(world, ftype) if ftype != "" else 0.0
 				if ftype != "" and bool(o.get("family", false)) and EconRulesFood.famask_on(world):
 					full = EconRulesFood.family_full_cost(world, oid, ftype)  # R8 step 3 (opt-in R8_FOOD): a family asks its own cost
-				var floor_c := maxi(EconUtil.inv_wac(world, oid, good, d), int(full * (0.9 if o["status"] == "ACTIVE" else 0.7)))
-				if not own:
-					ask = maxi(ask, floor_c)
-				else:
-					if hold_on and full > 0.0 and float(ask) < full:
-						# Hold-back, in place of an ask floor (the user, 2026-11-16: "a soft it will sell less just to keep
-						# afloat, build up stock for better prices, that's if you have not made everyone know all stocks"):
-						# below its own full cost a seller offers only what keeps it afloat this month (its month's costs
-						# less its cash and what it has already put on offer) and keeps the rest in its store. Stock it keeps
-						# is not offered, so no price rule, buyer or market index sees it (S and cover count offers only).
-						var afloat := maxi(0, EconFinance._monthly_costs(o) - world.ledger.balance(EconUtil.acct(oid)) - int(afloat_used.get(oid, 0)))
-						q = mini(q, int(ceil(float(afloat) * float(S) / float(maxi(1, ask)))))
-						afloat_used[oid] = int(afloat_used.get(oid, 0)) + EconUtil.val(q, ask)
+				# No ask floor, in any game (the user, 2026-11-16: "I don't like hard rules"; and when the stock cut did not
+				# regulate the base: "i give you levers that's ment to regulate why aren't they regulating"). The floor at 0.9 x
+				# full cost held every ask above what buyers would pay (their limits follow the price table), so nothing sold,
+				# the unsold stock cut the price again and the table price fell to a third of cost with orders unfilled.
+				if hold_on and full > 0.0 and float(ask) < full:
+					# Hold-back, in place of an ask floor (the user, 2026-11-16: "a soft it will sell less just to keep
+					# afloat, build up stock for better prices, that's if you have not made everyone know all stocks"):
+					# below its own full cost a seller offers only what keeps it afloat this month (its month's costs
+					# less its cash and what it has already put on offer) and keeps the rest in its store. Stock it keeps
+					# is not offered, so no price rule, buyer or market index sees it (S and cover count offers only).
+					var afloat := maxi(0, EconFinance._monthly_costs(o) - world.ledger.balance(EconUtil.acct(oid)) - int(afloat_used.get(oid, 0)))
+					q = mini(q, int(ceil(float(afloat) * float(S) / float(maxi(1, ask)))))
+					afloat_used[oid] = int(afloat_used.get(oid, 0)) + EconUtil.val(q, ask)
+				if own:
 					var of: Dictionary = o.get("offered", {})
 					of[good] = int(of.get(good, 0)) + q
 					o["offered"] = of
-					if q <= 0:
-						continue
+				if q <= 0:
+					continue
 				s["offers"].append({"seller": oid, "acct": EconUtil.acct(oid), "district": d, "good": good, "qty": q, "ask": ask})
 
 

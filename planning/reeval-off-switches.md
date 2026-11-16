@@ -379,3 +379,23 @@ changed with the price-table stock cut and the cap removal: material now sells a
 (11-25 before): in the base nothing stops a seller selling under cost, so the stock cut alone drives the price down.
 
 (more filled in as the reviews and runs come in)
+
+### Why the stock cut did not regulate the base, and the floor that went (2026-11-16)
+
+The user: "How why?! Seriously i give you levers that's ment to regulate why aren't they geulating????"
+
+Cause (Wilma, from firm_ai's offers): the price table is not what a seller charged. In every game a seller's ask was
+the table price floored at 0.9 x its full cost, and a buyer's limit is 1.3 x the table price plus freight. Once the
+stock cut took the table price under about 0.7 x cost, every limit was under every ask: nothing sold, the unsold
+stock cut the price again. Fix, every game, no switch: no ask floor; below its cost a seller holds stock back (the
+user's soft rule, already in the code for own-price sellers).
+
+Economy-only probe, seed 3, six years, year-end month (price / on offer / sold / wanted):
+- floor in place: MATERIAL 149-179 (base 400) with 193 of 819, 99 of 582, 201 of 465 sold; FOOD 50-93.
+- floor gone: MATERIAL 392-1,505 with 422 of 425, 551 of 551, 427 of 427, 394 of 455 sold; FOOD 103-211.
+So prices return to about cost and orders are filled. Not yet run in a full game.
+
+KNOWN FAULT that came with it: in the same economy-only game the consumer workshops (textile, furniture, bakery)
+are still founded and their buildings started, but all seven builds are cancelled by year 5 and none opens
+(material swings between 392 and 1,505 in those years). tests/economy/test_consumer.gd now checks the founding and
+says so. Being traced.
