@@ -129,6 +129,7 @@ func refresh() -> void:
 	else:
 		var facts: Array = w.facts.query("", m, m, "PUBLIC").filter(func(f): return int(f["magnitude"]) >= 25 and not String(f["type"]).ends_with("_DONATION"))
 		stories = _stories(w, facts)
+	stories = _fresh_first(w, stories, m)
 	# masthead
 	var home: String = String(AreaStore.get_area(w, "hb:1").get("name", "Landing")) if w.peek("area").has("hb:1") else "Landing"
 	_rule(body, 3)
@@ -244,9 +245,67 @@ func _edition_stories(w: WorldState, ed: Dictionary) -> Array:
 			sub_t += "  [later shown to be false]"
 		elif st.get("corrected", false):
 			sub_t += "  [corrected]"
-		out.append({"head": head, "sub": sub_t, "body": article(w, f), "score": 1000 - int(st.get("rank", 0))})
+		out.append({"head": head, "sub": sub_t, "body": article(w, f), "score": 1000 - int(st.get("rank", 0)), "key": story_key(f)})
 	out.sort_custom(func(a, b): return a["score"] > b["score"])
 	return out
+
+
+## A paper's memory (the user, 2026-11-16: "four eight months in a row the main headline was 'new housing in landing is
+## 32 months late!' and they just upped the number each time"). A story is the same story as last month's when it is
+## the same kind of news about the same subject. A story that was already in the news last month is no longer fresh:
+## fresh news goes first, the running stories follow in their old order with how long they have run. A running story
+## is fresh again on its anniversary (a paper returns to it). When nothing is fresh the front page says so, and the
+## running stories stand below it.
+const RUN_LOOK_BACK := 36
+
+
+static func story_key(f: Dictionary) -> String:
+	var d: Dictionary = f.get("data", {})
+	for k in ["project", "org", "company", "party", "union", "facility", "employer", "district", "name"]:
+		if d.has(k):
+			return "%s|%s" % [String(f["type"]), str(d[k])]
+	var subs: Array = f.get("subjects", [])
+	if not subs.is_empty() and subs[0] is Dictionary:
+		return "%s|%s" % [String(f["type"]), str((subs[0] as Dictionary).get("id", ""))]
+	return String(f["type"])
+
+
+## How many months in a row before `month` the same story was already in the news (0 = fresh).
+static func months_running(w: WorldState, key: String, month: int, cache: Dictionary) -> int:
+	var n := 0
+	for k in range(1, RUN_LOOK_BACK + 1):
+		var mm := month - k
+		if mm < 0:
+			break
+		if not cache.has(mm):
+			var keys := {}
+			for f in w.facts.query("", mm, mm, "PUBLIC"):
+				keys[story_key(f)] = true
+				keys[String(f["type"])] = true  # grouped stories ("building delays pile up") are keyed by their kind
+			cache[mm] = keys
+		if not (cache[mm] as Dictionary).has(key):
+			break
+		n += 1
+	return n
+
+
+static func _fresh_first(w: WorldState, stories: Array, month: int) -> Array:
+	var cache := {}
+	var fresh: Array = []
+	var running: Array = []
+	for st in stories:
+		var run := months_running(w, String(st.get("key", "")), month, cache) if String(st.get("key", "")) != "" else 0
+		if run == 0 or run % 12 == 0:
+			if run > 0:
+				st["sub"] = "%d %s on. %s" % [run / 12, "year" if run == 12 else "years", String(st["sub"])]
+			fresh.append(st)
+		else:
+			st["sub"] = "Month %d of this story. %s" % [run + 1, String(st["sub"])]
+			running.append(st)
+	if fresh.is_empty() and not running.is_empty():
+		fresh.append({"head": "NO FRESH NEWS THIS MONTH", "sub": "The stories already running are below.",
+			"body": "Nothing new was reported this month. What the colony is still waiting on has not changed.", "score": 0, "key": ""})
+	return fresh + running
 
 
 ## Editorial weight by kind of news: politics, scandal and disaster lead; routine delays go to the back.
@@ -289,10 +348,10 @@ func _stories(w: WorldState, facts: Array) -> Array:
 		if fs.size() > 1 and GROUP_HEAD.has(t):
 			var ex: Array = fs.slice(0, 4).map(func(x): return plain(NewsText.sentence(w, x)))
 			out.append({"head": GROUP_HEAD[t], "sub": "%d reports this month" % fs.size(),
-				"body": ". ".join(ex) + ("…" if fs.size() > 4 else "."), "score": fs.map(func(x): return int(x["magnitude"])).max() + _weight(t) + mini(15, 3 * fs.size())})
+				"body": ". ".join(ex) + ("…" if fs.size() > 4 else "."), "score": fs.map(func(x): return int(x["magnitude"])).max() + _weight(t) + mini(15, 3 * fs.size()), "key": t})
 		else:
 			for f in fs:
-				out.append({"head": headline(w, f), "sub": plain(NewsText.sentence(w, f)), "body": article(w, f), "score": int(f["magnitude"]) + _weight(t)})
+				out.append({"head": headline(w, f), "sub": plain(NewsText.sentence(w, f)), "body": article(w, f), "score": int(f["magnitude"]) + _weight(t), "key": story_key(f)})
 	out.sort_custom(func(a, b): return a["score"] > b["score"] or (a["score"] == b["score"] and a["head"] < b["head"]))
 	return out
 
