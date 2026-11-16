@@ -399,3 +399,28 @@ KNOWN FAULT that came with it: in the same economy-only game the consumer worksh
 are still founded and their buildings started, but all seven builds are cancelled by year 5 and none opens
 (material swings between 392 and 1,505 in those years). tests/economy/test_consumer.gd now checks the founding and
 says so. Being traced.
+
+### With and without the hold-back, 30 years, code aeeb84b (no ask floor in any game)
+
+base and ALL hold stock back below cost; NOHOLD switches that off (OWN_NOHOLD). ALL as before, without ORDER_IN.
+
+| arm | seed | adults | u % | food | real | priv alive/dead | bank capital | material % of cost / filled | plans / opened |
+|---|---|---|---|---|---|---|---|---|---|
+| base | 1 | 4180 | 20.7 | 83 | 2.84 | 87/159 | 0 | 68 / 472 | 58 / 10 |
+| base | 2 | 4611 | 15.4 | 49 | 3.74 | 100/100 | 5 | 35 / 729 | 69 / 18 |
+| base | 3 | 3812 | 17.0 | 70 | 3.48 | 102/171 | 0 | 65 / 391 | 55 / 7 |
+| base, no hold-back | 1 | 4886 | 17.3 | 44 | 7.90 | 74/114 | 1 | 32 / 940 | 61 / 14 |
+| base, no hold-back | 2 | 4605 | 22.9 | 62 | 7.34 | 54/92 | 0 | 39 / 833 | 62 / 6 |
+| base, no hold-back | 3 | 5110 | 15.8 | 37 | 10.19 | 87/113 | 9 | 27 / 925 | 51 / 15 |
+| ALL | 1 | 3250 | 23.1 | 209 | 2.95 | 59/136 | -23 | 115 / 316 | 67 / 21 |
+| ALL | 2 | 3120 | 18.4 | 170 | 3.35 | 105/125 | -18 | 105 / 381 | 115 / 12 |
+| ALL | 3 | 3247 | 19.0 | 108 | 3.25 | 85/139 | -4 | 100 / 430 | 76 / 9 |
+| ALL, no hold-back | 1 | 4385 | 22.4 | 54 | 3.55 | 63/143 | -10 | 41 / 807 | 81 / 36 |
+| ALL, no hold-back | 2 | 4498 | 19.8 | 66 | 4.63 | 94/146 | -12 | 25 / 777 | 76 / 32 |
+| ALL, no hold-back | 3 | 4403 | 22.2 | 56 | 5.43 | 76/166 | -9 | 22 / 772 | 86 / 40 |
+
+Reading (Wilma): without the hold-back orders are filled (77-94% of material against 32-73%), the colony is larger
+and less hungry and more plans open, and material sells at a quarter to two fifths of what it costs to make: the
+"all inventory sold at too low price" the user named when ruling that the hold-back stays. With it, material holds
+its price where the eight rules are on (100-115% of cost) and two thirds of orders go unfilled. Nothing is decided
+from this run; the fix under way is one own price per company, not per plant.
