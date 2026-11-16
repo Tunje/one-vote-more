@@ -114,3 +114,7 @@ cabinet (as First Minister, or as the leader of a partner party in someone else'
 Today (b0dff68): out of government the office shows one line, "You don't hold the government's office right now.
 (The opposition desk comes later.)", and a computer government decides everything. The spec above has one sentence
 on it (O3: "the same desk as party leader").
+- "If your party fails to take a seat that's the fail condition"
+
+So the game is lost when the player's party wins no seat in parliament. Short of that the player plays on, from the
+cabinet or from parliament.
