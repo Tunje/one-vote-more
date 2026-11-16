@@ -221,6 +221,20 @@ History archive, career summary, retirement, save compaction, 30-year soak runs,
 ### Post-v1 backlog
 Media/newspapers, alcohol, education/health depth, ownership types + boards + succession + M&A, lobbying/corruption, criminal law and police, emergency powers, constitutional review, talents/XP depth, observer mode.
 
+### ORDER, 2026-11-16: every producer gets all eight rules (the user, verbatim)
+> "Then you can GO FUCKING BACK IN AND DAMNED WELL FUCKING MAKE IT SO!!! WE KEEP TRYING TO FIX ISSUES THAT THE EIGHT
+> RULES FIX AND YOU KEEP BEING THE DAMNED PROBLEM"
+
+Given after Wilma's table showed that no sector in v11 runs all eight (reeval-off-switches.md). The standing ruling
+(2026-11-15): every producer has eight rules, each on a real market signal: raise its price, lower it, produce more,
+produce less, add capacity, reduce capacity, when a new company starts, when not. This order overrides the feature
+freeze for this work. Owners: Bob: mines, processing, components (rules 1/2), food and bread (1/2; families 1/2 and
+5/6), workshops and medical works (all eight), freight (check all eight). Otto: builders and housing (all eight
+working and fit to switch on). Ella: service hubs (all eight). Wilma: utilities, clinics, schools, administration (all
+eight). Each rule reads the producer's own market (orders it can reach, unfilled orders, unsold stock, cost, use,
+profit); no floors, caps or locks of our own. Done means: every row of the table in eight-rules.md shows eight rules
+in the code, unit-tested, and one game run with all of them on.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and

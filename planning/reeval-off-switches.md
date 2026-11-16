@@ -125,4 +125,99 @@ improves. Firm deaths and builder deaths do not fall in any arm: the bank's deat
 still loses heavily (about 30M in, capital up by 14-27M at most). Three seeds; adults move both ways (seed 2 up, seed
 3 down).
 
+### The builders' new way together: E165 + E165B + E165Q + R8_BUILDERS (scratch copy of 3e20850, 60 years)
+
+| arm | seed | adults | u % | food | real | priv alive/dead | builders alive/dead | died: no work / loss / other | bank capital |
+|---|---|---|---|---|---|---|---|---|---|
+| base | 1 | 10370 | 20.5 | 5 | 2.62 | 136/151 | 2/52 | 22/20/10 | 13 |
+| base | 2 | 6964 | 33.3 | 24 | 2.38 | 179/140 | 2/57 | 21/26/12 | 0 |
+| base | 3 | 7628 | 29.6 | 43 | 2.63 | 132/176 | 1/42 | 12/23/8 | -3 |
+| NEWWAY | 1 | 5463 | 24.4 | 72 | 2.18 | 332/42 | 3/26 | 2/17/9 | 13 |
+| NEWWAY | 2 | 4864 | 18.5 | 57 | 3.10 | 136/84 | 5/39 | 5/17/19 | -5 |
+| NEWWAY | 3 | 4086 | 24.2 | 177 | 2.28 | 92/63 | 2/46 | 10/19/19 | -1 |
+
+Reading (Wilma): firm deaths fall by half or more and builders dying for lack of work nearly vanish, but the colony
+ends 30-47% smaller and far hungrier. Builders still die at a loss as often as before. Not traced: why the colony is
+smaller (less built? fewer firms started? farms not built?). The single arms (PLAN, PLANQ, R8BLD) are still running.
+
+The user, 2026-11-16, after reading the v11 chronicle of seed 3 (verbatim): "44 years into v11 c3 i gave up its
+honestly exactly the issues work book and planning are meant to solve that are the problems"
+
+Where NEWWAY chokes, seed 3, from the five-year marks (Wilma): jobs wait 12-28 months in the builders' books (base:
+0); 3-10 jobs are being built at a time against 4-26 in base; job-months without any bid 281 at Y5, 2,812 at Y30,
+over 8,000 per five years from Y40 (base 83-322); order books 57-59 months long from Y40; firms that opened 4 against
+15; family farms 84 against 135; 22 jobs skipped for want of a builder. The work is lined up and not built: builder
+capacity does not grow to meet the book. Otto traces why (crews not hired, new builders kept out, bids refused).
+
+The user, same day (verbatim): "What your describing is the backside of the same coin, because if you look at
+companies that don't get anything done or very little before dying that's the same companies this prevents, do Mr a
+favour and check instead what a builder company needs because i suspect you will find that that's the real issue,
+there is some prerequisit builders need that don't get built and the builders can't just build builders"
+
+### What a builder needs (Wilma, from the code and the same games)
+
+A builder needs, to exist: a household with twice BUILDER_EQUITY (30,000) in cash to found it, at most one new
+builder a year; a crew of 20 general, 8 skilled, 1 specialist, never more than twice that. To work: MATERIAL and
+COMPONENT in stock in its home district for every job; without them the crew is "blocked", shrinks 15% a month and
+may not grow. Material comes only from PROCESSING plants, which need MINERAL from a MINE; components only from
+COMPONENTS plants, which need material. Building those plants itself takes material and components (mine 400 + 80,
+processing 700 + 100, components plant 600 + 120).
+
+| game | orders filled: mineral / material / component (permille, Y5-60) | price as % of full cost | plant capacity at Y60: mine / processing / components | private share of material, component, mineral sales |
+|---|---|---|---|---|
+| base 1 | 928 / 842 / 878 | 75 / 94 / 82 | 9250 / 7000 / 4250 | 0 / 0 / 1 % |
+| base 2 | 956 / 902 / 897 | 40 / 65 / 95 | 2750 / 6250 / 3000 | 0 / 0 / 0 % |
+| base 3 | 922 / 870 / 871 | 57 / 75 / 86 | 2500 / 5000 / 4250 | 0 / 0 / 0 % |
+| NEWWAY 1 | 660 / 650 / 779 | 275 / 193 / 153 | 5500 / 2250 / 3250 | 0 / 0 / 1 % |
+| NEWWAY 2 | 878 / 825 / 884 | 118 / 141 / 112 | 4000 / 5250 / 3250 | 0 / 0 / 0 % |
+| NEWWAY 3 | 917 / 310 / 342 | 89 / 323 / 211 | 0 / 2500 / 2250 | 0 / 0 / 0 % |
+
+Reading: the prerequisite is building material. No private firm makes it in any game. In the base it is sold below
+its full cost and still one order in eight goes unfilled. With the build list on, more work is lined up than the
+material for it exists: seed 3 ends with no mine at all, a third of material orders filled and material at three
+times cost; seed 1 with two thirds filled. A mine or a processing plant cannot be built without the material they
+are missing. Not yet traced: why the mines close and who is meant to rebuild them; how much the ship brings.
+
+### Correction: the materials chain has no price rules, and the user never ordered that (2026-11-16)
+
+Wilma told the user that price rules 1 and 2 for mines, processing and components were dropped "after your objection".
+The user: "No there's utter bullshit i did not say that in relation to the eight rules i said that before we applied
+them".
+
+The transcript: on 2026-11-15 16:29 the user answered Wilma's report of Bob's first draft of the materials rules (not
+yet tested, nothing applied) with: "That's also of hard rules that's just going to lock up price, why is no one
+paying the price, that's the issue". That is a criticism of that draft's hard floors and a pointer to the buyers'
+side. It asked for the buyers to be fixed (done: value bids). It did not order rules 1 and 2 removed. Wilma dropped
+them after the A/B (ab-r8-materials.md: "They are dropped (Wilma, 2026-11-15)") and the code comment in
+econ_rules_mat.gd cites the user's sentence as the reason. Both are Wilma's errors.
+
+The standing ruling (user, 2026-11-15) is that every producer has all eight rules, each on a real market signal. So
+mines, processing plants and components plants are two rules short: nothing tells a seller when to raise its price
+and when to lower it. Capacity rule 5 and entry rule 7 wait for a price that no rule moves. To be built by Bob:
+rules 1 and 2 for the three plant types on real signals (its own unfilled orders, its own unsold stock), with no
+floors or locks.
+
+### Which producers really have the eight rules in v11 (Wilma, from the code headers, 2026-11-16)
+
+The user: "Now pleas explain how you missed this WHEN I ASKED IF ALL COMPANIES USED THE 8 RULES?!?!"
+
+No sector has all eight running.
+
+| Sector | In v11 | Rules it really has |
+|---|---|---|
+| Mines, processing, components | on | 3-8. No rule 1/2 (dropped by Wilma). |
+| Food: big farms and bakeries | on | 3-6. Price by the old market rule, not a rule 1/2 of its own. |
+| Food: family farms and bakeries | on | 3/4 and 7/8; an ask floor at own cost. No 1/2, no 5/6. |
+| Freight | on | depots follow full trucks (5/6); the rest not checked rule by rule. |
+| Builders | built, off | all eight written, with hard limits (crew at most twice the founding crew, margin clamp, bid never under own estimate). |
+| Housing developers | built, off | not checked rule by rule. |
+| Workshops, medical works | not built | none (old rules). |
+| Service hubs | not built | none (old rules). |
+| Utilities | not built | none (old rules). |
+| Clinics, schools, administration | not built | none (old rules). |
+
+How it was missed: Wilma tracked "the sector's switch is on", not "the sector has all eight"; wrote "no price rules"
+into the v11 description and still called it the eight rules; let an A/B score decide against a standing ruling; and
+never gave the user this table after v11.
+
 (more filled in as the reviews and runs come in)
