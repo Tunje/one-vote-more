@@ -95,3 +95,9 @@ party-leader's office in the assembly building, with the same objects meaning di
 3. How much should the opposition see? The less it sees, the harder and the more realistic; the more, the more
    there is to do.
 4. Do you want the separate room, or the same office with different contents?
+
+## The user's answers, 2026-11-16 (verbatim)
+
+- On a separate room: "yes each room should be different".
+- On being reduced to a single member and fighting back: "yes thats still has a seat in goverment so yes". One seat
+  is still a seat; the game goes on.

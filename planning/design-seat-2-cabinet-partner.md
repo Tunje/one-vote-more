@@ -78,3 +78,23 @@ You run your part of the government, you argue about the rest, and your one real
 1. How many ministries does a partner get: by its share of the government's seats, or by what it bargained for?
 2. May you choose which ministries you ask for when the government forms?
 3. If you vote against your own government, are you out at once, or is that the First Minister's choice?
+
+## The user's answers, 2026-11-16 (verbatim)
+
+On each seat having its own room: "yes each room should be different".
+
+On how a partner gets ministries: "if your in the alliance that leads the ministry seats will be handed out too you
+by the vote count, so if you party hold about half thats 4 seats, if you hold about 10 percent thats 1, and so forth
+remember an alliance can be built by many parites so you might be one of a few, and you would have to argu your way
+into a seat based on your comatibility if they pick other alliance partners they you go down one step, and remember
+the way the primisiter can set ministers level of work autonomus, recomendations and that? that will be done for
+you"
+
+So:
+- Ministries in the governing alliance are handed out by vote count: about half the alliance's votes is four
+  ministries, about a tenth is one, and so on in proportion.
+- An alliance can be many parties; you may be one of several partners.
+- You argue your way into the alliance on your compatibility with it. If they pick other partners, you go down one
+  step: to parliament.
+- The First Minister sets how much your ministers decide on their own (the delegation levels: make the call,
+  recommend, or the First Minister's own). In this seat that is done to you, not by you.

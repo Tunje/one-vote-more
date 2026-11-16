@@ -64,3 +64,9 @@ Everything, as today: paper, reports, inbox, calls, calendar, visitors. Add two 
 2. Does a lost confidence vote always mean you are out, or may you try to form a new government yourself?
 3. When you lose a leadership contest, is that the end at once, or is there one last chance (a second ballot, a
    party congress)?
+
+## The user's answers, 2026-11-16 (verbatim)
+
+- On each seat having its own room: "yes each room should be different".
+- On a last chance after a lost leadership contest, asked back to Wilma: "what do you have in mind as last chace?"
+  (Wilma's answer is a proposal; see the conversation of that day. Not decided.)
