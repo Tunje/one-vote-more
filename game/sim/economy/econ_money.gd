@@ -11,8 +11,8 @@ extends RefCounted
 ##     (c) no remittance to the home world while capital is below CAPITAL_FLOOR (the founding capital or
 ##         CAPITAL_LOAN_PCT of loans, whichever is larger).
 ##   E153 working capital against what a firm owns, not against a profitable year: the E140 credit line's limit becomes
-##     STOCK_PCT of its stock at cost + RECV_PCT of what customers owe it (E148 invoices) + REV_M months of average
-##     sales, with no profit test; public enterprises get lines too.
+##     STOCK_PCT of its stock at cost + RECV_PCT of what customers owe it (E148 invoices) + REV_M months of expected
+##     sales (EconAnnual.expected_rev; user 2026-11-16: no limit built on past sales), with no profit test; public enterprises get lines too.
 
 const S := EconUtil.S
 const RESCHEDULE_M := 36
@@ -105,7 +105,7 @@ static func receivables(world: WorldState, oid: String) -> int:
 ## The asset-based line limit (mcr).
 static func line_limit(world: WorldState, o: Dictionary) -> int:
 	var oid: String = o["id"]
-	return stock_value(world, oid) * STOCK_PCT / 100 + receivables(world, oid) * RECV_PCT / 100 + int(REV_M * float(EconAnnual.avg_rev(o)))
+	return stock_value(world, oid) * STOCK_PCT / 100 + receivables(world, oid) * RECV_PCT / 100 + int(REV_M * float(EconAnnual.expected_rev(world, o)))
 
 
 # ------------------------------------------------------------------ E155

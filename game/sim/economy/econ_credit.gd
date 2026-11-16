@@ -3,8 +3,8 @@ extends RefCounted
 ## E148 supplier credit (user decision via Wilma 2026-11-14: "real firms don't wait for monthly government money; they
 ## run on sales, supplier credit and cost-based prices"). OPT-IN: world.meta["on"] has "E148", until its A/B.
 ##   INVOICES (TRADE, EconMarket._fill): a firm buying from a firm (private, cooperative or public enterprise) is
-##     invoiced instead of paying cash, up to its credit room = CREDIT_M × its average monthly sales over the last 12
-##     months (the E140 ring) minus what it already owes; beyond the room it pays cash as before. Freight from the
+##     invoiced instead of paying cash, up to its credit room = CREDIT_M × what it is going to sell in a month
+##     (EconAnnual.expected_rev: orders, contracts, forecast; past sales only as a floor) minus what it already owes; beyond the room it pays cash as before. Freight from the
 ##     transport authority is invoiced the same way. One invoice per buyer, seller and month (table "invoice").
 ##     The seller books the sale as revenue at once (accrual); the cash arrives when the invoice is paid.
 ##   PAYMENT (SETTLEMENT, after the loan service): invoices fall due DUE_M month later and are paid from the buyer's
@@ -40,7 +40,8 @@ static func owed(world: WorldState, oid: String) -> int:
 	return t
 
 
-## Credit room now (mcr): CREDIT_M months of average sales, less what is owed. Cached per month in s["credit_room"]
+## Credit room now (mcr): CREDIT_M months of expected sales, less what is owed (user 2026-11-16: no limit built on
+## past sales, here too). Cached per month in s["credit_room"]
 ## (TRADE runs many fills; the cache is rebuilt each month and only ever lowered by new invoices).
 static func room(world: WorldState, oid: String) -> int:
 	var s := EconUtil.st(world)
@@ -51,7 +52,7 @@ static func room(world: WorldState, oid: String) -> int:
 		s["credit_room_m"] = world.month
 	if not cache.has(oid):
 		var o: Dictionary = world.table("org")[oid]
-		cache[oid] = maxi(0, int(float(EconAnnual.avg_rev(o)) * CREDIT_M) - owed(world, oid))
+		cache[oid] = maxi(0, int(float(EconAnnual.expected_rev(world, o)) * CREDIT_M) - owed(world, oid))
 	return int(cache[oid])
 
 
