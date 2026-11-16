@@ -96,3 +96,21 @@ answer, month}`.
 - Both views show the same items; switching the setting changes nothing in the world.
 - Hiring by interview: two candidates with different hidden stats are distinguishable on average by questions, but
   not reliably on one interview (tested statistically).
+
+## When the player is not the leader of the government (discussion with the user, 2026-11-16; nothing ordered)
+
+The user's words, in order:
+- "What happenes when you're not the leader?"
+- "What do real politicians do?"
+- On whether the game should cover leading the opposition, being a junior partner, or serving under another leader:
+  "All of the above depending on outcome?"
+- On Wilma's fourth case (losing the leadership of your own party and playing on as a member): "No i think you
+  added one wrong, you allways lead your party, but your either the leadee in the cabinet or in parliament"
+
+So: the player always leads their party. Depending on the outcome of elections and coalitions they lead it from the
+cabinet (as First Minister, or as the leader of a partner party in someone else's government) or from parliament
+(in opposition). The player never loses the leadership of their own party.
+
+Today (b0dff68): out of government the office shows one line, "You don't hold the government's office right now.
+(The opposition desk comes later.)", and a computer government decides everything. The spec above has one sentence
+on it (O3: "the same desk as party leader").
