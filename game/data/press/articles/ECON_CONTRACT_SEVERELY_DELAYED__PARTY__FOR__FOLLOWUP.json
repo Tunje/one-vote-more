@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_SEVERELY_DELAYED",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: building project badly behind schedule",
+      "sub": "Construction of a building project is severely delayed in {colony}.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A building project in the colony is badly behind schedule.\n\nWe defend {target} against a verdict based on the delay alone. Lateness is established, but its existence does not prove every adverse claim about responsibility or the merits of the project."
+    },
+    {
+      "headline": "Still in view: construction timetable falls seriously short",
+      "sub": "A colony building project has fallen badly behind its schedule.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Construction of a building project is severely delayed in {colony}.\n\nWe defend {target} against a verdict based on the delay alone. Lateness is established, but its existence does not prove every adverse claim about responsibility or the merits of the project."
+    },
+    {
+      "headline": "Still in view: a project waits beyond its schedule",
+      "sub": "A building project in the colony is badly behind schedule.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A colony building project has fallen badly behind its schedule.\n\nWe defend {target} against a verdict based on the delay alone. Lateness is established, but its existence does not prove every adverse claim about responsibility or the merits of the project."
+    }
+  ]
+}

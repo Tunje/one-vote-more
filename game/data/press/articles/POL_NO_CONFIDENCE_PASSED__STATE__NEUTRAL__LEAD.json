@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_PASSED",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Assembly votes the government out",
+      "sub": "The government has been voted out by the Colonial Assembly.",
+      "body": "The Colonial Assembly has voted the government out. It is a decisive parliamentary event, though it does not by itself describe what follows. An assessment of {target} should start with the withdrawal of confidence and avoid announcing a successor that this report does not identify.\n\nThe gazette distinguishes the Assembly's decision from speculation concerning future administrative arrangements. The removal of a government is sufficient to warrant a clear entry in the public record. It should be described without attaching unreported causes, vote totals or subsequent appointments to the decision.\n\nThe parliamentary outcome supplies the basis for scrutiny of {target}. This paper reports the loss of confidence without treating an unreported motive or future settlement as an established fact. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "Confidence withdrawn",
+      "sub": "An Assembly vote has removed the government in {colony}.",
+      "body": "A government cannot treat its relationship with the Assembly as a decorative part of office. The Assembly has voted the government out in {colony}. That outcome provides the immediate context for judging {target}, while leaving the merits of particular political alternatives to separate examination.\n\nThe gazette distinguishes the Assembly's decision from speculation concerning future administrative arrangements. The removal of a government is sufficient to warrant a clear entry in the public record. It should be described without attaching unreported causes, vote totals or subsequent appointments to the decision.\n\nThe parliamentary outcome supplies the basis for scrutiny of {target}. This paper reports the loss of confidence without treating an unreported motive or future settlement as an established fact. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "Office meets its parliamentary limit",
+      "sub": "The Colonial Assembly has voted the government out in {colony}.",
+      "body": "The parliamentary right to withdraw confidence has produced a concrete result: the government has been voted out. Public attention now has a clear institutional fact to consider. For {target}, the issue is accountability under that result, rather than an imagined account of the negotiations surrounding it.\n\nThe gazette distinguishes the Assembly's decision from speculation concerning future administrative arrangements. The removal of a government is sufficient to warrant a clear entry in the public record. It should be described without attaching unreported causes, vote totals or subsequent appointments to the decision.\n\nThe parliamentary outcome supplies the basis for scrutiny of {target}. This paper reports the loss of confidence without treating an unreported motive or future settlement as an established fact. Care in the public record is part of responsible administration."
+    }
+  ]
+}

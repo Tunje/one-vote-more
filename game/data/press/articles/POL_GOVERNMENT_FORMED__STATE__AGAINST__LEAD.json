@@ -1,0 +1,23 @@
+{
+  "event": "POL_GOVERNMENT_FORMED",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "A new government takes shape",
+      "sub": "The colony has a newly formed government.",
+      "body": "A new government has been formed in {colony}. Its formation establishes an administration; it does not establish the success of its future decisions. In considering {target}, the useful distinction is between assembling a government and meeting the obligations that come with governing.\n\nThe gazette records the new government's formation as a matter of public administration. An account of the change should avoid presuming either the contents of its programme or the outcome of its work. The existence of a ministry and the adequacy of its conduct require separate consideration.\n\nWe are unconvinced by {target}. The completion of an arrangement for office does not deserve to be mistaken for political merit; the public is entitled to a more demanding standard. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "Formation is the beginning of governing",
+      "sub": "Government formation has produced a new administration in {colony}.",
+      "body": "Government formation is a beginning. The new administration in {colony} gives public attention an institutional focus, while leaving its practical record to be made. Any judgment of {target} should recognise both the significance of formation and the limits of what formation alone can demonstrate.\n\nThe gazette records the new government's formation as a matter of public administration. An account of the change should avoid presuming either the contents of its programme or the outcome of its work. The existence of a ministry and the adequacy of its conduct require separate consideration.\n\nWe are unconvinced by {target}. The completion of an arrangement for office does not deserve to be mistaken for political merit; the public is entitled to a more demanding standard. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "New ministry, practical obligations",
+      "sub": "A new government has been formed in {colony}.",
+      "body": "The colony has a new government. There is an obvious temptation to read a whole political future into that fact. A more useful approach to {target} begins with the administration that has actually been formed and the responsibilities inherent in exercising public authority.\n\nThe gazette records the new government's formation as a matter of public administration. An account of the change should avoid presuming either the contents of its programme or the outcome of its work. The existence of a ministry and the adequacy of its conduct require separate consideration.\n\nWe are unconvinced by {target}. The completion of an arrangement for office does not deserve to be mistaken for political merit; the public is entitled to a more demanding standard. Care in the public record is part of responsible administration."
+    }
+  ]
+}

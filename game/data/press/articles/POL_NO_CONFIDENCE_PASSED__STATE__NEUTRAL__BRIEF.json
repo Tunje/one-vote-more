@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_PASSED",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Assembly votes the government out",
+      "sub": "",
+      "body": "The Colonial Assembly has voted the government out in {colony}. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "Confidence withdrawn",
+      "sub": "",
+      "body": "The government has been voted out by the Colonial Assembly. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "Office meets its parliamentary limit",
+      "sub": "",
+      "body": "An Assembly vote has removed the government in {colony}. The gazette records the development as a matter deserving careful attention in the public interest."
+    }
+  ]
+}

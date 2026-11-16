@@ -1,0 +1,23 @@
+{
+  "event": "PLANET_CYCLONE",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: cyclone hits the colony",
+      "sub": "The colony has been struck by a cyclone.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A cyclone has hit the colony.\n\nWe support {target} against easy blame. A cyclone is not evidence that every hostile claim about stewardship is true, and fair judgment must distinguish the natural event from the conduct being assessed."
+    },
+    {
+      "headline": "Still in view: a storm becomes the colony's news",
+      "sub": "A cyclone has reached {colony}.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has been struck by a cyclone.\n\nWe support {target} against easy blame. A cyclone is not evidence that every hostile claim about stewardship is true, and fair judgment must distinguish the natural event from the conduct being assessed."
+    },
+    {
+      "headline": "Still in view: the colony faces a cyclone",
+      "sub": "A cyclone has hit the colony.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A cyclone has reached {colony}.\n\nWe support {target} against easy blame. A cyclone is not evidence that every hostile claim about stewardship is true, and fair judgment must distinguish the natural event from the conduct being assessed."
+    }
+  ]
+}

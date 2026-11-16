@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SHIPPING_REFUSED",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Request for more shipping refused",
+      "sub": "",
+      "body": "The home world has refused the colony's request for more shipping. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Home world declines route expansion request",
+      "sub": "",
+      "body": "A colonial request for additional shipping has been rejected by the home world. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "No assent to the colony's shipping plea",
+      "sub": "",
+      "body": "The colony's plea for more shipping has been refused. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

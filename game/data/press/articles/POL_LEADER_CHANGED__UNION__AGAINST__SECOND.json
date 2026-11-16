@@ -1,0 +1,23 @@
+{
+  "event": "POL_LEADER_CHANGED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Party names a new leader",
+      "sub": "Leadership of a political party has changed in the colony.",
+      "body": "A party has a new leader in {colony}. A change at the head of an organisation is a political fact; a change in its programme is a separate question. Readers considering {target} should not have to accept the second as a necessary consequence of the first.\n\nWe are not persuaded by {target}. A change of leadership should not be allowed to turn political scrutiny into a courtesy exercise; public trust requires more than a place at the head of a party."
+    },
+    {
+      "headline": "Leadership changes hands",
+      "sub": "A new leader is now at the head of a party in {colony}.",
+      "body": "The name at the head of a party has changed. The event invites attention to what leadership means, beyond the identity of the person holding it. In assessing {target}, the useful question concerns responsibility for a political organisation rather than an invented personal history.\n\nWe are not persuaded by {target}. A change of leadership should not be allowed to turn political scrutiny into a courtesy exercise; public trust requires more than a place at the head of a party."
+    },
+    {
+      "headline": "A new name at the head of the party",
+      "sub": "A party has a new leader in {colony}.",
+      "body": "New leadership gives a party a different person to answer for its public direction. That is the established development in {colony}. Any assessment of {target} should leave unreported policies, internal vote totals and explanations for the change outside the factual account of the event.\n\nWe are not persuaded by {target}. A change of leadership should not be allowed to turn political scrutiny into a courtesy exercise; public trust requires more than a place at the head of a party."
+    }
+  ]
+}

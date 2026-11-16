@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SHIPPING_REFUSED",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Request for more shipping refused",
+      "sub": "A colonial request for additional shipping has been rejected by the home world.",
+      "body": "The home world has refused the colony's request for more shipping. The refusal concerns an increase, not an established withdrawal of existing service. Readers judging {target} should keep that limit in view, without supplying a change in voyages or capacity that the report does not identify.\n\nWe criticise {target} over the handling of this matter. A colony's transport needs deserve serious political stewardship, and a refusal should prompt scrutiny rather than an effortless acceptance of the outcome."
+    },
+    {
+      "headline": "Home world declines route expansion request",
+      "sub": "The colony's plea for more shipping has been refused.",
+      "body": "More shipping was requested; the home world has refused. That is the result of the colonial request, rather than a complete account of the route's future. Scrutiny of {target} should examine the handling of the request without inventing either the reasons for refusal or a resulting shortage.\n\nWe criticise {target} over the handling of this matter. A colony's transport needs deserve serious political stewardship, and a refusal should prompt scrutiny rather than an effortless acceptance of the outcome."
+    },
+    {
+      "headline": "No assent to the colony's shipping plea",
+      "sub": "The home world has refused the colony's request for more shipping.",
+      "body": "The colony's request for additional shipping has not been accepted by the home world. A refusal is a concrete decision, even without its detailed explanation. For {target}, the relevant question is responsibility in the transport relationship, not a presumed cancellation of service already in place.\n\nWe criticise {target} over the handling of this matter. A colony's transport needs deserve serious political stewardship, and a refusal should prompt scrutiny rather than an effortless acceptance of the outcome."
+    }
+  ]
+}

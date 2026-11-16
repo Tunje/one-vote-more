@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_SEVERELY_DELAYED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Building project badly behind schedule",
+      "sub": "",
+      "body": "A building project in the colony is badly behind schedule. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Construction timetable falls seriously short",
+      "sub": "",
+      "body": "Construction of a building project is severely delayed in {colony}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A project waits beyond its schedule",
+      "sub": "",
+      "body": "A colony building project has fallen badly behind its schedule. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

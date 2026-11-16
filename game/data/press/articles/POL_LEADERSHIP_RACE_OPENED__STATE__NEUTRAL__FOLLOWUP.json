@@ -1,0 +1,23 @@
+{
+  "event": "POL_LEADERSHIP_RACE_OPENED",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: party leader faces a challenge",
+      "sub": "A challenge to a party leader has opened in the colony.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A party's leader is being challenged in {colony}.\n\nThe position of {target} deserves scrutiny without assuming that a challenge is either justified or doomed. The existence of a contest is the known fact on which this account rests."
+    },
+    {
+      "headline": "Still in view: leadership becomes a contested question",
+      "sub": "The leadership of a political party is under challenge.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A challenge to a party leader has opened in the colony.\n\nThe position of {target} deserves scrutiny without assuming that a challenge is either justified or doomed. The existence of a contest is the known fact on which this account rests."
+    },
+    {
+      "headline": "Still in view: a challenge inside the party",
+      "sub": "A party's leader is being challenged in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The leadership of a political party is under challenge.\n\nThe position of {target} deserves scrutiny without assuming that a challenge is either justified or doomed. The existence of a contest is the known fact on which this account rests."
+    }
+  ]
+}

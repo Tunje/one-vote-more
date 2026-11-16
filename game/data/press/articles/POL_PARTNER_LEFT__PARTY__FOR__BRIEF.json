@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTNER_LEFT",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party walks out of government",
+      "sub": "",
+      "body": "A party has walked out of the government in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "A governing partnership breaks",
+      "sub": "",
+      "body": "A governing party has left the colony's government. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Departure redraws the question of cooperation",
+      "sub": "",
+      "body": "The government has lost a party from its governing arrangement. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

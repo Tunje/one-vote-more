@@ -1,0 +1,23 @@
+{
+  "event": "HOME_EXPEDITION_SENT",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: home world sends punitive expedition",
+      "sub": "A punitive expedition has been dispatched by the home world.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has sent a punitive expedition.\n\nWe defend {target} against a verdict based on imagined events. The expedition's dispatch is serious news, but a fair assessment must not convert every feared consequence into an accusation already proven."
+    },
+    {
+      "headline": "Still in view: an expedition with a punitive purpose",
+      "sub": "The home world has dispatched an expedition intended to punish the colony.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A punitive expedition has been dispatched by the home world.\n\nWe defend {target} against a verdict based on imagined events. The expedition's dispatch is serious news, but a fair assessment must not convert every feared consequence into an accusation already proven."
+    },
+    {
+      "headline": "Still in view: distant authority dispatches an expedition",
+      "sub": "The home world has sent a punitive expedition.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The home world has dispatched an expedition intended to punish the colony.\n\nWe defend {target} against a verdict based on imagined events. The expedition's dispatch is serious news, but a fair assessment must not convert every feared consequence into an accusation already proven."
+    }
+  ]
+}

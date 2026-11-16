@@ -1,0 +1,23 @@
+{
+  "event": "HOME_DEMAND_RAISED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world raises its demands",
+      "sub": "",
+      "body": "The home world has raised what it demands of the colony. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "A larger claim on the colony",
+      "sub": "",
+      "body": "The demands placed on the colony by the home world have increased. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Distant authority asks for more",
+      "sub": "",
+      "body": "The home world is demanding more from {colony}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

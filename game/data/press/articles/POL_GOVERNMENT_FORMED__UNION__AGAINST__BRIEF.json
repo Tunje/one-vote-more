@@ -1,0 +1,23 @@
+{
+  "event": "POL_GOVERNMENT_FORMED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "A new government takes shape",
+      "sub": "",
+      "body": "A new government has been formed in {colony}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Formation is the beginning of governing",
+      "sub": "",
+      "body": "The colony has a newly formed government. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "New ministry, practical obligations",
+      "sub": "",
+      "body": "Government formation has produced a new administration in {colony}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    }
+  ]
+}

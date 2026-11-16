@@ -1,0 +1,23 @@
+{
+  "event": "ECON_SOVEREIGN_DEFAULT",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Government cannot pay its debts",
+      "sub": "",
+      "body": "The government of {colony} cannot pay its debts. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Public debt meets a payment failure",
+      "sub": "",
+      "body": "The colony's government is unable to pay its debts. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "The colony's government faces default",
+      "sub": "",
+      "body": "Government debt in the colony cannot be paid by the administration. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

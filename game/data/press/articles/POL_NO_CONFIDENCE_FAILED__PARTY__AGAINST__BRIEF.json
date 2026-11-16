@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_FAILED",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Bid to remove government fails",
+      "sub": "",
+      "body": "A vote to bring down the government has failed in {colony}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Confidence challenge falls short",
+      "sub": "",
+      "body": "The attempt to remove the government by an Assembly vote has failed. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Government survives the Assembly test",
+      "sub": "",
+      "body": "The government has survived a vote intended to bring it down. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    }
+  ]
+}

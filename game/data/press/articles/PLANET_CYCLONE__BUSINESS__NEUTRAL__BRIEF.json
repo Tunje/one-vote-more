@@ -1,0 +1,23 @@
+{
+  "event": "PLANET_CYCLONE",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Cyclone hits the colony",
+      "sub": "",
+      "body": "A cyclone has hit the colony. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "A storm becomes the colony's news",
+      "sub": "",
+      "body": "The colony has been struck by a cyclone. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "The colony faces a cyclone",
+      "sub": "",
+      "body": "A cyclone has reached {colony}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

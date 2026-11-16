@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTNER_LEFT",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party walks out of government",
+      "sub": "",
+      "body": "A party has walked out of the government in {colony}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "A governing partnership breaks",
+      "sub": "",
+      "body": "A governing party has left the colony's government. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Departure redraws the question of cooperation",
+      "sub": "",
+      "body": "The government has lost a party from its governing arrangement. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    }
+  ]
+}

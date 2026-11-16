@@ -1,0 +1,23 @@
+{
+  "event": "PLANET_CYCLONE",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Cyclone hits the colony",
+      "sub": "",
+      "body": "A cyclone has hit the colony. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "A storm becomes the colony's news",
+      "sub": "",
+      "body": "The colony has been struck by a cyclone. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "The colony faces a cyclone",
+      "sub": "",
+      "body": "A cyclone has reached {colony}. The gazette records the development as a matter deserving careful attention in the public interest."
+    }
+  ]
+}

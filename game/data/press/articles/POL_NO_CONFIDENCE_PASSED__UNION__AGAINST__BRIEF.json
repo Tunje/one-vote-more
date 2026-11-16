@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_PASSED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Assembly votes the government out",
+      "sub": "",
+      "body": "The Colonial Assembly has voted the government out in {colony}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Confidence withdrawn",
+      "sub": "",
+      "body": "The government has been voted out by the Colonial Assembly. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Office meets its parliamentary limit",
+      "sub": "",
+      "body": "An Assembly vote has removed the government in {colony}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "POL_LEADER_CHANGED",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: party names a new leader",
+      "sub": "Leadership of a political party has changed in the colony.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A party has a new leader in {colony}.\n\nWe are not persuaded by {target}. A change of leadership should not be allowed to turn political scrutiny into a courtesy exercise; public trust requires more than a place at the head of a party."
+    },
+    {
+      "headline": "Still in view: leadership changes hands",
+      "sub": "A new leader is now at the head of a party in {colony}.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Leadership of a political party has changed in the colony.\n\nWe are not persuaded by {target}. A change of leadership should not be allowed to turn political scrutiny into a courtesy exercise; public trust requires more than a place at the head of a party."
+    },
+    {
+      "headline": "Still in view: a new name at the head of the party",
+      "sub": "A party has a new leader in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A new leader is now at the head of a party in {colony}.\n\nWe are not persuaded by {target}. A change of leadership should not be allowed to turn political scrutiny into a courtesy exercise; public trust requires more than a place at the head of a party."
+    }
+  ]
+}

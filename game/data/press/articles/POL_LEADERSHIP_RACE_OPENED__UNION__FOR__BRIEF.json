@@ -1,0 +1,23 @@
+{
+  "event": "POL_LEADERSHIP_RACE_OPENED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party leader faces a challenge",
+      "sub": "",
+      "body": "A party's leader is being challenged in {colony}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Leadership becomes a contested question",
+      "sub": "",
+      "body": "A challenge to a party leader has opened in the colony. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A challenge inside the party",
+      "sub": "",
+      "body": "The leadership of a political party is under challenge. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

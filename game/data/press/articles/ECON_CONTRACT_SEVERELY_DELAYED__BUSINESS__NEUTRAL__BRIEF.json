@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_SEVERELY_DELAYED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Building project badly behind schedule",
+      "sub": "",
+      "body": "A building project in the colony is badly behind schedule. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Construction timetable falls seriously short",
+      "sub": "",
+      "body": "Construction of a building project is severely delayed in {colony}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "A project waits beyond its schedule",
+      "sub": "",
+      "body": "A colony building project has fallen badly behind its schedule. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

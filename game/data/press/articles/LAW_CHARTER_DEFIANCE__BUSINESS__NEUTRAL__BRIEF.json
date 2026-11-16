@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_DEFIANCE",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Colony openly defies its charter",
+      "sub": "",
+      "body": "The colony is openly defying its charter. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "A public break with charter authority",
+      "sub": "",
+      "body": "Open defiance of the charter is taking place in {colony}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Charter compliance becomes an open dispute",
+      "sub": "",
+      "body": "The colony has taken an openly defiant position towards its charter. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

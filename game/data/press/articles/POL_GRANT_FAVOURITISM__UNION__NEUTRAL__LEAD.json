@@ -1,0 +1,23 @@
+{
+  "event": "POL_GRANT_FAVOURITISM",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Grant programme passes over needy districts",
+      "sub": "Districts in need were passed over by a government grant programme.",
+      "body": "A government grant programme has passed over districts that needed it. The allocation is a public stewardship question, not an invitation to invent the recipients. Readers considering {target} should distinguish the established failure to reach need from an unreported claim about a motive, a sum or a private favour.\n\nLabour's question is plain: whose need counts when public support is shared out? Districts in need should not vanish behind the language of a programme. Working people deserve allocation judged by its purpose, without an invented story about who personally benefited or what a particular household was denied.\n\nThe stewardship of {target} requires examination against the districts passed over. This paper records the allocation problem without supplying an unreported intention, recipient or legal conclusion as its explanation. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Need goes unanswered in grant allocation",
+      "sub": "A government grant allocation has overlooked the districts that needed support.",
+      "body": "Need did not receive the attention it required in a government grant programme: districts that needed support were passed over. For {target}, the event raises a direct question about allocation. That question can be examined without adding a donor, an election bargain or a financial total to the account.\n\nLabour's question is plain: whose need counts when public support is shared out? Districts in need should not vanish behind the language of a programme. Working people deserve allocation judged by its purpose, without an invented story about who personally benefited or what a particular household was denied.\n\nThe stewardship of {target} requires examination against the districts passed over. This paper records the allocation problem without supplying an unreported intention, recipient or legal conclusion as its explanation. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Government grants miss the districts in need",
+      "sub": "A government grant programme has passed over districts that needed it.",
+      "body": "The colony has a grant programme whose allocation passed over districts in need. That is the reported defect in public provision. An assessment of {target} should focus on the relationship between grants and need, rather than an invented explanation of why particular places were overlooked in the process.\n\nLabour's question is plain: whose need counts when public support is shared out? Districts in need should not vanish behind the language of a programme. Working people deserve allocation judged by its purpose, without an invented story about who personally benefited or what a particular household was denied.\n\nThe stewardship of {target} requires examination against the districts passed over. This paper records the allocation problem without supplying an unreported intention, recipient or legal conclusion as its explanation. Ordinary lives should be the measure, not a convenient afterthought."
+    }
+  ]
+}

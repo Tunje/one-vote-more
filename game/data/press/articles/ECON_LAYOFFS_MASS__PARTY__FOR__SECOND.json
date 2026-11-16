@@ -1,0 +1,23 @@
+{
+  "event": "ECON_LAYOFFS_MASS",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Company lays off many workers",
+      "sub": "Many workers have been laid off by a company in the colony.",
+      "body": "A company has laid off many workers in {colony}. The scale is described as large, but a specific number is not supplied here. In assessing {target}, readers should distinguish the loss of jobs from an invented cause, severance arrangement or account of what will happen to those affected.\n\nWe support {target} against a blanket adverse verdict. The layoff is serious, but the report does not establish every claim about its causes or prove that a particular imagined alternative was available."
+    },
+    {
+      "headline": "A large loss of jobs at a company",
+      "sub": "The colony has seen a company carry out a large layoff.",
+      "body": "Many workers have been laid off by a company. The event puts employment at the centre of the colony's business news. For {target}, the relevant scrutiny concerns responsibility towards people and the handling of work, without assuming either the company's trade or its financial reasons for the decision.\n\nWe support {target} against a blanket adverse verdict. The layoff is serious, but the report does not establish every claim about its causes or prove that a particular imagined alternative was available."
+    },
+    {
+      "headline": "Workers face a company layoff",
+      "sub": "A company has laid off many workers in {colony}.",
+      "body": "A large layoff has taken place at a company in the colony. The loss of work deserves attention without an embellished account of individual households. Readers judging {target} should be able to consider the seriousness of the event without accepting unreported promises of new employment or support.\n\nWe support {target} against a blanket adverse verdict. The layoff is serious, but the report does not establish every claim about its causes or prove that a particular imagined alternative was available."
+    }
+  ]
+}

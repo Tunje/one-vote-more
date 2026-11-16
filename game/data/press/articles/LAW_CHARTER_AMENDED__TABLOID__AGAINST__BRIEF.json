@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_AMENDED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world changes the charter",
+      "sub": "",
+      "body": "The home world has changed the colony's charter. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Colonial charter amended",
+      "sub": "",
+      "body": "An amendment to the colony's charter has been made by the home world. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "The terms of authority are altered",
+      "sub": "",
+      "body": "The colony's charter has been altered by the home world. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

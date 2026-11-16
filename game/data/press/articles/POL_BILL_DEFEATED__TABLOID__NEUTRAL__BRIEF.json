@@ -1,0 +1,23 @@
+{
+  "event": "POL_BILL_DEFEATED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Assembly votes down government bill",
+      "sub": "",
+      "body": "A government bill has been voted down in the Colonial Assembly. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "A proposal meets its parliamentary limit",
+      "sub": "",
+      "body": "The Assembly has rejected a bill put forward by the government. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Government legislation fails the vote",
+      "sub": "",
+      "body": "A proposed government bill has failed in the Assembly vote. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    }
+  ]
+}

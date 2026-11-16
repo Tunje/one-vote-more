@@ -1,0 +1,23 @@
+{
+  "event": "POL_GRANT_FAVOURITISM",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Grant programme passes over needy districts",
+      "sub": "",
+      "body": "A government grant programme has passed over districts that needed it. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Need goes unanswered in grant allocation",
+      "sub": "",
+      "body": "Districts in need were passed over by a government grant programme. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Government grants miss the districts in need",
+      "sub": "",
+      "body": "A government grant allocation has overlooked the districts that needed support. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    }
+  ]
+}

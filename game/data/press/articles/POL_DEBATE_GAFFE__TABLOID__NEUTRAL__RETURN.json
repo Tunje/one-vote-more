@@ -1,0 +1,23 @@
+{
+  "event": "POL_DEBATE_GAFFE",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: party leader blunders in election debate",
+      "sub": "An election debate has included a blunder by a party leader.",
+      "body": "We return to {first_reported}. Our report recorded this: A party leader had blundered in an election debate.\n\nA leader has blundered in a debate. Tempting material for a perfect quotation, except the words are not supplied here. The mistake is news enough. Readers can judge a performance without being given an invented audience, a fictional blush or a claim that the whole election is suddenly over.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nThe performance of {target} deserves examination without assuming an electoral effect. This paper records the blunder and leaves the words involved and the public's response outside its factual account where they are unspecified."
+    },
+    {
+      "headline": "Looking back: a debate brings a leader's misstep",
+      "sub": "A party leader has made a misstep in an election debate.",
+      "body": "Looking back to {first_reported}, this was the news: An election debate had included a blunder by a party leader.\n\nA leader has blundered in a debate. Tempting material for a perfect quotation, except the words are not supplied here. The mistake is news enough. Readers can judge a performance without being given an invented audience, a fictional blush or a claim that the whole election is suddenly over.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nThe performance of {target} deserves examination without assuming an electoral effect. This paper records the blunder and leaves the words involved and the public's response outside its factual account where they are unspecified."
+    },
+    {
+      "headline": "Looking back: election argument meets an awkward moment",
+      "sub": "A party leader has blundered in an election debate.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: A party leader had made a misstep in an election debate.\n\nA leader has blundered in a debate. Tempting material for a perfect quotation, except the words are not supplied here. The mistake is news enough. Readers can judge a performance without being given an invented audience, a fictional blush or a claim that the whole election is suddenly over.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nThe performance of {target} deserves examination without assuming an electoral effect. This paper records the blunder and leaves the words involved and the public's response outside its factual account where they are unspecified."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Hungry, on a planet of our own",
+      "sub": "The colony needs food, and people cannot eat a fine speech.",
+      "body": "People are hungry. Here, in {colony}. There is not enough food. Hold that thought before the grand arguments begin, and keep it in mind when you consider the part played by {target}.\n\nA colony can be a magnificent idea. It can inspire dreams of a new life and arguments about the future. But the future is a difficult thing to admire when the present does not contain enough to eat.\n\nKeep an eye on {target}. Ask the hard questions. But do not let a guess about who caused the shortage turn into a fact merely because it makes a louder headline.\n\nThat is the human measure of this shortage. No grand phrase makes it smaller. No clever description makes a meal. Whatever readers think about the politics, they should insist that the people who are hungry remain the point of the story. Food first. Admiration for the wording can wait."
+    },
+    {
+      "headline": "Try putting an argument on a plate",
+      "sub": "Food is short, and hunger has no interest in clever wording.",
+      "body": "Here is a plain story with an ugly centre. The colony does not have enough food, and people are hungry. Our question for {target} begins with those people, not with a polished explanation.\n\nIt is easy to discuss a shortage as though it were a puzzle on somebody else's desk. Harder to remember what the word means. Not enough to eat. A basic need unmet. Nothing decorative about it.\n\nKeep an eye on {target}. Ask the hard questions. But do not let a guess about who caused the shortage turn into a fact merely because it makes a louder headline.\n\nReaders do not need a lesson in how to feel about hunger. They need a newspaper that keeps it in view when the discussion gets grand. So here is the standard we suggest: judge every answer by whether it belongs anywhere near a hungry person's plate."
+    },
+    {
+      "headline": "The smallest demand: enough to eat",
+      "sub": "Hunger turns grand ambitions into a very simple question.",
+      "body": "Enough to eat. It should be an ordinary demand. In {colony}, it is the demand that matters: food is short and people are hungry. That is how we approach the question of {target}.\n\nThere is plenty to argue about in a colony. What sort of place should it be? Whose ideas deserve a hearing? But no vision of the good life is much use if it cannot make room for a meal.\n\nKeep an eye on {target}. Ask the hard questions. But do not let a guess about who caused the shortage turn into a fact merely because it makes a louder headline.\n\nWe will leave the fine distinctions to those who enjoy them. The human point is plain enough for any reader. Hunger deserves attention in its own right. If an answer makes the shortage sound better without explaining how people might eat better, readers are entitled to ask for another answer."
+    }
+  ]
+}

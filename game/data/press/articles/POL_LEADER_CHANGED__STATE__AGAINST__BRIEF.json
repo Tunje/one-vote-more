@@ -1,0 +1,23 @@
+{
+  "event": "POL_LEADER_CHANGED",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party names a new leader",
+      "sub": "",
+      "body": "A party has a new leader in {colony}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "Leadership changes hands",
+      "sub": "",
+      "body": "Leadership of a political party has changed in the colony. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "A new name at the head of the party",
+      "sub": "",
+      "body": "A new leader is now at the head of a party in {colony}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    }
+  ]
+}

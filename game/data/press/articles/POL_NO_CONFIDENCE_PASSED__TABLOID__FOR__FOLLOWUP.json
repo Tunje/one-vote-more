@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_PASSED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: assembly votes the government out",
+      "sub": "The government has been voted out by the Colonial Assembly.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The Colonial Assembly has voted the government out in {colony}.\n\nWe take a sympathetic view of {target}. A parliamentary defeat is decisive for office, but it need not be treated as a final moral verdict on every person or position involved."
+    },
+    {
+      "headline": "Still in view: confidence withdrawn",
+      "sub": "An Assembly vote has removed the government in {colony}.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The government has been voted out by the Colonial Assembly.\n\nWe take a sympathetic view of {target}. A parliamentary defeat is decisive for office, but it need not be treated as a final moral verdict on every person or position involved."
+    },
+    {
+      "headline": "Still in view: office meets its parliamentary limit",
+      "sub": "The Colonial Assembly has voted the government out in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. An Assembly vote has removed the government in {colony}.\n\nWe take a sympathetic view of {target}. A parliamentary defeat is decisive for office, but it need not be treated as a final moral verdict on every person or position involved."
+    }
+  ]
+}

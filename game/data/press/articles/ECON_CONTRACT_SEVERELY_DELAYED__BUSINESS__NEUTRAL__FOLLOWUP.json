@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_SEVERELY_DELAYED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: building project badly behind schedule",
+      "sub": "Construction of a building project is severely delayed in {colony}.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A building project in the colony is badly behind schedule.\n\nThe stewardship of {target} warrants scrutiny against the severe delay. This report does not assign an unreported cause or presume that lateness means the project has been abandoned rather than delayed."
+    },
+    {
+      "headline": "Still in view: construction timetable falls seriously short",
+      "sub": "A colony building project has fallen badly behind its schedule.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Construction of a building project is severely delayed in {colony}.\n\nThe stewardship of {target} warrants scrutiny against the severe delay. This report does not assign an unreported cause or presume that lateness means the project has been abandoned rather than delayed."
+    },
+    {
+      "headline": "Still in view: a project waits beyond its schedule",
+      "sub": "A building project in the colony is badly behind schedule.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A colony building project has fallen badly behind its schedule.\n\nThe stewardship of {target} warrants scrutiny against the severe delay. This report does not assign an unreported cause or presume that lateness means the project has been abandoned rather than delayed."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_AMENDED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: home world changes the charter",
+      "sub": "An amendment to the colony's charter has been made by the home world.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has changed the colony's charter.\n\nWe take a critical view of {target}. Altering the governing framework calls for exacting political responsibility, and the prestige of a charter supplies no automatic defence against questions about that responsibility."
+    },
+    {
+      "headline": "Still in view: colonial charter amended",
+      "sub": "The colony's charter has been altered by the home world.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. An amendment to the colony's charter has been made by the home world.\n\nWe take a critical view of {target}. Altering the governing framework calls for exacting political responsibility, and the prestige of a charter supplies no automatic defence against questions about that responsibility."
+    },
+    {
+      "headline": "Still in view: the terms of authority are altered",
+      "sub": "The home world has changed the colony's charter.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony's charter has been altered by the home world.\n\nWe take a critical view of {target}. Altering the governing framework calls for exacting political responsibility, and the prestige of a charter supplies no automatic defence against questions about that responsibility."
+    }
+  ]
+}

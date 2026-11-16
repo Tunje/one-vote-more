@@ -1,0 +1,23 @@
+{
+  "event": "ECON_SOVEREIGN_DEFAULT",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Government cannot pay its debts",
+      "sub": "",
+      "body": "The government of {colony} cannot pay its debts. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Public debt meets a payment failure",
+      "sub": "",
+      "body": "The colony's government is unable to pay its debts. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "The colony's government faces default",
+      "sub": "",
+      "body": "Government debt in the colony cannot be paid by the administration. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

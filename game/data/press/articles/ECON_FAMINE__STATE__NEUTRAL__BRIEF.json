@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Food provision requires attention",
+      "sub": "",
+      "body": "Food is insufficient in {colony}, and residents are going hungry. Adequate provision must be the immediate public priority. The position merits attention."
+    },
+    {
+      "headline": "Hunger sets the practical standard",
+      "sub": "",
+      "body": "Residents of {colony} are hungry because there is not enough food. The practical measure of a remedy is adequate provision. The position merits attention."
+    },
+    {
+      "headline": "Insufficient food entered in public record",
+      "sub": "",
+      "body": "The gazette records insufficient food and hunger in {colony}. Clear information is necessary; practical provision is the essential objective. The position merits attention."
+    }
+  ]
+}

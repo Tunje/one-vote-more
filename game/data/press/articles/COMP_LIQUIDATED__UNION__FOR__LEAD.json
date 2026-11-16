@@ -1,0 +1,23 @@
+{
+  "event": "COMP_LIQUIDATED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "A company goes under",
+      "sub": "The colony has seen a company fail.",
+      "body": "A company has gone under in {colony}. The failure is a business event, not a detailed account of its consequences for particular people. Readers considering {target} should distinguish that known outcome from unreported claims about creditors, employment or the circumstances that brought the company to this position.\n\nWorkers are not an incidental detail in the politics of business failure. Labour should keep ordinary lives in view without inventing a dismissal or an unpaid wage. Solidarity requires attention to people, and a careful account should not claim to know their particular circumstances merely because a company has gone under.\n\nWe take a sympathetic view of {target}. A failed enterprise does not establish every accusation of poor conduct, and fair assessment must survive an outcome that makes easy blame particularly tempting. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Business failure enters the colony's record",
+      "sub": "A business in the colony has gone under.",
+      "body": "A business has failed in the colony. An enterprise is more than a name in a commercial register, but its failure does not by itself identify every consequence. An assessment of {target} should address stewardship without supplying a balance sheet or a story about the firm's trade.\n\nWorkers are not an incidental detail in the politics of business failure. Labour should keep ordinary lives in view without inventing a dismissal or an unpaid wage. Solidarity requires attention to people, and a careful account should not claim to know their particular circumstances merely because a company has gone under.\n\nWe take a sympathetic view of {target}. A failed enterprise does not establish every accusation of poor conduct, and fair assessment must survive an outcome that makes easy blame particularly tempting. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "An enterprise reaches failure",
+      "sub": "A company has gone under in {colony}.",
+      "body": "The colony's business record includes a company going under. That outcome invites questions of responsibility without answering them all. For {target}, the relevant scrutiny should remain separate from an invented cause, a presumed creditor loss or an announcement about workers that the report does not establish.\n\nWorkers are not an incidental detail in the politics of business failure. Labour should keep ordinary lives in view without inventing a dismissal or an unpaid wage. Solidarity requires attention to people, and a careful account should not claim to know their particular circumstances merely because a company has gone under.\n\nWe take a sympathetic view of {target}. A failed enterprise does not establish every accusation of poor conduct, and fair assessment must survive an outcome that makes easy blame particularly tempting. Ordinary lives should be the measure, not a convenient afterthought."
+    }
+  ]
+}

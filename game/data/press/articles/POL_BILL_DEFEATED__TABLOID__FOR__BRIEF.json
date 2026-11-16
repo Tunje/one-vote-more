@@ -1,0 +1,23 @@
+{
+  "event": "POL_BILL_DEFEATED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Assembly votes down government bill",
+      "sub": "",
+      "body": "A government bill has been voted down in the Colonial Assembly. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "A proposal meets its parliamentary limit",
+      "sub": "",
+      "body": "The Assembly has rejected a bill put forward by the government. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Government legislation fails the vote",
+      "sub": "",
+      "body": "A proposed government bill has failed in the Assembly vote. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    }
+  ]
+}

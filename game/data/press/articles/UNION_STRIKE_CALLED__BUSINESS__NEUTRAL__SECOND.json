@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_CALLED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Union calls a strike",
+      "sub": "A strike has been called by a union in the colony.",
+      "body": "A union has called a strike in {colony}. The call establishes a labour action, not an account of its participation or outcome. Readers considering {target} should distinguish the decision to call a strike from unreported claims about wages, conditions or the response of an employer.\n\nThe conduct of {target} should be examined against the strike call itself. This paper does not assign unreported demands or assume the participation and outcome of the labour action announced here."
+    },
+    {
+      "headline": "A call to withhold labour",
+      "sub": "The colony has a union call for strike action.",
+      "body": "Withholding labour is now the subject of a union's strike call. The event places the relationship between work and bargaining in public view. For {target}, responsibility should be judged without supplying a demand, a workplace closure or an agreement that this report does not establish.\n\nThe conduct of {target} should be examined against the strike call itself. This paper does not assign unreported demands or assume the participation and outcome of the labour action announced here."
+    },
+    {
+      "headline": "Work becomes the subject of a strike call",
+      "sub": "A union has called a strike in {colony}.",
+      "body": "The colony has a call for strike action by a union. That is the known development; the course of the dispute is not specified here. An assessment of {target} should examine the politics of labour action without fabricating a turnout, a legal finding or a settlement.\n\nThe conduct of {target} should be examined against the strike call itself. This paper does not assign unreported demands or assume the participation and outcome of the labour action announced here."
+    }
+  ]
+}

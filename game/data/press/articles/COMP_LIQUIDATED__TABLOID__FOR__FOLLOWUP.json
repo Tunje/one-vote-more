@@ -1,0 +1,23 @@
+{
+  "event": "COMP_LIQUIDATED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: a company goes under",
+      "sub": "The colony has seen a company fail.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A company has gone under in {colony}.\n\nWe take a sympathetic view of {target}. A failed enterprise does not establish every accusation of poor conduct, and fair assessment must survive an outcome that makes easy blame particularly tempting."
+    },
+    {
+      "headline": "Still in view: business failure enters the colony's record",
+      "sub": "A business in the colony has gone under.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has seen a company fail.\n\nWe take a sympathetic view of {target}. A failed enterprise does not establish every accusation of poor conduct, and fair assessment must survive an outcome that makes easy blame particularly tempting."
+    },
+    {
+      "headline": "Still in view: an enterprise reaches failure",
+      "sub": "A company has gone under in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A business in the colony has gone under.\n\nWe take a sympathetic view of {target}. A failed enterprise does not establish every accusation of poor conduct, and fair assessment must survive an outcome that makes easy blame particularly tempting."
+    }
+  ]
+}

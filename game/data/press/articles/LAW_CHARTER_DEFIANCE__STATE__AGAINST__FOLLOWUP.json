@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_DEFIANCE",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: colony openly defies its charter",
+      "sub": "Open defiance of the charter is taking place in {colony}.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The colony is openly defying its charter.\n\nWe judge {target} adversely. Defiance demands a serious account of responsibility, and a bold stance should not be allowed to shelter inadequate political judgment behind the attraction of its own gesture."
+    },
+    {
+      "headline": "Still in view: a public break with charter authority",
+      "sub": "The colony has taken an openly defiant position towards its charter.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Open defiance of the charter is taking place in {colony}.\n\nWe judge {target} adversely. Defiance demands a serious account of responsibility, and a bold stance should not be allowed to shelter inadequate political judgment behind the attraction of its own gesture."
+    },
+    {
+      "headline": "Still in view: charter compliance becomes an open dispute",
+      "sub": "The colony is openly defying its charter.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony has taken an openly defiant position towards its charter.\n\nWe judge {target} adversely. Defiance demands a serious account of responsibility, and a bold stance should not be allowed to shelter inadequate political judgment behind the attraction of its own gesture."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTY_SPLIT",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Party divides in two",
+      "sub": "The colony has seen a party divide into two organisations.",
+      "body": "A political party has split in two in {colony}. The division is an organisational fact, not a complete explanation of the differences behind it. In considering {target}, readers should distinguish the break itself from unreported motives, ideological labels or claims about the balance of parliamentary strength.\n\nA party has split in two. A simple sentence for a very public break. There is no need to invent the private quarrel to make it interesting. Readers should ask what the division is for, and whether the people being represented will find something more useful than competing claims to loyalty.\n\nWe support {target} in this assessment. Unity is not an unlimited obligation, and a fair political judgment must allow that separation can deserve defence rather than automatic condemnation for breaking ranks. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "A political organisation breaks apart",
+      "sub": "A split has divided a political party in the colony.",
+      "body": "Party unity has given way to division. A party has split in two, making political organisation itself the subject of the news. The assessment of {target} should address that break without treating either part as the natural owner of principles this report does not specify.\n\nA party has split in two. A simple sentence for a very public break. There is no need to invent the private quarrel to make it interesting. Readers should ask what the division is for, and whether the people being represented will find something more useful than competing claims to loyalty.\n\nWe support {target} in this assessment. Unity is not an unlimited obligation, and a fair political judgment must allow that separation can deserve defence rather than automatic condemnation for breaking ranks. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "Unity gives way to a party split",
+      "sub": "A political party has split in two in {colony}.",
+      "body": "A split has produced two parts where a party previously stood together. That is the development established in {colony}. Readers considering {target} should not be asked to accept an invented account of the dispute or an electoral forecast as part of the factual report.\n\nA party has split in two. A simple sentence for a very public break. There is no need to invent the private quarrel to make it interesting. Readers should ask what the division is for, and whether the people being represented will find something more useful than competing claims to loyalty.\n\nWe support {target} in this assessment. Unity is not an unlimited obligation, and a fair political judgment must allow that separation can deserve defence rather than automatic condemnation for breaking ranks. Readers deserve a clear story and a straight answer about responsibility."
+    }
+  ]
+}

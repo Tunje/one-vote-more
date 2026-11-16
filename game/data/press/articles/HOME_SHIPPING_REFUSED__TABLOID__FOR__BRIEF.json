@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SHIPPING_REFUSED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Request for more shipping refused",
+      "sub": "",
+      "body": "The home world has refused the colony's request for more shipping. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Home world declines route expansion request",
+      "sub": "",
+      "body": "A colonial request for additional shipping has been rejected by the home world. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "No assent to the colony's shipping plea",
+      "sub": "",
+      "body": "The colony's plea for more shipping has been refused. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    }
+  ]
+}

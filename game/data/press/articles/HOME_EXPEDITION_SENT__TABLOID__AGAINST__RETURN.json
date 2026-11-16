@@ -1,0 +1,23 @@
+{
+  "event": "HOME_EXPEDITION_SENT",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: home world sends punitive expedition",
+      "sub": "A punitive expedition has been dispatched by the home world.",
+      "body": "We return to {first_reported}. Our report recorded this: The home world had sent a punitive expedition.\n\nSent does not mean arrived. Remember that before the imagination supplies a scene at the port. The home world has dispatched a punitive expedition. The purpose is serious enough to deserve attention without a fictional confrontation. Readers need clear questions about authority, not a battle that exists only in the telling.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe judge {target} adversely. Punitive power demands an exacting political standard, and the dispatch is an appropriate occasion to question the quality and fairness of the responsibility being exercised."
+    },
+    {
+      "headline": "Looking back: an expedition with a punitive purpose",
+      "sub": "The home world has dispatched an expedition intended to punish the colony.",
+      "body": "Looking back to {first_reported}, this was the news: A punitive expedition had been dispatched by the home world.\n\nSent does not mean arrived. Remember that before the imagination supplies a scene at the port. The home world has dispatched a punitive expedition. The purpose is serious enough to deserve attention without a fictional confrontation. Readers need clear questions about authority, not a battle that exists only in the telling.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe judge {target} adversely. Punitive power demands an exacting political standard, and the dispatch is an appropriate occasion to question the quality and fairness of the responsibility being exercised."
+    },
+    {
+      "headline": "Looking back: distant authority dispatches an expedition",
+      "sub": "The home world has sent a punitive expedition.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The home world had dispatched an expedition intended to punish the colony.\n\nSent does not mean arrived. Remember that before the imagination supplies a scene at the port. The home world has dispatched a punitive expedition. The purpose is serious enough to deserve attention without a fictional confrontation. Readers need clear questions about authority, not a battle that exists only in the telling.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe judge {target} adversely. Punitive power demands an exacting political standard, and the dispatch is an appropriate occasion to question the quality and fairness of the responsibility being exercised."
+    }
+  ]
+}

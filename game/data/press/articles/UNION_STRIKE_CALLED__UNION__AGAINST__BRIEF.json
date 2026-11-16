@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_CALLED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Union calls a strike",
+      "sub": "",
+      "body": "A union has called a strike in {colony}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "A call to withhold labour",
+      "sub": "",
+      "body": "A strike has been called by a union in the colony. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Work becomes the subject of a strike call",
+      "sub": "",
+      "body": "The colony has a union call for strike action. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    }
+  ]
+}

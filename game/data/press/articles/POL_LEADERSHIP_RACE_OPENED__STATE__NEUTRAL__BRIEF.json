@@ -1,0 +1,23 @@
+{
+  "event": "POL_LEADERSHIP_RACE_OPENED",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party leader faces a challenge",
+      "sub": "",
+      "body": "A party's leader is being challenged in {colony}. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "Leadership becomes a contested question",
+      "sub": "",
+      "body": "A challenge to a party leader has opened in the colony. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "A challenge inside the party",
+      "sub": "",
+      "body": "The leadership of a political party is under challenge. The gazette records the development as a matter deserving careful attention in the public interest."
+    }
+  ]
+}

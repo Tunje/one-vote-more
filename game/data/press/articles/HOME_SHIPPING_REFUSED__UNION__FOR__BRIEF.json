@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SHIPPING_REFUSED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Request for more shipping refused",
+      "sub": "",
+      "body": "The home world has refused the colony's request for more shipping. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Home world declines route expansion request",
+      "sub": "",
+      "body": "A colonial request for additional shipping has been rejected by the home world. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "No assent to the colony's shipping plea",
+      "sub": "",
+      "body": "The colony's plea for more shipping has been refused. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

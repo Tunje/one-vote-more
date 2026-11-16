@@ -1,0 +1,23 @@
+{
+  "event": "HOME_EXPEDITION_SENT",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world sends punitive expedition",
+      "sub": "",
+      "body": "The home world has sent a punitive expedition. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "An expedition with a punitive purpose",
+      "sub": "",
+      "body": "A punitive expedition has been dispatched by the home world. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "Distant authority dispatches an expedition",
+      "sub": "",
+      "body": "The home world has dispatched an expedition intended to punish the colony. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    }
+  ]
+}

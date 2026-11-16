@@ -1,0 +1,23 @@
+{
+  "event": "HOME_EXPEDITION_SENT",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world sends punitive expedition",
+      "sub": "",
+      "body": "The home world has sent a punitive expedition. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "An expedition with a punitive purpose",
+      "sub": "",
+      "body": "A punitive expedition has been dispatched by the home world. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Distant authority dispatches an expedition",
+      "sub": "",
+      "body": "The home world has dispatched an expedition intended to punish the colony. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

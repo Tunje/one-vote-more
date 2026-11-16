@@ -1,0 +1,23 @@
+{
+  "event": "ECON_SOVEREIGN_DEFAULT",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: government cannot pay its debts",
+      "sub": "The colony's government is unable to pay its debts.",
+      "body": "We return to {first_reported}. Our report recorded this: The government of {colony} cannot pay its debts.\n\nWorkers have reason to take public debts seriously without accepting that every burden belongs on their shoulders. Labour must ask who should answer for public financial stewardship. That question should not be confused with a claim that a particular wage or service has already been cut in response.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe hold {target} to a critical standard. An inability to meet public debts is a fundamental failure of financial stewardship, and responsibility should not be displaced by an attractive description of the difficulty."
+    },
+    {
+      "headline": "Looking back: public debt meets a payment failure",
+      "sub": "Government debt in the colony cannot be paid by the administration.",
+      "body": "Looking back to {first_reported}, this was the news: The colony's government was unable to pay its debts.\n\nWorkers have reason to take public debts seriously without accepting that every burden belongs on their shoulders. Labour must ask who should answer for public financial stewardship. That question should not be confused with a claim that a particular wage or service has already been cut in response.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe hold {target} to a critical standard. An inability to meet public debts is a fundamental failure of financial stewardship, and responsibility should not be displaced by an attractive description of the difficulty."
+    },
+    {
+      "headline": "Looking back: the colony's government faces default",
+      "sub": "The government of {colony} cannot pay its debts.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: Government debt in the colony cannot be paid by the administration.\n\nWorkers have reason to take public debts seriously without accepting that every burden belongs on their shoulders. Labour must ask who should answer for public financial stewardship. That question should not be confused with a claim that a particular wage or service has already been cut in response.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe hold {target} to a critical standard. An inability to meet public debts is a fundamental failure of financial stewardship, and responsibility should not be displaced by an attractive description of the difficulty."
+    }
+  ]
+}

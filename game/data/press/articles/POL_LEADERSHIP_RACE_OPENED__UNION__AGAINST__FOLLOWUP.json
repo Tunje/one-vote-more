@@ -1,0 +1,23 @@
+{
+  "event": "POL_LEADERSHIP_RACE_OPENED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: party leader faces a challenge",
+      "sub": "A challenge to a party leader has opened in the colony.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A party's leader is being challenged in {colony}.\n\nOur assessment of {target} is critical. Political leadership should withstand serious questioning, and an internal challenge is no reason to suspend the demanding standards that public responsibility properly requires."
+    },
+    {
+      "headline": "Still in view: leadership becomes a contested question",
+      "sub": "The leadership of a political party is under challenge.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A challenge to a party leader has opened in the colony.\n\nOur assessment of {target} is critical. Political leadership should withstand serious questioning, and an internal challenge is no reason to suspend the demanding standards that public responsibility properly requires."
+    },
+    {
+      "headline": "Still in view: a challenge inside the party",
+      "sub": "A party's leader is being challenged in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The leadership of a political party is under challenge.\n\nOur assessment of {target} is critical. Political leadership should withstand serious questioning, and an internal challenge is no reason to suspend the demanding standards that public responsibility properly requires."
+    }
+  ]
+}

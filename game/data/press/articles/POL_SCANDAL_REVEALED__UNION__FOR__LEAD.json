@@ -1,0 +1,23 @@
+{
+  "event": "POL_SCANDAL_REVEALED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Party leader faces a public scandal",
+      "sub": "A party leader is the subject of a newly revealed scandal.",
+      "body": "A scandal about a party leader has come to light. The revelation makes political trust an immediate subject of public attention. An assessment of {target} must distinguish that known fact from unreported details about the conduct involved, its cause or any proceedings that might follow.\n\nWorkers know the difference between being held responsible and being made the subject of gossip. Political leaders should face a serious standard, with fair treatment included in it. Labour's concern is public trust and the use of authority, not the pleasure of seeing a prominent name embarrassed.\n\nWe consider {target} unfairly served by a rush to condemnation. A scandal's existence is not a complete account of responsibility, and a fair hearing remains worth defending even in unwelcome publicity. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Leadership under an unwelcome spotlight",
+      "sub": "A scandal about a party leader has become public in the colony.",
+      "body": "Leadership brings a claim to trust. A newly revealed scandal concerning a party leader gives that claim an uncomfortable setting in {colony}. Readers considering {target} should be able to examine responsibility without being invited to accept a more specific accusation than the report establishes.\n\nWorkers know the difference between being held responsible and being made the subject of gossip. Political leaders should face a serious standard, with fair treatment included in it. Labour's concern is public trust and the use of authority, not the pleasure of seeing a prominent name embarrassed.\n\nWe consider {target} unfairly served by a rush to condemnation. A scandal's existence is not a complete account of responsibility, and a fair hearing remains worth defending even in unwelcome publicity. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "A scandal tests political trust",
+      "sub": "A scandal concerning a party leader has come to light in {colony}.",
+      "body": "The public record now includes a scandal about a party leader. That is serious political news; it is not permission to fill gaps with an attractive story. For {target}, the question of trust deserves attention without a fabricated account of money, private life or criminal conduct.\n\nWorkers know the difference between being held responsible and being made the subject of gossip. Political leaders should face a serious standard, with fair treatment included in it. Labour's concern is public trust and the use of authority, not the pleasure of seeing a prominent name embarrassed.\n\nWe consider {target} unfairly served by a rush to condemnation. A scandal's existence is not a complete account of responsibility, and a fair hearing remains worth defending even in unwelcome publicity. Ordinary lives should be the measure, not a convenient afterthought."
+    }
+  ]
+}

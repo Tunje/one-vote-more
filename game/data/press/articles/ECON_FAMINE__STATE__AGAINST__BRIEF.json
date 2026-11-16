@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Food stewardship falls short",
+      "sub": "",
+      "body": "Food is insufficient in {colony}, and residents are going hungry. Adequate provision must be the immediate public priority. Stewardship warrants criticism."
+    },
+    {
+      "headline": "Gazette questions adequacy of stewardship",
+      "sub": "",
+      "body": "Residents of {colony} are hungry because there is not enough food. The practical measure of a remedy is adequate provision. Stewardship warrants criticism."
+    },
+    {
+      "headline": "Hunger warrants an adverse assessment",
+      "sub": "",
+      "body": "The gazette records insufficient food and hunger in {colony}. Clear information is necessary; practical provision is the essential objective. Stewardship warrants criticism."
+    }
+  ]
+}

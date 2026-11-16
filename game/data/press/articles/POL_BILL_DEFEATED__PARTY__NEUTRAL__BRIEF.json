@@ -1,0 +1,23 @@
+{
+  "event": "POL_BILL_DEFEATED",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Assembly votes down government bill",
+      "sub": "",
+      "body": "A government bill has been voted down in the Colonial Assembly. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "A proposal meets its parliamentary limit",
+      "sub": "",
+      "body": "The Assembly has rejected a bill put forward by the government. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Government legislation fails the vote",
+      "sub": "",
+      "body": "A proposed government bill has failed in the Assembly vote. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

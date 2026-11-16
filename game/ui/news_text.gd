@@ -163,6 +163,8 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 			s = cap1("%s was sold%s%s%s" % [facility(w, d.get("facility", "")), why, to, " (the whole company)" if d.get("whole_company", false) else ""])
 		"ECON_SHORTAGE": s = "Shortage%s: %d%% of demand could not be met" % [(" of " + _kind(d.get("good", ""))) if d.has("good") else "", int(d.get("shortfall_permille", 0)) / 10]
 		"ECON_UTILITY_OUTAGE": s = "Power or water outages%s" % where
+		"ECON_OVERLOAD_INCIDENT": s = "Staff at %s are overworked to breaking point" % facility(w, d.get("facility", ""))
+		"POL_ORDINANCE_ISSUED": s = "The Commander issued an ordinance"
 		"ECON_FOOD_AID": s = "Food aid handed out (%d rations)" % int(d.get("qty", 0))
 		"ECON_FOOD_UNAFFORDABLE": s = "Food on the shelves, but %d%% of families' needs went unbought: they cannot afford it%s" % [int(d.get("unaffordable_permille", 0)) / 10, where]
 		"ECON_TARIFF_CHANGE": s = "%s %s its charges%s" % [str(d.get("org", "The public utility")), "raises" if bool(d.get("up", false)) else "lowers", where]

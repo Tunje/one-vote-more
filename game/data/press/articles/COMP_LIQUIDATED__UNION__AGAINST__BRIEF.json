@@ -1,0 +1,23 @@
+{
+  "event": "COMP_LIQUIDATED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "A company goes under",
+      "sub": "",
+      "body": "A company has gone under in {colony}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Business failure enters the colony's record",
+      "sub": "",
+      "body": "The colony has seen a company fail. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "An enterprise reaches failure",
+      "sub": "",
+      "body": "A business in the colony has gone under. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    }
+  ]
+}

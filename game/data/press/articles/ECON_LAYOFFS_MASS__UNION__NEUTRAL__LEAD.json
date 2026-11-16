@@ -1,0 +1,23 @@
+{
+  "event": "ECON_LAYOFFS_MASS",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Company lays off many workers",
+      "sub": "Many workers have been laid off by a company in the colony.",
+      "body": "A company has laid off many workers in {colony}. The scale is described as large, but a specific number is not supplied here. In assessing {target}, readers should distinguish the loss of jobs from an invented cause, severance arrangement or account of what will happen to those affected.\n\nA layoff is about people whose work matters to their lives. Labour should begin there, with solidarity rather than an abstract admiration for flexibility. The report does not tell every household's story, and we should not invent one to make the case that workers deserve decent treatment when employment ends.\n\nThe conduct of {target} deserves scrutiny in relation to the layoff. This paper does not presume a financial cause, a compensation arrangement or the subsequent circumstances of those whose employment has been affected. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "A large loss of jobs at a company",
+      "sub": "The colony has seen a company carry out a large layoff.",
+      "body": "Many workers have been laid off by a company. The event puts employment at the centre of the colony's business news. For {target}, the relevant scrutiny concerns responsibility towards people and the handling of work, without assuming either the company's trade or its financial reasons for the decision.\n\nA layoff is about people whose work matters to their lives. Labour should begin there, with solidarity rather than an abstract admiration for flexibility. The report does not tell every household's story, and we should not invent one to make the case that workers deserve decent treatment when employment ends.\n\nThe conduct of {target} deserves scrutiny in relation to the layoff. This paper does not presume a financial cause, a compensation arrangement or the subsequent circumstances of those whose employment has been affected. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Workers face a company layoff",
+      "sub": "A company has laid off many workers in {colony}.",
+      "body": "A large layoff has taken place at a company in the colony. The loss of work deserves attention without an embellished account of individual households. Readers judging {target} should be able to consider the seriousness of the event without accepting unreported promises of new employment or support.\n\nA layoff is about people whose work matters to their lives. Labour should begin there, with solidarity rather than an abstract admiration for flexibility. The report does not tell every household's story, and we should not invent one to make the case that workers deserve decent treatment when employment ends.\n\nThe conduct of {target} deserves scrutiny in relation to the layoff. This paper does not presume a financial cause, a compensation arrangement or the subsequent circumstances of those whose employment has been affected. Ordinary lives should be the measure, not a convenient afterthought."
+    }
+  ]
+}

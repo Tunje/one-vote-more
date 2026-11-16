@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTY_SPLIT",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: party divides in two",
+      "sub": "The colony has seen a party divide into two organisations.",
+      "body": "We return to {first_reported}. Our report recorded this: A political party had split in two in {colony}.\n\nPolitical unity has value when it enables common convictions to act. It is not a principle that can settle every disagreement by itself. Our movement should judge a division by the commitments at stake, rather than granting either unity or separation an automatic claim to righteousness in every case.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe support {target} in this assessment. Unity is not an unlimited obligation, and a fair political judgment must allow that separation can deserve defence rather than automatic condemnation for breaking ranks."
+    },
+    {
+      "headline": "Looking back: a political organisation breaks apart",
+      "sub": "A split has divided a political party in the colony.",
+      "body": "Looking back to {first_reported}, this was the news: The colony had seen a party divide into two organisations.\n\nPolitical unity has value when it enables common convictions to act. It is not a principle that can settle every disagreement by itself. Our movement should judge a division by the commitments at stake, rather than granting either unity or separation an automatic claim to righteousness in every case.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe support {target} in this assessment. Unity is not an unlimited obligation, and a fair political judgment must allow that separation can deserve defence rather than automatic condemnation for breaking ranks."
+    },
+    {
+      "headline": "Looking back: unity gives way to a party split",
+      "sub": "A political party has split in two in {colony}.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: A split had divided a political party in the colony.\n\nPolitical unity has value when it enables common convictions to act. It is not a principle that can settle every disagreement by itself. Our movement should judge a division by the commitments at stake, rather than granting either unity or separation an automatic claim to righteousness in every case.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe support {target} in this assessment. Unity is not an unlimited obligation, and a fair political judgment must allow that separation can deserve defence rather than automatic condemnation for breaking ranks."
+    }
+  ]
+}

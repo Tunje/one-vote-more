@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_COLLAPSED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Strike collapses",
+      "sub": "",
+      "body": "A strike has collapsed in {colony}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Labour action loses its course",
+      "sub": "",
+      "body": "The colony has seen a strike collapse. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "A strike ends in collapse",
+      "sub": "",
+      "body": "A strike in the colony has ended in collapse. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

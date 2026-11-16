@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_CALLED",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Union calls a strike",
+      "sub": "",
+      "body": "A union has called a strike in {colony}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "A call to withhold labour",
+      "sub": "",
+      "body": "A strike has been called by a union in the colony. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "Work becomes the subject of a strike call",
+      "sub": "",
+      "body": "The colony has a union call for strike action. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    }
+  ]
+}

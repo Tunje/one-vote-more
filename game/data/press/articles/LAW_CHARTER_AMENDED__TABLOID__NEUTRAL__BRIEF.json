@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_AMENDED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world changes the charter",
+      "sub": "",
+      "body": "The home world has changed the colony's charter. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Colonial charter amended",
+      "sub": "",
+      "body": "An amendment to the colony's charter has been made by the home world. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "The terms of authority are altered",
+      "sub": "",
+      "body": "The colony's charter has been altered by the home world. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    }
+  ]
+}

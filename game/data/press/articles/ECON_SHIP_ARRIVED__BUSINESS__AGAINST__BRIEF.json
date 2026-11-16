@@ -1,0 +1,23 @@
+{
+  "event": "ECON_SHIP_ARRIVED",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home-world ship reaches the colony",
+      "sub": "",
+      "body": "A ship from the home world has arrived in the colony. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "An arrival on the colonial route",
+      "sub": "",
+      "body": "The colony has received the arrival of a home-world ship. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "The distant connection comes into port",
+      "sub": "",
+      "body": "A vessel from the home world has reached {colony}. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    }
+  ]
+}

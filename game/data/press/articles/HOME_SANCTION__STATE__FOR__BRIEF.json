@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SANCTION",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world punishes the colony",
+      "sub": "",
+      "body": "The home world has punished the colony. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "A sanction enters the colonial relationship",
+      "sub": "",
+      "body": "A punishment has been imposed on {colony} by the home world. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "Authority takes a punitive turn",
+      "sub": "",
+      "body": "The colony is the subject of punitive action by the home world. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    }
+  ]
+}

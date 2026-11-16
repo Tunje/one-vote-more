@@ -1,0 +1,23 @@
+{
+  "event": "ECON_SOVEREIGN_DEFAULT",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: government cannot pay its debts",
+      "sub": "The colony's government is unable to pay its debts.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The government of {colony} cannot pay its debts.\n\nWe support {target} against an indiscriminate verdict. The failure to pay is serious, but it does not establish every accusation about its origins or prove that an imagined alternative would have performed better."
+    },
+    {
+      "headline": "Still in view: public debt meets a payment failure",
+      "sub": "Government debt in the colony cannot be paid by the administration.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony's government is unable to pay its debts.\n\nWe support {target} against an indiscriminate verdict. The failure to pay is serious, but it does not establish every accusation about its origins or prove that an imagined alternative would have performed better."
+    },
+    {
+      "headline": "Still in view: the colony's government faces default",
+      "sub": "The government of {colony} cannot pay its debts.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. Government debt in the colony cannot be paid by the administration.\n\nWe support {target} against an indiscriminate verdict. The failure to pay is serious, but it does not establish every accusation about its origins or prove that an imagined alternative would have performed better."
+    }
+  ]
+}

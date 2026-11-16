@@ -1,0 +1,23 @@
+{
+  "event": "ECON_SHIP_ARRIVED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home-world ship reaches the colony",
+      "sub": "",
+      "body": "A ship from the home world has arrived in the colony. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "An arrival on the colonial route",
+      "sub": "",
+      "body": "The colony has received the arrival of a home-world ship. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "The distant connection comes into port",
+      "sub": "",
+      "body": "A vessel from the home world has reached {colony}. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "POL_ELECTION_HELD",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "The colony has voted",
+      "sub": "",
+      "body": "An election to the Colonial Assembly has been held in {colony}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Ballots before the business of government",
+      "sub": "",
+      "body": "The colony has held its election to the Colonial Assembly. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "An Assembly election enters the record",
+      "sub": "",
+      "body": "Voting in an election to the Colonial Assembly has taken place. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

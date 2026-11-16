@@ -1,0 +1,23 @@
+{
+  "event": "PLANET_CYCLONE",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Cyclone hits the colony",
+      "sub": "",
+      "body": "A cyclone has hit the colony. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "A storm becomes the colony's news",
+      "sub": "",
+      "body": "The colony has been struck by a cyclone. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "The colony faces a cyclone",
+      "sub": "",
+      "body": "A cyclone has reached {colony}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SHIPPING_REFUSED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: request for more shipping refused",
+      "sub": "A colonial request for additional shipping has been rejected by the home world.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has refused the colony's request for more shipping.\n\nWe criticise {target} over the handling of this matter. A colony's transport needs deserve serious political stewardship, and a refusal should prompt scrutiny rather than an effortless acceptance of the outcome."
+    },
+    {
+      "headline": "Still in view: home world declines route expansion request",
+      "sub": "The colony's plea for more shipping has been refused.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A colonial request for additional shipping has been rejected by the home world.\n\nWe criticise {target} over the handling of this matter. A colony's transport needs deserve serious political stewardship, and a refusal should prompt scrutiny rather than an effortless acceptance of the outcome."
+    },
+    {
+      "headline": "Still in view: no assent to the colony's shipping plea",
+      "sub": "The home world has refused the colony's request for more shipping.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony's plea for more shipping has been refused.\n\nWe criticise {target} over the handling of this matter. A colony's transport needs deserve serious political stewardship, and a refusal should prompt scrutiny rather than an effortless acceptance of the outcome."
+    }
+  ]
+}

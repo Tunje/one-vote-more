@@ -1,0 +1,23 @@
+{
+  "event": "POL_ELECTION_HELD",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "The colony has voted",
+      "sub": "",
+      "body": "An election to the Colonial Assembly has been held in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Ballots before the business of government",
+      "sub": "",
+      "body": "The colony has held its election to the Colonial Assembly. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "An Assembly election enters the record",
+      "sub": "",
+      "body": "Voting in an election to the Colonial Assembly has taken place. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

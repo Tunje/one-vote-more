@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Food stewardship falls short",
+      "sub": "Food provision is an urgent public concern in {colony}.",
+      "body": "There is insufficient food in {colony}, and residents are going hungry. The matter requires the attention of {target}. The immediate distinction is between describing a shortage and ensuring that people have enough to eat.\n\nAn account of the position should distinguish what is known from what is proposed. Hunger is established; the causes, the duration and the means of remedy should not be presumed from that fact alone. Public discussion would benefit from observing this distinction.\n\nIn the judgment of this gazette, {target} must bear responsibility for an unacceptable position. The fact of hunger is sufficient reason to question the adequacy of that stewardship.\n\nFor the purposes of this gazette, the test of any response is straightforward: whether adequate food becomes available to those who need it. A satisfactory explanation cannot itself constitute a meal."
+    },
+    {
+      "headline": "Gazette questions adequacy of stewardship",
+      "sub": "Residents need food, whatever account is given of the shortage.",
+      "body": "The food shortage in {colony} has a direct human consequence: people are hungry. Any assessment of {target} should begin with that circumstance, rather than with the relative merits of the language used to describe it.\n\nFood provision is a basic condition of the colony's affairs. It should therefore be possible to discuss the present deficiency plainly, without treating either alarm or reassurance as evidence. The fact of hunger warrants attention in its own right.\n\nIn the judgment of this gazette, {target} must bear responsibility for an unacceptable position. The fact of hunger is sufficient reason to question the adequacy of that stewardship.\n\nReaders should judge proposed remedies by their bearing on actual provision. Administrative completeness and practical sufficiency are different measures; only the latter can establish that the central difficulty has been addressed."
+    },
+    {
+      "headline": "Hunger warrants an adverse assessment",
+      "sub": "The shortage must be assessed by its consequences for residents.",
+      "body": "This newspaper records that food is insufficient in {colony} and that people are going hungry. It is an unwelcome entry in the public record, and an important matter for {target} to address.\n\nThere is no advantage in allowing formal terminology to obscure the condition being recorded. A shortage means that the available food does not meet people's needs. Its seriousness does not depend upon whether a more comfortable description can be found.\n\nIn the judgment of this gazette, {target} must bear responsibility for an unacceptable position. The fact of hunger is sufficient reason to question the adequacy of that stewardship.\n\nThe public interest calls for clear information and practical attention. Neither a presumption of recovery nor a presumption about the cause follows from the report. What does follow is the necessity of taking hunger seriously."
+    }
+  ]
+}

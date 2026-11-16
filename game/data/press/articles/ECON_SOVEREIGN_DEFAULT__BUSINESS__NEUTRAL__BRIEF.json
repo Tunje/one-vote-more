@@ -1,0 +1,23 @@
+{
+  "event": "ECON_SOVEREIGN_DEFAULT",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Government cannot pay its debts",
+      "sub": "",
+      "body": "The government of {colony} cannot pay its debts. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Public debt meets a payment failure",
+      "sub": "",
+      "body": "The colony's government is unable to pay its debts. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "The colony's government faces default",
+      "sub": "",
+      "body": "Government debt in the colony cannot be paid by the administration. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

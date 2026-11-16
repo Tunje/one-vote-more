@@ -1,0 +1,23 @@
+{
+  "event": "ECON_LAYOFFS_MASS",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: company lays off many workers",
+      "sub": "Many workers have been laid off by a company in the colony.",
+      "body": "We return to {first_reported}. Our report recorded this: A company had laid off many workers in {colony}.\n\nOur politics should have something serious to say about people losing work. A principle that matters only when an economy is comfortable is a thin principle. The question of responsibility deserves attention without turning affected workers into scenery for an argument about a cause that has not been established.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe hold {target} to account critically. A large loss of jobs is not a minor adjustment in the lives of workers, and its stewardship deserves a more demanding standard than a convenient abstraction."
+    },
+    {
+      "headline": "Looking back: a large loss of jobs at a company",
+      "sub": "The colony has seen a company carry out a large layoff.",
+      "body": "Looking back to {first_reported}, this was the news: Many workers have been laid off by a company in the colony.\n\nOur politics should have something serious to say about people losing work. A principle that matters only when an economy is comfortable is a thin principle. The question of responsibility deserves attention without turning affected workers into scenery for an argument about a cause that has not been established.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe hold {target} to account critically. A large loss of jobs is not a minor adjustment in the lives of workers, and its stewardship deserves a more demanding standard than a convenient abstraction."
+    },
+    {
+      "headline": "Looking back: workers face a company layoff",
+      "sub": "A company has laid off many workers in {colony}.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The colony had seen a company carry out a large layoff.\n\nOur politics should have something serious to say about people losing work. A principle that matters only when an economy is comfortable is a thin principle. The question of responsibility deserves attention without turning affected workers into scenery for an argument about a cause that has not been established.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe hold {target} to account critically. A large loss of jobs is not a minor adjustment in the lives of workers, and its stewardship deserves a more demanding standard than a convenient abstraction."
+    }
+  ]
+}

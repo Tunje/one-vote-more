@@ -1,0 +1,23 @@
+{
+  "event": "POL_LEADERSHIP_RACE_OPENED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party leader faces a challenge",
+      "sub": "",
+      "body": "A party's leader is being challenged in {colony}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Leadership becomes a contested question",
+      "sub": "",
+      "body": "A challenge to a party leader has opened in the colony. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "A challenge inside the party",
+      "sub": "",
+      "body": "The leadership of a political party is under challenge. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

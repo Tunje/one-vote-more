@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: food shortage leaves the colony hungry",
+      "sub": "People in the colony are hungry because food is insufficient.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. There is not enough food in {colony}, and people are going hungry.\n\nThe responsibility of {target} warrants attention without a verdict founded on an unreported cause. This paper records hunger as an established condition and keeps adequate provision at the centre of its account."
+    },
+    {
+      "headline": "Still in view: enough to eat remains the central need",
+      "sub": "The colony's food supply is insufficient, leaving people hungry.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. People in the colony are hungry because food is insufficient.\n\nThe responsibility of {target} warrants attention without a verdict founded on an unreported cause. This paper records hunger as an established condition and keeps adequate provision at the centre of its account."
+    },
+    {
+      "headline": "Still in view: hunger is a fact, not a figure of speech",
+      "sub": "There is not enough food in {colony}, and people are going hungry.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony's food supply is insufficient, leaving people hungry.\n\nThe responsibility of {target} warrants attention without a verdict founded on an unreported cause. This paper records hunger as an established condition and keeps adequate provision at the centre of its account."
+    }
+  ]
+}

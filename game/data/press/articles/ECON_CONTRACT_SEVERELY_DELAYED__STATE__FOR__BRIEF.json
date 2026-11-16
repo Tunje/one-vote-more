@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_SEVERELY_DELAYED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Building project badly behind schedule",
+      "sub": "",
+      "body": "A building project in the colony is badly behind schedule. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "Construction timetable falls seriously short",
+      "sub": "",
+      "body": "Construction of a building project is severely delayed in {colony}. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "A project waits beyond its schedule",
+      "sub": "",
+      "body": "A colony building project has fallen badly behind its schedule. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    }
+  ]
+}

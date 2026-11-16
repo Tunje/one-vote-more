@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_DEFIANCE",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: colony openly defies its charter",
+      "sub": "Open defiance of the charter is taking place in {colony}.",
+      "body": "We return to {first_reported}. Our report recorded this: The colony was openly defying its charter.\n\nThe colony is openly defying its charter. A big gesture, a serious question. But do not write the punishment into the story before it has been established. Readers can ask whether defiance is brave, reckless or justified without being sold a confrontation that belongs to somebody's imagination.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nThe position of {target} warrants scrutiny through the reported defiance. This account does not presume the precise breach or announce a punitive consequence that has not been established in the report."
+    },
+    {
+      "headline": "Looking back: a public break with charter authority",
+      "sub": "The colony has taken an openly defiant position towards its charter.",
+      "body": "Looking back to {first_reported}, this was the news: Open defiance of the charter was taking place in {colony}.\n\nThe colony is openly defying its charter. A big gesture, a serious question. But do not write the punishment into the story before it has been established. Readers can ask whether defiance is brave, reckless or justified without being sold a confrontation that belongs to somebody's imagination.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nThe position of {target} warrants scrutiny through the reported defiance. This account does not presume the precise breach or announce a punitive consequence that has not been established in the report."
+    },
+    {
+      "headline": "Looking back: charter compliance becomes an open dispute",
+      "sub": "The colony is openly defying its charter.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The colony had taken an openly defiant position towards its charter.\n\nThe colony is openly defying its charter. A big gesture, a serious question. But do not write the punishment into the story before it has been established. Readers can ask whether defiance is brave, reckless or justified without being sold a confrontation that belongs to somebody's imagination.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nThe position of {target} warrants scrutiny through the reported defiance. This account does not presume the precise breach or announce a punitive consequence that has not been established in the report."
+    }
+  ]
+}

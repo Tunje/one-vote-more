@@ -1,0 +1,23 @@
+{
+  "event": "POL_GRANT_FAVOURITISM",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Grant programme passes over needy districts",
+      "sub": "Districts in need were passed over by a government grant programme.",
+      "body": "A government grant programme has passed over districts that needed it. The allocation is a public stewardship question, not an invitation to invent the recipients. Readers considering {target} should distinguish the established failure to reach need from an unreported claim about a motive, a sum or a private favour.\n\nWe support {target} against a wider verdict built on assumption. The allocation defect deserves attention, but it does not prove every accusation about motives or justify an invented account of private favour."
+    },
+    {
+      "headline": "Need goes unanswered in grant allocation",
+      "sub": "A government grant allocation has overlooked the districts that needed support.",
+      "body": "Need did not receive the attention it required in a government grant programme: districts that needed support were passed over. For {target}, the event raises a direct question about allocation. That question can be examined without adding a donor, an election bargain or a financial total to the account.\n\nWe support {target} against a wider verdict built on assumption. The allocation defect deserves attention, but it does not prove every accusation about motives or justify an invented account of private favour."
+    },
+    {
+      "headline": "Government grants miss the districts in need",
+      "sub": "A government grant programme has passed over districts that needed it.",
+      "body": "The colony has a grant programme whose allocation passed over districts in need. That is the reported defect in public provision. An assessment of {target} should focus on the relationship between grants and need, rather than an invented explanation of why particular places were overlooked in the process.\n\nWe support {target} against a wider verdict built on assumption. The allocation defect deserves attention, but it does not prove every accusation about motives or justify an invented account of private favour."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SANCTION",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: home world punishes the colony",
+      "sub": "A punishment has been imposed on {colony} by the home world.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has punished the colony.\n\nThe position of {target} should be assessed without supplying an unreported offence or penalty. This paper records the punitive action while reserving judgment on particulars not established in the report."
+    },
+    {
+      "headline": "Still in view: a sanction enters the colonial relationship",
+      "sub": "The colony is the subject of punitive action by the home world.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A punishment has been imposed on {colony} by the home world.\n\nThe position of {target} should be assessed without supplying an unreported offence or penalty. This paper records the punitive action while reserving judgment on particulars not established in the report."
+    },
+    {
+      "headline": "Still in view: authority takes a punitive turn",
+      "sub": "The home world has punished the colony.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony is the subject of punitive action by the home world.\n\nThe position of {target} should be assessed without supplying an unreported offence or penalty. This paper records the punitive action while reserving judgment on particulars not established in the report."
+    }
+  ]
+}

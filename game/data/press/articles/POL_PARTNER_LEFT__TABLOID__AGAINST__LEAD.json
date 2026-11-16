@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTNER_LEFT",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Party walks out of government",
+      "sub": "A governing party has left the colony's government.",
+      "body": "A party has walked out of the government in {colony}. The departure is a change in the governing arrangement, not a complete account of its consequences. In considering {target}, readers should distinguish the fact of leaving from assumptions about parliamentary strength or a successor ministry.\n\nA party has left the government. That much is plain. The temptation is to write the row, the slammed door and the perfect final insult. None of that is needed. A partnership has broken; the colony is entitled to ask what responsible politics looks like after a break.\n\nWe take a critical view of {target}. Governing relationships require serious political judgment, and a break in cooperation is an appropriate moment to question whether that standard has been met. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "A governing partnership breaks",
+      "sub": "The government has lost a party from its governing arrangement.",
+      "body": "Cooperation in government has reached a break: a party has walked out. The event raises the question of what parties owe an arrangement they enter. For {target}, responsibility should be considered without pretending that the report supplies the departing party's reasons or the administration's next steps.\n\nA party has left the government. That much is plain. The temptation is to write the row, the slammed door and the perfect final insult. None of that is needed. A partnership has broken; the colony is entitled to ask what responsible politics looks like after a break.\n\nWe take a critical view of {target}. Governing relationships require serious political judgment, and a break in cooperation is an appropriate moment to question whether that standard has been met. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "Departure redraws the question of cooperation",
+      "sub": "A party has walked out of the government in {colony}.",
+      "body": "Leaving a government is a political act with institutional significance. A party has taken that step in {colony}. Its effect on the governing relationship is the subject of this report; judgments of {target} should not depend on an invented dispute, ultimatum or distribution of seats.\n\nA party has left the government. That much is plain. The temptation is to write the row, the slammed door and the perfect final insult. None of that is needed. A partnership has broken; the colony is entitled to ask what responsible politics looks like after a break.\n\nWe take a critical view of {target}. Governing relationships require serious political judgment, and a break in cooperation is an appropriate moment to question whether that standard has been met. Readers deserve a clear story and a straight answer about responsibility."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: food shortage leaves the colony hungry",
+      "sub": "People in the colony are hungry because food is insufficient.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. There is not enough food in {colony}, and people are going hungry.\n\nWe support {target} against an automatic adverse judgment. Hunger requires serious attention, but it does not establish every claim about its origin or prove that a particular imagined alternative would meet the need."
+    },
+    {
+      "headline": "Still in view: enough to eat remains the central need",
+      "sub": "The colony's food supply is insufficient, leaving people hungry.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. People in the colony are hungry because food is insufficient.\n\nWe support {target} against an automatic adverse judgment. Hunger requires serious attention, but it does not establish every claim about its origin or prove that a particular imagined alternative would meet the need."
+    },
+    {
+      "headline": "Still in view: hunger is a fact, not a figure of speech",
+      "sub": "There is not enough food in {colony}, and people are going hungry.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony's food supply is insufficient, leaving people hungry.\n\nWe support {target} against an automatic adverse judgment. Hunger requires serious attention, but it does not establish every claim about its origin or prove that a particular imagined alternative would meet the need."
+    }
+  ]
+}

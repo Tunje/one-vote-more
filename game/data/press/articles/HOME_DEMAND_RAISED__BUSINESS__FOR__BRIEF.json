@@ -1,0 +1,23 @@
+{
+  "event": "HOME_DEMAND_RAISED",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world raises its demands",
+      "sub": "",
+      "body": "The home world has raised what it demands of the colony. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "A larger claim on the colony",
+      "sub": "",
+      "body": "The demands placed on the colony by the home world have increased. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "Distant authority asks for more",
+      "sub": "",
+      "body": "The home world is demanding more from {colony}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    }
+  ]
+}

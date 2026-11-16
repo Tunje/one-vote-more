@@ -1,0 +1,23 @@
+{
+  "event": "POL_ELECTION_HELD",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "The colony has voted",
+      "sub": "",
+      "body": "An election to the Colonial Assembly has been held in {colony}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "Ballots before the business of government",
+      "sub": "",
+      "body": "The colony has held its election to the Colonial Assembly. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "An Assembly election enters the record",
+      "sub": "",
+      "body": "Voting in an election to the Colonial Assembly has taken place. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "POL_SCANDAL_REVEALED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: party leader faces a public scandal",
+      "sub": "A party leader is the subject of a newly revealed scandal.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A scandal concerning a party leader has come to light in {colony}.\n\nIn our judgment, {target} does not deserve confidence in this matter. Political trust requires a demanding standard, and the scandal is an appropriate occasion for a distinctly critical assessment."
+    },
+    {
+      "headline": "Still in view: leadership under an unwelcome spotlight",
+      "sub": "A scandal about a party leader has become public in the colony.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A party leader is the subject of a newly revealed scandal.\n\nIn our judgment, {target} does not deserve confidence in this matter. Political trust requires a demanding standard, and the scandal is an appropriate occasion for a distinctly critical assessment."
+    },
+    {
+      "headline": "Still in view: a scandal tests political trust",
+      "sub": "A scandal concerning a party leader has come to light in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A scandal about a party leader has become public in the colony.\n\nIn our judgment, {target} does not deserve confidence in this matter. Political trust requires a demanding standard, and the scandal is an appropriate occasion for a distinctly critical assessment."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_DEFIANCE",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Colony openly defies its charter",
+      "sub": "Open defiance of the charter is taking place in {colony}.",
+      "body": "The colony is openly defying its charter. The defiance is established; a particular punishment or response is not. An assessment of {target} should distinguish the political and legal question posed by that stance from an invented account of what the home world has done in reply.\n\nOpen charter defiance is a legal and political fact, not a complete statement of operating consequences. Business readers should avoid assuming that a sanction has followed or that an established rule has simply ceased to exist. Assessment requires a distinction between the stance taken and the response actually reported.\n\nThe position of {target} warrants scrutiny through the reported defiance. This account does not presume the precise breach or announce a punitive consequence that has not been established in the report. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    },
+    {
+      "headline": "A public break with charter authority",
+      "sub": "The colony has taken an openly defiant position towards its charter.",
+      "body": "The relationship between local action and charter authority is an open question of defiance in {colony}. That is the development reported here. Readers considering {target} should be able to judge responsibility without accepting an unreported sanction, demand or confrontation as part of the event.\n\nOpen charter defiance is a legal and political fact, not a complete statement of operating consequences. Business readers should avoid assuming that a sanction has followed or that an established rule has simply ceased to exist. Assessment requires a distinction between the stance taken and the response actually reported.\n\nThe position of {target} warrants scrutiny through the reported defiance. This account does not presume the precise breach or announce a punitive consequence that has not been established in the report. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    },
+    {
+      "headline": "Charter compliance becomes an open dispute",
+      "sub": "The colony is openly defying its charter.",
+      "body": "Charter authority is being openly defied by the colony. The stance deserves serious attention in its own right. For {target}, the question is how to judge an explicit refusal of compliance, without presuming the precise act involved or treating a possible consequence as already established.\n\nOpen charter defiance is a legal and political fact, not a complete statement of operating consequences. Business readers should avoid assuming that a sanction has followed or that an established rule has simply ceased to exist. Assessment requires a distinction between the stance taken and the response actually reported.\n\nThe position of {target} warrants scrutiny through the reported defiance. This account does not presume the precise breach or announce a punitive consequence that has not been established in the report. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    }
+  ]
+}

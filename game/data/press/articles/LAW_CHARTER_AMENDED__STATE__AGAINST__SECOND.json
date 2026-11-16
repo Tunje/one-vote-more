@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_AMENDED",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Home world changes the charter",
+      "sub": "An amendment to the colony's charter has been made by the home world.",
+      "body": "The home world has changed the colony's charter. A change to the governing framework deserves a precise account, not a guess at the powers affected. In considering {target}, readers should distinguish the fact of amendment from any particular new permission or restriction not specified in this report.\n\nWe take a critical view of {target}. Altering the governing framework calls for exacting political responsibility, and the prestige of a charter supplies no automatic defence against questions about that responsibility."
+    },
+    {
+      "headline": "Colonial charter amended",
+      "sub": "The colony's charter has been altered by the home world.",
+      "body": "The terms under which the colony is governed have a recorded amendment: the home world has changed the charter. For {target}, the event invites scrutiny of authority and legitimacy. It does not license an invented account of which local decisions have become lawful or unlawful.\n\nWe take a critical view of {target}. Altering the governing framework calls for exacting political responsibility, and the prestige of a charter supplies no automatic defence against questions about that responsibility."
+    },
+    {
+      "headline": "The terms of authority are altered",
+      "sub": "The home world has changed the colony's charter.",
+      "body": "A charter amendment has been made by the home world. The change belongs to the colony's legal framework, while its detailed operation is a separate matter. Readers judging {target} should be able to discuss the use of authority without accepting unspecified legal consequences as established facts.\n\nWe take a critical view of {target}. Altering the governing framework calls for exacting political responsibility, and the prestige of a charter supplies no automatic defence against questions about that responsibility."
+    }
+  ]
+}

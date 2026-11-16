@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SHIP_BUILT",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Shipbuilding for the colony route",
+      "sub": "",
+      "body": "The home world has built a larger ship or an additional ship for the colony route. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "Home world builds for the colonial crossing",
+      "sub": "",
+      "body": "Shipbuilding by the home world has provided a larger vessel or another vessel for the colony route. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "Route gains a shipbuilding development",
+      "sub": "",
+      "body": "A larger ship or one more ship has been built for the colony route. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    }
+  ]
+}

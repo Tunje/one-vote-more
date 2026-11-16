@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTY_SPLIT",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: party divides in two",
+      "sub": "The colony has seen a party divide into two organisations.",
+      "body": "We return to {first_reported}. Our report recorded this: A political party had split in two in {colony}.\n\nAn organisational division in politics is not the same as a change in the rules under which firms operate. Commercial readers should avoid treating the split as a ready-made forecast. Representation and future decisions require examination in their own right, without an assumed programme attached to either part.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe judge {target} harshly in this matter. Political organisation carries obligations beyond the comfort of its leaders, and division is an appropriate occasion to question the quality of that stewardship."
+    },
+    {
+      "headline": "Looking back: a political organisation breaks apart",
+      "sub": "A split has divided a political party in the colony.",
+      "body": "Looking back to {first_reported}, this was the news: The colony had seen a party divide into two organisations.\n\nAn organisational division in politics is not the same as a change in the rules under which firms operate. Commercial readers should avoid treating the split as a ready-made forecast. Representation and future decisions require examination in their own right, without an assumed programme attached to either part.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe judge {target} harshly in this matter. Political organisation carries obligations beyond the comfort of its leaders, and division is an appropriate occasion to question the quality of that stewardship."
+    },
+    {
+      "headline": "Looking back: unity gives way to a party split",
+      "sub": "A political party has split in two in {colony}.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: A split had divided a political party in the colony.\n\nAn organisational division in politics is not the same as a change in the rules under which firms operate. Commercial readers should avoid treating the split as a ready-made forecast. Representation and future decisions require examination in their own right, without an assumed programme attached to either part.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe judge {target} harshly in this matter. Political organisation carries obligations beyond the comfort of its leaders, and division is an appropriate occasion to question the quality of that stewardship."
+    }
+  ]
+}

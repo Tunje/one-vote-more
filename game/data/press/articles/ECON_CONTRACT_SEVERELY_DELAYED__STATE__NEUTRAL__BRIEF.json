@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_SEVERELY_DELAYED",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Building project badly behind schedule",
+      "sub": "",
+      "body": "A building project in the colony is badly behind schedule. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "Construction timetable falls seriously short",
+      "sub": "",
+      "body": "Construction of a building project is severely delayed in {colony}. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "A project waits beyond its schedule",
+      "sub": "",
+      "body": "A colony building project has fallen badly behind its schedule. The gazette records the development as a matter deserving careful attention in the public interest."
+    }
+  ]
+}

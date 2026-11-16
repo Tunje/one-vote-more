@@ -1,0 +1,23 @@
+{
+  "event": "ECON_SOVEREIGN_DEFAULT",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Government cannot pay its debts",
+      "sub": "",
+      "body": "The government of {colony} cannot pay its debts. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Public debt meets a payment failure",
+      "sub": "",
+      "body": "The colony's government is unable to pay its debts. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "The colony's government faces default",
+      "sub": "",
+      "body": "Government debt in the colony cannot be paid by the administration. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "POL_ELECTION_HELD",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "The colony has voted",
+      "sub": "",
+      "body": "An election to the Colonial Assembly has been held in {colony}. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "Ballots before the business of government",
+      "sub": "",
+      "body": "The colony has held its election to the Colonial Assembly. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "An Assembly election enters the record",
+      "sub": "",
+      "body": "Voting in an election to the Colonial Assembly has taken place. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    }
+  ]
+}

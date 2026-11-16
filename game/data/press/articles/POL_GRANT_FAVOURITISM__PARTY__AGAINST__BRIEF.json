@@ -1,0 +1,23 @@
+{
+  "event": "POL_GRANT_FAVOURITISM",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Grant programme passes over needy districts",
+      "sub": "",
+      "body": "A government grant programme has passed over districts that needed it. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Need goes unanswered in grant allocation",
+      "sub": "",
+      "body": "Districts in need were passed over by a government grant programme. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Government grants miss the districts in need",
+      "sub": "",
+      "body": "A government grant allocation has overlooked the districts that needed support. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    }
+  ]
+}

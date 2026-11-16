@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_FAILED",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: bid to remove government fails",
+      "sub": "The attempt to remove the government by an Assembly vote has failed.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A vote to bring down the government has failed in {colony}.\n\nThe role of {target} merits examination on the known outcome. A failed removal attempt should be reported clearly, without supplying an unreported political bargain as its explanation."
+    },
+    {
+      "headline": "Still in view: confidence challenge falls short",
+      "sub": "The government has survived a vote intended to bring it down.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The attempt to remove the government by an Assembly vote has failed.\n\nThe role of {target} merits examination on the known outcome. A failed removal attempt should be reported clearly, without supplying an unreported political bargain as its explanation."
+    },
+    {
+      "headline": "Still in view: government survives the Assembly test",
+      "sub": "A vote to bring down the government has failed in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The government has survived a vote intended to bring it down.\n\nThe role of {target} merits examination on the known outcome. A failed removal attempt should be reported clearly, without supplying an unreported political bargain as its explanation."
+    }
+  ]
+}

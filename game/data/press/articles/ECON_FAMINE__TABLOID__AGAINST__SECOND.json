@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Food shortage leaves the colony hungry",
+      "sub": "People in the colony are hungry because food is insufficient.",
+      "body": "People in {colony} are going hungry because there is not enough food. That is the central condition, without a cause or a timetable supplied here. Readers assessing {target} should distinguish the need for adequate provision from an invented account of how the shortage came about.\n\nWe hold {target} to account critically. Hunger is an unacceptable condition for the colony, and the standard of stewardship should be judged against the basic requirement that people have enough to eat."
+    },
+    {
+      "headline": "Enough to eat remains the central need",
+      "sub": "The colony's food supply is insufficient, leaving people hungry.",
+      "body": "Enough to eat is a basic requirement of daily life. The colony does not have enough food, and people are hungry. For {target}, the relevant scrutiny concerns the standard of provision, without assuming a particular policy failure or announcing a remedy not established by this report.\n\nWe hold {target} to account critically. Hunger is an unacceptable condition for the colony, and the standard of stewardship should be judged against the basic requirement that people have enough to eat."
+    },
+    {
+      "headline": "Hunger is a fact, not a figure of speech",
+      "sub": "There is not enough food in {colony}, and people are going hungry.",
+      "body": "The colony's food supply is insufficient and people are going hungry. A clear account should keep that practical condition in view. An assessment of {target} does not need an invented queue, a price increase or a crop failure to establish why adequate food deserves serious public attention.\n\nWe hold {target} to account critically. Hunger is an unacceptable condition for the colony, and the standard of stewardship should be judged against the basic requirement that people have enough to eat."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Our verdict: a failure of responsibility",
+      "sub": "",
+      "body": "There is not enough food in {colony}. People are hungry, and the political debate must answer that simple, urgent fact. We hold {target} responsible."
+    },
+    {
+      "headline": "Principles demand an answer for hunger",
+      "sub": "",
+      "body": "Food is insufficient and people are hungry in {colony}. Political principles should be judged by what they mean for those people. We hold {target} responsible."
+    },
+    {
+      "headline": "No trust without enough to eat",
+      "sub": "",
+      "body": "People are going hungry in {colony} because food is insufficient. Any political argument should keep their needs at its centre. We hold {target} responsible."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "POL_ELECTION_HELD",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "The colony has voted",
+      "sub": "",
+      "body": "An election to the Colonial Assembly has been held in {colony}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Ballots before the business of government",
+      "sub": "",
+      "body": "The colony has held its election to the Colonial Assembly. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "An Assembly election enters the record",
+      "sub": "",
+      "body": "Voting in an election to the Colonial Assembly has taken place. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    }
+  ]
+}

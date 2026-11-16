@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_SEVERELY_DELAYED",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Building project badly behind schedule",
+      "sub": "",
+      "body": "A building project in the colony is badly behind schedule. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Construction timetable falls seriously short",
+      "sub": "",
+      "body": "Construction of a building project is severely delayed in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "A project waits beyond its schedule",
+      "sub": "",
+      "body": "A colony building project has fallen badly behind its schedule. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

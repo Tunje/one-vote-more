@@ -1,0 +1,23 @@
+{
+  "event": "POL_GOVERNMENT_FORMED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "A new government takes shape",
+      "sub": "",
+      "body": "A new government has been formed in {colony}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Formation is the beginning of governing",
+      "sub": "",
+      "body": "The colony has a newly formed government. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "New ministry, practical obligations",
+      "sub": "",
+      "body": "Government formation has produced a new administration in {colony}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

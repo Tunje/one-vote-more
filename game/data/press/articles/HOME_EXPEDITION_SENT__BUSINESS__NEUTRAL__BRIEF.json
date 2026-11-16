@@ -1,0 +1,23 @@
+{
+  "event": "HOME_EXPEDITION_SENT",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world sends punitive expedition",
+      "sub": "",
+      "body": "The home world has sent a punitive expedition. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "An expedition with a punitive purpose",
+      "sub": "",
+      "body": "A punitive expedition has been dispatched by the home world. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Distant authority dispatches an expedition",
+      "sub": "",
+      "body": "The home world has dispatched an expedition intended to punish the colony. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

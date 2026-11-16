@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTNER_LEFT",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Party walks out of government",
+      "sub": "A governing party has left the colony's government.",
+      "body": "A party has walked out of the government in {colony}. The departure is a change in the governing arrangement, not a complete account of its consequences. In considering {target}, readers should distinguish the fact of leaving from assumptions about parliamentary strength or a successor ministry.\n\nA party's departure is a change in the political arrangement. It is not proof that contracts will be disrupted or that policy will reverse. Owners and managers should keep their assessments tied to identifiable decisions rather than treating every break in political cooperation as an economic forecast.\n\nWe support {target} in this assessment. Cooperation is not an obligation to accept every political arrangement indefinitely; a fair judgment must leave room for a principled position when relationships change. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    },
+    {
+      "headline": "A governing partnership breaks",
+      "sub": "The government has lost a party from its governing arrangement.",
+      "body": "Cooperation in government has reached a break: a party has walked out. The event raises the question of what parties owe an arrangement they enter. For {target}, responsibility should be considered without pretending that the report supplies the departing party's reasons or the administration's next steps.\n\nA party's departure is a change in the political arrangement. It is not proof that contracts will be disrupted or that policy will reverse. Owners and managers should keep their assessments tied to identifiable decisions rather than treating every break in political cooperation as an economic forecast.\n\nWe support {target} in this assessment. Cooperation is not an obligation to accept every political arrangement indefinitely; a fair judgment must leave room for a principled position when relationships change. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    },
+    {
+      "headline": "Departure redraws the question of cooperation",
+      "sub": "A party has walked out of the government in {colony}.",
+      "body": "Leaving a government is a political act with institutional significance. A party has taken that step in {colony}. Its effect on the governing relationship is the subject of this report; judgments of {target} should not depend on an invented dispute, ultimatum or distribution of seats.\n\nA party's departure is a change in the political arrangement. It is not proof that contracts will be disrupted or that policy will reverse. Owners and managers should keep their assessments tied to identifiable decisions rather than treating every break in political cooperation as an economic forecast.\n\nWe support {target} in this assessment. Cooperation is not an obligation to accept every political arrangement indefinitely; a fair judgment must leave room for a principled position when relationships change. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    }
+  ]
+}

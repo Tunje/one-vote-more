@@ -1,0 +1,23 @@
+{
+  "event": "ECON_SOVEREIGN_DEFAULT",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Government cannot pay its debts",
+      "sub": "",
+      "body": "The government of {colony} cannot pay its debts. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Public debt meets a payment failure",
+      "sub": "",
+      "body": "The colony's government is unable to pay its debts. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "The colony's government faces default",
+      "sub": "",
+      "body": "Government debt in the colony cannot be paid by the administration. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

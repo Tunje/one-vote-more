@@ -1,0 +1,23 @@
+{
+  "event": "POL_DEBATE_GAFFE",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party leader blunders in election debate",
+      "sub": "",
+      "body": "A party leader has blundered in an election debate. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "A debate brings a leader's misstep",
+      "sub": "",
+      "body": "An election debate has included a blunder by a party leader. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Election argument meets an awkward moment",
+      "sub": "",
+      "body": "A party leader has made a misstep in an election debate. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

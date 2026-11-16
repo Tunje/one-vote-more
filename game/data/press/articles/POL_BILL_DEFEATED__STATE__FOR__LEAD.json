@@ -1,0 +1,23 @@
+{
+  "event": "POL_BILL_DEFEATED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Assembly votes down government bill",
+      "sub": "The Assembly has rejected a bill put forward by the government.",
+      "body": "A government bill has been voted down in the Colonial Assembly. The result concerns the proposal put to the vote; it should not be enlarged into an unreported change of government. In assessing {target}, readers should distinguish legislative defeat from a complete account of political authority.\n\nThe gazette records the defeat of the bill as a legislative event. A rejection and a statutory change are different things, and the former should not be described as though the latter had occurred. An orderly public account also avoids presuming that the vote had an unreported constitutional consequence.\n\nWe defend {target} against an easy adverse verdict. A parliamentary defeat does not by itself settle the merits of a political position, and a rejected proposal can still deserve a fair hearing. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "A proposal meets its parliamentary limit",
+      "sub": "A proposed government bill has failed in the Assembly vote.",
+      "body": "Proposing legislation does not ensure its passage. The Assembly has voted down a government bill in {colony}. That outcome gives a concrete setting to scrutiny of {target}, without supplying the bill's provisions, the voting margin or the reasons members had for rejecting it.\n\nThe gazette records the defeat of the bill as a legislative event. A rejection and a statutory change are different things, and the former should not be described as though the latter had occurred. An orderly public account also avoids presuming that the vote had an unreported constitutional consequence.\n\nWe defend {target} against an easy adverse verdict. A parliamentary defeat does not by itself settle the merits of a political position, and a rejected proposal can still deserve a fair hearing. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "Government legislation fails the vote",
+      "sub": "A government bill has been voted down in the Colonial Assembly.",
+      "body": "The government's bill has not passed the Assembly. It is a definite result for the proposed legislation, even without a detailed account of the measure. Any judgment of {target} should therefore address the political handling of a rejected proposal without inventing what the proposal would have done.\n\nThe gazette records the defeat of the bill as a legislative event. A rejection and a statutory change are different things, and the former should not be described as though the latter had occurred. An orderly public account also avoids presuming that the vote had an unreported constitutional consequence.\n\nWe defend {target} against an easy adverse verdict. A parliamentary defeat does not by itself settle the merits of a political position, and a rejected proposal can still deserve a fair hearing. Care in the public record is part of responsible administration."
+    }
+  ]
+}

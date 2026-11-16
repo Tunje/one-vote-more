@@ -1,0 +1,23 @@
+{
+  "event": "POL_SCANDAL_REVEALED",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Party leader faces a public scandal",
+      "sub": "A party leader is the subject of a newly revealed scandal.",
+      "body": "A scandal about a party leader has come to light. The revelation makes political trust an immediate subject of public attention. An assessment of {target} must distinguish that known fact from unreported details about the conduct involved, its cause or any proceedings that might follow.\n\nThe gazette confines its factual account to the revelation of the scandal. A political embarrassment and a finding under law are distinct matters. The public record is best served by keeping the distinction clear and by avoiding particulars which have not been supplied to this newspaper.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "Leadership under an unwelcome spotlight",
+      "sub": "A scandal about a party leader has become public in the colony.",
+      "body": "Leadership brings a claim to trust. A newly revealed scandal concerning a party leader gives that claim an uncomfortable setting in {colony}. Readers considering {target} should be able to examine responsibility without being invited to accept a more specific accusation than the report establishes.\n\nThe gazette confines its factual account to the revelation of the scandal. A political embarrassment and a finding under law are distinct matters. The public record is best served by keeping the distinction clear and by avoiding particulars which have not been supplied to this newspaper.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "A scandal tests political trust",
+      "sub": "A scandal concerning a party leader has come to light in {colony}.",
+      "body": "The public record now includes a scandal about a party leader. That is serious political news; it is not permission to fill gaps with an attractive story. For {target}, the question of trust deserves attention without a fabricated account of money, private life or criminal conduct.\n\nThe gazette confines its factual account to the revelation of the scandal. A political embarrassment and a finding under law are distinct matters. The public record is best served by keeping the distinction clear and by avoiding particulars which have not been supplied to this newspaper.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing. Care in the public record is part of responsible administration."
+    }
+  ]
+}

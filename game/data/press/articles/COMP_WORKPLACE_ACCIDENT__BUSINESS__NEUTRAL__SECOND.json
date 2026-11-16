@@ -1,0 +1,23 @@
+{
+  "event": "COMP_WORKPLACE_ACCIDENT",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Accident at a workplace",
+      "sub": "The colony has had an accident at a workplace.",
+      "body": "An accident has occurred at a workplace in {colony}. The occurrence is established, while a particular injury or legal finding is not supplied here. Readers considering {target} should distinguish scrutiny of safety responsibility from an invented account of the accident's cause or the condition of those involved.\n\nThe role of {target} merits scrutiny against the accident. This paper does not presume a breach of rules or announce consequences for workers that have not been established in the reported particulars."
+    },
+    {
+      "headline": "Workplace safety becomes immediate news",
+      "sub": "A workplace in the colony has been the scene of an accident.",
+      "body": "Safety is a practical concern before it is a subject for a statement. A workplace accident has occurred in the colony. An assessment of {target} should take that event seriously without presuming the kind of work, the number affected or a breach of rules not established by this account.\n\nThe role of {target} merits scrutiny against the accident. This paper does not presume a breach of rules or announce consequences for workers that have not been established in the reported particulars."
+    },
+    {
+      "headline": "An accident enters the working day",
+      "sub": "An accident has occurred at a workplace in {colony}.",
+      "body": "The colony's news includes an accident at a workplace. That is sufficient reason for careful attention, not permission to imagine an injury or a rescue. For {target}, the relevant question is responsibility in the setting of work, with the known event kept distinct from its unreported particulars.\n\nThe role of {target} merits scrutiny against the accident. This paper does not presume a breach of rules or announce consequences for workers that have not been established in the reported particulars."
+    }
+  ]
+}

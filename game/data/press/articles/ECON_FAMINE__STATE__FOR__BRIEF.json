@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Shortage alone cannot settle responsibility",
+      "sub": "",
+      "body": "Food is insufficient in {colony}, and residents are going hungry. Adequate provision must be the immediate public priority. Fair judgment remains necessary."
+    },
+    {
+      "headline": "Gazette urges fair judgment on hunger",
+      "sub": "",
+      "body": "Residents of {colony} are hungry because there is not enough food. The practical measure of a remedy is adequate provision. Fair judgment remains necessary."
+    },
+    {
+      "headline": "Provision deserves attention before blame",
+      "sub": "",
+      "body": "The gazette records insufficient food and hunger in {colony}. Clear information is necessary; practical provision is the essential objective. Fair judgment remains necessary."
+    }
+  ]
+}

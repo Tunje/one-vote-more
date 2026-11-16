@@ -1,0 +1,23 @@
+{
+  "event": "POL_LEADERSHIP_RACE_OPENED",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party leader faces a challenge",
+      "sub": "",
+      "body": "A party's leader is being challenged in {colony}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "Leadership becomes a contested question",
+      "sub": "",
+      "body": "A challenge to a party leader has opened in the colony. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "A challenge inside the party",
+      "sub": "",
+      "body": "The leadership of a political party is under challenge. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    }
+  ]
+}

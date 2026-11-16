@@ -1,0 +1,23 @@
+{
+  "event": "ECON_LAYOFFS_MASS",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: company lays off many workers",
+      "sub": "Many workers have been laid off by a company in the colony.",
+      "body": "We return to {first_reported}. Our report recorded this: A company had laid off many workers in {colony}.\n\nA large layoff is an employment decision, not a complete financial statement. Commercial readers should avoid assuming a specific saving, a decline in demand or the closure of the enterprise. A useful assessment distinguishes the known decision from the business conditions and future results that would need their own evidence.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe support {target} against a blanket adverse verdict. The layoff is serious, but the report does not establish every claim about its causes or prove that a particular imagined alternative was available."
+    },
+    {
+      "headline": "Looking back: a large loss of jobs at a company",
+      "sub": "The colony has seen a company carry out a large layoff.",
+      "body": "Looking back to {first_reported}, this was the news: Many workers have been laid off by a company in the colony.\n\nA large layoff is an employment decision, not a complete financial statement. Commercial readers should avoid assuming a specific saving, a decline in demand or the closure of the enterprise. A useful assessment distinguishes the known decision from the business conditions and future results that would need their own evidence.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe support {target} against a blanket adverse verdict. The layoff is serious, but the report does not establish every claim about its causes or prove that a particular imagined alternative was available."
+    },
+    {
+      "headline": "Looking back: workers face a company layoff",
+      "sub": "A company has laid off many workers in {colony}.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The colony had seen a company carry out a large layoff.\n\nA large layoff is an employment decision, not a complete financial statement. Commercial readers should avoid assuming a specific saving, a decline in demand or the closure of the enterprise. A useful assessment distinguishes the known decision from the business conditions and future results that would need their own evidence.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe support {target} against a blanket adverse verdict. The layoff is serious, but the report does not establish every claim about its causes or prove that a particular imagined alternative was available."
+    }
+  ]
+}

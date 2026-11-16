@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_PASSED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Assembly votes the government out",
+      "sub": "",
+      "body": "The Colonial Assembly has voted the government out in {colony}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Confidence withdrawn",
+      "sub": "",
+      "body": "The government has been voted out by the Colonial Assembly. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Office meets its parliamentary limit",
+      "sub": "",
+      "body": "An Assembly vote has removed the government in {colony}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "PLANET_CYCLONE",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Cyclone hits the colony",
+      "sub": "",
+      "body": "A cyclone has hit the colony. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "A storm becomes the colony's news",
+      "sub": "",
+      "body": "The colony has been struck by a cyclone. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "The colony faces a cyclone",
+      "sub": "",
+      "body": "A cyclone has reached {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

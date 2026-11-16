@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_AMENDED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: home world changes the charter",
+      "sub": "An amendment to the colony's charter has been made by the home world.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has changed the colony's charter.\n\nWe support {target} in this assessment. A charter change deserves judgment on its merits, rather than condemnation merely because the framework has been altered by an authority exercising its claimed role."
+    },
+    {
+      "headline": "Still in view: colonial charter amended",
+      "sub": "The colony's charter has been altered by the home world.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. An amendment to the colony's charter has been made by the home world.\n\nWe support {target} in this assessment. A charter change deserves judgment on its merits, rather than condemnation merely because the framework has been altered by an authority exercising its claimed role."
+    },
+    {
+      "headline": "Still in view: the terms of authority are altered",
+      "sub": "The home world has changed the colony's charter.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony's charter has been altered by the home world.\n\nWe support {target} in this assessment. A charter change deserves judgment on its merits, rather than condemnation merely because the framework has been altered by an authority exercising its claimed role."
+    }
+  ]
+}

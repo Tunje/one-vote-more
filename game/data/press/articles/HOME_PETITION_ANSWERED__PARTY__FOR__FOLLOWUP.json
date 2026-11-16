@@ -1,0 +1,23 @@
+{
+  "event": "HOME_PETITION_ANSWERED",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: home world answers colony's petition",
+      "sub": "A reply to the colony's petition has come from the home world.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has answered the colony's petition.\n\nWe support {target} in this assessment. Seeking and handling a response deserves a fair hearing; an answer should not become the occasion for hostile conclusions founded on terms this account does not establish."
+    },
+    {
+      "headline": "Still in view: a reply to the colonial petition",
+      "sub": "The colony has received an answer to its petition from the home world.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A reply to the colony's petition has come from the home world.\n\nWe support {target} in this assessment. Seeking and handling a response deserves a fair hearing; an answer should not become the occasion for hostile conclusions founded on terms this account does not establish."
+    },
+    {
+      "headline": "Still in view: petition receives an answer",
+      "sub": "The home world has answered the colony's petition.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony has received an answer to its petition from the home world.\n\nWe support {target} in this assessment. Seeking and handling a response deserves a fair hearing; an answer should not become the occasion for hostile conclusions founded on terms this account does not establish."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "PLANET_CYCLONE",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Cyclone hits the colony",
+      "sub": "",
+      "body": "A cyclone has hit the colony. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "A storm becomes the colony's news",
+      "sub": "",
+      "body": "The colony has been struck by a cyclone. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "The colony faces a cyclone",
+      "sub": "",
+      "body": "A cyclone has reached {colony}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    }
+  ]
+}

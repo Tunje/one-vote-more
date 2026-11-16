@@ -1,0 +1,23 @@
+{
+  "event": "COMP_LIQUIDATED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: a company goes under",
+      "sub": "The colony has seen a company fail.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A company has gone under in {colony}.\n\nThe responsibility of {target} should be examined without presuming the failure's cause. This paper records the business outcome while leaving unreported financial, employment and legal particulars outside its factual account."
+    },
+    {
+      "headline": "Still in view: business failure enters the colony's record",
+      "sub": "A business in the colony has gone under.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has seen a company fail.\n\nThe responsibility of {target} should be examined without presuming the failure's cause. This paper records the business outcome while leaving unreported financial, employment and legal particulars outside its factual account."
+    },
+    {
+      "headline": "Still in view: an enterprise reaches failure",
+      "sub": "A company has gone under in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A business in the colony has gone under.\n\nThe responsibility of {target} should be examined without presuming the failure's cause. This paper records the business outcome while leaving unreported financial, employment and legal particulars outside its factual account."
+    }
+  ]
+}

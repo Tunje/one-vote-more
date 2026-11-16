@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_CALLED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Union calls a strike",
+      "sub": "",
+      "body": "A union has called a strike in {colony}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "A call to withhold labour",
+      "sub": "",
+      "body": "A strike has been called by a union in the colony. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Work becomes the subject of a strike call",
+      "sub": "",
+      "body": "The colony has a union call for strike action. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

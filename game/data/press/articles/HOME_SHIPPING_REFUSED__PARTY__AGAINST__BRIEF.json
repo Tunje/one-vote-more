@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SHIPPING_REFUSED",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Request for more shipping refused",
+      "sub": "",
+      "body": "The home world has refused the colony's request for more shipping. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Home world declines route expansion request",
+      "sub": "",
+      "body": "A colonial request for additional shipping has been rejected by the home world. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "No assent to the colony's shipping plea",
+      "sub": "",
+      "body": "The colony's plea for more shipping has been refused. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    }
+  ]
+}

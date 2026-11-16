@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SHIPPING_REFUSED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Request for more shipping refused",
+      "sub": "",
+      "body": "The home world has refused the colony's request for more shipping. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Home world declines route expansion request",
+      "sub": "",
+      "body": "A colonial request for additional shipping has been rejected by the home world. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "No assent to the colony's shipping plea",
+      "sub": "",
+      "body": "The colony's plea for more shipping has been refused. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    }
+  ]
+}

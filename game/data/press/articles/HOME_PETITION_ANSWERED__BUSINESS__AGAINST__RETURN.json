@@ -1,0 +1,23 @@
+{
+  "event": "HOME_PETITION_ANSWERED",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: home world answers colony's petition",
+      "sub": "A reply to the colony's petition has come from the home world.",
+      "body": "We return to {first_reported}. Our report recorded this: The home world had answered the colony's petition.\n\nA reply is information, but its existence is not a financial or operational commitment. Business readers should avoid inferring a concession, a new capacity or a changed obligation from the fact that a petition has been answered. The terms of an answer matter more than the completion of an exchange.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe find {target} unconvincing in this matter. A petition deserves responsible political handling, and the existence of an answer is insufficient reason to suspend scrutiny or congratulate inadequate stewardship."
+    },
+    {
+      "headline": "Looking back: a reply to the colonial petition",
+      "sub": "The colony has received an answer to its petition from the home world.",
+      "body": "Looking back to {first_reported}, this was the news: A reply to the colony's petition had come from the home world.\n\nA reply is information, but its existence is not a financial or operational commitment. Business readers should avoid inferring a concession, a new capacity or a changed obligation from the fact that a petition has been answered. The terms of an answer matter more than the completion of an exchange.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe find {target} unconvincing in this matter. A petition deserves responsible political handling, and the existence of an answer is insufficient reason to suspend scrutiny or congratulate inadequate stewardship."
+    },
+    {
+      "headline": "Looking back: petition receives an answer",
+      "sub": "The home world has answered the colony's petition.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The colony had received an answer to its petition from the home world.\n\nA reply is information, but its existence is not a financial or operational commitment. Business readers should avoid inferring a concession, a new capacity or a changed obligation from the fact that a petition has been answered. The terms of an answer matter more than the completion of an exchange.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe find {target} unconvincing in this matter. A petition deserves responsible political handling, and the existence of an answer is insufficient reason to suspend scrutiny or congratulate inadequate stewardship."
+    }
+  ]
+}

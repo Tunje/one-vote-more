@@ -1,0 +1,23 @@
+{
+  "event": "POL_SCANDAL_REVEALED",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party leader faces a public scandal",
+      "sub": "",
+      "body": "A scandal concerning a party leader has come to light in {colony}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Leadership under an unwelcome spotlight",
+      "sub": "",
+      "body": "A party leader is the subject of a newly revealed scandal. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "A scandal tests political trust",
+      "sub": "",
+      "body": "A scandal about a party leader has become public in the colony. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

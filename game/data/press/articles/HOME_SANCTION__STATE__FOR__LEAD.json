@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SANCTION",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Home world punishes the colony",
+      "sub": "A punishment has been imposed on {colony} by the home world.",
+      "body": "The home world has punished the colony. The action establishes a punitive development in the relationship, not the particular effects of that action. Scrutiny of {target} should address the use of authority without adding an unreported restriction, financial loss or change in supplies to the account.\n\nThe gazette records the punishment without assigning a particular form to it. A punitive action should be described with due care, since assumptions about its terms could misstate the colony's position. The public interest is served by keeping the known action separate from an inferred account of its operation.\n\nWe take a sympathetic view of {target}. The fact of punishment does not prove every hostile interpretation, and the question of responsibility deserves a fair hearing rather than an automatic condemnation. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "A sanction enters the colonial relationship",
+      "sub": "The colony is the subject of punitive action by the home world.",
+      "body": "Punishment is a claim that authority may impose a consequence on others. The home world has exercised that claim against {colony}. In considering {target}, readers should be able to examine fairness and responsibility without being asked to accept an invented explanation of the dispute.\n\nThe gazette records the punishment without assigning a particular form to it. A punitive action should be described with due care, since assumptions about its terms could misstate the colony's position. The public interest is served by keeping the known action separate from an inferred account of its operation.\n\nWe take a sympathetic view of {target}. The fact of punishment does not prove every hostile interpretation, and the question of responsibility deserves a fair hearing rather than an automatic condemnation. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "Authority takes a punitive turn",
+      "sub": "The home world has punished the colony.",
+      "body": "A punitive action by the home world now forms part of the colony's affairs. The report establishes that punishment occurred, while leaving its particulars unstated. Any assessment of {target} should therefore distinguish the political judgment of the action from assertions about consequences not supplied here.\n\nThe gazette records the punishment without assigning a particular form to it. A punitive action should be described with due care, since assumptions about its terms could misstate the colony's position. The public interest is served by keeping the known action separate from an inferred account of its operation.\n\nWe take a sympathetic view of {target}. The fact of punishment does not prove every hostile interpretation, and the question of responsibility deserves a fair hearing rather than an automatic condemnation. Care in the public record is part of responsible administration."
+    }
+  ]
+}

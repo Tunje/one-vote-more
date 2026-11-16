@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Fair treatment belongs to solidarity",
+      "sub": "The shortage puts a basic need ahead of every fine argument.",
+      "body": "People in {colony} are going hungry because there is not enough food. For working people, that is the beginning of the story. It should be the beginning of the reckoning with {target}, too.\n\nA pay packet matters because of what it lets a household obtain. Food is the most basic test. Whatever arguments are made about the shortage, workers should not be asked to mistake a discussion of their needs for the meeting of those needs.\n\nWe think {target} deserves support rather than a rush to blame. Solidarity includes fair treatment: the fact that people are hungry does not tell us that every accusation is deserved.\n\nSolidarity means keeping the hungry person in view. It means judging an answer by whether it helps people eat, rather than by whether it sounds impressive at a meeting. There is nothing complicated about the standard, however difficult the work of meeting it may be."
+    },
+    {
+      "headline": "Support before the rush to blame",
+      "sub": "Labour's measure of the shortage is the need for a meal.",
+      "body": "Begin with the meal that a hungry person needs. In {colony}, there is not enough food, and people are going without enough to eat. That is the standard this paper brings to {target}.\n\nWorkers have an interest in wages, hours and decent conditions. All of those concerns rest upon the ordinary business of being able to live. An argument that loses sight of food has lost sight of why those other things matter.\n\nWe think {target} deserves support rather than a rush to blame. Solidarity includes fair treatment: the fact that people are hungry does not tell us that every accusation is deserved.\n\nWe should approach this shortage with solidarity rather than a contest over whose hunger counts most. Adequate food is a common need. Any response deserves to be judged from the household's end of the matter, where the question is whether there is enough to eat."
+    },
+    {
+      "headline": "Hunger must not excuse an unfair verdict",
+      "sub": "Food must remain at the centre of the labour argument.",
+      "body": "No one should have to make an elegant case for needing food. The colony has too little of it, and people are hungry. We ask readers to judge {target} with that simple need in mind.\n\nThe labour movement's concern with a decent life cannot stop at the workplace door. What matters is the life that work is supposed to support. Food is part of that life before it is a subject for a speech.\n\nWe think {target} deserves support rather than a rush to blame. Solidarity includes fair treatment: the fact that people are hungry does not tell us that every accusation is deserved.\n\nThere is room for argument over remedies. There is no reason to let that argument push hungry people out of the picture. The proper test is practical and shared: enough food for the people who need it, without requiring them to win a debate first."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_COLLAPSED",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Strike collapses",
+      "sub": "",
+      "body": "A strike has collapsed in {colony}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "Labour action loses its course",
+      "sub": "",
+      "body": "The colony has seen a strike collapse. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "A strike ends in collapse",
+      "sub": "",
+      "body": "A strike in the colony has ended in collapse. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    }
+  ]
+}

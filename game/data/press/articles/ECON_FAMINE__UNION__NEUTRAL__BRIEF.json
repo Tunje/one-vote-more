@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Start with the household's need",
+      "sub": "",
+      "body": "Food is short in {colony}, and people are hungry. Working households need enough to eat; a debate cannot fill that need. Workers deserve practical answers."
+    },
+    {
+      "headline": "The labour question on every plate",
+      "sub": "",
+      "body": "Residents are hungry because food is insufficient in {colony}. Solidarity starts with treating enough to eat as a common need. Workers deserve practical answers."
+    },
+    {
+      "headline": "Enough food is the common standard",
+      "sub": "",
+      "body": "There is too little food in {colony}, and people are hungry. Enough to eat is a basic condition of a decent life. Workers deserve practical answers."
+    }
+  ]
+}

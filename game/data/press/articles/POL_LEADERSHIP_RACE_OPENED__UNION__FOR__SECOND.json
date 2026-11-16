@@ -1,0 +1,23 @@
+{
+  "event": "POL_LEADERSHIP_RACE_OPENED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Party leader faces a challenge",
+      "sub": "A challenge to a party leader has opened in the colony.",
+      "body": "A party's leader is being challenged in {colony}. The challenge places authority within the organisation in question, without deciding who should exercise it. Readers assessing {target} should distinguish the opening of a contest from an outcome that has not been established by this report.\n\nWe take a favourable view of {target}. A leadership challenge does not make hostile interpretations correct, and a political position deserves support where the case against it rests on assumption."
+    },
+    {
+      "headline": "Leadership becomes a contested question",
+      "sub": "The leadership of a political party is under challenge.",
+      "body": "The right to lead a party is being contested. That is the political development, rather than proof of an eventual removal or victory. An examination of {target} should begin with the challenge itself and leave the candidates' unreported programmes outside the factual account.\n\nWe take a favourable view of {target}. A leadership challenge does not make hostile interpretations correct, and a political position deserves support where the case against it rests on assumption."
+    },
+    {
+      "headline": "A challenge inside the party",
+      "sub": "A party's leader is being challenged in {colony}.",
+      "body": "Leadership can appear settled until it becomes a question again. A party leader now faces a challenge in {colony}. For {target}, the relevant issue is the exercise and scrutiny of political authority, not an imagined story about who has already secured the organisation's support.\n\nWe take a favourable view of {target}. A leadership challenge does not make hostile interpretations correct, and a political position deserves support where the case against it rests on assumption."
+    }
+  ]
+}

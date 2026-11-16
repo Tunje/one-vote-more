@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Fair treatment belongs to solidarity",
+      "sub": "",
+      "body": "Food is short in {colony}, and people are hungry. Working households need enough to eat; a debate cannot fill that need. Solidarity means fairness to {target}."
+    },
+    {
+      "headline": "Support before the rush to blame",
+      "sub": "",
+      "body": "Residents are hungry because food is insufficient in {colony}. Solidarity starts with treating enough to eat as a common need. Solidarity means fairness to {target}."
+    },
+    {
+      "headline": "Hunger must not excuse an unfair verdict",
+      "sub": "",
+      "body": "There is too little food in {colony}, and people are hungry. Enough to eat is a basic condition of a decent life. Solidarity means fairness to {target}."
+    }
+  ]
+}

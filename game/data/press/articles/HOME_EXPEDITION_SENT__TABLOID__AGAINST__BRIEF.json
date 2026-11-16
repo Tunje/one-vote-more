@@ -1,0 +1,23 @@
+{
+  "event": "HOME_EXPEDITION_SENT",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world sends punitive expedition",
+      "sub": "",
+      "body": "The home world has sent a punitive expedition. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "An expedition with a punitive purpose",
+      "sub": "",
+      "body": "A punitive expedition has been dispatched by the home world. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Distant authority dispatches an expedition",
+      "sub": "",
+      "body": "The home world has dispatched an expedition intended to punish the colony. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SANCTION",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world punishes the colony",
+      "sub": "",
+      "body": "The home world has punished the colony. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "A sanction enters the colonial relationship",
+      "sub": "",
+      "body": "A punishment has been imposed on {colony} by the home world. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Authority takes a punitive turn",
+      "sub": "",
+      "body": "The colony is the subject of punitive action by the home world. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    }
+  ]
+}

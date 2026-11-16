@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTY_SPLIT",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party divides in two",
+      "sub": "",
+      "body": "A political party has split in two in {colony}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "A political organisation breaks apart",
+      "sub": "",
+      "body": "The colony has seen a party divide into two organisations. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Unity gives way to a party split",
+      "sub": "",
+      "body": "A split has divided a political party in the colony. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    }
+  ]
+}

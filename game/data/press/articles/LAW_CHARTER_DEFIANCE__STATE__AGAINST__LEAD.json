@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_DEFIANCE",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Colony openly defies its charter",
+      "sub": "Open defiance of the charter is taking place in {colony}.",
+      "body": "The colony is openly defying its charter. The defiance is established; a particular punishment or response is not. An assessment of {target} should distinguish the political and legal question posed by that stance from an invented account of what the home world has done in reply.\n\nThe gazette records the defiance without assuming an amendment to the charter. Acting against a framework and changing that framework are distinct matters. A precise account should also separate the colony's position from any subsequent action by the home world, which this report does not establish as having occurred.\n\nWe judge {target} adversely. Defiance demands a serious account of responsibility, and a bold stance should not be allowed to shelter inadequate political judgment behind the attraction of its own gesture. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "A public break with charter authority",
+      "sub": "The colony has taken an openly defiant position towards its charter.",
+      "body": "The relationship between local action and charter authority is an open question of defiance in {colony}. That is the development reported here. Readers considering {target} should be able to judge responsibility without accepting an unreported sanction, demand or confrontation as part of the event.\n\nThe gazette records the defiance without assuming an amendment to the charter. Acting against a framework and changing that framework are distinct matters. A precise account should also separate the colony's position from any subsequent action by the home world, which this report does not establish as having occurred.\n\nWe judge {target} adversely. Defiance demands a serious account of responsibility, and a bold stance should not be allowed to shelter inadequate political judgment behind the attraction of its own gesture. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "Charter compliance becomes an open dispute",
+      "sub": "The colony is openly defying its charter.",
+      "body": "Charter authority is being openly defied by the colony. The stance deserves serious attention in its own right. For {target}, the question is how to judge an explicit refusal of compliance, without presuming the precise act involved or treating a possible consequence as already established.\n\nThe gazette records the defiance without assuming an amendment to the charter. Acting against a framework and changing that framework are distinct matters. A precise account should also separate the colony's position from any subsequent action by the home world, which this report does not establish as having occurred.\n\nWe judge {target} adversely. Defiance demands a serious account of responsibility, and a bold stance should not be allowed to shelter inadequate political judgment behind the attraction of its own gesture. Care in the public record is part of responsible administration."
+    }
+  ]
+}

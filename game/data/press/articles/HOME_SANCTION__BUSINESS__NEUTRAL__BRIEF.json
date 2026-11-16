@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SANCTION",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world punishes the colony",
+      "sub": "",
+      "body": "The home world has punished the colony. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "A sanction enters the colonial relationship",
+      "sub": "",
+      "body": "A punishment has been imposed on {colony} by the home world. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Authority takes a punitive turn",
+      "sub": "",
+      "body": "The colony is the subject of punitive action by the home world. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

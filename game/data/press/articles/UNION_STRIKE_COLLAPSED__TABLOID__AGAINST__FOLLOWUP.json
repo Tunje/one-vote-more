@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_COLLAPSED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: strike collapses",
+      "sub": "The colony has seen a strike collapse.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A strike has collapsed in {colony}.\n\nWe judge {target} critically. A failed labour action is a proper occasion to ask whether responsibility has been exercised adequately, rather than to excuse poor judgment through the convenience of the outcome."
+    },
+    {
+      "headline": "Still in view: labour action loses its course",
+      "sub": "A strike in the colony has ended in collapse.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has seen a strike collapse.\n\nWe judge {target} critically. A failed labour action is a proper occasion to ask whether responsibility has been exercised adequately, rather than to excuse poor judgment through the convenience of the outcome."
+    },
+    {
+      "headline": "Still in view: a strike ends in collapse",
+      "sub": "A strike has collapsed in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A strike in the colony has ended in collapse.\n\nWe judge {target} critically. A failed labour action is a proper occasion to ask whether responsibility has been exercised adequately, rather than to excuse poor judgment through the convenience of the outcome."
+    }
+  ]
+}

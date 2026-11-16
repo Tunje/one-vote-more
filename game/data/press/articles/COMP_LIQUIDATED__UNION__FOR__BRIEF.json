@@ -1,0 +1,23 @@
+{
+  "event": "COMP_LIQUIDATED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "A company goes under",
+      "sub": "",
+      "body": "A company has gone under in {colony}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Business failure enters the colony's record",
+      "sub": "",
+      "body": "The colony has seen a company fail. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "An enterprise reaches failure",
+      "sub": "",
+      "body": "A business in the colony has gone under. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

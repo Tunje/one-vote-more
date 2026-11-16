@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTNER_LEFT",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: party walks out of government",
+      "sub": "A governing party has left the colony's government.",
+      "body": "We return to {first_reported}. Our report recorded this: A party had walked out of the government in {colony}.\n\nThe gazette records the departure without presuming that the government itself has fallen. A change in its composition and the end of an administration are different propositions. Administrative clarity requires attention to what has occurred rather than an account of arrangements not established by the departure alone.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe take a critical view of {target}. Governing relationships require serious political judgment, and a break in cooperation is an appropriate moment to question whether that standard has been met."
+    },
+    {
+      "headline": "Looking back: a governing partnership breaks",
+      "sub": "The government has lost a party from its governing arrangement.",
+      "body": "Looking back to {first_reported}, this was the news: A governing party had left the colony's government.\n\nThe gazette records the departure without presuming that the government itself has fallen. A change in its composition and the end of an administration are different propositions. Administrative clarity requires attention to what has occurred rather than an account of arrangements not established by the departure alone.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe take a critical view of {target}. Governing relationships require serious political judgment, and a break in cooperation is an appropriate moment to question whether that standard has been met."
+    },
+    {
+      "headline": "Looking back: departure redraws the question of cooperation",
+      "sub": "A party has walked out of the government in {colony}.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The government had lost a party from its governing arrangement.\n\nThe gazette records the departure without presuming that the government itself has fallen. A change in its composition and the end of an administration are different propositions. Administrative clarity requires attention to what has occurred rather than an account of arrangements not established by the departure alone.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe take a critical view of {target}. Governing relationships require serious political judgment, and a break in cooperation is an appropriate moment to question whether that standard has been met."
+    }
+  ]
+}

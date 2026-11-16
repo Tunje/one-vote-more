@@ -1,0 +1,23 @@
+{
+  "event": "PLANET_CYCLONE",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Cyclone hits the colony",
+      "sub": "The colony has been struck by a cyclone.",
+      "body": "A cyclone has hit {colony}. The storm is established, but a particular loss or injury is not. Readers considering {target} should distinguish scrutiny of responsibility from blame for causing a natural event, and should not be asked to accept an invented damage total as part of the report.\n\nWe criticise {target} on the standard of stewardship surrounding this event. Weather is not a political choice, but responsibility should not disappear behind that fact or become immune from searching public scrutiny."
+    },
+    {
+      "headline": "A storm becomes the colony's news",
+      "sub": "A cyclone has reached {colony}.",
+      "body": "The colony has been struck by a cyclone. It is serious news without a fabricated account of its physical consequences. In assessing {target}, the relevant question concerns the responsibilities surrounding a storm, not an assumption that the weather itself proves a specific administrative or commercial failure.\n\nWe criticise {target} on the standard of stewardship surrounding this event. Weather is not a political choice, but responsibility should not disappear behind that fact or become immune from searching public scrutiny."
+    },
+    {
+      "headline": "The colony faces a cyclone",
+      "sub": "A cyclone has hit the colony.",
+      "body": "A cyclone is now part of the colony's experience. This report establishes the storm's occurrence, not a tally of damage. For {target}, scrutiny should address responsible conduct without supplying an evacuation, a rescue or a recovery that has not been established in the account of the event.\n\nWe criticise {target} on the standard of stewardship surrounding this event. Weather is not a political choice, but responsibility should not disappear behind that fact or become immune from searching public scrutiny."
+    }
+  ]
+}

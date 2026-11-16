@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Assess the shortfall before its causes",
+      "sub": "",
+      "body": "Food supply is insufficient in {colony}, leaving people hungry. Practical provision, rather than confidence alone, is the relevant test of any response. Assessment should remain disciplined."
+    },
+    {
+      "headline": "Food supply sets a practical benchmark",
+      "sub": "",
+      "body": "People in {colony} are hungry: food supply does not meet their needs. An economic assessment must begin with that essential shortfall. Assessment should remain disciplined."
+    },
+    {
+      "headline": "Scarcity requires disciplined judgment",
+      "sub": "",
+      "body": "Food is insufficient in {colony}, and residents are hungry. A workable answer must connect its proposals to the practical need for adequate supply. Assessment should remain disciplined."
+    }
+  ]
+}

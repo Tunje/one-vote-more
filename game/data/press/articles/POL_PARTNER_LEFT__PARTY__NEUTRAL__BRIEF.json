@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTNER_LEFT",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party walks out of government",
+      "sub": "",
+      "body": "A party has walked out of the government in {colony}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "A governing partnership breaks",
+      "sub": "",
+      "body": "A governing party has left the colony's government. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Departure redraws the question of cooperation",
+      "sub": "",
+      "body": "The government has lost a party from its governing arrangement. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SANCTION",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: home world punishes the colony",
+      "sub": "A punishment has been imposed on {colony} by the home world.",
+      "body": "We return to {first_reported}. Our report recorded this: The home world had punished the colony.\n\nThe gazette records the punishment without assigning a particular form to it. A punitive action should be described with due care, since assumptions about its terms could misstate the colony's position. The public interest is served by keeping the known action separate from an inferred account of its operation.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe take a sympathetic view of {target}. The fact of punishment does not prove every hostile interpretation, and the question of responsibility deserves a fair hearing rather than an automatic condemnation."
+    },
+    {
+      "headline": "Looking back: a sanction enters the colonial relationship",
+      "sub": "The colony is the subject of punitive action by the home world.",
+      "body": "Looking back to {first_reported}, this was the news: A punishment had been imposed on {colony} by the home world.\n\nThe gazette records the punishment without assigning a particular form to it. A punitive action should be described with due care, since assumptions about its terms could misstate the colony's position. The public interest is served by keeping the known action separate from an inferred account of its operation.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe take a sympathetic view of {target}. The fact of punishment does not prove every hostile interpretation, and the question of responsibility deserves a fair hearing rather than an automatic condemnation."
+    },
+    {
+      "headline": "Looking back: authority takes a punitive turn",
+      "sub": "The home world has punished the colony.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The colony was the subject of punitive action by the home world.\n\nThe gazette records the punishment without assigning a particular form to it. A punitive action should be described with due care, since assumptions about its terms could misstate the colony's position. The public interest is served by keeping the known action separate from an inferred account of its operation.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe take a sympathetic view of {target}. The fact of punishment does not prove every hostile interpretation, and the question of responsibility deserves a fair hearing rather than an automatic condemnation."
+    }
+  ]
+}

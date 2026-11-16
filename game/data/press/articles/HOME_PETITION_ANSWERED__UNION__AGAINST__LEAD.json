@@ -1,0 +1,23 @@
+{
+  "event": "HOME_PETITION_ANSWERED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Home world answers colony's petition",
+      "sub": "A reply to the colony's petition has come from the home world.",
+      "body": "The home world has answered the colony's petition. A response is established, but the fact of a reply does not itself say whether the colony's request was granted. Readers considering {target} should keep that distinction clear rather than treating an answer as an automatic concession.\n\nFor labour, the value of a petition lies in the needs it is meant to express. A reply should be judged with those needs in mind. Workers should not be asked to celebrate the existence of an answer as though correspondence alone established a practical improvement in daily life.\n\nWe find {target} unconvincing in this matter. A petition deserves responsible political handling, and the existence of an answer is insufficient reason to suspend scrutiny or congratulate inadequate stewardship. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "A reply to the colonial petition",
+      "sub": "The colony has received an answer to its petition from the home world.",
+      "body": "A petition is a request to authority; an answer is not necessarily the response its authors sought. The home world has replied to the colony's petition. An assessment of {target} should begin with that known exchange, without supplying favourable or adverse terms absent from this account.\n\nFor labour, the value of a petition lies in the needs it is meant to express. A reply should be judged with those needs in mind. Workers should not be asked to celebrate the existence of an answer as though correspondence alone established a practical improvement in daily life.\n\nWe find {target} unconvincing in this matter. A petition deserves responsible political handling, and the existence of an answer is insufficient reason to suspend scrutiny or congratulate inadequate stewardship. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Petition receives an answer",
+      "sub": "The home world has answered the colony's petition.",
+      "body": "The colonial petition has an answer from the home world. That gives the relationship a recorded response, not a warrant to invent its contents. For {target}, the question is responsible handling of a petition and its reply, rather than a victory or defeat presumed from the word 'answered'.\n\nFor labour, the value of a petition lies in the needs it is meant to express. A reply should be judged with those needs in mind. Workers should not be asked to celebrate the existence of an answer as though correspondence alone established a practical improvement in daily life.\n\nWe find {target} unconvincing in this matter. A petition deserves responsible political handling, and the existence of an answer is insufficient reason to suspend scrutiny or congratulate inadequate stewardship. Ordinary lives should be the measure, not a convenient afterthought."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "POL_GOVERNMENT_FORMED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: a new government takes shape",
+      "sub": "The colony has a newly formed government.",
+      "body": "We return to {first_reported}. Our report recorded this: A new government had been formed in {colony}.\n\nThe gazette records the new government's formation as a matter of public administration. An account of the change should avoid presuming either the contents of its programme or the outcome of its work. The existence of a ministry and the adequacy of its conduct require separate consideration.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe welcome the contribution of {target}. Forming an administration is a legitimate achievement, and it deserves recognition without requiring us to pretend that every future difficulty has already been solved."
+    },
+    {
+      "headline": "Looking back: formation is the beginning of governing",
+      "sub": "Government formation has produced a new administration in {colony}.",
+      "body": "Looking back to {first_reported}, this was the news: The colony had a newly formed government.\n\nThe gazette records the new government's formation as a matter of public administration. An account of the change should avoid presuming either the contents of its programme or the outcome of its work. The existence of a ministry and the adequacy of its conduct require separate consideration.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe welcome the contribution of {target}. Forming an administration is a legitimate achievement, and it deserves recognition without requiring us to pretend that every future difficulty has already been solved."
+    },
+    {
+      "headline": "Looking back: new ministry, practical obligations",
+      "sub": "A new government has been formed in {colony}.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: Government formation had produced a new administration in {colony}.\n\nThe gazette records the new government's formation as a matter of public administration. An account of the change should avoid presuming either the contents of its programme or the outcome of its work. The existence of a ministry and the adequacy of its conduct require separate consideration.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe welcome the contribution of {target}. Forming an administration is a legitimate achievement, and it deserves recognition without requiring us to pretend that every future difficulty has already been solved."
+    }
+  ]
+}

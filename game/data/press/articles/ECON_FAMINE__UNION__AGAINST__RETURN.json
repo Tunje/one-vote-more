@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: food shortage leaves the colony hungry",
+      "sub": "People in the colony are hungry because food is insufficient.",
+      "body": "We return to {first_reported}. Our report recorded this: There was not enough food in {colony}, and people were going hungry.\n\nA wage matters because of the life it helps support. Food is among the most basic parts of that life, and labour should keep it in view. Solidarity begins with taking hunger seriously, without requiring a person to win a political argument before their need deserves public attention.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe hold {target} to account critically. Hunger is an unacceptable condition for the colony, and the standard of stewardship should be judged against the basic requirement that people have enough to eat."
+    },
+    {
+      "headline": "Looking back: enough to eat remains the central need",
+      "sub": "The colony's food supply is insufficient, leaving people hungry.",
+      "body": "Looking back to {first_reported}, this was the news: People in the colony were hungry because food was insufficient.\n\nA wage matters because of the life it helps support. Food is among the most basic parts of that life, and labour should keep it in view. Solidarity begins with taking hunger seriously, without requiring a person to win a political argument before their need deserves public attention.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe hold {target} to account critically. Hunger is an unacceptable condition for the colony, and the standard of stewardship should be judged against the basic requirement that people have enough to eat."
+    },
+    {
+      "headline": "Looking back: hunger is a fact, not a figure of speech",
+      "sub": "There is not enough food in {colony}, and people are going hungry.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The colony's food supply was insufficient, leaving people hungry.\n\nA wage matters because of the life it helps support. Food is among the most basic parts of that life, and labour should keep it in view. Solidarity begins with taking hunger seriously, without requiring a person to win a political argument before their need deserves public attention.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe hold {target} to account critically. Hunger is an unacceptable condition for the colony, and the standard of stewardship should be judged against the basic requirement that people have enough to eat."
+    }
+  ]
+}

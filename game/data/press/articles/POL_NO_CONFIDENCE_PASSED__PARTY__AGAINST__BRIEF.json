@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_PASSED",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Assembly votes the government out",
+      "sub": "",
+      "body": "The Colonial Assembly has voted the government out in {colony}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Confidence withdrawn",
+      "sub": "",
+      "body": "The government has been voted out by the Colonial Assembly. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Office meets its parliamentary limit",
+      "sub": "",
+      "body": "An Assembly vote has removed the government in {colony}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    }
+  ]
+}

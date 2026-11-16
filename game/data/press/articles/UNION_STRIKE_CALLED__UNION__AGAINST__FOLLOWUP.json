@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_CALLED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: union calls a strike",
+      "sub": "A strike has been called by a union in the colony.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A union has called a strike in {colony}.\n\nWe criticise {target} in this dispute. Labour relations call for a responsible standard, and a strike call is an appropriate moment to question whether the interests at stake have been handled adequately."
+    },
+    {
+      "headline": "Still in view: a call to withhold labour",
+      "sub": "The colony has a union call for strike action.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A strike has been called by a union in the colony.\n\nWe criticise {target} in this dispute. Labour relations call for a responsible standard, and a strike call is an appropriate moment to question whether the interests at stake have been handled adequately."
+    },
+    {
+      "headline": "Still in view: work becomes the subject of a strike call",
+      "sub": "A union has called a strike in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony has a union call for strike action.\n\nWe criticise {target} in this dispute. Labour relations call for a responsible standard, and a strike call is an appropriate moment to question whether the interests at stake have been handled adequately."
+    }
+  ]
+}

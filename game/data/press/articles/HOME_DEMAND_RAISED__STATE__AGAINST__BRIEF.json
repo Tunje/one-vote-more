@@ -1,0 +1,23 @@
+{
+  "event": "HOME_DEMAND_RAISED",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world raises its demands",
+      "sub": "",
+      "body": "The home world has raised what it demands of the colony. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "A larger claim on the colony",
+      "sub": "",
+      "body": "The demands placed on the colony by the home world have increased. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "Distant authority asks for more",
+      "sub": "",
+      "body": "The home world is demanding more from {colony}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    }
+  ]
+}

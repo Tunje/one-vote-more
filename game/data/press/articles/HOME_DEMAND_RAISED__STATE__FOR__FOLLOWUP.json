@@ -1,0 +1,23 @@
+{
+  "event": "HOME_DEMAND_RAISED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: home world raises its demands",
+      "sub": "The demands placed on the colony by the home world have increased.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has raised what it demands of the colony.\n\nWe support {target} in this assessment. An increased demand is not automatically an unjust one, and a responsible judgment should allow a fair case rather than beginning with a verdict of bad faith."
+    },
+    {
+      "headline": "Still in view: a larger claim on the colony",
+      "sub": "The home world is demanding more from {colony}.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The demands placed on the colony by the home world have increased.\n\nWe support {target} in this assessment. An increased demand is not automatically an unjust one, and a responsible judgment should allow a fair case rather than beginning with a verdict of bad faith."
+    },
+    {
+      "headline": "Still in view: distant authority asks for more",
+      "sub": "The home world has raised what it demands of the colony.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The home world is demanding more from {colony}.\n\nWe support {target} in this assessment. An increased demand is not automatically an unjust one, and a responsible judgment should allow a fair case rather than beginning with a verdict of bad faith."
+    }
+  ]
+}

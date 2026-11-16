@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SANCTION",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: home world punishes the colony",
+      "sub": "A punishment has been imposed on {colony} by the home world.",
+      "body": "We return to {first_reported}. Our report recorded this: The home world had punished the colony.\n\nThe home world has punished the colony. A serious sentence, and a reason to ask serious questions. What makes a punishment fair? Who deserves to answer for it? Those are legitimate questions. A dramatic story about shortages or losses would need facts this report does not contain.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nThe position of {target} should be assessed without supplying an unreported offence or penalty. This paper records the punitive action while reserving judgment on particulars not established in the report."
+    },
+    {
+      "headline": "Looking back: a sanction enters the colonial relationship",
+      "sub": "The colony is the subject of punitive action by the home world.",
+      "body": "Looking back to {first_reported}, this was the news: A punishment had been imposed on {colony} by the home world.\n\nThe home world has punished the colony. A serious sentence, and a reason to ask serious questions. What makes a punishment fair? Who deserves to answer for it? Those are legitimate questions. A dramatic story about shortages or losses would need facts this report does not contain.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nThe position of {target} should be assessed without supplying an unreported offence or penalty. This paper records the punitive action while reserving judgment on particulars not established in the report."
+    },
+    {
+      "headline": "Looking back: authority takes a punitive turn",
+      "sub": "The home world has punished the colony.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The colony was the subject of punitive action by the home world.\n\nThe home world has punished the colony. A serious sentence, and a reason to ask serious questions. What makes a punishment fair? Who deserves to answer for it? Those are legitimate questions. A dramatic story about shortages or losses would need facts this report does not contain.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nThe position of {target} should be assessed without supplying an unreported offence or penalty. This paper records the punitive action while reserving judgment on particulars not established in the report."
+    }
+  ]
+}

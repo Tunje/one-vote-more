@@ -1,0 +1,23 @@
+{
+  "event": "HOME_EXPEDITION_SENT",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Home world sends punitive expedition",
+      "sub": "A punitive expedition has been dispatched by the home world.",
+      "body": "The home world has sent a punitive expedition. Dispatch and arrival are different events, and this report establishes only the former. Readers considering {target} should not be asked to accept an invented landing, confrontation or account of force as part of the news of its departure.\n\nWe defend {target} against a verdict based on imagined events. The expedition's dispatch is serious news, but a fair assessment must not convert every feared consequence into an accusation already proven."
+    },
+    {
+      "headline": "An expedition with a punitive purpose",
+      "sub": "The home world has dispatched an expedition intended to punish the colony.",
+      "body": "A punitive expedition has been dispatched by the home world. Its stated purpose makes the action a serious question of authority and responsibility. For {target}, scrutiny should begin with the dispatch itself, without supplying a route, a timetable or a result that the report does not establish.\n\nWe defend {target} against a verdict based on imagined events. The expedition's dispatch is serious news, but a fair assessment must not convert every feared consequence into an accusation already proven."
+    },
+    {
+      "headline": "Distant authority dispatches an expedition",
+      "sub": "The home world has sent a punitive expedition.",
+      "body": "The relationship with the home world now includes the dispatch of an expedition intended to punish the colony. That is a substantial political event on its own. An assessment of {target} should preserve the distinction between what has been sent and what has actually happened in {colony}.\n\nWe defend {target} against a verdict based on imagined events. The expedition's dispatch is serious news, but a fair assessment must not convert every feared consequence into an accusation already proven."
+    }
+  ]
+}

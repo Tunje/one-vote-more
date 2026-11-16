@@ -1,0 +1,23 @@
+{
+  "event": "POL_GOVERNMENT_FORMED",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: a new government takes shape",
+      "sub": "The colony has a newly formed government.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A new government has been formed in {colony}.\n\nWe are unconvinced by {target}. The completion of an arrangement for office does not deserve to be mistaken for political merit; the public is entitled to a more demanding standard."
+    },
+    {
+      "headline": "Still in view: formation is the beginning of governing",
+      "sub": "Government formation has produced a new administration in {colony}.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has a newly formed government.\n\nWe are unconvinced by {target}. The completion of an arrangement for office does not deserve to be mistaken for political merit; the public is entitled to a more demanding standard."
+    },
+    {
+      "headline": "Still in view: new ministry, practical obligations",
+      "sub": "A new government has been formed in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. Government formation has produced a new administration in {colony}.\n\nWe are unconvinced by {target}. The completion of an arrangement for office does not deserve to be mistaken for political merit; the public is entitled to a more demanding standard."
+    }
+  ]
+}

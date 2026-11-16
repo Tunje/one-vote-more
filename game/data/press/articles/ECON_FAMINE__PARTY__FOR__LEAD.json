@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "A fair hearing is a principle too",
+      "sub": "Hunger puts the purpose of public life in plain view.",
+      "body": "People in {colony} are going hungry. There is not enough food. Every political argument about this shortage ought to start there, including the argument over what should be expected of {target}.\n\nOur position is plain: a colony is a common undertaking, and the ability of its people to eat belongs at the centre of its politics. Fine distinctions between competing programmes are worth making only if they help us confront that obligation.\n\nWe stand with {target} against the easy verdict. Hunger demands a serious answer, but it does not make every accusation just. Supporting a fair hearing is a matter of principle.\n\nReaders need not surrender their principles to recognise hunger. On the contrary, this is where principles acquire meaning. The measure of a political position is what it asks us to do for people, especially when the subject is less comfortable than a campaign speech."
+    },
+    {
+      "headline": "Stand firm against easy blame",
+      "sub": "A shortage tests what political commitments actually mean.",
+      "body": "What is a political principle worth to someone who is hungry? The question is unavoidable in {colony}, where food is insufficient. It is also the question by which we judge {target}.\n\nWe believe public life should concern itself with the conditions in which people live. Hunger belongs in that discussion without qualification. It should not have to compete for moral importance with the convenience of a political argument.\n\nWe stand with {target} against the easy verdict. Hunger demands a serious answer, but it does not make every accusation just. Supporting a fair hearing is a matter of principle.\n\nThere will always be room to dispute the proper means of securing enough food. There should be no need to dispute the end. A political movement worthy of support must be able to connect its convictions to that most ordinary requirement of daily life."
+    },
+    {
+      "headline": "Hunger does not make every accusation just",
+      "sub": "People need enough to eat before rhetoric can satisfy anyone.",
+      "body": "The shortage of food in {colony} is leaving people hungry. That fact deserves more than a place among the subjects politicians find convenient to discuss. It demands a serious reckoning with {target}.\n\nFor this paper, politics is about the terms on which we live together. Food is among the most basic of those terms. No political vocabulary is so elevated that it can make hunger a secondary concern.\n\nWe stand with {target} against the easy verdict. Hunger demands a serious answer, but it does not make every accusation just. Supporting a fair hearing is a matter of principle.\n\nOur readers can disagree about policy while insisting upon that common standard. Conviction should make the demand for adequate food stronger, not turn the people who need it into scenery for an argument. The purpose of taking a side is to stand for something that matters."
+    }
+  ]
+}

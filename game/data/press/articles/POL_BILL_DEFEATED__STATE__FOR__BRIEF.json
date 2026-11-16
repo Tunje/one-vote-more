@@ -1,0 +1,23 @@
+{
+  "event": "POL_BILL_DEFEATED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Assembly votes down government bill",
+      "sub": "",
+      "body": "A government bill has been voted down in the Colonial Assembly. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "A proposal meets its parliamentary limit",
+      "sub": "",
+      "body": "The Assembly has rejected a bill put forward by the government. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "Government legislation fails the vote",
+      "sub": "",
+      "body": "A proposed government bill has failed in the Assembly vote. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    }
+  ]
+}

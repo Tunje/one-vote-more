@@ -1,0 +1,23 @@
+{
+  "event": "POL_DEBATE_GAFFE",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party leader blunders in election debate",
+      "sub": "",
+      "body": "A party leader has blundered in an election debate. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "A debate brings a leader's misstep",
+      "sub": "",
+      "body": "An election debate has included a blunder by a party leader. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "Election argument meets an awkward moment",
+      "sub": "",
+      "body": "A party leader has made a misstep in an election debate. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "POL_BILL_DEFEATED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Assembly votes down government bill",
+      "sub": "",
+      "body": "A government bill has been voted down in the Colonial Assembly. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "A proposal meets its parliamentary limit",
+      "sub": "",
+      "body": "The Assembly has rejected a bill put forward by the government. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Government legislation fails the vote",
+      "sub": "",
+      "body": "A proposed government bill has failed in the Assembly vote. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_PASSED",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Assembly votes the government out",
+      "sub": "",
+      "body": "The Colonial Assembly has voted the government out in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Confidence withdrawn",
+      "sub": "",
+      "body": "The government has been voted out by the Colonial Assembly. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Office meets its parliamentary limit",
+      "sub": "",
+      "body": "An Assembly vote has removed the government in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

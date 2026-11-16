@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Not good enough when people are hungry",
+      "sub": "",
+      "body": "People in {colony} are hungry. There is not enough food. Whatever the argument, nobody can eat a speech. Our verdict: {target} failed."
+    },
+    {
+      "headline": "Answer for the food failure",
+      "sub": "",
+      "body": "There is not enough food in {colony}, and people are hungry. A polished explanation is no substitute for something to eat. Our verdict: {target} failed."
+    },
+    {
+      "headline": "Who answers for the missing meal?",
+      "sub": "",
+      "body": "Food is short in {colony}. People are hungry. The grandest vision of a new life still needs room for a meal. Our verdict: {target} failed."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "POL_LEADER_CHANGED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party names a new leader",
+      "sub": "",
+      "body": "A party has a new leader in {colony}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Leadership changes hands",
+      "sub": "",
+      "body": "Leadership of a political party has changed in the colony. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "A new name at the head of the party",
+      "sub": "",
+      "body": "A new leader is now at the head of a party in {colony}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

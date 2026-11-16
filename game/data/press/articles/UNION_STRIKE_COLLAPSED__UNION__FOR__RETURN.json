@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_COLLAPSED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: strike collapses",
+      "sub": "The colony has seen a strike collapse.",
+      "body": "We return to {first_reported}. Our report recorded this: A strike had collapsed in {colony}.\n\nWorkers deserve solidarity in an unwelcome outcome as well as an attractive one. A strike's collapse does not make the needs of working people disappear. Labour should consider the action seriously without inventing either a betrayal or a bargain, and without making every worker answer for a result alone.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe take a sympathetic view of {target}. Collapse does not prove every adverse claim about the people involved, and a fair hearing should survive an outcome that lends itself to easy recrimination."
+    },
+    {
+      "headline": "Looking back: labour action loses its course",
+      "sub": "A strike in the colony has ended in collapse.",
+      "body": "Looking back to {first_reported}, this was the news: The colony had seen a strike collapse.\n\nWorkers deserve solidarity in an unwelcome outcome as well as an attractive one. A strike's collapse does not make the needs of working people disappear. Labour should consider the action seriously without inventing either a betrayal or a bargain, and without making every worker answer for a result alone.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe take a sympathetic view of {target}. Collapse does not prove every adverse claim about the people involved, and a fair hearing should survive an outcome that lends itself to easy recrimination."
+    },
+    {
+      "headline": "Looking back: a strike ends in collapse",
+      "sub": "A strike has collapsed in {colony}.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: A strike in the colony had ended in collapse.\n\nWorkers deserve solidarity in an unwelcome outcome as well as an attractive one. A strike's collapse does not make the needs of working people disappear. Labour should consider the action seriously without inventing either a betrayal or a bargain, and without making every worker answer for a result alone.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe take a sympathetic view of {target}. Collapse does not prove every adverse claim about the people involved, and a fair hearing should survive an outcome that lends itself to easy recrimination."
+    }
+  ]
+}

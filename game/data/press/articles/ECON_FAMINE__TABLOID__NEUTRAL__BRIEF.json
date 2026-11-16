@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Hungry people, hard questions",
+      "sub": "",
+      "body": "People in {colony} are hungry. There is not enough food. Whatever the argument, nobody can eat a speech. Keep asking the questions."
+    },
+    {
+      "headline": "A meal matters more than a loud headline",
+      "sub": "",
+      "body": "There is not enough food in {colony}, and people are hungry. A polished explanation is no substitute for something to eat. Keep asking the questions."
+    },
+    {
+      "headline": "Food first, guessing later",
+      "sub": "",
+      "body": "Food is short in {colony}. People are hungry. The grandest vision of a new life still needs room for a meal. Keep asking the questions."
+    }
+  ]
+}

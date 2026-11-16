@@ -1,0 +1,23 @@
+{
+  "event": "POL_DEBATE_GAFFE",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: party leader blunders in election debate",
+      "sub": "An election debate has included a blunder by a party leader.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A party leader has blundered in an election debate.\n\nWe defend {target} against an exaggerated verdict. A debate mistake does not erase the merits of a political position, and fairness requires more than turning an awkward moment into a complete judgment."
+    },
+    {
+      "headline": "Still in view: a debate brings a leader's misstep",
+      "sub": "A party leader has made a misstep in an election debate.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. An election debate has included a blunder by a party leader.\n\nWe defend {target} against an exaggerated verdict. A debate mistake does not erase the merits of a political position, and fairness requires more than turning an awkward moment into a complete judgment."
+    },
+    {
+      "headline": "Still in view: election argument meets an awkward moment",
+      "sub": "A party leader has blundered in an election debate.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A party leader has made a misstep in an election debate.\n\nWe defend {target} against an exaggerated verdict. A debate mistake does not erase the merits of a political position, and fairness requires more than turning an awkward moment into a complete judgment."
+    }
+  ]
+}

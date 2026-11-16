@@ -1,0 +1,23 @@
+{
+  "event": "COMP_LIQUIDATED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: a company goes under",
+      "sub": "The colony has seen a company fail.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A company has gone under in {colony}.\n\nWe judge {target} critically. Business failure deserves more than a shrug, and the standards of stewardship should be examined rather than dismissed as irrelevant once an enterprise has gone under."
+    },
+    {
+      "headline": "Still in view: business failure enters the colony's record",
+      "sub": "A business in the colony has gone under.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has seen a company fail.\n\nWe judge {target} critically. Business failure deserves more than a shrug, and the standards of stewardship should be examined rather than dismissed as irrelevant once an enterprise has gone under."
+    },
+    {
+      "headline": "Still in view: an enterprise reaches failure",
+      "sub": "A company has gone under in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A business in the colony has gone under.\n\nWe judge {target} critically. Business failure deserves more than a shrug, and the standards of stewardship should be examined rather than dismissed as irrelevant once an enterprise has gone under."
+    }
+  ]
+}

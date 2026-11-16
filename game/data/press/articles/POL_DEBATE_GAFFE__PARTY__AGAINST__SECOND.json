@@ -1,0 +1,23 @@
+{
+  "event": "POL_DEBATE_GAFFE",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Party leader blunders in election debate",
+      "sub": "An election debate has included a blunder by a party leader.",
+      "body": "A party leader has blundered in an election debate. The misstep is established, but the words involved and their effect on voters are not supplied here. Readers assessing {target} should distinguish the debate event from a fabricated quotation or a claim that the election's outcome has been decided.\n\nWe criticise {target} in this assessment. Political leadership includes judgment under scrutiny, and a debate blunder is an appropriate occasion to question whether the standard of public presentation has been adequate."
+    },
+    {
+      "headline": "A debate brings a leader's misstep",
+      "sub": "A party leader has made a misstep in an election debate.",
+      "body": "An election debate has produced a leader's blunder. Public speaking is part of political leadership, though an awkward moment is not a complete political record. For {target}, the question is judgment under scrutiny, without inventing what was said or how the audience responded to the mistake.\n\nWe criticise {target} in this assessment. Political leadership includes judgment under scrutiny, and a debate blunder is an appropriate occasion to question whether the standard of public presentation has been adequate."
+    },
+    {
+      "headline": "Election argument meets an awkward moment",
+      "sub": "A party leader has blundered in an election debate.",
+      "body": "The colony's election argument includes a blunder by a party leader in debate. It is legitimate political news, not a substitute for the whole contest. An assessment of {target} should keep the misstep in proportion and leave polling changes or electoral consequences outside the factual account.\n\nWe criticise {target} in this assessment. Political leadership includes judgment under scrutiny, and a debate blunder is an appropriate occasion to question whether the standard of public presentation has been adequate."
+    }
+  ]
+}

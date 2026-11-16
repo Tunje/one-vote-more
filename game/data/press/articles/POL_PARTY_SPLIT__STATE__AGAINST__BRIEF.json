@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTY_SPLIT",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party divides in two",
+      "sub": "",
+      "body": "A political party has split in two in {colony}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "A political organisation breaks apart",
+      "sub": "",
+      "body": "The colony has seen a party divide into two organisations. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "Unity gives way to a party split",
+      "sub": "",
+      "body": "A split has divided a political party in the colony. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    }
+  ]
+}

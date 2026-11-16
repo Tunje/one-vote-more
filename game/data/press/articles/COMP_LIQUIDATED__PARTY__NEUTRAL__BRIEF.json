@@ -1,0 +1,23 @@
+{
+  "event": "COMP_LIQUIDATED",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "A company goes under",
+      "sub": "",
+      "body": "A company has gone under in {colony}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Business failure enters the colony's record",
+      "sub": "",
+      "body": "The colony has seen a company fail. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "An enterprise reaches failure",
+      "sub": "",
+      "body": "A business in the colony has gone under. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

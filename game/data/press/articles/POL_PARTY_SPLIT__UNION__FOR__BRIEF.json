@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTY_SPLIT",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party divides in two",
+      "sub": "",
+      "body": "A political party has split in two in {colony}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A political organisation breaks apart",
+      "sub": "",
+      "body": "The colony has seen a party divide into two organisations. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Unity gives way to a party split",
+      "sub": "",
+      "body": "A split has divided a political party in the colony. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

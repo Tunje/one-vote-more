@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SHIP_BUILT",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Shipbuilding for the colony route",
+      "sub": "Shipbuilding by the home world has provided a larger vessel or another vessel for the colony route.",
+      "body": "The home world has built a larger ship or an additional ship for the colony route. The construction is a transport development, not an announcement of arrival. In assessing {target}, readers should distinguish provision of a vessel from an unreported schedule, cargo or immediate change in supplies.\n\nThe contribution of {target} should be assessed through the reported construction, without assuming an unreported improvement in service. This account establishes a vessel development, not the full terms of future voyages."
+    },
+    {
+      "headline": "Home world builds for the colonial crossing",
+      "sub": "A larger ship or one more ship has been built for the colony route.",
+      "body": "A ship built for the colony route is a physical commitment to that connection. The home world has provided a larger vessel or another vessel. For {target}, the event invites judgment about transport provision without assuming that construction establishes a particular sailing date or frequency of service.\n\nThe contribution of {target} should be assessed through the reported construction, without assuming an unreported improvement in service. This account establishes a vessel development, not the full terms of future voyages."
+    },
+    {
+      "headline": "Route gains a shipbuilding development",
+      "sub": "The home world has built a larger ship or an additional ship for the colony route.",
+      "body": "The route to the colony is the subject of a shipbuilding development: the home world has built a larger ship or one more ship. Any assessment of {target} should begin there, rather than with a forecast of passengers or goods that the report does not supply.\n\nThe contribution of {target} should be assessed through the reported construction, without assuming an unreported improvement in service. This account establishes a vessel development, not the full terms of future voyages."
+    }
+  ]
+}

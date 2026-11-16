@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_CALLED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Union calls a strike",
+      "sub": "",
+      "body": "A union has called a strike in {colony}. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "A call to withhold labour",
+      "sub": "",
+      "body": "A strike has been called by a union in the colony. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "Work becomes the subject of a strike call",
+      "sub": "",
+      "body": "The colony has a union call for strike action. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    }
+  ]
+}

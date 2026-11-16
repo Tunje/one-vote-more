@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SHIPPING_REFUSED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: request for more shipping refused",
+      "sub": "A colonial request for additional shipping has been rejected by the home world.",
+      "body": "We return to {first_reported}. Our report recorded this: The home world had refused the colony's request for more shipping.\n\nTransport concerns belong in labour's politics because ordinary life depends on the colony's material arrangements. A refused request deserves attention to whose needs are being heard. Workers gain nothing from an invented promise, but they also need not treat refusal as something too distant or grand to question.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe defend {target} against an automatic adverse judgment. Refusal of a request does not establish every claim about its merits, and fair assessment requires more than disappointment with the answer."
+    },
+    {
+      "headline": "Looking back: home world declines route expansion request",
+      "sub": "The colony's plea for more shipping has been refused.",
+      "body": "Looking back to {first_reported}, this was the news: A colonial request for additional shipping had been rejected by the home world.\n\nTransport concerns belong in labour's politics because ordinary life depends on the colony's material arrangements. A refused request deserves attention to whose needs are being heard. Workers gain nothing from an invented promise, but they also need not treat refusal as something too distant or grand to question.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe defend {target} against an automatic adverse judgment. Refusal of a request does not establish every claim about its merits, and fair assessment requires more than disappointment with the answer."
+    },
+    {
+      "headline": "Looking back: no assent to the colony's shipping plea",
+      "sub": "The home world has refused the colony's request for more shipping.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The colony's plea for more shipping had been refused.\n\nTransport concerns belong in labour's politics because ordinary life depends on the colony's material arrangements. A refused request deserves attention to whose needs are being heard. Workers gain nothing from an invented promise, but they also need not treat refusal as something too distant or grand to question.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe defend {target} against an automatic adverse judgment. Refusal of a request does not establish every claim about its merits, and fair assessment requires more than disappointment with the answer."
+    }
+  ]
+}

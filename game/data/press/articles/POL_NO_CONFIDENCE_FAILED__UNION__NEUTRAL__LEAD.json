@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_FAILED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Bid to remove government fails",
+      "sub": "The attempt to remove the government by an Assembly vote has failed.",
+      "body": "The vote to bring down the government has failed. The result settles that attempt, not every argument about the administration. For {target}, it is important to distinguish survival of a parliamentary challenge from an unlimited endorsement of political conduct or future decisions.\n\nThere are people whose whole interest in this vote is whether it helps them live decently. That is a sensible standard. Labour should keep work, wages and safety in view when assessing the politics, rather than allowing the survival of a ministry to become an end in itself.\n\nThe role of {target} merits examination on the known outcome. A failed removal attempt should be reported clearly, without supplying an unreported political bargain as its explanation. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Confidence challenge falls short",
+      "sub": "The government has survived a vote intended to bring it down.",
+      "body": "Remaining in office and winning every argument are different achievements. The government's opponents have failed to bring it down by a vote in the Assembly. This is the institutional fact against which the conduct of {target} should be considered, without inventing a margin or motive.\n\nThere are people whose whole interest in this vote is whether it helps them live decently. That is a sensible standard. Labour should keep work, wages and safety in view when assessing the politics, rather than allowing the survival of a ministry to become an end in itself.\n\nThe role of {target} merits examination on the known outcome. A failed removal attempt should be reported clearly, without supplying an unreported political bargain as its explanation. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Government survives the Assembly test",
+      "sub": "A vote to bring down the government has failed in {colony}.",
+      "body": "The Assembly challenge has not removed the government. A failed vote is a definite parliamentary outcome, even where the wider political argument remains open. The question for readers considering {target} is what responsible conduct requires after this attempt, rather than what an imagined tally might suggest.\n\nThere are people whose whole interest in this vote is whether it helps them live decently. That is a sensible standard. Labour should keep work, wages and safety in view when assessing the politics, rather than allowing the survival of a ministry to become an end in itself.\n\nThe role of {target} merits examination on the known outcome. A failed removal attempt should be reported clearly, without supplying an unreported political bargain as its explanation. Ordinary lives should be the measure, not a convenient afterthought."
+    }
+  ]
+}

@@ -7,6 +7,9 @@ const PAPER := Color("#f2ead6")
 const INK := Color("#1d1a16")
 const RULE := Color("#3a332a")
 const MUTED := Color("#5c5348")
+const Press := preload("res://ui/press_library.gd")
+const FEATURES := ["FEATURE_DISTRICT_PORTRAIT", "FEATURE_LETTERS", "FEATURE_SHIP_DAY", "FEATURE_SEASON", "FEATURE_FOUNDERS",
+	"FEATURE_MARKET", "FEATURE_ASSEMBLY_SKETCH", "FEATURE_WORK"]
 const MONTHS := ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 var session
@@ -136,6 +139,7 @@ func refresh() -> void:
 	var outs: Array = MediaQuery.outlets(w) if w.peek("outlet").size() > 0 else []
 	var stories: Array = []
 	var title := ""
+	var sel := {}
 	var tagline := "“All the news the colony can bear”"
 	if not outs.is_empty():
 		if paper == "" or outs.filter(func(o): return o["id"] == paper).is_empty():
@@ -149,7 +153,7 @@ func refresh() -> void:
 			var oid: String = o["id"]
 			b.pressed.connect(func(): paper = oid; refresh())
 			pick.add_child(b)
-		var sel: Dictionary = outs.filter(func(o): return o["id"] == paper)[0]
+		sel = outs.filter(func(o): return o["id"] == paper)[0]
 		title = String(sel["name"]).to_upper()
 		tagline = _tagline(w, sel)
 		var em := MediaQuery.latest_month(w, paper)
@@ -160,6 +164,9 @@ func refresh() -> void:
 		var facts: Array = w.facts.query("", m, m, "PUBLIC").filter(func(f): return int(f["magnitude"]) >= 25 and not String(f["type"]).ends_with("_DONATION"))
 		stories = _stories(w, facts)
 	stories = _fresh_first(w, stories, m)
+	if sel.is_empty():
+		sel = {"id": "", "name": "the Gazette", "owner": {"kind": "STATE"}}
+	stories = write_up(w, stories, sel, m)
 	# masthead
 	var home: String = String(AreaStore.get_area(w, "hb:1").get("name", "Landing")) if w.peek("area").has("hb:1") else "Landing"
 	_rule(body, 3)
@@ -177,36 +184,161 @@ func refresh() -> void:
 		_text(body, "Nothing of note was reported. The colony went about its business.", 16, false, MUTED, HORIZONTAL_ALIGNMENT_CENTER)
 		_boxes(w, body)
 		return
-	# lead story + side boxes
+	# The page is laid out one of four ways (the user, 2026-11-16: "random layout choices"), chosen by the paper and
+	# the month, so the same edition always looks the same and next month's looks different.
+	var look := layout_of(String(sel.get("id", "")), m)
+	var top: Dictionary = stories[0]
+	var rest: Array = stories.slice(1, 10)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
-	body.add_child(row)
-	var lead := _col(row, 2.2)
-	_vrule(row)
-	var side := _col(row, 1.0)
-	var top: Dictionary = stories[0]
-	_text(lead, top["head"], 34, true)
-	_text(lead, top["sub"], 17, false, MUTED)
-	_rule(lead)
-	_text(lead, top["body"], 15)
-	_boxes(w, side)
-	# second stories in three columns
-	_rule(body, 2)
-	var rest: Array = stories.slice(1, 10)
-	if not rest.is_empty():
-		var cols := HBoxContainer.new()
-		cols.add_theme_constant_override("separation", 14)
-		body.add_child(cols)
-		var cs: Array = []
-		for i in 3:
-			if i > 0:
-				_vrule(cols)
-			cs.append(_col(cols, 1.0))
-		for i in rest.size():
-			var col: VBoxContainer = cs[i % 3]
-			_text(col, rest[i]["head"], 18, true)
-			_text(col, rest[i]["sub"], 14)
-			_rule(col)
+	match int(look["layout"]):
+		0:  # main story left, the boxes right
+			body.add_child(row)
+			_lead(_col(row, 2.2), top, false)
+			_vrule(row)
+			_boxes(w, _col(row, 1.0))
+			_rule(body, 2)
+			_rest(body, rest, int(look["cols"]))
+		1:  # the boxes left, main story right
+			body.add_child(row)
+			_boxes(w, _col(row, 1.0))
+			_vrule(row)
+			_lead(_col(row, 2.2), top, false)
+			_rule(body, 2)
+			_rest(body, rest, int(look["cols"]))
+		2:  # main story across the whole page, the boxes beside the other stories
+			_lead(body, top, true)
+			_rule(body, 2)
+			body.add_child(row)
+			_rest(_col(row, 3.0), rest, mini(3, int(look["cols"])))
+			_vrule(row)
+			_boxes(w, _col(row, 1.0))
+		_:  # main story, the second story beside it in full, then the boxes
+			body.add_child(row)
+			_lead(_col(row, 1.7), top, false)
+			if not rest.is_empty():
+				_vrule(row)
+				var mid := _col(row, 1.0)
+				_text(mid, rest[0]["head"], 22, true)
+				_text(mid, rest[0]["sub"], 14, false, MUTED)
+				_rule(mid)
+				_text(mid, rest[0]["body"], 15)
+			_vrule(row)
+			_boxes(w, _col(row, 0.9))
+			_rule(body, 2)
+			_rest(body, rest.slice(1), int(look["cols"]))
+
+
+## Which way a paper lays out its front page in a month: {layout 0..3, cols 2..4}. The same paper and month always
+## give the same page.
+static func layout_of(outlet_id: String, month: int) -> Dictionary:
+	var h := absi(hash("%s|%d" % [outlet_id, month]))
+	return {"layout": h % 4, "cols": 2 + (h / 4) % 3}
+
+
+func _lead(parent: Node, top: Dictionary, across: bool) -> void:
+	var al := HORIZONTAL_ALIGNMENT_CENTER if across else HORIZONTAL_ALIGNMENT_LEFT
+	_text(parent, top["head"], 40 if across else 34, true, INK, al)
+	_text(parent, top["sub"], 17, false, MUTED, al)
+	_rule(parent)
+	var pic: Texture2D = top.get("pic")
+	var into: Node = parent
+	if pic != null and across:
+		var r := HBoxContainer.new()
+		r.add_theme_constant_override("separation", 16)
+		parent.add_child(r)
+		_picture(_col(r, 1.0), pic)
+		into = _col(r, 1.3)
+	elif pic != null:
+		_picture(parent, pic)
+	_text(into, top["body"], 15)
+
+
+func _picture(parent: Node, pic: Texture2D) -> void:
+	var t := TextureRect.new()
+	t.texture = pic
+	t.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(t)
+
+
+## The other stories in columns. A story with a written article prints its text; one without prints its sentence.
+func _rest(parent: Node, rest: Array, ncols: int) -> void:
+	if rest.is_empty():
+		return
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 14)
+	cols.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(cols)
+	var cs: Array = []
+	for i in ncols:
+		if i > 0:
+			_vrule(cols)
+		cs.append(_col(cols, 1.0))
+	for i in rest.size():
+		var col: VBoxContainer = cs[i % ncols]
+		_text(col, rest[i]["head"], 18, true)
+		if String(rest[i]["sub"]) != "":
+			_text(col, rest[i]["sub"], 14, false, MUTED if rest[i].get("written", false) else INK)
+		if rest[i].get("written", false):
+			_text(col, rest[i]["body"], 15)
+		_rule(col)
+
+
+## Puts the written articles and pictures of res://data/press on the page where they exist (the user, 2026-11-16).
+## A story keeps the paper's own headline and sentence when no article is written for it. The first story is the
+## LEAD, the next three are SECOND stories, the others BRIEFs; a story that was already running is a FOLLOWUP, and
+## one the paper returns to on its anniversary is a RETURN. With no fresh news the front page carries a feature.
+static func write_up(w: WorldState, stories: Array, o: Dictionary, month: int) -> Array:
+	var fl := Press.flavour(o)
+	var oid := String(o.get("id", ""))
+	for i in stories.size():
+		var st: Dictionary = stories[i]
+		if not st.has("fact"):
+			if i == 0 and String(st.get("key", "")) == "":  # "no fresh news this month": a feature instead, if one is written
+				var feat := _feature(w, fl, o, month)
+				if not feat.is_empty():
+					stories[i] = feat
+			continue
+		var f: Dictionary = st["fact"]
+		var ev := String(f["type"])
+		var run := int(st.get("run", 0))
+		var kinds: Array = ["LEAD"] if i == 0 else (["SECOND", "BRIEF"] if i <= 3 else ["BRIEF"])
+		if run > 0:
+			kinds = ["RETURN"] if run % 12 == 0 else ["FOLLOWUP"]
+		var pick := absi(hash("%s|%s|%d" % [oid, String(f.get("id", ev)), month]))
+		var stance := Press.stance(String(st.get("angle", "NEUTRAL")), float(st.get("slant", 0.0)), Media.valence(f))
+		var bl := Press.blanks(w, f, o, month, run, String(st.get("target", "")))
+		for k in kinds:
+			var a: Dictionary = Press.article(ev, fl, stance, k, bl, pick)
+			if a.is_empty():
+				continue
+			st["head"] = String(a["headline"]).to_upper()
+			st["sub"] = String(a["sub"]) + (("  " + String(st["note"])) if String(st.get("note", "")) != "" else "")
+			st["body"] = String(a["body"])
+			st["written"] = true
+			break
+		if i == 0:
+			st["pic"] = Press.picture(ev, pick)
+	return stories
+
+
+static func _feature(w: WorldState, fl: String, o: Dictionary, month: int) -> Dictionary:
+	var bl := Press.blanks(w, {}, o, month, 0)
+	bl.erase("target")
+	var ds: Array = w.peek("district").keys()
+	ds.sort()
+	var h := absi(hash("%s|%d|feature" % [String(o.get("id", "")), month]))
+	if not ds.is_empty():
+		bl["district"] = NewsText.district(w, ds[h % ds.size()])
+	for i in FEATURES.size():
+		var ev: String = FEATURES[(h + i) % FEATURES.size()]
+		var a: Dictionary = Press.article(ev, fl, "NEUTRAL", "FEATURE", bl, h)
+		if not a.is_empty():
+			return {"head": String(a["headline"]).to_upper(), "sub": String(a["sub"]), "body": String(a["body"]), "score": 0, "key": "",
+				"written": true, "pic": Press.picture(ev, h)}
+	return {}
 
 
 func _boxes(w: WorldState, parent: VBoxContainer) -> void:
@@ -271,11 +403,20 @@ func _edition_stories(w: WorldState, ed: Dictionary) -> Array:
 					head = "%s TO BLAME: %s" % [who.to_upper(), head]
 		var also: Array = st.get("also", [])
 		var sub_t := plain(NewsText.sentence(w, f)) + ((" — and %d more like it" % also.size()) if also.size() > 0 else "")
+		var note := ""
 		if st.get("exposed", false):
-			sub_t += "  [later shown to be false]"
+			note = "[later shown to be false]"
 		elif st.get("corrected", false):
-			sub_t += "  [corrected]"
-		out.append({"head": head, "sub": sub_t, "body": article(w, f), "score": 1000 - int(st.get("rank", 0)), "key": story_key(f)})
+			note = "[corrected]"
+		if note != "":
+			sub_t += "  " + note
+		var target := ""
+		match String(st.get("angle", "NEUTRAL")):
+			"GOVERNMENT": target = "the government"
+			"SUBJECT": target = NewsText.actor(w, st.get("head_actor", {}))
+		out.append({"head": head, "sub": sub_t, "body": article(w, f), "score": 1000 - int(st.get("rank", 0)), "key": story_key(f),
+			"fact": f, "angle": String(st.get("angle", "NEUTRAL")), "slant": float(st.get("slant", 0.0)), "note": note,
+			"target": "" if target == "someone" else target})
 	out.sort_custom(func(a, b): return a["score"] > b["score"])
 	return out
 
@@ -325,6 +466,7 @@ static func _fresh_first(w: WorldState, stories: Array, month: int) -> Array:
 	var running: Array = []
 	for st in stories:
 		var run := months_running(w, String(st.get("key", "")), month, cache) if String(st.get("key", "")) != "" else 0
+		st["run"] = run
 		if run == 0 or run % 12 == 0:
 			if run > 0:
 				st["sub"] = "%d %s on. %s" % [run / 12, "year" if run == 12 else "years", String(st["sub"])]
@@ -381,7 +523,7 @@ func _stories(w: WorldState, facts: Array) -> Array:
 				"body": ". ".join(ex) + ("…" if fs.size() > 4 else "."), "score": fs.map(func(x): return int(x["magnitude"])).max() + _weight(t) + mini(15, 3 * fs.size()), "key": t})
 		else:
 			for f in fs:
-				out.append({"head": headline(w, f), "sub": plain(NewsText.sentence(w, f)), "body": article(w, f), "score": int(f["magnitude"]) + _weight(t), "key": story_key(f)})
+				out.append({"head": headline(w, f), "sub": plain(NewsText.sentence(w, f)), "body": article(w, f), "score": int(f["magnitude"]) + _weight(t), "key": story_key(f), "fact": f})
 	out.sort_custom(func(a, b): return a["score"] > b["score"] or (a["score"] == b["score"] and a["head"] < b["head"]))
 	return out
 

@@ -1,0 +1,23 @@
+{
+  "event": "HOME_PETITION_ANSWERED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world answers colony's petition",
+      "sub": "",
+      "body": "The home world has answered the colony's petition. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "A reply to the colonial petition",
+      "sub": "",
+      "body": "A reply to the colony's petition has come from the home world. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Petition receives an answer",
+      "sub": "",
+      "body": "The colony has received an answer to its petition from the home world. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

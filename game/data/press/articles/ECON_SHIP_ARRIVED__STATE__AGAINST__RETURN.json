@@ -1,0 +1,23 @@
+{
+  "event": "ECON_SHIP_ARRIVED",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: home-world ship reaches the colony",
+      "sub": "The colony has received the arrival of a home-world ship.",
+      "body": "We return to {first_reported}. Our report recorded this: A ship from the home world had arrived in the colony.\n\nThe gazette records the arrival without presuming the contents of the vessel. A notice of a ship reaching the colony should not be enlarged into an account of deliveries or administrative arrangements not supplied here. The event has sufficient public significance without adding particulars to its official description.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe remain critical of {target}. An arrival should not place the stewardship of the colony's transport connection beyond scrutiny; the existence of a ship is not a complete account of responsible provision."
+    },
+    {
+      "headline": "Looking back: an arrival on the colonial route",
+      "sub": "A vessel from the home world has reached {colony}.",
+      "body": "Looking back to {first_reported}, this was the news: The colony had received the arrival of a home-world ship.\n\nThe gazette records the arrival without presuming the contents of the vessel. A notice of a ship reaching the colony should not be enlarged into an account of deliveries or administrative arrangements not supplied here. The event has sufficient public significance without adding particulars to its official description.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe remain critical of {target}. An arrival should not place the stewardship of the colony's transport connection beyond scrutiny; the existence of a ship is not a complete account of responsible provision."
+    },
+    {
+      "headline": "Looking back: the distant connection comes into port",
+      "sub": "A ship from the home world has arrived in the colony.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: A vessel from the home world had reached {colony}.\n\nThe gazette records the arrival without presuming the contents of the vessel. A notice of a ship reaching the colony should not be enlarged into an account of deliveries or administrative arrangements not supplied here. The event has sufficient public significance without adding particulars to its official description.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe remain critical of {target}. An arrival should not place the stewardship of the colony's transport connection beyond scrutiny; the existence of a ship is not a complete account of responsible provision."
+    }
+  ]
+}

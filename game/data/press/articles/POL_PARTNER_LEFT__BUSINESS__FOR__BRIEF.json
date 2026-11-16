@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTNER_LEFT",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party walks out of government",
+      "sub": "",
+      "body": "A party has walked out of the government in {colony}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "A governing partnership breaks",
+      "sub": "",
+      "body": "A governing party has left the colony's government. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "Departure redraws the question of cooperation",
+      "sub": "",
+      "body": "The government has lost a party from its governing arrangement. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    }
+  ]
+}

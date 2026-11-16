@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SANCTION",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world punishes the colony",
+      "sub": "",
+      "body": "The home world has punished the colony. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "A sanction enters the colonial relationship",
+      "sub": "",
+      "body": "A punishment has been imposed on {colony} by the home world. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Authority takes a punitive turn",
+      "sub": "",
+      "body": "The colony is the subject of punitive action by the home world. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

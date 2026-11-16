@@ -1,0 +1,23 @@
+{
+  "event": "ECON_LAYOFFS_MASS",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: company lays off many workers",
+      "sub": "Many workers have been laid off by a company in the colony.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A company has laid off many workers in {colony}.\n\nWe support {target} against a blanket adverse verdict. The layoff is serious, but the report does not establish every claim about its causes or prove that a particular imagined alternative was available."
+    },
+    {
+      "headline": "Still in view: a large loss of jobs at a company",
+      "sub": "The colony has seen a company carry out a large layoff.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Many workers have been laid off by a company in the colony.\n\nWe support {target} against a blanket adverse verdict. The layoff is serious, but the report does not establish every claim about its causes or prove that a particular imagined alternative was available."
+    },
+    {
+      "headline": "Still in view: workers face a company layoff",
+      "sub": "A company has laid off many workers in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony has seen a company carry out a large layoff.\n\nWe support {target} against a blanket adverse verdict. The layoff is serious, but the report does not establish every claim about its causes or prove that a particular imagined alternative was available."
+    }
+  ]
+}

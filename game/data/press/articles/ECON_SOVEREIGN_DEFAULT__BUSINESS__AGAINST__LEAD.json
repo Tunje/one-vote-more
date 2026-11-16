@@ -1,0 +1,23 @@
+{
+  "event": "ECON_SOVEREIGN_DEFAULT",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Government cannot pay its debts",
+      "sub": "The colony's government is unable to pay its debts.",
+      "body": "The colony's government cannot pay its debts. The inability to pay is the central financial fact, not an invitation to invent the amount owed. In assessing {target}, readers should distinguish this payment failure from unreported arrangements with creditors or a presumed cause of the government's position.\n\nAn inability to pay is a credit event, but it is not a complete balance sheet. Business readers should avoid guessing the exposure of a creditor or the terms of a restructuring. The disciplined approach separates the known failure from a recovery calculation for which this report supplies no figures.\n\nWe hold {target} to a critical standard. An inability to meet public debts is a fundamental failure of financial stewardship, and responsibility should not be displaced by an attractive description of the difficulty. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    },
+    {
+      "headline": "Public debt meets a payment failure",
+      "sub": "Government debt in the colony cannot be paid by the administration.",
+      "body": "A public promise to pay meets a hard limit when the government cannot honour its debts. That is the position reported in {colony}. Scrutiny of {target} should address the responsibility involved without supplying a creditor, an interest rate or a proposed remedy not established in the account.\n\nAn inability to pay is a credit event, but it is not a complete balance sheet. Business readers should avoid guessing the exposure of a creditor or the terms of a restructuring. The disciplined approach separates the known failure from a recovery calculation for which this report supplies no figures.\n\nWe hold {target} to a critical standard. An inability to meet public debts is a fundamental failure of financial stewardship, and responsibility should not be displaced by an attractive description of the difficulty. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    },
+    {
+      "headline": "The colony's government faces default",
+      "sub": "The government of {colony} cannot pay its debts.",
+      "body": "The government is unable to pay its debts. This is a statement about public finance with an immediate question of stewardship. For {target}, the relevant assessment should begin there, rather than with an invented account of bank failures, taxes or public services that the report does not describe.\n\nAn inability to pay is a credit event, but it is not a complete balance sheet. Business readers should avoid guessing the exposure of a creditor or the terms of a restructuring. The disciplined approach separates the known failure from a recovery calculation for which this report supplies no figures.\n\nWe hold {target} to a critical standard. An inability to meet public debts is a fundamental failure of financial stewardship, and responsibility should not be displaced by an attractive description of the difficulty. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    }
+  ]
+}

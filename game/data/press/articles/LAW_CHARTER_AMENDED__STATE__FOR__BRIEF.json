@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_AMENDED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world changes the charter",
+      "sub": "",
+      "body": "The home world has changed the colony's charter. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "Colonial charter amended",
+      "sub": "",
+      "body": "An amendment to the colony's charter has been made by the home world. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "The terms of authority are altered",
+      "sub": "",
+      "body": "The colony's charter has been altered by the home world. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    }
+  ]
+}

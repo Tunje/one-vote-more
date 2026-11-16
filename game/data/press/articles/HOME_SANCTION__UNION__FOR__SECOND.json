@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SANCTION",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Home world punishes the colony",
+      "sub": "A punishment has been imposed on {colony} by the home world.",
+      "body": "The home world has punished the colony. The action establishes a punitive development in the relationship, not the particular effects of that action. Scrutiny of {target} should address the use of authority without adding an unreported restriction, financial loss or change in supplies to the account.\n\nWe take a sympathetic view of {target}. The fact of punishment does not prove every hostile interpretation, and the question of responsibility deserves a fair hearing rather than an automatic condemnation."
+    },
+    {
+      "headline": "A sanction enters the colonial relationship",
+      "sub": "The colony is the subject of punitive action by the home world.",
+      "body": "Punishment is a claim that authority may impose a consequence on others. The home world has exercised that claim against {colony}. In considering {target}, readers should be able to examine fairness and responsibility without being asked to accept an invented explanation of the dispute.\n\nWe take a sympathetic view of {target}. The fact of punishment does not prove every hostile interpretation, and the question of responsibility deserves a fair hearing rather than an automatic condemnation."
+    },
+    {
+      "headline": "Authority takes a punitive turn",
+      "sub": "The home world has punished the colony.",
+      "body": "A punitive action by the home world now forms part of the colony's affairs. The report establishes that punishment occurred, while leaving its particulars unstated. Any assessment of {target} should therefore distinguish the political judgment of the action from assertions about consequences not supplied here.\n\nWe take a sympathetic view of {target}. The fact of punishment does not prove every hostile interpretation, and the question of responsibility deserves a fair hearing rather than an automatic condemnation."
+    }
+  ]
+}

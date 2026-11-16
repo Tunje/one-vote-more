@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_FAILED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Bid to remove government fails",
+      "sub": "",
+      "body": "A vote to bring down the government has failed in {colony}. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Confidence challenge falls short",
+      "sub": "",
+      "body": "The attempt to remove the government by an Assembly vote has failed. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Government survives the Assembly test",
+      "sub": "",
+      "body": "The government has survived a vote intended to bring it down. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    }
+  ]
+}

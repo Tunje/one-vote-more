@@ -1,0 +1,23 @@
+{
+  "event": "COMP_LIQUIDATED",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "A company goes under",
+      "sub": "",
+      "body": "A company has gone under in {colony}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Business failure enters the colony's record",
+      "sub": "",
+      "body": "The colony has seen a company fail. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "An enterprise reaches failure",
+      "sub": "",
+      "body": "A business in the colony has gone under. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    }
+  ]
+}

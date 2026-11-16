@@ -1,0 +1,23 @@
+{
+  "event": "POL_ELECTION_HELD",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "The colony has voted",
+      "sub": "The colony has held its election to the Colonial Assembly.",
+      "body": "An election to the Colonial Assembly has been held in {colony}. The event places representation at the centre of public attention. The assessment of {target} should distinguish the holding of an election from any claim about what its result authorises.\n\nA working person's vote deserves the same respect as anyone else's. What matters to labour is whether representation takes wages, safe work and household needs seriously. An election gives those concerns a political setting; it does not make the work of defending them unnecessary.\n\nThis paper reserves judgment on {target}. Holding an election establishes that a contest occurred; it does not settle every question about the conduct or merits of those involved. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Ballots before the business of government",
+      "sub": "Voting in an election to the Colonial Assembly has taken place.",
+      "body": "A ballot is a decision about representation, not a signed approval of every future measure. Following the election to the Colonial Assembly, that distinction deserves attention in any discussion of {target}. The colony has voted; political interpretation is a separate matter.\n\nA working person's vote deserves the same respect as anyone else's. What matters to labour is whether representation takes wages, safe work and household needs seriously. An election gives those concerns a political setting; it does not make the work of defending them unnecessary.\n\nThis paper reserves judgment on {target}. Holding an election establishes that a contest occurred; it does not settle every question about the conduct or merits of those involved. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "An Assembly election enters the record",
+      "sub": "An election to the Colonial Assembly has been held in {colony}.",
+      "body": "The election to the Colonial Assembly belongs in the colony's public record. Its meaning should be considered without supplying results or promises that this report does not contain. For {target}, the event invites scrutiny of the relationship between representation and responsibility.\n\nA working person's vote deserves the same respect as anyone else's. What matters to labour is whether representation takes wages, safe work and household needs seriously. An election gives those concerns a political setting; it does not make the work of defending them unnecessary.\n\nThis paper reserves judgment on {target}. Holding an election establishes that a contest occurred; it does not settle every question about the conduct or merits of those involved. Ordinary lives should be the measure, not a convenient afterthought."
+    }
+  ]
+}

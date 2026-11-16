@@ -1,0 +1,23 @@
+{
+  "event": "HOME_PETITION_ANSWERED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world answers colony's petition",
+      "sub": "",
+      "body": "The home world has answered the colony's petition. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A reply to the colonial petition",
+      "sub": "",
+      "body": "A reply to the colony's petition has come from the home world. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Petition receives an answer",
+      "sub": "",
+      "body": "The colony has received an answer to its petition from the home world. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

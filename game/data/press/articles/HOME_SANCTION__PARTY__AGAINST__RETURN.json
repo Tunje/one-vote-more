@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SANCTION",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: home world punishes the colony",
+      "sub": "A punishment has been imposed on {colony} by the home world.",
+      "body": "We return to {first_reported}. Our report recorded this: The home world had punished the colony.\n\nOur principles require scrutiny of power when it punishes, not only when it makes promises. The relationship between the colony and the home world cannot be reduced to the prestige of the authority involved. A political argument should explain why a consequence is just, rather than treating power as its own justification.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe criticise {target} in this matter. The exercise or handling of punitive authority requires a more demanding standard than the fact of power, and we find the political stewardship wanting."
+    },
+    {
+      "headline": "Looking back: a sanction enters the colonial relationship",
+      "sub": "The colony is the subject of punitive action by the home world.",
+      "body": "Looking back to {first_reported}, this was the news: A punishment had been imposed on {colony} by the home world.\n\nOur principles require scrutiny of power when it punishes, not only when it makes promises. The relationship between the colony and the home world cannot be reduced to the prestige of the authority involved. A political argument should explain why a consequence is just, rather than treating power as its own justification.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe criticise {target} in this matter. The exercise or handling of punitive authority requires a more demanding standard than the fact of power, and we find the political stewardship wanting."
+    },
+    {
+      "headline": "Looking back: authority takes a punitive turn",
+      "sub": "The home world has punished the colony.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The colony was the subject of punitive action by the home world.\n\nOur principles require scrutiny of power when it punishes, not only when it makes promises. The relationship between the colony and the home world cannot be reduced to the prestige of the authority involved. A political argument should explain why a consequence is just, rather than treating power as its own justification.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe criticise {target} in this matter. The exercise or handling of punitive authority requires a more demanding standard than the fact of power, and we find the political stewardship wanting."
+    }
+  ]
+}

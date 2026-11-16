@@ -1,0 +1,23 @@
+{
+  "event": "HOME_PETITION_ANSWERED",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Home world answers colony's petition",
+      "sub": "A reply to the colony's petition has come from the home world.",
+      "body": "The home world has answered the colony's petition. A response is established, but the fact of a reply does not itself say whether the colony's request was granted. Readers considering {target} should keep that distinction clear rather than treating an answer as an automatic concession.\n\nWe support {target} in this assessment. Seeking and handling a response deserves a fair hearing; an answer should not become the occasion for hostile conclusions founded on terms this account does not establish."
+    },
+    {
+      "headline": "A reply to the colonial petition",
+      "sub": "The colony has received an answer to its petition from the home world.",
+      "body": "A petition is a request to authority; an answer is not necessarily the response its authors sought. The home world has replied to the colony's petition. An assessment of {target} should begin with that known exchange, without supplying favourable or adverse terms absent from this account.\n\nWe support {target} in this assessment. Seeking and handling a response deserves a fair hearing; an answer should not become the occasion for hostile conclusions founded on terms this account does not establish."
+    },
+    {
+      "headline": "Petition receives an answer",
+      "sub": "The home world has answered the colony's petition.",
+      "body": "The colonial petition has an answer from the home world. That gives the relationship a recorded response, not a warrant to invent its contents. For {target}, the question is responsible handling of a petition and its reply, rather than a victory or defeat presumed from the word 'answered'.\n\nWe support {target} in this assessment. Seeking and handling a response deserves a fair hearing; an answer should not become the occasion for hostile conclusions founded on terms this account does not establish."
+    }
+  ]
+}

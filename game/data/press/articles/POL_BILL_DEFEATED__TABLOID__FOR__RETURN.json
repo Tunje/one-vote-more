@@ -1,0 +1,23 @@
+{
+  "event": "POL_BILL_DEFEATED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: assembly votes down government bill",
+      "sub": "The Assembly has rejected a bill put forward by the government.",
+      "body": "We return to {first_reported}. Our report recorded this: A government bill had been voted down in the Colonial Assembly.\n\nThe government wanted a bill through. The Assembly voted it down. That is a story without an invented row, a secret bargain or a dramatic resignation. A proposal has hit the parliamentary wall. Readers can ask who handled it well without pretending to know provisions that have not been reported.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe defend {target} against an easy adverse verdict. A parliamentary defeat does not by itself settle the merits of a political position, and a rejected proposal can still deserve a fair hearing."
+    },
+    {
+      "headline": "Looking back: a proposal meets its parliamentary limit",
+      "sub": "A proposed government bill has failed in the Assembly vote.",
+      "body": "Looking back to {first_reported}, this was the news: The Assembly had rejected a bill put forward by the government.\n\nThe government wanted a bill through. The Assembly voted it down. That is a story without an invented row, a secret bargain or a dramatic resignation. A proposal has hit the parliamentary wall. Readers can ask who handled it well without pretending to know provisions that have not been reported.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe defend {target} against an easy adverse verdict. A parliamentary defeat does not by itself settle the merits of a political position, and a rejected proposal can still deserve a fair hearing."
+    },
+    {
+      "headline": "Looking back: government legislation fails the vote",
+      "sub": "A government bill has been voted down in the Colonial Assembly.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: A proposed government bill had failed in the Assembly vote.\n\nThe government wanted a bill through. The Assembly voted it down. That is a story without an invented row, a secret bargain or a dramatic resignation. A proposal has hit the parliamentary wall. Readers can ask who handled it well without pretending to know provisions that have not been reported.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe defend {target} against an easy adverse verdict. A parliamentary defeat does not by itself settle the merits of a political position, and a rejected proposal can still deserve a fair hearing."
+    }
+  ]
+}

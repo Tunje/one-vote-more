@@ -1,0 +1,23 @@
+{
+  "event": "POL_GOVERNMENT_FORMED",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "A new government takes shape",
+      "sub": "The colony has a newly formed government.",
+      "body": "A new government has been formed in {colony}. Its formation establishes an administration; it does not establish the success of its future decisions. In considering {target}, the useful distinction is between assembling a government and meeting the obligations that come with governing.\n\nOur principles do not become less demanding when an administration is assembled. Government ought to be a means of advancing convictions through responsible action. The attraction of holding office is no substitute for an account of what office is for, and whose interests it should serve.\n\nWe welcome the contribution of {target}. Forming an administration is a legitimate achievement, and it deserves recognition without requiring us to pretend that every future difficulty has already been solved. Political principle should remain visible when judgment becomes less comfortable."
+    },
+    {
+      "headline": "Formation is the beginning of governing",
+      "sub": "Government formation has produced a new administration in {colony}.",
+      "body": "Government formation is a beginning. The new administration in {colony} gives public attention an institutional focus, while leaving its practical record to be made. Any judgment of {target} should recognise both the significance of formation and the limits of what formation alone can demonstrate.\n\nOur principles do not become less demanding when an administration is assembled. Government ought to be a means of advancing convictions through responsible action. The attraction of holding office is no substitute for an account of what office is for, and whose interests it should serve.\n\nWe welcome the contribution of {target}. Forming an administration is a legitimate achievement, and it deserves recognition without requiring us to pretend that every future difficulty has already been solved. Political principle should remain visible when judgment becomes less comfortable."
+    },
+    {
+      "headline": "New ministry, practical obligations",
+      "sub": "A new government has been formed in {colony}.",
+      "body": "The colony has a new government. There is an obvious temptation to read a whole political future into that fact. A more useful approach to {target} begins with the administration that has actually been formed and the responsibilities inherent in exercising public authority.\n\nOur principles do not become less demanding when an administration is assembled. Government ought to be a means of advancing convictions through responsible action. The attraction of holding office is no substitute for an account of what office is for, and whose interests it should serve.\n\nWe welcome the contribution of {target}. Forming an administration is a legitimate achievement, and it deserves recognition without requiring us to pretend that every future difficulty has already been solved. Political principle should remain visible when judgment becomes less comfortable."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_COLLAPSED",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Strike collapses",
+      "sub": "",
+      "body": "A strike has collapsed in {colony}. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "Labour action loses its course",
+      "sub": "",
+      "body": "The colony has seen a strike collapse. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "A strike ends in collapse",
+      "sub": "",
+      "body": "A strike in the colony has ended in collapse. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    }
+  ]
+}

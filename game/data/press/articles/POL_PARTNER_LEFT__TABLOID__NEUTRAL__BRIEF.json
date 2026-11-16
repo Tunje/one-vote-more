@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTNER_LEFT",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Party walks out of government",
+      "sub": "",
+      "body": "A party has walked out of the government in {colony}. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "A governing partnership breaks",
+      "sub": "",
+      "body": "A governing party has left the colony's government. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Departure redraws the question of cooperation",
+      "sub": "",
+      "body": "The government has lost a party from its governing arrangement. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    }
+  ]
+}

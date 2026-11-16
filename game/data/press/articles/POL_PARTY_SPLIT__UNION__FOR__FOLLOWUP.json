@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTY_SPLIT",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: party divides in two",
+      "sub": "The colony has seen a party divide into two organisations.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A political party has split in two in {colony}.\n\nWe support {target} in this assessment. Unity is not an unlimited obligation, and a fair political judgment must allow that separation can deserve defence rather than automatic condemnation for breaking ranks."
+    },
+    {
+      "headline": "Still in view: a political organisation breaks apart",
+      "sub": "A split has divided a political party in the colony.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has seen a party divide into two organisations.\n\nWe support {target} in this assessment. Unity is not an unlimited obligation, and a fair political judgment must allow that separation can deserve defence rather than automatic condemnation for breaking ranks."
+    },
+    {
+      "headline": "Still in view: unity gives way to a party split",
+      "sub": "A political party has split in two in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A split has divided a political party in the colony.\n\nWe support {target} in this assessment. Unity is not an unlimited obligation, and a fair political judgment must allow that separation can deserve defence rather than automatic condemnation for breaking ranks."
+    }
+  ]
+}

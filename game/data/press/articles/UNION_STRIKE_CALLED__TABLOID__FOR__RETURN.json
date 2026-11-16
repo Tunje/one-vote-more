@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_CALLED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: union calls a strike",
+      "sub": "A strike has been called by a union in the colony.",
+      "body": "We return to {first_reported}. Our report recorded this: A union had called a strike in {colony}.\n\nA union has called a strike. That is the news, before somebody supplies a deserted factory, a furious owner or a perfect speech on a picket line. Working people and employers can be judged without that scenery. Keep the attention on the call and the responsibilities it raises.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe support {target} in this assessment. A call for collective action deserves a fair account, and the existence of conflict does not establish that every accusation against a participant is justified."
+    },
+    {
+      "headline": "Looking back: a call to withhold labour",
+      "sub": "The colony has a union call for strike action.",
+      "body": "Looking back to {first_reported}, this was the news: A strike had been called by a union in the colony.\n\nA union has called a strike. That is the news, before somebody supplies a deserted factory, a furious owner or a perfect speech on a picket line. Working people and employers can be judged without that scenery. Keep the attention on the call and the responsibilities it raises.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe support {target} in this assessment. A call for collective action deserves a fair account, and the existence of conflict does not establish that every accusation against a participant is justified."
+    },
+    {
+      "headline": "Looking back: work becomes the subject of a strike call",
+      "sub": "A union has called a strike in {colony}.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The colony had a union call for strike action.\n\nA union has called a strike. That is the news, before somebody supplies a deserted factory, a furious owner or a perfect speech on a picket line. Working people and employers can be judged without that scenery. Keep the attention on the call and the responsibilities it raises.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe support {target} in this assessment. A call for collective action deserves a fair account, and the existence of conflict does not establish that every accusation against a participant is justified."
+    }
+  ]
+}

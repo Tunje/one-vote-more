@@ -1,0 +1,23 @@
+{
+  "event": "POL_PARTNER_LEFT",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: party walks out of government",
+      "sub": "A governing party has left the colony's government.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A party has walked out of the government in {colony}.\n\nWe support {target} in this assessment. Cooperation is not an obligation to accept every political arrangement indefinitely; a fair judgment must leave room for a principled position when relationships change."
+    },
+    {
+      "headline": "Still in view: a governing partnership breaks",
+      "sub": "The government has lost a party from its governing arrangement.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A governing party has left the colony's government.\n\nWe support {target} in this assessment. Cooperation is not an obligation to accept every political arrangement indefinitely; a fair judgment must leave room for a principled position when relationships change."
+    },
+    {
+      "headline": "Still in view: departure redraws the question of cooperation",
+      "sub": "A party has walked out of the government in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The government has lost a party from its governing arrangement.\n\nWe support {target} in this assessment. Cooperation is not an obligation to accept every political arrangement indefinitely; a fair judgment must leave room for a principled position when relationships change."
+    }
+  ]
+}

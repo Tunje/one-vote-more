@@ -1,0 +1,23 @@
+{
+  "event": "POL_GRANT_FAVOURITISM",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Grant programme passes over needy districts",
+      "sub": "",
+      "body": "A government grant programme has passed over districts that needed it. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Need goes unanswered in grant allocation",
+      "sub": "",
+      "body": "Districts in need were passed over by a government grant programme. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Government grants miss the districts in need",
+      "sub": "",
+      "body": "A government grant allocation has overlooked the districts that needed support. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    }
+  ]
+}

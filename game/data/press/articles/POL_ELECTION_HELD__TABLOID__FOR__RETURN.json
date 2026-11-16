@@ -1,0 +1,23 @@
+{
+  "event": "POL_ELECTION_HELD",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: the colony has voted",
+      "sub": "The colony has held its election to the Colonial Assembly.",
+      "body": "We return to {first_reported}. Our report recorded this: An election to the Colonial Assembly had been held in {colony}.\n\nThe colony has had its say at the ballot box. That is a fine thing. It is also worth remembering that a vote is not a blank cheque. The people who do the representing should expect the people being represented to keep taking an interest.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe regard {target} favourably in this assessment. Participation in representative politics deserves a fair hearing, and an election should be an occasion for reasoned judgment rather than reflexive hostility."
+    },
+    {
+      "headline": "Looking back: ballots before the business of government",
+      "sub": "Voting in an election to the Colonial Assembly has taken place.",
+      "body": "Looking back to {first_reported}, this was the news: The colony had held its election to the Colonial Assembly.\n\nThe colony has had its say at the ballot box. That is a fine thing. It is also worth remembering that a vote is not a blank cheque. The people who do the representing should expect the people being represented to keep taking an interest.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe regard {target} favourably in this assessment. Participation in representative politics deserves a fair hearing, and an election should be an occasion for reasoned judgment rather than reflexive hostility."
+    },
+    {
+      "headline": "Looking back: an Assembly election enters the record",
+      "sub": "An election to the Colonial Assembly has been held in {colony}.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: Voting in an election to the Colonial Assembly had taken place.\n\nThe colony has had its say at the ballot box. That is a fine thing. It is also worth remembering that a vote is not a blank cheque. The people who do the representing should expect the people being represented to keep taking an interest.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe regard {target} favourably in this assessment. Participation in representative politics deserves a fair hearing, and an election should be an occasion for reasoned judgment rather than reflexive hostility."
+    }
+  ]
+}

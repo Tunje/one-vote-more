@@ -1,0 +1,23 @@
+{
+  "event": "POL_SCANDAL_REVEALED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: party leader faces a public scandal",
+      "sub": "A party leader is the subject of a newly revealed scandal.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A scandal concerning a party leader has come to light in {colony}.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing."
+    },
+    {
+      "headline": "Still in view: leadership under an unwelcome spotlight",
+      "sub": "A scandal about a party leader has become public in the colony.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A party leader is the subject of a newly revealed scandal.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing."
+    },
+    {
+      "headline": "Still in view: a scandal tests political trust",
+      "sub": "A scandal concerning a party leader has come to light in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A scandal about a party leader has become public in the colony.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing."
+    }
+  ]
+}

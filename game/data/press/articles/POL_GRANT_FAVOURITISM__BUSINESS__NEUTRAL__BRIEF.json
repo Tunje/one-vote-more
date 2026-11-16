@@ -1,0 +1,23 @@
+{
+  "event": "POL_GRANT_FAVOURITISM",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Grant programme passes over needy districts",
+      "sub": "",
+      "body": "A government grant programme has passed over districts that needed it. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Need goes unanswered in grant allocation",
+      "sub": "",
+      "body": "Districts in need were passed over by a government grant programme. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Government grants miss the districts in need",
+      "sub": "",
+      "body": "A government grant allocation has overlooked the districts that needed support. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

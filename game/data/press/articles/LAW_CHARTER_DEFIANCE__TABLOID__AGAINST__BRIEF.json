@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_DEFIANCE",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Colony openly defies its charter",
+      "sub": "",
+      "body": "The colony is openly defying its charter. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "A public break with charter authority",
+      "sub": "",
+      "body": "Open defiance of the charter is taking place in {colony}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Charter compliance becomes an open dispute",
+      "sub": "",
+      "body": "The colony has taken an openly defiant position towards its charter. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

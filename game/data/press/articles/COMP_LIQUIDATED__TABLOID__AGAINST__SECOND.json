@@ -1,0 +1,23 @@
+{
+  "event": "COMP_LIQUIDATED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "A company goes under",
+      "sub": "The colony has seen a company fail.",
+      "body": "A company has gone under in {colony}. The failure is a business event, not a detailed account of its consequences for particular people. Readers considering {target} should distinguish that known outcome from unreported claims about creditors, employment or the circumstances that brought the company to this position.\n\nWe judge {target} critically. Business failure deserves more than a shrug, and the standards of stewardship should be examined rather than dismissed as irrelevant once an enterprise has gone under."
+    },
+    {
+      "headline": "Business failure enters the colony's record",
+      "sub": "A business in the colony has gone under.",
+      "body": "A business has failed in the colony. An enterprise is more than a name in a commercial register, but its failure does not by itself identify every consequence. An assessment of {target} should address stewardship without supplying a balance sheet or a story about the firm's trade.\n\nWe judge {target} critically. Business failure deserves more than a shrug, and the standards of stewardship should be examined rather than dismissed as irrelevant once an enterprise has gone under."
+    },
+    {
+      "headline": "An enterprise reaches failure",
+      "sub": "A company has gone under in {colony}.",
+      "body": "The colony's business record includes a company going under. That outcome invites questions of responsibility without answering them all. For {target}, the relevant scrutiny should remain separate from an invented cause, a presumed creditor loss or an announcement about workers that the report does not establish.\n\nWe judge {target} critically. Business failure deserves more than a shrug, and the standards of stewardship should be examined rather than dismissed as irrelevant once an enterprise has gone under."
+    }
+  ]
+}

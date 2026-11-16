@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_FAILED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: bid to remove government fails",
+      "sub": "The attempt to remove the government by an Assembly vote has failed.",
+      "body": "We return to {first_reported}. Our report recorded this: A vote to bring down the government had failed in {colony}.\n\nThe gazette records that the attempt to bring down the administration was unsuccessful. The outcome should not be enlarged into a statement about the Assembly's view of every governmental measure. Confidence proceedings have a defined object, and a reliable account should remain attentive to that object.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe favour {target} in this assessment. A political position deserves to be judged on its merits, and the failed challenge offers no warrant for treating hostile assumptions as proven conclusions."
+    },
+    {
+      "headline": "Looking back: confidence challenge falls short",
+      "sub": "The government has survived a vote intended to bring it down.",
+      "body": "Looking back to {first_reported}, this was the news: The attempt to remove the government by an Assembly vote had failed.\n\nThe gazette records that the attempt to bring down the administration was unsuccessful. The outcome should not be enlarged into a statement about the Assembly's view of every governmental measure. Confidence proceedings have a defined object, and a reliable account should remain attentive to that object.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe favour {target} in this assessment. A political position deserves to be judged on its merits, and the failed challenge offers no warrant for treating hostile assumptions as proven conclusions."
+    },
+    {
+      "headline": "Looking back: government survives the Assembly test",
+      "sub": "A vote to bring down the government has failed in {colony}.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The government had survived a vote intended to bring it down.\n\nThe gazette records that the attempt to bring down the administration was unsuccessful. The outcome should not be enlarged into a statement about the Assembly's view of every governmental measure. Confidence proceedings have a defined object, and a reliable account should remain attentive to that object.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe favour {target} in this assessment. A political position deserves to be judged on its merits, and the failed challenge offers no warrant for treating hostile assumptions as proven conclusions."
+    }
+  ]
+}

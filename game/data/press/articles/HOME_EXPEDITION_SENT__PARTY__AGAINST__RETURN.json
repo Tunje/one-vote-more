@@ -1,0 +1,23 @@
+{
+  "event": "HOME_EXPEDITION_SENT",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: home world sends punitive expedition",
+      "sub": "A punitive expedition has been dispatched by the home world.",
+      "body": "We return to {first_reported}. Our report recorded this: The home world had sent a punitive expedition.\n\nA claim to authority becomes especially important to examine when it takes a punitive form. Our convictions require attention to legitimacy and responsibility, without turning that political argument into an invented battle. The colony deserves a case about power that can be made without adding events to the record.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe judge {target} adversely. Punitive power demands an exacting political standard, and the dispatch is an appropriate occasion to question the quality and fairness of the responsibility being exercised."
+    },
+    {
+      "headline": "Looking back: an expedition with a punitive purpose",
+      "sub": "The home world has dispatched an expedition intended to punish the colony.",
+      "body": "Looking back to {first_reported}, this was the news: A punitive expedition had been dispatched by the home world.\n\nA claim to authority becomes especially important to examine when it takes a punitive form. Our convictions require attention to legitimacy and responsibility, without turning that political argument into an invented battle. The colony deserves a case about power that can be made without adding events to the record.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe judge {target} adversely. Punitive power demands an exacting political standard, and the dispatch is an appropriate occasion to question the quality and fairness of the responsibility being exercised."
+    },
+    {
+      "headline": "Looking back: distant authority dispatches an expedition",
+      "sub": "The home world has sent a punitive expedition.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: The home world had dispatched an expedition intended to punish the colony.\n\nA claim to authority becomes especially important to examine when it takes a punitive form. Our convictions require attention to legitimacy and responsibility, without turning that political argument into an invented battle. The colony deserves a case about power that can be made without adding events to the record.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe judge {target} adversely. Punitive power demands an exacting political standard, and the dispatch is an appropriate occasion to question the quality and fairness of the responsibility being exercised."
+    }
+  ]
+}

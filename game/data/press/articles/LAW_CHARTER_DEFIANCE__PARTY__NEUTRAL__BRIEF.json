@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_DEFIANCE",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Colony openly defies its charter",
+      "sub": "",
+      "body": "The colony is openly defying its charter. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "A public break with charter authority",
+      "sub": "",
+      "body": "Open defiance of the charter is taking place in {colony}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Charter compliance becomes an open dispute",
+      "sub": "",
+      "body": "The colony has taken an openly defiant position towards its charter. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

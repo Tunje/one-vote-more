@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_PASSED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: assembly votes the government out",
+      "sub": "The government has been voted out by the Colonial Assembly.",
+      "body": "We return to {first_reported}. Our report recorded this: The Colonial Assembly had voted the government out in {colony}.\n\nThe government has been voted out. That is a result, not a hint. But a fall from office is not the same thing as an answer to every question in the colony. Enjoy the drama if you must; keep asking what responsible public life should look like.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nThe parliamentary outcome supplies the basis for scrutiny of {target}. This paper reports the loss of confidence without treating an unreported motive or future settlement as an established fact."
+    },
+    {
+      "headline": "Looking back: confidence withdrawn",
+      "sub": "An Assembly vote has removed the government in {colony}.",
+      "body": "Looking back to {first_reported}, this was the news: The government had been voted out by the Colonial Assembly.\n\nThe government has been voted out. That is a result, not a hint. But a fall from office is not the same thing as an answer to every question in the colony. Enjoy the drama if you must; keep asking what responsible public life should look like.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nThe parliamentary outcome supplies the basis for scrutiny of {target}. This paper reports the loss of confidence without treating an unreported motive or future settlement as an established fact."
+    },
+    {
+      "headline": "Looking back: office meets its parliamentary limit",
+      "sub": "The Colonial Assembly has voted the government out in {colony}.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: An Assembly vote had removed the government in {colony}.\n\nThe government has been voted out. That is a result, not a hint. But a fall from office is not the same thing as an answer to every question in the colony. Enjoy the drama if you must; keep asking what responsible public life should look like.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nThe parliamentary outcome supplies the basis for scrutiny of {target}. This paper reports the loss of confidence without treating an unreported motive or future settlement as an established fact."
+    }
+  ]
+}

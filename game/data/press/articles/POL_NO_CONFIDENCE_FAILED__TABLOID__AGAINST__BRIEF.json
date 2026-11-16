@@ -1,0 +1,23 @@
+{
+  "event": "POL_NO_CONFIDENCE_FAILED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Bid to remove government fails",
+      "sub": "",
+      "body": "A vote to bring down the government has failed in {colony}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Confidence challenge falls short",
+      "sub": "",
+      "body": "The attempt to remove the government by an Assembly vote has failed. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Government survives the Assembly test",
+      "sub": "",
+      "body": "The government has survived a vote intended to bring it down. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

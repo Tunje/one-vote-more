@@ -1,0 +1,23 @@
+{
+  "event": "HOME_SHIP_BUILT",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: shipbuilding for the colony route",
+      "sub": "Shipbuilding by the home world has provided a larger vessel or another vessel for the colony route.",
+      "body": "We return to {first_reported}. Our report recorded this: The home world had built a larger ship or an additional ship for the colony route.\n\nA ship has been built for the route. Good material for a grand picture of the future; less useful as proof of what is on a shop shelf today. Keep the distinction clear. Building a vessel and watching it arrive are different stories, however attractive it is to combine them.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe welcome {target} in this assessment. Construction for the route deserves recognition as a tangible development, even while a fair account keeps that achievement distinct from promises about voyages not established here."
+    },
+    {
+      "headline": "Looking back: home world builds for the colonial crossing",
+      "sub": "A larger ship or one more ship has been built for the colony route.",
+      "body": "Looking back to {first_reported}, this was the news: Shipbuilding by the home world had provided a larger vessel or another vessel for the colony route.\n\nA ship has been built for the route. Good material for a grand picture of the future; less useful as proof of what is on a shop shelf today. Keep the distinction clear. Building a vessel and watching it arrive are different stories, however attractive it is to combine them.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe welcome {target} in this assessment. Construction for the route deserves recognition as a tangible development, even while a fair account keeps that achievement distinct from promises about voyages not established here."
+    },
+    {
+      "headline": "Looking back: route gains a shipbuilding development",
+      "sub": "The home world has built a larger ship or an additional ship for the colony route.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: A larger ship or one more ship had been built for the colony route.\n\nA ship has been built for the route. Good material for a grand picture of the future; less useful as proof of what is on a shop shelf today. Keep the distinction clear. Building a vessel and watching it arrive are different stories, however attractive it is to combine them.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nWe welcome {target} in this assessment. Construction for the route deserves recognition as a tangible development, even while a fair account keeps that achievement distinct from promises about voyages not established here."
+    }
+  ]
+}

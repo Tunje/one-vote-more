@@ -1,0 +1,23 @@
+{
+  "event": "UNION_STRIKE_COLLAPSED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Strike collapses",
+      "sub": "The colony has seen a strike collapse.",
+      "body": "A strike has collapsed in {colony}. The collapse is a result for the labour action, not an established agreement about the underlying dispute. Readers judging {target} should avoid treating it as proof of a particular settlement, a change in wages or a complete account of responsibility.\n\nThe role of {target} merits examination without treating collapse as a full explanation. This paper records the outcome of the action while leaving unreported causes and terms outside the factual account."
+    },
+    {
+      "headline": "Labour action loses its course",
+      "sub": "A strike in the colony has ended in collapse.",
+      "body": "The course of a strike has reached collapse. That is serious news for the colony's labour relations, even without the reasons being specified. An assessment of {target} should distinguish the failure of the action from a judgment that every concern behind it has therefore been answered.\n\nThe role of {target} merits examination without treating collapse as a full explanation. This paper records the outcome of the action while leaving unreported causes and terms outside the factual account."
+    },
+    {
+      "headline": "A strike ends in collapse",
+      "sub": "A strike has collapsed in {colony}.",
+      "body": "A strike has ended in collapse in the colony. The report establishes that outcome without describing the circumstances that produced it. For {target}, the question is responsibility in the labour dispute, rather than an invented story about participation, concessions or the conduct of particular workers.\n\nThe role of {target} merits examination without treating collapse as a full explanation. This paper records the outcome of the action while leaving unreported causes and terms outside the factual account."
+    }
+  ]
+}

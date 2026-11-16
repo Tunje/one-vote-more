@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Working people deserve better stewardship",
+      "sub": "",
+      "body": "Food is short in {colony}, and people are hungry. Working households need enough to eat; a debate cannot fill that need. We fault {target}."
+    },
+    {
+      "headline": "Hunger calls responsibility to account",
+      "sub": "",
+      "body": "Residents are hungry because food is insufficient in {colony}. Solidarity starts with treating enough to eat as a common need. We fault {target}."
+    },
+    {
+      "headline": "Food failure demands a plain answer",
+      "sub": "",
+      "body": "There is too little food in {colony}, and people are hungry. Enough to eat is a basic condition of a decent life. We fault {target}."
+    }
+  ]
+}

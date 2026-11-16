@@ -1,0 +1,23 @@
+{
+  "event": "POL_BILL_DEFEATED",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: assembly votes down government bill",
+      "sub": "The Assembly has rejected a bill put forward by the government.",
+      "body": "We return to {first_reported}. Our report recorded this: A government bill had been voted down in the Colonial Assembly.\n\nThe gazette records the defeat of the bill as a legislative event. A rejection and a statutory change are different things, and the former should not be described as though the latter had occurred. An orderly public account also avoids presuming that the vote had an unreported constitutional consequence.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nThe conduct of {target} warrants examination against the rejected proposal. This paper records the legislative result without adopting an unreported explanation for it or declaring a wider political outcome."
+    },
+    {
+      "headline": "Looking back: a proposal meets its parliamentary limit",
+      "sub": "A proposed government bill has failed in the Assembly vote.",
+      "body": "Looking back to {first_reported}, this was the news: The Assembly had rejected a bill put forward by the government.\n\nThe gazette records the defeat of the bill as a legislative event. A rejection and a statutory change are different things, and the former should not be described as though the latter had occurred. An orderly public account also avoids presuming that the vote had an unreported constitutional consequence.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nThe conduct of {target} warrants examination against the rejected proposal. This paper records the legislative result without adopting an unreported explanation for it or declaring a wider political outcome."
+    },
+    {
+      "headline": "Looking back: government legislation fails the vote",
+      "sub": "A government bill has been voted down in the Colonial Assembly.",
+      "body": "The headline belongs to {first_reported}. Our original account recorded this: A proposed government bill had failed in the Assembly vote.\n\nThe gazette records the defeat of the bill as a legislative event. A rejection and a statutory change are different things, and the former should not be described as though the latter had occurred. An orderly public account also avoids presuming that the vote had an unreported constitutional consequence.\n\nWhat has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.\n\nThe conduct of {target} warrants examination against the rejected proposal. This paper records the legislative result without adopting an unreported explanation for it or declaring a wider political outcome."
+    }
+  ]
+}

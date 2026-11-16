@@ -1,0 +1,23 @@
+{
+  "event": "POL_GOVERNMENT_FORMED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "A new government takes shape",
+      "sub": "",
+      "body": "A new government has been formed in {colony}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Formation is the beginning of governing",
+      "sub": "",
+      "body": "The colony has a newly formed government. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "New ministry, practical obligations",
+      "sub": "",
+      "body": "Government formation has produced a new administration in {colony}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

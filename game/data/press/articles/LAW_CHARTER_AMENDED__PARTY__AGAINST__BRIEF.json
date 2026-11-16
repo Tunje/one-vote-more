@@ -1,0 +1,23 @@
+{
+  "event": "LAW_CHARTER_AMENDED",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Home world changes the charter",
+      "sub": "",
+      "body": "The home world has changed the colony's charter. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Colonial charter amended",
+      "sub": "",
+      "body": "An amendment to the colony's charter has been made by the home world. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "The terms of authority are altered",
+      "sub": "",
+      "body": "The colony's charter has been altered by the home world. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    }
+  ]
+}

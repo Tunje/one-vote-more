@@ -1,0 +1,23 @@
+{
+  "event": "HOME_DEMAND_RAISED",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: home world raises its demands",
+      "sub": "The demands placed on the colony by the home world have increased.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has raised what it demands of the colony.\n\nWe regard {target} critically. A higher demand deserves more than automatic deference, and authority should not be excused from defending the fairness of what it asks other people to bear."
+    },
+    {
+      "headline": "Still in view: a larger claim on the colony",
+      "sub": "The home world is demanding more from {colony}.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The demands placed on the colony by the home world have increased.\n\nWe regard {target} critically. A higher demand deserves more than automatic deference, and authority should not be excused from defending the fairness of what it asks other people to bear."
+    },
+    {
+      "headline": "Still in view: distant authority asks for more",
+      "sub": "The home world has raised what it demands of the colony.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The home world is demanding more from {colony}.\n\nWe regard {target} critically. A higher demand deserves more than automatic deference, and authority should not be excused from defending the fairness of what it asks other people to bear."
+    }
+  ]
+}

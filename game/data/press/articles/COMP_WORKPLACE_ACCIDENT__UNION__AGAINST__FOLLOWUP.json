@@ -1,0 +1,23 @@
+{
+  "event": "COMP_WORKPLACE_ACCIDENT",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: accident at a workplace",
+      "sub": "The colony has had an accident at a workplace.",
+      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. An accident has occurred at a workplace in {colony}.\n\nWe criticise {target} on the standard of safety stewardship. An accident warrants serious questions about responsibility, rather than a comfortable presumption that the conduct surrounding work should remain beyond public judgment."
+    },
+    {
+      "headline": "Still in view: workplace safety becomes immediate news",
+      "sub": "A workplace in the colony has been the scene of an accident.",
+      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has had an accident at a workplace.\n\nWe criticise {target} on the standard of safety stewardship. An accident warrants serious questions about responsibility, rather than a comfortable presumption that the conduct surrounding work should remain beyond public judgment."
+    },
+    {
+      "headline": "Still in view: an accident enters the working day",
+      "sub": "An accident has occurred at a workplace in {colony}.",
+      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A workplace in the colony has been the scene of an accident.\n\nWe criticise {target} on the standard of safety stewardship. An accident warrants serious questions about responsibility, rather than a comfortable presumption that the conduct surrounding work should remain beyond public judgment."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FAMINE",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "An adverse result is not the whole case",
+      "sub": "Adequate supply is the relevant measure of any response.",
+      "body": "Food is insufficient in {colony}, and residents are going hungry. For {target}, the relevant challenge is practical provision. An assessment of intentions alone cannot establish whether the essential need is being met.\n\nBusiness readers should distinguish an explanation of a shortage from an account of how it might be remedied. The first may inform the second; it cannot substitute for it. Nor does the fact of scarcity identify its cause.\n\nOn balance, {target} deserves a fair hearing and our support. An adverse result does not by itself identify the best alternative; confidence should not be withdrawn on that reasoning alone.\n\nAdequate food is a basic condition for ordinary economic life. The sensible question is therefore what can secure it, with proposals examined for feasibility rather than rhetorical appeal. Confidence worth having must ultimately rest on provision, not on a favourable description of an inadequate supply."
+    },
+    {
+      "headline": "Confidence needs a reasoned assessment",
+      "sub": "Hunger makes the food shortage an immediate economic concern.",
+      "body": "The essential demand is for enough to eat. In {colony}, food supply is falling short of that need and people are hungry. This is the starting point for evaluating {target}.\n\nA commercial view need not be an indifferent one. Food is a necessity before it is an entry in an account. An assessment that overlooks the human consequence of inadequate supply is also an incomplete assessment of the economic problem.\n\nOn balance, {target} deserves a fair hearing and our support. An adverse result does not by itself identify the best alternative; confidence should not be withdrawn on that reasoning alone.\n\nReaders should examine possible remedies on their merits. Neither a preferred political explanation nor an expression of confidence establishes that food will become sufficient. The useful discipline is to keep returning to the requirement that makes the discussion necessary: people must be able to eat."
+    },
+    {
+      "headline": "Support survives the easy verdict",
+      "sub": "The colony's hunger cannot be resolved on paper alone.",
+      "body": "There is a straightforward limit to any discussion of the food shortage: people cannot eat an explanation. Food is insufficient in {colony}. Residents are hungry, and {target} should be assessed against that practical reality.\n\nManagers and owners should be wary of confusing a plausible argument with a workable remedy. A proposal needs a credible connection to adequate provision. Its political attractiveness says little about whether it can meet the need.\n\nOn balance, {target} deserves a fair hearing and our support. An adverse result does not by itself identify the best alternative; confidence should not be withdrawn on that reasoning alone.\n\nThe present report does not establish the shortage's cause or predict its duration. Those distinctions matter to sound judgment. What is already clear is the objective against which any approach must be measured: sufficient food, rather than an improved presentation of the lack of it."
+    }
+  ]
+}
