@@ -221,6 +221,21 @@ History archive, career summary, retirement, save compaction, 30-year soak runs,
 ### Post-v1 backlog
 Media/newspapers, alcohol, education/health depth, ownership types + boards + succession + M&A, lobbying/corruption, criminal law and police, emergency powers, constitutional review, talents/XP depth, observer mode.
 
+### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
+The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
+renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and
+build list was made to fix this".
+- **A larger firm buys a firm in trouble while it still trades.** Designs to build from: E166 (design-e166-e169.md),
+  Anni's sale law with flag E174 (design-law-company-sales.md), the merger review in competition_law (exists, nothing
+  calls it).
+- **A builder renegotiates a job that runs at a loss.** Design to build from: design-law-construction-contracts.md
+  (price revision at the start date, deposit, cancellation fee; none coded).
+- **Subcontracting** (the user, same day: "can we use a sell jobs on module where they take in sub co tractors to
+  help?"; then, asked whether it joins the queue: "No that's what i meant"). A builder sells part of a job on to
+  subcontractors. Nothing designed; spec-economy-v1.md §20 lists it as post-v1. First step when it starts: measure
+  why jobs sit unbid while builders sit idle.
+Detail and the state of the code: reeval-off-switches.md.
+
 ---
 
 ## 5. Immediate next steps
