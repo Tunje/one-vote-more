@@ -306,3 +306,94 @@ are simply cheaper living."
 - **The choosing** is Otto's (developers under R8) and the government's (the allowed forms are the commander's choice,
   section 8). TownGrid applies a choice with `set_form(fid, form)`, or reads it from a new block's "form" field.
 
+
+## 12. The town view, planned next (the user, directly and via Wilma, 2026-11-16; nothing here is built yet)
+
+The town view (ui/town_view.gd, committed e18ceda) draws the grid with placeholder blocks. The user is making the
+models in SketchUp (low-poly, one kit at one scale). What was settled for the next build, in order:
+
+**The model kit and the 25 m grid.**
+- **Scale:** the kit is made with every piece on a 26.4 m road tile. The game shrinks the whole kit by one factor (to
+  25 m tiles), so it all still fits together, and four tiles span a 100 m cell edge.
+  - The factor is 25 / 26.4 if a kit car measures about 4.5 m (real metres).
+  - If the car is clearly bigger, the factor is scaled to match.
+  - To ask: the length of one car.
+- **Road pieces**, chosen per spot from the neighbouring streets: straight, crosswalk, T, cross, corner, dead end,
+  plain plaza, grass (parks, the round green). Not used: diagonals, tunnel, rock. Roads between towns stay drawn
+  strips.
+- **A house cell is 4 × 4 tiles:**
+  - half a tile of street on its north and south edges;
+  - a row of 4 house plots facing each street, with the back-garden row between them.
+  - That is 8 houses, or 6 where a north–south street takes a column.
+  - **TownGrid.FORMS HOUSE goes from 10 to 8 homes** so the count matches what is drawn (TOWN_GRID is off and
+    nothing in the economy reads it).
+- **The plot:**
+  - the house sits back, its centre 2/3 of the way from the street (the user's rule);
+  - the front third holds the yard, the driveway and the garage beside it;
+  - sheds and trees go in the back-garden row.
+  - The driveway side and the variants are picked from the plot's spot (pure, stable).
+- **Slots added:** GARAGE, SHED, FENCE_FRONT, FENCE, and ROAD_* (the road pieces).
+  - FENCE_FRONT is the plot's whole front, with the car opening and the gate in the same place on every piece. It is
+    mirrored when the driveway is on the left.
+  - FENCE is a 3.3 or 2.2 m segment for the sides and back. Where two neighbours meet, the left plot's fence is drawn
+    once. Some plots get none.
+  - A front piece and a segment with matching names (`picket_front`, `picket`) belong together.
+- **Painting by the game:** walls, roof, windows, door and trim as named materials (`wall`, `roof`, `window`, `door`,
+  `trim`). The game paints each house from a palette per plot, and a garage matches its house. `window` is what
+  glows at night.
+- **Apartments:** the user's are narrow. They get one 25 m tile each, so up to 8 to a cell along the streets.
+
+**A street pattern per town** (the user: "I think it sounds excellent"; after the new houses and road pieces are in,
+Wilma confirms the go then).
+- The pattern is pure in the seed and the town's id, and nothing is saved.
+- It varies: block sizes 1×2 to 2×4 cells, the main street and its bend, T-junctions and dead ends, a square or
+  park in the centre, and the spacing of the cross streets.
+- It is defined over the ground ahead of the town, so streets never move as the town grows.
+- New rule: a cell without a street to its north or south turns its houses to a side street, or becomes a garden or
+  park.
+- Curves and diagonals are later.
+- Nothing in transport or save/load changes. connection_m's Manhattan distance stays an approximation.
+
+**One clock: day and night, the sky, cars** (the user: the day must be long enough that cars drive to work, stay,
+and drive home).
+- The game's months are untouched. Within the current month the view runs one clock with speeds: pause, 1× (real
+  time), 10×, 60× (a 24-minute day). Everything shares it, so a car parks exactly a workday at any speed.
+- **Sun:** from the town's latitude, the planet's 26° tilt and the game's month (day length and sun height follow
+  the season).
+- **The twin moons:** on the planet's 7- and 11-month cycles, the same ones that make the twin-moon surge.
+- **Cars are real commuters,** from the commuting rows (home district, work, distance, road speed). Each car belongs
+  to a household:
+  - it parks at home overnight (in its garage if the plot has one);
+  - it leaves at the shift start minus the trip time;
+  - it drives the route and parks at work;
+  - it drives home after the shift.
+- **Night traffic comes only from real night work:** plant shift changes at 22:00 and 06:00, clinics, police and
+  care round the clock, bakeries before dawn. Nothing drives to fill the screen.
+- **Controls:** a clock in the corner, pause, and a "daylight" setting that keeps it noon for reading the map.
+
+**Lights** (the user asked for towns seen lit "like you do in real life from space"; not ordered yet).
+- **Town view:**
+  - no real light per building;
+  - the `window` material glows at night, with bloom (about 1 ms a frame, whatever the number of buildings);
+  - the share of lit windows follows the clock (most in the evening, few after midnight, more where night shifts
+    live);
+  - street lamps are a glowing bulb plus a light patch on the ground.
+- **Globe:**
+  - the sun is fixed in the planet's sky (today it rides with the camera), so there is a night side and a moving
+    terminator;
+  - each settlement is a patch of light points on the night side (homes and density, from the town grid or homes
+    per tile), drawn as one batch;
+  - the colony map darkens at night with the same points per cell.
+- **Decision on scale (the user, 2026-11-16): "Brightened".** The town lights get brighter the further out you zoom,
+  so the colony reads as a clear cluster on the night side, not true to physical scale. The rest of the planet stays
+  dark.
+
+**Order of work** (as given to the user; each waits for its go):
+1. the user's models and road pieces in, laid out on the 25 m grid;
+2. the street pattern;
+3. the clock and the sky;
+4. window lights and lamps;
+5. the globe's night side with the town lights;
+6. cars on the clock.
+
+All of it is UI only: no simulation, saves or v11 touched, except the HOUSE form's 10 → 8.
