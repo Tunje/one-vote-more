@@ -125,6 +125,8 @@ static func produce(world: WorldState) -> void:
 				EconUtil.qflow(world, good, "made", out_qty)
 		elif good == "SERVICES":
 			f["svc_cap"] = out_qty
+		elif good == "TRUCKWORK":
+			f["tw_cap"] = out_qty  # TRUCKSHOP (Ella): the bay work EconTruckShop sells this month
 		elif good == "HEALTH":
 			health[f["district"]] = health.get(f["district"], 0) + int(float(out_qty) * EconWorkload.quality_mult(f))  # 27-W
 		elif good == "EDUCATION":

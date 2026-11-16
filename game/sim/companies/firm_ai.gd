@@ -4,6 +4,7 @@ const EconHaulier := preload("res://sim/economy/econ_haulier.gd")
 const DecisionDesk := preload("res://sim/office/decision_desk.gd")
 const EconInst := preload("res://sim/economy/econ_institutions.gd")
 const EconRulesSvc := preload("res://sim/economy/econ_rules_svc.gd")
+const EconTruckShop := preload("res://sim/economy/econ_truck_shop.gd")
 ## COMPANY_AI phase (spec §9): rule-based firm decisions for next month.
 ## Producers: targets, mothballing, input orders, sale asks. Utilities/institutions: demand/budget targets.
 ## Contractors: crews, materials, bids. Quarterly: investment, entry. CEO turnover. Wage index.
@@ -20,6 +21,8 @@ static func run(world: WorldState) -> void:
 	t = EconUtil.prof(world, "FirmAI._update_sales_ema", t)
 	_ceo_turnover(world)
 	t = EconUtil.prof(world, "FirmAI._ceo_turnover", t)
+	EconTruckShop.monthly(world)  # TRUCKSHOP (opt-in): repairs, builds, the fee and truck price, rules 5/6
+	EconTruckShop.found(world)  # TRUCKSHOP rules 7/8: a family founds a workshop where its share of the work pays
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		_set_target(world, f)
@@ -166,6 +169,8 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 				t = EconInst.target(world, f, t)   # R8_INSTITUTIONS (Maja): crews to the clients
 		"HOUSING":
 			t = 1.0
+		"TRUCKSHOP":
+			t = EconTruckShop.target(world, f)  # rules 3/4: the work asked of it
 		"DEPOT":
 			var dt := EconRules.depot_target(world)  # R8FR_MARKET rules 3/4: the freight demanded
 			t = dt if dt >= 0.0 else 1.0

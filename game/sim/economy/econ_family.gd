@@ -24,6 +24,7 @@ extends RefCounted
 
 const S := EconUtil.S
 const LawOps := preload("res://sim/law/law_ops.gd")
+const EconTruckShop := preload("res://sim/economy/econ_truck_shop.gd")
 const FOUND_MARK := 1.3
 const FOUND_MAX := 4
 const ADULTS := 4
@@ -53,7 +54,8 @@ const LOAN_SHARE := 3  # one part in three of the surplus
 const LOAN_KEEP_M := 2
 const LOAN_DEFAULT_M := 12
 const KINDS := {"FAMFARM": {"flag": "E160", "lever": "ECON_FAMILY_FARM_GRANT", "good": "FOOD"},
-	"FAMBAKERY": {"flag": "E162", "lever": "ECON_FAMILY_BAKERY_GRANT", "good": "FINE_FOOD"}}
+	"FAMBAKERY": {"flag": "E162", "lever": "ECON_FAMILY_BAKERY_GRANT", "good": "FINE_FOOD"},
+	"TRUCKSHOP": {"flag": "TRUCKSHOP", "lever": "ECON_TRUCK_WORKSHOP_GRANT", "good": "TRUCKWORK"}}  # Ella: founded in EconTruckShop.found
 
 
 static func _on(world: WorldState, flag: String) -> bool:
@@ -61,7 +63,7 @@ static func _on(world: WorldState, flag: String) -> bool:
 
 
 static func any_on(world: WorldState) -> bool:
-	return _on(world, "E160") or _on(world, "E162")
+	return _on(world, "E160") or _on(world, "E162") or _on(world, "TRUCKSHOP")
 
 
 static func is_family(world: WorldState, oid: String) -> bool:
@@ -221,6 +223,8 @@ static func _grant_pct(world: WorldState, ftype: String, d: String, dry: bool = 
 			_prog_count(world, ftype, "refused")
 		return 0
 	var ok := food_needed(world) if ftype == "FAMFARM" else flour_ok(world)
+	if ftype == "TRUCKSHOP":
+		ok = EconTruckShop.need_any(world)  # broken trucks no workshop could take
 	if not ok:
 		if not dry:
 			_note(s, ftype, "grant_no_need")
@@ -329,6 +333,8 @@ static func service_loans(world: WorldState) -> void:
 
 
 static func cover_kind(ftype: String) -> String:
+	if ftype == "TRUCKSHOP":
+		return "TRUCKSHOP"
 	return "FARM" if ftype == "FAMFARM" else "BAKERY"
 
 
@@ -350,6 +356,8 @@ static func _publish_need_d(world: WorldState) -> void:
 		farm[d] = PopStore.count(world, {"hb": EconPop.hb_of(d), "status": "UNEMPLOYED"}) if food and served else 0
 		bak[d] = maxi(0, int(s.get("staple_gap_d", {}).get(d, 0)) - _pending_out(world, "FAMBAKERY", d)) / S if flour else 0
 	s["family_need_d"] = {"FARM": farm, "BAKERY": bak}
+	if _on(world, "TRUCKSHOP"):
+		s["family_need_d"]["TRUCKSHOP"] = EconTruckShop.need_by_district(world)
 
 
 static func prog_open(world: WorldState, ftype: String) -> bool:
@@ -370,7 +378,7 @@ static func _programmes(world: WorldState) -> void:
 	s["fam_prog"] = progs
 	var prev: Dictionary = s.get("fam_lever_prev", {})
 	s["fam_lever_prev"] = prev
-	for ftype in ["FAMFARM", "FAMBAKERY"]:
+	for ftype in ["FAMFARM", "FAMBAKERY", "TRUCKSHOP"]:
 		if not _on(world, KINDS[ftype]["flag"]):
 			continue
 		var lid: String = KINDS[ftype]["lever"]
