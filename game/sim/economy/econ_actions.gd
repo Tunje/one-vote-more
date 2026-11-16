@@ -3,11 +3,12 @@ extends RefCounted
 ## Econ actions (planning/pic-economy.md §4). Callers enqueue in DECISIONS (or any time); econ applies them at the
 ## start of TRADE. Player and AI use the same entry point. Params use display units (credits, units).
 
+const EconInst := preload("res://sim/economy/econ_institutions.gd")
 const S := EconUtil.S
 ## Government project operators by facility type.
 ## E110 (A39): FARM → the Colony Agricultural Board (founded on first use), fabrication plants → CPW.
 const OPERATOR := {"HOUSING": "CHO", "POWER": "CPW", "WATERWORKS": "CPW", "DEPOT": "CTA", "ROAD": "CTA",
-	"CLINIC": "HEALTH", "SCHOOL": "SCHOOLS", "FARM": "CAB", "PROCESSING": "CPW", "COMPONENTS": "CPW", "BAKERY": "CAB"}
+	"CLINIC": "HEALTH", "SCHOOL": "SCHOOLS", "ADMIN": "ADMINISTRATION", "FARM": "CAB", "PROCESSING": "CPW", "COMPONENTS": "CPW", "BAKERY": "CAB"}
 const LINE_OF := {"HOUSING": "ECON_BUDGET_HOUSING"}
 ## Budget lines that may pay for a commissioned project (first = default). Public works is the counter-cyclical line (E68).
 const PUBLIC_WORKS := "ECON_BUDGET_PUBLIC_WORKS"
@@ -75,7 +76,7 @@ static func validate(world: WorldState, id: String, p: Dictionary) -> String:
 			var ftype: String = p.get("type", "")
 			if ftype == "BAKERY" and not EconStaple.active(world):
 				return "Bakeries are commissioned only when bakery goods are a staple (E146)"
-			if not OPERATOR.has(ftype) or not EconData.BUILD.has(ftype):
+			if not OPERATOR.has(ftype) or not (EconData.BUILD.has(ftype) or EconInst.buildable(world, ftype)):
 				return "Cannot commission '%s' (buildable: %s)" % [ftype, ", ".join(OPERATOR.keys().filter(func(t): return EconData.BUILD.has(t)))]
 			if not EconData.DISTRICTS.has(p.get("district", "")):
 				return "Unknown district '%s'" % str(p.get("district", ""))
@@ -181,7 +182,7 @@ static func apply(world: WorldState, id: String, p: Dictionary) -> bool:
 			return true
 		"ECON_COMMISSION_PROJECT":
 			var ftype: String = p["type"]
-			if not OPERATOR.has(ftype) or not EconData.BUILD.has(ftype):
+			if not OPERATOR.has(ftype) or not (EconData.BUILD.has(ftype) or EconInst.buildable(world, ftype)):
 				return false
 			var line: String = p.get("line", LINE_OF.get(ftype, "ECON_BUDGET_INFRASTRUCTURE"))
 			if not line in lines_for(ftype):

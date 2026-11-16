@@ -3,8 +3,26 @@ extends RefCounted
 ## 2026-11-16). Switch R8_INSTITUTIONS, only together with R8 (EconRules.sector_on). Without it nothing here runs and
 ## clinics and schools keep today's crew: one budget ratio for every plant, whatever its district needs.
 ##
-## Institutions are free, so there are no price rules (1/2). Nobody but the state may run one, so there are no
-## founding rules (7/8). What remains:
+## The user (2026-11-16): no rule is skipped because it cannot take effect today. So:
+##   1/2 PUBLIC PRICE: TAX BRACKETS. The user (2026-11-16): a public school charges nothing at the door, "it's a
+##       bracket in taxes", "calibrated per pupil plus staff", and "they all get tax brackets". Each public service
+##       has its own bracket (BRACKETS: health, schools, administration, elder care, childcare; care has two because
+##       its two lines and institutions are separate), in per mille of income above the allowance, charged with the
+##       income tax on wages (EconFinance._payroll) and proprietors' earnings (EconHouseholds) and earmarked: it goes
+##       to the institution, not the treasury, and its line tops it up only by the rest. The institution's crews
+##       count it beside the line. Rules 1/2 propose the bracket that raises what its clients plus staff cost (the
+##       asks: posts at today's wages plus inputs per client) beyond what the line pays: the current bracket scaled
+##       by (cost − line) ÷ what the bracket raised, up when it raises less, down when it raises more, held
+##       REQ_HOLD_M months for a rise and CUT_HOLD_M for a cut (Maja's windows). Proposals are lever_need on the
+##       bracket and an INSTITUTION_FEE case under DELEGATION; the government decides it like any tax. While a
+##       bracket is 0 nothing is proposed. The line's own request (rule 3) stands beside it: the line is the
+##       government's budget answer, the bracket the service's own price. The fee levers ECON_HEALTH_FEE and
+##       ECON_SCHOOL_FEE stay unread.
+##   ADMIN on all eight rules. Its output is read by nothing, so it needs a client measure: Maja's, residents, one
+##       office at a full crew serving ADMIN_RESIDENTS of them (about 27 posts per 1000 residents). Built from
+##       BUILD_EXTRA (an office building, a school's bill), since EconData.BUILD has no ADMIN row and adding one would
+##       change the founding office's books in every game.
+## The rules for every type:
 ##   3/4 CREWS TO THE CLIENTS. Each open clinic or school asks for the crew share (T) that serves the people who
 ##       actually come: its district's own need (residents for a clinic, school-age children for a school) plus its
 ##       share, by capacity, of the need of districts that have no plant of that type, plus a small margin. No floor
@@ -22,8 +40,7 @@ extends RefCounted
 ##   6   CLOSE. A plant whose ask stays at or below EMPTY_PM ‰ for CLOSE_HOLD_M months whose clients the other open plants in its district
 ##       can hold is a close candidate (close_candidates). Never the last plant of a district, never while anyone in
 ##       its reach is unserved. The government closes (close / reopen).
-## ADMIN keeps the budget ratio: its output is read by nothing, so it has no clients to follow.
-## PRIVATE CLINICS AND SCHOOLS (the user, 2026-11-16: "All company types needs to be able to be created as private";
+## PRIVATE CLINICS, SCHOOLS AND OFFICES (the user, 2026-11-16: "All company types needs to be able to be created as private";
 ## Wilma approved the shape). A private or co-op plant of the same type lives on what its clients pay:
 ##   households fill the free public places first; only the clients the public plants leave unserved are buyers;
 ##   each pool pays from its discretionary budget, before the service hubs and comfort spending, at most WILL_PM per
@@ -31,13 +48,16 @@ extends RefCounted
 ##   neighbours at +10%, the cheapest first (buy_places). A paid place counts in the district's access only for those
 ##   who pay (the plant's crew follows its sales, so its output does).
 ##   1 raise the fee when its places were full and clients were turned away for FEE_HOLD_M months; 2 lower it when
-##   places stand empty and clients in its district were priced out, never below its cost per client
-##   (FirmAI.unit_cost); 3/4 crew to the paying clients plus the margin; 5 expand when full FULL_M months running and
+##   places stand empty and clients in its district were priced out (no floor of ours: below its cost per client,
+##   FirmAI.unit_cost, it offers fewer places, fee ÷ cost of them, to stay afloat, the user's ruling); 3/4 crew to the paying clients plus the margin; 5 expand when full FULL_M months running and
 ##   profitable over 12 months; 6 mothball after EMPTY_M months mostly empty at a loss; 7 a founder enters
 ##   (FirmAI._entry) where the forecast, with the founder's error, finds unserved clients in reach whose means cover a
 ##   fee above cost, once the private places already there are counted, and a first year that pays (entry_profit:
 ##   fees less crew, inputs, upkeep and depreciation); 8 not while nobody in reach is unserved, nor while the private plants of the type lose money. Where the
-##   state serves everyone the condition never comes true. Care homes are the next step (they run through EconCare).
+##   state serves everyone the condition never comes true. Care homes the same way (CARE_TYPES): a private elder-care
+##   or childcare home sells places to the retired or the small children the public care service leaves uncared for
+##   (EconCare's coverage), its places are its posts × the normal clients per worker, and the people it cares for
+##   count in the district's coverage (care_private, called by EconCare).
 ## Units as EconProduction: need and capacity in persons × S (a clinic at full serves 2500 residents, a school 450
 ## pupils); T and shares in ‰; money as EconFinance.wage_for × posts (mcr a month), the line in kcr a year.
 ## State: st["r8_inst"] = {t: {fid: T‰}, need: {type: {district: row}}, req: {line: {up_m, down_m, asked, answered,
@@ -45,7 +65,15 @@ extends RefCounted
 ## the next month. Pure in the world state, saved with it.
 
 const S := EconUtil.S
+## Maja's client measure for ADMIN (labelled hers; the user may give it another): residents served by one office at a
+## full crew (80 posts), about 27 posts per 1000 residents.
+const ADMIN_RESIDENTS := 3000
+## ADMIN's build bill [WU, MATERIAL, COMPONENT, min months]: an office building, as a school's (EconData.BUILD has none).
+const BUILD_EXTRA := {"ADMIN": [450, 450, 15, 6], "ELDERCARE": [120, 120, 5, 3], "CHILDCARE": [120, 120, 5, 3]}
+## Care home types and their EconCare service.
+const CARE_TYPES := {"CHILDCARE": "CHILD", "ELDERCARE": "ELDER"}
 const TYPES := {
+	"ADMIN": {"line": "ECON_BUDGET_ADMIN", "lever_max": 4000, "per_plant": ADMIN_RESIDENTS},
 	"CLINIC": {"line": "ECON_BUDGET_HEALTH", "lever_max": 4000},
 	"SCHOOL": {"line": "ECON_BUDGET_EDUCATION", "lever_max": 3000},
 }
@@ -73,7 +101,7 @@ static func _st(world: WorldState) -> Dictionary:
 
 
 ## FirmAI's crew share for an institution plant: this month's T, or `dflt` (today's budget ratio) for a plant the
-## rules have not seen yet or a type they don't run (ADMIN).
+## rules have not seen yet.
 static func target(world: WorldState, f: Dictionary, dflt: float) -> float:
 	if not on(world):
 		return dflt
@@ -96,6 +124,10 @@ static func monthly(world: WorldState) -> void:
 		t_all.merge(res["t"])
 		need_all[typ] = res["rows"]
 		_request_clock(world, r, String(TYPES[typ]["line"]), int(res["ask"]), int(res["now"]), int(res["unmet"]), int(res["clients"]), typ)
+		_bracket_clock(world, r, typ, int(res["wanted"]), int(res["budget"]), int(res["unmet"]), int(res["clients"]))
+	for k in CARE_TYPES:   # the care rows EconCare handed over this month (care_private) stay
+		if (r.get("need", {}) as Dictionary).has(k):
+			need_all[k] = r["need"][k]
 	r["need"] = need_all
 	_private_month(world, r, t_all)   # private clinics and schools: their own rules on their paying clients
 	r["t"] = t_all
@@ -103,23 +135,37 @@ static func monthly(world: WorldState) -> void:
 		for svc in EconUtil.sorted_keys(CARE_LINES):
 			var c := _care_month(world, svc)
 			_request_clock(world, r, String(CARE_LINES[svc]), int(c["ask"]), int(c["now"]), int(c["unmet"]), int(c["clients"]), svc)
+			_bracket_clock(world, r, svc, int(c["wanted"]), int(c["budget"]), int(c["unmet"]), int(c["clients"]))
 
 
-## Clients by district for a type (persons × S): residents for clinics, the school-age share of children for schools
-## (the same counts EconProduction._service_access divides by).
+## Clients by district for a type (persons × S): residents for clinics and offices, the school-age share of children
+## for schools (the same counts EconProduction._service_access divides by).
 static func clients_by_district(world: WorldState, typ: String) -> Dictionary:
 	var out := {}
 	for gid in EconUtil.sorted_keys(world.table("hh")):
 		var g: Dictionary = world.table("hh")[gid]
-		var n := EconHouseholds.persons(g) if typ == "CLINIC" else int(g["children"] * 0.75)
-		out[g["district"]] = int(out.get(g["district"], 0)) + n
+		out[g["district"]] = int(out.get(g["district"], 0)) + pool_clients(g, typ)
 	return out
+
+
+## A pool's clients of a type (persons × S).
+static func pool_clients(g: Dictionary, typ: String) -> int:
+	return int(g["children"] * 0.75) if typ == "SCHOOL" else EconHouseholds.persons(g)
+
+
+## Clients one plant serves at a full crew (persons): the recipe's output, or ADMIN's measure.
+static func plant_out(typ: String) -> int:
+	return int(TYPES.get(typ, {}).get("per_plant", EconData.RECIPES[typ]["out"][1]))
+
+
+## ADMIN can be commissioned and founded only with the switch (its bill is BUILD_EXTRA's).
+static func buildable(world: WorldState, ftype: String) -> bool:
+	return BUILD_EXTRA.has(ftype) and on(world)
 
 
 ## A plant's output at a full crew, in clients (persons × S): EconProduction's output formula at act = 1.
 static func full_capacity(world: WorldState, f: Dictionary) -> int:
-	var r: Dictionary = EconData.RECIPES[f["type"]]
-	return int(float(r["out"][1]) * S * EconProduction._eff(world, f) * EconUtil.fscale(f) * EconUtil.tier_out(f))
+	return int(float(plant_out(String(f["type"]))) * S * EconProduction._eff(world, f) * EconUtil.fscale(f) * EconUtil.tier_out(f))
 
 
 ## A plant's monthly cost at a full crew (wages and inputs at today's prices and tariffs), as FirmAI._budget_ratio.
@@ -202,7 +248,8 @@ static func _type_month(world: WorldState, typ: String, r: Dictionary) -> Dictio
 	var line := String(TYPES[typ]["line"])
 	var lever_now := int(EconUtil.lever(world, line, 0))
 	var budget := float(lever_now) * 1000.0 * S / 12.0
-	var scale := 1.0 if wanted <= budget else budget / maxf(1.0, wanted)
+	var pay := budget + float(earmarked(world, typ))   # the line and the service's own bracket
+	var scale := 1.0 if wanted <= pay else pay / maxf(1.0, wanted)
 	var t := {}
 	for fid in ask_pm:
 		t[fid] = int(float(int(ask_pm[fid])) * scale)
@@ -227,8 +274,8 @@ static func _type_month(world: WorldState, typ: String, r: Dictionary) -> Dictio
 			"short": maxi(0, cl - int(cap_d.get(d, 0))) / S if cap_d.has(d) else maxi(0, n - served) / S}
 		unmet_all += maxi(0, n - served) / S
 		clients_all += n / S
-	var ask_lever := mini(int(TYPES[typ]["lever_max"]), _round10(int(ceil(wanted * 12.0 / 1000.0 / float(S)))))
-	return {"t": t, "rows": rows, "ask": ask_lever, "now": lever_now, "unmet": unmet_all, "clients": clients_all}
+	var ask_lever := mini(int(TYPES[typ]["lever_max"]), _round10(int(ceil(maxf(0.0, wanted - (pay - budget)) * 12.0 / 1000.0 / float(S)))))
+	return {"t": t, "rows": rows, "ask": ask_lever, "now": lever_now, "unmet": unmet_all, "clients": clients_all, "wanted": int(wanted), "budget": int(budget)}
 
 
 static func _crew_pm(ask_pm: Dictionary, plants: Array, d: String, scale: float) -> int:
@@ -252,7 +299,7 @@ static func _care_month(world: WorldState, svc: String) -> Dictionary:
 	var line := String(CARE_LINES[svc])
 	var now := int(EconUtil.lever(world, line, 0))
 	if oid == "":
-		return {"ask": now, "now": now, "unmet": 0, "clients": 0}
+		return {"ask": now, "now": now, "unmet": 0, "clients": 0, "wanted": 0, "budget": 0}
 	var cl := EconCare.clients(world, svc)
 	var posts := 0
 	var people := 0
@@ -260,19 +307,22 @@ static func _care_month(world: WorldState, svc: String) -> Dictionary:
 		posts += int(ceil(float(int(cl[d])) / float(sd["normal"])))
 		people += int(cl[d])
 	var cost := maxi(1, EconCare._post_cost(world, oid, String(sd["type"])))
-	var ask := mini(int(CARE_MAX[svc]), _round10(int(ceil(float(posts) * float(cost) * 12.0 / 1000.0 / float(S)))))
+	var wanted := posts * cost
+	var ask := mini(int(CARE_MAX[svc]), _round10(int(ceil(float(maxi(0, wanted - earmarked(world, svc))) * 12.0 / 1000.0 / float(S)))))
 	var paid_posts := now * 1000 * S / 12 / cost
 	var unmet := maxi(0, people - int(float(paid_posts) * float(sd["normal"])))
-	return {"ask": ask, "now": now, "unmet": unmet, "clients": people}
+	return {"ask": ask, "now": now, "unmet": unmet, "clients": people, "wanted": wanted, "budget": now * 1000 * S / 12}
 
 
 ## The request clock of one line: months the ask has stood above (or well below) the line; a request falls due after
 ## REQ_HOLD_M (CUT_HOLD_M) months, at most once every REQ_EVERY_M months.
-static func _request_clock(world: WorldState, r: Dictionary, line: String, ask: int, now: int, unmet: int, clients: int, typ: String) -> void:
+static func _request_clock(world: WorldState, r: Dictionary, line: String, ask: int, now: int, unmet: int, clients: int, typ: String, kind: String = "budget") -> void:
 	var req: Dictionary = r["req"]
 	var q: Dictionary = req.get(line, {"up_m": 0, "down_m": 0, "asked": -9999, "answered": -9999})
-	var up := ask * 1000 > now * (1000 + p("req_gap_pm"))
-	var down := ask * 1000 < now * p("cut_pm")
+	q["kind"] = kind
+	var up := ask * 1000 > now * (1000 + p("req_gap_pm")) if kind == "budget" else ask > now
+	var down := ask * 1000 < now * p("cut_pm") if kind == "budget" else ask < now
+	var down_hold := p("cut_hold_m")
 	q["up_m"] = int(q["up_m"]) + 1 if up else 0
 	q["down_m"] = int(q["down_m"]) + 1 if down else 0
 	q["ask"] = ask
@@ -281,7 +331,7 @@ static func _request_clock(world: WorldState, r: Dictionary, line: String, ask: 
 	q["type"] = typ
 	var answered_m := int(q.get("answered", -9999))
 	var quiet := world.month - maxi(int(q["asked"]), answered_m) >= p("req_every_m")
-	var fresh := quiet and (int(q["up_m"]) >= p("req_hold_m") or int(q["down_m"]) >= p("cut_hold_m"))
+	var fresh := quiet and (int(q["up_m"]) >= p("req_hold_m") or int(q["down_m"]) >= down_hold)
 	if fresh:
 		q["asked"] = world.month
 	# a request stays open until the government takes it (answered) or for REQ_HOLD_M months
@@ -291,7 +341,7 @@ static func _request_clock(world: WorldState, r: Dictionary, line: String, ask: 
 	var ln: Dictionary = EconUtil.st(world).get("lever_need", {})
 	if int(q["up_m"]) >= p("req_hold_m"):
 		ln[line] = 1000 + clampi(unmet * 1000 / maxi(1, clients), 0, 1000)
-	elif int(q["down_m"]) >= p("cut_hold_m"):
+	elif int(q["down_m"]) >= down_hold:
 		ln[line] = -1000
 	else:
 		ln[line] = 0
@@ -311,7 +361,7 @@ static func budget_requests(world: WorldState) -> Array:
 	var req: Dictionary = EconUtil.peek_st(world).get("r8_inst", {}).get("req", {})
 	for line in EconUtil.sorted_keys(req):
 		var q: Dictionary = req[line]
-		out.append({"line": line, "type": String(q.get("type", "")), "now": int(q.get("now", 0)), "ask": int(q.get("ask", 0)),
+		out.append({"line": line, "type": String(q.get("type", "")), "kind": String(q.get("kind", "budget")), "now": int(q.get("now", 0)), "ask": int(q.get("ask", 0)),
 			"unmet": int(q.get("unmet", 0)), "due": bool(q.get("due", false)), "up_m": int(q.get("up_m", 0)), "down_m": int(q.get("down_m", 0))})
 	return out
 
@@ -339,7 +389,9 @@ static func build_needs(world: WorldState) -> Array:
 	var out: Array = []
 	var nd := needs(world)
 	for typ in EconUtil.sorted_keys(nd):
-		var per_plant := int(float(EconData.RECIPES[typ]["out"][1]) * 0.95)
+		if not TYPES.has(typ):
+			continue   # care homes: the public service sizes its own sites (EconCare)
+		var per_plant := int(float(plant_out(typ)) * 0.95)
 		for d in EconUtil.sorted_keys(nd[typ]):
 			var row: Dictionary = nd[typ][d]
 			var short := int(row["short"])
@@ -400,7 +452,7 @@ static func reopen(world: WorldState, fid: String) -> Dictionary:
 # ------------------------------------------------------------------ private clinics and schools
 
 const OWNER_TYPES := ["PRIVATE", "COOPERATIVE"]
-const WILL_PM := {"CLINIC": 150, "SCHOOL": 120}   # ‰ of a pool's discretionary budget it will spend on each, at most
+const WILL_PM := {"ADMIN": 30, "CHILDCARE": 120, "CLINIC": 150, "ELDERCARE": 150, "SCHOOL": 120}   # ‰ of a pool's discretionary budget it will spend on each, at most
 const FEE_START := 1.2      # × cost per client: a new plant's first fee
 const FEE_STEP := 0.05
 const FEE_HOLD_M := 2
@@ -413,6 +465,14 @@ const ENTRY_ERR := 0.2      # sd of the founder's forecast error (E170 style)
 
 static func private_on(world: WorldState) -> bool:
 	return on(world)
+
+
+## The types a private owner can run: clinics, schools, offices, and care homes while public care runs (CARE).
+static func private_types(world: WorldState) -> Array:
+	var out: Array = EconUtil.sorted_keys(TYPES)
+	if EconCare.active(world):
+		out.append_array(EconUtil.sorted_keys(CARE_TYPES))
+	return out
 
 
 static func _private_plants(world: WorldState, typ: String, open_only: bool = true) -> Array:
@@ -429,12 +489,30 @@ static func _private_plants(world: WorldState, typ: String, open_only: bool = tr
 
 ## A plant's places: the clients it can take a month at a full crew (persons).
 static func places(world: WorldState, f: Dictionary) -> int:
+	if CARE_TYPES.has(f["type"]):
+		return int(float(EconCare.POSTS_PER_UNIT) * EconUtil.fscale(f) * EconCare.normal_for(String(f["type"])))
 	return full_capacity(world, f) / S
+
+
+## The places a private plant offers this month: all of them at or above its cost per client; below it, the share
+## its fee covers (it sells less to stay afloat rather than refuse outright).
+static func offered(world: WorldState, f: Dictionary) -> int:
+	var pl := places(world, f)
+	var cpc := cost_per_client(world, String(f["type"]))
+	var fe := fee(world, f)
+	return pl if fe >= cpc else pl * fe / maxi(1, cpc)
 
 
 ## Cost per client a month at full load (wages, inputs, upkeep, depreciation), as founders reckon it.
 static func cost_per_client(world: WorldState, typ: String) -> int:
-	return int(FirmAI.unit_cost(world, typ))
+	if CARE_TYPES.has(typ):   # a care home's posts (its recipe has no output to divide by) and its building
+		var r: Dictionary = EconData.RECIPES[typ]
+		var wages := 0.0
+		for t in r["labor"]:
+			wages += float(r["labor"][t]) * float(EconUtil.st(world)["wage"][t])
+		var clients := float(EconCare.POSTS_PER_UNIT) * EconCare.normal_for(typ)
+		return int((wages + float(EconConstruction.estimate(typ)) / EconData.DEPRECIATION_MONTHS) / maxf(1.0, clients))
+	return int(FirmAI.unit_cost(world, typ) * float(EconData.RECIPES[typ]["out"][1]) / float(maxi(1, plant_out(typ))))
 
 
 static func fee(world: WorldState, f: Dictionary) -> int:
@@ -447,31 +525,36 @@ static func fee(world: WorldState, f: Dictionary) -> int:
 static func _unserved(g: Dictionary, typ: String, row: Dictionary) -> int:
 	if row.is_empty() or int(row["clients"]) <= 0:
 		return 0
-	var n := EconHouseholds.persons(g) if typ == "CLINIC" else int(g["children"] * 0.75)
+	var n := pool_clients(g, typ)
+	if typ == "ELDERCARE":
+		n = int(g["retired"])
+	elif typ == "CHILDCARE":   # the pool's share of the district's small children, by its children
+		n = int(float(g["children"]) * float(int(row["clients"]) * S) / float(maxi(1, int(row.get("kids", 0)))))
 	return n * maxi(0, int(row["clients"]) - int(row["served"])) / maxi(1, int(row["clients"])) / S
 
 
 ## Households (EconHouseholds._buy_services, before the service hubs): pool g buys private places for the clients the
 ## public plants leave unserved, out of `budget`. Returns what it spent.
 static func buy_places(world: WorldState, g: Dictionary, budget: int) -> int:
-	if not private_on(world) or budget <= 0:
+	if not private_on(world):
 		return 0
+	budget = maxi(0, budget)
 	var r := _st(world)
 	if int(r.get("buy_m", -1)) != world.month:
 		r["buy_m"] = world.month
 		r["priced"] = {}
-		for typ in TYPES:
+		for typ in private_types(world):
 			for f in _private_plants(world, typ):
 				f["inst_sold"] = 0
 				f["inst_away"] = 0
 	var d := String(g["district"])
 	var spent := 0
 	var nd: Dictionary = r.get("need", {})
-	for typ in EconUtil.sorted_keys(TYPES):
+	for typ in private_types(world):
 		var unserved := _unserved(g, typ, nd.get(typ, {}).get(d, {}))
 		if unserved <= 0:
 			continue
-		var will := mini(budget - spent, budget * int(WILL_PM[typ]) / 1000)
+		var will := mini(maxi(0, budget - spent), budget * int(WILL_PM[typ]) / 1000)
 		var sources: Array = []
 		for f in _private_plants(world, typ):
 			var fd := String(f["district"])
@@ -489,7 +572,7 @@ static func buy_places(world: WorldState, g: Dictionary, budget: int) -> int:
 				break
 			var f: Dictionary = src[1]
 			var price := maxi(1, int(src[0]))
-			var room := maxi(0, places(world, f) - int(f.get("inst_sold", 0)))
+			var room := maxi(0, offered(world, f) - int(f.get("inst_sold", 0)))
 			if room > 0:
 				full = false
 			var k := mini(mini(left, room), will / price)
@@ -517,20 +600,22 @@ static func buy_places(world: WorldState, g: Dictionary, budget: int) -> int:
 static func _private_month(world: WorldState, r: Dictionary, t_all: Dictionary) -> void:
 	var margin := p("margin")
 	var priced: Dictionary = r.get("priced", {})
-	for typ in EconUtil.sorted_keys(TYPES):
+	for typ in private_types(world):
 		var cpc := cost_per_client(world, typ)
 		for f in _private_plants(world, typ):
 			var pl := maxi(1, places(world, f))
 			var sold := int(f.get("inst_sold", 0))
 			t_all[f["id"]] = clampi(sold * (1000 + margin) / pl, 0, 1000)   # 3/4: crew to the paying clients
+			if CARE_TYPES.has(typ):
+				f["enrolled"] = sold   # the people it cares for (EconWorkload reads them)
 			var fe := fee(world, f)
-			var full := sold * 1000 >= pl * FULL_PM
+			var full := sold * 1000 >= maxi(1, offered(world, f)) * FULL_PM
 			f["inst_away_m"] = int(f.get("inst_away_m", 0)) + 1 if full and int(f.get("inst_away", 0)) > 0 else 0
 			if int(f["inst_away_m"]) >= FEE_HOLD_M:   # 1: full and turning clients away
 				f["fee"] = int(float(fe) * (1.0 + FEE_STEP)) + 1
 				f["inst_away_m"] = 0
 			elif sold * 1000 < pl * 800 and int(priced.get(typ, {}).get(String(f["district"]), 0)) > 0:   # 2: empty places, priced-out clients
-				f["fee"] = maxi(cpc, int(float(fe) * (1.0 - FEE_STEP)))
+				f["fee"] = maxi(1, int(float(fe) * (1.0 - FEE_STEP)))
 			f["inst_full_m"] = int(f.get("inst_full_m", 0)) + 1 if full else 0
 			f["inst_empty_m"] = int(f.get("inst_empty_m", 0)) + 1 if sold * 1000 < pl * EMPTY_PM else 0
 			var o: Dictionary = world.table("org")[f["org"]]
@@ -599,7 +684,7 @@ static func _private_losing(world: WorldState, typ: String) -> bool:
 ## depreciation of the build estimate).
 static func entry_profit(world: WorldState, typ: String, n: int) -> int:
 	var r: Dictionary = EconData.RECIPES[typ]
-	var out := float(r["out"][1])
+	var out := float(plant_out(typ)) if TYPES.has(typ) else float(EconCare.POSTS_PER_UNIT) * EconCare.normal_for(typ)
 	var full := float(cost_per_client(world, typ)) * out
 	var fixed := float(r["upkeep"]) * float(EconUtil.st(world)["prices"]["MATERIAL"]) + float(EconConstruction.estimate(typ)) / EconData.DEPRECIATION_MONTHS
 	var per_client := maxf(0.0, full - fixed) / out
@@ -610,7 +695,7 @@ static func entry_profit(world: WorldState, typ: String, n: int) -> int:
 ## Rules 7/8 for FirmAI._entry: the district a founder of `typ` would build in, where the forecast (with the founder's
 ## error) gives the best first-year profit; "" when it is a loss everywhere.
 static func entry_district(world: WorldState, typ: String) -> String:
-	if not private_on(world) or not TYPES.has(typ) or _private_losing(world, typ):
+	if not private_on(world) or not private_types(world).has(typ) or _private_losing(world, typ):
 		return ""
 	var rng := world.rng.stream("econ.inst_entry")
 	var best := ""
@@ -626,3 +711,111 @@ static func entry_district(world: WorldState, typ: String) -> String:
 			best_p = pr
 			best = String(d)
 	return best
+
+
+# ------------------------------------------------------------------ tax brackets (rules 1/2 of the public services)
+
+## Each public service's bracket: the lever (per mille of income above the allowance) and the key of the institution
+## it is earmarked to.
+const BRACKETS := {
+	"ADMIN": ["ECON_ADMIN_TAX", "ADMINISTRATION"],
+	"CHILD": ["ECON_CHILDCARE_TAX", "CHC"],
+	"CLINIC": ["ECON_HEALTH_TAX", "HEALTH"],
+	"ELDER": ["ECON_ELDER_CARE_TAX", "ELDC"],
+	"SCHOOL": ["ECON_SCHOOL_TAX", "SCHOOLS"],
+}
+const BRACKET_MAX := 50
+
+
+## A service's bracket in per mille (0 without the switch).
+static func bracket_pm(world: WorldState, kind: String) -> int:
+	if not on(world):
+		return 0
+	return clampi(int(EconUtil.lever(world, String(BRACKETS[kind][0]), 0)), 0, BRACKET_MAX)
+
+
+## Charges every bracket on `base` (income above the allowance) out of `from_acct`, each to its institution, up to what
+## the account holds. Returns what was paid (0 without the switch or with every bracket at 0).
+static func earmark_all(world: WorldState, from_acct: String, base: int) -> int:
+	if base <= 0 or not on(world):
+		return 0
+	var paid := 0
+	for kind in EconUtil.sorted_keys(BRACKETS):
+		var pm := bracket_pm(world, kind)
+		if pm <= 0:
+			continue
+		var org := EconFinance.org_by_key(world, String(BRACKETS[kind][1]))
+		if org == "":
+			continue
+		var amt := EconUtil.pay_upto(world, from_acct, EconUtil.acct(org), base * pm / 1000, "SERVICE_TAX")
+		EconFinance.pl_add(world, org, "rev", amt)
+		paid += amt
+		var r := _st(world)
+		var all: Dictionary = r.get("earmark", {})
+		var e: Dictionary = all.get(kind, {})
+		if int(e.get("month", -1)) != world.month:
+			e = {"month": world.month, "now": 0, "last": int(e.get("now", 0)) if int(e.get("month", -1)) == world.month - 1 else 0}
+		e["now"] = int(e["now"]) + amt
+		all[kind] = e
+		r["earmark"] = all
+	return paid
+
+
+## What a service's bracket raised in a month: this month's once collected, else last month's (money a month).
+static func earmarked(world: WorldState, kind: String) -> int:
+	var e: Dictionary = EconUtil.peek_st(world).get("r8_inst", {}).get("earmark", {}).get(kind, {})
+	var m := int(e.get("month", -1))
+	if m == world.month:
+		return maxi(int(e.get("now", 0)), int(e.get("last", 0)))
+	if m == world.month - 1:
+		return int(e.get("now", 0))
+	return 0
+
+
+## Rules 1/2 on a service's bracket: the bracket that raises what its clients plus staff cost beyond the line, from
+## the current bracket and what it raised; nothing while it is 0.
+static func _bracket_clock(world: WorldState, r: Dictionary, kind: String, wanted: int, budget: int, unmet: int, clients: int) -> void:
+	var lever := String(BRACKETS[kind][0])
+	var now := int(EconUtil.lever(world, lever, 0))
+	if now <= 0:
+		var ln: Dictionary = EconUtil.st(world).get("lever_need", {})
+		if ln.has(lever):
+			ln[lever] = 0
+		(r["req"] as Dictionary).erase(lever)
+		return
+	var e := earmarked(world, kind)
+	var ask := now
+	if e > 0:
+		ask = clampi(int(ceil(float(now) * float(maxi(0, wanted - budget)) / float(e))), 0, BRACKET_MAX)
+	_request_clock(world, r, lever, ask, now, unmet, maxi(1, clients), kind, "bracket")
+
+
+# ------------------------------------------------------------------ private care homes (EconCare's side)
+
+## EconCare.monthly, once each service's public coverage `cov` (‰ by district) is known: records the care rows the
+## households and founders read (clients, cared for publicly, the district's children for the childcare share) and
+## returns the coverage with the people private homes care for added. Unchanged without the switch.
+static func care_private(world: WorldState, svc: String, clients: Dictionary, cov: Dictionary) -> Dictionary:
+	if not on(world):
+		return cov
+	var typ := "ELDERCARE" if svc == "ELDER" else "CHILDCARE"
+	var kids := {}
+	if svc == "CHILD":
+		for gid in EconUtil.sorted_keys(world.table("hh")):
+			var g: Dictionary = world.table("hh")[gid]
+			kids[g["district"]] = int(kids.get(g["district"], 0)) + int(g["children"])
+	var rows := {}
+	for d in EconUtil.sorted_keys(clients):
+		var c := int(clients[d])
+		rows[d] = {"clients": c, "served": c * int(cov.get(d, 0)) / 1000, "kids": int(kids.get(d, 0))}
+	var r := _st(world)
+	var need: Dictionary = r.get("need", {})
+	need[typ] = rows
+	r["need"] = need
+	var out := cov.duplicate()
+	for f in _private_plants(world, typ):
+		var d := String(f["district"])
+		var c := int(clients.get(d, 0))
+		if c > 0:
+			out[d] = mini(1000, int(out.get(d, 0)) + int(f.get("inst_sold", 0)) * 1000 / c)
+	return out

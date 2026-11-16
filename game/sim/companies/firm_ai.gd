@@ -160,7 +160,7 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 			t = clampf(1.08 * float(s.get("util_demand", {}).get(key, cap)) / maxf(1.0, cap), 0.3, 1.0)
 			if EconRulesUtil.on(world):
 				t = EconRulesUtil.target(world, f)  # R8 utilities: rules 3/4
-		"CLINIC", "SCHOOL", "ADMIN":
+		"CLINIC", "SCHOOL", "ADMIN", "ELDERCARE", "CHILDCARE":   # care: 1.0 here as before; a private home's crew from R8_INSTITUTIONS
 			t = _budget_ratio(world, f)
 			if EconRules.sector_on(world, "INSTITUTIONS"):
 				t = EconInst.target(world, f, t)   # R8_INSTITUTIONS (Maja): crews to the clients
@@ -1202,7 +1202,7 @@ static func _entry(world: WorldState) -> void:
 		entry_types.append("COMPONENTS")  # R8 step 2b: component works get an entry path
 	var inst_district := {}
 	if EconRules.sector_on(world, "INSTITUTIONS"):
-		entry_types.append_array(["CLINIC", "SCHOOL"])  # R8_INSTITUTIONS (Maja): private clinics and schools, rules 7/8
+		entry_types.append_array(EconInst.private_types(world))  # R8_INSTITUTIONS (Maja): private clinics, schools, offices and care homes, rules 7/8
 	if EconRulesMat.entry_on(world, "MEDWORKS"):
 		entry_types.append("MEDWORKS")  # R8_WORKSHOPS: the medical works get an entry path
 	var haul: Dictionary = EconHaulier.entry(world) if EconHaulier.on(world) else {}
@@ -1240,7 +1240,7 @@ static func _entry(world: WorldState) -> void:
 			hot = sd != ""
 			if hot:
 				svc_district = sd
-		if ftype in ["CLINIC", "SCHOOL"]:
+		if EconRules.sector_on(world, "INSTITUTIONS") and EconInst.private_types(world).has(ftype):
 			var idist: String = EconInst.entry_district(world, ftype)   # rules 7/8: unserved clients who can pay, in reach
 			hot = idist != "" and world.month - int(fails.get(ftype, -9999)) >= ENTRY_FAIL_COOL_M
 			if hot:

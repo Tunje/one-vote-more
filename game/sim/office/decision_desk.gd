@@ -77,6 +77,7 @@ const TYPES := {
 	"HIRING_CONVERT_BUILDING": {"name": "Convert a building into a skill centre", "portfolio": "LABOUR_LIAISON", "ceiling": "MINISTER", "src": "hiring_centre"},
 	# EconInstitutions (R8_INSTITUTIONS): the public services' own requests and sites
 	"INSTITUTION_BUDGET": {"name": "Budget request from a public service", "portfolio": "SERVICES", "ceiling": "PARLIAMENT", "src": "gov_builder"},
+	"INSTITUTION_FEE": {"name": "Fee proposal from a public service", "portfolio": "SERVICES", "ceiling": "PARLIAMENT", "src": "gov_builder"},
 	"INSTITUTION_SITE": {"name": "Reopen or close a clinic or school", "portfolio": "SERVICES", "ceiling": "MINISTER", "src": "gov_builder"},
 	# GovWildlife: the yearly (or after a death) wildlife policy review
 	"WILDLIFE_REVIEW": {"name": "Wildlife policy review", "portfolio": "ENVIRONMENT", "ceiling": "MINISTER", "src": "gov_wildlife"},

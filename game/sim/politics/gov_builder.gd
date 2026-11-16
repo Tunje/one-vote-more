@@ -1267,8 +1267,9 @@ static func _inst_sites(world: WorldState) -> void:
 		if not bool(q["due"]) or Desk.pending(world, "INST_BUDGET|" + String(q["line"])):
 			continue
 		var up := int(q["ask"]) > int(q["now"])
-		_simple_case(world, "INSTITUTION_BUDGET", "INST_BUDGET|" + String(q["line"]),
-			"Budget request: %s" % EconQuery.LINE_LABELS.get(String(q["line"]), String(q["line"])),
+		var fee := String(q.get("kind", "budget")) != "budget"
+		_simple_case(world, "INSTITUTION_FEE" if fee else "INSTITUTION_BUDGET", "INST_BUDGET|" + String(q["line"]),
+			("Tax bracket proposal: %s" if fee else "Budget request: %s") % EconQuery.LINE_LABELS.get(String(q["line"]), String(q["line"])),
 			["The service asks for %d a year (now %d)%s." % [int(q["ask"]), int(q["now"]), (": %d people go unserved" % int(q["unmet"])) if up else ": its clients need less"]],
 			"Table a bill: %d -> %d" % [int(q["now"]), int(q["ask"])],
 			{"via": "DESK", "id": "INST_BUDGET", "params": {"line": String(q["line"]), "from": int(q["now"]), "to": int(q["ask"])}}, CASE_LEAN if up else -CASE_LEAN)

@@ -17,6 +17,7 @@ extends RefCounted
 ##   INDICATORS ECON_ELDER_CARE_ACCESS / ECON_CHILDCARE_ACCESS (%, district; exception-only).
 ## OPT-IN until its A/B (world.meta["on"] has "CARE").
 
+const EconInst := preload("res://sim/economy/econ_institutions.gd")
 const S := EconUtil.S
 const POSTS_PER_UNIT := 5
 const SERVICES := {
@@ -114,7 +115,7 @@ static func monthly(world: WorldState) -> void:
 			need.append(float(n))
 			need_total += n
 		var cost := maxi(1, _post_cost(world, oid, sd["type"]))
-		var budget_posts := int(EconUtil.lever(world, sd["line"], 0)) * 1000 * S / 12 / cost
+		var budget_posts := (int(EconUtil.lever(world, sd["line"], 0)) * 1000 * S / 12 + EconInst.earmarked(world, svc)) / cost   # + its bracket (R8_INSTITUTIONS)
 		# whole units of POSTS_PER_UNIT per district (a site keeps 70% of a unit's crew however small it is — E49 labour
 		# hoarding — so part-units would overstaff); a district below one unit has no site of its own this month
 		var units := mini(budget_posts, need_total + POSTS_PER_UNIT - 1) / POSTS_PER_UNIT
@@ -146,6 +147,7 @@ static func monthly(world: WorldState) -> void:
 			var req := EconLabor.required(f)
 			for t in req:
 				bill += int(req[t]) / S * EconFinance.wage_for(world, oid, t)
+		cov = EconInst.care_private(world, svc, cl, cov)   # R8_INSTITUTIONS (Maja): private care homes' clients count too
 		cov_all[svc] = cov
 		# fund next month's wage bill from the line
 		var due := bill - world.ledger.balance(EconUtil.acct(oid))

@@ -423,6 +423,7 @@ static func _self_employed_sales(world: WorldState, demand_d: Dictionary) -> Dic
 		var tax := int(rate * maxf(0.0, per - allowance) * n)
 		var paid := EconUtil.pay_upto(world, EconUtil.hh_acct(gid), EconUtil.TREASURY, tax, "INCOME_TAX")
 		EconFinance._gov_rev(world, paid)
+		EconInst.earmark_all(world, EconUtil.hh_acct(gid), int(maxf(0.0, per - allowance) * n))   # R8_INSTITUTIONS (Maja): the services' brackets
 		g["income"]["self"] = g["self_rev"] - paid
 		g["income"]["tax"] = g["income"].get("tax", 0) + paid
 		EconPop.credit_status(world, gid, "EMPLOYED", g["self_rev"] - paid, "self", "BUSINESS_OWNER")

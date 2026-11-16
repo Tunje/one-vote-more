@@ -61,7 +61,7 @@ func test_levers_legislatable_contract() -> void:
 		if d["type"] == "NUMBER" and d["legalLevel"] != "CHARTER":
 			check(d.has("concerns") and not d["concerns"].is_empty(), "%s concerns hint" % d["id"])
 			check(d["default"] >= d["range"][0] and d["default"] <= d["range"][1], "%s default in range" % d["id"])
-	check(EconPic.levers().filter(func(x): return x.get("is_tax", false)).size() == 4, "four tax levers flagged")
+	check(EconPic.levers().filter(func(x): return x.get("is_tax", false)).size() == 9, "nine tax levers flagged (four, and the five service brackets of R8_INSTITUTIONS)")
 
 
 func test_first_year_economy_sane() -> void:

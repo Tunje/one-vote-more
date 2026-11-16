@@ -245,9 +245,11 @@ func test_the_fee_rises_when_full_and_falls_when_priced_out() -> void:
 	r["priced"] = {"CLINIC": {String(f["district"]): 50}}
 	EconInst._private_month(w, r, {})
 	check(EconInst.fee(w, f) < high, "empty places and patients priced out: the fee falls")
-	f["fee"] = EconInst.cost_per_client(w, "CLINIC")
+	var cpc := EconInst.cost_per_client(w, "CLINIC")
+	f["fee"] = cpc
 	EconInst._private_month(w, r, {})
-	check(EconInst.fee(w, f) >= EconInst.cost_per_client(w, "CLINIC"), "never below its cost per client")
+	check(EconInst.fee(w, f) < cpc, "no floor of ours: the fee may fall below its cost")
+	check(EconInst.offered(w, f) < EconInst.places(w, f), "below its cost it offers fewer places (%d of %d)" % [EconInst.offered(w, f), EconInst.places(w, f)])
 
 
 func test_a_private_crew_follows_its_paying_clients() -> void:
@@ -261,3 +263,123 @@ func test_a_private_crew_follows_its_paying_clients() -> void:
 	EconInst._private_month(w, EconUtil.st(w)["r8_inst"], t)
 	check(int(t[f["id"]]) > 450 and int(t[f["id"]]) < 600, "half its places sold, about half a crew (%d)" % int(t[f["id"]]))
 	check(EconInst.target(w, f, 1.0) >= 0.0, "FirmAI reads it")
+
+
+# ------------------------------------------------------------------ ADMIN (Maja's client measure: residents)
+
+func _of_type(w: WorldState, typ: String) -> Array:
+	var out: Array = []
+	for fid in EconUtil.sorted_keys(w.table("facility")):
+		if w.table("facility")[fid]["type"] == typ:
+			out.append(w.table("facility")[fid])
+	return out
+
+
+func test_admin_crews_follow_the_residents() -> void:
+	var sim := _sim()
+	var w := sim.world
+	w.levers["ECON_BUDGET_ADMIN"] = 4000
+	sim.run(2)
+	var f: Dictionary = _of_type(w, "ADMIN")[0]
+	var t := int(EconUtil.st(w)["r8_inst"]["t"].get(f["id"], -1))
+	check(t > 0 and t <= 1000, "the office has a crew share from its residents (%d)" % t)
+	var row: Dictionary = EconInst.needs(w)["ADMIN"][String(f["district"])]
+	check(int(row["clients"]) > 0, "residents are its clients")
+	f["scale"] = int(f.get("scale", 1000)) * 4
+	EconInst.monthly(w)
+	check(int(EconUtil.st(w)["r8_inst"]["t"][f["id"]]) < t, "four times the room, a smaller crew share")
+
+
+func test_an_office_can_be_commissioned_only_with_the_switch() -> void:
+	var sim := _sim()
+	var w := sim.world
+	w.levers["ECON_BUDGET_INFRASTRUCTURE"] = 40000
+	sim.run(1)
+	var d := String(_of_type(w, "ADMIN")[0]["district"])
+	check_eq(EconActions.validate(w, "ECON_COMMISSION_PROJECT", {"type": "ADMIN", "district": d}), "", "with R8_INSTITUTIONS an office is buildable")
+	w.meta["on"] = ["R8"]
+	check(EconActions.validate(w, "ECON_COMMISSION_PROJECT", {"type": "ADMIN", "district": d}) != "", "without it, not")
+
+
+# ------------------------------------------------------------------ tax brackets (the user: "they all get tax brackets")
+
+func test_every_bracket_is_charged_and_earmarked() -> void:
+	var sim := _sim(["CARE"])
+	var w := sim.world
+	sim.run(1)
+	for k in EconInst.BRACKETS:
+		w.levers[EconInst.BRACKETS[k][0]] = 10
+	var cash0 := {}
+	for k in EconInst.BRACKETS:
+		var org := EconFinance.org_by_key(w, String(EconInst.BRACKETS[k][1]))
+		cash0[k] = w.ledger.balance(EconUtil.acct(org)) if org != "" else 0
+	sim.run(2)
+	for k in EconUtil.sorted_keys(EconInst.BRACKETS):
+		check(EconInst.earmarked(w, k) > 0, "the %s bracket raised money (%d)" % [k, EconInst.earmarked(w, k)])
+	var off := EconSim.make_econ_only(3)
+	off.world.meta["on"] = ["R8"]
+	off.world.levers["ECON_SCHOOL_TAX"] = 20
+	check_eq(EconInst.bracket_pm(off.world, "SCHOOL"), 0, "without the switch no bracket is charged")
+	check_eq(EconInst.earmark_all(off.world, EconUtil.TREASURY, 1000000), 0, "and nothing is earmarked")
+
+
+func test_bracket_proposals_are_calibrated_on_clients_plus_staff() -> void:
+	var sim := _sim()
+	var w := sim.world
+	sim.run(2)
+	for i in EconInst.p("req_hold_m") + 1:
+		EconInst.monthly(w)
+	check(not EconUtil.st(w)["r8_inst"]["req"].has("ECON_SCHOOL_TAX"), "a bracket at 0: nothing proposed")
+	w.levers["ECON_SCHOOL_TAX"] = 10
+	w.levers["ECON_BUDGET_EDUCATION"] = 10   # the line pays almost nothing
+	var r: Dictionary = EconUtil.st(w)["r8_inst"]
+	r["earmark"] = {"SCHOOL": {"month": w.month, "now": 1000 * EconUtil.S, "last": 0}}   # the bracket raised little
+	for i in EconInst.p("req_hold_m"):
+		EconInst.monthly(w)
+	var q: Dictionary = r["req"].get("ECON_SCHOOL_TAX", {})
+	check(int(q.get("ask", 0)) > 10, "rule 1: the bracket that pays pupils plus staff is higher (%d)" % int(q.get("ask", 0)))
+	check(int(EconUtil.st(w)["lever_need"].get("ECON_SCHOOL_TAX", 0)) >= 1000, "the legislature sees the need")
+	check(bool(q.get("due", false)) and String(q.get("kind", "")) == "bracket", "a bracket proposal falls due")
+	r["earmark"] = {"SCHOOL": {"month": w.month, "now": 1000000000 * EconUtil.S, "last": 0}}   # it raises far more than needed
+	for i in EconInst.p("cut_hold_m"):
+		EconInst.monthly(w)
+	q = r["req"].get("ECON_SCHOOL_TAX", {})
+	check(int(q.get("ask", 99)) < 10, "rule 2: a lower bracket (%d)" % int(q.get("ask", 99)))
+	check_eq(int(EconUtil.st(w)["lever_need"].get("ECON_SCHOOL_TAX", 0)), -1000, "the legislature sees the bracket can fall")
+
+
+# ------------------------------------------------------------------ private care homes
+
+func _private_home(w: WorldState, typ: String, d: String) -> Dictionary:
+	var oid := ""
+	for o in EconUtil.sorted_keys(w.table("org")):
+		if w.table("org")[o]["type"] == "PRIVATE" and w.table("org")[o]["status"] == "ACTIVE":
+			oid = String(o)
+			break
+	var fid := EconSetup.add_facility(w, typ, oid, d, false)
+	return w.table("facility")[fid]
+
+
+func test_private_care_homes_serve_the_uncared_and_count_in_coverage() -> void:
+	var sim := _sim(["CARE"])
+	var w := sim.world
+	check(EconInst.private_types(w).has("ELDERCARE"), "with CARE, care homes can be private")
+	w.levers["ECON_BUDGET_ELDER_CARE"] = 0   # the public service cares for nobody
+	sim.run(3)
+	var rows: Dictionary = EconInst.needs(w).get("ELDERCARE", {})
+	var d := ""
+	for dd in EconUtil.sorted_keys(rows):
+		if int(rows[dd]["clients"]) > 0:
+			d = String(dd)
+			break
+	check(d != "", "care rows by district (the retired)")
+	var f := _private_home(w, "ELDERCARE", d)
+	check(EconInst.places(w, f) > 0, "a home's places from its posts (%d)" % EconInst.places(w, f))
+	w.month += 1
+	check(_buy_all(w) > 0 and int(f["inst_sold"]) > 0, "the uncared-for buy places (%d)" % int(f.get("inst_sold", 0)))
+	var before := EconCare.coverage(w, "ELDER", d)
+	EconCare.monthly(w)
+	check(EconCare.coverage(w, "ELDER", d) > before, "the people it cares for count in the district's coverage (%d -> %d)" % [before, EconCare.coverage(w, "ELDER", d)])
+	check(EconInst.forecast(w, "ELDERCARE", d) >= 0, "founders can read the market")
+	var off := _sim()
+	check(not EconInst.private_types(off.world).has("ELDERCARE"), "without CARE, no private care homes")

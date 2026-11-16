@@ -2,6 +2,7 @@ class_name EconFinance
 extends RefCounted
 ## SETTLEMENT phase (spec §5 step order, §12 bank, §13 accounting & government finance).
 
+const EconInst := preload("res://sim/economy/econ_institutions.gd")
 const S := EconUtil.S
 const PL_KEYS := ["rev", "cogs", "wages", "util", "freight", "rent", "dep", "interest", "royalty", "subsidy"]
 
@@ -269,7 +270,7 @@ static func _payroll(world: WorldState) -> void:
 				var n: int = staff[t][k]
 				var gross := int(n * w / S)
 				var lp := EconPop.lab_parts(k)
-				lines.append(["%s|%s|%s" % [lp[0], occ, lp[1]], gross, int(n * tax_pw / S)])
+				lines.append(["%s|%s|%s" % [lp[0], occ, lp[1]], gross, int(n * tax_pw / S), int(n * maxi(0, w - allowance) / S)])
 				bill += gross
 				if t == "S":
 					skilled_bill += gross
@@ -286,7 +287,7 @@ static func _payroll(world: WorldState) -> void:
 		for ln in lines:
 			var gross := int(ln[1] * frac)
 			var tax := int(ln[2] * frac)
-			var net := gross - tax
+			var net := gross - tax - EconInst.earmark_all(world, acc, int(ln[3] * frac))   # R8_INSTITUTIONS (Maja): the services' brackets
 			var rows: Array = idx.get(ln[0], [])
 			if rows.is_empty():
 				EconPop._mismatch(world, "payroll: nobody employed in " + ln[0])

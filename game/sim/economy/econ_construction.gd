@@ -3,6 +3,7 @@ extends RefCounted
 ## Construction & procurement (spec §10): projects, tenders, bids, awards, progress, payments, completion.
 ## Project rows live in world.table("project"). Quantities in mu, money in mcr.
 
+const EconInst := preload("res://sim/economy/econ_institutions.gd")
 const S := EconUtil.S
 const HOUSING_LOTS := 4  # E120: a 50-home block is tendered as 4 lots of about 12 homes
 
@@ -16,7 +17,7 @@ static func size_class(wu: int) -> String:
 ## Create a project + open tender. owner = "gov" or an org id. operator = org id that will run the facility.
 static func create(world: WorldState, ftype: String, district: String, owner: String, operator: String, line: String,
 		link: Dictionary = {}, size_pm: int = 1000) -> String:
-	var b: Array = EconData.BUILD[ftype]
+	var b: Array = bill(ftype)
 	var est := estimate(ftype)
 	var use_link := ftype == "ROAD" and not link.is_empty() and not EconUtil.off(world, "T1")
 	if use_link:
@@ -68,7 +69,7 @@ static func create_lots(world: WorldState, ftype: String, district: String, owne
 ## Modular expansion (E54): +25% capacity on an existing facility for 25% of its build bill.
 static func create_expansion(world: WorldState, fid: String, owner: String) -> String:
 	var f: Dictionary = world.table("facility")[fid]
-	var b: Array = EconData.BUILD[f["type"]]
+	var b: Array = bill(String(f["type"]))
 	var id := world.new_id("project")
 	world.table("project")[id] = {"id": id, "type": "EXPAND", "target": fid, "district": f["district"], "owner": owner, "operator": f["org"],
 		"line": "", "wu_total": b[0] * S / 4, "wu_done": 0, "mat_total": b[1] * S / 4, "comp_total": b[2] * S / 4,
@@ -107,8 +108,13 @@ static func upgrade_pending(world: WorldState, fid: String) -> bool:
 	return false
 
 
+## A type's build bill: EconData.BUILD, or EconInstitutions.BUILD_EXTRA for an office (ADMIN, R8_INSTITUTIONS only).
+static func bill(ftype: String) -> Array:
+	return EconData.BUILD[ftype] if EconData.BUILD.has(ftype) else EconInst.BUILD_EXTRA[ftype]
+
+
 static func estimate(ftype: String) -> int:
-	var b: Array = EconData.BUILD[ftype]
+	var b: Array = bill(ftype)
 	return int((b[0] * EconData.WU_COST_EST + b[1] * EconData.BASE_PRICE["MATERIAL"] + b[2] * EconData.BASE_PRICE["COMPONENT"]) * 1.15) * S
 
 
