@@ -98,7 +98,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	if ship:
 		h["ships"] = int(h["ships"]) + 1
 		_on_ship(world, st, h, r)
-	_shipping_request(world, h, ship)
+	_shipping_pressure(world, h)
 	if st.get("era", "") == "PARLIAMENTARY" and not st.get("government", {}).is_empty():
 		_colony_politics(world, st, h, r)
 
@@ -133,7 +133,7 @@ static func _on_ship(world: WorldState, st: Dictionary, h: Dictionary, r: Random
 			_sanction(world, h, "APPOINT_GOVERNOR", {})
 		elif int(h["patience"]) < 10:
 			_send_expedition(world, h, r)
-	_answer_shipping(world, h, sv, r)
+	_shipping(world, h, sv, r)
 	# petitions waiting for an answer
 	for pid in sv.get("petitions", {}):
 		var pt: Dictionary = sv["petitions"][pid]
@@ -399,16 +399,25 @@ static func _export_claims(world: WorldState, h: Dictionary, sv: Dictionary, r: 
 
 
 # ======================================================================= shipping (flag SHIPPING)
-## User 2026-11-16: more ships and larger ships "are things the home world does, not the colony", moved by political
-## pressure from the colony. The colony's exports are capped by the ship (EconTrade.ship_hold / ship_interval, read from
-## world.values SHIP_HOLD / SHIP_INTERVAL). When goods are left on the dock or the port store is full, the colony's
-## government asks the home world for more shipping (HOME_SHIPPING_REQUESTED). The home world answers on its next ship,
-## by its own interest (need for colonial goods, how loyal it thinks the colony is, defiance): a larger ship or ships
-## more often (HOME_SHIPPING_GRANTED), or no (HOME_SHIPPING_REFUSED, felt as colonial burden and lost jobs). A refused
-## colony may ask again while the shortage lasts. OPT-IN: world.meta["on"] has "SHIPPING"; off: nothing is written.
-const SHIP_HOLD_STEP := 1.5       # a granted larger ship carries this much more
-const SHIP_GAP_STEP := 0.75       # granted more ships: the months between them shrink by this
-const SHIP_GAP_FLOOR := 3         # months: a ship cannot turn round faster than this
+## The user, 2026-11-15: "The ship should be a political thing, the homeworld can build a bigger ship if it wants or get
+## more ships remember the round trip is 2 years so two ships could take turns increasing the number of arrivals to once
+## a year". 2026-11-16: "if they build a bigger ship, they will demand a higher price to pay it off for a while and once
+## done the ship stays ... it can't increase how often the ship comes ... can build one more ... comes on its own
+## interval". Ships are the home world's, not the colony's.
+##   PRESSURE: while cargo is left on the dock or the port store is full, the colony's government presses the home world
+##     for shipping (HOME_SHIPPING_REQUESTED, at most once a year, for as long as the shortage lasts).
+##   DECISION, each time a ship calls and the shortage showed: the home world weighs its own interest (need for colonial
+##     goods, how loyal it thinks the colony is, defiance, the colony's pressing) and may BUILD: the calling ship is
+##     replaced by a larger one, or one more ship joins, calling on its own interval (EconTrade.fleet). If it says no
+##     after the colony pressed: HOME_SHIPPING_REFUSED (felt as colonial burden and lost jobs).
+##   PAYING IT OFF: the home world takes a higher price for carrying the colony's goods (world.values HOME_TARIFF, a cut
+##     on export income) until the ship's cost is covered; then the charge ends and the ship stays (HOME_SHIP_PAID_OFF).
+##     It builds nothing more while a ship is being paid off.
+## OPT-IN: world.meta["on"] has "SHIPPING"; off: nothing is written. The sizes below are Wilma's, not the user's.
+const SHIP_HOLD_STEP := 1.5       # a larger ship carries this much more than the one it replaces
+const SHIP_COST_PER_UNIT := 1500  # credits of building cost per unit of hold added
+const SHIP_PAYOFF_PM := 200       # the higher price while a ship is paid off: permille of export income
+const SHIP_ASK_GAP := 12          # months between the colony's requests
 
 
 static func shipping_on(world: WorldState) -> bool:
@@ -424,49 +433,76 @@ static func _dock_units(world: WorldState) -> int:
 	return t
 
 
-## The colony asks for shipping when the ship left cargo behind or the port store filled up (one open request).
-static func _shipping_request(world: WorldState, h: Dictionary, ship: bool) -> void:
-	if not shipping_on(world) or not colonial(world) or not world.table("econ").has("s") or h.has("ship_request"):
+## The colony presses for shipping while the port store is full (monthly; cargo left by a ship is seen in _shipping).
+static func _shipping_pressure(world: WorldState, h: Dictionary) -> void:
+	if not shipping_on(world) or not colonial(world) or not world.table("econ").has("s"):
 		return
-	var left := _dock_units(world) if ship else 0
-	var full := not world.facts.query("ECON_PORT_FULL", world.month, world.month).is_empty()
-	if left <= 0 and not full:
+	if world.facts.query("ECON_PORT_FULL", world.month, world.month).is_empty():
 		return
-	h["ship_request"] = {"month": world.month, "left": left, "port_full": full}
+	h["ship_short"] = world.month
+	_ask_shipping(world, h, 0, true)
+
+
+static func _ask_shipping(world: WorldState, h: Dictionary, left: int, full: bool) -> void:
+	if world.month - int(h.get("ship_asked", -999)) < SHIP_ASK_GAP:
+		return
+	h["ship_asked"] = world.month
 	world.add_fact({"type": "HOME_SHIPPING_REQUESTED", "owner": "pol", "subjects": [{"kind": "HOME_WORLD", "id": "home"}],
 		"responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}], "impact": {}, "magnitude": 40,
-		"visibility": "PUBLIC", "data": {"left_on_dock": left, "port_full": full, "hold": EconTrade.ship_hold(world),
-		"interval": EconTrade.ship_interval(world)}})
-	_note(world, h, "the colony asked for more shipping (%d units left, port full %s)" % [left, str(full)])
+		"visibility": "PUBLIC", "data": {"left_on_dock": left, "port_full": full, "ships": 1 + EconTrade.fleet(world).size()}})
+	_note(world, h, "the colony pressed for more shipping (%d units left, port full %s)" % [left, str(full)])
 
 
-## The home world answers an open shipping request when its ship calls (not the ship the request was made on).
-static func _answer_shipping(world: WorldState, h: Dictionary, sv: Dictionary, r: RandomNumberGenerator) -> void:
-	if not shipping_on(world) or not h.has("ship_request"):
+## On each ship: the pay-off of a ship under way, or else the home world's decision to build.
+static func _shipping(world: WorldState, h: Dictionary, sv: Dictionary, r: RandomNumberGenerator) -> void:
+	if not shipping_on(world) or not world.table("econ").has("s"):
 		return
-	var rq: Dictionary = h["ship_request"]
-	if int(rq["month"]) >= world.month:
+	var prev := int(h.get("ship_seen", -1))
+	h["ship_seen"] = world.month
+	# paying it off: what the higher price took from this ship's cargo
+	if int(h.get("ship_debt", 0)) > 0:
+		var t := EconTrade.home_tariff(world)
+		var last: Dictionary = EconTrade.last_ship(world)
+		if t > 0 and t < 1000 and int(last.get("month", -1)) == world.month:
+			h["ship_debt"] = int(h["ship_debt"]) - int(last.get("export_value", 0)) / 1000 * t / (1000 - t)
+		if int(h["ship_debt"]) <= 0:
+			h.erase("ship_debt")
+			world.values.erase("HOME_TARIFF")
+			_fact(world, "HOME_SHIP_PAID_OFF", {"ships": 1 + EconTrade.fleet(world).size()}, 45, {"COLONIAL_BURDEN": 10})
+			_note(world, h, "the new ship is paid off; the higher price ends")
 		return
-	h.erase("ship_request")
-	var p := 0.15 + float(h["need"]) / 150.0 + float(h["loyalty"]) / 400.0
+	# did this ship, or the months before it, show more cargo than the ships can carry?
+	var left := _dock_units(world)
+	var short := left > 0 or int(h.get("ship_short", -1)) >= prev
+	if not short:
+		return
+	if left > 0:
+		_ask_shipping(world, h, left, false)
+	var asked := int(h.get("ship_asked", -999)) >= prev
+	var p := 0.1 + float(h["need"]) / 150.0 + float(h["loyalty"]) / 400.0 + (0.15 if asked else 0.0)
 	if bool(sv.get("refusal", false)):
 		p -= 0.4
 	if r.randf() >= clampf(p, 0.05, 0.9):
-		h["shipping_refused"] = int(h.get("shipping_refused", 0)) + 1
-		_fact(world, "HOME_SHIPPING_REFUSED", {"refused": h["shipping_refused"], "hold": EconTrade.ship_hold(world)}, 55,
-			{"COLONIAL_BURDEN": -15, "JOBS": -5})
-		_note(world, h, "refused more shipping")
+		if asked:
+			h["shipping_refused"] = int(h.get("shipping_refused", 0)) + 1
+			_fact(world, "HOME_SHIPPING_REFUSED", {"refused": h["shipping_refused"]}, 55, {"COLONIAL_BURDEN": -15, "JOBS": -5})
+			_note(world, h, "refused more shipping")
 		return
-	var hold := EconTrade.ship_hold(world)
-	var gap: Array = EconTrade.ship_interval(world)
-	var bigger := r.randf() < 0.5 or int(gap[0]) <= SHIP_GAP_FLOOR
-	if bigger:
-		hold = int(ceil(float(hold) * SHIP_HOLD_STEP))
-		world.values["SHIP_HOLD"] = hold
+	var idx := int(EconUtil.peek_st(world).get("ship_idx", 0))
+	var old := EconTrade.hold_of(world, idx)
+	var added := 0
+	var what := "LARGER_SHIP"
+	if r.randf() < 0.5:
+		added = int(ceil(float(old) * SHIP_HOLD_STEP)) - old
+		EconTrade.set_hold(world, idx, old + added)
 	else:
-		var lo := maxi(SHIP_GAP_FLOOR, int(float(gap[0]) * SHIP_GAP_STEP))
-		gap = [lo, maxi(lo, int(float(gap[1]) * SHIP_GAP_STEP))]
-		world.values["SHIP_INTERVAL"] = gap
-	_fact(world, "HOME_SHIPPING_GRANTED", {"what": "LARGER_SHIPS" if bigger else "MORE_SHIPS", "hold": hold, "interval": gap}, 55,
-		{"JOBS": 10, "COLONIAL_BURDEN": 5})
-	_note(world, h, "granted %s (hold %d, every %d-%d months)" % ["larger ships" if bigger else "more ships", hold, int(gap[0]), int(gap[1])])
+		what = "ONE_MORE_SHIP"
+		added = EconData.SHIP_CARGO
+		var gap: Array = EconTrade.ship_interval(world)
+		# it takes turns with the ships already sailing: its first call falls about half a round trip after this one
+		EconTrade.add_ship(world, world.month + r.randi_range(int(gap[0]) / 2, int(gap[1]) / 2), added)
+	h["ship_debt"] = added * SHIP_COST_PER_UNIT
+	world.values["HOME_TARIFF"] = SHIP_PAYOFF_PM
+	_fact(world, "HOME_SHIP_BUILT", {"what": what, "hold_added": added, "ships": 1 + EconTrade.fleet(world).size(),
+		"cost": h["ship_debt"], "higher_price_pm": SHIP_PAYOFF_PM}, 60, {"JOBS": 10, "COLONIAL_BURDEN": -10})
+	_note(world, h, "built %s (+%d units); a higher price until %d credits are paid off" % [what.to_lower(), added, int(h["ship_debt"])])

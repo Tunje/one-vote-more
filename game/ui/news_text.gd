@@ -244,7 +244,8 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"HOME_SHIP_CALLED": s = "A ship from the home world called"
 		"HOME_DEMAND_RAISED": s = "[color=#ff8a65]The home world raised its demands[/color]"
 		"HOME_SHIPPING_REQUESTED": s = "The government asked the home world for more shipping"
-		"HOME_SHIPPING_GRANTED": s = "The home world granted %s" % ("larger ships" if d.get("what", "") == "LARGER_SHIPS" else "more ships")
+		"HOME_SHIP_BUILT": s = "The home world %s; it takes a higher price on the colony's exports until the ship is paid off" % ("put a larger ship on the route" if d.get("what", "") == "LARGER_SHIP" else "sent one more ship, calling on its own round trip")
+		"HOME_SHIP_PAID_OFF": s = "The home world's new ship is paid off: the higher price ends and the ship stays"
 		"HOME_SHIPPING_REFUSED": s = "[color=#ff8a65]The home world refused more shipping[/color]"
 		"HOME_SANCTION": s = "The home world imposed a sanction: %s" % _kind(d.get("kind", ""))
 		"HOME_EXPEDITION_SENT": s = "[color=#ff5252][b]The home world has sent a punitive expedition[/b][/color]"

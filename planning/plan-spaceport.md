@@ -70,3 +70,19 @@ Wilma: the check above, home-world reactions, negotiation, politics. Bob: spacep
 Terra: spaceport on the map, the ship and its launch. Anni: treaty law and the delegation's staff. Ella: campaign issue.
 Queue: after the v10 items (landslide fix, S7, E140, optimiser exploits); the check comes first and is cheap.
 Everything opt-in with its own A/B; integer state; RNG streams; --check-only every edited file.
+
+## Home-world ships: the user's rulings (recorded 2026-11-16; the first was given 2026-11-15 and not written down then)
+- 2026-11-15: "The ship should be a political thing, the homeworld can build a bigger ship if it wants or get more ships
+  remember the round trip is 2 years so two ships could take turns increasing the number of arrivals to once a year,
+  and once independence is reached maybe it reducing the number of ships and trips or demands the colony buys a ship
+  out from it, or the colony negotiates to get a ship, there is much political room here!"
+- 2026-11-16: more ships and larger ships "are things the home world does, not the colony". "It's not a request thing
+  that happens once, if they build a bigger ship, they will demand a higher price to pay it off for a while and once
+  done the ship stays, and no it can't increase how often the ship comes [but] can build one more, [which] comes on
+  its own interval."
+- Built (switch SHIPPING, off by default; game/sim/politics/home_world.gd, EconTrade.fleet): the colony presses while
+  cargo is left or the port is full; on each ship the home world may build a larger ship or one more ship on its own
+  round trip; it takes a higher price on exports until the cost is covered, then the charge ends and the ship stays.
+  Step sizes, cost and the size of the higher price are Wilma's numbers, not the user's.
+- Not built (the user's "maybe" for after independence): fewer ships or trips, the colony buying a ship from the home
+  world, the colony negotiating for a ship.

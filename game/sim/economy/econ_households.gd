@@ -687,8 +687,16 @@ static func _ships(world: WorldState) -> void:
 	if not s.has("ship_next"):
 		s["ship_next"] = world.month + rng.randi_range(int(EconTrade.ship_interval(world)[0]), int(EconTrade.ship_interval(world)[1]))
 		s["ship_last"] = 0
-	if world.month < int(s["ship_next"]):
-		return
+	var first: bool = world.month >= int(s["ship_next"])
+	var extra := -1   # an extra home-world ship (EconTrade.fleet) calls on its own clock; the first ship goes first
+	if not first:
+		var fl: Array = EconTrade.fleet(world)
+		for i in fl.size():
+			if world.month >= int(fl[i]["next"]):
+				extra = i
+				break
+		if extra < 0:
+			return
 	var interval: int = world.month - int(s.get("ship_last", 0))
 	var migrants := 0
 	var departed := 0
@@ -704,12 +712,19 @@ static func _ships(world: WorldState) -> void:
 		var quota := int(EconUtil.lever(world, "ECON_IMMIGRATION_QUOTA", 60))
 		var cap := mini(EconData.SHIP_CAPACITY, int(float(quota) * float(interval) / 3.0 * EconData.SHIP_QUOTA_SHARE))
 		migrants = _ship_migrants(world, cap, false)
-	var trade := EconTrade.on_ship(world)  # D1: exports loaded, merchants' imports unloaded
+	var trade := EconTrade.on_ship(world, EconTrade.hold_of(world, extra + 1))  # D1: exports loaded, merchants' imports unloaded
 	EconFacts.emit(world, "ECON_SHIP_ARRIVED", "d:1", [["EXTERNAL", "home_world"]], [["EXTERNAL", "home_world", 1.0]], {}, 40, "PUBLIC",
 		{"interval": interval, "migrants": migrants, "emigrants": departed, "cargo": trade["cargo"], "quota_delivered": trade["quota_delivered"],
 		"export_value": trade["export_value"], "imports": trade["imports"], "import_value": trade["import_value"]})
 	s["ship_last"] = world.month
-	s["ship_next"] = world.month + rng.randi_range(int(EconTrade.ship_interval(world)[0]), int(EconTrade.ship_interval(world)[1]))
+	var gap := rng.randi_range(int(EconTrade.ship_interval(world)[0]), int(EconTrade.ship_interval(world)[1]))
+	if extra >= 0:
+		s["trade"]["fleet"][extra]["next"] = world.month + gap
+		s["ship_idx"] = extra + 1
+	else:
+		s["ship_next"] = world.month + gap
+		if not EconTrade.fleet(world).is_empty():
+			s["ship_idx"] = 0
 
 
 ## Migrants into the district with the most vacant housing; returns persons landed.

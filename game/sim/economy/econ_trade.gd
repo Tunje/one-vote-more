@@ -87,6 +87,34 @@ static func home_tariff(world: WorldState) -> int:
 	return clampi(int(world.values.get("HOME_TARIFF", 0)), 0, 1000)
 
 
+## Extra home-world ships (HomeWorld, flag SHIPPING; user 2026-11-15: "two ships could take turns"): each is
+## {next: month it calls, hold: units} and keeps its own interval. The first ship stays on the ship clock
+## (s.ship_next) with ship_hold(). Empty unless the home world built one.
+static func fleet(world: WorldState) -> Array:
+	return EconUtil.peek_st(world).get("trade", {}).get("fleet", [])
+
+
+static func add_ship(world: WorldState, next_month: int, hold: int) -> void:
+	var t := _t(world)
+	if not t.has("fleet"):
+		t["fleet"] = []
+	(t["fleet"] as Array).append({"next": next_month, "hold": hold})
+
+
+## Hold of ship `idx` (0 = the first ship, 1.. = the fleet's extra ships).
+static func hold_of(world: WorldState, idx: int) -> int:
+	var fl := fleet(world)
+	return int(fl[idx - 1]["hold"]) if idx >= 1 and idx <= fl.size() else ship_hold(world)
+
+
+static func set_hold(world: WorldState, idx: int, hold: int) -> void:
+	var fl := fleet(world)
+	if idx >= 1 and idx <= fl.size():
+		_t(world)["fleet"][idx - 1]["hold"] = hold
+	else:
+		world.values["SHIP_HOLD"] = hold
+
+
 static func prices(world: WorldState) -> Dictionary:
 	var t: Dictionary = EconUtil.peek_st(world).get("trade", {})
 	var out := {}
@@ -258,7 +286,7 @@ static func _consign(world: WorldState, t: Dictionary) -> void:
 
 ## Called when a home-world ship arrives (EconHouseholds._ships). Returns {cargo {good: units}, export_value, imports
 ## {good: units}, import_value, quota_delivered} for ECON_SHIP_ARRIVED.
-static func on_ship(world: WorldState) -> Dictionary:
+static func on_ship(world: WorldState, hold: int = -1) -> Dictionary:
 	if EconUtil.off(world, "D1"):
 		return {"cargo": {}, "export_value": 0, "imports": {}, "import_value": 0, "quota_delivered": {}}
 	var t := _t(world)
@@ -273,7 +301,7 @@ static func on_ship(world: WorldState) -> Dictionary:
 			if q > 0:
 				held[oid + "|" + g] = q
 				total += q
-	var cap := ship_hold(world) * S
+	var cap := (hold if hold >= 0 else ship_hold(world)) * S
 	var f := 1.0 if total <= cap else float(cap) / float(total)
 	var cargo := {}
 	var value := 0
