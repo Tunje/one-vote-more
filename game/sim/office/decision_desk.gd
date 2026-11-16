@@ -79,6 +79,8 @@ const TYPES := {
 	"WILDLIFE_REVIEW": {"name": "Wildlife policy review", "portfolio": "ENVIRONMENT", "ceiling": "MINISTER", "src": "gov_wildlife"},
 	# FirmAI (Bob): the treasury pays for a public company's investment when no loan is to be had
 	"PE_INVESTMENT": {"name": "Treasury funds a public company's investment", "portfolio": "FINANCE", "ceiling": "MINISTER", "src": "firm_ai"},
+	# GovBuilder (Wilma): a public company's proposal to raise its tariff (its price rule 1; E150P / R8_UTILITIES)
+	"TARIFF_PROPOSAL": {"name": "A public company's tariff rise", "portfolio": "FINANCE", "ceiling": "MINISTER", "src": "gov_builder"},
 	# Legislature: laws
 	"BILL": {"name": "Table a bill", "portfolio": "FM", "ceiling": "PARLIAMENT", "src": "legislature"},
 	"ORDINANCE": {"name": "Commander's ordinance", "portfolio": "FM", "ceiling": "CABINET", "src": "legislature"},

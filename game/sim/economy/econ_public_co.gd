@@ -138,7 +138,7 @@ static func quarterly(world: WorldState) -> void:
 				world.levers[c[0]] = c[1]  # undo: nothing changes until approved
 			var short_c := maxi(0, costs12(o) * MARGIN_PCT / 100 - res)
 			var pend: Dictionary = EconUtil.st(world).get("pe_proposals", {})
-			pend[oid] = {"month": world.month, "levers": changed, "gap12": short_c / S, "subsidy_needed": maxi(0, short_c - sub_room) / S}
+			pend[oid] = {"month": world.month, "since": int((pend.get(oid, {}) as Dictionary).get("since", world.month)), "levers": changed, "gap12": short_c / S, "subsidy_needed": maxi(0, short_c - sub_room) / S}
 			EconUtil.st(world)["pe_proposals"] = pend
 			EconFacts.emit(world, "ECON_PE_FUNDING_REQUEST", o["hq"], [["COMPANY", oid]], [["GOVERNMENT", "government", 1.0]], {}, 30, "OFFICIAL",
 				{"org": oid, "amount": 0, "asked": short_c / S, "proposed": changed, "subsidy_needed": maxi(0, short_c - sub_room) / S})

@@ -65,6 +65,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	if Legislature.e151(world):
 		can_build = runway >= 3.0 - 1.5 * spend or not Legislature.fiscal_guard(world)   # E151: reserves target 6 months, not 24; capital projects may borrow
 	_essentials(world, st, busy, who, state, spend, can_build)
+	_tariff_proposals(world, state, equality)
 	if Desk.on(world) and RoadSafety.on(world):
 		_safety_cases(world, st, who)   # who decides (Maja): road safety only as cases
 	if can_build:
@@ -746,6 +747,46 @@ static func _essentials(world: WorldState, st: Dictionary, busy: Dictionary, who
 					"Offer the grant", {"via": "ECON", "id": "ECON_OFFER_INCENTIVE", "params": {"type": ftype, "grant_pct": pct, "months": 24, "cap": maxi(1, cap)}}, -CASE_LEAN)
 			elif EconActions.enqueue(world, "ECON_OFFER_INCENTIVE", {"type": ftype, "grant_pct": pct, "months": 24, "cap": maxi(1, cap)}).get("ok", false):
 				Desk.note(world, "BUILDER_GRANT")
+
+
+## The government's answer to a public company's tariff proposal (price rules 1/2 of the utilities and the transport
+## authority: the company proposes on its own market, the government decides; the user's order 2026-11-16 that every
+## producer has all eight rules. Before this no computer government ever answered, so a proposal froze the tariff).
+## A government approves a rise once the proposal has waited as long as its reluctance: egalitarian and state-minded
+## governments wait longer (a dearer tariff is a cost of living), every government waits longer close to an election.
+## Until then the company runs short and asks for support; that is the government's to live with. Under DELEGATION it
+## is a case on the desk. The numbers are Wilma's.
+const TARIFF_WAIT_EQUALITY_M := 4.0   # months of waiting per unit of REDISTRIBUTION (-1..1)
+const TARIFF_WAIT_STATE_M := 3.0      # months per unit of ECON_ROLE (-1..1)
+const TARIFF_WAIT_ELECTION_M := 6.0   # extra months inside the last TARIFF_ELECTION_WINDOW_M before an election
+const TARIFF_ELECTION_WINDOW_M := 6
+
+
+static func _tariff_proposals(world: WorldState, state: float, equality: float) -> void:
+	var pend: Dictionary = EconPublicCo.pending(world)
+	if pend.is_empty():
+		return
+	var to_go := Campaign.months_to_election(world)
+	var wait_m := TARIFF_WAIT_EQUALITY_M * equality + TARIFF_WAIT_STATE_M * state
+	if to_go >= 0 and to_go <= TARIFF_ELECTION_WINDOW_M:
+		wait_m += TARIFF_WAIT_ELECTION_M
+	for oid in EconUtil.sorted_keys(pend):
+		var pr: Dictionary = pend[oid]
+		var o: Dictionary = world.peek("org").get(oid, {})
+		if o.is_empty():
+			continue
+		if Desk.on(world):
+			var lines: Array = ["%s asks to raise its charges: its last 12 months fell %d cr short of its costs." % [String(o.get("name", oid)), int(pr.get("gap12", 0))]]
+			for c in pr.get("levers", []):
+				lines.append("%s: %d to %d." % [String(c[0]), int(c[1]), int(c[2])])
+			_simple_case(world, "TARIFF_PROPOSAL", "TARIFF|" + String(oid), "A dearer tariff for %s" % String(o.get("name", oid)), lines,
+				"Approve the rise", {"via": "ECON", "id": "ECON_APPROVE_TARIFF", "params": {"org": oid}}, -CASE_LEAN)
+			continue
+		var waited := float(world.month - int(pr.get("since", pr.get("month", world.month))))
+		if waited < wait_m:
+			continue
+		if EconActions.enqueue(world, "ECON_APPROVE_TARIFF", {"org": oid}).get("ok", false):
+			Desk.note(world, "TARIFF_PROPOSAL")
 
 
 static func _home(world: WorldState, ftype: String) -> String:

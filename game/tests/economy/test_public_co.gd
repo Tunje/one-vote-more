@@ -89,3 +89,34 @@ func test_proposal_and_approval() -> void:
 		if bool(f.get("data", {}).get("approved", false)):
 			approved = true
 	check(approved, "the approval is news (a later quarter may already file the next proposal)")
+
+
+## The computer government answers a tariff proposal (GovBuilder._tariff_proposals): a market-minded government at
+## once, an egalitarian state-minded one only after the proposal has waited.
+func test_government_answers_a_proposal() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["E150", "E150P"]
+	sim.run(2)
+	w.levers["ECON_BUDGET_SUBSIDIES"] = 0
+	_losing_year(_cpw(w))
+	var oid := EconFinance.org_by_key(w, "CPW")
+	EconPublicCo.quarterly(w)
+	check(EconPublicCo.pending(w).has(oid), "a proposal waits")
+	var q0: int = (EconUtil.st(w)["queue"] as Array).size()
+	GovBuilder._tariff_proposals(w, 0.8, 0.8)
+	check_eq((EconUtil.st(w)["queue"] as Array).size(), q0, "a reluctant government does not approve a fresh proposal")
+	EconPublicCo.quarterly(w)
+	check_eq(int(EconPublicCo.pending(w)[oid]["since"]), int(EconPublicCo.pending(w)[oid]["month"]), "same month: since = month")
+	EconPublicCo.pending(w)[oid]["since"] = w.month - 12
+	EconPublicCo.quarterly(w)
+	check_eq(int(EconPublicCo.pending(w)[oid]["since"]), w.month - 12, "a repeated proposal keeps the month it was first made")
+	GovBuilder._tariff_proposals(w, 0.8, 0.8)
+	check_eq((EconUtil.st(w)["queue"] as Array).size(), q0 + 1, "after a year of waiting the same government approves")
+	(EconUtil.st(w)["queue"] as Array).pop_back()
+	EconPublicCo.pending(w)[oid]["since"] = w.month
+	GovBuilder._tariff_proposals(w, -0.5, -0.5)
+	check_eq((EconUtil.st(w)["queue"] as Array).size(), q0 + 1, "a market-minded government approves at once")
+	var e0 := int(EconUtil.lever(w, "ECON_UTILITY_TARIFF_ENERGY", 40))
+	sim.run(1)
+	check(int(EconUtil.lever(w, "ECON_UTILITY_TARIFF_ENERGY", 40)) > e0, "and the tariff rises")
