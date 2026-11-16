@@ -276,7 +276,13 @@ static func draw(world: WorldState, oid: String, amount: int) -> int:
 		return 0
 	if EconBank.active(world):
 		EconBank.ensure(world)
-		amt = mini(amt, EconBank.room(world))
+		var bank_room := EconBank.room(world)
+		if EconBankRisk.dep_on(world) and EconBankRisk.sec_on(world):
+			# BANK_DEP: the secured part of the line (beyond what is drawn) may use deposits
+			var lid0 := line_id(world, oid)
+			var drawn0 := int(world.table("loan")[lid0]["principal"]) if lid0 != "" else 0
+			bank_room = maxi(bank_room, mini(EconBankRisk.deposit_room(world), maxi(0, EconBankRisk.line_security(world, oid) - drawn0)))
+		amt = mini(amt, bank_room)
 	else:
 		amt = mini(amt, world.ledger.balance(EconUtil.BANK) - EconData.BANK_MIN_CASH * EconUtil.S)
 	if amt <= 0:
@@ -286,6 +292,7 @@ static func draw(world: WorldState, oid: String, amount: int) -> int:
 		var rate := int(EconData.BANK_FIRM_BASE_PM * 1000000)
 		if EconBank.active(world):
 			rate = EconBank.rate_ppm(world, rate)
+		rate = EconBankRisk.rate_ppm(world, oid, rate, amt, 0, false)  # BANK_RISK: the borrower's record
 		lid = world.new_id("loan")
 		world.table("loan")[lid] = {"id": lid, "borrower": oid, "principal": 0, "rate_ppm": rate, "term_left": 0, "missed": 0,
 			"revolving": true, "full_m": 0}

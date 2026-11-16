@@ -363,6 +363,7 @@ static func _pay(world: WorldState, p: Dictionary, amount: int) -> int:
 		paid = EconUtil.pay_upto(world, EconUtil.acct(p["owner"]), to, amount, "CONTRACT_PAYMENT")
 	EconFinance.pl_add(world, p["contractor"], "rev", paid)
 	p["paid"] += paid
+	EconBankRisk.assign(world, p["contractor"], paid)  # BANK_SEC: the contract repays the builder's line first
 	return paid
 
 

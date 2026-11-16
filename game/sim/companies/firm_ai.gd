@@ -1214,7 +1214,7 @@ static func _entry(world: WorldState) -> void:
 		var d: String = "d:3" if ft == "MINE" else (svc_district if ft == "SERVICEHUB" else g["district"])
 		if EconRulesMat.entry_on(world, ft):
 			d = EconRulesMat.entry_district(world, ft, g["district"])  # R8 step 2b: where the forecast is best
-		if best_cash < e * 4 / 10:
+		if best_cash < e * EconBankRisk.founder_equity_pm(world) / 1000:
 			continue
 		if not LawBridge.allowed(world, "new", "BUILD_FACILITY", {"facility_type": ft, "district": d, "owner_kind": "COMPANY", "value_wref": 0}):
 			continue
@@ -1239,12 +1239,13 @@ static func _entry(world: WorldState) -> void:
 		"missed_this_month": false, "owner_group": best, "sales_ema": {}, "contracts": [], "dividends_ytd": 0, "sold": {}}
 	world.table("org")[id]["entry_type"] = candidate  # E128: founders remember which sectors failed
 	world.ledger.open_account(EconUtil.acct(id))
-	world.ledger.transfer(EconUtil.hh_acct(best), EconUtil.acct(id), est * 4 / 10, "EQUITY", world.month)
+	var eq_pm := EconBankRisk.founder_equity_pm(world)  # BANK_EQUITY: more of the founder's own money when the loan is unsecured
+	world.ledger.transfer(EconUtil.hh_acct(best), EconUtil.acct(id), est * eq_pm / 1000, "EQUITY", world.month)
 	EconPop.make_owner(world, g["hb"], g["band"])
 	EconPop.sync(world)
 	if EconInsolvency.plan_b(world):
-		world.table("org")[id]["plan_credit"] = est * 6 / 10  # E165b (c): approved, drawn as the builder is paid
-	elif not EconFinance.new_loan(world, id, est * 6 / 10, 0, true):
+		world.table("org")[id]["plan_credit"] = est * (1000 - eq_pm) / 1000  # E165b (c): approved, drawn as the builder is paid
+	elif not EconFinance.new_loan(world, id, est * (1000 - eq_pm) / 1000, 0, true):
 		pass  # builds with equity only; may stall on payments
 	EconConstruction.create(world, candidate, district, id, id, "")
 	if EconInsolvency.planning_stage(world):

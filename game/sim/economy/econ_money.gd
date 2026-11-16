@@ -73,7 +73,7 @@ static func pass_debt(world: WorldState, seller: String, buyer: String, share_pm
 
 ## (c) the bank keeps its profit while its capital is below the floor.
 static func remit_allowed(world: WorldState) -> bool:
-	if not sound_bank(world):
+	if not sound_bank(world) and not EconBankRisk.cap_on(world):
 		return true
 	var floor_c := maxi(EconData.BANK_CASH * S, EconBank.loans(world) * CAPITAL_LOAN_PCT / 100)
 	return EconBank.capital(world) >= floor_c

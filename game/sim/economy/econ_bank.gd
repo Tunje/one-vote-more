@@ -68,6 +68,8 @@ static func monthly(world: WorldState) -> void:
 	if not active(world):
 		return
 	ensure(world)
+	EconBankRisk.raise_capital(world)  # BANK_CAP (January)
+	EconBankRisk.reprice_lines(world)  # BANK_RISK (January)
 	var s := EconUtil.st(world)
 	var cap := capital(world)
 	if cap <= 0 and not bool(s.get("bank_failed", false)):
@@ -112,6 +114,32 @@ static func bailout(world: WorldState, amount: int) -> int:
 		[["GOVERNMENT", "government", 1.0]], {"GOVERNANCE": -10, "FAIRNESS": -10, "JOBS": 10}, 60, "PUBLIC",
 		{"amount": paid / S, "capital_after": capital(world) / S})
 	return paid
+
+
+## The capital floor: the founding capital or E152's CAPITAL_LOAN_PCT of loans, whichever is larger (mcr).
+static func capital_floor(world: WorldState) -> int:
+	return maxi(EconData.BANK_CASH * S, loans(world) * EconMoney.CAPITAL_LOAN_PCT / 100)
+
+
+## Credits the bank is short of its capital floor (0 when sound). Read by the home world's recapitalisation (Wilma).
+static func capital_need(world: WorldState) -> int:
+	if not active(world):
+		return 0
+	return maxi(0, capital_floor(world) - capital(world))
+
+
+## The home world (or another `source`) puts `amount` of new capital into the bank (EXTERNAL → bank). Returns paid.
+static func recapitalise(world: WorldState, amount: int, source: String = "HOME") -> int:
+	if amount <= 0:
+		return 0
+	ensure(world)
+	world.ledger.transfer(Ledger.EXTERNAL, EconUtil.BANK, amount, "BANK_RECAPITALISED", world.month)
+	var s := EconUtil.st(world)
+	if capital(world) > 0:
+		s["bank_failed"] = false
+	EconFacts.emit(world, "ECON_BANK_RECAPITALISED", "d:1", [["EXTERNAL", "bank"]], [["EXTERNAL", "bank", 1.0]], {"JOBS": 5}, 50, "PUBLIC",
+		{"amount": amount / S, "source": source, "capital_after": capital(world) / S})
+	return amount
 
 
 ## {capital, loans, limit, room, utilisation_pm, deposits, failed, rate_firm_ppm} — credits, for probes and the panel.

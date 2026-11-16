@@ -496,6 +496,8 @@ static func liquidation_round(world: WorldState) -> void:
 					[["GOVERNMENT", "government", 1.0]], {"HOUSING": 5}, 30, "PUBLIC", {"facility": fid, "price": hpaid, "nationalized": true})
 			elif o["liq_months"] >= 3 and not (f["type"] in ["HOUSING", "SERVICEHUB"]) and _worker_buyout(world, oid, f):
 				pass  # E77: plant continues as a workers' co-op
+			elif o["liq_months"] >= 3 and EconBankRisk.secured_sale(world, oid, f):
+				pass  # BANK_SEC: the plant goes with its bank debt instead of being abandoned
 			elif o["liq_months"] >= 3:
 				f["abandoned"] = true
 				f["mothball"] = true

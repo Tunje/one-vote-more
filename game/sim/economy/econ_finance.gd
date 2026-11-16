@@ -34,7 +34,8 @@ static func new_loan(world: WorldState, borrower: String, amount: int, rate_ppm:
 	if move_cash:
 		if m2:
 			EconBank.ensure(world)
-			if amount > EconBank.room(world):
+			var sec_ok := borrower != "gov" and EconBankRisk.sec_on(world) and amount <= EconBankRisk.room_secured(world)  # BANK_DEP: a secured loan may use deposits
+			if amount > EconBank.room(world) and not sec_ok:
 				return false  # M2: the bank's capital limits what it can create
 		elif world.ledger.balance(EconUtil.BANK) - amount < EconData.BANK_MIN_CASH * S:
 			return false
@@ -43,6 +44,8 @@ static func new_loan(world: WorldState, borrower: String, amount: int, rate_ppm:
 		rate_ppm = int(EconData.BANK_GOV_RATE_PM * 1000000) if borrower == "gov" else int(EconData.BANK_FIRM_BASE_PM * 1000000)
 		if m2:
 			rate_ppm = EconBank.rate_ppm(world, rate_ppm)  # M2: dearer as the bank nears its limit
+		if borrower != "gov":
+			rate_ppm = EconBankRisk.rate_ppm(world, borrower, rate_ppm, amount, amount / 60, true)  # BANK_RISK: the borrower's record
 	var lid := world.new_id("loan")
 	world.table("loan")[lid] = {"id": lid, "borrower": borrower, "principal": amount, "rate_ppm": rate_ppm,
 		"term_left": 0 if borrower == "gov" else 60, "missed": 0}
@@ -741,6 +744,8 @@ static func _bank_remit(world: WorldState) -> void:
 	var r := profit * (100 - retention) / 100
 	if not EconMoney.remit_allowed(world):
 		r = 0  # E152c: a bank below its capital floor keeps its profit
+	if r > 0 and EconBankRisk.cap_on(world):
+		r -= EconBankRisk.pay_dividends(world, r)  # BANK_CAP: the colony's shareholders get their part first
 	if r > 0:
 		var tax := EconUtil.pay_upto(world, EconUtil.BANK, EconUtil.TREASURY, r * rtax / 100, "REMITTANCE_TAX")
 		_gov_rev(world, tax)
