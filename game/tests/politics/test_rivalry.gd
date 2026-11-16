@@ -7,7 +7,9 @@ const EconSim := preload("res://sim/economy/econ_sim.gd")
 func _world() -> WorldState:
 	var sim: Simulation = EconSim.make(3, "BALANCED", {}, true)
 	sim.run(72)
-	(sim.world.meta["on"] as Array).append("RIVALRY")
+	if not (sim.world.meta["on"] as Array).has("RIVALRY"):
+		(sim.world.meta["on"] as Array).append("RIVALRY")
+	(sim.world.table("pol")["state"] as Dictionary).erase("grudge")   # on by default since v11: start from no grudges
 	return sim.world
 
 
@@ -33,6 +35,7 @@ func test_opposite_positions_make_rivals() -> void:
 
 func test_off_without_the_flag() -> void:
 	var w: WorldState = EconSim.make(3, "BALANCED", {}, true).world
+	(w.meta["on"] as Array).erase("RIVALRY")   # on by default since v11
 	var h := w.state_hash()
 	Rivalry.on_vote(w, {"votes": {"party:1": "NO"}, "status": "DEFEATED"}, {"members": ["party:2"], "pm_party": "party:2"})
 	Rivalry.monthly(w, w.table("pol")["state"])
@@ -78,16 +81,17 @@ func test_the_opposition_questions_a_decision() -> void:
 	var st: Dictionary = w.table("pol")["state"]
 	var two := _two(w)
 	var pm: String = two[0]
+	var from_m := w.month
 	var asked := 0
 	for i in 24:
 		w.add_fact({"type": "POL_ROAD_PATCHED", "owner": "pol", "subjects": [], "responsible": [], "impact": {}, "magnitude": 25,
 			"visibility": "PUBLIC", "data": {"district": "d:1"}})
 		Rivalry.monthly(w, st)
-		asked = w.facts.query("POL_DECISION_QUESTIONED").size()
+		asked = w.facts.query("POL_DECISION_QUESTIONED", from_m).filter(func(x): return String(x["data"]["about"]) == "POL_ROAD_PATCHED").size()
 		w.month += 1
 	check(asked > 0, "over two years somebody questions a patched road (%d)" % asked)
 	if asked > 0:
-		var f: Dictionary = w.facts.query("POL_DECISION_QUESTIONED")[0]
+		var f: Dictionary = w.facts.query("POL_DECISION_QUESTIONED", from_m).filter(func(x): return String(x["data"]["about"]) == "POL_ROAD_PATCHED")[0]
 		check_eq(String(f["data"]["against"]), pm, "the First Minister's party is asked")
 		check(not (String(f["data"]["by"]) in st["government"]["members"]), "by a party outside the Cabinet")
 		check_eq(String(f["data"]["about"]), "POL_ROAD_PATCHED", "about the decision")

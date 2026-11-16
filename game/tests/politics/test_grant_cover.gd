@@ -8,6 +8,8 @@ const EconSim := preload("res://sim/economy/econ_sim.gd")
 
 func _world() -> WorldState:
 	var sim: Simulation = EconSim.make(4, "BALANCED", {}, true)
+	for f in ["E160", "E162"]:      # on by default since v11: these tests open their own programme
+		(sim.world.meta["on"] as Array).erase(f)
 	sim.run(60)
 	return sim.world
 

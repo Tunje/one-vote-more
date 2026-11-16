@@ -6,6 +6,7 @@ const EconSim := preload("res://sim/economy/econ_sim.gd")
 
 func _world(rivalry: bool) -> WorldState:
 	var sim: Simulation = EconSim.make(3, "BALANCED", {}, true)
+	(sim.world.meta["on"] as Array).erase("RIVALRY")   # on by default since v11: these tests switch it themselves
 	sim.run(72)
 	if rivalry:
 		(sim.world.meta["on"] as Array).append("RIVALRY")

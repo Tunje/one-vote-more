@@ -98,6 +98,7 @@ func test_a_district_passed_over_for_another_road_resents_it() -> void:
 	if bad == "":
 		return
 	var who := {"by": "commander", "pos": {}}
+	var earlier := w.facts.query("POL_ROAD_PASSED_OVER").filter(func(f): return String(f["data"]["district"]) == bad).size()
 	st.erase("road_wait")
 	st["road_q_orders"] = ["somewhere:else"]
 	GovBuilder._road_feelings(w, st, who)
@@ -119,7 +120,7 @@ func test_a_district_passed_over_for_another_road_resents_it() -> void:
 	st["road_q_orders"] = [bad]
 	GovBuilder._road_feelings(w, st, who)
 	check(not (st.get("road_wait", {}) as Dictionary).has(bad), "a road ordered for them ends the wait")
-	check_eq(w.facts.query("POL_ROAD_PASSED_OVER").filter(func(f): return String(f["data"]["district"]) == bad).size(), 7, "and no new complaint from them")
+	check_eq(w.facts.query("POL_ROAD_PASSED_OVER").filter(func(f): return String(f["data"]["district"]) == bad).size(), earlier + 7, "and no new complaint from them")
 
 
 func test_the_road_that_frees_most_freight_goes_first() -> void:
