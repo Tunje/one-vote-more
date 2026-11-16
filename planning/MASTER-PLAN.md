@@ -311,6 +311,13 @@ inventory it holds, continuously; no threshold of months or of any other kind.
 3 months up front and add 1 month of additional supplies every month". So a builder starts a job with three months
 of that job's supplies and adds one more month's supplies every month; it is not held to having 90% of its supplies.
 
+**Imports are a backstop (the user, verbatim):** "Why put so much fucking emphasis on the imports? Why? We talked
+about it as being a thing that was there if they needed it, not the primary means of getting resources." The
+question the user had answered with "Yes they may order in" was: may material and components come from the home
+world when the colony has no working producer. Wilma approved a wider build (any buyer short in any month whose
+limit reached the landed price), which made imports routine: 14.7M paid out in 60 years. Corrected: ordering in only
+while the colony has no working producer of the good.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and

@@ -603,10 +603,13 @@ this month (its month's costs less its cash and what it already put on offer) an
 not offered, so it is in no price rule, buyer's reading or the market index (S and cover count offers only). Rule 2
 reads only what the seller offered and did not sell, not stock it chose to keep.
 
-**Ordering in (ORDER_IN; the user: "Yes they may order in").** Any buyer whose MATERIAL or COMPONENT order went unfilled
-orders the shortfall from the home world when its own limit reaches the landed price (base × IMPORT_MULT × 1.01 a year),
-less what it already has on order, paid on order. The goods come in the next ship's hold (EconTrade.hold_of), first
-ordered first; what does not fit waits for the following ship (sim/economy/econ_imports.gd).
+**Ordering in (ORDER_IN; the user: "Yes they may order in", and "a thing that was there if they needed it, not the
+primary means of getting resources").** Only while the colony has no working producer of MATERIAL (or COMPONENT): no open
+plant made any of it last month. Then any buyer whose order went unfilled orders the shortfall from the home world (less
+what it already has on order), at the landed price (base × IMPORT_MULT × 1.01 a year), paid on order, as much as its cash
+pays; no price test. The moment a plant produces the good again, no new orders go out; what is paid still arrives. The
+goods come in the next ship's hold (EconTrade.hold_of), first ordered first; what does not fit waits for the following
+ship (sim/economy/econ_imports.gd).
 
 Tests also: test_r8_batch3 (11): food entry, hold-back, rule 2's reading, carriers, haulier rates, haulier entry, a
 haulier carrying and paid, ordering in, unloading, save/load.

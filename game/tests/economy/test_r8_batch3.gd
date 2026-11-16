@@ -227,26 +227,42 @@ func _buyer(w: WorldState) -> String:
 	return ""
 
 
-func test_order_in_only_when_the_buyers_limit_reaches_the_landed_price() -> void:
+func _set_working(w: WorldState, good: String, on: bool) -> void:
+	for fid in w.table("facility"):
+		var f: Dictionary = w.table("facility")[fid]
+		var r: Dictionary = EconData.RECIPES.get(f["type"], {})
+		if not r.is_empty() and String(r["out"][0]) == good:
+			f["out_last"] = 100 * S if on and not f["mothball"] else 0
+
+
+func test_order_in_only_while_no_plant_in_the_colony_makes_it() -> void:
 	var sim := _sim(["ORDER_IN"], 3)
 	var w := sim.world
 	var s := EconUtil.st(w)
 	var b := _buyer(w)
 	w.ledger.transfer(Ledger.EXTERNAL, EconUtil.acct(b), 100000000 * S, "TEST", w.month)
 	var unit := EconImports.landed(w, "MATERIAL")
-	var bid := {"buyer": b, "acct": EconUtil.acct(b), "good": "MATERIAL", "district": "d:2", "kind": "org", "qty": 0, "limit": unit - 1}
+	var bid := {"buyer": b, "acct": EconUtil.acct(b), "good": "MATERIAL", "district": "d:2", "kind": "org", "qty": 0, "limit": unit * 10}
+	_set_working(w, "MATERIAL", true)
+	check(EconImports.producing(w, "MATERIAL"), "a processing plant is making material")
 	EconImports.note_short(w, bid, 40 * S)
 	EconImports.order_round(w)
-	check(s.get("imp_pending", []).is_empty(), "below the landed price: the colony's sellers are the source, nothing ordered")
-	bid["limit"] = unit
+	check(s.get("imp_pending", []).is_empty(), "a working producer in the colony: nothing ordered in, whatever the buyer would pay")
+	_set_working(w, "MATERIAL", false)
+	check(not EconImports.producing(w, "MATERIAL"), "no plant made any last month")
+	bid["limit"] = 1  # no price test
 	var cash0 := w.ledger.balance(EconUtil.acct(b))
 	EconImports.note_short(w, bid, 40 * S)
 	EconImports.order_round(w)
-	check_eq(EconImports._on_order(s, b, "MATERIAL"), 40 * S, "ordered what it was short")
+	check_eq(EconImports._on_order(s, b, "MATERIAL"), 40 * S, "none working: the short buyer orders in what it was short")
 	check_eq(cash0 - w.ledger.balance(EconUtil.acct(b)), EconUtil.val(40 * S, unit), "paid on order at the landed price")
 	EconImports.note_short(w, bid, 50 * S)
 	EconImports.order_round(w)
 	check_eq(EconImports._on_order(s, b, "MATERIAL"), 50 * S, "next month: only the part not on order yet")
+	_set_working(w, "MATERIAL", true)
+	EconImports.note_short(w, bid, 90 * S)
+	EconImports.order_round(w)
+	check_eq(EconImports._on_order(s, b, "MATERIAL"), 50 * S, "a plant works again: no new orders, what was paid still comes")
 	check_eq(w.ledger.total(), 0, "ledger closed")
 
 
