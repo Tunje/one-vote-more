@@ -43,9 +43,22 @@ static func econ_only_for_load() -> Simulation:
 ## list. Off: E156 (bread price cuts; not in the candidate run), E143, E151-E155 (money arms: starve the colony until
 ## supply responds), E158/E159 (job switching; no gain on top of E157), E160/E162 (family farms and bakeries; waiting for
 ## the need-tested grants).
+## v11 (Wilma, 2026-11-16; the user's decisions: family farms in, Ella's politics in, the three crops out). Chosen on
+## the code with the credit fix (credit follows expected sales, never a ceiling of past sales, public enterprises
+## included; in every game), 10 seeds x 30 years: base 4487 adults / unemployment 20.9 % / food shortfall 19.7 permille
+## / real wage 2.52; food 4840 / 16.9 / 8.3 / 3.21; food + politics (this list) 4875 / 18.3 / 13.9 / 3.01; food + plan
+## stage 4620 / 19.4 / 47.3 (seed 1 collapses: 2146 adults, 347 permille); all three 4832 / 18.6 / 22.7 / 2.91.
+## Added: E160 / E162 (family farms and bakeries), R8 with R8_FREIGHT, R8_MATERIAL and R8_FOOD (the eight rules: depots
+## follow full trucks; buyers bid what an input or food is worth to them, no price rules; farms follow their sales),
+## TREND2, RULE_COST3 and RIVALRY (approval moves only outside its 12-month range, a lower cost of ruling, campaigns aim
+## by rivalry). Also in every game since the same day: a stuck public project is re-tendered once a year.
+## Off: E165 / E165B (the plan stage: ahead before the credit fix, behind after it), R8_BUILDERS (a price loop with
+## materials and food), R8_HOUSING (the bank's room), E166 / E169, FREIGHT_ROADS, ROAD_WORKS, PRIVATE_ROADS,
+## ROAD_SAFETY, SITING, TOWN_GRID, ECO, SEASONS, DELEGATION, AGRI_MIN (not run in full games or not ahead).
 const DEFAULT_ON := ["E134", "PAYOUT", "SUPPORT_T", "WORKLOAD", "SUPPORT_A", "CONDUCT", "CRIME", "SCANDAL_REVIVAL",
 	"M2", "WAREHOUSE", "POLICE", "PRISONS", "FLEET", "CARE", "E140",
-	"E146", "E147", "E148", "E149", "E150", "PAYOUT12", "E157", "E161"]
+	"E146", "E147", "E148", "E149", "E150", "PAYOUT12", "E157", "E161",
+	"E160", "E162", "R8", "R8_FREIGHT", "R8_MATERIAL", "R8_FOOD", "TREND2", "RULE_COST3", "RIVALRY"]
 
 
 static func make(seed_value: int, scenario: String = "BALANCED", persona: Dictionary = {}, autoplay: bool = true) -> Simulation:
