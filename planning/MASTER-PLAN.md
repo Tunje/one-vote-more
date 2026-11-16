@@ -371,6 +371,11 @@ course money is a limitor". As built it had six conditions (85% use in 6 of 12 m
 price at least 1.1 times cost, no other project open, at most three times its size, money). Now, for the processing
 plants only: sold out and every plant at full output, it builds one more; money is the only limiter.
 
+**The rebuild, the user's intent (verbatim, later the same day):** "once we test this im going to commision a rebuild
+of the whole economics using these working systems as the baseline". "This" is the truck drivers and workshops.
+Not started and not to be started until the user commissions it. The rulings of 2026-11-16 recorded in this file
+and in design-truck-drivers.md are the working systems meant.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and
