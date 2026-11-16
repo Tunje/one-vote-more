@@ -30,11 +30,11 @@ func test_invoice_room_and_payment() -> void:
 			break
 	check(buyer != "" and seller != "", "two firms")
 	var owed0 := EconCredit.owed(w, buyer)  # invoices from its real trade so far
-	var r0 := EconCredit.room(w, buyer)
-	check(r0 > 0, "credit room from 12-month sales (%d)" % (r0 / EconUtil.S))
-	var got := EconCredit.invoice(w, buyer, seller, r0 * 2)
-	check_eq(got, r0, "invoiced up to the room only")
-	check_eq(EconCredit.room(w, buyer), 0, "room used up")
+	# buying on invoice is not a loan with a ceiling: a firm with no overdue invoice buys what it orders on account
+	check(not EconCredit.has_overdue(w, buyer), "nothing overdue")
+	var big := 50 * maxi(1, EconAnnual.avg_rev(w.table("org")[buyer])) + 1000 * EconUtil.S
+	var r0 := EconCredit.invoice(w, buyer, seller, big)
+	check_eq(r0, big, "an order far beyond its past sales goes on invoice in full")
 	check_eq(EconCredit.owed(w, buyer), owed0 + r0, "owed")
 	# due next month: pay it (fund the buyer so it can)
 	w.ledger.transfer(Ledger.EXTERNAL, EconUtil.acct(buyer), owed0 + r0, "TEST", w.month)
@@ -56,13 +56,17 @@ func test_unpaid_is_missed_and_dead_written_off() -> void:
 			seller = oid
 			break
 	var owed0 := EconCredit.owed(w, buyer)
-	var amt := EconCredit.invoice(w, buyer, seller, EconCredit.room(w, buyer))
+	var amt := EconCredit.invoice(w, buyer, seller, 5000 * EconUtil.S)
 	EconUtil.pay_upto(w, EconUtil.acct(buyer), Ledger.EXTERNAL, w.ledger.balance(EconUtil.acct(buyer)), "TEST")
 	w.table("org")[buyer]["missed_this_month"] = false
 	w.month += 1
 	EconCredit.settle(w)
 	check(bool(w.table("org")[buyer]["missed_this_month"]), "an unpaid invoice is a missed payment")
 	check_eq(EconCredit.owed(w, buyer), owed0 + amt, "still owed")
+	w.month += 1   # a new month: the supplier looks at the buyer's record
+	check(EconCredit.has_overdue(w, buyer), "the invoice is overdue")
+	check_eq(EconCredit.room(w, buyer), 0, "a buyer with an overdue invoice pays cash")
+	check_eq(EconCredit.invoice(w, buyer, seller, 1000 * EconUtil.S), 0, "nothing more on account until it is cleared")
 	w.table("org")[buyer]["status"] = "LIQUIDATION"
 	var rev0 := int(w.table("org")[seller]["pl"].get("rev", 0))
 	EconCredit.settle(w)
