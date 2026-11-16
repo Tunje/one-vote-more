@@ -109,7 +109,8 @@ The user's words, in order:
 
 So: the player always leads their party. Depending on the outcome of elections and coalitions they lead it from the
 cabinet (as First Minister, or as the leader of a partner party in someone else's government) or from parliament
-(in opposition). The player never loses the leadership of their own party.
+(in opposition). While the game runs the player is always the leader of their party (corrected below: losing the
+party is not something the player plays on from; it ends the game).
 
 Today (b0dff68): out of government the office shows one line, "You don't hold the government's office right now.
 (The opposition desk comes later.)", and a computer government decides everything. The spec above has one sentence
@@ -118,3 +119,8 @@ on it (O3: "the same desk as party leader").
 
 So the game is lost when the player's party wins no seat in parliament. Short of that the player plays on, from the
 cabinet or from parliament.
+- On Wilma writing that the player can never lose their party: "Well no you can still lose your party that's another
+  game over"
+
+So there are two ways to lose: the player's party takes no seat in parliament, or the player loses their party
+(is removed as its leader). There is no playing on as an ordinary member.
