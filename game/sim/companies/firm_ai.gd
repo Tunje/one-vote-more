@@ -552,7 +552,11 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 					# below its own full cost a seller offers only what keeps it afloat this month (its month's costs
 					# less its cash and what it has already put on offer) and keeps the rest in its store. Stock it keeps
 					# is not offered, so no price rule, buyer or market index sees it (S and cover count offers only).
-					var afloat := maxi(0, EconFinance._monthly_costs(o) - world.ledger.balance(EconUtil.acct(oid)) - int(afloat_used.get(oid, 0)))
+					# The user, 2026-11-16, when this subtracted the seller's cash and a seller with money offered nothing:
+					# "it puts out to cover its expences!!! It's not siposed to sit on stock and lose money on purpose hoping
+					# for a better price!!! It sells too cover all monthly expences!!!" So: enough to cover all of its month's
+					# expenses, whatever cash it holds.
+					var afloat := maxi(0, EconFinance._monthly_costs(o) - int(afloat_used.get(oid, 0)))
 					q = mini(q, int(ceil(float(afloat) * float(S) / float(maxi(1, ask)))))
 					afloat_used[oid] = int(afloat_used.get(oid, 0)) + EconUtil.val(q, ask)
 				if own:

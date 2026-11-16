@@ -75,14 +75,15 @@ func test_below_its_cost_a_seller_keeps_stock_back_but_stays_afloat() -> void:
 		check(false, "a processing plant runs")
 		return
 	check(int(hi[0]) >= 1000 * S, "at or above its cost it offers its stock")
+	# the user, 2026-11-16: "it puts out to cover its expences ... It sells too cover all monthly expences": whatever
+	# cash it holds, below its cost it offers enough to cover its whole month's expenses, and keeps the rest
 	var rich := _offer_at(w, int(full * 0.5), 1000000 * S)
-	check_eq(int(rich[0]), 0, "below its cost with cash for the month it keeps everything back")
 	var oid: String = rich[2]
-	var short := _offer_at(w, int(full * 0.5), 0)
 	var need := EconFinance._monthly_costs(w.table("org")[oid])
-	check(int(short[0]) > 0 and int(short[0]) < 2000 * S, "short of cash it sells just enough (%d of 2000 units)" % [int(short[0]) / S])
-	var gap := need - int(short[4])  # its month's costs less the cash it holds when it offers (a credit-line draw included)
-	check(int(short[3]) >= gap - int(full * 0.5), "its offers (all its goods) cover what its cash does not (%d of %d)" % [int(short[3]) / S, gap / S])
+	check(int(rich[0]) > 0 and int(rich[0]) < 2000 * S, "below its cost, with cash, it still sells some and keeps some (%d of 2000 units)" % [int(rich[0]) / S])
+	check(int(rich[3]) >= need - int(full * 0.5), "its offers (all its goods) cover its month's expenses (%d of %d)" % [int(rich[3]) / S, need / S])
+	var short := _offer_at(w, int(full * 0.5), 0)
+	check_eq(int(short[0]), int(rich[0]), "the same with no cash: the amount is its expenses, not its expenses less its cash")
 	w.meta["on"].append("OWN_NOHOLD")
 	var all := _offer_at(w, int(full * 0.5), 1000000 * S)
 	check(int(all[0]) >= 1000 * S, "OWN_NOHOLD: no hold-back")

@@ -45,7 +45,7 @@ func _offered(w: WorldState, stock: int) -> Array:
 
 
 func test_off_the_whole_stock_is_offered() -> void:
-	var sim := _sim([], 6)
+	var sim := _sim(["OWN_NOHOLD"], 6)  # the hold-back below cost is a separate rule; switched off to look at OWN_FIRST alone
 	var r := _offered(sim.world, 1000 * S)
 	if r.is_empty():
 		check(false, "a processing plant runs")

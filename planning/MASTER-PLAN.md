@@ -335,6 +335,19 @@ have a functioning economy we will return to to this later". So: no rebuild and 
 a functioning economy on the current code. The rebuild (one table of rules, one piece of code applying it, design
 written and read first, no switches) is to be raised again once the economy functions.
 
+**Only price moves price (the user, verbatim), on hearing that offers at the going price go unsold while buyers are
+short, for some reason other than price:** "There is you fucking problem!!! If something else than price stops sales
+it should not count on adjusting price!!" So a sale that did not happen for want of freight, of a road, or of the
+buyer's money is not a price signal: it neither counts as unsold stock that lowers the price nor as an unfilled order
+that raises it. Only goods that buyers would not take at the price, and orders that found no goods at the price,
+move the price.
+
+**What the hold-back sells (the user, verbatim), when told that a seller with cash offered nothing:** "No that's not true, it puts out to cover
+its expences!!! It's not siposed to sit on stock and lose money on purpose hoping for a better price!!! It sells too
+cover all monthly expences!!!" So below its cost a seller offers enough to cover all of its month's expenses,
+whatever cash it holds, and keeps the rest. (As first built it offered its expenses less its cash, so a seller with
+money offered nothing.)
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and
