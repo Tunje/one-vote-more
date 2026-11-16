@@ -75,6 +75,9 @@ const TYPES := {
 	"HIRING_FUND_SEATS": {"name": "Fund training seats", "portfolio": "LABOUR_LIAISON", "ceiling": "MINISTER", "src": "hiring_centre", "routine": true},
 	"HIRING_BUILD_CENTRE": {"name": "Build a skill centre", "portfolio": "LABOUR_LIAISON", "ceiling": "MINISTER", "src": "hiring_centre"},
 	"HIRING_CONVERT_BUILDING": {"name": "Convert a building into a skill centre", "portfolio": "LABOUR_LIAISON", "ceiling": "MINISTER", "src": "hiring_centre"},
+	# EconInstitutions (R8_INSTITUTIONS): the public services' own requests and sites
+	"INSTITUTION_BUDGET": {"name": "Budget request from a public service", "portfolio": "SERVICES", "ceiling": "PARLIAMENT", "src": "gov_builder"},
+	"INSTITUTION_SITE": {"name": "Reopen or close a clinic or school", "portfolio": "SERVICES", "ceiling": "MINISTER", "src": "gov_builder"},
 	# GovWildlife: the yearly (or after a death) wildlife policy review
 	"WILDLIFE_REVIEW": {"name": "Wildlife policy review", "portfolio": "ENVIRONMENT", "ceiling": "MINISTER", "src": "gov_wildlife"},
 	# FirmAI (Bob): the treasury pays for a public company's investment when no loan is to be had
@@ -641,6 +644,12 @@ static func execute(world: WorldState, id: String, params: Dictionary) -> Dictio
 			return GovBuilder.commit_upgrade(world, params)
 		"WILDLIFE_BILL":
 			return GovWildlife.commit_policy(world, params)
+		"INST_BUDGET":
+			return GovBuilder.commit_inst_budget(world, params)
+		"INST_CLOSE":
+			return _inst().close(world, String(params.get("facility", "")))
+		"INST_REOPEN":
+			return _inst().reopen(world, String(params.get("facility", "")))
 	return {"ok": false, "error": "Unknown case action " + id}
 
 
@@ -702,3 +711,7 @@ static func commit_quote_refuse(world: WorldState, p: Dictionary) -> Dictionary:
 		return {"ok": true, "error": ""}
 	EconBuilders.refuse(world, pr, EconConstruction.ranked_bids(world, pr), String(p.get("why", "")))
 	return {"ok": true, "error": ""}
+
+
+static func _inst() -> GDScript:
+	return load("res://sim/economy/econ_institutions.gd")

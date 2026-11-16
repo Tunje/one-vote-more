@@ -22,6 +22,8 @@ extends RefCounted
 ##   Units: quantities in milli-units (mu, 1000 = one unit); money in mcr (1000 = one credit); shares in ‰.
 ##   st["r8"]["goods"][good][district] = {w, f, u, hf, hr}: wanted, filled, unfilled, held for want of freight, held by
 ##     roads. Services are recorded as good "SERVICES" in the customer's home district (EconHouseholds._buy_services).
+##     Under R8_SERVICES the row arrives (EconRulesSvc.keep_fill / carry): households buy services after TRADE, so the
+##     SERVICES row describes the month before; f counts hubs and self-employed sellers.
 ##   st["r8"]["oe"][good][district] = orders EMA (mu).
 ##   st["r8"]["deliver"]["from|to"] = ‰ of demand on that route that could be carried last month (goods).
 ##   st["r8"]["plants"][fid] = {kind "goods" | "services", g, d, util ‰, cover ‰ of a month, sales mu, reach mu,
@@ -35,6 +37,8 @@ extends RefCounted
 ##     row (one line) for a new sector; never change another sector's row.
 
 const S := EconUtil.S
+const EconInst := preload("res://sim/economy/econ_institutions.gd")
+const EconRulesSvc := preload("res://sim/economy/econ_rules_svc.gd")
 const OE_KEEP := 0.8
 ## Sector registry (rows filled in as each sector moves onto the eight rules; params empty until then).
 const SECTORS := {
@@ -43,9 +47,12 @@ const SECTORS := {
 	"FOOD": {"switch": "R8_FOOD", "types": ["FARM", "BAKERY", "FAMFARM", "FAMBAKERY"], "params": {}},
 	"BUILDERS": {"switch": "R8_BUILDERS", "types": [], "params": {}},
 	"WORKSHOPS": {"switch": "R8_WORKSHOPS", "types": ["CONSUMERF", "TEXTILE", "FURNITURE", "MEDWORKS"], "params": {}},
-	"SERVICES": {"switch": "R8_SERVICES", "types": ["SERVICEHUB"], "params": {}},
-	"UTILITIES": {"switch": "R8_UTILITIES", "types": ["POWER", "WATERWORKS"], "params": {}},
-	"INSTITUTIONS": {"switch": "R8_INSTITUTIONS", "types": ["CLINIC", "SCHOOL", "ADMIN"], "params": {}},
+	"SERVICES": {"switch": "R8_SERVICES", "types": ["SERVICEHUB"], "params": {"win_m": 12, "add_m": 6, "cut_m": 12,
+		"sold_out_pm": 50, "reopen_m": 3, "offer_step_pm": 100}},  # Ella's step sizes and windows (EconRulesSvc)
+	"UTILITIES": {"switch": "R8_UTILITIES", "types": ["POWER", "WATERWORKS"], "params": {"out_margin": 1.08, "step_up": 0.05,
+		"step_down": 0.03, "full_pm": 950, "full_m": 6, "idle_pm": 700, "idle_m": 12}},  # Anni: EconRulesUtil (econ_rules_utilities.gd)
+	"INSTITUTIONS": {"switch": "R8_INSTITUTIONS", "types": ["CLINIC", "SCHOOL", "ADMIN"], "params": {"empty_pm": 200, "margin": 50, "req_gap_pm": 100,
+		"req_hold_m": 3, "req_every_m": 12, "cut_pm": 850, "cut_hold_m": 12, "close_hold_m": 12, "build_min_pm": 300}},  # Maja: econ_institutions.gd
 	"HOUSING": {"switch": "R8_HOUSING", "types": ["HOUSING"], "params": {}},
 }
 
@@ -78,6 +85,9 @@ static func _m(world: WorldState) -> Dictionary:
 
 static func note_fill(world: WorldState, good: String, d: String, want: int, got: int) -> void:
 	if not active(world):
+		return
+	if good == "SERVICES" and EconRulesSvc.fill_on(world):
+		EconRulesSvc.keep_fill(world, d, want, got)  # held for the next TRADE (they come after this month's totals)
 		return
 	var g: Dictionary = (_m(world)["goods"] as Dictionary).get(good, {})
 	var row: Dictionary = g.get(d, {"w": 0, "f": 0, "hf": 0, "hr": 0})
@@ -113,6 +123,7 @@ static func monthly(world: WorldState) -> void:
 		return
 	var s := EconUtil.st(world)
 	var m := _m(world)
+	EconRulesSvc.carry(world, m)  # R8_SERVICES: last month's service purchases
 	var r8: Dictionary = s.get("r8", {})
 	# goods by district, with the orders EMA
 	var goods := {}
@@ -153,7 +164,9 @@ static func monthly(world: WorldState) -> void:
 	r8["plants"] = _plants(world, goods, deliver)
 	s["r8"] = r8
 	_freight_rules(world)
+	EconRulesUtil.monthly(world)  # R8 utilities (opt-in R8_UTILITIES; Anni): CPW's eight rules
 	EconRulesMat.monthly(world)  # R8 step 2b (opt-in R8_MATERIAL): rule 5/6 counters
+	EconInst.monthly(world)  # R8_INSTITUTIONS (Maja): crews to the clients, budget requests, build and close needs
 
 
 ## The road half (Terra, FREIGHT_ROADS): 1000 when the flag or the function is absent.

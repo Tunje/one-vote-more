@@ -1,6 +1,8 @@
 class_name FirmAI
 extends RefCounted
 const DecisionDesk := preload("res://sim/office/decision_desk.gd")
+const EconInst := preload("res://sim/economy/econ_institutions.gd")
+const EconRulesSvc := preload("res://sim/economy/econ_rules_svc.gd")
 ## COMPANY_AI phase (spec §9): rule-based firm decisions for next month.
 ## Producers: targets, mothballing, input orders, sale asks. Utilities/institutions: demand/budget targets.
 ## Contractors: crews, materials, bids. Quarterly: investment, entry. CEO turnover. Wage index.
@@ -45,6 +47,7 @@ static func run(world: WorldState) -> void:
 	if world.month_of_year() % 3 == 0:
 		_investment(world)
 		EconRulesMat.capacity(world)  # R8 step 2b (opt-in R8_MATERIAL): rule 5 for mines, smelters, component works
+		EconRulesSvc.capacity_up(world)  # R8_SERVICES rule 5 for service hubs
 		t = EconUtil.prof(world, "FirmAI._investment", t)
 		_entry(world)
 		t = EconUtil.prof(world, "FirmAI._entry", t)
@@ -154,21 +157,29 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 					# E66: effective capacity (condition × management), not nameplate — decayed plants must run harder
 					cap += float(EconData.RECIPES[f2["type"]]["out"][1]) * S * EconUtil.fscale(f2) * EconProduction._eff(world, f2)
 			t = clampf(1.08 * float(s.get("util_demand", {}).get(key, cap)) / maxf(1.0, cap), 0.3, 1.0)
+			if EconRulesUtil.on(world):
+				t = EconRulesUtil.target(world, f)  # R8 utilities: rules 3/4
 		"CLINIC", "SCHOOL", "ADMIN":
 			t = _budget_ratio(world, f)
+			if EconRules.sector_on(world, "INSTITUTIONS"):
+				t = EconInst.target(world, f, t)   # R8_INSTITUTIONS (Maja): crews to the clients
 		"HOUSING", "DEPOT":
 			t = 1.0
 		"SERVICEHUB":
 			var cap2 := float(r["out"][1]) * S * EconUtil.fscale(f)
 			var sold := float(f.get("svc_sold", cap2))  # services sold last month
 			t = clampf(1.1 * sold / cap2 + 0.05, 0.3, 1.0)
+			if EconRulesSvc.on(world):
+				EconRulesSvc.note(world, f)  # R8_SERVICES: the window rules 5 and 6 read
+			if EconRulesSvc.out_on(world):
+				t = EconRulesSvc.target(world, f, cap2)  # R8_SERVICES rules 3/4 (replace the 30% floor and E134)
 			# E134 (demand-cap check, Wilma): a hub whose capacity was sold out had rationed customers — sales alone
 			# cannot show that (sales ≤ output), so hubs sat at the 0.3 floor, sold out every month, while households
 			# held unspendable service budgets. Like the goods rule "no stock left → aim for capacity": step up.
 			# (only with idle hands, like expansion and workshop entry: in a labour-short colony the farms come first)
 			# OPT-IN (meta on "E134"): alone it cost ~10% population (3 seeds) — it needs household money to spend, i.e.
 			# a treasury idle-money rule alongside; tested together with it
-			if (world.meta.get("on", []) as Array).has("E134") and int(f.get("out_last", 0)) > 0 and int(f.get("svc_spare", 1)) * 20 <= int(f.get("out_last", 0)) 					and colony_unemployment(world) >= D2_ENTRY_UNEMP:
+			elif (world.meta.get("on", []) as Array).has("E134") and int(f.get("out_last", 0)) > 0 and int(f.get("svc_spare", 1)) * 20 <= int(f.get("out_last", 0)) 					and colony_unemployment(world) >= D2_ENTRY_UNEMP:
 				t = maxf(t, minf(1.0, float(f["T"]) / 1000.0 + HUB_STEP))
 		_:
 			if good in EconData.MARKET_GOODS:
@@ -187,6 +198,8 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 	else:
 		f["high_util_m"] = 0
 	# mothballing (spec §9.1 step 4)
+	if f["type"] == "SERVICEHUB" and EconRulesSvc.cap_on(world):
+		EconRulesSvc.capacity_down_or_reopen(world, f)  # R8_SERVICES rule 6 (and a mothballed hub reopening)
 	if good in EconData.MARKET_GOODS:
 		if f["T"] < 250:
 			f["low_util_m"] += 1
@@ -698,6 +711,8 @@ static func _expansion(world: WorldState) -> void:
 			continue
 		if EconRulesMat.capacity_on(world, f["type"]):
 			continue  # R8 step 2b: rule 5
+		if f["type"] == "SERVICEHUB" and EconRulesSvc.cap_on(world):
+			continue  # R8_SERVICES: rule 5
 		if world.month - o.get("last_expand", -6) < 6:
 			continue
 		var good: String = EconData.RECIPES[f["type"]]["out"][0]
@@ -724,6 +739,13 @@ static func _expansion(world: WorldState) -> void:
 
 ## E54 growth engine (b): small-business formation. Unemployed + household savings → a micro service co-op (¼ hub).
 static func _small_business(world: WorldState) -> void:
+	if EconRulesSvc.entry_on(world):
+		# R8_SERVICES rules 7/8: a micro co-op where a quarter hub's first year pays, net of the hubs near it
+		if world.month % 3 == 0:
+			var fg: String = EconRulesSvc.micro_founder(world)
+			if fg != "":
+				_micro_coop(world, fg, String(world.table("hh")[fg]["district"]))
+		return
 	if colony_unemployment(world) < 0.08 or world.month % 3 != 0:
 		return
 	var s := EconUtil.st(world)
@@ -758,6 +780,11 @@ static func _small_business(world: WorldState) -> void:
 			n_micro += 1
 	if n_micro >= 2:
 		return
+	_micro_coop(world, best, d)
+
+
+static func _micro_coop(world: WorldState, best: String, d: String) -> void:
+	var s := EconUtil.st(world)
 	var id := world.new_id("org")
 	world.table("org")[id] = {"id": id, "key": "MICRO_" + id, "name": EconUtil.firm_name(world, d, "TRADERS", "Co-op"),
 		"type": "COOPERATIVE", "hq": d, "status": "ACTIVE", "ceo": {"mgmt": 45, "risk": 30, "age_m": 35 * 12}, "reliability": 0,
@@ -798,8 +825,8 @@ static func _new_plants(world: WorldState) -> void:
 	s["new_plant_last"] = last
 	for good in EconUtil.sorted_keys(PLANT_FOR):
 		var ftype: String = PLANT_FOR[good]
-		if EconRulesMat.capacity_on(world, ftype):
-			continue  # R8 step 2b: rule 5
+		if EconRulesMat.capacity_on(world, ftype) or EconRulesUtil.capacity_on(world, ftype):
+			continue  # R8 step 2b / R8 utilities: rule 5
 		var scarce := false
 		if good in ["ENERGY", "WATER"]:
 			var k := "E" if good == "ENERGY" else "W"
@@ -914,8 +941,8 @@ static func _essentials_planner(world: WorldState) -> void:
 	for ftype in types:
 		if world.month - int(last.get(ftype, -999)) < EconData.ESSENTIAL_GAP:
 			continue
-		if EconRulesMat.capacity_on(world, ftype):
-			continue  # R8 step 2b: rule 5 (CPW's smelters and component works decide like other owners)
+		if EconRulesMat.capacity_on(world, ftype) or EconRulesUtil.capacity_on(world, ftype):
+			continue  # R8 step 2b / R8 utilities: rule 5 (CPW's smelters and component works decide like other owners)
 		var r: Dictionary = EconData.RECIPES[ftype]
 		var good: String = r["out"][0]
 		var cap := 0.0
@@ -1033,7 +1060,8 @@ static func _builder_entry(world: WorldState) -> void:
 	if EconUtil.off(world, "E87"):
 		return
 	var s := EconUtil.st(world)
-	if world.month - int(s.get("builder_entry_last", -100)) < 12:
+	var r8b := EconBuilders.on(world)  # R8_BUILDERS rules 7/8 replace the yearly gate and the backlog triggers
+	if not r8b and world.month - int(s.get("builder_entry_last", -100)) < 12:
 		return
 	var waiting := 0
 	var stale := 0
@@ -1047,7 +1075,9 @@ static func _builder_entry(world: WorldState) -> void:
 		# than their crews can do: in the D2 probe a bakery took 42 months for 250 WU while no tender sat unbid)
 		if p["status"] == "ACTIVE" and int(p.get("start_month", -1)) >= 0 				and world.month - int(p["start_month"]) > int(p.get("bid_duration", 0)) + LATE_CONTRACT_M:
 			stale += 1
-	if EconInsolvency.plan_q(world):
+	if r8b:
+		pass
+	elif EconInsolvency.plan_q(world):
 		if not EconConstruction.book_entry(world):
 			return  # E165Q: a builder enters when the order books hold ENTRY_BOOK_YEARS of work for it
 	elif EconConstruction._private_builder_alive(world):
@@ -1058,7 +1088,7 @@ static func _builder_entry(world: WorldState) -> void:
 	elif waiting < EconData.BUILDER_ENTRY_BACKLOG:
 		return
 	if EconBuilders.on(world) and not EconBuilders.entry_ok(world):
-		return  # R8 rule 8 (opt-in): not while most builders lose money, nor while incumbents' spare crews can do the work
+		return  # R8 rules 7/8 (opt-in): work waits for a builder; not while incumbents' crews, the material or the price say no
 	var best := ""
 	var best_cash := 0
 	for gid in EconUtil.sorted_keys(world.table("hh")):
@@ -1161,6 +1191,11 @@ static func _entry(world: WorldState) -> void:
 				hot = false
 		if EconRulesMat.entry_on(world, ftype) and world.month - int(fails.get(ftype, -9999)) >= ENTRY_FAIL_COOL_M:
 			hot = EconRulesMat.entry_hot(world, ftype, "d:1")  # R8 step 2b: rules 7/8, the forecast instead of the price test
+		if ftype == "SERVICEHUB" and EconRulesSvc.entry_on(world) and world.month - int(fails.get(ftype, -9999)) >= ENTRY_FAIL_COOL_M:
+			var sd: String = EconRulesSvc.entry_district(world, 1000)  # R8_SERVICES rules 7/8: where a hub's first year pays
+			hot = sd != ""
+			if hot:
+				svc_district = sd
 		hist[ftype] = hist.get(ftype, 0) + 1 if hot else 0
 		if hist[ftype] >= 2:
 			hot_list.append([ftype, price / maxf(1.0, uc)])

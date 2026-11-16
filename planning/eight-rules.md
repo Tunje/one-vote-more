@@ -29,12 +29,12 @@ Cross-cutting facts:
 | Consumer workshops (CONSUMERF, TEXTILE, FURNITURE), MEDWORKS | WRONG: colony shortage; CONSUMER at 3.45 × cost is a freight shortage | WRONG | WRONG: as above | WRONG | WRONG | WRONG: co-op furniture almost all mothballed while furnishings short | WRONG (workshops); **NONE for MEDWORKS** | as FARM + unemployment and fill gates |
 | BAKERY | WRONG | partly OK: E156 priced-out cut (opt-in, bread only); the only rule anywhere that lowers a price for customers priced out | WRONG: sales; bakeries run 0–67% while bread is short half the time (flour and freight) | WRONG | WRONG: gov _bakery_needs reads raw-food share (OK), private reads colony price | WRONG | WRONG | as FARM |
 | FAMFARM / FAMBAKERY | as FARM / BAKERY | as FARM / BAKERY | **NONE: T fixed at 100%** | **NONE** | **WRONG: _expansion can expand a family plant** | NONE except insolvency | OK: district need, household, grant programme (E160/162) | partly OK: price test 1.3 × cost (it blocks foundings when food is short but cheap) |
-| SERVICEHUB | OK-ish: district price from district demand/supply, but neighbours' trade not counted | same | WRONG: T from last month's sales; step-up gated on unemployment (E134 opt-in); half of hubs mothballed, sold out 1% | WRONG | WRONG: _expansion only | **NONE: no mothball rule** | OK-ish: district price; micro co-ops on unemployment | partly |
-| POWER / WATERWORKS (CPW) | lever, E150 tariff steps (OK with E150B) | lever, E150 (OK with E150B) | OK: metered demand ÷ effective capacity | OK | WRONG: nameplate margin unless E157 | NONE (by design, utilities) | NONE (public only, by design) | NONE |
+| SERVICEHUB (all eight with R8_SERVICES: see 3g) | OK-ish: district price from district demand/supply, but neighbours' trade not counted | same | WRONG: T from last month's sales; step-up gated on unemployment (E134 opt-in); half of hubs mothballed, sold out 1% | WRONG | WRONG: _expansion only | **NONE: no mothball rule** | OK-ish: district price; micro co-ops on unemployment | partly |
+| POWER / WATERWORKS (CPW) (all eight with R8_UTILITIES: see 3e) | lever, E150 tariff steps (OK with E150B) | lever, E150 (OK with E150B) | OK: metered demand ÷ effective capacity | OK | WRONG: nameplate margin unless E157 | NONE (by design, utilities) | NONE (public only, by design) | NONE |
 | CLINIC / SCHOOL / ADMIN | n/a (free) | n/a | **WRONG: budget ratio only; clinics at 35% with 37% of need unmet** | WRONG: budget | OK-ish: gov builds on district access < bar | NONE | n/a | n/a |
-| Builders | NONE: bid = cost estimate × fixed margin | NONE | WRONG: crews for active jobs only (E165Q: jobs starting within 3 months) | partly: shrink when blocked on material | as 3 | insolvency only | WRONG: tender backlog counts (E87/E117); E165Q book-based | partly |
+| Builders (all eight with R8_BUILDERS: see 3f) | NONE: bid = cost estimate × fixed margin | NONE | WRONG: crews for active jobs only (E165Q: jobs starting within 3 months) | partly: shrink when blocked on material | as 3 | insolvency only | WRONG: tender backlog counts (E87/E117); E165Q book-based | partly |
 | DEPOT / freight (CTA) | lever, E150 | lever, E150 | **NONE: T fixed at 100%** | NONE | **WRONG: only on "port full" facts; never on full trucks** | NONE | **NONE** | NONE |
-| HOUSING | OK: district occupancy → rent | OK | n/a (homes) | n/a | OK-ish: developers on district occupancy ≥105% (not rent or profit) | NONE | OK-ish | partly |
+| HOUSING (all eight with R8_HOUSING: see 3f) | OK: district occupancy → rent | OK | n/a (homes) | n/a | OK-ish: developers on district occupancy ≥105% (not rent or profit) | NONE | OK-ish | partly |
 | Retail, warehouse, care, office, business services, police | fixed constants (margin, rent, fee) | fixed | posts from revenue or budget (OK for their role) | same | warehouse halls on use (slow) | posts to 0 | first use | n/a |
 
 What this shows:
@@ -325,6 +325,182 @@ buildings).
   - early, by the government for poor performance (late jobs past a bar, as _check_late) with a public fact;
   - by the concessionaire's insolvency (its open jobs go back to tender).
 - **Rule 8 sees concessions:** an entrant isn't founded for work a concession already holds.
+
+## 3d. Public institutions: clinics, schools, care (Maja, 2026-11-16; switch R8_INSTITUTIONS with R8)
+
+Code: sim/economy/econ_institutions.gd. Hooks:
+- EconRules.monthly calls it once a month.
+- FirmAI reads the crew share.
+- gov_builder takes the government's side.
+- The decision desk has two case types.
+
+Numbers are in the INSTITUTIONS row of SECTORS.
+
+| Rule | What it does now (with the switch) |
+|---|---|
+| 1/2 price | None. Institutions are free: the fee levers ECON_HEALTH_FEE and ECON_SCHOOL_FEE exist but nothing reads them. Whether to charge is the user's decision (Wilma has asked). |
+| 3/4 crew | Each open clinic or school asks for the crew that serves the people who actually come. That is its district's residents (clinic) or school-age children (school), plus a share, by capacity, of the clients from districts with no plant of that type, plus 5%. No floor: with no clients the ask falls to nothing. The line pays every ask in full if it can; if not, every ask is cut by the same share. So money goes where the clients are, instead of one budget ratio for every plant. ADMIN keeps the budget ratio, because nothing reads its output; a client measure for it is the user's decision. Care homes already size posts to need (EconCare). |
+| 3 budget request | When the asks cost more than the line for 3 months (by over 10%), or under 85% of it for 12 months, the service publishes its need for the legislature (st["lever_need"][line]): +1000 plus the unserved share, or −1000 for less. Parties then vote on it by their politics. A request is also recorded (budget_requests, fact ECON_BUDGET_REQUEST), at most once a year per line. Under DELEGATION it is an INSTITUTION_BUDGET case for the minister, whose "yes" tables the bill. The health, education, elder-care and childcare lines all ask. |
+| 5 add | build_needs lists the districts whose clients the open plants cannot hold at a full crew, and districts with no plant that the others' spare room leaves unserved. gov_builder builds up to two a quarter, so a district that already has one can now get another (before, only districts with none). A mothballed plant there is reopened first. |
+| 6 reduce | A plant whose ask stays at or below 20% for 12 months is closed (mothballed), but only when another open plant in its district can serve all its clients at a full crew. Never the last plant of a district, never while anyone in reach is unserved. Under DELEGATION reopenings and closings are INSTITUTION_SITE cases. |
+| 7/8 new body | None. The law lets nobody but the state run a clinic, school or care home. Private ones would be the user's decision (Wilma has asked). |
+
+Tests: tests/economy/test_rules_inst.gd. Without the switch nothing changes (state hash compared).
+
+## 3e. Utilities: power and water (Anni, 2026-11-16; switch R8_UTILITIES with R8)
+
+Code: sim/economy/econ_rules_utilities.gd (EconRulesUtil). Hooks:
+- EconRules.monthly calls it once a month.
+- FirmAI._set_target takes its output rule for POWER and WATERWORKS.
+- FirmAI._new_plants, the essentials planner (E105) and the caretaker autopilot skip both types.
+- E150's tariff step skips CPW.
+
+Numbers are in the UTILITIES row of SECTORS; they are Anni's.
+
+The utility's market is read once a month, per grid (power, water), from the month before:
+- metered demand, what was delivered, unserved demand;
+- effective capacity (condition and management, not nameplate);
+- billed units (what was served, less the water works' own power);
+- the bill (billed × tariff) and the grid's running cost (crews, upkeep, depreciation; water also pays for its own power
+  at power's unit cost).
+
+12 months are kept.
+
+| Rule | What it does now (with the switch) |
+|---|---|
+| 1 raise | Quarterly, per grid. When the bill does not cover the cost (a 12-month loss, or the tariff below the cost per billed unit last quarter), the tariff goes to that cost per unit, at least +1. When it covers it but demand went unserved at full use (≥ 95% of effective capacity), +5%, at least +1. With E150P a rise is a proposal in pe_proposals (the E150P shape and fact; the government decides with EconPublicCo.approve). Without E150P it applies at once, as E150 does. Within the levers' legal ranges. |
+| 2 lower | When the bill covers the cost and use stayed under 70% all quarter: −3%, at least −1, never below the cost per unit. Applies at once; a cut drops an open rise. |
+| 3/4 output | The plants run to the metered demand: demand × 1.08 ÷ the grid's effective capacity (no 30% floor). A plant being wound down makes only what the others did not deliver. A plant reopened or newly built hires for the whole demand for its first 3 months, while the others keep running, so no customer goes unserved while its crew is found. |
+| 5 add | When the grid was full in 6 of the last 12 months, demand went unserved at full use last quarter, or the forecast (a year on, at the last 12 months' trend) fills 95% of capacity. In order: keep a plant being wound down; reopen a mothballed plant; extend the smallest plant by 25% (up to 3×); build a new plant where the grid's first plant stands (law check: LawBridge BUILD_FACILITY). One project at a time per grid. CPW's cash, else a loan. With neither, nothing is built; the attempt is recorded as "unfunded" and there is no treasury money behind the government's back. |
+| 6 reduce | When the other open plants could carry 1.08 × demand for 12 months, nothing went unserved, and the forecast would not fill them, the smallest plant is wound down. The others take its load and hire for it. At the next quarter it is mothballed if they delivered the whole demand. It is kept if anything went unserved, or if rule 5 wants capacity. Never the last open plant of a grid. |
+| 7/8 new company | A private power or water company (the user, 2026-11-16: "All company types needs to be able to be created as private, but maybe they're is only ever enough work for say one powerplant then the conitions for new ones don't get switched on"). Rule 7: founded when the forecast (demand a year on) leaves demand unserved that the incumbents do not clear (their capacity plus what is being built) and a plant serving it would make a profit at today's tariff (a full crew, upkeep, power for water, loan service). Rule 8: none while the incumbents have spare capacity or serve all demand, while CPW's grid or a private plant loses money, or while one is being founded. Founder and licence as for other private firms (FirmAI._entry, LawBridge). It starts with its price at today's tariff. Under the switch EconOwnership.PUBLIC_ONLY no longer applies. |
+| private plants | CPW is the single grid buyer, and the tariff stays the customers' price (Wilma's yes, 2026-11-16). A private plant sells all the grid takes from it to CPW at its own price. Each month the grid takes the cheapest units first, with CPW's own plants at their running cost per unit and CPW first on a tie; a unit needed to avoid unserved demand is always bought. What CPW pays counts in its grid cost, so its tariff rule sees it. The private plant's own rules: 1 raise to its cost per unit at full use, or +5% when all it made was taken while demand went unserved; 2 −3% when taken for under 70% of its capacity, never below that cost; 3/4 output by the merit order; 5 a +25% extension when taken at 95% of capacity in 6 of 12 months; 6 mothballed when 12 months of sales do not cover its running cost, reopened when demand goes unserved at full use. |
+
+Who decides:
+- **CPW's board:** output, its own capacity from its own cash and loans, cuts, mothballing, and buying from private
+  plants.
+- **The government:** tariff rises (with E150P); subsidies or capital for CPW (none from these rules).
+- **The government's own builder** (gov_builder._essentials, Wilma's) still orders power and water plants on its own
+  reading. Whether it stays as the government's route beside rule 5 is Wilma's call.
+- **A private utility's owners:** its price, output and capacity, by its own rules. A law may make one dearer (licence,
+  levy); none may forbid it (the user, 2026-11-16).
+
+The 12-month result is the grid's own (bill less running cost). Interest on CPW's loans and its other plants
+(processing, components) are not in it.
+
+Tests: tests/economy/test_rules_utilities.gd. Without the switch nothing changes.
+
+## 3f. Builders and housing (Otto, 2026-11-16; switches R8_BUILDERS and R8_HOUSING with R8)
+
+Code:
+- builders: sim/economy/econ_builders.gd (EconBuilders), hooks in econ_construction.gd (bids, crews),
+  econ_market.gd (the material each builder gets) and firm_ai.gd (entry);
+- housing: sim/economy/econ_rules_housing.gd (EconRulesHousing), hooks in FirmAI._developers and EconHousing._owners_decide.
+
+Second version, after the user's order of 2026-11-16 ("no floors, caps or locks of our own"). Removed:
+- the crew cap at 2× the founding crew and the 5× exception;
+- the +25%-a-month hiring cap;
+- the −15% shrink when blocked;
+- the 60% kept crew and the 30% core crew;
+- the 300‰ margin ceiling;
+- the one-builder-a-year entry gate;
+- every test on last year's profit;
+- housing's 3 blocks a quarter and its 95% occupancy gate.
+
+**A builder's own market:**
+- its book (signed jobs and their dates);
+- its bids won, and the quotes its clients refused, on price or for the wait;
+- job_margin: what the work left on its jobs earns at today's costs. That is the price × the share of work left, less
+  the late penalty, wages and overhead, and inputs at award prices (the E76 escalation pays any change).
+- fill_pm: the share of its material and component orders it actually got.
+
+| Rule | Builders | Housing (developers and landlords) |
+|---|---|---|
+| 1 raise price | Margin +20‰ a quarter when it wins over 60% of its bids, or clients refused its quotes for the wait, or its jobs in hand lose at today's costs. Never in a quarter in which a client refused it on price. No ceiling: the clients' refusals are the ceiling. | Rent +3% a quarter while the district is ≥ 97% full (EconHouseholds._housing). |
+| 2 lower price | Margin −20‰ when a client refused its quote on price, or it wins under 20% of its bids with no wait refusal. Never below its own cost. | Rent −2% under 85% full, −3% with rent arrears. |
+| 3/4 output | Work done = its crews on started, paid-up jobs, as far as the material it got allows (_progress_fill). E76 stops work an owner does not pay for. A quote's start date = its book ÷ (crew output × fill_pm). | Homes are let when a household takes one; nobody holds homes back. |
+| 5 add capacity | Crews to the work due now: started jobs at the pace their dates need, plus queued jobs starting within 3 months (the time to hire). When clients refused its quotes for the wait and its jobs pay at today's costs, crews to clear the whole book within that wait. Hiring is limited by the labour market only. | A new block when its forecast profit ≥ 10% a year on the developer's equity. Blocks are added until no district passes or the bank stops lending. |
+| 6 reduce capacity | Crews shed to the work due. With fill_pm under 1000, the crew is only what its material supports. No crew of ours is kept. | An ageing block is renovated by its private landlord only when the renovation pays from the block's rent (renovation_forecast); otherwise it is let slide. Nobody is put out. |
+| 7 new company | Quarterly. Work waits for a builder (tenders without a bid, or quotes refused for the wait) beyond what the incumbents' crews can start within the wait clients accept, and a founder has the equity. | A housing company is founded from the richest household's savings when no firm can put in the equity, for a block that passes rule 5. |
+| 8 no new company | No waiting work; the incumbents' spare crews cover it; builders got under 90% of the material they ordered (a newcomer would get none either); or the incumbents' jobs lose at today's costs. | The block would make the district's rent rule cut rents (under 85% full or rent arrears); the forecast fails; no builder (quoted_wait −1); the bank would not lend (asked first); or the law says no. |
+
+Tests:
+- tests/economy/test_builders.gd: margin steps both ways and no ceiling; crews to the work and to the material;
+  growth on a wait refusal and none on a losing book; fill_pm; entry rules 7/8.
+- tests/economy/test_r8_housing.gd: rent is the signal; rents would fall; blocks until the forecast fails or the bank
+  says no; rule 6.
+- tests/economy/test_offswitch_v11.gd: both switches on v11, 48 months.
+
+All pass, as do the plan, rescue, half-built, builder-credit, economy and money suites. Without the switches nothing
+changes. Not yet run in a full game.
+
+## 3g. Service hubs (Ella, 2026-11-16; switch R8_SERVICES with R8)
+
+The user's order of 2026-11-16 (MASTER-PLAN.md). Code: sim/economy/econ_rules_svc.gd (preloaded as EconRulesSvc, not
+a class name), with hooks in EconHouseholds._buy_services, FirmAI (_set_target, run, _expansion, _entry,
+_small_business) and two lines in EconRules (the SERVICES signal). Kill switches for an A/B take-apart:
+R8S_NOFILL, R8S_NOPX, R8S_NOOUT, R8S_NOCAP, R8S_NOENTRY.
+
+**The hub's market.** Households buy services where they live, from hubs in their own district, or from a
+neighbour's at +10%; what is left goes to self-employed sellers. Services can't be stored, so unsold hours are a
+hub's glut and demand nobody served is its shortage.
+- unfilled: st["r8"]["goods"]["SERVICES"][d].u
+- reach: st["r8"]["plants"][fid].reach, the unfilled demand in its district and its neighbours
+- unsold hours: f["svc_spare"]
+- cost: cost_var and cost_full from st["r8"]["plants"]
+- profit: the owner's last 12 months
+
+**Signal fix (R8S_NOFILL).** The SERVICES row never arrived in st["r8"], so every hub's reach was 0.
+- Why: households buy services after TRADE, when R8 had already totalled the month, and the next month's reset wiped
+  them.
+- Fix: EconRulesSvc.keep_fill holds the month's purchases (hubs plus self-employed sellers), and carry hands them
+  to the next TRADE. The row therefore describes the month before.
+- Each hub's svc_sold is now reset every month, also at zero output; before, it kept a frozen figure.
+
+| Rule | What it does now (with the switch) |
+|---|---|
+| 1 raise | Per district, after the month's sales: price × (1 + ALPHA × (unfilled − unsold hours) ÷ the larger of wanted and offered). ALPHA is the colony's price speed, EconData.ALPHA. Customers nobody served raise it, in proportion. It replaces the old rule on district demand against hubs' output, which ignored neighbours and self-employed sellers. The general price band (PRICE_MIN_MULT / PRICE_MAX_MULT) stays, as for every price. |
+| 2 lower | The same formula: the district's hubs' unsold hours lower it, in proportion. A cleared market holds it. |
+| 3 serve more | Target = (what it sold + its capacity share of the unfilled demand it can reach) ÷ its capacity. While the district price pays its full cost (crew, inputs, the building), it also offers 10% more hours a month (step: Ella's). Unsold hours then lower the price (rule 2) until it no longer pays, so an idle hub competes instead of waiting while its neighbours sell dear. This replaces 1.1 × sales + 5% with a 30% floor, and E134's step-up gated on colony unemployment. No floor of ours. |
+| 4 serve less | With unsold hours and a price under its full cost: back to what it sold. Below its variable cost (the price can't pay the energy and goods a service uses): none. |
+| 5 add capacity | Sold out with customers waiting and its crew complete, in 6 of the last 12 months (Ella's window; a hub short of staff is helped by hiring, not building). Also the district price at or above its full cost, the owner earning over 12 months, and no project of its own under way. Then +25% (EXPAND), or at the largest scale (3×) a new hub beside it. Cash first, then a loan (EconRulesMat._finance). One per district a quarter. Replaces FirmAI._expansion for hubs. |
+| 6 reduce capacity | Mothballed when, in 12 of the last 12 months, it had unsold hours or no output while the customers waiting near it fit in the other open hubs' unused capacity, and the owner lost money over 12 months. Never while customers wait that the others can't serve. A mothballed hub reopens when the unfilled demand it would reach exceeds the unused capacity of the open hubs near it for 3 months running (Ella's window). It is the cheapest capacity, so it comes before a founding. |
+| 7 new company | In the district where it pays best, the volume a newcomer could serve is the unfilled demand it could reach, minus: the hours the hubs near it leave unused; hubs being built or expanded; mothballed hubs that would reopen. That volume is multiplied by the share of a crew the unemployed can fill. It founds when that volume makes a profit in the hub's first year at today's price, wages and inputs (crew, energy, goods, the building spread over its life). The same test serves a rich founder's full hub (_entry, in the forecast's district) and a household's micro co-op (_small_business, quarter size, founded by the pool in that district with the stake and the most idle hands). |
+| 8 no new company | Nobody waiting net of the incumbents (including idle hubs, counted as room); the incumbents holding most of the capacity near it lose money; or the first year makes no profit. The micro co-op path loses its colony-unemployment trigger (8%), its 18-month gap, its two-per-district cap and its price gate. E128's cooling after a failed entrant still holds for _entry, as for materials. |
+
+Step sizes and windows are Ella's and live in SECTORS["SERVICES"].params: win_m 12, add_m 6, cut_m 12,
+sold_out_pm 50 (E134's sold-out test), reopen_m 3, offer_step_pm 100.
+
+Tests: tests/economy/test_rules_svc.gd (11). They cover:
+- the signal arrives;
+- price rules 1 and 2;
+- rules 3 and 4, including no floor and an idle hub offering hours;
+- rule 6, never with customers waiting, and reopening;
+- rule 5;
+- rules 7 and 8, including idle hubs counted as room;
+- micro founders;
+- a 36-month run closes, keeps jobs equal to people, and saves and loads identically.
+
+Also checked:
+- With R8_SERVICES off, a run is bit-identical to the tree without the hooks (24 months, seed 3, defaults and R8
+  alone; state hashes equal, on a scratch copy).
+- The rules, materials, food, housing, economy, forecast, builders, builder-credit and rescue suites pass.
+
+**Probe** (scratch, seed 3, 12 years, R8 + R8_SERVICES; not the game run):
+
+| Measure | R8 alone (old rules) | R8 + R8_SERVICES |
+|---|---|---|
+| Hubs at zero output | 3–6 | 0 from year 9 |
+| Hubs open / mothballed (Y12) | 8 / 5 | 15 / 2 |
+| Expansions in 12 years | 0 | 27 |
+| New hubs from rule 5 | 0 | 0 |
+| Unemployment (Y12) | 11.4% | 10.2% |
+| Population (Y12) | 4,337 | 4,198 (−3%) |
+| Service price, mean (Y12) | 91 | 196 |
+
+The service price stays high: hubs are sold out and short of specialists (the HIRING finding), so rule 5 waits for
+complete crews. An earlier draft founded a micro co-op every quarter beside idle hubs; idle hubs now count as room.
+Not yet run in a full game.
 
 ## 4. The rest of the queue
 - **Absorbed into R8:** E170 (rules 7/8), E172 (freight), the order book's entry and crew rules, E168, E156.

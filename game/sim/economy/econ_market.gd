@@ -312,6 +312,8 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 	ms2["filled"] += got
 	ms2["wanted"] += want
 	EconRules.note_fill(world, good, bid["district"], want, got)  # R8 (opt-in)
+	if bid["kind"] == "org" and (good == "MATERIAL" or good == "COMPONENT") and EconBuilders.on(world):
+		EconBuilders.note_fill(world, String(bid["buyer"]), good, want, got)  # R8_BUILDERS: the material a builder gets
 	var short: int = bid["qty"] - got
 	if short > 0:
 		if bid["kind"] == "hh":

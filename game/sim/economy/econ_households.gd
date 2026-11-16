@@ -1,5 +1,6 @@
 class_name EconHouseholds
 extends RefCounted
+const EconRulesSvc := preload("res://sim/economy/econ_rules_svc.gd")
 ## SOCIAL phase, household side (spec §7): consumption, services, next month's orders, housing, demography,
 ## migration, pollution. Indicators and the census are published by EconIndicators afterwards.
 
@@ -271,6 +272,14 @@ static func _buy_services(world: WorldState) -> void:
 			hubs_by_d[f["district"]] = hubs_by_d.get(f["district"], []) + [fid]
 	for fid in hubs_by_d.values().reduce(func(acc, l): return acc + l, []):
 		world.table("facility")[fid]["svc_sold"] = 0
+	var r8s: bool = EconRulesSvc.on(world)
+	if r8s:  # R8_SERVICES: every hub, also one at zero output (else it kept a frozen figure)
+		for fid1 in world.table("facility"):
+			if world.table("facility")[fid1]["type"] == "SERVICEHUB":
+				world.table("facility")[fid1]["svc_sold"] = 0
+				world.table("facility")[fid1]["svc_spare"] = 0
+	var svc_w := {}
+	var svc_f := {}
 	var demand_d := {}
 	var sold_d := {}
 	for gid0 in world.table("hh"):
@@ -311,11 +320,36 @@ static func _buy_services(world: WorldState) -> void:
 			left -= take
 			sold_d[f["district"]] = sold_d.get(f["district"], 0) + take
 			g["spent_goods"] = g.get("spent_goods", 0) + cost
-		EconRules.note_fill(world, "SERVICES", d, want, want - left)  # R8 (opt-in): service demand where the customer lives
+		if r8s:
+			svc_w[d] = int(svc_w.get(d, 0)) + want  # R8_SERVICES: noted once the self-employed have sold too
+			svc_f[d] = int(svc_f.get(d, 0)) + want - left
+		else:
+			EconRules.note_fill(world, "SERVICES", d, want, want - left)  # R8 (opt-in): service demand where the customer lives
 	for fid2 in hubs_by_d.values().reduce(func(acc, l): return acc + l, []):
 		var hf: Dictionary = world.table("facility")[fid2]
 		hf["svc_spare"] = int(hf["svc_cap"])  # E134: capacity left unsold this month (0 = sold out, demand was rationed)
-	_self_employed_sales(world, demand_d)
+	var self_d := _self_employed_sales(world, demand_d)
+	if r8s:
+		for d4 in EconUtil.sorted_keys(svc_w):
+			EconRules.note_fill(world, "SERVICES", d4, int(svc_w[d4]), mini(int(svc_w[d4]), int(svc_f[d4]) + int(self_d.get(d4, 0))))
+	if EconRulesSvc.px_on(world):
+		# R8_SERVICES rules 1/2: unserved customers raise the district's price, its hubs' unsold hours lower it
+		var spare_d := {}
+		var offer_d := {}
+		for fid5 in EconUtil.sorted_keys(world.table("facility")):
+			var f5: Dictionary = world.table("facility")[fid5]
+			if f5["type"] == "SERVICEHUB" and not f5["mothball"]:
+				spare_d[f5["district"]] = int(spare_d.get(f5["district"], 0)) + int(f5.get("svc_spare", 0))
+				offer_d[f5["district"]] = int(offer_d.get(f5["district"], 0)) + int(f5.get("svc_spare", 0)) + int(f5.get("svc_sold", 0))
+		for d5 in EconUtil.sorted_keys(s["svc_price"]):
+			var w5 := int(svc_w.get(d5, 0))
+			var u5 := maxi(0, w5 - int(svc_f.get(d5, 0)) - int(self_d.get(d5, 0)))
+			if w5 <= 0 and int(offer_d.get(d5, 0)) <= 0:
+				continue
+			var base5 := float(EconData.BASE_SERVICES_PRICE * S)
+			var p5: float = EconRulesSvc.price(float(s["svc_price"][d5]), w5, u5, int(spare_d.get(d5, 0)), int(offer_d.get(d5, 0)))
+			s["svc_price"][d5] = int(clampf(p5, base5 * EconData.PRICE_MIN_MULT, base5 * EconData.PRICE_MAX_MULT * EconMarket.wage_level(world)))
+		return
 	# district service prices (alpha rule on local supply/demand)
 	var supply_d := {}
 	for fid in world.table("facility"):
@@ -338,7 +372,7 @@ static func _buy_services(world: WorldState) -> void:
 
 ## E67 sole proprietors: unmet local service demand (after hubs) is served by self-employed residents of the district,
 ## who are paid by the buying households (money stays in the household sector; income tax withheld on profit).
-static func _self_employed_sales(world: WorldState, demand_d: Dictionary) -> void:
+static func _self_employed_sales(world: WorldState, demand_d: Dictionary) -> Dictionary:
 	var s := EconUtil.st(world)
 	var sellers := {}  # district -> [gid]
 	for gid in EconUtil.sorted_keys(world.table("hh")):
@@ -390,6 +424,7 @@ static func _self_employed_sales(world: WorldState, demand_d: Dictionary) -> voi
 		g["income"]["self"] = g["self_rev"] - paid
 		g["income"]["tax"] = g["income"].get("tax", 0) + paid
 		EconPop.credit_status(world, gid, "EMPLOYED", g["self_rev"] - paid, "self", "BUSINESS_OWNER")
+	return sold_by_d
 
 
 ## E67 entry/exit of sole proprietors (emerges from unemployment, savings and local service prices).

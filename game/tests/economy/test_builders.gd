@@ -54,21 +54,32 @@ func test_margin_steps() -> void:
 	var oid := _builder(w)
 	var o: Dictionary = w.table("org")[oid]
 	w.month = (w.month / 3 + 1) * 3
+	for pid in o["contracts"].duplicate():
+		o["contracts"].erase(pid)  # no jobs in hand: job_margin 0
 	var m0 := int(EconBuilders._r(o)["margin"])
 	o["r8b"]["log"] = {str(w.month - 1): [5, 4]}  # wins 80% of its bids
 	EconBuilders.step_margins(w)
-	check_eq(int(o["r8b"]["margin"]), m0 + EconBuilders.STEP_PM, "a builder winning most bids raises its margin")
+	check_eq(int(o["r8b"]["margin"]), m0 + EconBuilders.STEP_PM, "rule 1: a builder winning most bids raises its margin")
+	o["r8b"]["log"] = {}
+	o["r8b"]["wait_m"] = w.month - 1
+	o["r8b"]["wait_w"] = 30
+	EconBuilders.step_margins(w)
+	check_eq(int(o["r8b"]["margin"]), m0 + 2 * EconBuilders.STEP_PM, "rule 1: turned down for its wait, it raises its margin")
 	o["r8b"]["refused_m"] = w.month - 1
 	EconBuilders.step_margins(w)
-	check_eq(int(o["r8b"]["margin"]), m0 + EconBuilders.STEP_PM, "no step up after a refused quote")
-	o["r8b"]["log"] = {str(w.month - 1): [10, 1]}  # wins 10%, thin book
-	for pid in o["contracts"].duplicate():
-		o["contracts"].erase(pid)
+	check_eq(int(o["r8b"]["margin"]), m0 + EconBuilders.STEP_PM, "rule 2: a quote refused on price lowers it")
+	o["r8b"]["refused_m"] = -999
+	o["r8b"]["wait_m"] = -999
+	o["r8b"]["log"] = {str(w.month - 1): [10, 1]}  # wins 10%
 	EconBuilders.step_margins(w)
-	check_eq(int(o["r8b"]["margin"]), m0, "a builder losing its bids with a thin book lowers its margin")
+	check_eq(int(o["r8b"]["margin"]), m0, "rule 2: a builder losing its bids lowers its margin")
 	o["r8b"]["margin"] = 0
 	EconBuilders.step_margins(w)
 	check_eq(int(o["r8b"]["margin"]), 0, "never below zero: no bid below cost")
+	o["r8b"]["margin"] = 1000
+	o["r8b"]["log"] = {str(w.month - 1): [5, 5]}
+	EconBuilders.step_margins(w)
+	check_eq(int(o["r8b"]["margin"]), 1000 + EconBuilders.STEP_PM, "no ceiling of ours: only the clients' refusals stop it")
 
 
 func test_private_refusal_reopens_and_waits() -> void:
@@ -96,6 +107,7 @@ func test_private_refusal_reopens_and_waits() -> void:
 	EconBuilders.award_round(w)
 	check_eq(w.table("project")[pid2]["status"], "TENDER", "a start far beyond the owner's horizon is refused")
 	check_eq(int(EconUtil.st(w)["r8b_stats"]["refused_priv_wait"]), 1, "counted as a wait refusal")
+	check_eq(EconBuilders.wait_refused(w, w.table("org")[bid]), 400, "the builder knows the wait it was refused for")
 
 
 func test_refused_plan_is_not_cancelled() -> void:
@@ -141,33 +153,82 @@ func test_crews_follow_the_work() -> void:
 	var w := _sim(["R8", "R8_BUILDERS"]).world
 	var oid := _builder(w)
 	var o: Dictionary = w.table("org")[oid]
+	EconBuilders._r(o)
 	var t := EconBuilders.crew_target(w, oid, o, 500.0, 40.0, 30.0, false)
-	check(t <= 50.0 + 0.001, "growth ≤ +25%% a month (%f)" % t)
-	var saved: Array = o["contracts"].duplicate()
-	o["contracts"] = []  # no book: no rule-5 growth
-	var m := 3.0 if o["type"] == "PUBLIC_ENTERPRISE" and not EconConstruction._private_builder_alive(w) else 2.0
-	t = EconBuilders.crew_target(w, oid, o, 500.0, 58.0, 30.0, false)
-	check_eq(t, minf(72.5, m * 30.0), "capped at %d× the founding crew without a long profitable book" % int(m))
-	o["contracts"] = saved
-	t = EconBuilders.crew_target(w, oid, o, 500.0, 40.0, 30.0, true)
-	check_eq(t, 34.0, "blocked on material: −15%")
-	o["contracts"] = []
+	check_eq(t, 500.0, "rule 5: crews to the work due, no founding-crew multiple and no monthly cap (%f)" % t)
 	t = EconBuilders.crew_target(w, oid, o, 0.0, 40.0, 30.0, false)
-	check_eq(t, 9.0, "no work: down to the core crew (30% of founding)")
+	check_eq(t, 0.0, "rule 6: no work due and no refusals: no crew kept of ours")
+	o["r8b"]["fill"] = {"m": w.month, "MATERIAL": [100 * S, 40 * S]}
+	t = EconBuilders.crew_target(w, oid, o, 500.0, 40.0, 30.0, true)
+	check_eq(t, 200.0, "rule 6: the crew is what its material supports (40% filled)")
+	o["r8b"]["fill"] = {}
 	o["r8b"]["floor"] = 25
 	t = EconBuilders.crew_target(w, oid, o, 0.0, 40.0, 30.0, false)
 	check_eq(t, 25.0, "a crew ordered by the government is kept")
 
 
-func test_entry_rule_8() -> void:
+func test_wait_refusal_grows_the_crew() -> void:
 	var w := _sim(["R8", "R8_BUILDERS"]).world
-	var sg := {"colony": {"private_cap": 100 * S, "loss_share_pm": 700, "waiting_wu": 99999 * S, "spare12_wu": 0}}
-	check_eq(EconBuilders.entry_reason(w, sg), "incumbents_lose", "no entrant while most builders lose money")
-	sg["colony"]["loss_share_pm"] = 200
-	sg["colony"]["spare12_wu"] = 999999 * S
-	check_eq(EconBuilders.entry_reason(w, sg), "incumbents_spare", "no entrant while incumbents' spare crews can do the work")
-	sg["colony"]["spare12_wu"] = 0
-	check_eq(EconBuilders.entry_reason(w, sg), "", "otherwise entry may go ahead")
+	var oid := _builder(w)
+	var o: Dictionary = w.table("org")[oid]
+	EconBuilders._r(o)
+	var own := _owner(w)
+	for pid in o["contracts"].duplicate():
+		o["contracts"].erase(pid)
+	var pid := EconConstruction.create(w, "TEXTILE", "d:1", own, own, "")
+	var p: Dictionary = w.table("project")[pid]
+	_bid(p, oid, EconBuilders.owner_estimate(w, p), 0)
+	EconBuilders.award_round(w)
+	check_eq(p["status"], "ACTIVE", "awarded")
+	p["start_month"] = w.month + 20  # queued far ahead: not due now
+	var pid2 := EconConstruction.create(w, "TEXTILE", "d:1", own, own, "")
+	_bid(w.table("project")[pid2], oid, EconBuilders.owner_estimate(w, p), 400)
+	EconBuilders.award_round(w)
+	check_eq(EconBuilders.wait_refused(w, o), 400, "the refused wait is the builder's signal")
+	o["r8b"]["wait_w"] = 10
+	check(EconBuilders.job_margin(w, oid) >= 0, "its job pays at today's costs")
+	var t := EconBuilders.crew_target(w, oid, o, 0.0, 0.0, 30.0, false)
+	var bk := EconBuilders.book(w, o)
+	var per := 0.9 + 0.002 * float(o["ceo"]["mgmt"])
+	check(absf(t - float(int(bk[0]) + int(bk[1])) / float(S) / per / 10.0) < 0.01, "rule 5: crews to clear the book within the refused wait (%f)" % t)
+	p["price"] = 1  # the job now loses money
+	check(EconBuilders.job_margin(w, oid) < 0, "a job at a loss")
+	check_eq(EconBuilders.crew_target(w, oid, o, 0.0, 0.0, 30.0, false), 0.0, "no growth on jobs that lose at today's costs")
+
+
+func test_fill_and_quotes() -> void:
+	var w := _sim(["R8", "R8_BUILDERS"]).world
+	var oid := _builder(w)
+	var o: Dictionary = w.table("org")[oid]
+	check_eq(EconBuilders.fill_pm(o), 1000, "nothing ordered: nothing refused it")
+	EconBuilders.note_fill(w, oid, "MATERIAL", 100 * S, 30 * S)
+	EconBuilders.note_fill(w, oid, "MATERIAL", 100 * S, 70 * S)
+	check_eq(EconBuilders.fill_pm(o), 500, "half its material")
+	EconBuilders.note_fill(w, oid, "COMPONENT", 10 * S, 0)
+	check_eq(EconBuilders.fill_pm(o), 500, "no components: half the work at most (as _progress_fill)")
+	w.month += 1
+	EconBuilders.note_fill(w, oid, "MATERIAL", 10 * S, 10 * S)
+	check_eq(EconBuilders.fill_pm(o), 1000, "a new month starts a new count")
+
+
+func test_entry_rules_7_8() -> void:
+	var w := _sim(["R8", "R8_BUILDERS"]).world
+	var sg := {"builders": {}, "colony": {"private_cap": 100 * S, "unbuilt_wu": 0, "fill_pm": 1000, "job_margin": 1, "spare_wu": 0}}
+	check_eq(EconBuilders.entry_reason(w, sg), "no_waiting_work", "rule 8: no work waits for a builder")
+	sg["colony"]["unbuilt_wu"] = 500 * S
+	sg["colony"]["fill_pm"] = 600
+	check_eq(EconBuilders.entry_reason(w, sg), "no_material", "rule 8: builders can't get their material")
+	sg["colony"]["fill_pm"] = 1000
+	sg["colony"]["job_margin"] = -1
+	check_eq(EconBuilders.entry_reason(w, sg), "work_loses", "rule 8: the work loses at today's costs")
+	sg["colony"]["job_margin"] = 1
+	sg["colony"]["spare_wu"] = 999999 * S
+	check_eq(EconBuilders.entry_reason(w, sg), "incumbents_spare", "rule 8: incumbents' crews can start it within the wait")
+	sg["builders"] = {"x": {"wait_refused": 20}}
+	check_eq(EconBuilders.entry_reason(w, sg), "", "rule 7: clients turned quotes down for the wait: a new builder")
+	sg["builders"] = {}
+	sg["colony"]["spare_wu"] = 0
+	check_eq(EconBuilders.entry_reason(w, sg), "", "rule 7: unbuilt work beyond the incumbents' spare crews")
 
 
 func test_public_builder_found_and_enlarge() -> void:
@@ -210,9 +271,9 @@ func test_run_closes() -> void:
 	check(EconPop.check(w).is_empty(), "jobs equal people")
 	var sg: Dictionary = EconUtil.st(w)["r8"]["builders"]
 	check(not (sg["builders"] as Dictionary).is_empty(), "builders measured")
-	check(sg["colony"].has("loss_share_pm") and sg["colony"].has("waiting_wu"), "colony row")
+	check(sg["colony"].has("job_margin") and sg["colony"].has("fill_pm") and sg["colony"].has("unbuilt_wu"), "colony row")
 	check(EconConstruction.quoted_wait(w, "FARM", "d:1") >= 0, "a quoted wait")
 	for oid in w.table("org"):
 		var o: Dictionary = w.table("org")[oid]
 		if o.has("r8b"):
-			check(int(o["r8b"]["margin"]) >= 0 and int(o["r8b"]["margin"]) <= EconBuilders.MARGIN_MAX_PM, "margin in range")
+			check(int(o["r8b"]["margin"]) >= 0, "margin never below cost")

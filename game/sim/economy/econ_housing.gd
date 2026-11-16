@@ -76,6 +76,9 @@ static func _owners_decide(world: WorldState) -> void:
 			if EconActions.headroom(world, "ECON_BUDGET_HOUSING") >= est * 11 / 10:
 				create_renovation(world, fid, "gov", "ECON_BUDGET_HOUSING")
 		elif o["status"] == "ACTIVE":
+			if EconRulesHousing.on(world) and not bool(EconRulesHousing.renovation_forecast(world, fid)["ok"]):
+				EconRulesHousing._stat(world, "let_slide")  # R8_HOUSING rule 6: the renovation does not pay from the rent
+				continue
 			var cash := world.ledger.balance(EconUtil.acct(f["org"]))
 			if cash >= est * 3 / 10 and (cash >= est or EconFinance.new_loan(world, f["org"], est * 7 / 10, 0, true)):
 				create_renovation(world, fid, f["org"], "")

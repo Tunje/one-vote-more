@@ -4,13 +4,15 @@ extends RefCounted
 ## eight rules. OPT-IN: R8 + R8_BUILDERS (EconRules.sector_on(world, "BUILDERS")). Off → nothing here runs and the base
 ## is bit-identical (the hooks in EconConstruction / FirmAI test on() first).
 ##
-## Rules:
-##   1/2 the bid margin: each builder keeps its own margin (‰), starting from the old fixed rule (12% − 8% × risk), stepped
-##       quarterly. Up STEP_PM when its book holds more than BOOK_HI_M months of its crew's work, or it wins more than
-##       WIN_HI_PM of its bids, or it lost money over 12 months while holding at least BOOK_MID_M months of book. No step
-##       up at all while a client refused one of its quotes in the last REFUSED_BLOCK_M months (a builder losing money
-##       because its bids are refused must not climb; Wilma). Down STEP_PM when it wins under WIN_LO_PM of its bids with
-##       under BOOK_LO_M months of book. Clamped to 0..MARGIN_MAX_PM; a bid is never below the builder's own cost estimate.
+## Rules (second version, the user's order 2026-11-16: all eight, each on the builder's own market, no floors, caps or
+## locks of our own; planning/eight-rules.md). The builder's own market: its book (signed jobs and their schedule), the
+## quotes it won and the ones its clients refused (and why), what its jobs in hand earn at today's costs (job_margin),
+## and the material it actually got for its orders (fill_pm).
+##   1 raise the margin (quarterly, STEP_PM): it wins more than WIN_HI_PM of its bids, or its clients refused its quotes
+##       for the wait (more work than crews: demand above capacity), or its jobs in hand lose at today's costs. Never while
+##       a client refused one of its quotes on price in the last REFUSED_BLOCK_M months.
+##   2 lower the margin: a client refused its quote on price, or it wins under WIN_LO_PM of its bids while no client
+##       turned it down for the wait. A bid is never below the builder's own cost estimate (margin ≥ 0); no ceiling.
 ##   The quote a client may refuse: a bid is a price and a start date. The client takes the best-ranked bid it accepts:
 ##       - a private owner refuses a price above its own estimate of the job at this month's wages and input prices ×
 ##         (1 + tolerance from its CEO's risk), or a start later than its horizon;
@@ -18,42 +20,40 @@ extends RefCounted
 ##         the line's headroom plus GOV_LINE_SLACK of the line's annual budget, or a start later than GOV_WAIT_M months (fact ECON_PUBLIC_QUOTE_REFUSED: project, price, estimate, line, headroom).
 ##       After a refusal the tender opens again after QUOTE_REOPEN_M months and the plan waits; a refusal never cancels a
 ##       plan (only the owner's own patience rule, E165, may end it). Clients read only that month's estimates and budget.
-##   3/4 crews to the work: work due now (started jobs, and queued jobs starting within CREW_HORIZON_M months) ÷
-##       productivity; growth ≤ +25% a month up to 2× the founding crew; blocked on material → −15%; while it holds work
-##       the crew keeps KEEP_SHARE of itself. (The A/B ablation, 2026-11-15: a cash cap on growth and a 6-month horizon
-##       halved builders' crews and cost 400 adults; the old crew rule with the other R8 rules beat base.)
-##   5   the cap rises to GROW_MULT × the founding crew only with a book longer than GROW_BOOK_M months of the crew's
-##       work and a profitable year (no growth on losses).
-##   6   shed to the core crew (selling a crew comes with the sale mechanism, §3b).
-##   7/8 entry (FirmAI._builder_entry): the old book/backlog trigger, plus no entrant while builders holding more than
-##       LOSS_SHARE_PM of private capacity lost money over 12 months, and none while incumbents' spare capacity would
-##       clear the waiting work within ENTRY_SPARE_M months.
+##       The start date counts the material the builder can get: its book ÷ (crew output × fill_pm).
+##   3 produce more / 4 produce less: the work done each month is its crews' output on started, paid-up jobs, as far as
+##       the material it got allows (EconConstruction._progress_fill; E76 stops work the owner does not pay for).
+##   5 add crew: crews to the work due now (started jobs at the pace their dates need, and queued jobs starting within
+##       CREW_HORIZON_M months, the time to hire); when clients refused its quotes for the wait and its jobs in hand pay at
+##       today's costs, crews to clear the whole book within the wait they refused (book ÷ that wait).
+##   6 shed crew: to the work its material supports: with fill_pm under 1000 the crew is the work due × fill_pm; and to the
+##       work due when the book is short. No founding-crew multiple, no monthly growth cap, no kept share, no core crew:
+##       hiring is limited by the labour market, shedding by the work.
+##   7 a new builder (FirmAI._builder_entry, quarterly): work waits for a builder (tenders without a bid, or quotes refused
+##       for the wait) beyond what the incumbents' spare crews can start within GOV_WAIT_M months, and the founder has the
+##       equity.
+##   8 no new builder: the incumbents' spare crews cover the waiting work; or builders cannot get their material (the
+##       colony's builders got under FILL_OK_PM of the material they ordered: a new builder would get none either); or
+##       the incumbents' jobs in hand lose money at today's costs (the work does not pay).
 ##   Public builders (§3c a): they bid on public tenders from the first round, at the same margin rule unless the lever
 ##       ECON_PUBLIC_BUILDER_AT_COST = 1 (then at cost for public work). builder_needs() is gov_builder's query;
 ##       found_public_builder() and enlarge_public_builder() are the government's two actions (Wilma wires the choice).
 ##
-## State: org["r8b"] = {margin ‰, log {"month": [bids, won]} over 12 months, refused_m, floor (crew ordered by the
-## government)}; project["reopen_m"], ["refusals"]; st["r8b_stats"] counters for the reports.
+## State: org["r8b"] = {margin ‰, log {"month": [bids, won]} over 12 months, refused_m (price), wait_m and wait_w (the
+## month and the shortest wait of a quote refused for its wait), fill {good: [wanted, got]} of this month's orders,
+## fill_pm (last month's material fill, ‰), floor (crew ordered by the government)}; project["reopen_m"], ["refusals"];
+## st["r8b_stats"] counters for the reports.
 
 const S := EconUtil.S
 const Desk := preload("res://sim/office/decision_desk.gd")   # who decides (flag DELEGATION): counts decisions
 const STEP_PM := 20
-const MARGIN_MAX_PM := 300
-const BOOK_HI_M := 6
-const BOOK_MID_M := 3
-const BOOK_LO_M := 2
 const WIN_HI_PM := 600
 const WIN_LO_PM := 200
 const MIN_BIDS := 3
 const REFUSED_BLOCK_M := 3
-const CREW_HORIZON_M := 3
-const GROW_BOOK_M := 12
-const GROW_MULT := 5.0
-const BASE_MULT := 2.0
-const KEEP_SHARE := 0.6
-const SHRINK := 0.85
-const ENTRY_SPARE_M := 12
-const LOSS_SHARE_PM := 500
+const WAIT_MEMORY_M := 12  # a quote refused for the wait is the builder's signal for this long
+const CREW_HORIZON_M := 3  # the time to hire a crew: queued jobs starting within it are crewed now
+const FILL_OK_PM := 900  # builders got at least this share of the material they ordered: material is not the limit
 const QUOTE_REOPEN_M := 3
 const GOV_WAIT_M := 36
 const PRIV_WAIT_BASE_M := 12
@@ -127,6 +127,68 @@ static func public_may_bid(world: WorldState, p: Dictionary) -> bool:
 	return p["owner"] == "gov"
 
 
+# ------------------------------------------------------------------ the material it actually gets (rules 3/4, 6, 8, quotes)
+
+## EconMarket._fill hook: a builder's order of MATERIAL / COMPONENT was filled `got` of `want` this month.
+static func note_fill(world: WorldState, oid: String, good: String, want: int, got: int) -> void:
+	var o: Dictionary = world.table("org").get(oid, {})
+	if o.is_empty() or not bool(o.get("is_contractor", false)):
+		return
+	var r := _r(o)
+	var f: Dictionary = r.get("fill", {})
+	if int(f.get("m", -1)) != world.month:
+		f = {"m": world.month}
+	var row: Array = f.get(good, [0, 0])
+	f[good] = [int(row[0]) + want, int(row[1]) + got]
+	r["fill"] = f
+
+
+## Per mille of the MATERIAL it ordered that it got in the last month it ordered any (COMPONENT counted as in
+## _progress_fill: missing components cut work to half). 1000 when it ordered none. Pure.
+static func fill_pm(o: Dictionary) -> int:
+	var f: Dictionary = o.get("r8b", {}).get("fill", {})
+	var m: Array = f.get("MATERIAL", [0, 0])
+	var c: Array = f.get("COMPONENT", [0, 0])
+	var fm := 1000 if int(m[0]) <= 0 else int(m[1]) * 1000 / int(m[0])
+	var fc := 1000 if int(c[0]) <= 0 else int(c[1]) * 1000 / int(c[0])
+	return clampi(mini(fm, 500 + fc / 2), 0, 1000)
+
+
+## What the work left on the builder's jobs earns at today's costs (mcr): the price (less the late penalty owed today) ×
+## the share of work left - the crew's wages and overhead on that work (the bid's own rate) - the material and components
+## still needed at their award prices (E76 escalation pays the change since award, up to its cap). The 10% advance and
+## the retention only move cash in time, so they are not counted against the work. Pure.
+static func job_margin(world: WorldState, oid: String) -> int:
+	var o: Dictionary = world.peek("org").get(oid, {})
+	if o.is_empty():
+		return 0
+	var wage_wu := EconConstruction._crew_wage(world, oid) * 1.08
+	var s := EconUtil.peek_st(world)
+	var sum := 0.0
+	for pid in o.get("contracts", []):
+		var p: Dictionary = world.peek("project").get(pid, {})
+		if p.is_empty() or p["status"] != "ACTIVE" or int(p["wu_total"]) <= 0:
+			continue
+		var frac := float(int(p["wu_total"]) - int(p["wu_done"])) / float(p["wu_total"])
+		var late := maxi(0, world.month - (int(p["start_month"]) + int(p["bid_duration"])))
+		var penalty := int(float(p["price"]) * minf(0.10, 0.01 * late)) if int(p.get("supervision", 0)) >= 500 else 0
+		var left := float(int(p["price"]) - penalty) * frac  # what the work left earns (the advance and retention are timing)
+		var wages := float(int(p["wu_total"]) - int(p["wu_done"])) / float(S) * wage_wu
+		var mp := int(p.get("esc_mat_price", s["prices"]["MATERIAL"]))
+		var cp := int(p.get("esc_comp_price", s["prices"]["COMPONENT"]))
+		var inputs := float(EconUtil.val(int(float(p["mat_total"]) * frac), mp) + EconUtil.val(int(float(p["comp_total"]) * frac), cp))
+		sum += left - wages - inputs
+	return int(sum)
+
+
+## The shortest wait (months) of its quotes a client refused for the wait within WAIT_MEMORY_M months, or -1. Pure.
+static func wait_refused(world: WorldState, o: Dictionary) -> int:
+	var r: Dictionary = o.get("r8b", {})
+	if world.month - int(r.get("wait_m", -999)) > WAIT_MEMORY_M:
+		return -1
+	return int(r.get("wait_w", -1))
+
+
 # ------------------------------------------------------------------ signals (pure reads)
 
 ## Remaining work of a builder: [started, booked (accepted, not started)] in mu.
@@ -156,6 +218,7 @@ static func _cap(world: WorldState, o: Dictionary) -> int:
 static func waiting_wu(world: WorldState) -> Array:
 	var all := 0
 	var pub := 0
+	var unbuilt := 0  # work with no builder: tenders without a bid, and tenders whose quotes were refused
 	for pid in world.peek("project"):
 		var p: Dictionary = world.peek("project")[pid]
 		var w := 0
@@ -163,18 +226,28 @@ static func waiting_wu(world: WorldState) -> Array:
 			w = int(p["wu_total"]) - int(p["wu_done"])
 		elif p["status"] == "TENDERABLE" or (p["status"] == "TENDER" and (p["bids"] as Array).is_empty()):
 			w = int(p["wu_total"])
+			unbuilt += w
 		all += w
 		if p["owner"] == "gov":
 			pub += w
-	return [all, pub]
+	return [all, pub, unbuilt]
 
 
 ## The builders' signals: one row per live builder and a colony row. Pure (gov_builder and UI may call it).
 static func signals(world: WorldState) -> Dictionary:
 	var rows := {}
 	var cap_priv := 0
-	var loss_cap := 0
+	var margin_sum := 0
 	var spare := 0
+	var want_m := 0
+	var got_m := 0
+	var horizon := GOV_WAIT_M  # the wait clients accept: the shortest wait refused lately, else the government's
+	for oid in EconUtil.sorted_keys(world.peek("org")):
+		var o: Dictionary = world.peek("org")[oid]
+		if bool(o.get("is_contractor", false)) and o["status"] in ["ACTIVE", "DISTRESSED"]:
+			var wr := wait_refused(world, o)
+			if wr > 0:
+				horizon = mini(horizon, wr)
 	for oid in EconUtil.sorted_keys(world.peek("org")):
 		var o: Dictionary = world.peek("org")[oid]
 		if not bool(o.get("is_contractor", false)) or not (o["status"] in ["ACTIVE", "DISTRESSED"]):
@@ -182,29 +255,34 @@ static func signals(world: WorldState) -> Dictionary:
 		var k := _cap(world, o)
 		var bk := book(world, o)
 		var bw := bid_counts(world, o)
-		var p12 := EconPublicCo.result12(o)
+		var jm := job_margin(world, oid)
 		var cost_m := EconFinance._monthly_costs(o)
 		var cash := world.ledger.balance(EconUtil.acct(oid))
+		var fp := fill_pm(o)
+		var f: Dictionary = o.get("r8b", {}).get("fill", {})
+		var mrow: Array = f.get("MATERIAL", [0, 0])
 		rows[oid] = {"public": o["type"] == "PUBLIC_ENTERPRISE", "cap": k, "crew": EconLabor.staff_total(o["crew"]) / S,
 			"started": int(bk[0]), "booked": int(bk[1]), "book_m": (int(bk[0]) + int(bk[1])) / maxi(S, k),
-			"bids12": int(bw[0]), "won12": int(bw[1]), "margin": int(o.get("r8b", {}).get("margin", -1)), "profit12": p12,
+			"bids12": int(bw[0]), "won12": int(bw[1]), "margin": int(o.get("r8b", {}).get("margin", -1)), "job_margin": jm,
+			"fill_pm": fp, "wait_refused": wait_refused(world, o),
 			"cash_m": cash / maxi(1, cost_m) if cost_m > 0 else 99, "blocked": bool(o.get("blocked_last", false)),
 			"refused_m": int(o.get("r8b", {}).get("refused_m", -999))}
+		want_m += int(mrow[0])
+		got_m += int(mrow[1])
 		if o["type"] != "PUBLIC_ENTERPRISE":
 			cap_priv += k
-			if p12 < 0:
-				loss_cap += k
-			spare += maxi(0, ENTRY_SPARE_M * k - int(bk[0]) - int(bk[1]))
+			margin_sum += jm
+			spare += maxi(0, horizon * k * fp / 1000 - int(bk[0]) - int(bk[1]))
 	var ww := waiting_wu(world)
 	var waits: Array = EconUtil.peek_st(world).get("q_waits", [])
 	var wsum := 0
 	for x in waits:
 		wsum += int(x[1])
 	var ey := EconConstruction.entrant_year(world)
-	return {"builders": rows, "colony": {"waiting_wu": int(ww[0]), "public_waiting_wu": int(ww[1]),
+	return {"builders": rows, "colony": {"waiting_wu": int(ww[0]), "public_waiting_wu": int(ww[1]), "unbuilt_wu": int(ww[2]),
 		"entrant_years_pm": int(ww[0]) * 1000 / maxi(1, ey), "mean_wait_m": wsum / maxi(1, waits.size()),
-		"loss_share_pm": loss_cap * 1000 / maxi(1, cap_priv), "spare12_wu": spare, "private_cap": cap_priv,
-		"month": world.month}}
+		"job_margin": margin_sum, "fill_pm": 1000 if want_m <= 0 else got_m * 1000 / want_m, "horizon_m": horizon,
+		"spare_wu": spare, "private_cap": cap_priv, "month": world.month}}
 
 
 ## gov_builder's query (§3c a): the same signals, plus whether founding a builder would pass rule 8.
@@ -226,20 +304,17 @@ static func step_margins(world: WorldState) -> void:
 		if not bool(o.get("is_contractor", false)) or not (o["status"] in ["ACTIVE", "DISTRESSED"]):
 			continue
 		var r := _r(o)
-		var k := maxi(S, _cap(world, o))
-		var bk := book(world, o)
-		var bm := float(int(bk[0]) + int(bk[1])) / float(k)
 		var bw := bid_counts(world, o)
 		var b := int(bw[0])
 		var won := int(bw[1])
-		var refused := world.month - int(r["refused_m"]) < REFUSED_BLOCK_M
-		var up := bm > float(BOOK_HI_M) or (b >= MIN_BIDS and won * 1000 > WIN_HI_PM * b) \
-			or (EconPublicCo.result12(o) < 0 and bm >= float(BOOK_MID_M))
-		var down := b >= MIN_BIDS and won * 1000 < WIN_LO_PM * b and bm < float(BOOK_LO_M)
-		if up and not refused and not down:
-			r["margin"] = mini(MARGIN_MAX_PM, int(r["margin"]) + STEP_PM)
-		elif down:
-			r["margin"] = maxi(0, int(r["margin"]) - STEP_PM)
+		var price_refused := world.month - int(r["refused_m"]) < REFUSED_BLOCK_M
+		var wait_ref := wait_refused(world, o) >= 0
+		var up := (b >= MIN_BIDS and won * 1000 > WIN_HI_PM * b) or wait_ref or job_margin(world, oid) < 0
+		var down := price_refused or (b >= MIN_BIDS and won * 1000 < WIN_LO_PM * b and not wait_ref)
+		if down:
+			r["margin"] = maxi(0, int(r["margin"]) - STEP_PM)  # rule 2: never below its own cost
+		elif up:
+			r["margin"] = int(r["margin"]) + STEP_PM  # rule 1: no ceiling of ours; the clients' refusals are the ceiling
 
 
 # ------------------------------------------------------------------ the quote the client may refuse (award)
@@ -296,6 +371,12 @@ static func award_round(world: WorldState) -> void:
 		var chosen := ""
 		for b in ranked:
 			var r := refusal(world, p, b)
+			if r == "wait":
+				_note_wait_refused(world, String(b["org"]), int(b.get("wait", 0)))
+			elif r == "price":
+				var ob: Dictionary = world.table("org").get(b["org"], {})
+				if not ob.is_empty():
+					_r(ob)["refused_m"] = world.month  # rule 2: this client found its price too high
 			if r == "":
 				chosen = String(b["org"])
 				break
@@ -312,6 +393,17 @@ static func award_round(world: WorldState) -> void:
 			_refuse(world, p, ranked, why)
 
 
+## A client turned down the builder's quote for its wait (the signal for rules 1, 5 and 7).
+static func _note_wait_refused(world: WorldState, oid: String, wait: int) -> void:
+	var o: Dictionary = world.table("org").get(oid, {})
+	if o.is_empty():
+		return
+	var r := _r(o)
+	if world.month - int(r.get("wait_m", -999)) > WAIT_MEMORY_M or wait < int(r.get("wait_w", 9999)):
+		r["wait_w"] = maxi(1, wait)
+	r["wait_m"] = world.month
+
+
 ## The client refuses every quote on `p`: the tender reopens after QUOTE_REOPEN_M months (the plan is never cancelled).
 ## Public entry for the decision desk (Maja, DELEGATION), which commits a minister's REFUSE through it.
 static func refuse(world: WorldState, p: Dictionary, ranked: Array, why: String) -> void:
@@ -321,10 +413,11 @@ static func refuse(world: WorldState, p: Dictionary, ranked: Array, why: String)
 
 
 static func _refuse(world: WorldState, p: Dictionary, ranked: Array, why: String) -> void:
-	for b in ranked:
-		var o: Dictionary = world.table("org").get(b["org"], {})
-		if not o.is_empty():
-			_r(o)["refused_m"] = world.month
+	if why == "price":
+		for b in ranked:
+			var o: Dictionary = world.table("org").get(b["org"], {})
+			if not o.is_empty():
+				_r(o)["refused_m"] = world.month  # rule 2 reads refusals on price only
 	var best: Dictionary = ranked[0]
 	p["bids"] = []
 	p["refusals"] = int(p.get("refusals", 0)) + 1
@@ -346,22 +439,20 @@ static func reopened(world: WorldState, p: Dictionary) -> bool:
 
 # ------------------------------------------------------------------ rules 3/4/5/6: crews to the book
 
-## Crew target (workers) for a builder. need_n: workers for the work due now; cur: crew now; base_n: founding crew;
-## blocked: material-blocked last month (not while building strategic input capacity).
-static func crew_target(world: WorldState, _oid: String, o: Dictionary, need_n: float, cur: float, base_n: float, blocked: bool) -> float:
+## Crew target (workers) for a builder (rules 5/6). need_n: workers for the work due now (started jobs at the pace their
+## dates need, queued jobs starting within CREW_HORIZON_M months). The other arguments are kept for the caller.
+static func crew_target(world: WorldState, oid: String, o: Dictionary, need_n: float, _cur: float, _base_n: float, _blocked: bool) -> float:
 	var r := _r(o)
-	var mult := 3.0 if o["type"] == "PUBLIC_ENTERPRISE" and not EconConstruction._private_builder_alive(world) else BASE_MULT  # E86
-	var bk := book(world, o)
-	var k := maxi(S, _cap(world, o))
-	if int(bk[0]) + int(bk[1]) > GROW_BOOK_M * k and EconPublicCo.result12(o) > 0:
-		mult = maxf(mult, GROW_MULT)  # rule 5: a long book and a profitable year
-	var cap_n := minf(maxf(cur * 1.25, cur + 5.0), mult * base_n)
-	if blocked:
-		cap_n = cur * SHRINK
-	var target := minf(need_n, cap_n)
-	if not (o["contracts"] as Array).is_empty():
-		target = maxf(target, KEEP_SHARE * cur)  # rule 4: a slow shed while it holds work
-	target = maxf(target, 0.3 * base_n)  # rule 6: the core crew
+	var target := need_n
+	var wr := wait_refused(world, o)
+	if wr > 0 and job_margin(world, oid) >= 0:
+		# rule 5: its clients turned it down for the wait and its jobs pay: crews to clear the book within that wait
+		var bk := book(world, o)
+		var per_worker := 0.9 + 0.002 * float(o["ceo"]["mgmt"])
+		target = maxf(target, float(int(bk[0]) + int(bk[1])) / float(S) / per_worker / float(wr))
+	var fp := fill_pm(o)
+	if fp < 1000:
+		target = minf(target, maxf(need_n, target) * float(fp) / 1000.0)  # rule 6: no crew for work its material does not support
 	return maxf(target, float(r["floor"]))
 
 
@@ -372,9 +463,17 @@ static func entry_reason(world: WorldState, sg: Dictionary = {}) -> String:
 	if sg.is_empty():
 		sg = signals(world)
 	var c: Dictionary = sg["colony"]
-	if int(c["private_cap"]) > 0 and int(c["loss_share_pm"]) > LOSS_SHARE_PM:
-		return "incumbents_lose"
-	if int(c["private_cap"]) > 0 and int(c["waiting_wu"]) <= int(c["spare12_wu"]):
+	var refused_wait := false
+	for oid in sg["builders"]:
+		if int(sg["builders"][oid]["wait_refused"]) >= 0:
+			refused_wait = true
+	if int(c["unbuilt_wu"]) <= 0 and not refused_wait:
+		return "no_waiting_work"
+	if int(c["private_cap"]) > 0 and int(c["fill_pm"]) < FILL_OK_PM:
+		return "no_material"
+	if int(c["private_cap"]) > 0 and int(c["job_margin"]) < 0:
+		return "work_loses"
+	if int(c["private_cap"]) > 0 and not refused_wait and int(c["unbuilt_wu"]) <= int(c["spare_wu"]):
 		return "incumbents_spare"
 	return ""
 

@@ -12,20 +12,27 @@ extends RefCounted
 ##     block takes its share of what the district's households pay.)
 ##   costs a month = the block's crew and upkeep at today's wages and material price + depreciation + interest on the
 ##     loan (DEV_EQUITY_PM of the build cost is equity, the rest borrowed at the bank's monthly firm rate).
-## Rule 5 (build): forecast profit ≥ HURDLE_PM ‰ a year of the developer's equity. Rents rise in crowded districts
-##   (EconHouseholds._housing, 3% a quarter at ≥ 97% full) until building pays, so the rent is the signal.
-## Rule 8 (don't): the district would be under OCC_MIN_PM full with the block (homes being built count), or no builder
-##   could take the job (EconConstruction.quoted_wait = −1), or the forecast fails rule 5.
-## Rule 7 (a new developer): as E120, a housing company is founded from the richest household's savings when no company
-##   can put in the equity, but only for a block that passes rule 5.
-## Up to MAX_BLOCKS_Q blocks a quarter colony-wide, the most profitable district first, each next block in a district
-## judged with the earlier ones counted as being built.
+## The eight rules for housing (second version, the user's order 2026-11-16: no floors, caps or locks of our own):
+##   1/2 rent: EconHouseholds._housing raises a district's private rent while its homes are full and lowers it while they
+##       stand empty (district occupancy, the landlords' own market).
+##   3/4 homes let: a home is let when a household takes it; no landlord holds homes back (n/a as a choice).
+##   5 build (developers): forecast profit of one more block >= HURDLE_PM a year of the developer's equity. The forecast
+##       counts the occupancy the district would have with the block; no block that would make the district's rent rule
+##       cut rents (under RENT_FALLS_PM full, or rent arrears above RENT_ARREARS_CUT). Blocks are added, the most profitable district first, each next one judged with the earlier
+##       ones counted, until no district passes or the bank stops lending: no number of blocks a quarter of ours.
+##   6 reduce: an ageing block (EconHousing._owners_decide) is renovated by its private landlord only when the renovation
+##       pays from the block's rent (renovation_forecast); otherwise the block is let slide (its rent falls with its
+##       condition) and leaves the stock in time. Nobody is put out of a home (spec §9.6).
+##   7 a new developer: as E120, founded from the richest household's savings when no company can put in the equity, for
+##       a block that passes rule 5.
+##   8 no new block: the forecast fails, no builder could take the job (EconConstruction.quoted_wait = -1), the bank would
+##       not lend (asked first), or the law forbids it.
 
 const S := EconUtil.S
 const BLOCK_UNITS := 50
-const OCC_MIN_PM := 950
+const RENT_FALLS_PM := 850  # EconHouseholds._housing lowers a district's rent below this occupancy (the rent rule, not ours)
 const HURDLE_PM := 100  # 10% a year on the developer's equity
-const MAX_BLOCKS_Q := 3
+const ROUND_GUARD := 1000  # a loop guard only: each block lowers its district's forecast, so the round ends
 
 
 static func on(world: WorldState) -> bool:
@@ -71,8 +78,8 @@ static func block_forecast(world: WorldState, d: String, extra: int = 0) -> Dict
 		+ int(float(est - equity) * EconData.BANK_FIRM_BASE_PM)
 	var profit_y := 12 * (rent_m - costs_m)
 	var why := ""
-	if occ_after < OCC_MIN_PM:
-		why = "empty"
+	if occ_after < RENT_FALLS_PM or arrears > EconData.RENT_ARREARS_CUT:
+		why = "rent_falls"  # the district's rent rule would cut rents with the block (EconHouseholds._housing): no block
 	elif profit_y < equity * HURDLE_PM / 1000:
 		why = "profit"
 	elif EconConstruction.quoted_wait(world, "HOUSING", d) < 0:
@@ -92,12 +99,11 @@ static func signals(world: WorldState) -> Dictionary:
 ## Replaces FirmAI._developers' choice under R8_HOUSING (same cadence: called where E120 runs).
 static func developers(world: WorldState) -> void:
 	var est := EconConstruction.estimate("HOUSING")
-	var extra := {}  # d -> homes planned this round
-	for i in MAX_BLOCKS_Q:
+	for i in ROUND_GUARD:
 		var best_d := ""
 		var best_p := 0
 		for d in EconUtil.sorted_keys(world.table("district")):
-			var f := block_forecast(world, d, int(extra.get(d, 0)))
+			var f := block_forecast(world, d)  # blocks tendered earlier in the round count through pending_units
 			if not bool(f["ok"]):
 				if i == 0 and int(world.table("district")[d].get("households", 0)) > 0:
 					_stat(world, "no_" + String(f["why"]))
@@ -109,7 +115,35 @@ static func developers(world: WorldState) -> void:
 			return
 		if not _build(world, best_d, est):
 			return
-		extra[best_d] = int(extra.get(best_d, 0)) + BLOCK_UNITS * S
+
+
+## Rule 6: would renovating block `fid` pay from its own rent? Rent the block earns a month at the district's private
+## rent and occupancy, less arrears; costs: the block's crew and upkeep, the renovation's depreciation and the interest on
+## the 70% borrowed. Pays when the profit is at least HURDLE_PM a year of the landlord's 30% share. Pure.
+static func renovation_forecast(world: WorldState, fid: String) -> Dictionary:
+	var s := EconUtil.peek_st(world)
+	var f: Dictionary = world.peek("facility")[fid]
+	var d: String = f["district"]
+	var dr: Dictionary = world.peek("district")[d]
+	var hh := int(dr.get("households", 0))
+	var units := maxi(1, int(dr.get("units", 0)))
+	var occ := minf(1.0, float(hh) / float(units))
+	var rent := int(dr.get("rent_private", EconData.PRIVATE_RENT * S))
+	var due := float(hh) / float(S) * float(rent)
+	var arrears := minf(1.0, float(int(s.get("rent_arrears", {}).get(d, 0))) / maxf(1.0, due))
+	var homes := float(BLOCK_UNITS) * float(int(f.get("scale", 1000))) / 1000.0
+	var rent_m := int(homes * float(rent) * occ * (1.0 - arrears))
+	var est := EconHousing.renovation_estimate()
+	var own := est * 3 / 10
+	var r: Dictionary = EconData.RECIPES["HOUSING"]
+	var crew := 0
+	for t2 in r["labor"]:
+		crew += int(r["labor"][t2]) * int(s.get("wage", {}).get(t2, 0))
+	var scale := float(int(f.get("scale", 1000))) / 1000.0
+	var costs_m := int(float(crew + int(r["upkeep"]) * int(s.get("prices", {}).get("MATERIAL", 0))) * scale) \
+		+ est / EconData.DEPRECIATION_MONTHS + int(float(est - own) * EconData.BANK_FIRM_BASE_PM)
+	var profit_y := 12 * (rent_m - costs_m)
+	return {"rent_m": rent_m, "costs_m": costs_m, "profit_y": profit_y, "own": own, "ok": profit_y >= own * HURDLE_PM / 1000}
 
 
 ## Pure: would the bank lend `amount` now (the same test EconFinance.new_loan makes with move_cash)?

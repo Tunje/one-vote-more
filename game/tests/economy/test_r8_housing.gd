@@ -41,7 +41,7 @@ func test_rent_is_the_signal() -> void:
 	check(bool(high["ok"]), "the same district at a high rent: build")
 	check(int(high["profit_y"]) > int(low["profit_y"]), "profit rises with rent")
 	_district(w, "d:1", 150, 200, 900)
-	check_eq(String(EconRulesHousing.block_forecast(w, "d:1")["why"]), "empty", "rule 8: no block where it would stand empty")
+	check_eq(String(EconRulesHousing.block_forecast(w, "d:1")["why"]), "rent_falls", "rule 8: a block that would make rents fall")
 
 
 func test_pending_counts() -> void:
@@ -71,7 +71,9 @@ func test_developers_build_where_it_pays() -> void:
 	check(w.table("project").size() > n0, "blocks tendered")
 	check(int(by_d.get("d:2", 0)) >= int(by_d.get("d:3", 0)), "the dearer district first")
 	check(not by_d.has("d:1"), "none where it doesn't pay")
-	check(int(EconUtil.st(w)["r8h_stats"]["blocks"]) <= EconRulesHousing.MAX_BLOCKS_Q, "at most MAX_BLOCKS_Q a round")
+	var n := int(by_d.get("d:2", 0))
+	check(not bool(EconRulesHousing.block_forecast(w, "d:2")["ok"]) or EconUtil.st(w)["r8h_stats"].has("no_loan"),
+		"blocks are added until the forecast fails or the bank stops lending (%d in d:2)" % n)
 	check_eq(w.ledger.total(), 0, "ledger closed")
 
 
@@ -101,3 +103,20 @@ func test_run_closes() -> void:
 	sim.run(36)
 	check_eq(sim.world.ledger.total(), 0, "ledger closed")
 	check(EconPop.check(sim.world).is_empty(), "jobs equal people")
+
+
+func test_rule_6_renovation_must_pay() -> void:
+	var w := _sim(["R8", "R8_HOUSING"]).world
+	var fid := ""
+	for f0 in EconUtil.sorted_keys(w.table("facility")):
+		if w.table("facility")[f0]["type"] == "HOUSING":
+			fid = f0
+			break
+	check(fid != "", "a block")
+	if fid == "":
+		return
+	var d: String = w.table("facility")[fid]["district"]
+	_district(w, d, 100, 200, 100)
+	check(not bool(EconRulesHousing.renovation_forecast(w, fid)["ok"]), "half empty at a low rent: let it slide")
+	_district(w, d, 300, 200, 9000)
+	check(bool(EconRulesHousing.renovation_forecast(w, fid)["ok"]), "full at a high rent: the renovation pays")

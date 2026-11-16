@@ -18,6 +18,7 @@ extends RefCounted
 const QUARTER_MONTH := 1
 ## Who decides, step 1 (flag DELEGATION): each decision taken here is counted by type. No-op without the flag.
 const Desk := preload("res://sim/office/decision_desk.gd")
+const EconInst := preload("res://sim/economy/econ_institutions.gd")
 const SafetyLaw := preload("res://sim/law/road_safety_law.gd")   # ROAD_SAFETY: Parliament's limit near homes (Anni)
 
 
@@ -68,6 +69,8 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	_tariff_proposals(world, state, equality)
 	if Desk.on(world) and RoadSafety.on(world):
 		_safety_cases(world, st, who)   # who decides (Maja): road safety only as cases
+	if EconInst.on(world):
+		_inst_sites(world)   # R8_INSTITUTIONS (Maja): reopen, close, budget requests
 	if can_build:
 		_port_depot(world, st, busy, who, state, spend)
 	if not can_build:
@@ -96,14 +99,17 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	# 3. schools and clinics where access is poor; egalitarian and service-owning governments set a higher bar
 	var bar := clampf(650.0 + 150.0 * maxf(equality, services_owner), 500.0, 850.0)
 	var needs: Array = []
-	for key in [["health_access", "CLINIC"], ["edu_access", "SCHOOL"]]:
-		var acc: Dictionary = s.get(key[0], {})
-		for d in EconUtil.sorted_keys(acc):
-			if float(acc[d]) < bar and not _has_facility(world, key[1], d):
-				needs.append([float(acc[d]), key[1], d])
-	needs.sort_custom(func(a, b): return a[0] < b[0] or (a[0] == b[0] and a[2] < b[2]))
-	for n in needs.slice(0, 2):
-		orders += _order(world, st, busy, who, n[1], n[2], "")
+	if EconInst.on(world):
+		orders += _inst_builds(world, st, busy, who)   # R8_INSTITUTIONS (Maja): where the open plants cannot hold the clients
+	else:
+		for key in [["health_access", "CLINIC"], ["edu_access", "SCHOOL"]]:
+			var acc: Dictionary = s.get(key[0], {})
+			for d in EconUtil.sorted_keys(acc):
+				if float(acc[d]) < bar and not _has_facility(world, key[1], d):
+					needs.append([float(acc[d]), key[1], d])
+		needs.sort_custom(func(a, b): return a[0] < b[0] or (a[0] == b[0] and a[2] < b[2]))
+		for n in needs.slice(0, 2):
+			orders += _order(world, st, busy, who, n[1], n[2], "")
 	# 3b. roads by need (Terra's Transport.road_needs, v8 follow-up): congested or worn links and junctions get their
 	#     cheapest fix on the infrastructure line, whatever unemployment is. Spending- and state-minded governments act
 	#     sooner (lower bar) and fix more per quarter; austere ones wait until the jam is bad. Each link or junction is
@@ -722,6 +728,8 @@ static func _essentials(world: WorldState, st: Dictionary, busy: Dictionary, who
 		var ftype: String = ESS_PLANT[good]
 		if e.is_empty() or float(e.get("demand", 0)) <= 0.0:
 			continue
+		if EconRulesUtil.capacity_on(world, ftype):
+			continue  # R8_UTILITIES: the utility adds its own capacity on its own market (its rule 5), not the government on nameplate margin
 		# count plants already being built as if they were running: act only if they will not close the gap
 		var n_pending := int(pending.get(ftype, 0))
 		if n_pending > 0:
@@ -1197,3 +1205,80 @@ static func _safety_cases(world: WorldState, st: Dictionary, who: Dictionary) ->
 			n += 1
 	if not seen.is_empty():
 		st["safety_case_m"] = seen
+
+
+## R8_INSTITUTIONS (Maja; planning/eight-rules.md, public institutions): rules 5 and 6 are the government's. Each
+## quarter: up to two clinics or schools where EconInstitutions.build_needs says the open plants cannot hold the
+## clients (a district that already has one can get another); a mothballed plant in such a district is reopened
+## instead; one plant that has stood empty for a year is closed (never the last of its district, never while anyone
+## in reach is unserved). Under DELEGATION the reopenings and closings are INSTITUTION_SITE cases and a due budget
+## request is an INSTITUTION_BUDGET case (its "yes" tables the bill); without it the budget goes through the
+## legislature's need signal (st["lever_need"]) alone.
+static func _inst_builds(world: WorldState, st: Dictionary, busy: Dictionary, who: Dictionary) -> int:
+	var orders := 0
+	for b in EconInst.build_needs(world):
+		if orders >= 2:
+			break
+		if int(b["mothballed"]) > 0 or busy.has(String(b["type"]) + "|" + String(b["district"])):
+			continue
+		orders += _order(world, st, busy, who, String(b["type"]), String(b["district"]), "")
+	return orders
+
+
+static func _inst_sites(world: WorldState) -> void:
+	for b in EconInst.build_needs(world):
+		if int(b["mothballed"]) <= 0:
+			continue
+		var fid := _inst_closed(world, String(b["type"]), String(b["district"]))
+		if fid == "":
+			continue
+		var what := "%s in %s" % [String(b["type"]).to_lower(), _dname(world, String(b["district"]))]
+		if Desk.on(world):
+			_simple_case(world, "INSTITUTION_SITE", "INST_SITE|" + fid, "Reopen the " + what,
+				["Its district has %d people to serve and room for %d at a full crew." % [int(b["clients"]), int(b["capacity"])]], "Reopen it",
+				{"via": "DESK", "id": "INST_REOPEN", "params": {"facility": fid}}, CASE_LEAN)
+		elif EconInst.reopen(world, fid).get("ok", false):
+			Desk.note(world, "INSTITUTION_SITE")
+		break
+	for c in EconInst.close_candidates(world):
+		var fid2 := String(c["fid"])
+		var what2 := "%s in %s" % [String(c["type"]).to_lower(), _dname(world, String(c["district"]))]
+		if Desk.on(world):
+			_simple_case(world, "INSTITUTION_SITE", "INST_SITE|" + fid2, "Close the " + what2,
+				["It has stood at a core crew for a year; the other plants in the district can serve all its people."], "Close it",
+				{"via": "DESK", "id": "INST_CLOSE", "params": {"facility": fid2}}, -CASE_LEAN)
+		elif EconInst.close(world, fid2).get("ok", false):
+			Desk.note(world, "INSTITUTION_SITE")
+		break
+	if not Desk.on(world):
+		return
+	for q in EconInst.budget_requests(world):
+		if not bool(q["due"]) or Desk.pending(world, "INST_BUDGET|" + String(q["line"])):
+			continue
+		var up := int(q["ask"]) > int(q["now"])
+		_simple_case(world, "INSTITUTION_BUDGET", "INST_BUDGET|" + String(q["line"]),
+			"Budget request: %s" % EconQuery.LINE_LABELS.get(String(q["line"]), String(q["line"])),
+			["The service asks for %d a year (now %d)%s." % [int(q["ask"]), int(q["now"]), (": %d people go unserved" % int(q["unmet"])) if up else ": its clients need less"]],
+			"Table a bill: %d -> %d" % [int(q["now"]), int(q["ask"])],
+			{"via": "DESK", "id": "INST_BUDGET", "params": {"line": String(q["line"]), "from": int(q["now"]), "to": int(q["ask"])}}, CASE_LEAN if up else -CASE_LEAN)
+		EconInst.answered(world, String(q["line"]), -1)   # the request is with the government now
+
+
+static func _inst_closed(world: WorldState, typ: String, d: String) -> String:
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] == typ and String(f["district"]) == d and f["mothball"] and not bool(f.get("closed_unsafe", false)):
+			return String(fid)
+	return ""
+
+
+## Desk route INST_BUDGET: table the requested budget (nothing if the line moved or a bill on it is pending).
+static func commit_inst_budget(world: WorldState, p: Dictionary) -> Dictionary:
+	var st: Dictionary = world.table("pol")["state"]
+	var g: Dictionary = st.get("government", {})
+	var line := String(p.get("line", ""))
+	if g.is_empty() or int(EconUtil.lever(world, line, 0)) != int(p.get("from", -1)) or Legislature._pending_for(world, line):
+		return {"ok": true, "error": ""}
+	var cs := Intel.picture(world, "gov")
+	Legislature.submit_bill(world, [{"lever": line, "from": int(p["from"]), "to": int(p["to"])}], g, cs[0], cs[1], world.new_id("bill"), 50)
+	return {"ok": true, "error": ""}

@@ -94,6 +94,8 @@ static func quarterly(world: WorldState) -> void:
 		return
 	var sub_room := maxi(0, EconActions.headroom(world, "ECON_BUDGET_SUBSIDIES"))
 	for key in EconUtil.sorted_keys(TARIFFS):
+		if key == "CPW" and EconRulesUtil.on(world):
+			continue  # R8 utilities: rules 1/2 set CPW's tariffs
 		var oid := EconFinance.org_by_key(world, key)
 		if oid == "":
 			continue

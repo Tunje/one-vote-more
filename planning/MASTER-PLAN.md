@@ -235,6 +235,14 @@ eight). Each rule reads the producer's own market (orders it can reach, unfilled
 profit); no floors, caps or locks of our own. Done means: every row of the table in eight-rules.md shows eight rules
 in the code, unit-tested, and one game run with all of them on.
 
+**Ruling, same day (the user, verbatim), on who may found a power plant, clinic, school or haulier:** "All company
+types needs to be able to be created as private, but maybe they're is only ever enough work for say one powerplant
+then the conitions for new ones don't get switched on". So no company type is public-only by rule; rules 7 and 8
+(when a new company starts, when not) decide, on the market. Follows from it (Wilma's reading): a private clinic,
+school, power plant or haulier is paid for what it serves or carries, so it has price rules 1 and 2; the public ones
+stay as they are. Still open with the user: whether public clinics and schools ever charge a fee; a client measure
+for administration.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and

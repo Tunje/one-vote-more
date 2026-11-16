@@ -67,9 +67,10 @@ func run_phase(_phase: int, world: WorldState) -> void:
 	# utilities
 	var dem: Dictionary = s.get("util_demand", {})
 	var sup: Dictionary = s.get("util_supply", {})
-	if float(dem.get("E", 0)) > 0.80 * float(_capacity(world, "POWER")):
+	var r8u := EconRulesUtil.on(world)  # R8 utilities: CPW adds its own capacity (rule 5)
+	if not r8u and float(dem.get("E", 0)) > 0.80 * float(_capacity(world, "POWER")):
 		_commission(world, busy, "POWER", "d:4")
-	if float(dem.get("W", 0)) > 0.80 * float(_capacity(world, "WATERWORKS")):
+	if not r8u and float(dem.get("W", 0)) > 0.80 * float(_capacity(world, "WATERWORKS")):
 		_commission(world, busy, "WATERWORKS", "d:2")
 	# services access
 	for key in [["health_access", "CLINIC"], ["edu_access", "SCHOOL"]]:
@@ -101,7 +102,7 @@ func run_phase(_phase: int, world: WorldState) -> void:
 		for d in EconUtil.sorted_keys(eacc):
 			if not busy.has("SCHOOL|" + d) and eacc[d] < 800 and not _has_facility(world, "SCHOOL", d):
 				options.append([eacc[d], "SCHOOL", d])
-		if float(dem.get("E", 0)) > 0.75 * float(_capacity(world, "POWER")) and not busy.has("POWER|d:4"):
+		if not r8u and float(dem.get("E", 0)) > 0.75 * float(_capacity(world, "POWER")) and not busy.has("POWER|d:4"):
 			options.append([0, "POWER", "d:4"])
 		for d in EconUtil.sorted_keys(world.table("district")):
 			if world.table("district")[d].get("occupancy", 0) >= 900 and not busy.has("HOUSING|" + d):
