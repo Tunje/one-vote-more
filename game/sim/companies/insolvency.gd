@@ -575,27 +575,18 @@ static func _find_buyer(world: WorldState, seller: String, f: Dictionary, reserv
 ## Why the owner withdraws its plan this month, or "" (pure). Its own decisions only:
 ##   no_building: nothing is left to build (its project was cancelled; one whose builder failed is back in tender and
 ##       waits for a new builder);
-##   no_reason: no builder has accepted the job yet and the reason it planned for has gone (its sector's entry signal is
-##       off: the founder's own forecast no longer supports it; once a builder accepted, it has a contract).
+##   no_funding: a family's grant or bank share is not there when a builder accepts (EconConstruction.award).
+## Not the sector's entry signal: it counts the capacity being built, this plan's included, so it turns off because the
+## plan exists (a 30-year run withdrew 56 of 56 firm plans on it). Whether its own plan still pays, without itself,
+## needs each sector's forecast; until then a firm's plan waits for its building.
 static func plan_withdrawal(world: WorldState, oid: String) -> String:
-	var o: Dictionary = world.peek("org")[oid]
 	var job := false
-	var accepted := false
 	for pid in world.peek("project"):
 		var p: Dictionary = world.peek("project")[pid]
-		if p["owner"] != oid:
-			continue
-		if p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+		if p["owner"] == oid and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
 			job = true
-		if p["status"] == "ACTIVE":
-			accepted = true
 	if not job:
 		return "no_building"
-	if accepted or bool(o.get("build_started", false)) or not o.has("entry_type"):
-		return ""
-	var sig: Dictionary = EconUtil.peek_st(world).get("entry_signal", {})
-	if sig.has(o["entry_type"]) and int(sig[o["entry_type"]]) == 0:
-		return "no_reason"
 	return ""
 
 
@@ -658,16 +649,34 @@ static func builder_free(world: WorldState) -> bool:
 	return waiting < maxi(1, builders)
 
 
+## E165 (2026-11-16, the plan-count trace: every plan withdrawn had been dropped by its builder after 3 unpaid months,
+## because the credit was approved on the base-price estimate while the builder's price is at today's): the plan's
+## credit follows its contract. At the award the bank is asked for the accepted price less the plan's cash; false when
+## it will not lend that (the plan is then withdrawn, nothing signed). Bills under the contract (escalation included)
+## are lent as they come (draw_plan_credit).
+static func credit_for_contract(world: WorldState, oid: String, price: int) -> bool:
+	var o: Dictionary = world.table("org")[oid]
+	var need := maxi(0, price - world.ledger.balance(EconUtil.acct(oid)))
+	var room := EconBank.room(world) if EconBank.active(world) else world.ledger.balance(EconUtil.BANK) - EconData.BANK_MIN_CASH * S
+	if need > room:
+		return false
+	o["plan_credit"] = need
+	o["plan_contract"] = true
+	return true
+
+
 static func draw_plan_credit(world: WorldState, oid: String, amount: int) -> void:
 	var o: Dictionary = world.table("org").get(oid, {})
-	if o.is_empty() or int(o.get("plan_credit", 0)) <= 0 or o["status"] != "FORMING":
+	if o.is_empty() or not o.has("plan_credit") or o["status"] != "FORMING":
 		return
 	var short := amount - world.ledger.balance(EconUtil.acct(oid))
 	if short <= 0:
 		return
-	var draw := mini(short, int(o["plan_credit"]))
+	var draw := short if bool(o.get("plan_contract", false)) else mini(short, int(o["plan_credit"]))  # a contract bill
+	if draw <= 0:
+		return
 	if EconFinance.new_loan(world, oid, draw, 0, true):
-		o["plan_credit"] = int(o["plan_credit"]) - draw
+		o["plan_credit"] = maxi(0, int(o["plan_credit"]) - draw)
 
 
 static func _open_plan(world: WorldState, oid: String, fid: String) -> void:

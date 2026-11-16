@@ -184,22 +184,16 @@ func test_plan_waits_and_ends_only_by_its_owner() -> void:
 	check_eq(int(EconUtil.st(w)["plan_stats"]["withdrawn"]), 1, "and as withdrawn")
 
 
-func test_plan_withdrawn_when_its_reason_goes() -> void:
+func test_plan_not_withdrawn_on_the_entry_signal() -> void:
+	# the entry signal counts the capacity being built, the plan's own included: it says nothing about this plan
 	var sim := EconSim.make_econ_only(3)
 	var w := sim.world
 	sim.run(2)
 	w.meta["on"] = ["E165", "E165Q"]
 	var oid := _plan(w)
-	var pid := EconConstruction.create(w, "TEXTILE", "d:1", oid, oid, "")
-	EconUtil.st(w)["entry_signal"] = {"TEXTILE": 3}
-	check_eq(EconInsolvency.plan_withdrawal(w, oid), "", "its reason holds: it waits for a builder")
+	EconConstruction.create(w, "TEXTILE", "d:1", oid, oid, "")
 	EconUtil.st(w)["entry_signal"] = {"TEXTILE": 0}
-	w.table("project")[pid]["status"] = "ACTIVE"
-	w.table("project")[pid]["start_month"] = w.month + 10
-	check_eq(EconInsolvency.plan_withdrawal(w, oid), "", "a builder accepted: it has a contract and keeps it")
-	w.table("project")[pid]["status"] = "TENDER"
-	check_eq(EconInsolvency.plan_withdrawal(w, oid), "no_reason", "no builder yet and its reason gone: the owner withdraws")
-
+	check_eq(EconInsolvency.plan_withdrawal(w, oid), "", "the signal is off because the plan exists: it waits")
 
 ## The user 2026-11-16: a family's grant comes after its plan has a builder; without the money, nothing is signed.
 func test_family_plan_funded_at_the_award() -> void:
@@ -225,3 +219,33 @@ func test_family_plan_funded_at_the_award() -> void:
 	check(not (w.table("org")[b]["contracts"] as Array).has(pid), "not in the builder's book")
 	check_eq(o["status"], "DISSOLVED", "the owner withdraws")
 	check_eq(int(EconUtil.st(w)["plan_stats"]["abandoned_no_funding"]), 1, "as no_funding")
+
+
+## The plan's credit follows its contract: asked at the award for the accepted price, not the base-price estimate.
+func test_plan_credit_follows_the_contract() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	sim.run(2)
+	w.meta["on"] = ["E165", "E165B"]
+	var oid := _plan(w)
+	var o: Dictionary = w.table("org")[oid]
+	o["plan_credit"] = 10 * EconUtil.S  # approved on an old estimate
+	var b := ""
+	for o0 in EconUtil.sorted_keys(w.table("org")):
+		if bool(w.table("org")[o0].get("is_contractor", false)) and w.table("org")[o0]["status"] == "ACTIVE":
+			b = o0
+			break
+	var pid := EconConstruction.create(w, "TEXTILE", "d:1", oid, oid, "")
+	var p: Dictionary = w.table("project")[pid]
+	var cash := w.ledger.balance(EconUtil.acct(oid))
+	var price := cash + 5000 * EconUtil.S
+	p["bids"] = [{"org": b, "price": price, "duration": 12, "reliability": 50, "wait": 0}]
+	check(EconConstruction.award(w, pid, b), "awarded")
+	check_eq(int(o["plan_credit"]) + (w.ledger.balance(EconUtil.acct(oid)) - (cash - price / 10)), price - cash,
+		"the bank's share is the accepted price less the plan's cash")
+	var o2 := _plan(w)
+	var pid2 := EconConstruction.create(w, "TEXTILE", "d:1", o2, o2, "")
+	w.table("org")[o2]["plan_credit"] = 0
+	w.table("project")[pid2]["bids"] = [{"org": b, "price": 999999999 * EconUtil.S, "duration": 12, "reliability": 50, "wait": 0}]
+	check(not EconConstruction.award(w, pid2, b), "the bank will not lend that much: nothing signed")
+	check_eq(w.table("org")[o2]["status"], "DISSOLVED", "the owner withdraws")

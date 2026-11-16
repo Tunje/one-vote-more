@@ -100,3 +100,19 @@ func test_without_e165_founding_as_before() -> void:
 	check(not w.table("org")[oid].has("fund_on_award"), "no plan step")
 	check(w.ledger.balance(EconUtil.acct(oid)) > 0, "funded at founding")
 	check_eq(int(EconUtil.st(w).get("fam_founded", {}).get("FAMFARM", 0)), fd0 + 1, "counted at founding")
+
+
+func test_funding_follows_the_accepted_price() -> void:
+	var sim := _sim(["E165"])
+	var w := sim.world
+	var gid := _gid(w)
+	w.ledger.transfer(Ledger.EXTERNAL, EconUtil.hh_acct(gid), 100000000 * S, "TEST", w.month)
+	EconFamily._start(w, "FAMFARM", "d:2", gid, 50)
+	var oid := _newest_family(w)
+	var est := int(EconFamily.startup_cost(w, "FAMFARM")["build"])
+	var price := est * 3
+	check(EconFamily.fund_plan(w, oid, "", price), "funded")
+	var c := EconFamily.startup_cost(w, "FAMFARM")
+	var total := price + int(c["wc"]) + int(c["course"])
+	check(w.ledger.balance(EconUtil.acct(oid)) >= total - 2, "the plan holds what the contract costs at the accepted price (%d of %d)" % [w.ledger.balance(EconUtil.acct(oid)) / S, total / S])
+	check(absi(int(w.table("org")[oid].get("grant_paid", 0)) - total * 50 / 100) <= 2, "the grant is half of that total (%d of %d)" % [int(w.table("org")[oid].get("grant_paid", 0)) / S, total / 2 / S])

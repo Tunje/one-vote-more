@@ -65,6 +65,11 @@ const TOL_RISK := 0.5
 const GOV_TOL := 0.3  # the government refuses a price above its own estimate × 1.3
 const GOV_LINE_SLACK := 0.25  # ... or an overrun beyond the line's headroom plus a quarter of its annual budget
 const LEVER_AT_COST := "ECON_PUBLIC_BUILDER_AT_COST"
+## The user 2026-11-16: "They should not need 90% of supplies up front they should need 3 months up front and add 1
+## month of additional supplies every month". A job begins work once STOCK_M months of its material and components (at
+## its pace) are in hand; the builder orders them the month before the start and then keeps STOCK_M months ahead, so
+## each month it buys about one more month. EconConstruction.contractor_plans and _progress_fill.
+const STOCK_M := 3
 
 
 static func on(world: WorldState) -> bool:

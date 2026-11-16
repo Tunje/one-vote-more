@@ -54,8 +54,14 @@ func test_e155bld_builders() -> void:
 	_case("E155BLD", ["E165", "E165B"], "E155BLD", "")
 
 
+## E166 rescues a plan that missed a payment. Under E165 the plan's credit follows its contract (the bank lends the
+## accepted price and the bills under it), so in these 48 months no plan misses one: on, it changes nothing.
 func test_e166_rescues() -> void:
-	_case("E166", ["E165", "E165B"], "E166", "rescue_stats")
+	var a := _run(["E165", "E165B"])
+	var b := _run(["E165", "E165B", "E166"])
+	check_eq(b.ledger.total(), 0, "E166: ledger closed")
+	check(EconPop.check(b).is_empty(), "E166: jobs equal people")
+	check_eq(_print(a), _print(b), "E166: no plan misses a payment, so there is nothing to rescue")
 
 
 ## E169's shells came from plans abandoned mid-build. Under E165 (the user 2026-11-16) a plan with a signed contract

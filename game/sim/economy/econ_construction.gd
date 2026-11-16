@@ -346,10 +346,19 @@ static func award(world: WorldState, pid: String, org_id: String) -> bool:
 	if chosen.is_empty():
 		return false
 	var po: Dictionary = world.table("org").get(p["owner"], {})
-	if not po.is_empty() and po["status"] == "FORMING" and bool(po.get("fund_on_award", false)) 			and not EconFamily.fund_plan(world, String(p["owner"]), pid):
+	var funded_now: bool = not po.is_empty() and po["status"] == "FORMING" and bool(po.get("fund_on_award", false))
+	if funded_now and not EconFamily.fund_plan(world, String(p["owner"]), pid, int(chosen["price"])):
 		# E165 (the user 2026-11-16: the plan comes before the grant): the family applies for its grant and the bank's
 		# share once a builder's quote is accepted; without the money nothing is signed and the owner withdraws the plan
 		p["status"] = "CANCELLED"
+		p["bids"] = []
+		EconInsolvency.abandon_plan(world, String(p["owner"]), "no_funding")
+		return false
+	if funded_now and EconInsolvency.planning_stage(world):
+		po["plan_credit"] = 0  # funded on the accepted price; later bills under the contract are lent as they come
+		po["plan_contract"] = true
+	elif not po.is_empty() and po["status"] == "FORMING" and po.has("plan_credit") and EconInsolvency.planning_stage(world) 			and not EconInsolvency.credit_for_contract(world, String(p["owner"]), int(chosen["price"])):
+		p["status"] = "CANCELLED"  # the bank will not lend what the accepted price needs: nothing is signed
 		p["bids"] = []
 		EconInsolvency.abandon_plan(world, String(p["owner"]), "no_funding")
 		return false
@@ -495,6 +504,11 @@ static func _progress_fill(world: WorldState, oid: String, o: Dictionary, active
 			continue
 		var sup := 0.9 + 0.2 * float(p["supervision"]) / 1000.0
 		var cap_p: int = mini(maxi(S, int(p["wu_total"]) / maxi(1, int(p["min_months"]))), remaining)
+		if EconBuilders.on(world) and not bool(p.get("begun", false)):
+			# R8_BUILDERS (the user 2026-11-16): a job begins once STOCK_M months of its supplies are in hand
+			if not stock_ready(world, oid, p):
+				continue
+			p["begun"] = true
 		workable += cap_p
 		if left <= 0:
 			continue
@@ -527,6 +541,17 @@ static func _progress_fill(world: WorldState, oid: String, o: Dictionary, active
 			p["wu_done"] = p["wu_total"]
 			_complete(world, p)
 	o["blocked_last"] = done_total < mini(k, workable) * 7 / 10
+
+
+## R8_BUILDERS: the builder holds EconBuilders.STOCK_M months of job p's material and components at its pace (pure).
+static func stock_ready(world: WorldState, oid: String, p: Dictionary) -> bool:
+	var hq: String = world.peek("org")[oid]["hq"]
+	var months := float(maxi(1, maxi(int(p["min_months"]), int(p["bid_duration"]))))  # the job's planned pace, as ordered
+	var need_m := int(float(p["mat_total"]) * float(EconBuilders.STOCK_M) / months)
+	var need_c := int(float(p["comp_total"]) * float(EconBuilders.STOCK_M) / months)
+	need_m = mini(need_m, int(p["mat_total"]) * (int(p["wu_total"]) - int(p["wu_done"])) / maxi(1, int(p["wu_total"])))
+	need_c = mini(need_c, int(p["comp_total"]) * (int(p["wu_total"]) - int(p["wu_done"])) / maxi(1, int(p["wu_total"])))
+	return EconUtil.inv_get(world, oid, "MATERIAL", hq) >= need_m and EconUtil.inv_get(world, oid, "COMPONENT", hq) >= need_c
 
 
 static func _check_late(world: WorldState, p: Dictionary) -> void:
@@ -707,13 +732,18 @@ static func contractor_plans(world: WorldState) -> void:
 				book_wu += p["wu_total"] - p["wu_done"]
 				if int(p["start_month"]) - world.month <= (EconBuilders.CREW_HORIZON_M if r8b else 3):
 					need_wu += float(p["wu_total"]) / float(maxi(1, maxi(p["min_months"], p["bid_duration"])))
+				if r8b and int(p["start_month"]) - world.month <= 1 and p["unpaid_m"] < 1:
+					# R8_BUILDERS (the user 2026-11-16): STOCK_M months of the job's supplies in hand before it starts
+					var pace := float(EconBuilders.STOCK_M) / float(maxi(1, maxi(p["min_months"], p["bid_duration"])))
+					mat += int(float(p["mat_total"]) * pace)
+					comp += int(float(p["comp_total"]) * pace)
 				continue
 			if p["status"] != "ACTIVE" or p["unpaid_m"] >= 1:
 				continue  # E76: no material purchases for work the owner is not paying for
 			var months_left := maxi(1, p["start_month"] + p["bid_duration"] - world.month)
 			var rate := minf(float(p["wu_total"] - p["wu_done"]) / float(months_left), float(p["wu_total"]) / float(p["min_months"]))
 			need_wu += rate
-			var frac := 2.0 * rate / float(p["wu_total"])
+			var frac := (float(EconBuilders.STOCK_M) if r8b else 2.0) * rate / float(p["wu_total"])  # R8: keep STOCK_M months ahead
 			mat += int(p["mat_total"] * frac)
 			comp += int(p["comp_total"] * frac)
 		var base: Dictionary = EconData.ORGS.get(o["key"], [])[8] if EconData.ORGS.has(o["key"]) else {"G": 30, "S": 10}

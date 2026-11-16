@@ -313,3 +313,35 @@ func test_quote_reads_twelve_months_of_material() -> void:
 	w.month += 12
 	EconBuilders.note_fill(w, oid, "MATERIAL", 100 * S, 50 * S)
 	check_eq(EconBuilders.fill12_pm(o), 500, "months older than a year are forgotten")
+
+
+## The user 2026-11-16: "they should need 3 months up front and add 1 month of additional supplies every month".
+func test_three_months_of_supplies_up_front() -> void:
+	var w := _sim(["R8", "R8_BUILDERS"]).world
+	var oid := _builder(w)
+	var o: Dictionary = w.table("org")[oid]
+	var own := _owner(w)
+	var pid := EconConstruction.create(w, "TEXTILE", "d:1", own, own, "")
+	var p: Dictionary = w.table("project")[pid]
+	_bid(p, oid, EconBuilders.owner_estimate(w, p), 0)
+	EconBuilders.award_round(w)
+	check_eq(p["status"], "ACTIVE", "awarded")
+	var hq: String = o["hq"]
+	var pace := float(maxi(int(p["min_months"]), int(p["bid_duration"])))
+	var three := int(float(p["mat_total"]) * 3.0 / pace)
+	var three_c := int(float(p["comp_total"]) * 3.0 / pace)
+	EconUtil.inv_take(w, oid, "MATERIAL", hq, EconUtil.inv_get(w, oid, "MATERIAL", hq))
+	EconUtil.inv_take(w, oid, "COMPONENT", hq, EconUtil.inv_get(w, oid, "COMPONENT", hq))
+	EconUtil.inv_add(w, oid, "MATERIAL", hq, three * 2 / 3, 1)
+	EconUtil.inv_add(w, oid, "COMPONENT", hq, three_c, 1)
+	check(not EconConstruction.stock_ready(w, oid, p), "two months of material in hand: the job does not begin")
+	EconUtil.inv_add(w, oid, "MATERIAL", hq, three - three * 2 / 3, 1)
+	check(EconConstruction.stock_ready(w, oid, p), "three months in hand: it begins")
+	# the order keeps three months ahead
+	EconUtil.st(w)["orders"] = []
+	EconConstruction.contractor_plans(w)
+	var ordered := 0
+	for od in EconUtil.st(w)["orders"]:
+		if od["buyer"] == oid and od["good"] == "MATERIAL":
+			ordered += int(od["qty"])
+	check(ordered > 0 or EconUtil.inv_get(w, oid, "MATERIAL", hq) >= three, "it tops its stock up to three months (%d ordered)" % ordered)

@@ -612,7 +612,9 @@ static func _start(world: WorldState, ftype: String, d: String, gid: String, pct
 ## Otto's award hook (E165): a family's plan has a builder's accepted quote; now it applies for its grant and the
 ## bank's share and puts in its savings, as _start did at founding before. false: the money is not there (the grant
 ## refused or no bank room under the family rules), and the award is reverted and the plan withdrawn (Otto's side).
-static func fund_plan(world: WorldState, oid: String, pid: String) -> bool:
+## `price`: the builder's accepted price; when given, the build part is sized on it, not on the base-price estimate
+## (Otto's plan count: 25 of 84 family plans ran out of money mid-build on an estimate at base prices).
+static func fund_plan(world: WorldState, oid: String, pid: String, price: int = -1) -> bool:
 	var o: Dictionary = world.table("org").get(oid, {})
 	if o.is_empty() or not bool(o.get("fund_on_award", false)):
 		return true
@@ -621,7 +623,7 @@ static func fund_plan(world: WorldState, oid: String, pid: String) -> bool:
 	if not world.table("hh").has(gid):
 		return false
 	var pct := int(o.get("fund_pct", 0))
-	var m := _money(world, ftype, gid, pct)
+	var m := _money(world, ftype, gid, pct, price)
 	if not bool(m["ok"]):
 		return false
 	_fund_apply(world, oid, ftype, String(o["hq"]), gid, pct, m)
@@ -634,9 +636,11 @@ static func fund_plan(world: WorldState, oid: String, pid: String) -> bool:
 
 ## The funding test (unchanged): a grant of pct of the start-up cost; with a grant the bank lends the whole rest when
 ## it has room, else savings and a build loan for part of the build.
-static func _money(world: WorldState, ftype: String, gid: String, pct: int) -> Dictionary:
+static func _money(world: WorldState, ftype: String, gid: String, pct: int, price: int = -1) -> Dictionary:
 	var s := EconUtil.st(world)
 	var c := startup_cost(world, ftype)
+	if price > 0:
+		c["build"] = price  # the contract's price, at today's prices
 	var total := int(c["build"]) + int(c["wc"]) + int(c["course"])
 	var grant := total * pct / 100
 	var own := total - grant
