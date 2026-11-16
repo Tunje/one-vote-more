@@ -411,6 +411,16 @@ static func _update_prices(world: WorldState) -> void:
 			var cut := EconStaple.bread_cut(world, p, shortage, int(m.get("filled", 0)), _cheapest_cost(world, good))
 			if cut > 0.0:
 				p2 = minf(p2, cut)  # E156: priced-out customers — selling more at a lower price beats selling less
+		# The user, 2026-11-16: "the more inventory you have, the more you reduce your price. That way, the further up they
+		# have in supplies, the more they reduce their price ... a soft lock, not a hard lock". Every good, every game,
+		# every month: what was on offer and did not sell, counted in months of what did sell, lowers the price; a little
+		# stock a little, a lot of stock a lot; no threshold. (Sellers with their own price do the same on their own
+		# stock: EconRulesMat.own_prices. The curve STOCK_CUT x c / (1 + c) is Bob's.)
+		var sold := float(m.get("filled", 0))
+		var unsold := maxf(0.0, sup - sold)
+		if unsold > 0.0:
+			var c := unsold / maxf(sold, float(S))
+			p2 *= 1.0 - STOCK_CUT * c / (1.0 + c)
 		var base := float(s["base"][good])
 		s["prices"][good] = int(clampf(p2, base * EconData.PRICE_MIN_MULT, base * EconData.PRICE_MAX_MULT * wage_level(world)))
 
@@ -421,6 +431,7 @@ static func _update_prices(world: WorldState) -> void:
 ## towards the sector's usual markup over the cheapest active producer's full unit cost. Without a producer: the old
 ## direction, capped. Floors and ceilings stay (the clamp after it).
 const COST_PLUS_STEP := 0.03
+const STOCK_CUT := 0.10  # the most a month's unsold stock takes off a price (Bob's number)
 ## A/B 5 × 30 y: with FOOD included the food shortfall doubled (12 → 29‰; a 3% monthly cap is too slow in a real food
 ## shortage) — the E139 lesson again; food keeps the old market rule
 const COST_PLUS_EXEMPT := ["FOOD"]

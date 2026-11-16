@@ -145,6 +145,8 @@ func test_surplus_drift() -> void:
 		s["prices"]["FOOD"] = int(3.0 * fc)
 		s["market_stats"]["FOOD"] = {"S": 3000 * EconUtil.S, "D": 2000 * EconUtil.S, "wanted": 2000 * EconUtil.S, "filled": 1500 * EconUtil.S}
 		EconMarket._update_prices(w)
-		check(float(s["prices"]["FOOD"]) >= 3.0 * fc * 0.999, "S7C=%s: unfilled orders never lower the price" % on)
-	check(absf(float(res[false]) - 1.0) < 0.002, "off: price held at 1.5 months' cover (%.4f)" % float(res[false]))
-	check(absf(float(res[true]) - (1.0 - EconMarket.SURPLUS_DRIFT)) < 0.002, "S7C: price drifts 2%% (%.4f)" % float(res[true]))
+		check(float(s["prices"]["FOOD"]) / (3.0 * fc) > float(res[on]), "S7C=%s: with orders unfilled the price stands higher than with every order filled" % on)
+	# the user, 2026-11-16: the more unsold stock, the bigger the cut, in every game: 1000 unsold against 2000 sold
+	var stock_cut := 1.0 - EconMarket.STOCK_CUT * 0.5 / 1.5
+	check(absf(float(res[false]) - stock_cut) < 0.002, "off: unsold stock alone lowers the price (%.4f)" % float(res[false]))
+	check(absf(float(res[true]) - (1.0 - EconMarket.SURPLUS_DRIFT) * stock_cut) < 0.002, "S7C: the 2%% drift on top of it (%.4f)" % float(res[true]))
