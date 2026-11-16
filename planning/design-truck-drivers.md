@@ -93,3 +93,7 @@ Owner: Wilma. Built with the economy side, not after it.
   whether they are stressed out or not. Nothing is taken from the components works, and components get no quality of
   their own. As an idea, not a decision ("maybe"): a workshop could put more parts into a truck to make a better
   one.
+- 2026-11-16, on whether a workshop repair uses components and resets a truck's wear (the user, verbatim): "Uses
+  components and resets wear, about 5% are lost reach time thought". So a workshop repair uses components and resets
+  the truck's wear, and about 5% is lost each time (Wilma's reading: each repair brings the truck back to about 5%
+  less than the time before, so a truck repaired many times is never quite new again).
