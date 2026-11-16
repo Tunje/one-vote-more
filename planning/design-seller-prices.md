@@ -55,8 +55,9 @@ nothing and steps down.
 **Output.** The output rules (3/4, reachable orders) and capacity rules (5/6) are unchanged. They read the seller's own
 fill instead of the index.
 
-**Rival price lists (optional, by user choice).** A seller sees the cheapest delivered ask in its districts the way a
-firm sees a competitor's list. That is only a faster step down. Without it, the seller only notices lost sales.
+**Rival price lists (user, 2026-11-16: "Companies should see each other's prices.").** These are in.
+- A seller sees what others ask for the same good, delivered, in the districts where it sells.
+- It reacts to being undercut with the faster step down in the table above.
 
 **Same mechanism as construction.**
 - Otto's builders keep a margin ‰ stepped by book and win rate, never under their own cost.
@@ -86,8 +87,7 @@ Households still choose by delivered price × reputation (D2), as now.
 - There is also a per-district figure in `s["px_traded"][good][d]`.
 - With no trade, the figure carries over.
 - Nothing sets it. E45, E149 cost-plus and the materials rules 1/2 stop moving it under the flag.
-- PRICE_MIN_MULT / PRICE_MAX_MULT stop clamping it. A government price control, if wanted, becomes a law lever on asks
-  later.
+- PRICE_MIN_MULT / PRICE_MAX_MULT stop clamping it. Government price control is a law lever on asks (§5, step 7).
 
 ## 4. Who reads the index today, and where each use goes
 
@@ -161,6 +161,22 @@ The politics stub (stub_world_provider.gd) uses its own "prices" scenario key, n
    - Report prices ÷ own cost by seller, the spread of asks per good, unfilled by cause (price / rival / stock-out /
      freight), and the usual adults, unemployment, food and real wage.
 6. **Defaults after the A/B.** The R8 sector rules 1/2 rows in planning/eight-rules.md then read "the seller's margin".
+7. **Government price control, a later step of v12.** User, 2026-11-16: "Yes, regulatory actions could come in from the
+   government if needed, it's up to them, and as always governments should be allowed to make things worse, but it
+   costs them."
+   - **The lever:** a law lever on asks per good, either a cap (no ask above X) or a floor (no ask below X). Anni owns
+     the law, the legal level and the ideology rows. The decision to use it goes on Maja's desk.
+   - **The market obeys it, and the harm follows on its own:**
+     - A cap under the sellers' cost means they don't offer below their floor. The shelves empty, the output and
+       capacity rules shrink supply, and there are shortages and queues.
+     - A floor above what buyers will pay means stock piles up. Buyers refuse, and producers cut output and jobs.
+   - Nothing stops a government choosing a harmful control.
+   - **Blame:** the government carries it through facts (shortage or glut under a price control). The papers and
+     voters attribute what follows to the government.
+   - **A/B:** a sensible cap in a shortage, and a harmful cap under cost, to show both outcomes.
+
+User, 2026-11-16: no build before v11 is out. The note stands as the v12 plan, with rival price lists and the price
+control above.
 
 **Risks.**
 - **Price wars to the floor in a glut.** Accepted: the floor is variable cost, and the capacity rules (6) take plants

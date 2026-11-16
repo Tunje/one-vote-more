@@ -397,7 +397,7 @@ static func year_month_pl(o: Dictionary) -> Dictionary:
 	var n := EconAnnual.months(o)
 	if n >= EconAnnual.MIN_M:
 		var s := EconAnnual.sum12(o)
-		var out := {}
+		var out: Dictionary = EconFinance.empty_pl()   # every P&L line present, even where the ring's rows lack one
 		for k in s:
 			out[k] = int(s[k]) / n
 		return out

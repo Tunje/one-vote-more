@@ -185,6 +185,46 @@ Readings:
 - Recommendation: keep E165Q and E155BLD off for v11. plan (E165 + E165B) remains the order-book arm worth carrying:
   −99 adults, best real income (3.28), firm deaths cut from 62.5 to 35.1.
 
+## 7. Why builders are material-blocked (trace, HEAD a563d55, 10 seeds × 30 years)
+
+A builder counts as blocked in a month when its work falls under 70% of what its crew and workable jobs allow
+(EconConstruction._progress_fill). A scratch trace gave every blocked builder-month one cause. Share of blocked months:
+
+| cause | base | R8 + BUILDERS + FREIGHT | + R8_MATERIAL | + E165 + E165B |
+|---|---|---|---|---|
+| blocked, share of builder-months | 31% | 32% | 33% | 32% |
+| own cash: the MATERIAL order was cut to the builder's budget | 80.1% | 78.4% | 82.6% | 80.3% |
+| components only | 6.7% | 5.9% | 6.2% | 6.4% |
+| nothing ordered (the job started after the month's order) | 4.8% | 5.0% | 4.3% | 4.7% |
+| lost the bidding: others bought first | 4.1% | 6.7% | 5.1% | 6.9% |
+| lost the bidding: offers above the bid | 1.3% | 1.7% | 0.1% | 0.2% |
+| not delivered (freight) | 1.8% | 0 | 0 | 0 |
+| not made (nothing on sale) | 0.6% | 0.5% | 0.4% | 0.8% |
+| owner one payment behind (E76 buys no material, work goes on) | 0.5% | 1.1% | 0.5% | 0.5% |
+| filled in full, ordered too little | 0.2% | 0.6% | 0.7% | 0.4% |
+
+When a builder was outbid, its limit was already about 1.4 × the price. No arm had a stale flag (a builder with no job
+keeps last month's flag, but the trace found none counted).
+
+Readings:
+
+- The blocking is the builders' cash, not the market.
+  - The share is the same with or without the value bids (R8_MATERIAL), freight and the plan stage.
+  - Value bids remove "offers above the bid", which was never the problem.
+- Why builders lack cash.
+  - They are paid 10% at award, 80% of each month's work after it is done, and 10% at completion.
+  - They buy two months of material ahead.
+  - Their order is sized on cash − half a month's costs, topped up only by FirmAI._working_capital (at most 2 × last
+    month's revenue and 0.6 × assets − debt, and builders have almost no assets but cash).
+- Builders are outside both credit rulings in practice.
+  - E148 (supplier credit) applies only at the till. The order is sized before that, on cash, so the room is never used.
+  - Producers add the E140 annual line (EconAnnual.input_draw) when sizing; builders never call it.
+- Fixes to test, opt-in, in separate arms (Wilma):
+  - (s) supplier credit counted when the builder sizes its order, limited to what its signed jobs still need;
+  - (a) the client pays for material at cost as delivered;
+  - (c) working capital against the signed order book.
+  - Each arm with and without R8_FOOD + R8_MATERIAL + R8_FREIGHT, and the best one on Bob's frozen allowance.
+
 ## Still to do
 
 Housing under the eight rules: see planning/ab-r8-housing.md.
