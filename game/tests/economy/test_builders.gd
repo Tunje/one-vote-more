@@ -277,3 +277,32 @@ func test_run_closes() -> void:
 		var o: Dictionary = w.table("org")[oid]
 		if o.has("r8b"):
 			check(int(o["r8b"]["margin"]) >= 0, "margin never below cost")
+
+
+func test_quote_counts_the_crew_it_can_field() -> void:
+	var w := _sim(["R8", "R8_BUILDERS"]).world
+	var oid := _builder(w)
+	var o: Dictionary = w.table("org")[oid]
+	EconBuilders._r(o)
+	var cap := EconConstruction.capacity(w, oid)
+	var fc := EconBuilders.field_capacity(w, oid)
+	check(fc >= cap, "it can field at least the crew it has (%d >= %d)" % [fc, cap])
+	o["crew"] = {"G": {}, "S": {}, "Sp": {}}
+	check(EconBuilders.field_capacity(w, oid) > 0 or PopStore.count(w, {"status": "UNEMPLOYED"}) == 0,
+		"a builder with no crew can still hire one: its quote is not its book over zero")
+
+
+func test_quote_reads_twelve_months_of_material() -> void:
+	var w := _sim(["R8", "R8_BUILDERS"]).world
+	var oid := _builder(w)
+	var o: Dictionary = w.table("org")[oid]
+	check_eq(EconBuilders.fill12_pm(o), 1000, "nothing ordered: nothing refused it")
+	for i in 11:
+		EconBuilders.note_fill(w, oid, "MATERIAL", 100 * S, 100 * S)
+		w.month += 1
+	EconBuilders.note_fill(w, oid, "MATERIAL", 100 * S, 0)
+	check_eq(EconBuilders.fill_pm(o), 0, "this month it got none")
+	check_eq(EconBuilders.fill12_pm(o), 916, "over the year it got 11 of 12 months' orders")
+	w.month += 12
+	EconBuilders.note_fill(w, oid, "MATERIAL", 100 * S, 50 * S)
+	check_eq(EconBuilders.fill12_pm(o), 500, "months older than a year are forgotten")

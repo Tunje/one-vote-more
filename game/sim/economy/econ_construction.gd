@@ -183,7 +183,8 @@ static func bid_round(world: WorldState) -> void:
 			if not EconUtil.off(world, "E113") and o["contracts"].any(func(q): return world.table("project")[q]["status"] == "ACTIVE"):
 				k = maxi(capacity(world, oid), S)  # E113: a busy builder is judged by the crew it has, not its founding size
 			if r8b:
-				k = maxi(k * EconBuilders.fill_pm(o) / 1000, S)  # R8_BUILDERS: its output is what its material allows
+				# R8_BUILDERS: the crew it can field (rule 5: crews grow to the book), as far as the material it gets allows
+				k = maxi(EconBuilders.field_capacity(world, oid) * EconBuilders.fill12_pm(o) / 1000, S)
 			var window := maxi(p["min_months"], 12)
 			if p["type"] in ["HOUSING", "RENOVATE"] and not EconUtil.off(world, "E120"):
 				window = maxi(p["min_months"], 24)  # E120: a housing block is a two-year build (no builder could fit it into 12 months, so housing never got a bid)

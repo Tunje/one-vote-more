@@ -20,7 +20,8 @@ extends RefCounted
 ##         the line's headroom plus GOV_LINE_SLACK of the line's annual budget, or a start later than GOV_WAIT_M months (fact ECON_PUBLIC_QUOTE_REFUSED: project, price, estimate, line, headroom).
 ##       After a refusal the tender opens again after QUOTE_REOPEN_M months and the plan waits; a refusal never cancels a
 ##       plan (only the owner's own patience rule, E165, may end it). Clients read only that month's estimates and budget.
-##       The start date counts the material the builder can get: its book ÷ (crew output × fill_pm).
+##       The start date: its book ÷ (the crew it can field × the material it got over 12 months), field_capacity and
+##       fill12_pm: its crew now plus the workers the labour market has, not today's headcount (crews grow to the book).
 ##   3 produce more / 4 produce less: the work done each month is its crews' output on started, paid-up jobs, as far as
 ##       the material it got allows (EconConstruction._progress_fill; E76 stops work the owner does not pay for).
 ##   5 add crew: crews to the work due now (started jobs at the pace their dates need, and queued jobs starting within
@@ -127,6 +128,26 @@ static func public_may_bid(world: WorldState, p: Dictionary) -> bool:
 	return p["owner"] == "gov"
 
 
+## The work a builder can field in a month (wu, S-scaled; pure): its crew now plus the workers it can hire this month,
+## the unemployed in its crew's mix (the scarcest skill sets the number). Rule 5: crews grow to the book, limited by the
+## labour market, not by today's crew; a quote's start and a job's duration count this (Wilma's 2026-11-16 recorder:
+## quotes counted today's crew, sized to the work due now, so a builder with a book quoted years in month 2).
+static func field_capacity(world: WorldState, oid: String) -> int:
+	var o: Dictionary = world.peek("org")[oid]
+	var n := 0
+	for t in EconData.BUILDER_CREW:
+		n += int(EconData.BUILDER_CREW[t])
+	var free := INF
+	for t in EconData.BUILDER_CREW:
+		var share := float(EconData.BUILDER_CREW[t]) / float(maxi(1, n))
+		if share > 0.0:
+			free = minf(free, float(PopStore.count(world, {"status": "UNEMPLOYED"}, "skill:" + t)) / share)
+	if free == INF:
+		free = 0.0
+	var per := 0.9 + 0.002 * float(o["ceo"]["mgmt"])
+	return EconConstruction.capacity(world, oid) + int(free * per * float(S))
+
+
 # ------------------------------------------------------------------ the material it actually gets (rules 3/4, 6, 8, quotes)
 
 ## EconMarket._fill hook: a builder's order of MATERIAL / COMPONENT was filled `got` of `want` this month.
@@ -137,6 +158,14 @@ static func note_fill(world: WorldState, oid: String, good: String, want: int, g
 	var r := _r(o)
 	var f: Dictionary = r.get("fill", {})
 	if int(f.get("m", -1)) != world.month:
+		if f.has("m"):
+			# the months before: the record a quote reads (fill12_pm)
+			var h: Dictionary = r.get("fill_h", {})
+			h[str(int(f["m"]))] = f
+			for k in h.keys():
+				if int(k) <= world.month - 12:
+					h.erase(k)
+			r["fill_h"] = h
 		f = {"m": world.month}
 	var row: Array = f.get(good, [0, 0])
 	f[good] = [int(row[0]) + want, int(row[1]) + got]
@@ -151,6 +180,30 @@ static func fill_pm(o: Dictionary) -> int:
 	var c: Array = f.get("COMPONENT", [0, 0])
 	var fm := 1000 if int(m[0]) <= 0 else int(m[1]) * 1000 / int(m[0])
 	var fc := 1000 if int(c[0]) <= 0 else int(c[1]) * 1000 / int(c[0])
+	return clampi(mini(fm, 500 + fc / 2), 0, 1000)
+
+
+## Per mille of the material it ordered over its last 12 months that it got (components as in fill_pm). What a quote's
+## start date counts: a quote is about the months ahead, and one month's outage is not a forecast of them (Wilma's
+## recorder 2026-11-16: in a two-month material outage the month's fill of 0 made every builder quote 100 years). Pure.
+static func fill12_pm(o: Dictionary) -> int:
+	var r: Dictionary = o.get("r8b", {})
+	var rows: Array = (r.get("fill_h", {}) as Dictionary).values()
+	if not (r.get("fill", {}) as Dictionary).is_empty():
+		rows.append(r["fill"])
+	var mw := 0
+	var mg := 0
+	var cw := 0
+	var cg := 0
+	for f in rows:
+		var m: Array = f.get("MATERIAL", [0, 0])
+		var c: Array = f.get("COMPONENT", [0, 0])
+		mw += int(m[0])
+		mg += int(m[1])
+		cw += int(c[0])
+		cg += int(c[1])
+	var fm := 1000 if mw <= 0 else int(float(mg) * 1000.0 / float(mw))
+	var fc := 1000 if cw <= 0 else int(float(cg) * 1000.0 / float(cw))
 	return clampi(mini(fm, 500 + fc / 2), 0, 1000)
 
 

@@ -240,4 +240,69 @@ One seed.
 Open with the user: whether material and components may come from the home world when the colony has no working
 producer.
 
+### First look, all sectors' rules on (code 21329e3: before hold-back, imports, the freight fix, the soft builder rule), 60 years
+
+ALL8 = R8_BUILDERS, R8_HOUSING, R8_SERVICES, R8_UTILITIES, R8_INSTITUTIONS, R8_WORKSHOPS, R8FR_MARKET, R8M_OWNPX,
+R8M_JOBVALUE, R8F_OWNPX, R8F_FAM56, OWN_FIRST, INV_EXPECT, E150P. ALL8PLAN adds E165, E165B, E165Q.
+
+| arm | seed | adults | u % | food | real | priv alive/dead | builders alive/dead | bank capital | material: price % of cost / filled permille |
+|---|---|---|---|---|---|---|---|---|---|
+| base | 1 | 10370 | 20.5 | 5 | 2.62 | 136/151 | 2/52 | 13 | 94 / 842 |
+| base | 2 | 6964 | 33.3 | 24 | 2.38 | 179/140 | 2/57 | 0 | 65 / 902 |
+| base | 3 | 7628 | 29.6 | 43 | 2.63 | 132/176 | 1/42 | -3 | 75 / 870 |
+| ALL8 | 1 | 7965 | 26.6 | 66 | 1.67 | 150/194 | 1/17 | 6 | 161 / 729 |
+| ALL8 | 2 | 4752 | 29.4 | 110 | 1.81 | 80/164 | 1/12 | 0 | 77 / 691 |
+| ALL8 | 3 | 4835 | 35.0 | 102 | 1.71 | 61/208 | 1/4 | 0 | 55 / 783 |
+| ALL8PLAN | 1 | 6828 | 27.7 | 55 | 1.86 | 185/204 | 9/146 | 4 | 247 / 786 |
+| ALL8PLAN | 2 | 7551 | 27.9 | 71 | 1.80 | 132/203 | 6/140 | -9 | 175 / 735 |
+| ALL8PLAN | 3 | 7112 | 28.7 | 52 | 1.94 | 239/110 | 8/69 | 4 | 294 / 800 |
+
+Reading (Wilma): on this early code the rules together are worse than the base: real wage down by a quarter to a
+third, food shortfall up, more firms dead, the bank no safer, still no private maker of material. With the plan stage
+the colony is larger than without it and more builders survive, but 69-146 builders die per game. Superseded by the
+runs on aa49081 and 4fe504b.
+
+### All rules on, third batch (code aa49081: hold-back, imports, private hauliers; freight step still faulty), 60 years
+
+ALL = every sector switch + R8F_ENTRY, R8FR_MARKET, R8FR_PRIVATE, OWN_FIRST, ORDER_IN, INV_EXPECT, E150P, E165,
+E165B, E165Q. ALLNOFR without the two freight switches. ALLNOPLAN without E165, E165B, E165Q.
+
+| arm | seed | adults | u % | food | real | priv alive/dead | builders alive/dead | bank capital | colony money | material: price % of cost / filled |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | 1 | 10370 | 20.5 | 5 | 2.62 | 136/151 | 2/52 | 13 | 64 | 94 / 842 |
+| base | 2 | 6964 | 33.3 | 24 | 2.38 | 179/140 | 2/57 | 0 | 71 | 65 / 902 |
+| base | 3 | 7628 | 29.6 | 43 | 2.63 | 132/176 | 1/42 | -3 | 86 | 75 / 870 |
+| ALL | 1 | 6292 | 28.0 | 101 | 1.76 | 239/129 | 2/97 | -22 | 36 | 243 / 682 |
+| ALL | 2 | 3975 | 29.9 | 62 | 2.00 | 110/141 | 4/96 | -1 | 46 | 254 / 722 |
+| ALL | 3 | 6467 | 33.4 | 114 | 1.58 | 83/186 | 5/138 | -23 | 41 | 229 / 634 |
+| ALLNOFR | 1 | 4549 | 33.1 | 95 | 2.25 | 85/177 | 4/142 | -1 | 38 | 120 / 825 |
+| ALLNOFR | 2 | 5098 | 34.5 | 51 | 2.06 | 80/233 | 8/169 | 0 | 45 | 232 / 889 |
+| ALLNOFR | 3 | 5858 | 31.8 | 101 | 1.76 | 176/138 | 1/99 | -2 | 34 | 200 / 597 |
+| ALLNOPLAN | 1 | 5634 | 33.5 | 140 | 1.52 | 115/342 | 2/23 | -7 | 22 | 190 / 679 |
+| ALLNOPLAN | 2 | 4167 | 34.4 | 109 | 1.56 | 62/219 | 2/11 | -3 | 38 | 178 / 743 |
+| ALLNOPLAN | 3 | 4362 | 35.8 | 142 | 1.56 | 30/215 | 2/14 | -6 | 31 | 198 / 645 |
+
+Reading (Wilma): worse than the base on every seed and nearly every measure, and worse than the first look.
+What stands out, not yet traced: (1) colony money is half the base's (22-46M against 64-86M; the first look, without
+imports, had 58-77M), while prices are higher (ten-year price index 325-447 against 170 on seed 1 and 3); (2) almost
+no new firms: seed 1 ALL has 1 entrant, 6 plans, 2 opened against 29, 70 and 45 in the base, seed 3 none opened;
+(3) family farms founded 292-386, alive 70-106 (base 107 founded, 100 alive); (4) the bank ends at -22 and -23M on
+two seeds; (5) material at 2-2.5 times its cost with two thirds of orders filled and still no private maker; (6)
+97-169 builders die per game with the plan stage.
+
+### The same with the freight fix (code 4fe504b), 60 years
+
+| arm | seed | adults | u % | food | real | priv alive/dead | builders alive/dead | bank capital | colony money | material % of cost / filled | new firms: entrants / plans / opened |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| ALLFIX | 1 | 5716 | 31.3 | 77 | 1.68 | 109/145 | 6/93 | -1 | 33 | 142 / 678 | 3 / 22 / 0 |
+| ALLFIX | 2 | 5017 | 36.3 | 103 | 1.56 | 77/132 | 6/89 | -1 | 37 | 288 / 682 | 0 / 13 / 0 |
+| ALLFIX | 3 | 6355 | 26.7 | 72 | 1.85 | 94/181 | 10/154 | 9 | 47 | 249 / 688 | 3 / 18 / 0 |
+| ALLFIXNOPLAN | 1 | 5220 | 32.6 | 94 | 1.67 | 127/250 | 1/12 | 0 | 24 | 130 / 638 | 2 / 17 / 0 |
+| ALLFIXNOPLAN | 2 | 4044 | 39.6 | 182 | 1.30 | 65/228 | 2/4 | -5 | 22 | 281 / 642 | 1 / 21 / 1 |
+| ALLFIXNOPLAN | 3 | 4763 | 37.8 | 123 | 1.47 | 54/214 | 1/12 | -1 | 32 | 242 / 677 | 3 / 24 / 0 |
+
+Reading (Wilma): the freight fix does not change the picture. The bank's large losses are gone (-1, -1, 9 against
+-22, -1, -23), the rest is as bad. In six games, 115 firms were planned and one opened (base seed 1: 70 planned, 45
+opened).
+
 (more filled in as the reviews and runs come in)
