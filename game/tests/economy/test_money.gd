@@ -63,8 +63,8 @@ func test_asset_line_limit() -> void:
 	var oid := _firm(w)
 	var o: Dictionary = w.table("org")[oid]
 	var expect := EconMoney.stock_value(w, oid) * EconMoney.STOCK_PCT / 100 + EconMoney.receivables(w, oid) * EconMoney.RECV_PCT / 100 \
-		+ int(EconMoney.REV_M * float(EconAnnual.expected_rev(w, o)))
-	check_eq(EconAnnual.limit(w, o), expect, "line = stock + receivables + a month of expected sales")
+		+ int(EconMoney.REV_M * float(EconAnnual.avg_rev(o)))
+	check_eq(EconAnnual.limit(w, o), expect, "line = stock + receivables + a month of sales")
 	# no profit test: a loss-making year still has a line
 	var ring: Array = []
 	for i in 12:

@@ -20,6 +20,12 @@ const KINDS := ["PRIVATE", "COOPERATIVE", "PUBLIC_ENTERPRISE"]
 const DEAD := ["LIQUIDATION", "DISSOLVED"]
 
 
+## INV_EXPECT (opt-in until its A/B; user 2026-11-16: "Build it but don't switch it on until after"): the credit room and
+## the E153 line follow expected sales (EconAnnual.expected_rev) instead of the past year's average.
+static func expected_on(world: WorldState) -> bool:
+	return world.meta.has("on") and (world.meta["on"] as Array).has("INV_EXPECT") and not EconUtil.off(world, "INV_EXPECT")
+
+
 static func active(world: WorldState) -> bool:
 	return world.meta.has("on") and (world.meta["on"] as Array).has("E148") and not EconUtil.off(world, "E148")
 
@@ -52,7 +58,7 @@ static func room(world: WorldState, oid: String) -> int:
 		s["credit_room_m"] = world.month
 	if not cache.has(oid):
 		var o: Dictionary = world.table("org")[oid]
-		cache[oid] = maxi(0, int(float(EconAnnual.expected_rev(world, o)) * CREDIT_M) - owed(world, oid))
+		cache[oid] = maxi(0, int(float(EconAnnual.expected_rev(world, o) if expected_on(world) else EconAnnual.avg_rev(o)) * CREDIT_M) - owed(world, oid))
 	return int(cache[oid])
 
 

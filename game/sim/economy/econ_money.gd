@@ -105,7 +105,7 @@ static func receivables(world: WorldState, oid: String) -> int:
 ## The asset-based line limit (mcr).
 static func line_limit(world: WorldState, o: Dictionary) -> int:
 	var oid: String = o["id"]
-	return stock_value(world, oid) * STOCK_PCT / 100 + receivables(world, oid) * RECV_PCT / 100 + int(REV_M * float(EconAnnual.expected_rev(world, o)))
+	return stock_value(world, oid) * STOCK_PCT / 100 + receivables(world, oid) * RECV_PCT / 100 + int(REV_M * float(EconAnnual.expected_rev(world, o) if EconCredit.expected_on(world) else EconAnnual.avg_rev(o)))
 
 
 # ------------------------------------------------------------------ E155
