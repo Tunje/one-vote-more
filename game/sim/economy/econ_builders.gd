@@ -232,6 +232,7 @@ static func job_margin(world: WorldState, oid: String) -> int:
 		var late := maxi(0, world.month - (int(p["start_month"]) + int(p["bid_duration"])))
 		var penalty := int(float(p["price"]) * minf(0.10, 0.01 * late)) if int(p.get("supervision", 0)) >= 500 else 0
 		var left := float(int(p["price"]) - penalty) * frac  # what the work left earns (the advance and retention are timing)
+		left += wage_change(world, p, frac)  # and the wage clause on it
 		var wages := float(int(p["wu_total"]) - int(p["wu_done"])) / float(S) * wage_wu
 		var mp := int(p.get("esc_mat_price", s["prices"]["MATERIAL"]))
 		var cp := int(p.get("esc_comp_price", s["prices"]["COMPONENT"]))
@@ -377,6 +378,22 @@ static func step_margins(world: WorldState) -> void:
 
 
 # ------------------------------------------------------------------ the quote the client may refuse (award)
+
+## The wage clause on `frac` of job p's work (S-scaled mcr): what the contract adds for the change in wages since its
+## award (EconConstruction._escalation; Wilma's clause, a19ee06), both directions; 0 without a wage basis. Pure.
+## Counted wherever work under way is valued (job_margin, average_share), so they read today's wages on both sides.
+static func wage_change(world: WorldState, p: Dictionary, frac: float) -> float:
+	if not p.has("esc_wage") or int(p["esc_wage"]) <= 0:
+		return 0.0
+	var s := EconUtil.peek_st(world)
+	var n := 0
+	var wsum := 0.0
+	for t in EconData.BUILDER_CREW:
+		n += int(EconData.BUILDER_CREW[t])
+		wsum += float(EconData.BUILDER_CREW[t]) * float(s["wage"].get(t, s["wage"].get("G", 0)))
+	var now := int(wsum / float(maxi(1, n)))  # EconConstruction.crew_wage, read without touching the state
+	return float(p["esc_wage_cost"]) * frac * (float(now) / float(int(p["esc_wage"])) - 1.0)
+
 
 ## The owner's own estimate of the job at this month's wages and input prices (no foreknowledge).
 static func owner_estimate(world: WorldState, p: Dictionary) -> int:
@@ -542,7 +559,7 @@ static func average_share(world: WorldState) -> Dictionary:
 		var pc := px_c
 		if p["status"] == "ACTIVE":
 			left = total - float(int(p["wu_done"]))
-			pays = float(int(p["price"])) * left / total
+			pays = float(int(p["price"])) * left / total + wage_change(world, p, left / total)
 			pm = float(int(p.get("esc_mat_price", int(px_m))))  # E76 escalation pays the change since the award
 			pc = float(int(p.get("esc_comp_price", int(px_c))))
 		elif p["status"] in ["TENDER", "TENDERABLE"]:

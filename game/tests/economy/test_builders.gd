@@ -144,7 +144,9 @@ func test_government_refusal_is_a_fact() -> void:
 	var d: Dictionary = facts[-1]["data"]
 	check(d.has("price") and d.has("estimate") and d.has("line") and d.has("headroom"), "with price, estimate, line, headroom")
 	check_eq(String(d["reason"]), "budget", "reason: budget")
-	_bid(p, bid, int(p["est_cost"]))
+	# within the government's own estimate at this month's prices (material may be cheaper than its base price now that
+	# unsold stock lowers prices), and no dearer than its reservation
+	_bid(p, bid, mini(int(p["est_cost"]), EconBuilders.owner_estimate(w, p)))
 	EconBuilders.award_round(w)
 	check_eq(p["status"], "ACTIVE", "a bid within the estimate is accepted")
 
@@ -345,3 +347,27 @@ func test_three_months_of_supplies_up_front() -> void:
 		if od["buyer"] == oid and od["good"] == "MATERIAL":
 			ordered += int(od["qty"])
 	check(ordered > 0 or EconUtil.inv_get(w, oid, "MATERIAL", hq) >= three, "it tops its stock up to three months (%d ordered)" % ordered)
+
+
+## The wage clause counts wherever work under way is valued: job_margin and the newcomer's average.
+func test_work_under_way_valued_at_todays_wages() -> void:
+	var w := _sim(["R8", "R8_BUILDERS"]).world
+	var oid := _builder(w)
+	var o: Dictionary = w.table("org")[oid]
+	for pid0 in o["contracts"].duplicate():
+		o["contracts"].erase(pid0)
+	var own := _owner(w)
+	var pid := EconConstruction.create(w, "TEXTILE", "d:1", own, own, "")
+	var p: Dictionary = w.table("project")[pid]
+	_bid(p, oid, EconBuilders.owner_estimate(w, p), 0)
+	EconBuilders.award_round(w)
+	check(p.has("esc_wage"), "the award records the wage basis")
+	var jm0 := EconBuilders.job_margin(w, oid)
+	var av0 := float(EconBuilders.average_share(w)["value_pw"])
+	var s := EconUtil.st(w)
+	for t in s["wage"]:
+		s["wage"][t] = int(s["wage"][t]) * 2
+	check(absf(EconBuilders.wage_change(w, p, 1.0) - float(p["esc_wage_cost"])) < 0.001 * float(p["esc_wage_cost"]), "wages doubled: the clause adds the job wage part again (%f vs %d, basis %d)" % [EconBuilders.wage_change(w, p, 1.0), int(p["esc_wage_cost"]), int(p["esc_wage"])])
+	check(EconBuilders.job_margin(w, oid) < jm0 and EconBuilders.job_margin(w, oid) > jm0 - int(float(p["esc_wage_cost"]) * 2.0),
+		"its job loses only the overhead on the wage rise, not the whole rise (the clause pays the rest)")
+	check(float(EconBuilders.average_share(w)["value_pw"]) > av0, "the average a newcomer reads is at today's wages")
