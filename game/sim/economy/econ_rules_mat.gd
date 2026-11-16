@@ -2,8 +2,13 @@ class_name EconRulesMat
 extends RefCounted
 ## R8 step 2b (Bob; planning/eight-rules.md): the eight rules for the materials chain, MINE (MINERAL), PROCESSING
 ## (MATERIAL) and COMPONENTS (COMPONENT). Switch R8 + R8_MATERIAL. Kill switches for the A/B take-apart (opt-in names in
-## meta "on"): R8M_NOVALUE (value bids), R8M_NOOUT (rules 3/4), R8M_NOCAP (rules 5/6), R8M_NOENTRY (rules 7/8). Price rules 1/2 are opt-in only (R8M_PX): the A/B (planning/ab-r8-materials.md) dropped them; value bids replace
-## them (user 2026-11-15: "That's a lot of hard rules, that's just going to lock up price. Why is no one paying the price?").
+## meta "on"): R8M_NOVALUE (value bids), R8M_NOOUT (rules 3/4), R8M_NOCAP (rules 5/6), R8M_NOENTRY (rules 7/8).
+## Price rules 1/2: the first draft's rules (one market price on the type's cost, creep up to full cost, never below
+## variable cost) are opt-in only (R8M_PX); Wilma dropped them after the A/B (planning/ab-r8-materials.md). The user's
+## sentence of 2026-11-15 ("That's also of hard rules that's just going to lock up price, why is no one paying the price,
+## that's the issue") criticised the draft's hard floors and led to value bids; it did not remove rules 1/2 (the user,
+## 2026-11-16: "i did not say that in relation to the eight rules i said that before we applied them"). Every producer
+## has all eight rules: rules 1/2 on the seller's own signals are R8M_OWNPX (below), off until their A/B.
 ##
 ## Why (probe, seeds 1 and 4 × 30 years with E172): the materials markets were in a price deadlock, not short of plants.
 ## MINERAL sat at its floor (0.25 × base) for twenty years at a fifth of the mines' cost; MATERIAL sold at 0.6–0.7 × the
@@ -34,6 +39,16 @@ const GOOD_FOR := {"MINE": "MINERAL", "PROCESSING": "MATERIAL", "COMPONENTS": "C
 ## R8 step 3 (opt-in R8_FOOD): rules 3–6 also for the food companies' plants (families follow their sales instead:
 ## EconRulesFood). Kill switches R8F_NOOUT, R8F_NOCAP.
 const FOOD_GOOD_FOR := {"FARM": "FOOD", "BAKERY": "FINE_FOOD"}
+## R8_WORKSHOPS (the user's order of 2026-11-16, every producer under all eight rules): the consumer workshops and the
+## medical works get the same eight rules as the materials chain, all under the one sector switch: rules 1/2 their own
+## prices (own_prices), 3/4 output (target), 5/6 capacity (capacity, keeps), 7/8 entry on the forecast (entry_hot; the
+## medical works get an entry path, they had none). Kill switches for the take-apart: R8W_NOPX, R8W_NOOUT, R8W_NOCAP,
+## R8W_NOENTRY.
+const WORKSHOP_GOOD_FOR := {"CONSUMERF": "CONSUMER", "TEXTILE": "CLOTHING", "FURNITURE": "FURNISHINGS", "MEDWORKS": "MEDICAL"}
+
+
+static func shops_on(world: WorldState) -> bool:
+	return EconRules.sector_on(world, "WORKSHOPS")
 const STEP := 0.03
 const STEP_UP := 0.05
 const MARKUP := 1.2
@@ -55,6 +70,107 @@ static func _part(world: WorldState, kill: String) -> bool:
 	return on(world) and not (world.meta.get("on", []) as Array).has(kill)
 
 
+## Rules 1/2 on the seller's own signals (R8M_OWNPX, opt-in until its A/B; Wilma 2026-11-16): each MINE, PROCESSING and
+## COMPONENTS plant has its own price, set after each month's clearing from its own R8 readings.
+##   1 raise: it has reachable unfilled orders → up by OWN_ALPHA × reach ÷ its capacity, at most OWN_UP a month;
+##   2 lower: no reachable unfilled order and stock left unsold → down by OWN_ALPHA × unsold ÷ sales (its cover), at
+##     most OWN_DOWN a month.
+## No floor, no creep to cost, no "never below" (the hard rules the user objected to); only the bounds every price in
+## the game has (PRICE_MIN_MULT .. PRICE_MAX_MULT × the wage level). The seller asks its own price (FirmAI: no cover
+## markup, no 0.9 × full-cost ask floor for these goods); the good's market price, which buyers' limits and rules 5/7
+## read, is the capacity-weighted mean of its open plants' prices instead of the E149 step.
+## OWN_ALPHA, OWN_UP and OWN_DOWN are Bob's numbers, not the user's.
+const OWN_ALPHA := 0.15
+const OWN_UP := 0.05
+const OWN_DOWN := 0.03
+
+
+## Which switch puts a good's sellers on rules 1/2: materials R8M_OWNPX; food (big farms, bakeries and the family
+## farms and bakeries alike: every plant that makes FOOD or FINE_FOOD) R8F_OWNPX, with R8_FOOD.
+const OWN_SWITCH := {"MINERAL": "R8M_OWNPX", "MATERIAL": "R8M_OWNPX", "COMPONENT": "R8M_OWNPX", "FOOD": "R8F_OWNPX",
+	"FINE_FOOD": "R8F_OWNPX", "CONSUMER": "R8_WORKSHOPS", "CLOTHING": "R8_WORKSHOPS", "FURNISHINGS": "R8_WORKSHOPS",
+	"MEDICAL": "R8_WORKSHOPS"}
+
+
+static func own_on(world: WorldState, good: String) -> bool:
+	if not OWN_SWITCH.has(good):
+		return false
+	var sw := String(OWN_SWITCH[good])
+	if sw == "R8_WORKSHOPS":
+		return shops_on(world) and not (world.meta.get("on", []) as Array).has("R8W_NOPX")
+	var sector := on(world) if TYPE_FOR.has(good) else EconRulesFood.on(world)
+	return sector and (world.meta.get("on", []) as Array).has(sw) and not EconUtil.off(world, sw)
+
+
+static func _makes(f: Dictionary, good: String) -> bool:
+	var r: Dictionary = EconData.RECIPES.get(f["type"], {})
+	return not r.is_empty() and String(r["out"][0]) == good
+
+
+static func _px_bounds(world: WorldState, good: String, p: float) -> int:
+	var base := float(EconUtil.st(world)["base"][good])
+	return maxi(1, int(clampf(p, base * EconData.PRICE_MIN_MULT, base * EconData.PRICE_MAX_MULT * EconMarket.wage_level(world))))
+
+
+## Rules 1/2, monthly after clearing (from EconRulesMat.monthly, after the R8 plant readings).
+static func own_prices(world: WorldState) -> void:
+	var s := EconUtil.st(world)
+	var pl: Dictionary = s["r8"].get("plants", {})
+	for good in EconUtil.sorted_keys(OWN_SWITCH):
+		if not own_on(world, good):
+			continue
+		var wsum := 0.0
+		var csum := 0.0
+		for fid in EconUtil.sorted_keys(world.table("facility")):
+			var f: Dictionary = world.table("facility")[fid]
+			if not _makes(f, good):
+				continue
+			var p := float(int(f.get("r8_px", 0)))
+			if p <= 0.0:
+				p = float(s["prices"][good])
+			var cap := float(EconData.RECIPES[f["type"]]["out"][1]) * float(S) * EconUtil.fscale(f)
+			var r: Dictionary = pl.get(fid, {})
+			if not r.is_empty():
+				if int(r["reach"]) > 0:
+					p *= 1.0 + minf(OWN_UP, OWN_ALPHA * float(int(r["reach"])) / maxf(1.0, cap))
+				elif int(r["cover"]) > 0:
+					p *= 1.0 - minf(OWN_DOWN, OWN_ALPHA * float(int(r["cover"])) / 1000.0)
+			f["r8_px"] = _px_bounds(world, good, p)
+			if not f["mothball"]:
+				wsum += float(int(f["r8_px"])) * cap
+				csum += cap
+		if csum > 0.0:
+			s["prices"][good] = _px_bounds(world, good, wsum / csum)
+
+
+## What a seller asks for `good` in district `d` under R8M_OWNPX: the mean own price of its plants of that good there
+## (open ones first), else of all its plants of that good, else the market price.
+static func own_ask(world: WorldState, oid: String, good: String, d: String) -> int:
+	var here := [0, 0]
+	var open_here := [0, 0]
+	var anyw := [0, 0]
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["org"] != oid or not _makes(f, good) or int(f.get("r8_px", 0)) <= 0:
+			continue
+		var p := int(f["r8_px"])
+		anyw[0] += p
+		anyw[1] += 1
+		if f["district"] == d:
+			here[0] += p
+			here[1] += 1
+			if not f["mothball"]:
+				open_here[0] += p
+				open_here[1] += 1
+	if open_here[1] > 0:
+		return open_here[0] / open_here[1]
+	if here[1] > 0:
+		return here[0] / here[1]
+	if anyw[1] > 0:
+		return anyw[0] / anyw[1]
+	return int(EconUtil.st(world)["prices"][good])
+
+
 static func prices_on(world: WorldState, good: String) -> bool:
 	return TYPE_FOR.has(good) and on(world) and (world.meta.get("on", []) as Array).has("R8M_PX") and not EconUtil.off(world, "R8M_PX")
 
@@ -73,17 +189,38 @@ static func good_of(world: WorldState, ftype: String) -> String:
 		return String(GOOD_FOR[ftype])
 	if FOOD_GOOD_FOR.has(ftype) and EconRulesFood.on(world):
 		return String(FOOD_GOOD_FOR[ftype])
+	if WORKSHOP_GOOD_FOR.has(ftype) and shops_on(world):
+		return String(WORKSHOP_GOOD_FOR[ftype])
 	return ""
+
+
+## Family farms and bakeries under rules 5/6 (R8F_FAM56, with R8_FOOD; the user's order of 2026-11-16 that every
+## producer has all eight rules): rule 5 grows the family's own plant by a quarter (it hires hands; never a second
+## plant), on the same signals as any producer, with the family's own unit cost in the price test; rule 6 is the
+## mothball rule, never while the plant has reachable unfilled orders. Rules 3/4 stay the family's own (EconRulesFood).
+static func fam56_on(world: WorldState, ftype: String) -> bool:
+	return EconRulesFood.FAMILY_TYPES.has(ftype) and EconRulesFood.on(world) \
+		and (world.meta.get("on", []) as Array).has("R8F_FAM56") and not EconUtil.off(world, "R8F_FAM56")
+
+
+## The good a plant type makes for rules 5/6 and their counters: good_of, or a family type's good under R8F_FAM56.
+static func _rule_good(world: WorldState, ftype: String) -> String:
+	var g := good_of(world, ftype)
+	if g == "" and fam56_on(world, ftype):
+		g = String(EconRulesFood.FAMILY_TYPES[ftype])
+	return g
 
 
 static func _rule_on(world: WorldState, ftype: String, part: String) -> bool:
 	if good_of(world, ftype) == "":
 		return false
-	var kill := ("R8M_" if GOOD_FOR.has(ftype) else "R8F_") + part
+	var kill := ("R8M_" if GOOD_FOR.has(ftype) else ("R8W_" if WORKSHOP_GOOD_FOR.has(ftype) else "R8F_")) + part
 	return not (world.meta.get("on", []) as Array).has(kill)
 
 
 static func entry_on(world: WorldState, ftype: String) -> bool:
+	if WORKSHOP_GOOD_FOR.has(ftype):
+		return shops_on(world) and not (world.meta.get("on", []) as Array).has("R8W_NOENTRY")
 	return GOOD_FOR.has(ftype) and _part(world, "R8M_NOENTRY")
 
 
@@ -158,12 +295,12 @@ static func target(world: WorldState, f: Dictionary, good: String, t: float) -> 
 # ------------------------------------------------------------------ monthly counters (EconRules.monthly)
 
 static func monthly(world: WorldState) -> void:
-	if not on(world) and not EconRulesFood.on(world):
+	if not on(world) and not EconRulesFood.on(world) and not shops_on(world):
 		return
 	var pl: Dictionary = EconUtil.st(world)["r8"].get("plants", {})
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
-		if good_of(world, String(f["type"])) == "":
+		if _rule_good(world, String(f["type"])) == "":
 			continue
 		var p: Dictionary = pl.get(fid, {})
 		if p.is_empty():
@@ -179,6 +316,7 @@ static func monthly(world: WorldState) -> void:
 		f["r8_unf_bits"] = ((int(f.get("r8_unf_bits", 0)) << 1) | (1 if int(p["reach"]) * 1000 >= cap * UNF_PM else 0)) & 0xFFF
 		f["r8_hi_m"] = _bits(int(f["r8_hi_bits"]))
 		f["r8_unf_m"] = _bits(int(f["r8_unf_bits"]))
+	own_prices(world)  # rules 1/2 on the seller's own signals (R8M_OWNPX)
 
 
 static func _bits(x: int) -> int:
@@ -191,13 +329,13 @@ static func _bits(x: int) -> int:
 
 ## Rule 6: a plant with reachable unfilled orders in the last 12 months is not mothballed.
 static func keeps(world: WorldState, f: Dictionary) -> bool:
-	return capacity_on(world, String(f["type"])) and int(f.get("r8_unf_m", 0)) > 0
+	return (capacity_on(world, String(f["type"])) or fam56_on(world, String(f["type"]))) and int(f.get("r8_unf_m", 0)) > 0
 
 
 # ------------------------------------------------------------------ rule 5 (quarterly, FirmAI.run)
 
 static func capacity(world: WorldState) -> void:
-	if not on(world) and not EconRulesFood.on(world):
+	if not on(world) and not EconRulesFood.on(world) and not shops_on(world):
 		return
 	var s := EconUtil.st(world)
 	var acts: Array = s.get("r8_mat_actions", [])
@@ -205,24 +343,29 @@ static func capacity(world: WorldState) -> void:
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		var ftype := String(f["type"])
-		if not capacity_on(world, ftype) or f["mothball"] or done.has(ftype):
+		var fam56 := fam56_on(world, ftype)
+		if not (capacity_on(world, ftype) or fam56) or f["mothball"] or done.has(ftype):
 			continue
 		if int(f.get("r8_hi_m", 0)) < HI_M or int(f.get("r8_unf_m", 0)) < UNF_M:
 			continue
 		var o: Dictionary = world.table("org").get(f["org"], {})
-		if o.is_empty() or o["status"] != "ACTIVE" or o["is_contractor"] or bool(o.get("family", false)):
+		if o.is_empty() or o["status"] != "ACTIVE" or o["is_contractor"] or (bool(o.get("family", false)) and not fam56):
 			continue
 		var pe: bool = o["type"] == "PUBLIC_ENTERPRISE"
 		if not (o["type"] in ["PRIVATE", "COOPERATIVE"] or pe):
 			continue
-		var good := good_of(world, ftype)
-		if float(EconTrade.plan_price(world, good)) < ADD_MARGIN * FirmAI.unit_cost(world, ftype):
+		var good := _rule_good(world, ftype)
+		var family := bool(o.get("family", false))
+		var uc := EconRulesFood.family_full_cost(world, String(f["org"]), ftype) if family else FirmAI.unit_cost(world, ftype)
+		if float(EconTrade.plan_price(world, good)) < ADD_MARGIN * uc:
 			continue
 		if not pe and EconPublicCo.result12(o) < 0:
 			continue
 		if EconConstruction.has_open_project(world, f["org"], ftype) or _expand_pending(world, fid):
 			continue
 		var grow := int(f.get("scale", 1000)) < MAX_SCALE and EconData.BUILD.has(ftype)
+		if family and not grow:
+			continue  # a family grows its own plant; it never builds a second one
 		if not grow and EconEssentials.labour_fill(world, ftype) < EconEssentials.MIN_LABOUR_FILL:
 			continue
 		var cost := EconConstruction.estimate(ftype) / 4 if grow else EconConstruction.estimate(ftype)
@@ -404,10 +547,12 @@ static func value_limit(world: WorldState, good: String, old_lim: int, value: in
 
 
 ## A builder's value per unit of MATERIAL / COMPONENT: the base price its contracts were priced on × contract price ÷
-## cost estimate (its active contracts; 0 without one).
+## cost estimate (its active contracts; 0 without one). Under R8M_JOBVALUE: job_value (no base price in it).
 static func builder_value(world: WorldState, oid: String, good: String) -> int:
 	if not value_on(world) or not TYPE_FOR.has(good):
 		return 0
+	if job_value_on(world):
+		return job_value(world, oid, good)
 	var price := 0
 	var est := 0
 	for pid in world.table("org")[oid].get("contracts", []):
@@ -419,3 +564,50 @@ static func builder_value(world: WorldState, oid: String, good: String) -> int:
 	if price <= 0 or est <= 0:
 		return 0
 	return int(float(EconData.BASE_PRICE[good]) * float(S) * float(price) / float(est))
+
+
+## R8M_JOBVALUE (opt-in until its A/B; Wilma 2026-11-16; formula agreed with Otto, who owns the builders): a builder's
+## value of material is what its jobs leave for it at today's figures. Over the jobs it buys material for (ACTIVE, started,
+## no payment behind: unpaid_m == 0), per unit of this good still needed (total × the share of work left):
+##   the award price of this good (the E76 escalation clause pays back any rise above it, up to its cap)
+## + (what the work left earns: (price − the late penalty owed today (supervised jobs: price × min(10%, 1% a month
+##    late))) × the share of work left; not price − paid, since the 10% advance and the retention only move cash in
+##    time (Otto) − the wages still to pay (work left × its crew wage × 1.08, the overhead its bid uses) − the other input still
+##    needed at its award price) ÷ the units still needed.
+## Office, upkeep and interest are not taken off (paid whether or not it buys this unit). This month's wages are counted
+## as still to pay, so it is the lower bound (Otto). 0 when nothing is left (the old 1.3 × price limit then stands).
+static func job_value_on(world: WorldState) -> bool:
+	return (world.meta.get("on", []) as Array).has("R8M_JOBVALUE") and not EconUtil.off(world, "R8M_JOBVALUE")
+
+
+static func job_value(world: WorldState, oid: String, good: String) -> int:
+	if not (good in ["MATERIAL", "COMPONENT"]):
+		return 0
+	var mat := good == "MATERIAL"
+	var key := "mat_total" if mat else "comp_total"
+	var okey := "comp_total" if mat else "mat_total"
+	var pkey := "esc_mat_price" if mat else "esc_comp_price"
+	var opkey := "esc_comp_price" if mat else "esc_mat_price"
+	var prices: Dictionary = EconUtil.st(world)["prices"]
+	var wage := EconConstruction._crew_wage(world, oid) * 1.08
+	var money := 0.0
+	var need := 0.0
+	for pid in world.table("org")[oid].get("contracts", []):
+		var p: Dictionary = world.table("project").get(pid, {})
+		if p.is_empty() or p["status"] != "ACTIVE" or int(p["wu_total"]) <= 0:
+			continue
+		if int(p.get("start_month", -1)) < 0 or int(p["start_month"]) > world.month or int(p.get("unpaid_m", 0)) > 0:
+			continue
+		var wu_left := float(maxi(0, int(p["wu_total"]) - int(p["wu_done"])))
+		var frac := wu_left / float(int(p["wu_total"]))
+		var n := float(int(p[key])) * frac
+		var late := maxi(0, world.month - (int(p["start_month"]) + int(p["bid_duration"])))
+		var penalty := float(int(p["price"])) * minf(0.10, 0.01 * float(late)) if int(p["supervision"]) >= 500 else 0.0
+		var award := float(int(p.get(pkey, prices[good])))
+		var o_award := float(int(p.get(opkey, prices["COMPONENT" if mat else "MATERIAL"])))
+		money += award * n / float(S) + (float(int(p["price"])) - penalty) * frac \
+			- wu_left / float(S) * wage - float(int(p[okey])) * frac / float(S) * o_award
+		need += n
+	if need <= 0.0 or money <= 0.0:
+		return 0
+	return int(money * float(S) / need)

@@ -96,6 +96,8 @@ static func quarterly(world: WorldState) -> void:
 	for key in EconUtil.sorted_keys(TARIFFS):
 		if key == "CPW" and EconRulesUtil.on(world):
 			continue  # R8 utilities: rules 1/2 set CPW's tariffs
+		if key == "CTA" and EconRules.freight_market_on(world, "R8FR_NOPX"):
+			continue  # R8FR_MARKET: the freight tariff follows the freight market (EconRules._freight_tariff)
 		var oid := EconFinance.org_by_key(world, key)
 		if oid == "":
 			continue

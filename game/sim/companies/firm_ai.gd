@@ -163,8 +163,11 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 			t = _budget_ratio(world, f)
 			if EconRules.sector_on(world, "INSTITUTIONS"):
 				t = EconInst.target(world, f, t)   # R8_INSTITUTIONS (Maja): crews to the clients
-		"HOUSING", "DEPOT":
+		"HOUSING":
 			t = 1.0
+		"DEPOT":
+			var dt := EconRules.depot_target(world)  # R8FR_MARKET rules 3/4: the freight demanded
+			t = dt if dt >= 0.0 else 1.0
 		"SERVICEHUB":
 			var cap2 := float(r["out"][1]) * S * EconUtil.fscale(f)
 			var sold := float(f.get("svc_sold", cap2))  # services sold last month
@@ -505,6 +508,11 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 		s["orders"].append({"buyer": oid, "acct": EconUtil.acct(oid), "district": d, "good": good, "qty": want, "limit": lim,
 			"class": cls, "kind": "org"})
 	# sale offers: each org offers its output goods' stock, priced by inventory cover
+	# OWN_FIRST (opt-in; Otto's building trace, seed 3 × 60 years: the material chain's own plants decayed for want of
+	# upkeep while their owner made MATERIAL and COMPONENT): a producer keeps back from its offer what its own plants
+	# need of the good in that district this month (inputs and upkeep, `needs`). Before, its whole stock was offered and
+	# sold in a shortage, and buying it back was a market order capped by the owner's cash, so the plants went without.
+	var own_first: bool = (world.meta.get("on", []) as Array).has("OWN_FIRST") and not EconUtil.off(world, "OWN_FIRST")
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		var o: Dictionary = world.table("org")[oid]
 		var outs := _org_outputs(world, oid)
@@ -512,11 +520,14 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 			var ema := float(o["sales_ema"].get(good, outs[good]))
 			for d in EconUtil.sorted_keys(EconData.DISTRICTS):
 				var q := EconUtil.inv_get(world, oid, good, d)
+				if own_first:
+					q -= mini(q, int(needs.get(oid + "|" + good + "|" + d, 0)))
 				if q <= 0:
 					continue
 				var cover := float(_org_stock(world, oid, good)) / maxf(1.0, ema)
 				var m := 1.05 if cover < 0.5 else (1.0 if cover <= 2.0 else (0.95 if cover <= 4.0 else 0.90))
-				var ask := int(float(s["prices"][good]) * m)
+				var own := EconRulesMat.own_on(world, good)  # R8M_OWNPX: its own price (rules 1/2), no cover markup, no floor
+				var ask := EconRulesMat.own_ask(world, oid, good, d) if own else int(float(s["prices"][good]) * m)
 				if (o.get("c_gouge", {}) as Dictionary).has(good):
 					ask = maxi(ask, int(float(s["prices"][good]) * EconConduct.GOUGE_MULT))  # E132: gouging in a shortage
 				# floor: full unit cost (labor included), 90% when active, 70% when distressed; never below material cost
@@ -525,7 +536,8 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 				if ftype != "" and bool(o.get("family", false)) and EconRulesFood.famask_on(world):
 					full = EconRulesFood.family_full_cost(world, oid, ftype)  # R8 step 3 (opt-in R8_FOOD): a family asks its own cost
 				var floor_c := maxi(EconUtil.inv_wac(world, oid, good, d), int(full * (0.9 if o["status"] == "ACTIVE" else 0.7)))
-				ask = maxi(ask, floor_c)
+				if not own:
+					ask = maxi(ask, floor_c)
 				s["offers"].append({"seller": oid, "acct": EconUtil.acct(oid), "district": d, "good": good, "qty": q, "ask": ask})
 
 
@@ -709,8 +721,8 @@ static func _expansion(world: WorldState) -> void:
 			continue
 		if f["mothball"] or f.get("steady_m", 0) < 3 or f.get("scale", 1000) >= 3000 or not EconData.BUILD.has(f["type"]):
 			continue
-		if EconRulesMat.capacity_on(world, f["type"]):
-			continue  # R8 step 2b: rule 5
+		if EconRulesMat.capacity_on(world, f["type"]) or EconRulesMat.fam56_on(world, f["type"]):
+			continue  # R8 step 2b: rule 5 (R8F_FAM56: family plants too)
 		if f["type"] == "SERVICEHUB" and EconRulesSvc.cap_on(world):
 			continue  # R8_SERVICES: rule 5
 		if world.month - o.get("last_expand", -6) < 6:
@@ -1169,6 +1181,8 @@ static func _entry(world: WorldState) -> void:
 	var inst_district := {}
 	if EconRules.sector_on(world, "INSTITUTIONS"):
 		entry_types.append_array(["CLINIC", "SCHOOL"])  # R8_INSTITUTIONS (Maja): private clinics and schools, rules 7/8
+	if EconRulesMat.entry_on(world, "MEDWORKS"):
+		entry_types.append("MEDWORKS")  # R8_WORKSHOPS: the medical works get an entry path
 	for ftype in entry_types:
 		var good: String = EconData.RECIPES[ftype]["out"][0]
 		var price := float(s["prices"].get(good, 0))
@@ -1190,7 +1204,7 @@ static func _entry(world: WorldState) -> void:
 				hot = false
 			# consumer workshops need real unmet demand, not just a high price on a thin market (141 of 198 entrants in
 			# 60 years were workshops, almost all failed or were never built, crowding out the farms that lasted)
-			if ftype in ["TEXTILE", "FURNITURE", "BAKERY"] and int(s.get("fill_last", {}).get(good, 1000)) >= ENTRY_D2_FILL 					and not (ftype == "BAKERY" and EconStaple.active(world)):  # E146: bakeries are food producers, gated like farms
+			if ftype in ["TEXTILE", "FURNITURE", "BAKERY"] and int(s.get("fill_last", {}).get(good, 1000)) >= ENTRY_D2_FILL 					and not (ftype == "BAKERY" and EconStaple.active(world)) and not EconRulesMat.entry_on(world, ftype):  # E146: bakeries are food producers, gated like farms
 				hot = false
 		if EconRulesMat.entry_on(world, ftype) and world.month - int(fails.get(ftype, -9999)) >= ENTRY_FAIL_COOL_M:
 			hot = EconRulesMat.entry_hot(world, ftype, "d:1")  # R8 step 2b: rules 7/8, the forecast instead of the price test
@@ -1249,7 +1263,7 @@ static func _entry(world: WorldState) -> void:
 	var est := 0
 	for row in hot_list:
 		var ft: String = row[0]
-		if ft in ["TEXTILE", "FURNITURE", "BAKERY"] and (world.month < D2_ENTRY_MONTH or colony_unemployment(world) < D2_ENTRY_UNEMP) 				and not (ft == "BAKERY" and EconStaple.active(world)):
+		if ft in ["TEXTILE", "FURNITURE", "BAKERY"] and (world.month < D2_ENTRY_MONTH or colony_unemployment(world) < D2_ENTRY_UNEMP) 				and not (ft == "BAKERY" and EconStaple.active(world)) and not EconRulesMat.entry_on(world, ft):
 			continue  # D2: consumer workshops start once there are idle hands (not while the farms still need every worker)
 		if forming_types.has(ft):
 			continue

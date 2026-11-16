@@ -251,6 +251,16 @@ is left out for any company type because its condition would not come true today
 rule exists and waits. Private hauliers are built with founding and shrinking on profit. Free services (clinics,
 schools, care, administration) get their price rules too; they do nothing while the service is free.
 
+**Three answers, same day (the user, verbatim):** "1. Yes they may order in, 2. I don't like hard rules you know that,
+but maybe a soft it will sell less just took keep afloat, build up stock for better prices, that's if your have not
+made everyone know all stocks at all times. 3. Schools and charge it's a bracket in taxes". The questions were:
+1 may material and components come from the home world when the colony has no working producer; 2 may a seller
+refuse to sell below its own cost; 3 do public clinics and schools ever charge. So: (1) material and components may
+be ordered in from the home world. (2) No hard "never below cost" anywhere; a seller short of its cost may sell less
+and build up stock for better prices, and that only works if the stock it holds back is not known to everyone, so
+held-back stock must not count as supply in anyone's price reading. (3) What a school charges is a bracket in taxes,
+not a fee at the door (Wilma's reading: the same shape for clinics and care unless the user says otherwise).
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and

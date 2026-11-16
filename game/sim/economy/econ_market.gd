@@ -342,6 +342,8 @@ static func _update_prices(world: WorldState) -> void:
 	var contest: bool = (world.meta.get("on", []) as Array).has("E139") and not EconUtil.off(world, "E139")
 	var cost_plus: bool = (world.meta.get("on", []) as Array).has("E149") and not EconUtil.off(world, "E149")
 	for good in CLEAR_ORDER:
+		if EconRulesMat.own_on(world, good):
+			continue  # R8M_OWNPX: the sellers' own prices set it (EconRulesMat.own_prices, after clearing)
 		var m: Dictionary = s["market_stats"].get(good, {})
 		var d := float(m.get("D", 0))
 		var sup := float(m.get("S", 0))

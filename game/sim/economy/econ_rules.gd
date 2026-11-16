@@ -313,6 +313,79 @@ const DEPOT_MAX_SCALE := 3000
 const PORT_M := 6  # EXP_PORT: months of the last 12 with cargo the port store could not take
 
 
+## Freight rules 1-4 on the carrier's own market (R8FR_MARKET, with R8_FREIGHT; the user's order of 2026-11-16 that
+## every producer has all eight rules). Kill switches R8FR_NOPX (rules 1/2), R8FR_NOOUT (rules 3/4).
+##   1 raise the freight tariff: freight was deferred in the last quarter (orders the trucks could not carry) → up by
+##     OWN_ALPHA × deferred ÷ capacity, at most OWN_UP, at least one step of the integer lever;
+##   2 lower it: nothing deferred and trucks standing idle → down by OWN_ALPHA × idle ÷ capacity, at most OWN_DOWN, at
+##     least one step. Quarterly (as E150), within the lever's range; E150 no longer steps CTA's tariff on its result.
+##   3/4 depot output: the depots run at the freight demanded last month (carried + deferred) ÷ their full capacity,
+##     the core crew (rule 4's 20%) at least, instead of always at full output.
+## OWN_ALPHA / OWN_UP / OWN_DOWN are Bob's numbers (EconRulesMat).
+static func freight_market_on(world: WorldState, kill: String = "") -> bool:
+	var on: Array = world.meta.get("on", []) as Array
+	return sector_on(world, "FREIGHT") and on.has("R8FR_MARKET") and not EconUtil.off(world, "R8FR_MARKET") \
+		and (kill == "" or not on.has(kill))
+
+
+## Rules 3/4 for a depot: its target (0..1) from last month's freight demanded, or -1 when the rules are off.
+static func depot_target(world: WorldState) -> float:
+	if not freight_market_on(world, "R8FR_NOOUT"):
+		return -1.0
+	var s := EconUtil.peek_st(world)
+	var full := float(_depot_full(world))
+	if full <= 0.0 or not s.has("r8_fr_demand"):
+		return 1.0
+	return clampf(float(int(s["r8_fr_demand"])) / full, 0.2, 1.0)
+
+
+## The open depots' full freight capacity (mu): what rules 5/6 read use against once rules 3/4 run the depots below it.
+static func _depot_full(world: WorldState) -> int:
+	var full := 0.0
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] == "DEPOT" and not f["mothball"]:
+			full += float(EconData.RECIPES["DEPOT"]["out"][1]) * float(S) * EconUtil.fscale(f) * EconProduction._eff(world, f)
+	return int(full)
+
+
+## Rules 1/2, quarterly: CTA's freight tariff on deferred freight (up) and idle trucks (down).
+static func _freight_tariff(world: WorldState, s: Dictionary, cta: String) -> void:
+	if not freight_market_on(world, "R8FR_NOPX"):
+		return
+	var hist: Array = s.get("r8_fr_q", [])
+	var cap := 0
+	var used := 0
+	var deferred := 0
+	for h in hist:
+		cap += int(h[0])
+		used += int(h[1])
+		deferred += int(h[2])
+	if cap <= 0:
+		return
+	var lv := "ECON_FREIGHT_TARIFF"
+	var row: Array = EconPublicCo.TARIFFS["CTA"][0]
+	var old := float(EconUtil.lever(world, lv, int(row[1])))
+	var nv := old
+	if deferred > 0:
+		nv = old * (1.0 + minf(EconRulesMat.OWN_UP, EconRulesMat.OWN_ALPHA * float(deferred) / float(cap)))
+		nv = maxf(nv, old + 1.0)
+	elif used < cap:
+		nv = old * (1.0 - minf(EconRulesMat.OWN_DOWN, EconRulesMat.OWN_ALPHA * float(cap - used) / float(cap)))
+		nv = minf(nv, old - 1.0)
+	var iv := clampi(int(round(nv)), int(row[1]), int(row[2]))
+	s["r8_fr_q"] = []
+	if iv == int(old):
+		return
+	world.levers[lv] = iv
+	var acts: Array = s.get("r8_fr_actions", [])
+	acts.append([world.month, "tariff", int(old), iv])
+	s["r8_fr_actions"] = acts
+	var o: Dictionary = world.table("org")[cta]
+	EconFacts.emit(world, "ECON_TARIFF_CHANGE", o["hq"], [["COMPANY", cta]], [["COMPANY", cta, 0.6], ["NATURE", "market", 0.4]],
+		{"COST_OF_LIVING": -6 if iv > int(old) else 4}, 20, "PUBLIC", {"org": cta, "up": iv > int(old), "levers": [[lv, int(old), iv]], "reason": "freight_market"})
+
+
 static func _freight_rules(world: WorldState) -> void:
 	if not sector_on(world, "FREIGHT"):
 		return
@@ -322,8 +395,14 @@ static func _freight_rules(world: WorldState) -> void:
 	var deferred := 0
 	for d in s.get("freight_deferred", {}):
 		deferred += int(s["freight_deferred"][d])
+	if freight_market_on(world):
+		s["r8_fr_demand"] = used + deferred  # rules 3/4: what the depots were asked to carry
+		var q: Array = s.get("r8_fr_q", [])
+		q.append([maxi(cap, _depot_full(world)), used, deferred])  # idle trucks counted against the full fleet
+		s["r8_fr_q"] = q
 	var hist: Array = s.get("r8_fr_hist", [])
-	hist.append([100 * used / maxi(1, cap), 1000 * deferred / maxi(1, used)])
+	var use_cap := maxi(cap, _depot_full(world)) if freight_market_on(world, "R8FR_NOOUT") else cap  # rules 3/4: use of the full fleet
+	hist.append([100 * used / maxi(1, use_cap), 1000 * deferred / maxi(1, used)])
 	while hist.size() > 12:
 		hist.pop_front()
 	s["r8_fr_hist"] = hist
@@ -332,6 +411,7 @@ static func _freight_rules(world: WorldState) -> void:
 	var cta := EconFinance.org_by_key(world, "CTA")
 	if cta == "":
 		return
+	_freight_tariff(world, s, cta)
 	var full := 0
 	var idle := 0
 	for h in hist:

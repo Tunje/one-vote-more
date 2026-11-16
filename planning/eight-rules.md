@@ -503,6 +503,85 @@ The service price stays high: hubs are sold out and short of specialists (the HI
 complete crews. An earlier draft founded a micro co-op every quarter beside idle hubs; idle hubs now count as room.
 Not yet run in a full game.
 
+## 3h. Materials, food, workshops and freight (Bob, 2026-11-16)
+
+The user's order of 2026-11-16 (MASTER-PLAN.md): every producer under all eight rules, each on its own market. Code:
+EconRulesMat (sim/economy/econ_rules_mat.gd) for the goods, EconRules._freight_rules / _freight_tariff for freight,
+hooks in FirmAI (_set_target, _post_inputs_and_offers, _expansion, _entry), EconMarket._update_prices and
+EconPublicCo.quarterly. Every switch is off by default. Each step size is Bob's, not the user's: OWN_ALPHA 0.15, up at
+most OWN_UP 5% a month, down at most OWN_DOWN 3% a month.
+
+**Rules 1/2 for every goods sector (the same code).** Each plant has its own price, f["r8_px"]. It is set after each
+month's clearing from the plant's own R8 readings:
+- raise: the plant has reachable unfilled orders → up by OWN_ALPHA × reach ÷ its capacity;
+- lower: no reachable unfilled order and stock left unsold → down by OWN_ALPHA × unsold ÷ sales.
+There is no floor, no creep to cost, no "never below"; only the bounds every price in the game has (0.25 .. 4 × base ×
+the wage level). The seller asks its own price, with no cover markup and no 0.9 × full-cost ask floor; families too.
+The good's market price, which buyers' limits and rules 5/7 read, is the capacity-weighted mean of its open plants'
+prices; the old colony step (E149, and for food the 0-5% dead band) no longer sets it.
+
+**Mines, processing, components (R8 + R8_MATERIAL, on in v11; R8M_OWNPX, R8M_JOBVALUE)**
+
+| Rule | In the code |
+|---|---|
+| 1 raise | R8M_OWNPX: the plant's own price, on its reachable unfilled orders |
+| 2 lower | R8M_OWNPX: on its unsold stock while no order it can reach goes unfilled |
+| 3 produce more | its capacity share of the reachable unfilled orders on top of last month's output, while its stock is under 2 months (target) |
+| 4 produce less | below variable cost, the core crew only (20%) |
+| 5 add capacity | use ≥ 85% and reachable unfilled ≥ 5% of capacity in 6 of 12 months, price ≥ 1.1 × full cost, owner not losing over 12 months → +25%, or a new plant beside it at 3× (capacity) |
+| 6 reduce capacity | the mothball rule, never while it has reachable unfilled orders in the last 12 months (keeps) |
+| 7 new company | the forecast's first year in the best district shows a profit with customers and no competitors in the way (entry_hot); COMPONENTS has an entry path |
+| 8 no new company | not while the incumbents holding most of the capacity lose money, or the forecast shows no profit, "no_customers" or "competitors" |
+
+Buyers' side (R8M_JOBVALUE): a builder bids for MATERIAL and COMPONENT what its jobs leave for the good, formula agreed
+with Otto. Over its active, started jobs with no payment behind, per unit still needed: the award price of the good
+(the E76 escalation repays rises above it) + ((price − today's late penalty) × the share of work left − the wages
+still to pay − the other input still needed at its award price) ÷ the units still needed. It is the lower bound
+(this month's wages count as still to pay). Without the switch the base price is the anchor.
+
+Upkeep (OWN_FIRST, a defect fix): a producer keeps back from its offer what its own plants need of the good in that
+district this month (inputs and upkeep). Before, its whole stock was sold in a shortage and buying it back was capped
+by its cash, so the chain's own plants went without upkeep (Otto's trace). Probe, seed 3, economy-only, 40 years: without
+it, condition 28-44 by year 20, mines closed from year 28, no material sold from year 22; with it, every chain plant at
+condition 99-100 with full upkeep for 40 years, material at 215-270 (base 400), a fourth processing plant at year 40.
+
+**Food (R8 + R8_FOOD, on in v11; R8F_OWNPX, R8F_FAM56)**
+
+| Rule | Big farms and bakeries | Family farms and bakeries |
+|---|---|---|
+| 1 raise | R8F_OWNPX: own price, on its reachable unfilled orders | the same |
+| 2 lower | R8F_OWNPX: on its unsold stock | the same |
+| 3 produce more | as materials (target) | follows its sales like any producer (EconRulesFood) |
+| 4 produce less | as materials | the same |
+| 5 add capacity | as materials | R8F_FAM56: its own plant grows by a quarter on the same signals, with the family's own cost in the price test; never a second plant (Wilma: as built) |
+| 6 reduce capacity | as materials | R8F_FAM56: the mothball rule, never while orders it can reach go unfilled |
+| 7 new company | old entry today (colony price test); R8F_ENTRY (forecast, as materials) is in batch 3 | no family founds while the open plants could already make what buyers ordered (EconRulesFood.family_entry_block) |
+| 8 no new company | old entry today; R8F_ENTRY in batch 3 | the same block |
+
+Under R8F_FAM56 the old _expansion no longer grows family plants.
+
+**Workshops and medical works (R8_WORKSHOPS: CONSUMERF, TEXTILE, FURNITURE, MEDWORKS)**
+
+All eight under the one switch, the same code as materials: 1/2 own prices, 3/4 target, 5/6 capacity and keeps, 7/8
+forecast entry. MEDWORKS gets an entry path (it had none). For these types the D2 month and unemployment gates on
+entry go (not market signals). Kill switches: R8W_NOPX, R8W_NOOUT, R8W_NOCAP, R8W_NOENTRY.
+
+**Freight (R8 + R8_FREIGHT, on in v11; R8FR_MARKET; R8FR_PRIVATE in batch 3)**
+
+| Rule | In the code |
+|---|---|
+| 1 raise | R8FR_MARKET: CTA's tariff up on freight deferred in the last quarter, by OWN_ALPHA × deferred ÷ capacity (at least one lever step), quarterly, within the lever's range; E150 no longer steps CTA |
+| 2 lower | R8FR_MARKET: down on idle trucks with nothing deferred, by OWN_ALPHA × idle ÷ capacity (at least one step) |
+| 3 carry more | R8FR_MARKET: depots run at the freight demanded last month (carried + deferred) ÷ their full capacity |
+| 4 carry less | the same, the core crew (20%) at least; before, always 100% |
+| 5 add capacity | trucks ≥ 95% used (of the full fleet) in 6 of 12 months, or deferred > 5% of trade, or (EXP_PORT) cargo refused at the port → +25% depot or a new depot where freight waits |
+| 6 reduce capacity | under 60% use for 12 months → mothball the smallest depot (never the last) |
+| 7 new company | R8FR_PRIVATE (batch 3): a private haulier, founded on the forecast's profit from the freight CTA leaves deferred; paid for what its own depots carry; the cheapest carrier with room moves a shipment |
+| 8 no new company | R8FR_PRIVATE (batch 3): not while CTA's trucks stand idle or carry everything, nor while hauliers lose money |
+
+Tests: test_r8_ownpx (7), test_r8_food_own (5), test_r8_workshops (6), test_r8_freight_market (4), test_own_first (4).
+With every new switch off the game is identical to the tree without them (seed 2).
+
 ## 4. The rest of the queue
 - **Absorbed into R8:** E170 (rules 7/8), E172 (freight), the order book's entry and crew rules, E168, E156.
 - **E171 (charter quota):** after step 2. It needs materials and freight to work first, because the quota competes
