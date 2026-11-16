@@ -360,4 +360,22 @@ cut counted the held stock and cut again, and prices went to the floor with noth
 (opened 30 and 28 on seeds 2 and 3 against 17 and 6 in the base). Superseded once the cut reads only what was
 offered and unsold.
 
+### 30 years, code 2ae7b51 (wage clause, stock cut on offered-unsold only, the price-table stock cut in every game, cap removed)
+
+| arm | seed | adults | u % | food | real | priv alive/dead | builders alive/dead | bank capital | family farms founded/alive | material % of cost / filled | plans / opened |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| base | 1 | 4633 | 19.9 | 60 | 5.48 | 84/136 | 3/24 | -5 | 78/40 | 30 / 556 | 47 / 11 |
+| base | 2 | 4259 | 20.8 | 48 | 4.00 | 84/173 | 3/22 | 0 | 130/64 | 30 / 542 | 52 / 8 |
+| base | 3 | 3860 | 26.6 | 127 | 3.89 | 38/307 | 2/27 | 6 | 239/27 | 45 / 316 | 52 / 8 |
+| ALL | 1 | 3250 | 23.1 | 209 | 2.95 | 59/136 | 5/86 | -23 | 53/53 | 115 / 316 | 67 / 21 |
+| ALL | 2 | 3120 | 18.4 | 170 | 3.35 | 105/125 | 5/90 | -18 | 88/88 | 105 / 381 | 115 / 12 |
+| ALL | 3 | 3247 | 19.0 | 108 | 3.25 | 85/139 | 7/105 | -4 | 60/60 | 100 / 430 | 76 / 9 |
+
+Reading (Wilma): ALL no longer collapses (3,120-3,250 adults on every seed against 1,465-3,060 before the stock-cut
+correction), material sells at its cost, every family farm founded is alive. It is still 16-30% below the base on
+adults, hungrier, and the bank ends at -23 and -18M on two seeds; 86-105 builders die per game. The base itself
+changed with the price-table stock cut and the cap removal: material now sells at 30-45% of its cost in the base
+(76-79% in the run before) with 32-56% of orders filled (86-90% before), and its food shortfall is 48-127 permille
+(11-25 before): in the base nothing stops a seller selling under cost, so the stock cut alone drives the price down.
+
 (more filled in as the reviews and runs come in)

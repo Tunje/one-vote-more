@@ -329,6 +329,12 @@ goods ordered in (ORDER_IN), the government's imports (ECON_ORDER_IMPORTS, which
 ship), buses and parts bought from the home world, petitions and requests for more shipping (home_world.gd, done),
 recapitalising the bank from home, builders and capital arriving from home.
 
+**Decision, 2026-11-16 (the user, verbatim), after discussing tearing out and rebuilding the economy's decision
+layer (about 11,000 of 23,731 lines) in a side copy from a written design:** "Lets work on the current build once we
+have a functioning economy we will return to to this later". So: no rebuild and no side copy now. The work is to get
+a functioning economy on the current code. The rebuild (one table of rules, one piece of code applying it, design
+written and read first, no switches) is to be raised again once the economy functions.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and
