@@ -123,3 +123,17 @@ an area splits above 800 residents.
   more attractive because you can rent them all out, or a school district has no more space, or, the most common,
   they are simply cheaper living."
 Design note: planning/design-town-grid.md (Terra). Groundwork under flag TOWN_GRID, unit tests only.
+
+## Empty buildings: sold, reused or torn down (user 2026-11-16: "after 11, and yes") — ordered, after v11
+Today a failed firm's plant that finds no buyer is "scrapped" (EconInsolvency.scrap): it stays standing for ever,
+book value 0, crew laid off, never restarted; only the government can buy and restore it; nobody else can buy,
+reopen or reuse it, and nothing is ever demolished. The bank recovers nothing on it and the site is lost.
+User: "You telling me these buildings are just scrapped? Like torn down?"
+To build after v11:
+- a finished, empty building is sold, cheaply if need be, to whoever will take it: another firm, a founder, a family,
+  the state; the proceeds go to the failed firm's creditors (the bank first today; Anni's creditor order, E174);
+- the buyer reopens it or changes its use (Ella's EconConversion from HIRING stage 4b is the general change of use;
+  Otto's EconUnfinished covers unfinished shells);
+- a building nobody wants is in the end demolished, at a cost, and its site is free again (the first real demolition
+  in the game; law_data has DEMOLISH_FACILITY as a name only).
+Owner: Otto (ownership and sales), with Ella's conversion and Anni's creditor order.
