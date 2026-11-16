@@ -243,6 +243,9 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"POL_EMERGENCY_VOTE": s = "%s %s the state of emergency" % [assembly(w), "approved" if d.get("passed", false) else "rejected"]
 		"HOME_SHIP_CALLED": s = "A ship from the home world called"
 		"HOME_DEMAND_RAISED": s = "[color=#ff8a65]The home world raised its demands[/color]"
+		"HOME_SHIPPING_REQUESTED": s = "The government asked the home world for more shipping"
+		"HOME_SHIPPING_GRANTED": s = "The home world granted %s" % ("larger ships" if d.get("what", "") == "LARGER_SHIPS" else "more ships")
+		"HOME_SHIPPING_REFUSED": s = "[color=#ff8a65]The home world refused more shipping[/color]"
 		"HOME_SANCTION": s = "The home world imposed a sanction: %s" % _kind(d.get("kind", ""))
 		"HOME_EXPEDITION_SENT": s = "[color=#ff5252][b]The home world has sent a punitive expedition[/b][/color]"
 		"POL_WILDLIFE_OUTCRY": s = "[color=#ff8a65][b]Outcry after %s attack%s[/b][/color]: %d killed, %d injured%s" % [str(d.get("creature", "a wildlife")), (" on a family farm" if d.get("family_farm", false) else ""), int(d.get("killed", 0)), int(d.get("injured", 0)), (", on a farm the government had just funded" if d.get("fresh_grant", false) else "")]
