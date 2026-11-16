@@ -173,6 +173,7 @@ static func levers() -> Array:
 		["ECON_BUDGET_PUBLIC_TRANSPORT", [0, 2000], 150, "LAW", {"ECON_ROLE": 0.01, "FISCAL": 0.01}, {"INFRASTRUCTURE": 30, "JOBS": 8, "GOVERNANCE": -6}, P, 1, false],
 		# E160 / E162 (opt-in): grants for family farms and bakeries, % of build cost + start-up (+ the baking course)
 		["ECON_FAMILY_FARM_GRANT", [0, 100], 0, "LAW", {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01}, {"COST_OF_LIVING": 25, "JOBS": 15, "FAIRNESS": 15, "GOVERNANCE": -10}, P, 1, false],
+		["ECON_TRUCK_DRIVER_GRANT", [0, 100], 0, "LAW", {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01}, {"JOBS": 15, "INFRASTRUCTURE": 15, "FAIRNESS": 10, "GOVERNANCE": -10}, P, 1, false],  # TRUCKERS (Bob): grants for family truck drivers, like the workshops'
 		["ECON_TRUCK_WORKSHOP_GRANT", [0, 100], 0, "LAW", {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01}, {"JOBS": 15, "INFRASTRUCTURE": 15, "FAIRNESS": 10, "GOVERNANCE": -10}, P, 1, false],  # TRUCKSHOP (Ella): grants for truck workshops, like the family bakeries'
 		["ECON_FAMILY_BAKERY_GRANT", [0, 100], 0, "LAW", {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01}, {"COST_OF_LIVING": 25, "JOBS": 15, "FAIRNESS": 15, "GOVERNANCE": -10}, P, 1, false],
 		# R8 step 4 (Otto, opt-in R8_BUILDERS): 1 = a public builder bids at cost on public work (else the market margin rule)
@@ -229,6 +230,8 @@ static func levers() -> Array:
 			d["requires"] = ["E162"]
 		elif r[0] == "ECON_TRUCK_WORKSHOP_GRANT":
 			d["requires"] = ["TRUCKSHOP"]
+		elif r[0] == "ECON_TRUCK_DRIVER_GRANT":
+			d["requires"] = ["TRUCKERS"]
 		elif r[0] == "ECON_PUBLIC_BUILDER_AT_COST":
 			d["requires"] = ["R8_BUILDERS"]
 		elif r[0] in ["ECON_SCHOOL_TAX", "ECON_HEALTH_TAX", "ECON_ADMIN_TAX", "ECON_ELDER_CARE_TAX", "ECON_CHILDCARE_TAX"]:

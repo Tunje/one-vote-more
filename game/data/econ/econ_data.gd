@@ -139,6 +139,7 @@ const RECIPES := {
 	"CLINIC":   {"labor": {"G": 5, "S": 10, "Sp": 15}, "in": {"MEDICAL": 100, "ENERGY": 40, "WATER": 30}, "out": ["HEALTH", 2500], "upkeep": 2, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "PUBLIC_SECTOR"},
 	"SCHOOL":   {"labor": {"G": 4, "S": 16, "Sp": 10}, "in": {"ENERGY": 30, "WATER": 20, "CONSUMER": 15}, "out": ["EDUCATION", 450], "upkeep": 2, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "PUBLIC_SECTOR"},
 	"DEPOT":    {"labor": {"G": 20, "S": 5}, "in": {"ENERGY": 120}, "out": ["FREIGHT", 8000], "upkeep": 5, "poll": 2, "acc": 4, "hazard": "MEDIUM", "licence": "", "occ": "LOGISTICS"},
+	"TRUCKER":  {"labor": {"G": 1}, "in": {"ENERGY": 5}, "out": ["FREIGHT", 320], "upkeep": 0, "poll": 0, "acc": 4, "hazard": "MEDIUM", "licence": "", "occ": "LOGISTICS"},  # Bob (TRUCKERS): a family's truck, per truck (scale = trucks); a depot's 8,000 and 120 energy over its crew of 25; the room is EconTrucks.room
 	"ADMIN":    {"labor": {"G": 20, "S": 30, "Sp": 30}, "in": {"ENERGY": 40, "CONSUMER": 10}, "out": ["ADMIN", 1], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "PUBLIC_SECTOR"},
 	"PUBJOBS":  {"labor": {"G": 4, "S": 1}, "in": {}, "out": ["PUBWORK", 0], "upkeep": 0, "poll": 0, "acc": 1, "hazard": "LOW", "licence": "", "occ": "PUBLIC_SECTOR"},  # E117b public employment scheme: upkeep work, no output
 	"TRANSIT":  {"labor": {"G": 4, "S": 1}, "in": {}, "out": ["TRANSITWORK", 0], "upkeep": 0, "poll": 0, "acc": 2, "hazard": "MEDIUM", "licence": "", "occ": "LOGISTICS"},  # support economy §8b: buses (drivers, depot, mechanics) staffed from fares; scale = posts × 200
@@ -164,7 +165,7 @@ const UPKEEP_COMPONENT := {"POWER": 2, "WATERWORKS": 1, "MINE": 1, "PROCESSING":
 # ---------- build bills: [WU, MATERIAL, COMPONENT, min months] (spec §4.4) ----------
 const BUILD := {
 	"HOUSING": [1200, 700, 20, 6], "FARM": [250, 250, 10, 3], "WATERWORKS": [500, 500, 60, 6],
-	"FAMFARM": [42, 42, 2, 2], "FAMBAKERY": [42, 33, 3, 2], "TRUCKSHOP": [42, 33, 3, 2],  # E160 / E162: a sixth
+	"FAMFARM": [42, 42, 2, 2], "FAMBAKERY": [42, 33, 3, 2], "TRUCKSHOP": [42, 33, 3, 2], "TRUCKER": [0, 0, 20, 1],  # E160 / E162: a sixth; TRUCKER (Bob): no building, the bill is the truck (book value and sale only, never tendered)
 	"POWER": [800, 800, 150, 8], "MINE": [600, 400, 80, 6], "PROCESSING": [700, 700, 100, 8],
 	"COMPONENTS": [700, 600, 120, 8], "CONSUMERF": [500, 500, 60, 6], "MEDWORKS": [400, 300, 80, 6],
 	"SERVICEHUB": [200, 200, 10, 3], "CLINIC": [450, 400, 30, 6], "SCHOOL": [450, 450, 15, 6],

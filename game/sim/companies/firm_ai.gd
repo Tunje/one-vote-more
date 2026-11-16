@@ -5,6 +5,7 @@ const DecisionDesk := preload("res://sim/office/decision_desk.gd")
 const EconInst := preload("res://sim/economy/econ_institutions.gd")
 const EconRulesSvc := preload("res://sim/economy/econ_rules_svc.gd")
 const EconTruckShop := preload("res://sim/economy/econ_truck_shop.gd")
+const EconTrucks := preload("res://sim/economy/econ_trucks.gd")
 ## COMPANY_AI phase (spec §9): rule-based firm decisions for next month.
 ## Producers: targets, mothballing, input orders, sale asks. Utilities/institutions: demand/budget targets.
 ## Contractors: crews, materials, bids. Quarterly: investment, entry. CEO turnover. Wage index.
@@ -21,8 +22,10 @@ static func run(world: WorldState) -> void:
 	t = EconUtil.prof(world, "FirmAI._update_sales_ema", t)
 	_ceo_turnover(world)
 	t = EconUtil.prof(world, "FirmAI._ceo_turnover", t)
+	EconTrucks.monthly(world)  # TRUCKERS (opt-in, Bob): wear and breakdowns before the workshops' repairs; drivers' rules 5/6
 	EconTruckShop.monthly(world)  # TRUCKSHOP (opt-in): repairs, builds, the fee and truck price, rules 5/6
 	EconTruckShop.found(world)  # TRUCKSHOP rules 7/8: a family founds a workshop where its share of the work pays
+	EconTrucks.found(world)  # TRUCKERS rules 7/8: a family starts driving where a truck's share of the freight pays
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		_set_target(world, f)
