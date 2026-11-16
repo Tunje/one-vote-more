@@ -146,6 +146,10 @@ static func monthly(world: WorldState) -> void:
 	r8["deliver"] = deliver
 	r8["month"] = world.month
 	s["r8"] = r8
+	if EconTrade.exp_on(world):
+		r8["export"] = EconTrade.export_book(world)  # the home world as a customer (design-exports.md)
+	else:
+		r8.erase("export")
 	r8["plants"] = _plants(world, goods, deliver)
 	s["r8"] = r8
 	_freight_rules(world)
@@ -162,6 +166,7 @@ static func _road_pm(world: WorldState, d1: String, d2: String) -> int:
 static func _plants(world: WorldState, goods: Dictionary, deliver: Dictionary) -> Dictionary:
 	var s := EconUtil.st(world)
 	var out := {}
+	var xbook: Dictionary = s.get("r8", {}).get("export", {})
 	for fid in EconUtil.sorted_keys(world.table("facility")):
 		var f: Dictionary = world.table("facility")[fid]
 		var r: Dictionary = EconData.RECIPES.get(f["type"], {})
@@ -203,6 +208,8 @@ static func _plants(world: WorldState, goods: Dictionary, deliver: Dictionary) -
 			elif d != f["district"]:
 				pm = int(deliver.get(String(f["district"]) + "|" + String(d), 1000))
 			reach += int(goods[good][d]["u"]) * pm / 1000
+		if xbook.has(good) and int(xbook[good]["net"]) >= int(var_c) and int(xbook[good]["per_m"]) > 0:
+			reach += int(xbook[good]["per_m"])  # EXP: the next ship's free hold, a month of it (reach is the orders all plants of the good can reach)
 		out[fid] = {"kind": kind, "g": good, "d": f["district"], "util": int(1000.0 * float(outq) / maxf(1.0, cap)),
 			"cover": int(1000.0 * float(stock) / float(maxi(1, sales))), "sales": sales, "reach": reach,
 			"cost_now": int(now_c), "cost_var": int(var_c), "cost_full": int(FirmAI.unit_cost(world, f["type"])),
@@ -290,6 +297,7 @@ const FREIGHT_DEFER_PM := 50
 const FREIGHT_IDLE_PCT := 60
 const FREIGHT_IDLE_M := 12
 const DEPOT_MAX_SCALE := 3000
+const PORT_M := 6  # EXP_PORT: months of the last 12 with cargo the port store could not take
 
 
 static func _freight_rules(world: WorldState) -> void:
@@ -335,7 +343,8 @@ static func _freight_rules(world: WorldState) -> void:
 		if p["type"] == "DEPOT" or (p["type"] == "EXPAND" and world.table("facility").has(p.get("target", "")) and world.table("facility")[p["target"]]["type"] == "DEPOT"):
 			pending = true
 	var acts: Array = s.get("r8_fr_actions", [])
-	if (full >= FREIGHT_FULL_M or defer_hi) and not pending:
+	var port_short := EconTrade.port_rule_on(world) and EconTrade.refused_months(world) >= PORT_M  # producers' cargo left off the port
+	if (full >= FREIGHT_FULL_M or defer_hi or port_short) and not pending:
 		var smallest := ""
 		for fid in depots:
 			var sc := int(world.table("facility")[fid].get("scale", 1000))

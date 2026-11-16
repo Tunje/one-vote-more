@@ -190,6 +190,12 @@ static func monthly(world: WorldState) -> void:
 	_consign(world, t)
 	_clear_old_imports(world, t)
 	_port_full(world, t)
+	if exp_on(world):
+		var rh: Array = t.get("refused_hist", [])
+		rh.append((t.get("refused_m", {}) as Dictionary).duplicate())
+		while rh.size() > 12:
+			rh.pop_front()
+		t["refused_hist"] = rh
 	var hist: Array = t["balance_hist"]
 	hist.append(int(t.get("imports_m", 0)))
 	t["imports_m"] = 0
@@ -219,6 +225,9 @@ static func _walk_prices(world: WorldState, t: Dictionary) -> void:
 ## Export houses: move stock worth exporting into the port store (a month of local sales stays home).
 static func _consign(world: WorldState, t: Dictionary) -> void:
 	var px := prices(world)
+	var exp := exp_on(world)
+	if exp:
+		t["refused_m"] = {}
 	# stock waiting for a ship goes back to the local market when the colony pays more than the home world
 	for g in EXPORT_GOODS:
 		if float(px[g]["local"]) <= EXPORT_MARGIN * float(px[g]["net"]):
@@ -235,7 +244,7 @@ static func _consign(world: WorldState, t: Dictionary) -> void:
 	for g in px:
 		for oid in world.peek("org"):
 			free -= EconUtil.inv_get(world, oid, g, PORT)
-	if free <= 0:
+	if free <= 0 and not exp:
 		return
 	# the most valuable cargo first: limited port space goes to the goods that earn most per unit
 	var by_value: Array = EXPORT_GOODS.duplicate()
@@ -251,7 +260,7 @@ static func _consign(world: WorldState, t: Dictionary) -> void:
 			var o: Dictionary = world.table("org")[oid]
 			if o["status"] in ["LIQUIDATION", "DISSOLVED"] or o["type"] == "PUBLIC_INSTITUTION" or not producers.has(oid + "|" + g):
 				continue
-			if free <= 0:
+			if free <= 0 and not exp:
 				return
 			var p: Dictionary = px[g]
 			if float(p["net"]) < EXPORT_MARGIN * float(p["local"]):
@@ -259,12 +268,18 @@ static func _consign(world: WorldState, t: Dictionary) -> void:
 			var stock := 0
 			for d in EconUtil.sorted_keys(EconData.DISTRICTS):
 				stock += EconUtil.inv_get(world, oid, g, d)
-			var keep := int(o["sales_ema"].get(g, 0))
+			var keep := _keep(world, o, g)
 			var held_g := 0
 			for oid2 in world.peek("org"):
 				held_g += EconUtil.inv_get(world, oid2, g, PORT)
 			var room_g := int(float(port_capacity(world) * S) * PORT_GOOD_SHARE) - held_g  # no single good fills the port
 			var q := mini(mini(stock - keep, free / 2 + S), room_g)
+			if exp:
+				var lim_port := maxi(0, mini(free, room_g))
+				if free <= 0:
+					q = 0
+				if stock - keep > lim_port and stock - keep >= S:
+					t["refused_m"][g] = int(t["refused_m"].get(g, 0)) + stock - keep - lim_port  # EXP_PORT: wanted to ship, no port space
 			if q < S:
 				continue
 			var moved := 0
@@ -307,12 +322,14 @@ static func on_ship(world: WorldState, hold: int = -1) -> Dictionary:
 	var value := 0
 	var tax_total := 0
 	var levy_total := 0
+	var left := {}
 	var by_org := {}
 	for k in EconUtil.sorted_keys(held):
 		var parts: PackedStringArray = str(k).split("|")
 		var oid := parts[0]
 		var g := parts[1]
 		var q := int(float(held[k]) * f)
+		left[g] = int(left.get(g, 0)) + int(held[k]) - maxi(0, q)  # left on the dock (Wilma's shipping pressure)
 		if q <= 0:
 			continue
 		var wac := EconUtil.inv_wac(world, oid, g, PORT)
@@ -356,6 +373,11 @@ static func on_ship(world: WorldState, hold: int = -1) -> Dictionary:
 		import_value += EconUtil.val(q, landed)
 	var rec := {"month": world.month, "exports": cargo, "export_value": value, "tax": tax_total, "levy": levy_total, "imports": imports,
 		"import_value": import_value, "by_org": by_org}
+	var left_u := {}
+	for g in EconUtil.sorted_keys(left):
+		if int(left[g]) >= S:
+			left_u[g] = int(left[g]) / S
+	rec["left"] = left_u
 	var sh: Array = t["ships"]
 	sh.append(rec)
 	while sh.size() > 8:
@@ -422,3 +444,125 @@ static func _port_full(world: WorldState, t: Dictionary) -> void:
 	EconFacts.emit(world, "ECON_PORT_FULL", "d:1", [["GOVERNMENT", "government"]], [["GOVERNMENT", "government", 0.5], ["NATURE", "market", 0.5]],
 		{"INFRASTRUCTURE": -5, "JOBS": -3}, 25, "PUBLIC", {"units": held / S, "capacity": cap / S, "depots": (port_capacity(world) - PORT_BASE) / PORT_PER_DEPOT,
 		"next_ship": next_ship(world)})
+
+
+# ------------------------------------------------------------------ exports in the eight rules (planning/design-exports.md)
+## User 2026-11-16: producers count the home world as a customer: the net home price and the next ship's free hold are
+## orders they can reach, in the eight rules and in expected sales; depots grow on cargo the port could not take.
+## OPT-IN: EXP (orders), EXP_PORT (depots on refused cargo), EXP_KEEP (keep back current local orders, not past sales).
+
+static func _flag(world: WorldState, f: String) -> bool:
+	return EconRules.active(world) and (world.meta.get("on", []) as Array).has(f) and not EconUtil.off(world, f)
+
+
+static func exp_on(world: WorldState) -> bool:
+	return _flag(world, "EXP")
+
+
+static func port_rule_on(world: WorldState) -> bool:
+	return exp_on(world) and _flag(world, "EXP_PORT")
+
+
+## What a producer keeps back for the colony before consigning: a month of its past local sales (as before), or with
+## EXP_KEEP the local orders it can reach now (no limit built on past sales).
+static func _keep(world: WorldState, o: Dictionary, g: String) -> int:
+	if _flag(world, "EXP_KEEP"):
+		var home_d: String = o["hq"] if EconData.DISTRICTS.has(o["hq"]) else "d:1"
+		return EconRules.reachable_unfilled(world, g, home_d)
+	return int(o["sales_ema"].get(g, 0))
+
+
+## The ship that calls next: [month, idx] (idx 0 = the first ship on s.ship_next, 1.. = the fleet's extra ships).
+static func next_call(world: WorldState) -> Array:
+	var best := next_ship(world)
+	var idx := 0
+	var fl := fleet(world)
+	for i in fl.size():
+		var m := int(fl[i]["next"])
+		if best < 0 or m < best:
+			best = m
+			idx = i + 1
+	return [best, idx]
+
+
+## The export order book {good: {net, hold_open, per_m}}: net home price (mcr/unit, after freight, levy, tariff, tax),
+## the next ship's hold still free (mu, shared by all goods: the cargo that fills it shrinks it for every good) and that
+## hold spread over the months to the ship (mu a month). Pure: reads the port store and the trade state.
+static func export_book(world: WorldState) -> Dictionary:
+	var px := prices(world)
+	var consigned := 0
+	for g in EXPORT_GOODS:
+		for oid in world.peek("org"):
+			consigned += EconUtil.inv_get(world, oid, g, PORT)
+	var call := next_call(world)
+	var free := maxi(0, hold_of(world, int(call[1])) * S - consigned)
+	var months := maxi(1, int(call[0]) - world.month) if int(call[0]) >= 0 else 1
+	var out := {}
+	for g in EXPORT_GOODS:
+		var net := int(px[g]["net"])
+		var open := free if net > 0 else 0
+		out[g] = {"net": net, "hold_open": open, "per_m": open / months}
+	return out
+
+
+## The selling price a producer of `good` plans with: the local price, or the net home price when the ship has room
+## and pays more (EXP on). Used by the rules' price tests.
+static func plan_price(world: WorldState, good: String) -> int:
+	var local := int(EconUtil.peek_st(world).get("prices", {}).get(good, 0))
+	if not exp_on(world) or not (good in EXPORT_GOODS):
+		return local
+	var b: Dictionary = EconUtil.peek_st(world).get("r8", {}).get("export", {}).get(good, {})
+	if int(b.get("hold_open", 0)) <= 0:
+		return local
+	return maxi(local, int(b.get("net", 0)))
+
+
+## A firm's consigned port stock valued at the net home price, spread over the months to the next ship (mcr a month):
+## sales the ship will pay for (EconAnnual.expected_rev).
+static func export_month(world: WorldState, oid: String) -> int:
+	if not exp_on(world):
+		return 0
+	var px := prices(world)
+	var v := 0
+	for g in EXPORT_GOODS:
+		var q := EconUtil.inv_get(world, oid, g, PORT)
+		if q > 0:
+			v += EconUtil.val(q, int(px[g]["net"]))
+	if v <= 0:
+		return 0
+	var nxt := int(next_call(world)[0])
+	return v / (maxi(1, nxt - world.month) if nxt >= 0 else 1)
+
+
+## Months of the last 12 in which producers wanted to consign cargo the port could not take.
+static func refused_months(world: WorldState) -> int:
+	var n := 0
+	for m in EconUtil.peek_st(world).get("trade", {}).get("refused_hist", []):
+		var tot := 0
+		for g in m:
+			tot += int(m[g])
+		if tot > 0:
+			n += 1
+	return n
+
+
+## Wilma's shipping pressure (home_world.gd): {left_last_ship {good: units}, left_total, refused_12m {good: units},
+## hold_open {good: units}}. Integers; a measurement only.
+static func export_pressure(world: WorldState) -> Dictionary:
+	var t: Dictionary = EconUtil.peek_st(world).get("trade", {})
+	var last := last_ship(world)
+	var left: Dictionary = last.get("left", {})
+	var lt := 0
+	for g in left:
+		lt += int(left[g])
+	var ref := {}
+	for m in t.get("refused_hist", []):
+		for g in m:
+			ref[g] = int(ref.get(g, 0)) + int(m[g])
+	for g in ref.keys():
+		ref[g] = int(ref[g]) / S
+	var ho := {}
+	var book := export_book(world)
+	for g in book:
+		ho[g] = int(book[g]["hold_open"]) / S
+	return {"left_last_ship": left.duplicate(), "left_total": lt, "refused_12m": ref, "hold_open": ho}

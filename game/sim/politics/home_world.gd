@@ -426,11 +426,7 @@ static func shipping_on(world: WorldState) -> bool:
 
 ## Units waiting at the port (after a ship: what it left behind).
 static func _dock_units(world: WorldState) -> int:
-	var t := 0
-	var ps: Dictionary = EconTrade.port_stock(world)
-	for g in ps:
-		t += int(ps[g])
-	return t
+	return int(EconTrade.export_pressure(world)["left_total"])  # cargo the last ship left behind (Bob's ship records)
 
 
 ## The colony presses for shipping while the port store is full (monthly; cargo left by a ship is seen in _shipping).

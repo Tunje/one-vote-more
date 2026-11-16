@@ -33,6 +33,9 @@ static func first_year(world: WorldState, ftype: String, district: String, found
 	var unfilled := 0
 	if s.has("r8"):
 		unfilled = EconRules.reachable_unfilled(world, good, district)
+		var xb: Dictionary = s.get("r8", {}).get("export", {}).get(good, {})
+		if int(xb.get("per_m", 0)) > 0 and int(xb.get("net", 0)) > 0:
+			unfilled += int(xb["per_m"])  # EXP: the next ship's free hold is a customer too (design-exports.md)
 	else:
 		unfilled = int(s.get("unmet_last", {}).get(good, 0))
 	var spare := 0
@@ -64,7 +67,7 @@ static func first_year(world: WorldState, ftype: String, district: String, found
 	if lab < 0.9:
 		reasons.append("workers")
 	volume = minf(volume, cap) * minf(fill, lab)
-	var price := float(int(s.get("prices", {}).get(good, 0)))
+	var price := float(EconTrade.plan_price(world, good))  # the local price, or the net home price when the ship pays more (EXP)
 	var revenue := volume / float(S) * price * 12.0
 	# costs: a full crew at today's wages, inputs and utilities for that volume, and loan service on the capital
 	var crew := 0.0

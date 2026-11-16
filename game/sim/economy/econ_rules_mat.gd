@@ -139,7 +139,7 @@ static func target(world: WorldState, f: Dictionary, good: String, t: float) -> 
 	if pl.is_empty():
 		return t
 	var s := EconUtil.st(world)
-	if float(int(s["prices"].get(good, 0))) < float(int(pl["cost_var"])):
+	if float(EconTrade.plan_price(world, good)) < float(int(pl["cost_var"])):  # EXP: the home price counts when the ship has room
 		return 0.2
 	if int(pl["cover"]) >= COVER_MAX:
 		return t
@@ -216,7 +216,7 @@ static func capacity(world: WorldState) -> void:
 		if not (o["type"] in ["PRIVATE", "COOPERATIVE"] or pe):
 			continue
 		var good := good_of(world, ftype)
-		if float(int(s["prices"].get(good, 0))) < ADD_MARGIN * FirmAI.unit_cost(world, ftype):
+		if float(EconTrade.plan_price(world, good)) < ADD_MARGIN * FirmAI.unit_cost(world, ftype):
 			continue
 		if not pe and EconPublicCo.result12(o) < 0:
 			continue

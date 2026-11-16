@@ -104,6 +104,7 @@ static func avg_rev(o: Dictionary) -> int:
 static func expected_rev(world: WorldState, o: Dictionary) -> int:
 	var hist := plan_rev(world, o)
 	var ahead := maxi(_plan_value(world, o), _contracts_month(world, o))
+	ahead += EconTrade.export_month(world, String(o.get("id", "")))  # EXP: consigned port stock, paid by the next ship
 	if months(o) < MIN_M:
 		ahead = maxi(ahead, _forecast_month(world, o))
 	return maxi(hist, ahead)
@@ -130,6 +131,9 @@ static func _plan_value(world: WorldState, o: Dictionary) -> int:
 			continue  # utilities and institutions: tariffs and budgets
 		var q := int(float(r["out"][1]) * float(EconUtil.S) * float(int(f["T"])) / 1000.0 * EconUtil.fscale(f))
 		v += EconUtil.val(q, price)
+		var xb: Dictionary = s.get("r8", {}).get("export", {}).get(good, {}) if EconTrade.exp_on(world) else {}
+		if int(xb.get("net", 0)) > price:
+			v += EconUtil.val(mini(q, int(xb.get("per_m", 0))), int(xb["net"]) - price)  # EXP: the units the ship can take earn the net home price
 	return v
 
 
