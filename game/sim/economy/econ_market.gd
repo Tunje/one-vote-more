@@ -29,6 +29,7 @@ static func trade(world: WorldState) -> void:
 	_import_arrivals(world)
 	s["freight_used"] = 0
 	s["freight_deferred"] = {}
+	s["unsold_px_by"] = {}
 	if EconHaulier.on(world):
 		EconHaulier.start_month(world)  # R8FR_PRIVATE: this month's carriers, cheapest first
 	# fill ratio of last month per good (permille), read by the origin backstop (E75)
@@ -138,7 +139,8 @@ static func _clear(world: WorldState, good: String, tariff: int) -> void:
 	# S counts what is on offer only, never a seller's whole store: stock a seller keeps back (FirmAI's hold-back below
 	# its own cost, OWN_FIRST's own needs) is in nobody's reading but its own, so no price rule, buyer or index sees
 	# it (the user, 2026-11-16: the hold-back works only "if you have not made everyone know all stocks").
-	s["market_stats"][good] = {"S": supply + imp, "D": demand, "filled": 0, "wanted": 0}
+	s["market_stats"][good] = {"S": supply + imp, "D": demand, "filled": 0, "wanted": 0, "nogoods": 0, "stopped": 0, "overlimit": 0,
+		"unsold_px": 0}
 	for cls in [C_CONTRACT, C_HH_ESS, C_INSTITUTION, C_GOV, C_FIRM, C_CONSTRUCTION, C_HH_DISC]:
 		var cb: Array = bids.filter(func(b): return b["class"] == cls)
 		if cb.is_empty():
@@ -157,10 +159,24 @@ static func _clear(world: WorldState, good: String, tariff: int) -> void:
 			# E75: producers must see household demand that supply could not cover (the pro-rata allocation is
 			# capped by supply, so without this the demand signal ratchets down with output)
 			s["market_stats"][good]["wanted"] += maxi(0, want - mini(avail, want))
+			s["market_stats"][good]["nogoods"] += maxi(0, want - mini(avail, want))  # households able to buy, no goods left
 		else:
 			cb.sort_custom(func(a, b): return a["limit"] > b["limit"] or (a["limit"] == b["limit"] and a["buyer"] < b["buyer"]))
 			for b in cb:
 				_fill(world, b, b["qty"], offers, tariff)
+	# What price explains on the sellers' side (the user, 2026-11-16: "If something else than price stops sales it should
+	# not count on adjusting price"): an offer's stock left unsold counts, less what buyers wanted from it but could not
+	# take because the freight was full, the road could not carry it or they had no money at fill time.
+	var by: Dictionary = s.get("unsold_px_by", {})
+	for o in offers:
+		var left_q := int(o["qty"])
+		var px_q := maxi(0, left_q - int(o.get("_stop", 0)))
+		if px_q <= 0:
+			continue
+		s["market_stats"][good]["unsold_px"] += px_q
+		var k := String(o["seller"]) + "|" + good
+		by[k] = int(by.get(k, 0)) + px_q
+	s["unsold_px_by"] = by
 
 
 ## Fill one bid up to `want` from the cheapest delivered offers.
@@ -182,6 +198,10 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 		return pa < pb or (pa == pb and a["seller"] < b["seller"]))
 	var got := 0
 	var left := want
+	# why the parts of this order not filled were not filled (the user: only what price explains moves a price)
+	var stop_part := 0  # freight, road or the buyer's money cut it from an offer it could have had
+	var lim_part := 0  # offers over the buyer's limit (ask + freight)
+	var stopped_all := false  # the buyer could go no further: trucks full or out of money
 	for o in ranked:
 		if left <= 0:
 			break
@@ -221,6 +241,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 				rate = int(s["fr_carriers"][ci]["rate"])
 		var unit: int = o["ask"] + h * rate
 		if unit > bid["limit"]:  # D2: offers are sorted by price × reputation for households, so a later one may still fit
+			lim_part += mini(left, int(o["qty"]))
 			continue
 		var take := mini(left, o["qty"])
 		if h > 0:
@@ -229,10 +250,14 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 				fcap = int(s["fr_carriers"][ci]["room"]) if ci >= 0 else 0
 			var before := take
 			take = mini(take, maxi(0, fcap / h))
+			if before > take:
+				stop_part += before - take
+				o["_stop"] = int(o.get("_stop", 0)) + before - take
 			EconRules.note_held(world, good, o["district"], bid["district"], before - take, false)  # R8 (opt-in)
 			if take <= 0:
 				var dd: Dictionary = s["freight_deferred"]
 				dd[bid["district"]] = dd.get(bid["district"], 0) + left
+				stopped_all = true
 				break
 			if roads:
 				# FREIGHT_ROADS (Terra): the road route's room this month; what the roads can't carry waits like freight
@@ -241,6 +266,8 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 					# road room is per route: what this route can't carry is held on it (Terra's held_mu, R8's held-by-roads),
 					# and the buyer goes on to other districts' offers (the depot cap above is colony-wide, the roads are not)
 					var cut := take - room
+					stop_part += cut
+					o["_stop"] = int(o.get("_stop", 0)) + cut
 					Transport.add_freight_traffic(world, o["district"], bid["district"], 0, cut, good)
 					EconRules.note_held(world, good, o["district"], bid["district"], cut, true)
 					take = room
@@ -254,7 +281,13 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 		var on_acct: bool = credit and bid["kind"] == "org" and EconCredit.trades_on_account(world, bid["buyer"]) 			and EconCredit.trades_on_account(world, o["seller"])
 		var croom := EconCredit.room(world, bid["buyer"]) if on_acct else 0
 		if unit_pay > 0:
-			take = mini(take, int(float(cash + croom) * S / float(unit_pay)))
+			var can := int(float(cash + croom) * S / float(unit_pay))
+			if can < take:
+				stop_part += take - maxi(0, can)
+				o["_stop"] = int(o.get("_stop", 0)) + take - maxi(0, can)
+				if can <= 0:
+					stopped_all = true
+			take = mini(take, can)
 		if take <= 0:
 			break
 		var goods_cost := EconUtil.val(take, o["ask"])
@@ -333,6 +366,17 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 	ms2["filled"] += got
 	ms2["wanted"] += want
 	EconRules.note_fill(world, good, bid["district"], want, got)  # R8 (opt-in)
+	# the unfilled part by reason: stopped (freight, road, money) is not a shortage; over-limit is the price; the rest
+	# found no goods, which is the shortage a price reads
+	var short_q := maxi(0, want - got)
+	var st_q := short_q if stopped_all else mini(short_q, stop_part)
+	var lim_q := mini(short_q - st_q, lim_part)
+	var ng_q := short_q - st_q - lim_q
+	var ms3: Dictionary = s["market_stats"][good]
+	ms3["stopped"] = int(ms3.get("stopped", 0)) + st_q
+	ms3["overlimit"] = int(ms3.get("overlimit", 0)) + lim_q
+	ms3["nogoods"] = int(ms3.get("nogoods", 0)) + ng_q
+	EconRules.note_reasons(world, good, bid["district"], ng_q, st_q)
 	if bid["kind"] == "org" and (good == "MATERIAL" or good == "COMPONENT") and EconBuilders.on(world):
 		EconBuilders.note_fill(world, String(bid["buyer"]), good, want, got)  # R8_BUILDERS: the material a builder gets
 	var short: int = bid["qty"] - got

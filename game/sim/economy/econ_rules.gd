@@ -98,6 +98,19 @@ static func note_fill(world: WorldState, good: String, d: String, want: int, got
 	_m(world)["goods"][good] = g
 
 
+## Why the unfilled orders in district d were unfilled: n = able, reachable buyers that found no goods (the shortage a
+## price reads), x = stopped by freight, road or their money (not a shortage for any price rule).
+static func note_reasons(world: WorldState, good: String, d: String, nogoods: int, stopped: int) -> void:
+	if not active(world) or (nogoods <= 0 and stopped <= 0) or good == "SERVICES":
+		return
+	var g: Dictionary = (_m(world)["goods"] as Dictionary).get(good, {})
+	var row: Dictionary = g.get(d, {"w": 0, "f": 0, "hf": 0, "hr": 0})
+	row["n"] = int(row.get("n", 0)) + nogoods
+	row["x"] = int(row.get("x", 0)) + stopped
+	g[d] = row
+	_m(world)["goods"][good] = g
+
+
 static func note_held(world: WorldState, good: String, from_d: String, to_d: String, held: int, by_roads: bool) -> void:
 	if not active(world) or held <= 0:
 		return
@@ -135,7 +148,8 @@ static func monthly(world: WorldState) -> void:
 		for d in EconUtil.sorted_keys(m["goods"][good]):
 			var row: Dictionary = m["goods"][good][d]
 			var w := int(row["w"])
-			gd[d] = {"w": w, "f": int(row["f"]), "u": maxi(0, w - int(row["f"])), "hf": int(row["hf"]), "hr": int(row["hr"])}
+			gd[d] = {"w": w, "f": int(row["f"]), "u": maxi(0, w - int(row["f"])), "hf": int(row["hf"]), "hr": int(row["hr"]),
+				"n": int(row.get("n", 0)), "x": int(row.get("x", 0))}
 			oeg[d] = int(OE_KEEP * float(oeg.get(d, w)) + (1.0 - OE_KEEP) * float(w))
 		goods[good] = gd
 		oe[good] = oeg
@@ -215,6 +229,7 @@ static func _plants(world: WorldState, goods: Dictionary, deliver: Dictionary) -
 			fixed += float(EconConstruction.estimate(f["type"])) / float(EconData.DEPRECIATION_MONTHS)
 		var now_c := var_c + fixed * float(S) / float(maxi(S, outq))
 		var reach := 0
+		var reach_px := 0
 		for d in goods.get(good, {}):
 			var pm := 1000
 			if kind == "services":
@@ -222,10 +237,11 @@ static func _plants(world: WorldState, goods: Dictionary, deliver: Dictionary) -
 			elif d != f["district"]:
 				pm = int(deliver.get(String(f["district"]) + "|" + String(d), 1000))
 			reach += int(goods[good][d]["u"]) * pm / 1000
+			reach_px += int(goods[good][d].get("n", 0)) * pm / 1000  # only orders price explains: able buyers, no goods
 		if xbook.has(good) and int(xbook[good]["net"]) >= int(var_c) and int(xbook[good]["per_m"]) > 0:
 			reach += int(xbook[good]["per_m"])  # EXP: the next ship's free hold, a month of it (reach is the orders all plants of the good can reach)
 		out[fid] = {"kind": kind, "g": good, "d": f["district"], "util": int(1000.0 * float(outq) / maxf(1.0, cap)),
-			"cover": int(1000.0 * float(stock) / float(maxi(1, sales))), "sales": sales, "reach": reach,
+			"cover": int(1000.0 * float(stock) / float(maxi(1, sales))), "sales": sales, "reach": reach, "reach_px": reach_px,
 			"cost_now": int(now_c), "cost_var": int(var_c), "cost_full": int(FirmAI.unit_cost(world, f["type"])),
 			"profit12": EconPublicCo.result12(o) if not o.is_empty() else 0}
 	return out

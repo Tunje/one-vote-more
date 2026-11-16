@@ -88,6 +88,40 @@ const OWN_DOWN := 0.03
 const STOCK_CUT_MAX := 0.10
 
 
+## RULE NINE (the user, 2026-11-16: "if below making price climbing allways had priority if above lowering has
+## priority if both signals come in the same month only the one with priority happens, and if your going to cap it at
+## 5% THEN DO THE SAME FOR BOTH"; "Only fix this item for now": the material chain first, under R8M_OWNPX). A company's
+## price for MINERAL, MATERIAL or COMPONENT, every month:
+##   below its full cost: if the raise signal is there, the price rises and the cut does nothing; else the cut acts;
+##   at or above it: if the cut signal is there, the price falls and the raise does nothing; else the raise acts.
+## Signals, price-only (EconMarket._fill's tags): the raise reads orders from able, reachable buyers that found no goods
+## (r8 plants reach_px), the cut the stock it offered and left unsold at the price (st unsold_px_by), both against what
+## it sold. One curve and one most-per-month both ways: PRICE_STEP_MAX × c ÷ (1 + c); 5% is the user's, the shape Bob's.
+const PRICE_STEP_MAX := 0.05
+
+
+static func curve(c: float) -> float:
+	var x := maxf(0.0, c)
+	return PRICE_STEP_MAX * x / (1.0 + x)
+
+
+static func rule_nine(p: float, cost: float, up_c: float, down_c: float) -> float:
+	var up := curve(up_c)
+	var down := curve(down_c)
+	if p < cost:
+		return p * (1.0 + up) if up > 0.0 else p * (1.0 - down)
+	return p * (1.0 - down) if down > 0.0 else p * (1.0 + up)
+
+
+## The material chain's cut signal: what the company offered and left unsold at the price (not what buyers wanted but
+## could not take for freight, road or money), against what it sold.
+static func _unsold_px_ratio(world: WorldState, oid: String, good: String) -> float:
+	var o: Dictionary = world.table("org").get(oid, {})
+	var sold := int((o.get("sold", {}) as Dictionary).get(good, 0))
+	var unsold := int((EconUtil.peek_st(world).get("unsold_px_by", {}) as Dictionary).get(oid + "|" + good, 0))
+	return float(unsold) / maxf(float(sold), float(S))
+
+
 static func stock_cut(cover_months: float) -> float:
 	var c := maxf(0.0, cover_months)
 	return STOCK_CUT_MAX * c / (1.0 + c)
@@ -152,6 +186,7 @@ static func own_prices(world: WorldState) -> void:
 				if not r.is_empty():
 					row["read"] = true
 					row["reach"] = maxi(int(row["reach"]), int(r["reach"]))
+					row["reach_px"] = maxi(int(row.get("reach_px", 0)), int(r.get("reach_px", 0)))
 					row["first"] = fid if not bool(row.get("has_r", false)) else row["first"]
 					row["has_r"] = true
 			by_org[oid] = row
@@ -160,7 +195,18 @@ static func own_prices(world: WorldState) -> void:
 		for oid in EconUtil.sorted_keys(by_org):
 			var row: Dictionary = by_org[oid]
 			var p := float(row["px_w"]) / maxf(1.0, float(row["px_c"]))  # the company's price (one per good)
-			if bool(row["read"]):
+			if bool(row["read"]) and TYPE_FOR.has(good):
+				# the material chain under rule nine (price-only signals, one 5% curve both ways, priority by cost)
+				var sold_c := int((world.table("org")[oid].get("sold", {}) as Dictionary).get(good, 0))
+				var up_c := float(int(row.get("reach_px", 0))) / maxf(float(sold_c), float(S))
+				var down_c := _unsold_px_ratio(world, String(oid), good)
+				var fr: Dictionary = world.table("facility")[row["first"]]
+				p = rule_nine(p, FirmAI.unit_cost(world, String(fr["type"])), up_c, down_c)
+				var n9: Dictionary = EconUtil.st(world).get("r9_acts", {})
+				var k9 := "%s|%s" % [good, "up" if p > float(row["px_w"]) / maxf(1.0, float(row["px_c"])) + 0.5 else ("down" if p < float(row["px_w"]) / maxf(1.0, float(row["px_c"])) - 0.5 else "none")]
+				n9[k9] = int(n9.get(k9, 0)) + 1
+				EconUtil.st(world)["r9_acts"] = n9
+			elif bool(row["read"]):
 				# rule 1: orders its plants could reach but not supply raise it, against the company's capacity
 				if int(row["reach"]) > 0:
 					p *= 1.0 + minf(OWN_UP, OWN_ALPHA * float(int(row["reach"])) / maxf(1.0, float(row["cap"])))
@@ -345,7 +391,14 @@ static func target(world: WorldState, f: Dictionary, good: String, t: float) -> 
 	var s := EconUtil.st(world)
 	if float(EconTrade.plan_price(world, good)) < float(int(pl["cost_var"])):  # EXP: the home price counts when the ship has room
 		return 0.2
-	if int(pl["cover"]) >= COVER_MAX:
+	var cover := int(pl["cover"])
+	if TYPE_FOR.has(good) and own_on(world, good):
+		# (A), the user, 2026-11-16: "Ignore the stock in that other place too". The material chain's output reads only
+		# the stock the company put on offer and left unsold, never the store it holds back below its cost, so a held
+		# store does not drop the plants to the core crew while buyers go unfilled.
+		var unsold := int((s.get("unsold_px_by", {}) as Dictionary).get(String(f["org"]) + "|" + good, 0))
+		cover = int(1000.0 * float(unsold) / float(maxi(1, int(pl["sales"]))))
+	if cover >= COVER_MAX:
 		return t
 	var r: Dictionary = EconData.RECIPES[f["type"]]
 	var cap := float(r["out"][1]) * float(S) * EconUtil.fscale(f)
