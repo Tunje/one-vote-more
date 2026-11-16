@@ -36,6 +36,10 @@ func _only(w: WorldState, fid: String, good: String, reach: int, cover: int, px:
 	var fc: Dictionary = w.table("facility")[fid]
 	pl[fid]["sales"] = int(float(EconData.RECIPES[fc["type"]]["out"][1]) * float(S) * EconUtil.fscale(fc))  # a month's sales = its capacity
 	w.table("facility")[fid]["r8_px"] = px
+	for f_id in w.table("facility"):  # one price per company: all its plants of the good carry it
+		var g2: Dictionary = w.table("facility")[f_id]
+		if g2["org"] == w.table("facility")[fid]["org"] and g2["type"] == w.table("facility")[fid]["type"]:
+			g2["r8_px"] = px
 	w.table("org")[w.table("facility")[fid]["org"]].erase("offered")  # rule 2 reads the plant's cover until offers are recorded
 
 
@@ -60,7 +64,7 @@ func test_farm_and_family_farm_set_their_own_price() -> void:
 			check(false, "a %s exists" % ft)
 			continue
 		var f: Dictionary = w.table("facility")[fid]
-		var cap := float(EconData.RECIPES[ft]["out"][1]) * float(S) * EconUtil.fscale(f)
+		var cap := _ocap(w, f)
 		_only(w, fid, good, int(cap * 0.1), 0, 200 * S)
 		EconRulesMat.own_prices(w)
 		check(absf(float(int(f["r8_px"])) - 200.0 * S * (1.0 + EconRulesMat.OWN_ALPHA * 0.1)) <= float(S), ft + ": rule 1 raises on its reachable unfilled orders")
@@ -138,3 +142,13 @@ func test_runs_save_and_load_identically() -> void:
 	check_eq(loaded.world.state_hash(), ref.world.state_hash(), "continued state hash")
 	check_eq(ref.world.ledger.total(), 0, "ledger closed")
 	check(EconPop.check(ref.world).is_empty(), "jobs equal people")
+
+
+## The company's open capacity of the plant's type (one price per company: rule 1 reads its reach against this).
+func _ocap(w: WorldState, f: Dictionary) -> float:
+	var c := 0.0
+	for f_id in w.table("facility"):
+		var g: Dictionary = w.table("facility")[f_id]
+		if g["org"] == f["org"] and g["type"] == f["type"] and not g["mothball"]:
+			c += float(EconData.RECIPES[g["type"]]["out"][1]) * float(S) * EconUtil.fscale(g)
+	return c

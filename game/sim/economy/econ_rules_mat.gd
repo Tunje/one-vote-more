@@ -122,35 +122,58 @@ static func _px_bounds(world: WorldState, good: String, p: float) -> int:
 
 ## Rules 1/2, monthly after clearing (from EconRulesMat.monthly, after the R8 plant readings).
 static func own_prices(world: WorldState) -> void:
+	# One price per company and good (Wilma, 2026-11-16, from the seed-1 trace: one company asking five prices for the
+	# same good, most above any buyer's limit, left its offers unsold, so the stock cut cancelled rule 1 and the price
+	# never climbed back to cost). Rules 1 and 2 act on the company's price: rule 1 on the orders its plants could reach
+	# (the most any of them reads) against its capacity, rule 2 on what it offered and did not sell across all its plants.
+	# Every plant of the company carries that one price, so every offer it makes is at it (own_ask).
 	var s := EconUtil.st(world)
 	var pl: Dictionary = s["r8"].get("plants", {})
 	for good in EconUtil.sorted_keys(OWN_SWITCH):
 		if not own_on(world, good):
 			continue
-		var wsum := 0.0
-		var csum := 0.0
+		var by_org := {}  # org -> {fids, cap, px_w, reach, read, first}
 		for fid in EconUtil.sorted_keys(world.table("facility")):
 			var f: Dictionary = world.table("facility")[fid]
 			if not _makes(f, good):
 				continue
-			var p := float(int(f.get("r8_px", 0)))
-			if p <= 0.0:
-				p = float(s["prices"][good])
+			var oid := String(f["org"])
+			var row: Dictionary = by_org.get(oid, {"fids": [], "cap": 0.0, "px_w": 0.0, "px_c": 0.0, "reach": 0, "read": false, "first": fid})
 			var cap := float(EconData.RECIPES[f["type"]]["out"][1]) * float(S) * EconUtil.fscale(f)
-			var r: Dictionary = pl.get(fid, {})
-			if not r.is_empty():
-				# rule 1: orders it could reach but not supply raise it
-				if int(r["reach"]) > 0:
-					p *= 1.0 + minf(OWN_UP, OWN_ALPHA * float(int(r["reach"])) / maxf(1.0, cap))
-				# rule 2 (the user, 2026-11-16: "the more inventory you have, the more you reduce your price ... a soft
-				# lock, not a hard lock"): every month a cut that grows smoothly with the stock it put on the market and
-				# did not sell. Stock it holds back below its own cost waits for a better price and does not push the
-				# price down (Wilma, option (a): with both rulings read on all stock, the price ran to the floor unsold).
-				p *= 1.0 - stock_cut(_unsold_ratio(world, f, good, r))
-			f["r8_px"] = _px_bounds(world, good, p)
+			(row["fids"] as Array).append(fid)
+			var p0 := float(int(f.get("r8_px", 0)))
+			if p0 <= 0.0:
+				p0 = float(s["prices"][good])
+			row["px_w"] = float(row["px_w"]) + p0 * cap
+			row["px_c"] = float(row["px_c"]) + cap
 			if not f["mothball"]:
-				wsum += float(int(f["r8_px"])) * cap
-				csum += cap
+				row["cap"] = float(row["cap"]) + cap
+				var r: Dictionary = pl.get(fid, {})
+				if not r.is_empty():
+					row["read"] = true
+					row["reach"] = maxi(int(row["reach"]), int(r["reach"]))
+					row["first"] = fid if not bool(row.get("has_r", false)) else row["first"]
+					row["has_r"] = true
+			by_org[oid] = row
+		var wsum := 0.0
+		var csum := 0.0
+		for oid in EconUtil.sorted_keys(by_org):
+			var row: Dictionary = by_org[oid]
+			var p := float(row["px_w"]) / maxf(1.0, float(row["px_c"]))  # the company's price (one per good)
+			if bool(row["read"]):
+				# rule 1: orders its plants could reach but not supply raise it, against the company's capacity
+				if int(row["reach"]) > 0:
+					p *= 1.0 + minf(OWN_UP, OWN_ALPHA * float(int(row["reach"])) / maxf(1.0, float(row["cap"])))
+				# rule 2 (the user, 2026-11-16: "the more inventory you have, the more you reduce your price ... a soft
+				# lock, not a hard lock"): a cut that grows smoothly with the stock it put on the market and did not
+				# sell, across all its plants. Stock it holds back below its own cost waits for a better price.
+				var f0: Dictionary = world.table("facility")[row["first"]]
+				p *= 1.0 - stock_cut(_unsold_ratio(world, f0, good, pl.get(row["first"], {})))
+			var px := _px_bounds(world, good, p)
+			for fid in row["fids"]:
+				world.table("facility")[fid]["r8_px"] = px
+			wsum += float(px) * float(row["cap"])
+			csum += float(row["cap"])
 		if csum > 0.0:
 			s["prices"][good] = _px_bounds(world, good, wsum / csum)
 

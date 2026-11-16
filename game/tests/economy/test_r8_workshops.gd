@@ -63,7 +63,7 @@ func test_a_workshop_prices_on_its_own_orders_and_stock() -> void:
 		if String(pl[f_id]["g"]) == "CONSUMER":
 			pl[f_id]["reach"] = 0
 			pl[f_id]["cover"] = 0
-	var cap := float(EconData.RECIPES["CONSUMERF"]["out"][1]) * float(S) * EconUtil.fscale(f)
+	var cap := _ocap(w, f)
 	var p0 := int(EconUtil.st(w)["base"]["CONSUMER"])  # inside the bounds every price has
 	pl[fid]["reach"] = int(cap * 1.0)
 	w.table("org")[f["org"]].erase("offered")
@@ -136,3 +136,13 @@ func test_runs_closed_and_save_load_identically() -> void:
 		if TYPES.has(f["type"]) and f.has("r8_px"):
 			own += 1
 	check(own > 0, "workshops carry their own prices")
+
+
+## The company's open capacity of the plant's type (one price per company: rule 1 reads its reach against this).
+func _ocap(w: WorldState, f: Dictionary) -> float:
+	var c := 0.0
+	for f_id in w.table("facility"):
+		var g: Dictionary = w.table("facility")[f_id]
+		if g["org"] == f["org"] and g["type"] == f["type"] and not g["mothball"]:
+			c += float(EconData.RECIPES[g["type"]]["out"][1]) * float(S) * EconUtil.fscale(g)
+	return c

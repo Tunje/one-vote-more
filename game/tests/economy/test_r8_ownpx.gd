@@ -43,6 +43,10 @@ func _only(w: WorldState, fid: String, reach: int, cover: int, px: int) -> void:
 	var fc: Dictionary = w.table("facility")[fid]
 	pl[fid]["sales"] = int(float(EconData.RECIPES[fc["type"]]["out"][1]) * float(S) * EconUtil.fscale(fc))  # a month's sales = its capacity
 	w.table("facility")[fid]["r8_px"] = px
+	for f_id in w.table("facility"):  # one price per company: all its plants of the good carry it
+		var g2: Dictionary = w.table("facility")[f_id]
+		if g2["org"] == w.table("facility")[fid]["org"] and g2["type"] == w.table("facility")[fid]["type"]:
+			g2["r8_px"] = px
 	w.table("org")[w.table("facility")[fid]["org"]].erase("offered")  # rule 2 reads the plant's cover until offers are recorded
 
 
@@ -61,7 +65,7 @@ func test_rule1_unfilled_orders_raise_the_sellers_price() -> void:
 		check(false, "a processing plant exists")
 		return
 	var f: Dictionary = w.table("facility")[fid]
-	var cap := _cap(f)
+	var cap := _ocap(w, f)
 	var p0 := 500 * S
 	_only(w, fid, int(cap * 0.1), 0, p0)  # orders worth 10% of its capacity it could reach
 	EconRulesMat.own_prices(w)
@@ -232,7 +236,7 @@ func test_a_pile_of_unsold_stock_outweighs_a_few_unfilled_orders() -> void:
 		check(false, "a processing plant exists")
 		return
 	var f: Dictionary = w.table("facility")[fid]
-	var cap := _cap(f)
+	var cap := _ocap(w, f)
 	var p0 := 500 * S
 	_only(w, fid, int(cap * 0.05), 9000, p0)  # a few distant orders unfilled, nine months of sales in store
 	EconRulesMat.own_prices(w)
@@ -289,3 +293,41 @@ func test_stock_held_back_does_not_push_the_price_down() -> void:
 	f["r8_px"] = p0
 	EconRulesMat.own_prices(w)
 	check_near(float(int(f["r8_px"])), float(p0) * (1.0 - EconRulesMat.stock_cut(3.0)), float(S), "offered and unsold: cut by c = 30 ÷ 10")
+
+
+## The company's open capacity of the plant's type (one price per company: rule 1 reads its reach against this).
+func _ocap(w: WorldState, f: Dictionary) -> float:
+	var c := 0.0
+	for f_id in w.table("facility"):
+		var g: Dictionary = w.table("facility")[f_id]
+		if g["org"] == f["org"] and g["type"] == f["type"] and not g["mothball"]:
+			c += float(EconData.RECIPES[g["type"]]["out"][1]) * float(S) * EconUtil.fscale(g)
+	return c
+
+
+func test_one_price_per_company() -> void:
+	var sim := _sim(["R8M_OWNPX"], 6)
+	var w := sim.world
+	var fid := _plant(w, "PROCESSING")
+	if fid == "":
+		check(false, "a processing plant exists")
+		return
+	var oid: String = w.table("facility")[fid]["org"]
+	var plants := []
+	for f_id in EconUtil.sorted_keys(w.table("facility")):
+		var g: Dictionary = w.table("facility")[f_id]
+		if g["org"] == oid and g["type"] == "PROCESSING":
+			plants.append(f_id)
+	if plants.size() < 2:
+		check(false, "a company with two processing plants")
+		return
+	var px := 200 * S
+	for f_id in plants:
+		w.table("facility")[f_id]["r8_px"] = px
+		px += 300 * S  # five different asks, as in the trace
+	EconRulesMat.own_prices(w)
+	var first := int(w.table("facility")[plants[0]]["r8_px"])
+	for f_id in plants:
+		check_eq(int(w.table("facility")[f_id]["r8_px"]), first, "every plant of the company carries its one price")
+	var d: String = w.table("facility")[plants[0]]["district"]
+	check_eq(EconRulesMat.own_ask(w, oid, "MATERIAL", d), first, "and every offer is at it")
