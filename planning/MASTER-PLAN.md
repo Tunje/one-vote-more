@@ -393,6 +393,19 @@ Detail and the state of the code: reeval-off-switches.md.
 
 ---
 
+### The transit authority's depot rule (the user, 2026-11-16, verbatim)
+
+Asked whether Bob may change how the depot sets its output (he proposed: all freight asked for, averaged over three months, less the other carriers' room), the user answered:
+
+> Tell him to test if and if it does not work to just count the work que not passed work
+
+Passed to Bob the same turn. He tests his change in his scratch copy; if it does not work the depot counts the work queue, not the work it carried.
+
+### Newspapers: each paper its own look (the user, 2026-11-16, verbatim)
+
+> Oh and make sure other newpapers have their own fonts and layouts
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

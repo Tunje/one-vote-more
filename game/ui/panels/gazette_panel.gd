@@ -34,13 +34,7 @@ func setup(s) -> void:
 	session = s
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var fall := ["Georgia", "Times New Roman", "Liberation Serif", "DejaVu Serif", "serif"]
-	_serif = _face(["Century Schoolbook", "Century", "Bookman Old Style"] + fall, 400)
-	_serif_bold = _face(["Century Schoolbook", "Bookman Old Style"] + fall, 700)
-	_f_mast = _face(["Old English Text MT", "Engravers MT", "Baskerville Old Face"] + fall, 400)
-	_f_lead = _face(["Bernard MT Condensed", "Bodoni MT Condensed", "Rockwell Condensed", "Bodoni MT"] + fall, 400)  # these faces come in one weight; asking for bold falls through to the next
-	_f_head = _face(["Bodoni MT", "Baskerville Old Face", "Garamond"] + fall, 700)
-	_f_label = _face(["Franklin Gothic Medium", "Franklin Gothic Medium Cond", "Arial", "Liberation Sans", "sans-serif"], 400)
+	_set_house(0)
 	var bg := ColorRect.new()
 	bg.color = PAPER
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -60,6 +54,53 @@ func setup(s) -> void:
 
 
 # ---------------------------------------------------------------- building blocks
+
+## Every paper has its own house style (the user, 2026-11-16: "make sure other newpapers have their own fonts and
+## layouts"): its own five typefaces, how it sets its name, and the two front-page layouts it alternates between.
+## The public paper is always the first; the others take the next ones in the order they were founded.
+const FALL := ["Georgia", "Times New Roman", "Liberation Serif", "DejaVu Serif", "serif"]
+const HOUSES := [
+	{"mast": ["Old English Text MT", "Engravers MT"], "lead": ["Bernard MT Condensed", "Bodoni MT Condensed"], "head": ["Bodoni MT", "Baskerville Old Face"],
+		"text": ["Century Schoolbook", "Century", "Bookman Old Style"], "label": ["Franklin Gothic Medium", "Arial"], "caps": false, "layouts": [2, 0]},
+	{"mast": ["Engravers MT", "Copperplate Gothic Bold"], "lead": ["Rockwell Condensed", "Rockwell"], "head": ["Rockwell", "Bookman Old Style"],
+		"text": ["Bookman Old Style", "Century Schoolbook"], "label": ["Gill Sans MT", "Arial"], "caps": true, "layouts": [3, 1]},
+	{"mast": ["Impact", "Arial Black"], "lead": ["Impact", "Arial Black"], "head": ["Franklin Gothic Demi Cond", "Arial Narrow"],
+		"text": ["Georgia"], "label": ["Arial Narrow", "Arial"], "caps": true, "layouts": [0, 3]},
+	{"mast": ["Castellar", "Felix Titling"], "lead": ["Baskerville Old Face", "Bodoni MT"], "head": ["Baskerville Old Face", "Garamond"],
+		"text": ["Goudy Old Style", "Garamond"], "label": ["Tw Cen MT", "Arial"], "caps": true, "layouts": [1, 2]},
+	{"mast": ["Cooper Black", "Elephant"], "lead": ["Elephant", "Bodoni MT Black"], "head": ["Calisto MT", "Bookman Old Style"],
+		"text": ["Calisto MT", "Bookman Old Style"], "label": ["Franklin Gothic Medium Cond", "Arial Narrow"], "caps": false, "layouts": [2, 3]},
+	{"mast": ["Britannic Bold", "Gill Sans Ultra Bold"], "lead": ["Bodoni MT Condensed", "Onyx"], "head": ["High Tower Text", "Bodoni MT"],
+		"text": ["Californian FB", "Century Schoolbook"], "label": ["Tw Cen MT Condensed", "Arial Narrow"], "caps": false, "layouts": [0, 1]},
+]
+var _house := -1
+
+
+## Which house style an outlet has: the public paper the first, the others in turn by their place in the list.
+static func house_of(outs: Array, outlet_id: String) -> int:
+	var k := 0
+	for o in outs:
+		var is_state := String((o.get("owner", {}) as Dictionary).get("kind", "")) == "STATE"
+		if String(o["id"]) == outlet_id:
+			return 0 if is_state else 1 + k % (HOUSES.size() - 1)
+		if not is_state:
+			k += 1
+	return 0
+
+
+func _set_house(i: int) -> void:
+	if i == _house:
+		return
+	_house = i
+	var h: Dictionary = HOUSES[i]
+	var sans := ["Arial", "Liberation Sans", "sans-serif"]
+	_serif = _face(h["text"] + FALL, 400)
+	_serif_bold = _face(h["text"] + FALL, 700)
+	_f_mast = _face(h["mast"] + FALL, 400)
+	_f_lead = _face(h["lead"] + FALL, 400)  # display faces come in one weight; asking for bold falls through to the next
+	_f_head = _face(h["head"] + FALL, 700)
+	_f_label = _face(h["label"] + sans, 400)
+
 
 func _face(names: Array, weight: int) -> SystemFont:
 	var f := SystemFont.new()
@@ -154,6 +195,7 @@ func refresh() -> void:
 			b.pressed.connect(func(): paper = oid; refresh())
 			pick.add_child(b)
 		sel = outs.filter(func(o): return o["id"] == paper)[0]
+		_set_house(house_of(outs, paper))
 		title = String(sel["name"]).to_upper()
 		tagline = _tagline(w, sel)
 		var em := MediaQuery.latest_month(w, paper)
@@ -170,7 +212,9 @@ func refresh() -> void:
 	# masthead
 	var home: String = String(AreaStore.get_area(w, "hb:1").get("name", "Landing")) if w.peek("area").has("hb:1") else "Landing"
 	_rule(body, 3)
-	_text(body, (title if title != "" else "THE %s GAZETTE" % home.to_upper()).capitalize(), 52, true, INK, HORIZONTAL_ALIGNMENT_CENTER)
+	var plate: String = title if title != "" else "THE %s GAZETTE" % home.to_upper()
+	var caps: bool = HOUSES[maxi(0, _house)]["caps"]
+	_text(body, plate if caps else plate.capitalize(), 46 if caps else 52, true, INK, HORIZONTAL_ALIGNMENT_CENTER)
 	_text(body, tagline, 14, false, MUTED, HORIZONTAL_ALIGNMENT_CENTER)
 	_rule(body, 1)
 	var dl := HBoxContainer.new()
@@ -186,7 +230,7 @@ func refresh() -> void:
 		return
 	# The page is laid out one of four ways (the user, 2026-11-16: "random layout choices"), chosen by the paper and
 	# the month, so the same edition always looks the same and next month's looks different.
-	var look := layout_of(String(sel.get("id", "")), m)
+	var look := layout_of(String(sel.get("id", "")), m, HOUSES[maxi(0, _house)]["layouts"])
 	var top: Dictionary = stories[0]
 	var rest: Array = stories.slice(1, 10)
 	var row := HBoxContainer.new()
@@ -229,11 +273,11 @@ func refresh() -> void:
 			_rest(body, rest.slice(1), int(look["cols"]))
 
 
-## Which way a paper lays out its front page in a month: {layout 0..3, cols 2..4}. The same paper and month always
-## give the same page.
-static func layout_of(outlet_id: String, month: int) -> Dictionary:
+## Which way a paper lays out its front page in a month: {layout 0..3, cols 2..4}, out of the layouts that are its
+## own (`own`). The same paper and month always give the same page.
+static func layout_of(outlet_id: String, month: int, own: Array = [0, 1, 2, 3]) -> Dictionary:
 	var h := absi(hash("%s|%d" % [outlet_id, month]))
-	return {"layout": h % 4, "cols": 2 + (h / 4) % 3}
+	return {"layout": int(own[h % own.size()]), "cols": 2 + (h / 4) % 3}
 
 
 func _lead(parent: Node, top: Dictionary, across: bool) -> void:
