@@ -56,3 +56,19 @@ carried. No private haulier has ever been founded in any game: starting one mean
 - The grant machinery of the family farms and bakeries: sim/economy/econ_family.gd, with the plan first and the
   grant after the plan.
 - The bus fleet: sim/economy/econ_fleet.gd.
+
+## The political side (Wilma's; the user, 2026-11-16: "Don't forget the political side")
+
+Owner: Wilma. Built with the economy side, not after it.
+- Two grant programmes decided by governments, like the family farm and bakery grants: a law-level lever each (how
+  generous an approved grant is), opened for a limited time, reset when the programme ends, a new decision needed
+  for a new one. Approved on need only: freight being left behind for drivers, broken trucks in reach for workshops.
+- The need reaches Parliament the way the farm grants' need does (the economy publishes it per lever; parties vote
+  it by their politics, so a government may refuse and live with the freight jam).
+- Where a programme lands (which districts) is a government decision, as for the family grants; a case on the desk
+  under DELEGATION.
+- Private drivers against the public transit authority is a question of who should run the economy (ECON_ROLE):
+  state-minded governments favour the authority's own depots and trucks, market-minded ones the drivers' grants.
+  The authority's crews and their union have an interest against it.
+- News: a programme opened and ended with what it paid, the first private driver, a freight jam, trucks off the road.
+- Law (Anni): whether a driver or a workshop needs a licence is a law that may make it dearer, never forbid it.
