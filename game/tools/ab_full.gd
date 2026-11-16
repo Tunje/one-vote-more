@@ -18,6 +18,10 @@ func _init() -> void:
 				continue
 			if fl.begins_with("-"):
 				(w.meta["on"] as Array).erase(fl.substr(1))
+				if not w.meta.has("off"):   # switches read through EconUtil.off look here; without this a "-FLAG" arm was a silent no-op
+					w.meta["off"] = []
+				if not (w.meta["off"] as Array).has(fl.substr(1)):
+					(w.meta["off"] as Array).append(fl.substr(1))
 			elif not (w.meta["on"] as Array).has(fl):
 				(w.meta["on"] as Array).append(fl)
 	for fl in (w.meta["on"] as Array):
