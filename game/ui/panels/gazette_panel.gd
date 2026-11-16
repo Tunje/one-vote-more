@@ -14,6 +14,13 @@ var body: VBoxContainer
 var paper := ""          # selected outlet id ("" = first)
 var _serif: SystemFont
 var _serif_bold: SystemFont
+## The paper's faces (the user, 2026-11-16: "change the fonts ... Pick fonts"; Wilma's pick, each with fallbacks so a
+## machine without the first choice still gets a serif): a blackletter nameplate, a loud condensed face for the main
+## headline, Bodoni for the other headlines, Century Schoolbook for the text, a plain gothic for the small print.
+var _f_mast: SystemFont
+var _f_lead: SystemFont
+var _f_head: SystemFont
+var _f_label: SystemFont
 
 
 func panel_title() -> String:
@@ -24,11 +31,13 @@ func setup(s) -> void:
 	session = s
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_serif = SystemFont.new()
-	_serif.font_names = PackedStringArray(["Georgia", "Times New Roman", "Liberation Serif", "DejaVu Serif", "serif"])
-	_serif_bold = SystemFont.new()
-	_serif_bold.font_names = _serif.font_names
-	_serif_bold.font_weight = 800
+	var fall := ["Georgia", "Times New Roman", "Liberation Serif", "DejaVu Serif", "serif"]
+	_serif = _face(["Century Schoolbook", "Century", "Bookman Old Style"] + fall, 400)
+	_serif_bold = _face(["Century Schoolbook", "Bookman Old Style"] + fall, 700)
+	_f_mast = _face(["Old English Text MT", "Engravers MT", "Baskerville Old Face"] + fall, 400)
+	_f_lead = _face(["Bernard MT Condensed", "Bodoni MT Condensed", "Rockwell Condensed", "Bodoni MT"] + fall, 400)  # these faces come in one weight; asking for bold falls through to the next
+	_f_head = _face(["Bodoni MT", "Baskerville Old Face", "Garamond"] + fall, 700)
+	_f_label = _face(["Franklin Gothic Medium", "Franklin Gothic Medium Cond", "Arial", "Liberation Sans", "sans-serif"], 400)
 	var bg := ColorRect.new()
 	bg.color = PAPER
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -49,10 +58,31 @@ func setup(s) -> void:
 
 # ---------------------------------------------------------------- building blocks
 
+func _face(names: Array, weight: int) -> SystemFont:
+	var f := SystemFont.new()
+	f.font_names = PackedStringArray(names)
+	f.font_weight = weight
+	return f
+
+
+## Which face a line is set in, by what it is on the page: the nameplate (bold, 44 and up), the main headline (bold,
+## 30 and up), other headlines (bold, 18 and up), small print (14 and under, not bold) and running text (the rest).
+func _font_for(size_px: int, bold: bool) -> Font:
+	if bold and size_px >= 44:
+		return _f_mast
+	if bold and size_px >= 30:
+		return _f_lead
+	if bold and size_px >= 18:
+		return _f_head
+	if not bold and size_px <= 14:
+		return _f_label
+	return _serif_bold if bold else _serif
+
+
 func _text(parent: Node, t: String, size_px: int, bold: bool = false, color: Color = INK, align := HORIZONTAL_ALIGNMENT_LEFT) -> Label:
 	var l := Label.new()
 	l.text = t
-	l.add_theme_font_override("font", _serif_bold if bold else _serif)
+	l.add_theme_font_override("font", _font_for(size_px, bold))
 	l.add_theme_font_size_override("font_size", size_px)
 	l.add_theme_color_override("font_color", color)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -133,7 +163,7 @@ func refresh() -> void:
 	# masthead
 	var home: String = String(AreaStore.get_area(w, "hb:1").get("name", "Landing")) if w.peek("area").has("hb:1") else "Landing"
 	_rule(body, 3)
-	_text(body, title if title != "" else "THE %s GAZETTE" % home.to_upper(), 46, true, INK, HORIZONTAL_ALIGNMENT_CENTER)
+	_text(body, (title if title != "" else "THE %s GAZETTE" % home.to_upper()).capitalize(), 52, true, INK, HORIZONTAL_ALIGNMENT_CENTER)
 	_text(body, tagline, 14, false, MUTED, HORIZONTAL_ALIGNMENT_CENTER)
 	_rule(body, 1)
 	var dl := HBoxContainer.new()
