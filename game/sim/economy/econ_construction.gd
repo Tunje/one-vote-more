@@ -380,6 +380,11 @@ static func award(world: WorldState, pid: String, org_id: String) -> bool:
 	p["esc_comp_price"] = st["prices"]["COMPONENT"]
 	p["esc_mat_cost"] = EconUtil.val(p["mat_total"], st["prices"]["MATERIAL"])
 	p["esc_comp_cost"] = EconUtil.val(p["comp_total"], st["prices"]["COMPONENT"])
+	if EconBuilders.on(world):
+		# the contract carries the wage change too (the user, 2026-11-16, on builders who cannot pay their crews: "It's
+		# not that big a fix"): a job's price was fixed at award while wages rose, so building did not pay
+		p["esc_wage"] = crew_wage(world)
+		p["esc_wage_cost"] = int(float(p["wu_total"]) / float(S) * float(p["esc_wage"]))
 	world.table("org")[org_id]["contracts"].append(pid)
 	world.table("org")[org_id]["won_any"] = int(world.table("org")[org_id].get("won_any", 0)) + 1  # E138
 	if EconBuilders.on(world):
@@ -667,7 +672,21 @@ static func _escalation(world: WorldState, p: Dictionary, frac: float) -> int:
 		var base := float(maxi(1, p[pair[1]]))
 		var ch := clampf(float(st["prices"][pair[0]]) / base - 1.0, -0.5, 1.0)
 		e += float(p[pair[2]]) * frac * ch
+	if p.has("esc_wage"):
+		# wages since the award, on the work done this month, both directions, no clamp
+		e += float(p["esc_wage_cost"]) * frac * (float(crew_wage(world)) / float(maxi(1, int(p["esc_wage"]))) - 1.0)
 	return int(e)
+
+
+## A builder crew's wage per work unit at this month's wages (the founding crew's mix of trades), mcr.
+static func crew_wage(world: WorldState) -> int:
+	var st := EconUtil.st(world)
+	var n := 0
+	var wsum := 0.0
+	for t in EconData.BUILDER_CREW:
+		n += int(EconData.BUILDER_CREW[t])
+		wsum += float(EconData.BUILDER_CREW[t]) * float(st["wage"].get(t, st["wage"].get("G", 0)))
+	return int(wsum / float(maxi(1, n)))
 
 
 ## Contractor liquidation: terminate its contracts; keep progress; project can be re-tendered.
