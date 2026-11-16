@@ -358,6 +358,11 @@ while it is above, lowering has priority; when the signal to raise and the signa
 month, only the one with priority acts, the other does nothing that month. Whatever limit there is on how far a
 price moves in a month is the same for a rise and for a cut (it was 5% up and 10% down).
 
+**Held-back stock is nobody's signal (the user, verbatim):** on the price cut: "since he only offered 1000 the 15000
+in storage should never have triggered the damned reduction!!!"; on the rule that sets how much a plant makes, which
+still read the whole store: "Ignore the stoch in that other place too". And: "Only fix this item for now once we
+have it right we fix the rest" (the item: the material price; the other sectors hold rule nine until it is right).
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and
