@@ -25,27 +25,51 @@ func test_off_depots_run_full_and_e150_keeps_the_tariff() -> void:
 			check_eq(int(f["T"]), 1000, "a depot at full output as before")
 
 
-func _tariff_after(w: WorldState, cap: int, used: int, deferred: int, start: int) -> int:
+func _quarter(w: WorldState, cap: int, used: int, deferred: int) -> int:
 	var s := EconUtil.st(w)
-	w.levers[LV] = start
 	s["r8_fr_q"] = [[cap, used, deferred], [cap, used, deferred], [cap, used, deferred]]
 	EconRules._freight_tariff(w, s, EconFinance.org_by_key(w, "CTA"))
 	return int(EconUtil.lever(w, LV, 0))
 
 
-func test_rules_1_2_deferred_freight_raises_idle_trucks_lower() -> void:
+func _start(w: WorldState, lever: int) -> void:
+	w.levers[LV] = lever
+	EconUtil.st(w).erase("r8_fr_tariff_x")
+
+
+func test_rules_1_2_the_tariff_moves_in_proportion() -> void:
 	var sim := _sim(["R8FR_MARKET"], 3)
 	var w := sim.world
+	var s := EconUtil.st(w)
 	if EconFinance.org_by_key(w, "CTA") == "":
 		check(false, "the transport authority exists")
 		return
-	check(_tariff_after(w, 1000 * S, 1000 * S, 100 * S, 5) > 5, "rule 1: freight left behind raises the tariff")
-	check(_tariff_after(w, 1000 * S, 500 * S, 0, 5) < 5, "rule 2: idle trucks and nothing deferred lower it")
-	check_eq(_tariff_after(w, 1000 * S, 1000 * S, 0, 5), 5, "full and nothing deferred: unchanged")
-	check_eq(_tariff_after(w, 1000 * S, 1000 * S, 100 * S, 20), 20, "within the lever's range (top)")
-	check_eq(_tariff_after(w, 1000 * S, 0, 0, 1), 1, "within the lever's range (bottom)")
+	_start(w, 5)
+	check_eq(_quarter(w, 1000 * S, 1000 * S, 10 * S), 5, "a handful of units left behind (1%): the lever stays")
+	check(int(s["r8_fr_tariff_x"]) > 5 * S, "but the tariff's fraction moved up a little")
+	_start(w, 5)
+	var lv := 5
+	for i in 4:
+		lv = _quarter(w, 1000 * S, 1000 * S, 1000 * S)
+	check_eq(lv, 6, "as much left behind as carried: +5% a quarter, 5 → 6.08 in a year")
+	_start(w, 5)
+	for i in 12:
+		lv = _quarter(w, 1000 * S, 500 * S, 0)
+	check(lv < 5, "half the trucks idle: down 3% a quarter (%d after 3 years)" % lv)
+	_start(w, 5)
+	check_eq(_quarter(w, 1000 * S, 1000 * S, 0), 5, "full and nothing left behind: unchanged")
+	_start(w, 20)
+	check_eq(_quarter(w, 1000 * S, 1000 * S, 1000 * S), 20, "within the lever's range (top)")
+	_start(w, 1)
+	check_eq(_quarter(w, 1000 * S, 0, 0), 1, "within the lever's range (bottom)")
+	_start(w, 5)
+	_quarter(w, 1000 * S, 1000 * S, 1000 * S)
+	w.levers[LV] = 9  # the government sets it
+	_quarter(w, 1000 * S, 1000 * S, 0)
+	check_eq(int(s["r8_fr_tariff_x"]), 9 * S, "a lever set by the government restarts the fraction")
 	w.meta["on"].append("R8FR_NOPX")
-	check_eq(_tariff_after(w, 1000 * S, 1000 * S, 100 * S, 5), 5, "R8FR_NOPX takes rules 1/2 out")
+	_start(w, 5)
+	check_eq(_quarter(w, 1000 * S, 1000 * S, 1000 * S), 5, "R8FR_NOPX takes rules 1/2 out")
 
 
 func test_rules_3_4_depots_run_at_the_freight_demanded() -> void:

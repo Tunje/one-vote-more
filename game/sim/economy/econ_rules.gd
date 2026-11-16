@@ -317,9 +317,9 @@ const PORT_M := 6  # EXP_PORT: months of the last 12 with cargo the port store c
 ## Freight rules 1-4 on the carrier's own market (R8FR_MARKET, with R8_FREIGHT; the user's order of 2026-11-16 that
 ## every producer has all eight rules). Kill switches R8FR_NOPX (rules 1/2), R8FR_NOOUT (rules 3/4).
 ##   1 raise the freight tariff: freight was deferred in the last quarter (orders the trucks could not carry) → up by
-##     OWN_ALPHA × deferred ÷ capacity, at most OWN_UP, at least one step of the integer lever;
-##   2 lower it: nothing deferred and trucks standing idle → down by OWN_ALPHA × idle ÷ capacity, at most OWN_DOWN, at
-##     least one step. Quarterly (as E150), within the lever's range; E150 no longer steps CTA's tariff on its result.
+##     OWN_ALPHA × deferred ÷ carried, at most OWN_UP;
+##   2 lower it: nothing deferred and trucks standing idle → down by OWN_ALPHA × idle ÷ the fleet, at most OWN_DOWN.
+##     The tariff is kept as a fraction (st r8_fr_tariff_x); the integer lever shows it rounded. Quarterly (as E150), within the lever's range; E150 no longer steps CTA's tariff on its result.
 ##   3/4 depot output: the depots run at the freight demanded last month (carried + deferred) ÷ their full capacity,
 ##     the core crew (rule 4's 20%) at least, instead of always at full output.
 ## OWN_ALPHA / OWN_UP / OWN_DOWN are Bob's numbers (EconRulesMat).
@@ -367,14 +367,19 @@ static func _freight_tariff(world: WorldState, s: Dictionary, cta: String) -> vo
 	var lv := "ECON_FREIGHT_TARIFF"
 	var row: Array = EconPublicCo.TARIFFS["CTA"][0]
 	var old := float(EconUtil.lever(world, lv, int(row[1])))
-	var nv := old
+	# The rule moves the tariff as a fraction kept in state (mcr; the lever shows it rounded): before, each step was at
+	# least one whole lever point (5-20%), so a handful of deferred units ratcheted the tariff to the top. A lever set by
+	# anyone else (the government) restarts the fraction from it.
+	var x := float(int(s.get("r8_fr_tariff_x", 0)))
+	if x <= 0.0 or int(round(x / float(S))) != int(old):
+		x = old * float(S)
 	if deferred > 0:
-		nv = old * (1.0 + minf(EconRulesMat.OWN_UP, EconRulesMat.OWN_ALPHA * float(deferred) / float(cap)))
-		nv = maxf(nv, old + 1.0)
+		x *= 1.0 + minf(EconRulesMat.OWN_UP, EconRulesMat.OWN_ALPHA * float(deferred) / float(maxi(1, used)))  # left behind ÷ carried
 	elif used < cap:
-		nv = old * (1.0 - minf(EconRulesMat.OWN_DOWN, EconRulesMat.OWN_ALPHA * float(cap - used) / float(cap)))
-		nv = minf(nv, old - 1.0)
-	var iv := clampi(int(round(nv)), int(row[1]), int(row[2]))
+		x *= 1.0 - minf(EconRulesMat.OWN_DOWN, EconRulesMat.OWN_ALPHA * float(cap - used) / float(cap))  # idle trucks ÷ the fleet
+	x = clampf(x, float(int(row[1]) * S), float(int(row[2]) * S))
+	s["r8_fr_tariff_x"] = int(x)
+	var iv := clampi(int(round(x / float(S))), int(row[1]), int(row[2]))
 	s["r8_fr_q"] = []
 	if iv == int(old):
 		return

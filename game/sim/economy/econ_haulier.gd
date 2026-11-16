@@ -157,7 +157,7 @@ static func _rate_rules(world: WorldState, o: Dictionary, ring: Array) -> void:
 		return
 	var p := float(rate_of(world, o["id"]))
 	if carried_q * 100 >= full * FULL_PCT and deferred_q > 0:
-		p *= 1.0 + minf(EconRulesMat.OWN_UP, EconRulesMat.OWN_ALPHA * float(deferred_q) / float(full))
+		p *= 1.0 + minf(EconRulesMat.OWN_UP, EconRulesMat.OWN_ALPHA * float(deferred_q) / float(maxi(1, carried_q)))  # left behind ÷ carried
 	elif carried_q < full:
 		p *= 1.0 - minf(EconRulesMat.OWN_DOWN, EconRulesMat.OWN_ALPHA * float(full - carried_q) / float(full))
 	o["fr_rate"] = _bounds(p)
