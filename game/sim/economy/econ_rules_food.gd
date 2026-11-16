@@ -88,8 +88,8 @@ static func family_entry_block(world: WorldState, ftype: String, d: String) -> S
 		return "no_customers"
 	if output(world, good) >= COVERED * wanted:
 		return "covered"
-	if EconRules.reachable_unfilled(world, good, d) <= 0:
-		return "no_customers"
+	if EconRules.reachable_unfilled(world, good, d) <= 0 and not EconForecast.v2_on(world):
+		return "no_customers"  # (R8_FORECAST2: entry reads the average work, not the leftovers)
 	return ""
 
 

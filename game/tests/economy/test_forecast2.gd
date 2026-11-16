@@ -21,6 +21,7 @@ func _cleared(w: WorldState) -> void:
 	s["prices"]["CONSUMER"] = int(uc * 4.0)
 	s["market_stats"]["CONSUMER"] = {"S": 3000 * S, "D": 2000 * S, "wanted": 2000 * S, "filled": 2000 * S}
 	s["fill_last"] = {}
+	s["r8"]["goods"]["CONSUMER"] = {"d:1": {"w": 2000 * S, "f": 2000 * S, "u": 0, "hf": 0, "hr": 0}}  # all bought, nothing left over
 
 
 func test_off_the_old_forecast() -> void:
@@ -75,3 +76,27 @@ func test_a_breakeven_market_still_says_no() -> void:
 	EconUtil.st(w)["prices"]["CONSUMER"] = int(FirmAI.unit_cost(w, "CONSUMERF") * 0.8)
 	var fc := EconForecast.first_year(w, "CONSUMERF", "d:1")
 	check(int(fc["profit"]) <= 0, "below cost: no profit, no founding")
+
+
+func test_the_average_work_not_the_leftovers() -> void:
+	var sim := _sim(["R8_FORECAST2"], 6)
+	var w := sim.world
+	_cleared(w)
+	var r: Dictionary = EconData.RECIPES["CONSUMERF"]
+	var cap := float(r["out"][1]) * float(S)
+	var inc := EconForecast._incumbent_cap(w, "CONSUMERF", r, "")
+	var expect := 2000.0 * float(S) * cap / (inc + cap)
+	check(absf(EconForecast.share_of_work(w, "CONSUMERF", "d:1") - expect) <= 1.0, "every order in reach × its capacity ÷ everyone's capacity")
+	check(EconForecast.share_of_work(w, "CONSUMERF", "d:1") > 0.0, "work although nothing was left unfilled")
+	check(absf(EconForecast.share_of_work(w, "CONSUMERF", "d:1", -1.0, "", 900.0 * S) - 900.0 * S * cap / (inc + cap)) <= 1.0, "a sector's own demand figure replaces the reading")
+	var fc := EconForecast.first_year(w, "CONSUMERF", "d:1")
+	check(not (fc["reasons"] as Array).has("competitors"), "no leftovers test")
+
+
+func test_a_sector_may_count_the_incumbents_in_its_own_reach() -> void:
+	var sim := _sim(["R8_FORECAST2"], 6)
+	var w := sim.world
+	var cap := float(EconData.RECIPES["SERVICEHUB"]["out"][1]) * float(S)
+	check(absf(EconForecast.share_of_work(w, "SERVICEHUB", "d:3", -1.0, "", 400.0 * S, 3.0 * cap) - 100.0 * S) <= 1.0, "400 of work, 3 incumbents' capacity near it and itself: a quarter")
+	var colony := EconForecast.share_of_work(w, "SERVICEHUB", "d:3", -1.0, "", 400.0 * S)
+	check(colony <= 100.0 * S, "without inc: every hub of the colony counts (%d)" % [int(colony / S)])

@@ -45,6 +45,36 @@ static func _incumbent_cap(world: WorldState, ftype: String, r: Dictionary, skip
 	return c
 
 
+## The average work a newcomer of `ftype` in district d would get (mu a month): every order in its reach, filled or
+## not (and the next ship's free hold under EXP), shared by capacity among all who could serve it, the incumbents'
+## open plants, what is being built or extended, and itself (the user, 2026-11-16: "instead of reading the leftovers,
+## they read an average of all available jobs"). Not "unfilled minus the incumbents' spare". The one function every
+## sector's entry rule reads (Ella, Anni, Maja, Otto); `cap` is the newcomer's capacity (-1: one plant of the type);
+## `work` is the sector's own demand in reach when it is not a market good in st r8 (metered power, clients), -1: read it;
+## `inc` the incumbents' capacity over that same reach (open plants, projects and extensions near d) when the reach is
+## not the whole colony (Ella's hubs: customers travel to their district and its neighbours), -1: every plant of the type.
+static func share_of_work(world: WorldState, ftype: String, district: String, cap: float = -1.0, skip_fid: String = "", work: float = -1.0, inc: float = -1.0) -> float:
+	var r: Dictionary = EconData.RECIPES.get(ftype, {})
+	if r.is_empty():
+		return 0.0
+	var good := String(r["out"][0])
+	if cap < 0.0:
+		cap = float(r["out"][1]) * float(S)
+	var s := EconUtil.peek_st(world)
+	var others := inc if inc >= 0.0 else _incumbent_cap(world, ftype, r, skip_fid)
+	if work >= 0.0:
+		return work * cap / maxf(1.0, others + cap)
+	work = 0.0
+	if s.has("r8"):
+		work = float(EconRules.reachable_wanted(world, good, district))
+		var xb: Dictionary = s.get("r8", {}).get("export", {}).get(good, {})
+		if int(xb.get("per_m", 0)) > 0 and int(xb.get("net", 0)) > 0:
+			work += float(int(xb["per_m"]))  # EXP: the next ship's free hold is a customer too
+	else:
+		work = float(int(s.get("market_stats", {}).get(good, {}).get("wanted", 0)))
+	return work * cap / maxf(1.0, others + cap)
+
+
 static func first_year(world: WorldState, ftype: String, district: String, founder: Dictionary = {}, purchase: Dictionary = {}) -> Dictionary:
 	var s := EconUtil.peek_st(world)
 	var r: Dictionary = EconData.RECIPES.get(ftype, {})
@@ -81,11 +111,13 @@ static func first_year(world: WorldState, ftype: String, district: String, found
 		var inc := _incumbent_cap(world, ftype, r, String(purchase.get("fid", "")) if buying else "")
 		win = filled * cap / maxf(1.0, inc + cap)  # its capacity's share of what buyers bought, at a price just under theirs
 	var volume := float(maxi(0, unfilled - spare)) + win
+	if v2:
+		volume = share_of_work(world, ftype, district, cap, String(purchase.get("fid", "")) if buying else "")  # the average work, not leftovers
 	if buying:
 		volume = maxf(volume, float(int(world.peek("facility")[purchase["fid"]].get("out_last", 0))))
 	if volume <= 0.0:
 		reasons.append("no_customers")
-	elif unfilled > 0 and unfilled <= spare:
+	elif unfilled > 0 and unfilled <= spare and not v2:
 		reasons.append("competitors")
 	# can it produce that: inputs' fill and workers
 	var fill := 1.0

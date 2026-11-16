@@ -247,6 +247,17 @@ static func reachable_unfilled(world: WorldState, good: String, d: String) -> in
 	return t
 
 
+## Every order for `good` a producer in district d could deliver to last month, filled or not (wanted × the route's
+## deliverability): the whole work in its reach, not the leftovers (R8_FORECAST2; the user, 2026-11-16).
+static func reachable_wanted(world: WorldState, good: String, d: String) -> int:
+	var r8: Dictionary = EconUtil.peek_st(world).get("r8", {})
+	var t := 0
+	for d2 in r8.get("goods", {}).get(good, {}):
+		var pm := 1000 if d2 == d else int(r8.get("deliver", {}).get(d + "|" + String(d2), 1000))
+		t += int(r8["goods"][good][d2]["w"]) * pm / 1000
+	return t
+
+
 static func deliverable_pm(world: WorldState, from_d: String, to_d: String) -> int:
 	if from_d == to_d:
 		return 1000

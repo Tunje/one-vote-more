@@ -225,6 +225,17 @@ static func entry(world: WorldState) -> Dictionary:
 	# rule 7: a depot's first year on the freight left behind, at today's tariff
 	var cap := float(EconData.RECIPES["DEPOT"]["out"][1]) * float(S)
 	var vol := minf(float(deferred) / float(Q_M), cap)
+	if EconForecast.v2_on(world):
+		# R8_FORECAST2: the average work, all the freight asked for (carried by everyone + left behind) shared by capacity
+		var asked := 0.0
+		var fleet := 0.0
+		for oid in rings:
+			var rg: Array = rings[oid]
+			for i in range(maxi(0, rg.size() - Q_M), rg.size()):
+				asked += float(int(rg[i][1]))
+			fleet += float(full_of(world, String(oid)))
+		asked += float(deferred)
+		vol = minf(asked / float(Q_M) * cap / maxf(1.0, fleet + cap), cap)
 	var rate := float(int(EconUtil.lever(world, "ECON_FREIGHT_TARIFF", 5)) * S)
 	var revenue := vol * rate / float(S)
 	var costs := FirmAI.unit_cost(world, "DEPOT") * cap / float(S)
