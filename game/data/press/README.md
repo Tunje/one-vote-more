@@ -29,6 +29,8 @@ Each entry tells you:
   (see "Stance").
 - `kind`: where on the page it goes and how long it is (see "Kinds").
 - `placeholders`: the only blanks you may use (see "Blanks").
+- `must_name`: the blanks EVERY variant must use (see "Name who it is about"), and `holds`: what the event's own
+  blanks hold.
 - `variants`: how many different versions to write.
 
 ## The file format
@@ -84,6 +86,21 @@ Rules for blanks:
 - Never use "he" or "she" for a blank that holds a person. Repeat the name, or use the office ("the First
   Minister", "the leader").
 - You do not have to use every blank. Use `{target}` at least once in every LEAD and SECOND.
+
+## Name who it is about
+
+An article says WHO. Never write "a company", "a party", "a party leader", "a union" or "a building project"
+when the entry gives you a blank that holds the name. A reader must learn from the headline or the first
+sentence which company went under, which party split, who the new leader is.
+
+- Every variant must use every blank listed in the entry's `must_name`, at least once, in the headline, the sub
+  or the body. Put the name early: in the headline where it fits, otherwise in the first sentence.
+- `holds` tells you what each of the event's own blanks contains, so you know how it reads in a sentence.
+- `{target}` is not a substitute: it is who the paper holds responsible, which may be the government and not the
+  company or party the event is about.
+- An article that does not name who it is about is rejected by `check.py`, and the game does not print it.
+
+Files written before this rule fail the check. Rewrite every file `check.py` reports.
 
 ## The hard rule: invent nothing that can be checked
 

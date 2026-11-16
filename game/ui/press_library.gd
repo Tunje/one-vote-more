@@ -5,6 +5,16 @@ extends RefCounted
 ## A file is articles/<EVENT>__<FLAVOUR>__<STANCE>__<KIND>.json with some variants {headline, sub, body}; blanks in
 ## curly braces are filled from what the game knows. A variant with a blank the game cannot fill is not used.
 
+## An article says who it is about (the user, 2026-11-16: "at a company? No it should be named"). For these events a
+## written variant is printed only if it uses every one of these blanks; the same list is `must_name` in wanted.json.
+const MUST_NAME := {
+	"POL_GOVERNMENT_FORMED": ["members"], "POL_SCANDAL_REVEALED": ["leader", "party"], "POL_PARTNER_LEFT": ["party"],
+	"POL_LEADER_CHANGED": ["new", "party"], "POL_LEADERSHIP_RACE_OPENED": ["party"], "POL_PARTY_SPLIT": ["party", "splinter"],
+	"UNION_STRIKE_CALLED": ["name"], "UNION_STRIKE_COLLAPSED": ["name"], "ECON_CONTRACT_SEVERELY_DELAYED": ["project"],
+	"COMP_WORKPLACE_ACCIDENT": ["facility"], "POL_DEBATE_GAFFE": ["leader", "party"], "COMP_LIQUIDATED": ["company"],
+	"ECON_LAYOFFS_MASS": ["company"],
+}
+
 static var dir := "res://data/press"
 static var _files := {}     # path -> Dictionary ({} = missing or unreadable)
 static var _pics := {}      # path -> Texture2D or null
@@ -69,6 +79,12 @@ static func article(event: String, fl: String, st: String, kind: String, blanks:
 			var v = vs[(absi(pick) + i) % vs.size()]
 			if not (v is Dictionary):
 				continue
+			var raw := "%s %s %s" % [String(v.get("headline", "")), String(v.get("sub", "")), String(v.get("body", ""))]
+			var named := true
+			for k in MUST_NAME.get(event, []):
+				named = named and raw.contains("{%s}" % k)
+			if not named:
+				continue
 			var head := fill(String(v.get("headline", "")), blanks)
 			var body := fill(String(v.get("body", "")), blanks)
 			var sub_raw := String(v.get("sub", ""))
@@ -124,10 +140,14 @@ static func value(w: WorldState, key: String, v) -> String:
 	match key:
 		"project": return NewsText.project(w, s)
 		"facility": return NewsText.facility(w, s)
-		"employer": return "the government" if s == "gov" else NewsText.org(w, s)
+		"employer":
+			if s == "gov":
+				return "the government"
 		"district": return NewsText.district(w, s)
 	if w.peek("org").has(s):
 		return NewsText.org(w, s)
+	if key == "employer" or key == "company":
+		return ""  # a company the game cannot name
 	if s == s.to_upper() and s != s.to_lower():  # a code such as TRADE_EMBARGO
 		return s.to_lower().replace("_", " ")
 	return s
@@ -149,6 +169,11 @@ static func blanks(w: WorldState, f: Dictionary, o: Dictionary, month: int, run:
 		var s := value(w, String(k), d[k])
 		if s != "":
 			b[String(k)] = s
+	for sub in f.get("subjects", []):  # the company the event is about
+		if sub is Dictionary and String(sub.get("kind", "")) in ["COMPANY", "ORG"] and w.peek("org").has(String(sub.get("id", ""))) and not b.has("company"):
+			b["company"] = NewsText.org(w, sub["id"])
+	if not b.has("company") and w.peek("org").has(String(d.get("org", ""))):
+		b["company"] = NewsText.org(w, d["org"])
 	if f.get("location") != null and not b.has("district"):
 		b["district"] = NewsText.district(w, f["location"])
 	if target == "":

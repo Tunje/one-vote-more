@@ -109,3 +109,16 @@ func test_the_real_folder_loads() -> void:
 	var a: Dictionary = Press.article("ECON_FAMINE", "TABLOID", "AGAINST", "LEAD", bl, 0)
 	check(not a.is_empty(), "the famine article that has been written is found and filled")
 	check(not String(a.get("body", "")).contains("{"), "no blank is left in it")
+
+func test_an_article_that_does_not_name_the_company_is_not_printed() -> void:
+	# the user, 2026-11-16: "at a company? No it should be named"
+	_scratch()
+	_write("COMP_LIQUIDATED__STATE__NEUTRAL__LEAD.json", [{"headline": "A business has failed", "sub": "", "body": "A company went under."},
+		{"headline": "{company} goes under", "sub": "", "body": "{company} has closed."}])
+	var a: Dictionary = Press.article("COMP_LIQUIDATED", "STATE", "NEUTRAL", "LEAD", {"company": "Atlas Mining"}, 0)
+	check_eq(String(a.get("headline", "")), "Atlas Mining goes under", "only the variant that names the company is used")
+	check(Press.article("COMP_LIQUIDATED", "STATE", "NEUTRAL", "LEAD", {}, 0).is_empty(), "with no name known the paper keeps its own sentence")
+	_real()
+	var wanted: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/press/wanted.json"))
+	for r in wanted["articles"]:
+		check_eq(r["must_name"], Press.MUST_NAME.get(String(r["event"]), []), "the writer's list asks for the same names as the game (%s)" % String(r["event"]))

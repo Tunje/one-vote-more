@@ -406,6 +406,15 @@ Passed to Bob the same turn. He tests his change in his scratch copy; if it does
 > Oh and make sure other newpapers have their own fonts and layouts
 
 
+### Newspaper articles name who they are about (the user, 2026-11-16, verbatim)
+
+On the written article headed "A large loss of jobs at a company":
+
+> No on the articles, at a company? No it should be named
+
+Done the same turn: the writer's brief, the wanted list (`must_name`) and the checker demand the name; the game does not print a written article that leaves it out and keeps its own sentence, which names it.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

@@ -61,6 +61,9 @@ for name in sorted(os.listdir(adir)) if os.path.isdir(adir) else []:
             errs.append("variant %d: body has %d words, wanted %d to %d" % (i + 1, n, lo, hi))
         if re.search(r"[<>*#`]|\n\s*[-•]\s", v["body"]):
             errs.append("variant %d: plain text only (no Markdown, HTML or lists)" % (i + 1))
+        for ph in w.get("must_name", []):
+            if "{%s}" % ph not in text:
+                errs.append("variant %d: must name who it is about: use {%s}" % (i + 1, ph))
         if w["kind"] in ("LEAD", "SECOND") and "{target}" not in text:
             errs.append("variant %d: use {target} at least once" % (i + 1))
     if len({v.get("headline") for v in vs if isinstance(v, dict)}) < len(vs):
