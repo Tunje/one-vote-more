@@ -72,3 +72,11 @@ Owner: Wilma. Built with the economy side, not after it.
   The authority's crews and their union have an interest against it.
 - News: a programme opened and ended with what it paid, the first private driver, a freight jam, trucks off the road.
 - Law (Anni): whether a driver or a workshop needs a licence is a law that may make it dearer, never forbid it.
+
+## Rulings as they come
+
+- 2026-11-16, on Ella's proposal that a workshop repair restores a truck but never raises its quality (the user,
+  verbatim): "No improvements for trucks set quality stays". So a truck's quality is set when it is built and never
+  changes. Ella's other proposals (a repair brings wear back to new; a self-repair leaves the wear; trucks wear with
+  age like buses; a workshop repair uses components and a self-repair none; a workshop's trucks are better as a fact
+  of who made them) are not yet answered.
