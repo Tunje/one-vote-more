@@ -642,9 +642,10 @@ static func _expand(world: WorldState, f: Dictionary) -> void:
 		"PUBLIC", {"type": f["type"], "reason": "full"})
 
 
-## Rule 7 forecast for a founder: clients in district d and its neighbours the public plants leave unserved, whose
-## pools' means cover a fee of FEE_START × cost, less the private places already in reach, with the founder's error.
-## Returns the expected paying clients a month (persons).
+## Rule 7 forecast for a founder, on the average (the user: "instead of reading the leftovers, they read an avrage"):
+## every client in district d and its neighbours whose pool's means cover a fee of FEE_START × cost, shared among
+## all the places in reach (the public plants', the private ones open or being built, and the founder's own), with
+## the founder's error. Returns the founder's expected paying clients a month (persons).
 static func forecast(world: WorldState, typ: String, d: String, err: float = 0.0) -> int:
 	var nd: Dictionary = EconUtil.peek_st(world).get("r8_inst", {}).get("need", {}).get(typ, {})
 	var reach: Array = [d] + EconUtil.neighbours(d)
@@ -655,16 +656,48 @@ static func forecast(world: WorldState, typ: String, d: String, err: float = 0.0
 		var gd := String(g["district"])
 		if not (gd in reach):
 			continue
-		var unserved := _unserved(g, typ, nd.get(gd, {}))
-		if unserved <= 0:
+		var n := _pool_all(g, typ, nd.get(gd, {}))
+		if n <= 0:
 			continue
 		var will := EconHouseholds.discretionary_budget(world, g) * int(WILL_PM[typ]) / 1000
 		var price := fee_est if gd == d else fee_est * 11 / 10
-		buyers += mini(unserved, will / price)
+		buyers += mini(n, will / price)
+	var own := new_places(typ)
+	var all_places := own
+	for f in _plants(world, typ):
+		if not f["mothball"] and String(f["district"]) in reach:
+			all_places += places(world, f)
 	for f in _private_plants(world, typ, false):
 		if String(f["district"]) in reach:
-			buyers -= places(world, f)
-	return maxi(0, int(float(buyers) * (1.0 + err)))
+			all_places += places(world, f)
+	return maxi(0, int(float(_avg_share(buyers, all_places, own)) * (1.0 + err)))
+
+
+## The places a new plant of `typ` offers at a full crew (persons).
+static func new_places(typ: String) -> int:
+	if CARE_TYPES.has(typ):
+		return int(float(EconCare.POSTS_PER_UNIT) * EconCare.normal_for(typ))
+	return plant_out(typ)
+
+
+## A newcomer's share of the demand on the average: `demand` shared evenly among `all_places` (its own included),
+## its `own` places' part, at most its places. (The slot for the shared average function.)
+static func _avg_share(demand: int, all_places: int, own: int) -> int:
+	if all_places <= 0:
+		return 0
+	return mini(own, int(float(demand) * float(own) / float(all_places)))
+
+
+## Pool g's clients of a type, all of them (persons): the residents, the school-age children, the retired, or the
+## pool's share of the district's small children (from the care row).
+static func _pool_all(g: Dictionary, typ: String, row: Dictionary) -> int:
+	if typ == "ELDERCARE":
+		return int(g["retired"]) / S
+	if typ == "CHILDCARE":
+		if row.is_empty() or int(row.get("kids", 0)) <= 0:
+			return 0
+		return int(float(g["children"]) * float(int(row["clients"])) / float(int(row["kids"])))
+	return pool_clients(g, typ) / S
 
 
 ## Rule 8: private plants holding more than half of the type's private places lost money over 12 months.

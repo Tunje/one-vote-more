@@ -383,3 +383,19 @@ func test_private_care_homes_serve_the_uncared_and_count_in_coverage() -> void:
 	check(EconInst.forecast(w, "ELDERCARE", d) >= 0, "founders can read the market")
 	var off := _sim()
 	check(not EconInst.private_types(off.world).has("ELDERCARE"), "without CARE, no private care homes")
+
+
+func test_founders_read_the_average_not_the_leftovers() -> void:
+	var sim := _sim()
+	var w := sim.world
+	sim.run(2)
+	w.levers["ECON_BUDGET_HEALTH"] = 4000   # the public clinics serve everyone: no leftovers
+	EconInst.monthly(w)
+	var d := String(_clinics(w)[0]["district"])
+	var n := EconInst.forecast(w, "CLINIC", d)
+	check(n > 0, "the founder still reads its average share of the clients in reach (%d)" % n)
+	check(n <= EconInst.new_places("CLINIC"), "never more than its places")
+	for c in _clinics(w):
+		c["scale"] = int(c.get("scale", 1000)) * 4
+	var n4 := EconInst.forecast(w, "CLINIC", d)
+	check(n4 < n, "more places in reach, a smaller share (%d -> %d)" % [n, n4])

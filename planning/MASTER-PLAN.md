@@ -277,10 +277,13 @@ dissolved after 6 months in administration, the clients' wait limits (GOV_WAIT_M
 > "Okay new companies need the same suggar coating the farms and bakeries got for grants, and instead of reading the
 > leftovers, they read an avrage of all avaliable jobs Focus only on this"
 
-1. Every new company gets what the family farms and bakeries got with their grants (EconFamily): a grant decided by
-the government as a share of the build cost plus start-up working capital, approved on need, in a time-limited
-programme; the bank lends the rest with the grant and the plant as security; nothing repaid before the plant opens,
-then a share of the surplus, a bad month pays less, default only after a year with nothing paid.
+1. WITHDRAWN: Wilma read this as "every new company gets a grant like the family farms and bakeries" and ordered it
+built. The user, an hour later: "WHAT THE FUCK NO I DID NOT SAY GIVE EVERYONE DUCKING GRANTS". No grant for new
+companies is built. The user then said what was meant: "YOU SAID THERE WAS A LIMIT ON HOW MANY COMPANIES CAN FORM
+THAT LIMIT REMOVE THAT LIMIT!!!! NO NOT THE GRANT PASSES ... JUST THE FUCKING MAX CAP ON HOW MANY TOTAL COMPANIES CAN
+BE MADE". So the "sugar coating" is what the family farms and bakeries had just been given: they do not count
+against the cap. Every new company gets the same: the cap on how many companies can be forming is removed, for all,
+in every game. Nothing about grants changes.
 2. A company deciding whether to start reads an average of all the available work (all jobs, all orders), not what
 the existing firms left over.
 Everything else waits: the hard-limits lists, the traces not needed for this, the re-evaluation screen's reading.
