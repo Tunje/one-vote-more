@@ -424,3 +424,20 @@ and less hungry and more plans open, and material sells at a quarter to two fift
 "all inventory sold at too low price" the user named when ruling that the hold-back stays. With it, material holds
 its price where the eight rules are on (100-115% of cost) and two thirds of orders go unfilled. Nothing is decided
 from this run; the fix under way is one own price per company, not per plant.
+
+### 30 years, code a06529a (the hold-back sells enough to cover all monthly expenses; no ask floor; stock cut in the price table)
+
+| arm | seed | adults | u % | food | real | priv alive/dead | builders alive/dead | bank capital | material % of cost / filled | plans / opened |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | 1 | 4875 | 14.2 | 21 | 3.16 | 104/145 | 6/22 | 3 | 42 / 902 | 61 / 10 |
+| base | 2 | 4847 | 13.6 | 22 | 3.67 | 112/121 | 4/24 | 10 | 26 / 942 | 62 / 9 |
+| base | 3 | 5181 | 13.9 | 19 | 3.64 | 167/97 | 3/24 | 7 | 27 / 913 | 60 / 10 |
+| ALL | 1 | 3592 | 23.2 | 126 | 3.40 | 78/177 | 4/76 | -7 | 21 / 856 | 134 / 43 |
+| ALL | 2 | 3694 | 20.0 | 125 | 4.13 | 80/191 | 5/86 | -9 | 27 / 796 | 75 / 41 |
+| ALL | 3 | 3672 | 21.6 | 141 | 4.21 | 73/189 | 5/89 | -12 | 21 / 726 | 109 / 35 |
+
+Reading (Wilma): the best base of the day on every seed: unemployment about 14% (15-27% in the earlier 30-year base
+runs), food shortfall about 20 permille, the bank alive on all three seeds, 90-94% of material orders filled. ALL is
+better than before (3,600-3,700 adults against 3,100-3,250; material 73-86% filled against 32-43%; 35-43 plans
+opened) and still a quarter below the base and hungrier. In both, material sells at 21-42% of what it costs to make.
+Rule nine and the price-only reading are not in this run.
