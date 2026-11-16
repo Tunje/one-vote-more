@@ -273,6 +273,18 @@ replace those that have none. The list goes in planning/hard-limits.md, by owner
 and MAX_FORMING 3 (companies forming at once), a plan abandoned after 6 months without an active job, a firm
 dissolved after 6 months in administration, the clients' wait limits (GOV_WAIT_M, PRIV_WAIT_BASE_M).
 
+### ORDER, 2026-11-16, and the only work until it is done (the user, verbatim)
+> "Okay new companies need the same suggar coating the farms and bakeries got for grants, and instead of reading the
+> leftovers, they read an avrage of all avaliable jobs Focus only on this"
+
+1. Every new company gets what the family farms and bakeries got with their grants (EconFamily): a grant decided by
+the government as a share of the build cost plus start-up working capital, approved on need, in a time-limited
+programme; the bank lends the rest with the grant and the plant as security; nothing repaid before the plant opens,
+then a share of the surplus, a bad month pays less, default only after a year with nothing paid.
+2. A company deciding whether to start reads an average of all the available work (all jobs, all orders), not what
+the existing firms left over.
+Everything else waits: the hard-limits lists, the traces not needed for this, the re-evaluation screen's reading.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and
