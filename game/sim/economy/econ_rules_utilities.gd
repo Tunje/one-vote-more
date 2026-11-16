@@ -7,28 +7,33 @@ extends RefCounted
 ## The utility's market, measured monthly at the start of TRADE from the month before (EconProduction's grid):
 ##   per grid ("E" power, "W" water): dem (metered demand, mu), sup (what the plants delivered), cap (effective capacity:
 ##   Σ out × scale × condition/management of the open plants), unserved = dem − sup, billed units (served less the
-##   water works' own power, which nobody pays for), the bill (billed × tariff), and the cost of running the grid's
-##   plants (crews at the going wage, upkeep material and components at market prices, depreciation; water also pays
-##   for its own power at power's unit cost). Kept 12 months in st["r8u"]["hist"][grid].
+##   water works' own power, which nobody pays for), the bill as collected (billed × tariff, times the share of last
+##   month's utility bills actually paid into CPW's account), and the cost of running CPW's plants on the grid (crews at
+##   the going wage, upkeep material and components at market prices, depreciation, CPW's interest shared by the plants'
+##   book value, what the grid bought from other companies; water also pays for its own power at power's unit cost).
+##   Kept 12 months in st["r8u"]["hist"][grid].
 ##
 ## Rules (quarterly unless said):
 ##   1/2 TARIFF (replaces E150's P&L step for CPW under the switch). Rise when the bill does not cover the grid's cost
 ##     (12-month result < 0, or the tariff is below the cost per billed unit in the last quarter): to that cost per unit,
 ##     at least +1. Rise by step_up when the bill covers it but demand went unserved at full use in the last quarter.
-##     Cut by step_down when it covers the cost and use stayed below idle_pm all quarter, never below the cost per unit.
+##     Cut by step_down when it covers the cost and use stayed below idle_pm all quarter (no floor: the user, 2026-11-16;
+##     a cut is only made while the bill covers the cost, which is rule 1's condition).
 ##     Within the levers' legal ranges (EconPublicCo.TARIFFS). A rise is a proposal the government decides
 ##     (st["pe_proposals"], the E150P shape, EconPublicCo.approve) when E150P is on; without E150P it applies at once
 ##     (the stand-in for "a government that always approves", as E150 does). A cut applies at once.
-##   3/4 OUTPUT (monthly, FirmAI._set_target): the plants run to the metered demand: T = demand × out_margin ÷ effective
-##     capacity of the grid's open plants, 0..1 (no 30% floor).
+##   3/4 OUTPUT (monthly, FirmAI._set_target): the plants run to the metered demand: T = demand × margin ÷ effective
+##     capacity of the grid's open plants, 0..1 (no 30% floor); margin is measured: demand over delivered output in the
+##     last GAP_M months.
 ##   5 ADD CAPACITY: full (demand ≥ full_pm of effective capacity) in full_m of the last 12 months, or demand unserved
 ##     at full use in the last quarter, or the forecast (demand a year on, at the last 12 months' trend) above the
 ##     effective capacity with what is being built → reopen a mothballed plant, else a +25% extension of the smallest
-##     plant (EXPAND), else a new plant where the grid's first plant stands. One project at a time per grid. Cash, else
+##     plant for which an extension adds a unit of capacity for less than a new plant would (extend_cheaper; no size
+##     limit), else a new plant where the grid's first plant stands. One project at a time per grid. Cash, else
 ##     a loan; with neither, nothing is built (noted as "unfunded"). Replaces the essentials planner (E105), FirmAI's
 ##     new plants (E102) and the caretaker autopilot for these two types.
 ##   6 REDUCE: wind down, then mothball, the smallest open plant when, for idle_m months, the other open plants could carry the demand
-##     (demand × out_margin ≤ their capacity), nothing went unserved, and the forecast would not fill them (else rule 5
+##     (demand × margin ≤ their capacity), nothing went unserved, and the forecast would not fill them (else rule 5
 ##     reopens it within the year); never the last open plant of a grid. Winding down: the others plan for the whole
 ##     demand and hire for it, the plant makes only what they did not; at the next review it is mothballed if the others
 ##     delivered the whole demand, kept if anything went unserved or rule 5 wants capacity.
@@ -40,7 +45,8 @@ extends RefCounted
 ##   private plant sells everything the grid takes to CPW at its own price; the grid takes the cheapest units first (CPW's
 ##   own plants at their running cost per unit), and a unit needed to avoid unserved demand is always bought (_buy,
 ##   _dispatch). What CPW pays is part of its grid cost, so its tariff rule sees it. The private plant's own rules 1-6:
-##   _private. CPW's rules 5/6 act on CPW's own plants only.
+##   _private (no price floor; paid under its running cost it offers less, r8u_offer). CPW's rules 5/6 act on CPW's
+##   own plants only. A plant reopened or newly built ramps up until its crew is filled.
 ## Step sizes and thresholds below are Anni's (labelled "yours" in the order); none is a cap or floor beyond the levers'
 ## legal ranges.
 
@@ -49,15 +55,14 @@ const GRIDS := {"E": "POWER", "W": "WATERWORKS"}
 const TARIFF_LEVER := {"E": ["ECON_UTILITY_TARIFF_ENERGY", 40], "W": ["ECON_UTILITY_TARIFF_WATER", 20]}
 const WW_POWER := 80  # the water works' power per unit of recipe (EconData.RECIPES["WATERWORKS"]["in"]["ENERGY"])
 # --- Anni's numbers: EconRules.SECTORS["UTILITIES"]["params"] (read with _p) ---
-##   out_margin 1.08: rule 3/4, run to 8% above the metered demand (the existing E66 figure: crews short, power late)
 ##   step_up 0.05 / step_down 0.03: rule 1 scarcity step, rule 2 idle step (the E150 steps)
 ##   full_pm 950: ‰ of effective capacity that makes a full month; full_m 6: full months in 12 that call for capacity
 ##   idle_pm 700: ‰ below which all quarter a tariff cut may be due; idle_m 12: months the rest could carry the demand
 ##   before a plant is mothballed
 const EXPAND_SCALE := 250  # ‰ of a plant per extension (EconConstruction.create_expansion)
-const MAX_SCALE := 3000  # an extension stops at 3× (the freight and E54 figure)
 const MIN_HIST := 3
-const RAMP_M := 3  # months a reopened or new plant hires as if alone (Anni's)
+const OFFER_STEP := 100  # ‰ of capacity: how far a company paid under its running cost cuts its offer a quarter (Anni's)
+const GAP_M := 3  # months of demand against delivered output the output margin is measured over (Anni's)
 
 
 static func _p(k: String) -> float:
@@ -104,14 +109,14 @@ static func _plant_cap(world: WorldState, f: Dictionary) -> float:
 
 ## Rules 3/4: the plant's planned use (0..1) — the grid's metered demand over its effective capacity. While a plant is
 ## wound down (rule 6) the others plan for the whole demand, and it makes only what they did not deliver last month. A
-## plant reopened or newly built ramps up for RAMP_M months: it hires for the whole demand as if alone, and the others
+## plant reopened or newly built ramps up until its crew is filled: it hires for the whole demand as if alone, and the others
 ## keep planning without it, so no customer goes unserved while its crew is found.
 static func target(world: WorldState, f: Dictionary) -> float:
 	var ftype := String(f["type"])
 	var g := _grid_of(ftype)
 	var cap := eff_cap(world, ftype, "", true)
 	var s := EconUtil.peek_st(world)
-	var need := _p("out_margin") * float(s.get("util_demand", {}).get(g, eff_cap(world, ftype)))
+	var need := margin(world, g) * float(s.get("util_demand", {}).get(g, eff_cap(world, ftype)))
 	if f.has("r8u_wind"):
 		return clampf((need - float(_others_out(world, ftype))) / maxf(1.0, _plant_cap(world, f)), 0.0, 1.0)
 	if f.has("r8u_ramp"):
@@ -129,6 +134,27 @@ static func price_of(world: WorldState, f: Dictionary) -> float:
 		return float(EconUtil.peek_st(world).get("r8u", {}).get("cpw_unit", {}).get(g, 0.0))
 	var o: Dictionary = world.table("org").get(f["org"], {})
 	return float(f.get("r8u_price", o.get("r8u_price", EconUtil.lever(world, TARIFF_LEVER[g][0], TARIFF_LEVER[g][1]))))
+
+
+## The output margin, measured (Wilma 2026-11-16, replacing our 1.08): the metered demand the plants were to meet over
+## what they delivered in the last GAP_M months (crews short, water works short of power); 1.0 when they delivered it
+## all, and until it is measured. (Planned output over delivered would count the margin itself: under a lasting crew
+## shortage it grows every month without end. Demand is the plan before the margin.)
+static func margin(world: WorldState, g: String) -> float:
+	var h: Array = EconUtil.peek_st(world).get("r8u", {}).get("hist", {}).get(g, [])
+	var dem := 0
+	var sup := 0
+	for row in _last(h, GAP_M):
+		dem += int(row["dem"])
+		sup += int(row["sup"])
+	if dem <= 0 or sup <= 0:
+		return 1.0
+	return maxf(1.0, float(dem) / float(sup))
+
+
+## Capacity a plant offers the grid (mu): CPW's plants all of it, another company's the share it chose (r8u_offer ‰).
+static func _offer_cap(world: WorldState, f: Dictionary) -> float:
+	return _plant_cap(world, f) * float(int(f.get("r8u_offer", 1000))) / 1000.0
 
 
 ## Merit order: the open plants (not wound down, not ramping) by price, CPW first on a tie; each price group runs to
@@ -149,10 +175,10 @@ static func _dispatch(world: WorldState, ftype: String, need: float) -> Dictiona
 	for k in EconUtil.sorted_keys(groups):
 		var gcap := 0.0
 		for fid in groups[k]:
-			gcap += _plant_cap(world, world.table("facility")[fid])
+			gcap += _offer_cap(world, world.table("facility")[fid])
 		var t := clampf(left / maxf(1.0, gcap), 0.0, 1.0)
 		for fid in groups[k]:
-			out[fid] = t
+			out[fid] = t * float(int(world.table("facility")[fid].get("r8u_offer", 1000))) / 1000.0
 		left = maxf(0.0, left - gcap)
 	return out
 
@@ -170,21 +196,44 @@ static func monthly(world: WorldState) -> void:
 	var cpw0 := EconFinance.org_by_key(world, "CPW")
 	if not u.has("cpw_unit"):
 		u["cpw_unit"] = {}
+	var rows := {}
+	var billed_all := 0
+	var interest := _interest_by_grid(world, cpw0)
 	for g in ["E", "W"]:
 		var bought := _buy(world, cpw0, g)
 		var row := _measure(world, g, e_unit, cpw0)
 		row["bought"] = bought
-		row["cost"] = int(row["cost"]) + bought
+		row["interest"] = int(interest.get(g, 0))
+		row["cost"] = int(row["cost"]) + bought + int(row["interest"])
+		row["plan"] = int(u.get("plan_next", {}).get(g, 0))
 		if int(row["own_out"]) > 0:
 			u["cpw_unit"][g] = float(int(row["cost"]) - bought) / float(int(row["own_out"]))  # credits per unit of its own plants
 		if g == "E":
 			e_unit = (int(row["cost"]) - bought) * S / maxi(S, int(row["own_out"]))
+		billed_all += int(row["bill"])
+		rows[g] = row
+	# the bill as collected (Wilma 2026-11-16): last month's utility payments into CPW's account over what was billed
+	var collected := _collected(world, cpw0)
+	for g in ["E", "W"]:
+		var row: Dictionary = rows[g]
+		row["bill_billed"] = int(row["bill"])
+		if billed_all > 0 and collected >= 0:
+			row["bill"] = int(float(int(row["bill"])) * minf(1.0, float(collected) / float(billed_all)))
 		var h: Array = u["hist"].get(g, [])
 		h.append(row)
 		while h.size() > 12:
 			h.pop_front()
 		u["hist"][g] = h
 	_ramps(world, u)
+	var plan_next := {}
+	for g in ["E", "W"]:
+		var t := 0.0
+		for fid in EconUtil.sorted_keys(world.table("facility")):
+			var f: Dictionary = world.table("facility")[fid]
+			if f["type"] == GRIDS[g] and not f["mothball"]:
+				t += float(f["T"]) / 1000.0 * _plant_cap(world, f)
+		plan_next[g] = int(t)
+	u["plan_next"] = plan_next  # what the plants are planned to make this month (T was set last month), for the margin
 	s["r8u"] = u
 	if world.month % 3 != 0:
 		return
@@ -200,7 +249,45 @@ static func monthly(world: WorldState) -> void:
 		_entry(world, cpw, g, u)
 
 
-## Plants new to the grid (built since the rules started) ramp up; a ramp ends after RAMP_M months.
+## Utility bills paid into CPW's account last month (mcr, the ledger journal, memo UTILITY); -1 when CPW is missing.
+static func _collected(world: WorldState, cpw: String) -> int:
+	if cpw == "":
+		return -1
+	var acc := EconUtil.acct(cpw)
+	var t := 0
+	var j: Array = world.ledger.journal
+	for i in range(j.size() - 1, -1, -1):
+		var e: Dictionary = j[i]
+		if int(e["m"]) < world.month - 1:
+			break
+		if int(e["m"]) == world.month - 1 and String(e["to"]) == acc and String(e["memo"]) == "UTILITY":
+			t += int(e["amt"])
+	return t
+
+
+## CPW's interest last month (pl_last), shared to each grid by the book value of its plants against all of CPW's plants.
+static func _interest_by_grid(world: WorldState, cpw: String) -> Dictionary:
+	var o: Dictionary = world.table("org").get(cpw, {})
+	var interest := int((o.get("pl_last", {}) as Dictionary).get("interest", 0))
+	if interest <= 0:
+		return {}
+	var book := {"E": 0, "W": 0, "all": 0}
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if String(f["org"]) != cpw:
+			continue
+		var b := maxi(0, int(f.get("book", 0)))
+		book["all"] = int(book["all"]) + b
+		var g := _grid_of(String(f["type"]))
+		if g != "":
+			book[g] = int(book[g]) + b
+	if int(book["all"]) <= 0:
+		return {}
+	return {"E": interest * int(book["E"]) / int(book["all"]), "W": interest * int(book["W"]) / int(book["all"])}
+
+
+## Plants new to the grid (built since the rules started) ramp up; a ramp ends once the plant's crew is filled (each
+## tier within half a person of what it needs), measured after its first planned month.
 static func _ramps(world: WorldState, u: Dictionary) -> void:
 	var first: bool = not u.has("seen")
 	var seen: Dictionary = u.get("seen", {})
@@ -212,7 +299,7 @@ static func _ramps(world: WorldState, u: Dictionary) -> void:
 			seen[fid] = world.month
 			if not first and not f["mothball"]:
 				f["r8u_ramp"] = world.month
-		if f.has("r8u_ramp") and (f["mothball"] or world.month - int(f["r8u_ramp"]) >= RAMP_M):
+		if f.has("r8u_ramp") and (f["mothball"] or (world.month > int(f["r8u_ramp"]) and crew_filled(f))):
 			f.erase("r8u_ramp")
 	u["seen"] = seen
 
@@ -302,6 +389,14 @@ static func _buy(world: WorldState, cpw: String, g: String) -> int:
 	return due_all
 
 
+static func crew_filled(f: Dictionary) -> bool:
+	var req := EconLabor.required(f)
+	for t in req:
+		if float(EconLabor.tier_total(f.get("staff", {}), t)) < float(req[t]) - 0.5 * S:
+			return false
+	return true
+
+
 ## One month of one grid: {m, dem, sup, cap, unserved, served, billed, bill, cost, own_out} (mu, mcr). Cost and own_out
 ## are CPW's own plants; the caller adds what the grid bought.
 static func _measure(world: WorldState, g: String, e_unit: int, cpw: String = "") -> Dictionary:
@@ -358,11 +453,15 @@ static func _tariffs(world: WorldState, cpw: String, u: Dictionary) -> void:
 		var q := _last(h, 3)
 		var qcost := 0
 		var qbilled := 0
+		var qbill := 0
+		var qraw := 0
 		var short_full := false
 		var idle := true
 		for row in q:
 			qcost += int(row["cost"])
 			qbilled += int(row["billed"])
+			qbill += int(row["bill"])
+			qraw += int(row.get("bill_billed", row["bill"]))
 			if int(row["unserved"]) > 0 and _full(row):
 				short_full = true
 			if int(row["dem"]) * 1000 >= _p("idle_pm") * maxi(1, int(row["cap"])) or int(row["unserved"]) > 0:
@@ -370,7 +469,8 @@ static func _tariffs(world: WorldState, cpw: String, u: Dictionary) -> void:
 		var lv: String = TARIFF_LEVER[g][0]
 		var rng := _range(lv)
 		var old := int(EconUtil.lever(world, lv, TARIFF_LEVER[g][1]))
-		var unit := int(ceil(float(qcost) / float(maxi(S, qbilled))))  # credits per unit at current use (mcr × S / mu ÷ S)
+		var paid_share := float(qbill) / float(qraw) if qraw > 0 and qbill > 0 else 1.0  # of what was billed, what was collected
+		var unit := int(ceil(float(qcost) / (float(maxi(S, qbilled)) * paid_share)))  # credits per unit at current use, as collected
 		var covered := bill12 >= cost12 and old >= unit
 		var nv := old
 		if not covered:
@@ -380,7 +480,7 @@ static func _tariffs(world: WorldState, cpw: String, u: Dictionary) -> void:
 			nv = maxi(old + 1, int(round(float(old) * (1.0 + _p("step_up")))))
 			why[g] = "unserved"
 		elif idle:
-			nv = maxi(unit, mini(old - 1, int(round(float(old) * (1.0 - _p("step_down"))))))
+			nv = mini(old - 1, int(round(float(old) * (1.0 - _p("step_down")))))  # no floor (the user, 2026-11-16): a cut is only proposed while covered
 			why[g] = "idle"
 		nv = clampi(nv, rng[0], rng[1])
 		if nv > old:
@@ -469,6 +569,20 @@ static func capacity_signal(world: WorldState, g: String, u: Dictionary) -> Stri
 	return ""
 
 
+## An extension (+EXPAND_SCALE of the plant at its own condition and management) against a new plant (full condition,
+## the owner's management): build whichever adds a unit of capacity for less (Wilma 2026-11-16, replacing the 3× cap).
+static func extend_cheaper(world: WorldState, f: Dictionary) -> bool:
+	var r: Dictionary = EconData.RECIPES[f["type"]]
+	var ext_gain := float(r["out"][1]) * float(EXPAND_SCALE) / 1000.0 * EconProduction._eff(world, f)
+	var ext_cost := float(EconConstruction.estimate(String(f["type"]))) / 4.0  # EconConstruction.create_expansion
+	var mgmt := 50.0
+	if world.table("org").has(f["org"]):
+		mgmt = float(world.table("org")[f["org"]]["ceo"]["mgmt"])
+	var new_gain := float(r["out"][1]) * (0.9 + 0.002 * mgmt)  # EconProduction._eff at full condition
+	var new_cost := float(EconConstruction.estimate(String(f["type"])))
+	return ext_cost / maxf(0.001, ext_gain) <= new_cost / maxf(0.001, new_gain)
+
+
 static func _capacity(world: WorldState, cpw: String, g: String, u: Dictionary) -> bool:
 	var ftype: String = GRIDS[g]
 	var why := capacity_signal(world, g, u)
@@ -501,7 +615,7 @@ static func _capacity(world: WorldState, cpw: String, g: String, u: Dictionary) 
 	var smallest := ""
 	for fid in plants:
 		var sc := int(world.table("facility")[fid].get("scale", 1000))
-		if sc < MAX_SCALE and (smallest == "" or sc < int(world.table("facility")[smallest].get("scale", 1000))):
+		if extend_cheaper(world, world.table("facility")[fid]) and (smallest == "" or sc < int(world.table("facility")[smallest].get("scale", 1000))):
 			smallest = fid
 	var est := EconConstruction.estimate(ftype) * EXPAND_SCALE / 1000 if smallest != "" else EconConstruction.estimate(ftype)
 	var home := ""
@@ -563,7 +677,7 @@ static func _reduce(world: WorldState, cpw: String, g: String, u: Dictionary) ->
 			smallest = fid
 	var rest := eff_cap(world, ftype, smallest)
 	for row in _last(h, int(_p("idle_m"))):
-		if int(row["unserved"]) > 0 or float(row["dem"]) * _p("out_margin") > rest:
+		if int(row["unserved"]) > 0 or float(row["dem"]) * margin(world, g) > rest:
 			return
 	if float(forecast(h)) * 1000.0 >= _p("full_pm") * rest:
 		return  # rule 5 would want it back within the year
@@ -588,13 +702,15 @@ static func _mothball(world: WorldState, f: Dictionary) -> void:
 
 ## Each private power or water works, quarterly, on its own sales to the grid (r8u_pp: [month, out, taken, due, cost,
 ## depreciation] for 12 months):
-##   1 raise: to its cost per unit at full use when its price is below it (at least +1); +step_up when all it made was
-##     taken and demand went unserved at full use last quarter.
-##   2 lower: −step_down (at least −1) when it was taken for less than idle_pm of its capacity last quarter, never below
-##     its cost per unit at full use.
-##   3/4: output by the merit order (target): what the grid needs from it at its price.
-##   5 add: a +25% extension when it was taken at full_pm of capacity in full_m of 12 months and its price covers its
-##     cost; its own cash, else a loan; one project at a time.
+##   1 raise: +step_up (at least +1) when all it made was taken and demand went unserved at full use last quarter.
+##   2 lower: −step_down (at least −1) when it was taken for less than idle_pm of what it offered last quarter. No floor
+##     (the user, 2026-11-16).
+##   3/4: output by the merit order (target): what the grid needs from it at its price, up to what it offers. Soft rule 4
+##     (the user, 2026-11-16: "it will sell less just to keep afloat"): when last quarter's sales did not cover its
+##     running cost (crew and upkeep) it offers OFFER_STEP less of its capacity; covered again, OFFER_STEP more.
+##   5 add: when it was taken at full_pm of capacity in full_m of 12 months and its price covers its cost per unit at
+##     full use: a +25% extension when that adds capacity for less per unit than a new plant, else a new plant beside
+##     it (licence); its own cash, else a loan; one project at a time.
 ##   6 reduce: mothballed when 12 months of sales did not cover its running cost (crew and upkeep, depreciation aside);
 ##     reopened (and ramped) when demand went unserved at full use last quarter.
 static func _private(world: WorldState, cpw: String, g: String, u: Dictionary) -> void:
@@ -625,37 +741,54 @@ static func _private(world: WorldState, cpw: String, g: String, u: Dictionary) -
 		var cap := _plant_cap(world, f)
 		var unit := full_unit(world, f)
 		var price := price_of(world, f)
+		var offer := int(f.get("r8u_offer", 1000))
 		var q := _last(pp, 3)
 		var all_taken := true
 		var taken_q := 0
+		var due_q := 0
+		var run_q := 0
 		for row in q:
 			taken_q += int(row[2])
+			due_q += int(row[3])
+			run_q += int(row[4]) - int(row[5])
 			if int(row[1]) <= 0 or int(row[2]) * 1000 < 950 * int(row[1]):
 				all_taken = false
 		var np := price
-		if price < unit:
-			np = maxf(price + 1.0, ceilf(unit))
-		elif all_taken and short_full:
+		if all_taken and short_full:
 			np = maxf(price + 1.0, roundf(price * (1.0 + _p("step_up"))))
-		elif float(taken_q) * 1000.0 < _p("idle_pm") * cap * float(q.size()):
-			np = maxf(ceilf(unit), minf(price - 1.0, roundf(price * (1.0 - _p("step_down")))))
+		elif float(taken_q) * 1000.0 < _p("idle_pm") * cap * float(offer) / 1000.0 * float(q.size()):
+			np = maxf(0.0, minf(price - 1.0, roundf(price * (1.0 - _p("step_down")))))  # no floor (the user, 2026-11-16)
 		if np != price:
 			f["r8u_price"] = np
 			u["acts"].append([world.month, g + "_private_price", fid, price, np])
+		# rule 4, soft (the user, 2026-11-16: "it will sell less just to keep afloat"): paid under its running cost it
+		# offers less; covered again, it offers more
+		var noff := offer
+		if due_q < run_q:
+			noff = maxi(0, offer - OFFER_STEP)
+		elif offer < 1000:
+			noff = mini(1000, offer + OFFER_STEP)
+		if noff != offer:
+			f["r8u_offer"] = noff
+			u["acts"].append([world.month, g + "_private_offer", fid, offer, noff])
 		# rule 5
 		var full_m := 0
 		for row in pp:
 			if float(int(row[2])) * 1000.0 >= _p("full_pm") * cap:
 				full_m += 1
-		if full_m >= int(_p("full_m")) and np >= unit and int(f.get("scale", 1000)) < MAX_SCALE and not EconConstruction.upgrade_pending(world, fid) \
-				and not _expand_pending(world, fid):
-			var est := EconConstruction.estimate(ftype) * EXPAND_SCALE / 1000
-			var cash := world.ledger.balance(EconUtil.acct(String(f["org"])))
-			if cash >= est or EconFinance.new_loan(world, String(f["org"]), est - cash, 0, true):
-				var pid := EconConstruction.create_expansion(world, fid, String(f["org"]))
+		if full_m >= int(_p("full_m")) and np >= unit and not EconConstruction.upgrade_pending(world, fid) and not _expand_pending(world, fid) \
+				and not _owner_building(world, String(f["org"]), ftype):
+			var ext := extend_cheaper(world, f)
+			var est := EconConstruction.estimate(ftype) * EXPAND_SCALE / 1000 if ext else EconConstruction.estimate(ftype)
+			var oid := String(f["org"])
+			var ok := ext or LawBridge.allowed(world, oid, "BUILD_FACILITY", {"facility_type": ftype, "district": f["district"], "owner_kind": "COMPANY",
+				"value_wref": est / maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))})
+			var cash := world.ledger.balance(EconUtil.acct(oid))
+			if ok and (cash >= est or EconFinance.new_loan(world, oid, est - cash, 0, true)):
+				var pid := EconConstruction.create_expansion(world, fid, oid) if ext else EconConstruction.create(world, ftype, String(f["district"]), oid, oid, "")
 				EconFacts.emit(world, "COMP_INVESTMENT", f["district"], [["COMPANY", f["org"]]], [["COMPANY", f["org"], 1.0]],
 					{"JOBS": 3, "INFRASTRUCTURE": 5}, 25, "PUBLIC", {"type": ftype, "project": pid, "reason": "r8u_private_full"})
-				u["acts"].append([world.month, g + "_private_expand", fid])
+				u["acts"].append([world.month, g + ("_private_expand" if ext else "_private_new"), fid])
 			continue
 		# rule 6
 		if pp.size() >= int(_p("idle_m")):
@@ -667,6 +800,14 @@ static func _private(world: WorldState, cpw: String, g: String, u: Dictionary) -
 			if rev < run:
 				_mothball(world, f)
 				u["acts"].append([world.month, g + "_private_mothball", fid])
+
+
+static func _owner_building(world: WorldState, oid: String, ftype: String) -> bool:
+	for pid in world.table("project"):
+		var p: Dictionary = world.table("project")[pid]
+		if p["owner"] == oid and p["type"] == ftype and p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+			return true
+	return false
 
 
 static func _expand_pending(world: WorldState, fid: String) -> bool:

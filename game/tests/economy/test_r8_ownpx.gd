@@ -41,6 +41,7 @@ func _only(w: WorldState, fid: String, reach: int, cover: int, px: int) -> void:
 	pl[fid]["reach"] = reach
 	pl[fid]["cover"] = cover
 	w.table("facility")[fid]["r8_px"] = px
+	w.table("org")[w.table("facility")[fid]["org"]].erase("offered")  # rule 2 reads the plant's cover until offers are recorded
 
 
 func test_off_sets_no_own_prices() -> void:

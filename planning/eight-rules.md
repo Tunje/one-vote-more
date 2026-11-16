@@ -361,33 +361,46 @@ The utility's market is read once a month, per grid (power, water), from the mon
 - metered demand, what was delivered, unserved demand;
 - effective capacity (condition and management, not nameplate);
 - billed units (what was served, less the water works' own power);
-- the bill (billed × tariff) and the grid's running cost (crews, upkeep, depreciation; water also pays for its own power
-  at power's unit cost).
+- the bill as collected: billed × tariff, times the share of last month's utility bills actually paid into CPW's
+  account (the ledger);
+- the grid's running cost: crews, upkeep, depreciation, CPW's interest (shared by the plants' book value), and what
+  the grid bought from other companies; water also pays for its own power at power's unit cost.
 
 12 months are kept.
 
 | Rule | What it does now (with the switch) |
 |---|---|
-| 1 raise | Quarterly, per grid. When the bill does not cover the cost (a 12-month loss, or the tariff below the cost per billed unit last quarter), the tariff goes to that cost per unit, at least +1. When it covers it but demand went unserved at full use (≥ 95% of effective capacity), +5%, at least +1. With E150P a rise is a proposal in pe_proposals (the E150P shape and fact; the government decides with EconPublicCo.approve). Without E150P it applies at once, as E150 does. Within the levers' legal ranges. |
-| 2 lower | When the bill covers the cost and use stayed under 70% all quarter: −3%, at least −1, never below the cost per unit. Applies at once; a cut drops an open rise. |
-| 3/4 output | The plants run to the metered demand: demand × 1.08 ÷ the grid's effective capacity (no 30% floor). A plant being wound down makes only what the others did not deliver. A plant reopened or newly built hires for the whole demand for its first 3 months, while the others keep running, so no customer goes unserved while its crew is found. |
-| 5 add | When the grid was full in 6 of the last 12 months, demand went unserved at full use last quarter, or the forecast (a year on, at the last 12 months' trend) fills 95% of capacity. In order: keep a plant being wound down; reopen a mothballed plant; extend the smallest plant by 25% (up to 3×); build a new plant where the grid's first plant stands (law check: LawBridge BUILD_FACILITY). One project at a time per grid. CPW's cash, else a loan. With neither, nothing is built; the attempt is recorded as "unfunded" and there is no treasury money behind the government's back. |
-| 6 reduce | When the other open plants could carry 1.08 × demand for 12 months, nothing went unserved, and the forecast would not fill them, the smallest plant is wound down. The others take its load and hire for it. At the next quarter it is mothballed if they delivered the whole demand. It is kept if anything went unserved, or if rule 5 wants capacity. Never the last open plant of a grid. |
+| 1 raise | Quarterly, per grid. When the bill does not cover the cost (a 12-month loss as collected, or the tariff below the cost per unit last quarter, per unit as collected), the tariff goes to that cost per unit, at least +1. When it covers it but demand went unserved at full use (≥ 95% of effective capacity), +5%, at least +1. With E150P a rise is a proposal in pe_proposals (the E150P shape and fact; the government decides with EconPublicCo.approve). Without E150P it applies at once, as E150 does. Within the levers' legal ranges. |
+| 2 lower | When the bill covers the cost and use stayed under 70% all quarter: −3%, at least −1. No floor (the user, 2026-11-16: "I don't like hard rules"): a cut is simply not made while the bill does not cover the cost, which is rule 1's condition. Applies at once; a cut drops an open rise. |
+| 3/4 output | The plants run to the metered demand × a measured margin ÷ the grid's effective capacity (no 30% floor). The margin is the demand over what the plants delivered in the last 3 months (crews short, water works short of power), 1.0 when they delivered it all. It replaces our 1.08. Planned over delivered output would count the margin itself and grow every month under a lasting crew shortage. A plant being wound down makes only what the others did not deliver. A plant reopened or newly built hires for the whole demand until its crew is filled, while the others keep running, so no customer goes unserved while its crew is found. |
+| 5 add | When the grid was full in 6 of the last 12 months, demand went unserved at full use last quarter, or the forecast (a year on, at the last 12 months' trend) fills 95% of capacity. In order: keep a plant being wound down; reopen a mothballed plant; extend the smallest plant by 25% when an extension adds a unit of capacity for less than a new plant would (it runs at the plant's own condition and management; no size limit); else build a new plant where the grid's first plant stands (law check: LawBridge BUILD_FACILITY). One project at a time per grid. CPW's cash, else a loan. With neither, nothing is built; the attempt is recorded as "unfunded" and there is no treasury money behind the government's back. |
+| 6 reduce | When the other open plants could carry the demand × the margin for 12 months, nothing went unserved, and the forecast would not fill them, the smallest plant is wound down. The others take its load and hire for it. At the next quarter it is mothballed if they delivered the whole demand. It is kept if anything went unserved, or if rule 5 wants capacity. Never the last open plant of a grid. |
 | 7/8 new company | A private power or water company, or a second public one (the user, 2026-11-16: "All company types needs to be able to be created as private, but maybe they're is only ever enough work for say one powerplant then the conitions for new ones don't get switched on"; "WHEN I SAY THAT I DON'T MEAN REMOVE THE DAMNED SWITCH FOR IT. What if for example we run 500 years at that point there might be a need for another powerplant"). The condition is checked every quarter for as long as the game runs. Rule 7: founded when the forecast (demand a year on) leaves demand unserved that the incumbents do not clear (their capacity plus what is being built) and a plant serving it would make a profit at today's tariff (a full crew, upkeep, power for water, loan service). Rule 8: none while the incumbents have spare capacity or serve all demand, while CPW's grid or a private plant loses money, or while one is being founded. Who founds it follows the ownership policy (E137): market → private founders only; mixed → private first, then the state; state → a public company first, then private founders; without E137, private first, then public. A private founder and the licence are as for other private firms (FirmAI._entry, LawBridge). A public one is founded by the government with the founder's share from the treasury (INFRASTRUCTURE line) and a loan for the rest, never behind a human government's back. Either sells to the grid like any company that is not CPW, and starts with its price at today's tariff. Under the switch EconOwnership.PUBLIC_ONLY no longer applies. |
-| private plants | CPW is the single grid buyer, and the tariff stays the customers' price (Wilma's yes, 2026-11-16). A private plant sells all the grid takes from it to CPW at its own price. Each month the grid takes the cheapest units first, with CPW's own plants at their running cost per unit and CPW first on a tie; a unit needed to avoid unserved demand is always bought. What CPW pays counts in its grid cost, so its tariff rule sees it. The private plant's own rules: 1 raise to its cost per unit at full use, or +5% when all it made was taken while demand went unserved; 2 −3% when taken for under 70% of its capacity, never below that cost; 3/4 output by the merit order; 5 a +25% extension when taken at 95% of capacity in 6 of 12 months; 6 mothballed when 12 months of sales do not cover its running cost, reopened when demand goes unserved at full use. |
+| private plants | CPW is the single grid buyer, and the tariff stays the customers' price (Wilma's yes, 2026-11-16). A private plant sells all the grid takes from it to CPW at its own price. Each month the grid takes the cheapest units first, with CPW's own plants at their running cost per unit and CPW first on a tie; a unit needed to avoid unserved demand is always bought. What CPW pays counts in its grid cost, so its tariff rule sees it. The private plant's own rules: 1 +5% when all it made was taken while demand went unserved; 2 −3% when taken for under 70% of what it offered, with no floor (the user, 2026-11-16); 3/4 output by the merit order, up to what it offers. When a quarter's sales do not cover its running cost (crew and upkeep) it offers 10% less of its capacity, and 10% more once covered again ("it will sell less just to keep afloat"; power and water have no stock to hold back). 5 when taken at 95% of capacity in 6 of 12 months and its price covers its cost at full use: a +25% extension when that is cheaper per unit, else a new plant beside it; 6 mothballed when 12 months of sales do not cover its running cost, reopened when demand goes unserved at full use. |
 
 Who decides:
 - **CPW's board:** output, its own capacity from its own cash and loans, cuts, mothballing, and buying from private
   plants.
 - **The government:** tariff rises (with E150P); founding a second public utility (the Cabinet's, since it spends
   treasury capital; the AI government does it by rule 7 under a state or mixed policy); subsidies or capital for CPW.
-- **The government's own builder** (gov_builder._essentials, Wilma's) still orders power and water plants on its own
-  reading. Whether it stays as the government's route beside rule 5 is Wilma's call.
+- **The government's own builder** (gov_builder._essentials) skips power and water under the switch (Wilma, d517d2b),
+  so rule 5 is the only one ordering them.
 - **A private utility's owners:** its price, output and capacity, by its own rules. A law may make one dearer (licence,
   levy); none may forbid it (the user, 2026-11-16).
 
-The 12-month result is the grid's own (bill less running cost). Interest on CPW's loans and its other plants
-(processing, components) are not in it.
+The 12-month result is the grid's own: the bill as collected, less the running cost with CPW's interest. CPW's other
+plants (processing, components) are not in it.
+
+Known simplifications (for later, Wilma 2026-11-16):
+- The demand forecast for rules 5 and 7 is a straight-line trend of the last 12 months. Population and firm plans
+  could replace it.
+- Where a new plant goes: CPW's and a public entrant's beside the grid's first plant, a private entrant's in its
+  founder's district. The grid is colony-wide, so only jobs and commutes move with it; it could follow demand or
+  workers.
+
+Our own numbers (labelled Anni's, in SECTORS["UTILITIES"].params and the file): the full and idle levels (950‰ in 6 of
+12 months, 700‰, 12 months), the "all taken" level 950‰, the steps (+5%, −3%, the 25% extension, the 10% offer step),
+and the 3-month windows for the margin and the quarter's checks.
 
 Tests: tests/economy/test_rules_utilities.gd. Without the switch nothing changes.
 
@@ -555,8 +568,8 @@ condition 99-100 with full upkeep for 40 years, material at 215-270 (base 400), 
 | 4 produce less | as materials | the same |
 | 5 add capacity | as materials | R8F_FAM56: its own plant grows by a quarter on the same signals, with the family's own cost in the price test; never a second plant (Wilma: as built) |
 | 6 reduce capacity | as materials | R8F_FAM56: the mothball rule, never while orders it can reach go unfilled |
-| 7 new company | old entry today (colony price test); R8F_ENTRY (forecast, as materials) is in batch 3 | no family founds while the open plants could already make what buyers ordered (EconRulesFood.family_entry_block) |
-| 8 no new company | old entry today; R8F_ENTRY in batch 3 | the same block |
+| 7 new company | R8F_ENTRY: the forecast in the best district, as materials (the colony price test and the D2 gates no longer apply) | no family founds while the open plants could already make what buyers ordered (EconRulesFood.family_entry_block) |
+| 8 no new company | R8F_ENTRY: not while incumbents holding most of the capacity lose money, nor without a forecast profit | the same block |
 
 Under R8F_FAM56 the old _expansion no longer grows family plants.
 
@@ -566,7 +579,7 @@ All eight under the one switch, the same code as materials: 1/2 own prices, 3/4 
 forecast entry. MEDWORKS gets an entry path (it had none). For these types the D2 month and unemployment gates on
 entry go (not market signals). Kill switches: R8W_NOPX, R8W_NOOUT, R8W_NOCAP, R8W_NOENTRY.
 
-**Freight (R8 + R8_FREIGHT, on in v11; R8FR_MARKET; R8FR_PRIVATE in batch 3)**
+**Freight (R8 + R8_FREIGHT, on in v11; R8FR_MARKET; R8FR_PRIVATE)**
 
 | Rule | In the code |
 |---|---|
@@ -576,8 +589,23 @@ entry go (not market signals). Kill switches: R8W_NOPX, R8W_NOOUT, R8W_NOCAP, R8
 | 4 carry less | the same, the core crew (20%) at least; before, always 100% |
 | 5 add capacity | trucks ≥ 95% used (of the full fleet) in 6 of 12 months, or deferred > 5% of trade, or (EXP_PORT) cargo refused at the port → +25% depot or a new depot where freight waits |
 | 6 reduce capacity | under 60% use for 12 months → mothball the smallest depot (never the last) |
-| 7 new company | R8FR_PRIVATE (batch 3): a private haulier, founded on the forecast's profit from the freight CTA leaves deferred; paid for what its own depots carry; the cheapest carrier with room moves a shipment |
-| 8 no new company | R8FR_PRIVATE (batch 3): not while CTA's trucks stand idle or carry everything, nor while hauliers lose money |
+| 7 new company | R8FR_PRIVATE (EconHaulier, sim/economy/econ_haulier.gd): a private haulier is founded when a depot's first year shows a profit on the freight left behind, at today's tariff. Every depot owner is a carrier; a shipment goes to the cheapest carrier with room (CTA first on a tie), and the charge goes to the carrier that moved it. A haulier's own rules: 1/2 its rate (up when full with freight left behind, down on idle trucks), 3/4 its depots at what it carried plus what was left, 5 +25% when full in 6 of 12 months with freight left and a profit, 6 a depot mothballed on 12 months' loss or idle trucks (the user: "a profit to base making new companies on, and to reduce size on"). |
+| 8 no new company | R8FR_PRIVATE: not while CTA's trucks stand partly idle or carry everything (freight left behind in each of the last 3 months), nor while a haulier loses money, nor while one is being founded. With work for one carrier the condition never comes true; it is checked every quarter. |
+
+**Hold-back below the seller's own cost (with the own-price switches; kill OWN_NOHOLD).** In place of any ask floor (the
+user, 2026-11-16: "a soft it will sell less just to keep afloat, build up stock for better prices, that's if you have
+not made everyone know all stocks"): a seller whose own price is under its full cost offers only what keeps it afloat
+this month (its month's costs less its cash and what it already put on offer) and keeps the rest in store. Kept stock is
+not offered, so it is in no price rule, buyer's reading or the market index (S and cover count offers only). Rule 2
+reads only what the seller offered and did not sell, not stock it chose to keep.
+
+**Ordering in (ORDER_IN; the user: "Yes they may order in").** Any buyer whose MATERIAL or COMPONENT order went unfilled
+orders the shortfall from the home world when its own limit reaches the landed price (base × IMPORT_MULT × 1.01 a year),
+less what it already has on order, paid on order. The goods come in the next ship's hold (EconTrade.hold_of), first
+ordered first; what does not fit waits for the following ship (sim/economy/econ_imports.gd).
+
+Tests also: test_r8_batch3 (11): food entry, hold-back, rule 2's reading, carriers, haulier rates, haulier entry, a
+haulier carrying and paid, ordering in, unloading, save/load.
 
 Tests: test_r8_ownpx (7), test_r8_food_own (5), test_r8_workshops (6), test_r8_freight_market (4), test_own_first (4).
 With every new switch off the game is identical to the tree without them (seed 2).

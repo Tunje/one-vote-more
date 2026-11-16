@@ -1,5 +1,6 @@
 class_name FirmAI
 extends RefCounted
+const EconHaulier := preload("res://sim/economy/econ_haulier.gd")
 const DecisionDesk := preload("res://sim/office/decision_desk.gd")
 const EconInst := preload("res://sim/economy/econ_institutions.gd")
 const EconRulesSvc := preload("res://sim/economy/econ_rules_svc.gd")
@@ -168,6 +169,8 @@ static func _set_target(world: WorldState, f: Dictionary) -> void:
 		"DEPOT":
 			var dt := EconRules.depot_target(world)  # R8FR_MARKET rules 3/4: the freight demanded
 			t = dt if dt >= 0.0 else 1.0
+			if EconHaulier.on(world):
+				t = EconHaulier.depot_target(world, f)  # R8FR_PRIVATE: each carrier at what it carried plus what was left
 		"SERVICEHUB":
 			var cap2 := float(r["out"][1]) * S * EconUtil.fscale(f)
 			var sold := float(f.get("svc_sold", cap2))  # services sold last month
@@ -513,9 +516,13 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 	# need of the good in that district this month (inputs and upkeep, `needs`). Before, its whole stock was offered and
 	# sold in a shortage, and buying it back was a market order capped by the owner's cash, so the plants went without.
 	var own_first: bool = (world.meta.get("on", []) as Array).has("OWN_FIRST") and not EconUtil.off(world, "OWN_FIRST")
+	var hold_on: bool = not (world.meta.get("on", []) as Array).has("OWN_NOHOLD")
+	var afloat_used := {}
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		var o: Dictionary = world.table("org")[oid]
 		var outs := _org_outputs(world, oid)
+		if o.has("offered"):
+			o["offered"] = {}  # what it put on offer this month, by good (sellers on their own prices only)
 		for good in EconUtil.sorted_keys(outs):
 			var ema := float(o["sales_ema"].get(good, outs[good]))
 			for d in EconUtil.sorted_keys(EconData.DISTRICTS):
@@ -538,6 +545,21 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 				var floor_c := maxi(EconUtil.inv_wac(world, oid, good, d), int(full * (0.9 if o["status"] == "ACTIVE" else 0.7)))
 				if not own:
 					ask = maxi(ask, floor_c)
+				else:
+					if hold_on and full > 0.0 and float(ask) < full:
+						# Hold-back, in place of an ask floor (the user, 2026-11-16: "a soft it will sell less just to keep
+						# afloat, build up stock for better prices, that's if you have not made everyone know all stocks"):
+						# below its own full cost a seller offers only what keeps it afloat this month (its month's costs
+						# less its cash and what it has already put on offer) and keeps the rest in its store. Stock it keeps
+						# is not offered, so no price rule, buyer or market index sees it (S and cover count offers only).
+						var afloat := maxi(0, EconFinance._monthly_costs(o) - world.ledger.balance(EconUtil.acct(oid)) - int(afloat_used.get(oid, 0)))
+						q = mini(q, int(ceil(float(afloat) * float(S) / float(maxi(1, ask)))))
+						afloat_used[oid] = int(afloat_used.get(oid, 0)) + EconUtil.val(q, ask)
+					var of: Dictionary = o.get("offered", {})
+					of[good] = int(of.get(good, 0)) + q
+					o["offered"] = of
+					if q <= 0:
+						continue
 				s["offers"].append({"seller": oid, "acct": EconUtil.acct(oid), "district": d, "good": good, "qty": q, "ask": ask})
 
 
@@ -1183,6 +1205,9 @@ static func _entry(world: WorldState) -> void:
 		entry_types.append_array(["CLINIC", "SCHOOL"])  # R8_INSTITUTIONS (Maja): private clinics and schools, rules 7/8
 	if EconRulesMat.entry_on(world, "MEDWORKS"):
 		entry_types.append("MEDWORKS")  # R8_WORKSHOPS: the medical works get an entry path
+	var haul: Dictionary = EconHaulier.entry(world) if EconHaulier.on(world) else {}
+	if not haul.is_empty():
+		entry_types.append("DEPOT")  # R8FR_PRIVATE: a private haulier, rules 7/8
 	for ftype in entry_types:
 		var good: String = EconData.RECIPES[ftype]["out"][0]
 		var price := float(s["prices"].get(good, 0))
@@ -1208,6 +1233,8 @@ static func _entry(world: WorldState) -> void:
 				hot = false
 		if EconRulesMat.entry_on(world, ftype) and world.month - int(fails.get(ftype, -9999)) >= ENTRY_FAIL_COOL_M:
 			hot = EconRulesMat.entry_hot(world, ftype, "d:1")  # R8 step 2b: rules 7/8, the forecast instead of the price test
+		if ftype == "DEPOT":
+			hot = bool(haul["hot"])  # R8FR_PRIVATE: rules 7/8 on the haulier's forecast
 		if ftype == "SERVICEHUB" and EconRulesSvc.entry_on(world) and world.month - int(fails.get(ftype, -9999)) >= ENTRY_FAIL_COOL_M:
 			var sd: String = EconRulesSvc.entry_district(world, 1000)  # R8_SERVICES rules 7/8: where a hub's first year pays
 			hot = sd != ""
@@ -1271,6 +1298,8 @@ static func _entry(world: WorldState) -> void:
 		var d: String = "d:3" if ft == "MINE" else (svc_district if ft == "SERVICEHUB" else g["district"])
 		if EconRulesMat.entry_on(world, ft):
 			d = EconRulesMat.entry_district(world, ft, g["district"])  # R8 step 2b: where the forecast is best
+		if ft == "DEPOT":
+			d = String(haul["district"])  # R8FR_PRIVATE: where most freight was left behind
 		if inst_district.has(ft):
 			d = String(inst_district[ft])
 		if best_cash < e * EconBankRisk.founder_equity_pm(world) / 1000:

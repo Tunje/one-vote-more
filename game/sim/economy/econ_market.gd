@@ -1,5 +1,7 @@
 class_name EconMarket
 extends RefCounted
+const EconImports := preload("res://sim/economy/econ_imports.gd")
+const EconHaulier := preload("res://sim/economy/econ_haulier.gd")
 ## TRADE phase (spec §5 step 3, §6.1–6.2, §8): import arrivals, commodity market clearing, spoilage, prices, CPI.
 
 const S := EconUtil.S
@@ -27,6 +29,8 @@ static func trade(world: WorldState) -> void:
 	_import_arrivals(world)
 	s["freight_used"] = 0
 	s["freight_deferred"] = {}
+	if EconHaulier.on(world):
+		EconHaulier.start_month(world)  # R8FR_PRIVATE: this month's carriers, cheapest first
 	# fill ratio of last month per good (permille), read by the origin backstop (E75)
 	var fr := {}
 	var ul := {}
@@ -57,6 +61,7 @@ static func trade(world: WorldState) -> void:
 	else:
 		for good in CLEAR_ORDER:
 			_clear(world, good, tariff)
+	EconImports.order_round(world)  # ORDER_IN: the short order in from the home world, if their limit reaches the landed price
 	s["orders"] = []
 	s["offers"] = []
 	_spoilage(world)
@@ -130,6 +135,9 @@ static func _clear(world: WorldState, good: String, tariff: int) -> void:
 	for b in bids:
 		if b["limit"] >= price * 8 / 10:
 			demand += b["qty"]
+	# S counts what is on offer only, never a seller's whole store: stock a seller keeps back (FirmAI's hold-back below
+	# its own cost, OWN_FIRST's own needs) is in nobody's reading but its own, so no price rule, buyer or index sees
+	# it (the user, 2026-11-16: the hold-back works only "if you have not made everyone know all stocks").
 	s["market_stats"][good] = {"S": supply + imp, "D": demand, "filled": 0, "wanted": 0}
 	for cls in [C_CONTRACT, C_HH_ESS, C_INSTITUTION, C_GOV, C_FIRM, C_CONSTRUCTION, C_HH_DISC]:
 		var cb: Array = bids.filter(func(b): return b["class"] == cls)
@@ -162,6 +170,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 	var cta := EconFinance.org_by_key(world, "CTA")
 	var credit := EconCredit.active(world)
 	var roads: bool = FreightRoads.on(world)  # meta.off wins
+	var priv := EconHaulier.on(world)  # R8FR_PRIVATE: the cheapest carrier with room moves it, at its rate, and is paid
 	var ranked := offers.duplicate()
 	ranked.sort_custom(func(a, b):
 		var pa: int = a["ask"] + EconUtil.hops(a["district"], bid["district"]) * tariff
@@ -202,12 +211,22 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 			continue
 		if o["seller"] == "origin" and not EconUtil.off(world, "E85"):
 			h = 0  # E85: origin backstop cargo comes on the origin's own shuttle, to the buyer's district (no colony freight)
-		var unit: int = o["ask"] + h * tariff
+		var carrier := cta
+		var rate := tariff
+		var ci := -1
+		if priv and h > 0:
+			ci = EconHaulier.pick(s, h)
+			if ci >= 0:
+				carrier = String(s["fr_carriers"][ci]["org"])
+				rate = int(s["fr_carriers"][ci]["rate"])
+		var unit: int = o["ask"] + h * rate
 		if unit > bid["limit"]:  # D2: offers are sorted by price × reputation for households, so a later one may still fit
 			continue
 		var take := mini(left, o["qty"])
 		if h > 0:
 			var fcap: int = s["freight_cap"] - s["freight_used"]
+			if priv:
+				fcap = int(s["fr_carriers"][ci]["room"]) if ci >= 0 else 0
 			var before := take
 			take = mini(take, maxi(0, fcap / h))
 			EconRules.note_held(world, good, o["district"], bid["district"], before - take, false)  # R8 (opt-in)
@@ -239,7 +258,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 		if take <= 0:
 			break
 		var goods_cost := EconUtil.val(take, o["ask"])
-		var freight := EconUtil.val(take, h * tariff)
+		var freight := EconUtil.val(take, h * rate)
 		var g_cash := goods_cost
 		if on_acct:
 			g_cash -= EconCredit.invoice(world, bid["buyer"], o["seller"], goods_cost)
@@ -248,15 +267,17 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 				EconCredit.invoice(world, bid["buyer"], o["seller"], g_cash - gp, true)  # rounding: the rest on account
 		else:
 			world.ledger.transfer(bid["acct"], o["acct"], goods_cost, "SALE", world.month)
-		if freight > 0 and cta != "" and on_acct and EconCredit.trades_on_account(world, cta):
-			var f_cash := freight - EconCredit.invoice(world, bid["buyer"], cta, freight)
-			var fp := EconUtil.pay_upto(world, bid["acct"], EconUtil.acct(cta), f_cash, "FREIGHT")
+		if freight > 0 and carrier != "" and on_acct and EconCredit.trades_on_account(world, carrier):
+			var f_cash := freight - EconCredit.invoice(world, bid["buyer"], carrier, freight)
+			var fp := EconUtil.pay_upto(world, bid["acct"], EconUtil.acct(carrier), f_cash, "FREIGHT")
 			if fp < f_cash:
-				EconCredit.invoice(world, bid["buyer"], cta, f_cash - fp, true)
-			EconFinance.pl_add(world, cta, "rev", freight)  # booked at the sale like the goods (fix: was missing on account)
-		elif freight > 0 and cta != "":
-			world.ledger.transfer(bid["acct"], EconUtil.acct(cta), freight, "FREIGHT", world.month)
-			EconFinance.pl_add(world, cta, "rev", freight)
+				EconCredit.invoice(world, bid["buyer"], carrier, f_cash - fp, true)
+			EconFinance.pl_add(world, carrier, "rev", freight)  # booked at the sale like the goods (fix: was missing on account)
+		elif freight > 0 and carrier != "":
+			world.ledger.transfer(bid["acct"], EconUtil.acct(carrier), freight, "FREIGHT", world.month)
+			EconFinance.pl_add(world, carrier, "rev", freight)
+		if priv and ci >= 0 and h > 0:
+			EconHaulier.carried(s, ci, carrier, take * h)
 		if h > 0:
 			s["freight_used"] += take * h  # trucks are used however the freight is paid (fix: on-account trade was not counted)
 			EconRules.note_move(world, o["district"], bid["district"], take)  # R8 (opt-in)
@@ -315,6 +336,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 	if bid["kind"] == "org" and (good == "MATERIAL" or good == "COMPONENT") and EconBuilders.on(world):
 		EconBuilders.note_fill(world, String(bid["buyer"]), good, want, got)  # R8_BUILDERS: the material a builder gets
 	var short: int = bid["qty"] - got
+	EconImports.note_short(world, bid, short)  # ORDER_IN: what a buyer of MATERIAL / COMPONENT was short
 	if short > 0:
 		if bid["kind"] == "hh":
 			var sh: Dictionary = world.table("hh")[bid.get("group", bid["buyer"])]["short"]

@@ -261,6 +261,10 @@ and build up stock for better prices, and that only works if the stock it holds 
 held-back stock must not count as supply in anyone's price reading. (3) What a school charges is a bracket in taxes,
 not a fee at the door (Wilma's reading: the same shape for clinics and care unless the user says otherwise).
 
+**On the brackets (the user, verbatim):** "Ah but per pulpe plus staff is how taxes for schools are calibrated Yea
+they all get tax brackets". So the school bracket is calibrated per pupil plus staff, and clinics, care homes and
+administration each get a tax bracket of their own in the same way.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and

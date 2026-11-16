@@ -1,5 +1,6 @@
 class_name EconRules
 extends RefCounted
+const EconHaulier := preload("res://sim/economy/econ_haulier.gd")
 ## R8 step 1 (planning/eight-rules.md; user decision 2026-11-15 "build the eight rules once"): the shared signals every
 ## producer's eight rules will read. OPT-IN "R8". Step 1 only measures and publishes, nothing acts on it yet, so with R8
 ## off nothing here runs and base is bit-identical; with R8 on the simulation is still unchanged (only st["r8"] is
@@ -49,7 +50,7 @@ const SECTORS := {
 	"WORKSHOPS": {"switch": "R8_WORKSHOPS", "types": ["CONSUMERF", "TEXTILE", "FURNITURE", "MEDWORKS"], "params": {}},
 	"SERVICES": {"switch": "R8_SERVICES", "types": ["SERVICEHUB"], "params": {"win_m": 12, "add_m": 6, "cut_m": 12,
 		"sold_out_pm": 50, "reopen_m": 3, "offer_step_pm": 100}},  # Ella's step sizes and windows (EconRulesSvc)
-	"UTILITIES": {"switch": "R8_UTILITIES", "types": ["POWER", "WATERWORKS"], "params": {"out_margin": 1.08, "step_up": 0.05,
+	"UTILITIES": {"switch": "R8_UTILITIES", "types": ["POWER", "WATERWORKS"], "params": {"step_up": 0.05,
 		"step_down": 0.03, "full_pm": 950, "full_m": 6, "idle_pm": 700, "idle_m": 12}},  # Anni: EconRulesUtil (econ_rules_utilities.gd)
 	"INSTITUTIONS": {"switch": "R8_INSTITUTIONS", "types": ["CLINIC", "SCHOOL", "ADMIN"], "params": {"empty_pm": 200, "margin": 50, "req_gap_pm": 100,
 		"req_hold_m": 3, "req_every_m": 12, "cut_pm": 850, "cut_hold_m": 12, "close_hold_m": 12, "build_min_pm": 300}},  # Maja: econ_institutions.gd
@@ -395,13 +396,20 @@ static func _freight_rules(world: WorldState) -> void:
 	var deferred := 0
 	for d in s.get("freight_deferred", {}):
 		deferred += int(s["freight_deferred"][d])
+	var full_cta := EconHaulier.full_of(world, EconFinance.org_by_key(world, "CTA")) if EconHaulier.on(world) else _depot_full(world)
+	if EconHaulier.on(world):
+		# R8FR_PRIVATE: every carrier's month (hauliers' rules 1/2, 5, 6 quarterly); CTA's rules below read CTA's own
+		EconHaulier.monthly(world, deferred)
+		var cta0 := EconFinance.org_by_key(world, "CTA")
+		used = int(s.get("fr_carried", {}).get(cta0, 0))
+		cap = int(s.get("fr_room_by", {}).get(cta0, 0))
 	if freight_market_on(world):
 		s["r8_fr_demand"] = used + deferred  # rules 3/4: what the depots were asked to carry
 		var q: Array = s.get("r8_fr_q", [])
-		q.append([maxi(cap, _depot_full(world)), used, deferred])  # idle trucks counted against the full fleet
+		q.append([maxi(cap, full_cta), used, deferred])  # idle trucks counted against the full fleet
 		s["r8_fr_q"] = q
 	var hist: Array = s.get("r8_fr_hist", [])
-	var use_cap := maxi(cap, _depot_full(world)) if freight_market_on(world, "R8FR_NOOUT") else cap  # rules 3/4: use of the full fleet
+	var use_cap := maxi(cap, full_cta) if freight_market_on(world, "R8FR_NOOUT") else cap  # rules 3/4: use of the full fleet
 	hist.append([100 * used / maxi(1, use_cap), 1000 * deferred / maxi(1, used)])
 	while hist.size() > 12:
 		hist.pop_front()

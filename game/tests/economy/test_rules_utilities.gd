@@ -70,11 +70,20 @@ func test_output_follows_metered_demand() -> void:
 	var w: WorldState = sim.world
 	var fid: String = _plants(w, "POWER")[0]
 	var cap := EconRulesUtil.eff_cap(w, "POWER")
+	var rows: Array = []
+	for i in 3:
+		var r := _row(10 * S, 20 * S)
+		r["plan"] = 10 * S
+		rows.append(r)
+	_hist(w, "E", rows)
 	EconUtil.st(w)["util_demand"]["E"] = int(cap / 2.0)
-	check(absf(EconRulesUtil.target(w, w.table("facility")[fid]) - 0.54) < 0.01, "half the demand → 0.54 (8% over)")
+	check(absf(EconRulesUtil.target(w, w.table("facility")[fid]) - 0.5) < 0.01, "all delivered → run to demand")
+	for r in rows:
+		r["sup"] = 8 * S  # the plants delivered 80% of the demand
+	check(absf(EconRulesUtil.margin(w, "E") - 1.25) < 0.001, "the margin is measured: demand over delivered")
+	check(absf(EconRulesUtil.target(w, w.table("facility")[fid]) - 0.625) < 0.01, "and planned for")
 	EconUtil.st(w)["util_demand"]["E"] = 0
 	check(EconRulesUtil.target(w, w.table("facility")[fid]) == 0.0, "no demand → no output, no 30% floor")
-
 
 func test_rise_proposed_when_cost_not_covered() -> void:
 	var sim := _sim(["R8", "R8_UTILITIES", "E150", "E150P"])
@@ -112,33 +121,49 @@ func test_cut_when_covered_and_idle() -> void:
 	var old := int(EconUtil.lever(w, "ECON_UTILITY_TARIFF_ENERGY", 40))
 	var rows: Array = []
 	for i in 6:
-		rows.append(_row(10 * S, 20 * S, 0, old * 10 * S, 5 * 10 * S))  # half used, costs 5 a unit
+		rows.append(_row(10 * S, 20 * S, 0, old * 10 * S, old * 10 * S))  # half used, the bill just covers the cost
 	var u := _hist(w, "E", rows)
 	EconRulesUtil._tariffs(w, _cpw(w), u)
 	var nv := int(EconUtil.lever(w, "ECON_UTILITY_TARIFF_ENERGY", 40))
-	check(nv < old and nv >= 5, "cut, not below the cost per unit (%d → %d)" % [old, nv])
-	# costs at the tariff: no cut below the cost
+	check(nv < old, "covered and idle: cut, with no floor at the cost (%d → %d)" % [old, nv])
 	var rows2: Array = []
 	for i in 6:
-		rows2.append(_row(10 * S, 20 * S, 0, nv * 10 * S, nv * 10 * S))
+		rows2.append(_row(10 * S, 20 * S, 0, nv * 9 * S, nv * 10 * S))  # not covered: rule 1, not a cut
 	EconRulesUtil._tariffs(w, _cpw(w), _hist(w, "E", rows2))
-	check_eq(int(EconUtil.lever(w, "ECON_UTILITY_TARIFF_ENERGY", 40)), nv, "no cut below the cost")
-
+	check(int(EconUtil.lever(w, "ECON_UTILITY_TARIFF_ENERGY", 40)) > nv, "not covered: a rise, never a cut")
 
 func test_full_grid_expands_smallest_plant() -> void:
 	var sim := _sim()
 	var w: WorldState = sim.world
-	_fund(w, EconConstruction.estimate("POWER"))
+	_fund(w, EconConstruction.estimate("POWER") * 3)
+	for fid in _plants(w, "POWER"):
+		w.table("facility")[fid]["condition"] = 100 * S
+		w.table("facility")[fid]["scale"] = 5000  # no size limit
 	var rows: Array = []
 	for i in 12:
 		rows.append(_row(19 * S, 20 * S))
 	var u := _hist(w, "E", rows)
 	var before: int = _projects(w, "EXPAND")
 	check_eq(EconRulesUtil.capacity_signal(w, "E", u), "full", "full in 12 of 12")
+	check(EconRulesUtil.extend_cheaper(w, w.table("facility")[_plants(w, "POWER")[0]]), "a plant in full repair extends as cheaply as a new one")
 	check(EconRulesUtil._capacity(w, _cpw(w), "E", u), "acted")
-	check_eq(_projects(w, "EXPAND"), before + 1, "an extension")
+	check_eq(_projects(w, "EXPAND"), before + 1, "an extension, past 3×")
 	check(not EconRulesUtil._capacity(w, _cpw(w), "E", u), "one project at a time")
 
+
+func test_worn_plants_get_a_new_plant_instead() -> void:
+	var sim := _sim()
+	var w: WorldState = sim.world
+	_fund(w, EconConstruction.estimate("POWER") * 3)
+	for fid in _plants(w, "POWER"):
+		w.table("facility")[fid]["condition"] = 20 * S
+	check(not EconRulesUtil.extend_cheaper(w, w.table("facility")[_plants(w, "POWER")[0]]), "a worn plant's extension yields less per credit")
+	var rows: Array = []
+	for i in 12:
+		rows.append(_row(19 * S, 20 * S))
+	var before: int = _projects(w, "POWER")
+	check(EconRulesUtil._capacity(w, _cpw(w), "E", _hist(w, "E", rows)), "acted")
+	check_eq(_projects(w, "POWER"), before + 1, "a new plant")
 
 func test_reopens_a_mothballed_plant_first() -> void:
 	var sim := _sim()
@@ -297,7 +322,7 @@ func test_merit_order_runs_the_cheapest_first() -> void:
 	var cpw_fid: String = _plants(w, "POWER")[0]
 	var pcap := EconRulesUtil._plant_cap(w, w.table("facility")[cheap])
 	EconUtil.st(w)["util_demand"]["E"] = int(pcap * 0.5)
-	check(EconRulesUtil.target(w, w.table("facility")[cheap]) > 0.5, "the cheaper private plant runs first")
+	check(EconRulesUtil.target(w, w.table("facility")[cheap]) > 0.49, "the cheaper private plant runs first")
 	check_eq(EconRulesUtil.target(w, w.table("facility")[cpw_fid]), 0.0, "CPW's dearer plants wait")
 	w.table("facility")[cheap]["r8u_price"] = 1000.0
 	check_eq(EconRulesUtil.target(w, w.table("facility")[cheap]), 0.0, "a dear private plant waits while CPW covers the need")
@@ -329,31 +354,68 @@ func test_grid_pays_private_plant_for_units_taken() -> void:
 func test_private_price_rules() -> void:
 	var sim := _sim()
 	var w: WorldState = sim.world
-	var fid := _private_plant(w, "POWER", 1.0)
+	var fid := _private_plant(w, "POWER", 10.0)
 	var f: Dictionary = w.table("facility")[fid]
-	var unit := EconRulesUtil.full_unit(w, f)
 	var cap := int(EconRulesUtil._plant_cap(w, f))
 	var full_pp: Array = []
 	for i in 3:
-		full_pp.append([i, cap, cap, 0, 0, 0])
+		full_pp.append([i, cap, cap, 100000 * S, 1000, 0])
 	f["r8u_pp"] = full_pp
 	var u := _hist(w, "E", _grow_rows(3, 2000, 1000))
 	EconRulesUtil._private(w, _cpw(w), "E", u)
-	check(float(f["r8u_price"]) >= unit, "rule 1: up to its cost per unit (%.1f)" % unit)
-	var p1 := float(f["r8u_price"])
-	EconRulesUtil._private(w, _cpw(w), "E", u)
-	check(float(f["r8u_price"]) > p1, "rule 1: all taken while demand went unserved → dearer")
-	f["r8u_price"] = ceilf(unit) + 20.0
+	check(float(f["r8u_price"]) > 10.0, "rule 1: all taken while demand went unserved → dearer")
+	f["r8u_price"] = 3.0  # far under its cost
 	var idle_pp: Array = []
 	for i in 3:
-		idle_pp.append([i, cap / 10, cap / 10, 0, 0, 0])
+		idle_pp.append([i, cap / 10, cap / 10, 0, 5000, 1000])
 	f["r8u_pp"] = idle_pp
 	var calm: Array = []
 	for i in 3:
 		calm.append(_row(1000 * S, 2000 * S))
 	EconRulesUtil._private(w, _cpw(w), "E", _hist(w, "E", calm))
-	check(float(f["r8u_price"]) < ceilf(unit) + 20.0 and float(f["r8u_price"]) >= ceilf(unit), "rule 2: little taken → cheaper, not below cost")
+	check(float(f["r8u_price"]) < 3.0, "rule 2: little taken → cheaper, no floor at its cost")
+	check_eq(int(f.get("r8u_offer", 1000)), 900, "paid under its running cost → offers less")
+	var dem := int(EconRulesUtil.eff_cap(w, "POWER"))
+	EconUtil.st(w)["util_demand"]["E"] = dem
+	f["r8u_price"] = 0.0
+	check(absf(EconRulesUtil.target(w, f) - 0.9) < 0.001, "it runs only to what it offers")
+	var paid_pp: Array = []
+	for i in 3:
+		paid_pp.append([i, cap, cap / 2, 100000 * S, 1000, 0])
+	f["r8u_pp"] = paid_pp
+	EconRulesUtil._private(w, _cpw(w), "E", _hist(w, "E", calm))
+	check_eq(int(f["r8u_offer"]), 1000, "covered again → offers more")
 
+
+func test_ramp_ends_when_the_crew_is_filled() -> void:
+	var sim := _sim()
+	var w: WorldState = sim.world
+	var fid: String = _plants(w, "POWER")[0]
+	var f: Dictionary = w.table("facility")[fid]
+	var u: Dictionary = EconUtil.st(w)["r8u"]
+	f["r8u_ramp"] = w.month - 6
+	var staff: Dictionary = f["staff"]
+	f["staff"] = {}
+	EconRulesUtil._ramps(w, u)
+	check(f.has("r8u_ramp") or EconLabor.required(f).is_empty(), "no crew: still ramping, however long")
+	f["staff"] = staff
+	f["T"] = 0
+	EconRulesUtil._ramps(w, u)
+	check(not f.has("r8u_ramp"), "crew filled for its plan: the ramp ends")
+
+
+func test_bill_as_collected_and_interest() -> void:
+	var sim := _sim(["R8", "R8_UTILITIES"], 6)
+	var w: WorldState = sim.world
+	var row: Dictionary = EconUtil.st(w)["r8u"]["hist"]["E"][-1]
+	check(row.has("bill_billed") and int(row["bill"]) <= int(row["bill_billed"]), "the bill counts what was collected")
+	check(row.has("interest"), "CPW's interest is in the grid's cost")
+	var o: Dictionary = w.table("org")[_cpw(w)]
+	o["pl_last"]["interest"] = 1000 * S
+	var share := EconRulesUtil._interest_by_grid(w, _cpw(w))
+	check(int(share.get("E", 0)) + int(share.get("W", 0)) > 0 and int(share.get("E", 0)) + int(share.get("W", 0)) <= 1000 * S,
+		"shared by the plants' book value")
+	check(EconRulesUtil._collected(w, _cpw(w)) >= 0, "collected bills read from the ledger")
 
 func test_private_plant_mothballed_when_sales_miss_running_cost() -> void:
 	var sim := _sim()

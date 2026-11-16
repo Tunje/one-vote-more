@@ -133,14 +133,28 @@ static func own_prices(world: WorldState) -> void:
 			if not r.is_empty():
 				if int(r["reach"]) > 0:
 					p *= 1.0 + minf(OWN_UP, OWN_ALPHA * float(int(r["reach"])) / maxf(1.0, cap))
-				elif int(r["cover"]) > 0:
-					p *= 1.0 - minf(OWN_DOWN, OWN_ALPHA * float(int(r["cover"])) / 1000.0)
+				else:
+					var ex := _unsold(world, f, good, r)
+					if ex > 0.0:
+						p *= 1.0 - minf(OWN_DOWN, OWN_ALPHA * ex)
 			f["r8_px"] = _px_bounds(world, good, p)
 			if not f["mothball"]:
 				wsum += float(int(f["r8_px"])) * cap
 				csum += cap
 		if csum > 0.0:
 			s["prices"][good] = _px_bounds(world, good, wsum / csum)
+
+
+## Rule 2's signal: what the seller put on offer this month and did not sell, ÷ what it sold. Stock it held back
+## (FirmAI's hold-back below its own cost) is not in it: a seller does not cut its price for stock it chose to keep.
+## Before any offer is recorded, the plant's cover (stock ÷ sales).
+static func _unsold(world: WorldState, f: Dictionary, good: String, r: Dictionary) -> float:
+	var o: Dictionary = world.table("org").get(f["org"], {})
+	if o.has("offered"):
+		var offered := int((o["offered"] as Dictionary).get(good, 0))
+		var sold := int((o.get("sold", {}) as Dictionary).get(good, 0))
+		return float(maxi(0, offered - sold)) / maxf(float(sold), float(S))
+	return float(int(r["cover"])) / 1000.0
 
 
 ## What a seller asks for `good` in district `d` under R8M_OWNPX: the mean own price of its plants of that good there
@@ -221,6 +235,10 @@ static func _rule_on(world: WorldState, ftype: String, part: String) -> bool:
 static func entry_on(world: WorldState, ftype: String) -> bool:
 	if WORKSHOP_GOOD_FOR.has(ftype):
 		return shops_on(world) and not (world.meta.get("on", []) as Array).has("R8W_NOENTRY")
+	if FOOD_GOOD_FOR.has(ftype):
+		# R8F_ENTRY (with R8_FOOD; the user's order that every producer has all eight rules): big farms and bakeries
+		# are founded on the forecast like the materials chain, instead of the colony price test and the D2 gates
+		return EconRulesFood.on(world) and (world.meta.get("on", []) as Array).has("R8F_ENTRY") 			and not EconUtil.off(world, "R8F_ENTRY")
 	return GOOD_FOR.has(ftype) and _part(world, "R8M_NOENTRY")
 
 

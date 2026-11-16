@@ -1,5 +1,6 @@
 class_name EconTrade
 extends RefCounted
+const EconImports := preload("res://sim/economy/econ_imports.gd")
 ## D1 (user decision A42, planning/spec-demand-v1.md §D1): exports and a small import trade on the home-world ships.
 ## "If the colony can't use something there is no point in making it": outside buyers give plants a reason to run.
 ##
@@ -302,6 +303,7 @@ static func _consign(world: WorldState, t: Dictionary) -> void:
 ## Called when a home-world ship arrives (EconHouseholds._ships). Returns {cargo {good: units}, export_value, imports
 ## {good: units}, import_value, quota_delivered} for ECON_SHIP_ARRIVED.
 static func on_ship(world: WorldState, hold: int = -1) -> Dictionary:
+	EconImports.unload(world, hold if hold >= 0 else ship_hold(world))  # ORDER_IN: goods ordered in come in this ship's hold
 	if EconUtil.off(world, "D1"):
 		return {"cargo": {}, "export_value": 0, "imports": {}, "import_value": 0, "quota_delivered": {}}
 	var t := _t(world)

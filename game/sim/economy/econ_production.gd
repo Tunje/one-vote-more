@@ -1,5 +1,6 @@
 class_name EconProduction
 extends RefCounted
+const EconHaulier := preload("res://sim/economy/econ_haulier.gd")
 ## PRODUCTION phase (spec §4, §6.6): labor matching, utility allocation, facility output, capacity products,
 ## construction progress, accidents, emissions.
 
@@ -90,6 +91,7 @@ static func produce(world: WorldState) -> void:
 	var edu := {}
 	var emissions := {}
 	var freight := 0
+	var fr_by := {}
 	for fid in facs:
 		var f: Dictionary = world.table("facility")[fid]
 		var r: Dictionary = EconData.RECIPES[f["type"]]
@@ -129,11 +131,13 @@ static func produce(world: WorldState) -> void:
 			edu[f["district"]] = edu.get(f["district"], 0) + int(float(out_qty) * EconWorkload.quality_mult(f))  # 27-W
 		elif good == "FREIGHT":
 			freight += out_qty
+			fr_by[f["org"]] = int(fr_by.get(f["org"], 0)) + out_qty  # R8FR_PRIVATE: each carrier's own room
 		var red := float(EconUtil.lever(world, "ECON_EMISSION_REDUCTION", 0)) / 100.0
 		emissions[f["district"]] = emissions.get(f["district"], 0.0) + float(r["poll"]) * act * (1.0 - red) * EconConduct.emission_mult(f)
 		_accidents(world, f, act)
 		EconConduct.major_accident(world, f)  # E132 (opt-in)
 	s["freight_cap"] = freight
+	s["fr_room_by"] = fr_by
 	s["emissions"] = {}
 	for d in emissions:
 		s["emissions"][d] = int(emissions[d] * 1000)
