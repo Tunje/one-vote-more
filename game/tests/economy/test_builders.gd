@@ -212,23 +212,30 @@ func test_fill_and_quotes() -> void:
 
 
 func test_entry_rules_7_8() -> void:
+	# the user 2026-11-16: a newcomer reads the average of all available jobs, not the leftovers
 	var w := _sim(["R8", "R8_BUILDERS"]).world
-	var sg := {"builders": {}, "colony": {"private_cap": 100 * S, "unbuilt_wu": 0, "fill_pm": 1000, "job_margin": 1, "spare_wu": 0}}
-	check_eq(EconBuilders.entry_reason(w, sg), "no_waiting_work", "rule 8: no work waits for a builder")
-	sg["colony"]["unbuilt_wu"] = 500 * S
-	sg["colony"]["fill_pm"] = 600
-	check_eq(EconBuilders.entry_reason(w, sg), "no_material", "rule 8: builders can't get their material")
-	sg["colony"]["fill_pm"] = 1000
-	sg["colony"]["job_margin"] = -1
-	check_eq(EconBuilders.entry_reason(w, sg), "work_loses", "rule 8: the work loses at today's costs")
-	sg["colony"]["job_margin"] = 1
-	sg["colony"]["spare_wu"] = 999999 * S
-	check_eq(EconBuilders.entry_reason(w, sg), "incumbents_spare", "rule 8: incumbents' crews can start it within the wait")
-	sg["builders"] = {"x": {"wait_refused": 20}}
-	check_eq(EconBuilders.entry_reason(w, sg), "", "rule 7: clients turned quotes down for the wait: a new builder")
-	sg["builders"] = {}
-	sg["colony"]["spare_wu"] = 0
-	check_eq(EconBuilders.entry_reason(w, sg), "", "rule 7: unbuilt work beyond the incumbents' spare crews")
+	var a := EconBuilders.average_share(w)
+	var field := 0.0
+	for oid in w.table("org"):
+		var o: Dictionary = w.table("org")[oid]
+		if bool(o.get("is_contractor", false)) and o["status"] in ["ACTIVE", "DISTRESSED"]:
+			field += float(EconBuilders.field_capacity(w, oid))
+	var want := float(a["work_wu"]) * float(a["field_new"]) / maxf(1.0, field + float(a["field_new"]))
+	check(absf(float(a["share_wu"]) - want) <= 1.0, "its share: all the work by the crew each builder can field (%d)" % int(a["share_wu"]))
+	var sg := {"builders": {}, "colony": {"average": {"share_wu": 0, "profit": 1}}}
+	check_eq(EconBuilders.entry_reason(w, sg), "no_work", "rule 8: no work on offer or in the books")
+	sg["colony"]["average"] = {"share_wu": 500 * S, "profit": -1}
+	check_eq(EconBuilders.entry_reason(w, sg), "work_loses", "rule 8: its average share does not pay its crew")
+	sg["colony"]["average"] = {"share_wu": 500 * S, "profit": 1}
+	check_eq(EconBuilders.entry_reason(w, sg), "", "rule 7: its average share pays: it starts, whatever the incumbents' crews")
+	# the share does not depend on whether the work is left over: a job under way counts as much as an open tender
+	var w0 := int(a["work_wu"])
+	var own := _owner(w)
+	var pid := EconConstruction.create(w, "TEXTILE", "d:1", own, own, "")
+	check_eq(EconBuilders.average_share(w)["work_wu"], w0 + int(w.table("project")[pid]["wu_total"]), "an open tender adds its work")
+	w.table("project")[pid]["status"] = "ACTIVE"
+	w.table("project")[pid]["price"] = EconBuilders.owner_estimate(w, w.table("project")[pid])
+	check_eq(EconBuilders.average_share(w)["work_wu"], w0 + int(w.table("project")[pid]["wu_total"]), "awarded, it still counts")
 
 
 func test_public_builder_found_and_enlarge() -> void:

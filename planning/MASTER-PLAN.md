@@ -288,6 +288,19 @@ in every game. Nothing about grants changes.
 the existing firms left over.
 Everything else waits: the hard-limits lists, the traces not needed for this, the re-evaluation screen's reading.
 
+### The plan stage as the user designed it (verbatim, both dates)
+2026-11-14: "I see it, you have made a misstake, a company that needs a building to exist would not start without the
+building it would start when the building is finished, you can't fail before you exist, it would exist in a planning
+stage no worker but also no expenses beyond building"
+2026-11-16, on hearing that family farms "die" at 12 months while waiting for a builder, grant already taken: "But
+then the plan Iis not what i designed PLANS ARE MADE BEFORE THEY BECOME COMPANIES DAMNED IT ALL THAT'S BEFORE
+ACCEPTING A GRANT"
+So: a plan is not a company. It has no workers and no expenses beyond the building. It cannot fail, because it does
+not exist yet. It becomes a company when its building is finished. A grant is accepted after the plan, not before.
+What the code does today, which is wrong by this: a family farm is created as a company in FORMING with its grant
+approved at founding, counts as founded, and is dropped as "stalled" after 12 months without a build (6 months for
+other plans), counted as a death.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and

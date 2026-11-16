@@ -120,3 +120,24 @@ func test_rule_6_renovation_must_pay() -> void:
 	check(not bool(EconRulesHousing.renovation_forecast(w, fid)["ok"]), "half empty at a low rent: let it slide")
 	_district(w, d, 300, 200, 9000)
 	check(bool(EconRulesHousing.renovation_forecast(w, fid)["ok"]), "full at a high rent: the renovation pays")
+
+
+## The user 2026-11-16: a new developer reads the average of all homes wanted, not the leftover.
+func test_new_developer_reads_the_average() -> void:
+	var w := _sim(["R8", "R8_HOUSING"]).world
+	for d in w.table("district"):
+		_district(w, d, 200, 100, 9000)  # every district overfull: the colony wants homes
+	_district(w, "d:1", 100, 100, 9000)  # full, with a block planned below: no home left over here
+	var lots: Array = EconConstruction.create_lots(w, "HOUSING", "d:1", "gov", "gov", "")
+	check(not bool(EconRulesHousing.block_forecast(w, "d:1")["ok"]), "the leftover in d:1 says no (the planned block fills it)")
+	var fa := EconRulesHousing.block_forecast(w, "d:1", 0, true)
+	var hh := 0
+	var units := EconRulesHousing.BLOCK_UNITS * S
+	for d in w.table("district"):
+		hh += int(w.table("district")[d]["households"])
+		units += int(w.table("district")[d]["units"]) + EconRulesHousing.pending_units(w, d)
+	check_eq(int(fa["occ_after_pm"]), int(float(hh) * 1000.0 / float(units)), "the average: all households against all homes")
+	check(bool(fa["ok"]), "the average says a new developer's block pays (%s)" % str(fa))
+	for d in w.table("district"):
+		_district(w, d, 50, 100, 9000)
+	check(not bool(EconRulesHousing.block_forecast(w, "d:1", 0, true)["ok"]), "half the colony's homes empty: no new developer")

@@ -23,8 +23,11 @@ extends RefCounted
 ##   6 reduce: an ageing block (EconHousing._owners_decide) is renovated by its private landlord only when the renovation
 ##       pays from the block's rent (renovation_forecast); otherwise the block is let slide (its rent falls with its
 ##       condition) and leaves the stock in time. Nobody is put out of a home (spec §9.6).
-##   7 a new developer: as E120, founded from the richest household's savings when no company can put in the equity, for
-##       a block that passes rule 5.
+##   7 a new developer: as E120, founded from the richest household's savings when no company can put in the equity.
+##       It reads the average of all homes wanted, not the leftover (the user 2026-11-16: "instead of reading the
+##       leftovers, they read an avrage of all avaliable jobs"): the forecast for its block takes the colony's households
+##       against all homes, those being built and its own block (average=true), at the district's rent, in place of the
+##       district's homes left over once every block already planned there is counted.
 ##   8 no new block: the forecast fails, no builder could take the job (EconConstruction.quoted_wait = -1), the bank would
 ##       not lend (asked first), or the law forbids it.
 
@@ -58,11 +61,19 @@ static func pending_units(world: WorldState, d: String) -> int:
 
 ## Rule 5/8 forecast for one more block in `d`, with `extra` homes (S-scaled) already planned this round. Pure.
 ## {rent_m, costs_m, profit_y, equity, occ_after_pm, ok, why}
-static func block_forecast(world: WorldState, d: String, extra: int = 0) -> Dictionary:
+static func block_forecast(world: WorldState, d: String, extra: int = 0, average: bool = false) -> Dictionary:
 	var s := EconUtil.peek_st(world)
 	var dr: Dictionary = world.peek("district")[d]
 	var hh := int(dr.get("households", 0))
 	var units := int(dr.get("units", 0)) + pending_units(world, d) + extra + BLOCK_UNITS * S
+	if average:
+		# rule 7 (a new developer): all homes wanted in the colony against all homes, planned ones and its own block
+		hh = 0
+		units = extra + BLOCK_UNITS * S
+		for d2 in world.peek("district"):
+			var r2: Dictionary = world.peek("district")[d2]
+			hh += int(r2.get("households", 0))
+			units += int(r2.get("units", 0)) + pending_units(world, d2)
 	var occ_after := int(float(hh) * 1000.0 / float(maxi(1, units)))
 	var rent := int(dr.get("rent_private", EconData.PRIVATE_RENT * S))
 	var due := float(hh) / float(S) * float(rent)
@@ -102,8 +113,9 @@ static func developers(world: WorldState) -> void:
 	for i in ROUND_GUARD:
 		var best_d := ""
 		var best_p := 0
+		var newcomer := _equity_owner(world, est * FirmAI.DEV_EQUITY_PM / 1000) == ""  # rule 7: only a new developer could build
 		for d in EconUtil.sorted_keys(world.table("district")):
-			var f := block_forecast(world, d)  # blocks tendered earlier in the round count through pending_units
+			var f := block_forecast(world, d, 0, newcomer)  # blocks tendered earlier in the round count through pending_units
 			if not bool(f["ok"]):
 				if i == 0 and int(world.table("district")[d].get("households", 0)) > 0:
 					_stat(world, "no_" + String(f["why"]))
@@ -153,21 +165,27 @@ static func _bank_can(world: WorldState, amount: int) -> bool:
 	return world.ledger.balance(EconUtil.BANK) - amount >= EconData.BANK_MIN_CASH * S
 
 
-static func _build(world: WorldState, d: String, est: int) -> bool:
-	var equity := est * FirmAI.DEV_EQUITY_PM / 1000
-	if not _bank_can(world, est - equity):  # ask the bank first, so no developer is founded for a block it can't finance
-		_stat(world, "no_loan")
-		return false
+## The company with the most cash that can put in `equity` ("" when none can: then only a new developer could build).
+static func _equity_owner(world: WorldState, equity: int) -> String:
 	var owner := ""
 	var cash := 0
-	for oid in EconUtil.sorted_keys(world.table("org")):
-		var o: Dictionary = world.table("org")[oid]
+	for oid in EconUtil.sorted_keys(world.peek("org")):
+		var o: Dictionary = world.peek("org")[oid]
 		if o["status"] != "ACTIVE" or o["is_contractor"] or not (o["type"] in ["PRIVATE", "COOPERATIVE"]):
 			continue
 		var c := world.ledger.balance(EconUtil.acct(oid))
 		if c >= equity and c > cash:
 			cash = c
 			owner = oid
+	return owner
+
+
+static func _build(world: WorldState, d: String, est: int) -> bool:
+	var equity := est * FirmAI.DEV_EQUITY_PM / 1000
+	if not _bank_can(world, est - equity):  # ask the bank first, so no developer is founded for a block it can't finance
+		_stat(world, "no_loan")
+		return false
+	var owner := _equity_owner(world, equity)
 	if owner == "":
 		owner = FirmAI._found_developer(world, d, est)  # rule 7: a housing company from household savings
 		if owner != "":

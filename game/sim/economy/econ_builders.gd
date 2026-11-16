@@ -30,12 +30,14 @@ extends RefCounted
 ##   6 shed crew: to the work its material supports: with fill_pm under 1000 the crew is the work due × fill_pm; and to the
 ##       work due when the book is short. No founding-crew multiple, no monthly growth cap, no kept share, no core crew:
 ##       hiring is limited by the labour market, shedding by the work.
-##   7 a new builder (FirmAI._builder_entry, quarterly): work waits for a builder (tenders without a bid, or quotes refused
-##       for the wait) beyond what the incumbents' spare crews can start within GOV_WAIT_M months, and the founder has the
-##       equity.
-##   8 no new builder: the incumbents' spare crews cover the waiting work; or builders cannot get their material (the
-##       colony's builders got under FILL_OK_PM of the material they ordered: a new builder would get none either); or
-##       the incumbents' jobs in hand lose money at today's costs (the work does not pay).
+##   7/8 a new builder or none (FirmAI._builder_entry, quarterly; the user 2026-11-16: "instead of reading the leftovers,
+##       they read an average of all available jobs"): average_share(). All the building work on offer and in the books
+##       (open and reopening tenders, which include the plans' buildings, and the work left on jobs under way) is shared
+##       among the live builders and the newcomer by the crew each can field (field_capacity); the newcomer's share is
+##       the work a builder of its size gets on average. It starts when that share pays for its crew at today's costs:
+##       what the work pays (the price left on jobs under way, the owner's estimate on open tenders) less its material at
+##       today's prices, on the part its material lets it do (the builders' fill over 12 months), against the crew's
+##       wages for all of it. No "work beyond the incumbents' crews", no material gate, no count of waiting tenders.
 ##   Public builders (§3c a): they bid on public tenders from the first round, at the same margin rule unless the lever
 ##       ECON_PUBLIC_BUILDER_AT_COST = 1 (then at cost for public work). builder_needs() is gov_builder's query;
 ##       found_public_builder() and enlarge_public_builder() are the government's two actions (Wilma wires the choice).
@@ -54,7 +56,6 @@ const MIN_BIDS := 3
 const REFUSED_BLOCK_M := 3
 const WAIT_MEMORY_M := 12  # a quote refused for the wait is the builder's signal for this long
 const CREW_HORIZON_M := 3  # the time to hire a crew: queued jobs starting within it are crewed now
-const FILL_OK_PM := 900  # builders got at least this share of the material they ordered: material is not the limit
 const QUOTE_REOPEN_M := 3
 const GOV_WAIT_M := 36
 const PRIV_WAIT_BASE_M := 12
@@ -335,7 +336,7 @@ static func signals(world: WorldState) -> Dictionary:
 	return {"builders": rows, "colony": {"waiting_wu": int(ww[0]), "public_waiting_wu": int(ww[1]), "unbuilt_wu": int(ww[2]),
 		"entrant_years_pm": int(ww[0]) * 1000 / maxi(1, ey), "mean_wait_m": wsum / maxi(1, waits.size()),
 		"job_margin": margin_sum, "fill_pm": 1000 if want_m <= 0 else got_m * 1000 / want_m, "horizon_m": horizon,
-		"spare_wu": spare, "private_cap": cap_priv, "month": world.month}}
+		"spare_wu": spare, "private_cap": cap_priv, "month": world.month, "average": average_share(world)}}
 
 
 ## gov_builder's query (§3c a): the same signals, plus whether founding a builder would pass rule 8.
@@ -374,7 +375,12 @@ static func step_margins(world: WorldState) -> void:
 
 ## The owner's own estimate of the job at this month's wages and input prices (no foreknowledge).
 static func owner_estimate(world: WorldState, p: Dictionary) -> int:
-	var s := EconUtil.st(world)
+	EconUtil.st(world)
+	return owner_estimate_pure(world, p)
+
+
+static func owner_estimate_pure(world: WorldState, p: Dictionary) -> int:
+	var s := EconUtil.peek_st(world)
 	var n := 0
 	var wsum := 0.0
 	for t in EconData.BUILDER_CREW:  # a builder crew's wage mix at this month's wages
@@ -511,23 +517,77 @@ static func crew_target(world: WorldState, oid: String, o: Dictionary, need_n: f
 
 # ------------------------------------------------------------------ rules 7/8: entry
 
+## The average a newcomer reads (rules 7/8, pure): {work_wu, share_wu, field_new, fill_pm, value_pw, mat_pw, wage_pw,
+## profit (S-scaled mcr on its share)}.
+static func average_share(world: WorldState) -> Dictionary:
+	var s := EconUtil.peek_st(world)
+	var px_m := float(int(s["prices"]["MATERIAL"]))
+	var px_c := float(int(s["prices"]["COMPONENT"]))
+	var work := 0.0
+	var value := 0.0
+	var mat := 0.0
+	for pid in EconUtil.sorted_keys(world.peek("project")):
+		var p: Dictionary = world.peek("project")[pid]
+		var total := float(int(p["wu_total"]))
+		if total <= 0.0:
+			continue
+		var left := 0.0
+		var pays := 0.0
+		var pm := px_m
+		var pc := px_c
+		if p["status"] == "ACTIVE":
+			left = total - float(int(p["wu_done"]))
+			pays = float(int(p["price"])) * left / total
+			pm = float(int(p.get("esc_mat_price", int(px_m))))  # E76 escalation pays the change since the award
+			pc = float(int(p.get("esc_comp_price", int(px_c))))
+		elif p["status"] in ["TENDER", "TENDERABLE"]:
+			left = total
+			pays = float(owner_estimate_pure(world, p))  # what its client reckons it at today's wages and prices
+		else:
+			continue
+		work += left
+		value += pays
+		mat += (float(int(p["mat_total"])) * pm + float(int(p["comp_total"])) * pc) / float(S) * left / total
+	var field_sum := 0.0
+	var fills := 0
+	var nb := 0
+	for oid in EconUtil.sorted_keys(world.peek("org")):
+		var o: Dictionary = world.peek("org")[oid]
+		if bool(o.get("is_contractor", false)) and o["status"] in ["ACTIVE", "DISTRESSED"]:
+			field_sum += float(field_capacity(world, oid))
+			fills += fill12_pm(o)
+			nb += 1
+	# a newcomer has no crew yet: it fields what it can hire (the same labour market every builder hires from)
+	var n := 0
+	for t in EconData.BUILDER_CREW:
+		n += int(EconData.BUILDER_CREW[t])
+	var free := INF
+	for t in EconData.BUILDER_CREW:
+		free = minf(free, float(PopStore.count(world, {"status": "UNEMPLOYED"}, "skill:" + t)) * float(n) / float(EconData.BUILDER_CREW[t]))
+	var field_new := maxf(0.0, free) * float(S)
+	var share := work * field_new / maxf(1.0, field_sum + field_new)
+	var fill := float(fills) / float(nb) / 1000.0 if nb > 0 else 1.0
+	var wsum := 0.0
+	for t in EconData.BUILDER_CREW:
+		wsum += float(EconData.BUILDER_CREW[t]) * float(int(s["wage"].get(t, s["wage"].get("G", 0))))
+	var wage_pw := wsum / float(maxi(1, n)) * 1.08  # a worker-month does one wu (mgmt 50); the bid's own overhead mark-up
+	var value_pw := value / maxf(1.0, work) * float(S)
+	var mat_pw := mat / maxf(1.0, work) * float(S)
+	# rule 6: its crew is what its material supports, so it is paid for the work it does (fill × share), not for all of it
+	var profit := share / float(S) * fill * (value_pw - mat_pw - wage_pw)
+	return {"work_wu": int(work), "share_wu": int(share), "field_new": int(field_new), "fill_pm": int(fill * 1000.0),
+		"value_pw": int(value_pw), "mat_pw": int(mat_pw), "wage_pw": int(wage_pw), "profit": int(profit)}
+
+
 ## "" when a new builder may enter, else why not (pure).
 static func entry_reason(world: WorldState, sg: Dictionary = {}) -> String:
 	if sg.is_empty():
 		sg = signals(world)
-	var c: Dictionary = sg["colony"]
-	var refused_wait := false
-	for oid in sg["builders"]:
-		if int(sg["builders"][oid]["wait_refused"]) >= 0:
-			refused_wait = true
-	if int(c["unbuilt_wu"]) <= 0 and not refused_wait:
-		return "no_waiting_work"
-	if int(c["private_cap"]) > 0 and int(c["fill_pm"]) < FILL_OK_PM:
-		return "no_material"
-	if int(c["private_cap"]) > 0 and int(c["job_margin"]) < 0:
-		return "work_loses"
-	if int(c["private_cap"]) > 0 and not refused_wait and int(c["unbuilt_wu"]) <= int(c["spare_wu"]):
-		return "incumbents_spare"
+	var a: Dictionary = sg["colony"].get("average", {}) if sg["colony"].has("average") else average_share(world)
+	if int(a["share_wu"]) <= 0:
+		return "no_work"  # rule 8: no building work on offer or in the books, or no worker to hire
+	if int(a["profit"]) <= 0:
+		return "work_loses"  # rule 8: the average builder's share does not pay for its crew at today's costs
 	return ""
 
 
