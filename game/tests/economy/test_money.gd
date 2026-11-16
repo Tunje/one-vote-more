@@ -75,7 +75,11 @@ func test_asset_line_limit() -> void:
 	o["pl_ring"] = ring
 	check(EconAnnual.limit(w, o) > 0, "a loss-making firm still gets working capital against what it owns")
 	w.meta["on"] = ["E140"]
-	check_eq(EconAnnual.limit(w, o), 0, "the old rule: no line without a profitable year")
+	check(EconAnnual.limit(w, o) > 0, "E140 (user 2026-11-16): a loss-making year alone no longer closes the line")
+	var bad_l := w.new_id("loan")
+	w.table("loan")[bad_l] = {"id": bad_l, "borrower": o["id"], "principal": 1000 * EconUtil.S, "rate_ppm": 6000, "term_left": 12, "missed": 1}
+	check_eq(EconAnnual.limit(w, o), 0, "the borrower's record does: a missed payment, no line")
+	w.table("loan").erase(bad_l)
 	var cpw: Dictionary = w.table("org")[EconFinance.org_by_key(w, "CPW")]
 	w.meta["on"] = ["E140", "E153"]
 	check(EconAnnual.applies(w, cpw), "public enterprises get lines under E153")

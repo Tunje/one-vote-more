@@ -430,7 +430,8 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 		var d := parts[2]
 		var o: Dictionary = world.table("org")[oid]
 		if not budgets.has(oid):
-			var reserve: int = 0 if o["type"] == "PUBLIC_INSTITUTION" else o["pl_last"].get("wages", 0)
+			# E140 correction (user 2026-11-16): the year's wage bill, and none held back when the line's overdraft covers it
+			var reserve: int = 0 if o["type"] == "PUBLIC_INSTITUTION" else EconAnnual.input_reserve(world, o, EconAnnual.wages_month(world, o))
 			var bal := world.ledger.balance(EconUtil.acct(oid))
 			budgets[oid] = bal - reserve
 			if e116:
@@ -440,7 +441,7 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 			if o["status"] == "ADMINISTRATION" and not EconUtil.off(world, "E119"):
 				# E119 (Wilma): the administrator runs the business — inputs are bought out of revenue (last month's sales),
 				# not out of cash above the wage bill, which starved every plant of a big employer in administration
-				var rev := EconAnnual.plan_rev(world, o) if not o.get("pl_last", {}).is_empty() else 0   # the year's average month
+				var rev := EconAnnual.expected_rev(world, o) if not o.get("pl_last", {}).is_empty() else 0   # what it is going to sell
 				# (when the plants already stand idle there is no revenue: restart from up to a quarter of the cash)
 				budgets[oid] = maxi(int(budgets[oid]), mini(maxi(0, bal), maxi(int(float(rev) * ADMIN_INPUT_SHARE), maxi(0, bal) / 4)))
 		var want: int = needs[k] - EconUtil.inv_get(world, oid, good, d)
@@ -464,8 +465,8 @@ static func _post_inputs_and_offers(world: WorldState) -> void:
 			var share := BAKERY_FOOD_SHARE_GREEDY if int(o["ceo"].get("risk", 50)) >= 70 else BAKERY_FOOD_SHARE
 			lim = mini(lim, int(float(s["prices"].get("FINE_FOOD", 0)) * BAKERY_YIELD * share))
 		var cost_needed := EconUtil.val(maxi(want, 0), lim)
-		if cost_needed > budgets[oid] and o["type"] in ["PRIVATE", "COOPERATIVE"]:
-			if EconAnnual.applies(world, o) and EconAnnual.months(o) >= EconAnnual.MIN_M:
+		if cost_needed > budgets[oid] and (o["type"] in ["PRIVATE", "COOPERATIVE"] or EconAnnual.lends(world, o)):
+			if EconAnnual.lends(world, o) and EconAnnual.months(o) >= EconAnnual.MIN_M:
 				budgets[oid] += EconAnnual.input_draw(world, oid, budgets[oid], cost_needed)  # E140: the year's plan, on the credit line
 			else:
 				budgets[oid] += _working_capital(world, oid, cost_needed - budgets[oid])
@@ -561,13 +562,16 @@ static func _working_capital(world: WorldState, oid: String, amount: int) -> int
 		var l: Dictionary = world.table("loan")[lid]
 		if l["borrower"] == oid and l["missed"] > 0:
 			return 0
-	var rev: int = EconAnnual.plan_rev(world, o)   # the year's average month, not last month's revenue
-	var assets := world.ledger.balance(EconUtil.acct(oid))
+	# E140 correction (user 2026-11-16: "THEY CAN NEVER GROW"): the cap is what the firm is going to sell (its plan, its
+	# contracts, its forecast), never a multiple of past sales alone; a builder's signed contracts count as collateral too
+	var rev: int = EconAnnual.expected_rev(world, o)
+	var owed := EconAnnual.unbilled(world, o)
+	var assets := world.ledger.balance(EconUtil.acct(oid)) + owed
 	for fid in world.table("facility"):
 		if world.table("facility")[fid]["org"] == oid:
 			assets += world.table("facility")[fid]["book"]
 	var debt := EconFinance.debt_of(world, oid)
-	var amt := mini(amount, maxi(0, 2 * rev))
+	var amt := mini(amount, maxi(0, maxi(2 * rev, owed)))
 	amt = mini(amt, maxi(0, int(0.6 * float(assets)) - debt))
 	if amt < 1000 * S:
 		return 0

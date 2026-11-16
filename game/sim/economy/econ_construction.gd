@@ -713,14 +713,22 @@ static func contractor_plans(world: WorldState) -> void:
 		for t in base:
 			o["crew_target"][t] = int(round(target_n * float(base[t]) / float(base_n)))
 		var hq: String = o["hq"]
-		var budget := world.ledger.balance(EconUtil.acct(oid)) - int(EconFinance._monthly_costs(o) * 0.5)
+		# E140 correction (user 2026-11-16): no cost reserve held back from the material a signed contract needs when the
+		# line's overdraft covers the month's costs
+		var budget := world.ledger.balance(EconUtil.acct(oid)) - EconAnnual.input_reserve(world, o, int(EconFinance._monthly_costs(o) * 0.5))
 		var mat_cost := EconUtil.val(maxi(0, mat - EconUtil.inv_get(world, oid, "MATERIAL", hq)), s["prices"]["MATERIAL"]) 			+ EconUtil.val(maxi(0, comp - EconUtil.inv_get(world, oid, "COMPONENT", hq)), s["prices"]["COMPONENT"])
-		if mat_cost > budget and EconAnnual.applies(world, o) and EconAnnual.months(o) >= EconAnnual.MIN_M:
+		if mat_cost > budget and EconAnnual.lends(world, o) and EconAnnual.months(o) >= EconAnnual.MIN_M:
 			# the yearly credit line every other firm buys its inputs on (E140): builders were the one kind of firm
 			# sized on this month's cash alone (Otto's trace: 80 % of their material-blocked months)
 			budget += EconAnnual.input_draw(world, oid, budget, mat_cost)
 		if mat_cost > budget:
 			budget += FirmAI._working_capital(world, oid, mat_cost - budget)
+		if mat_cost > budget and EconCredit.active(world) and EconCredit.trades_on_account(world, oid):
+			# E148 correction (Otto; the user's rulings on supplier credit and yearly budgets): a builder buys its material
+			# on account like every other firm. The order is sized here, a month before the till, so its credit room has to
+			# count now or it is never used (trace: cash cut 80% of builders' material-blocked months). Limited to what its
+			# signed, active, paid-up jobs need (mat_cost), so it never buys on account for work it does not have.
+			budget += mini(mat_cost - budget, EconCredit.room(world, oid))
 		for pair in [["MATERIAL", mat], ["COMPONENT", comp]]:
 			var want: int = pair[1] - EconUtil.inv_get(world, oid, pair[0], hq)
 			if want <= 0 or budget <= 0:

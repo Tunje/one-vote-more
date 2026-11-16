@@ -249,9 +249,14 @@ static func _op_surplus(world: WorldState, o: Dictionary) -> int:
 	return e if e != -2 else _operating_surplus(o)
 
 
-## Last month's revenue minus input costs and wages (no interest, no depreciation).
+## Revenue minus input costs and wages (no interest, no depreciation): the average month of the last year once there is
+## history (E140 correction, 2026-11-16), else last month's.
 static func _operating_surplus(o: Dictionary) -> int:
 	var pl: Dictionary = o["pl_last"]
+	if EconAnnual.months(o) >= EconAnnual.MIN_M:
+		var y := EconAnnual.sum12(o)
+		var n := EconAnnual.months(o)
+		pl = {"rev": int(y.get("rev", 0)) / n, "subsidy": int(y.get("subsidy", 0)) / n, "cogs": int(y.get("cogs", 0)) / n, "wages": int(y.get("wages", 0)) / n, "freight": int(y.get("freight", 0)) / n}
 	if pl.is_empty() or pl.get("rev", 0) <= 0:
 		return -1
 	return pl.get("rev", 0) + pl.get("subsidy", 0) - pl.get("cogs", 0) - pl.get("wages", 0) - pl.get("freight", 0)

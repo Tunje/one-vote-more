@@ -707,7 +707,13 @@ static func _member_groups(world: WorldState, oid: String) -> Dictionary:
 	return m
 
 
+## A month of running costs (wages, inputs, utilities, freight, interest): the average month of the last year once the
+## firm has EconAnnual.MIN_M months of history (E140 correction, user 2026-11-16: "I said to remove the limits from last
+## month"), else last month's (else this month's so far). Every "N months of costs" reserve reads this.
 static func _monthly_costs(o: Dictionary) -> int:
+	if EconAnnual.months(o) >= EconAnnual.MIN_M:
+		var y := EconAnnual.sum12(o)
+		return (int(y.get("wages", 0)) + int(y.get("cogs", 0)) + int(y.get("util", 0)) + int(y.get("freight", 0)) + int(y.get("interest", 0))) / EconAnnual.months(o)
 	var pl: Dictionary = o["pl_last"] if not o["pl_last"].is_empty() else o["pl"]
 	return pl.get("wages", 0) + pl.get("cogs", 0) + pl.get("util", 0) + pl.get("freight", 0) + pl.get("interest", 0)
 

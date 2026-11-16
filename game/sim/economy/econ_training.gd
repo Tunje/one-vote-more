@@ -115,7 +115,7 @@ static func monthly(world: WorldState) -> void:
 			# the state's share first (within the training line's headroom), then the firm's from spare cash
 			var cost := gap * k
 			var gov_share := mini(int(float(cost) * sub), maxi(0, EconActions.headroom(world, "ECON_BUDGET_TRAINING")))
-			var reserve: int = 0 if o["type"] == "PUBLIC_INSTITUTION" else int(o["pl_last"].get("wages", 0))
+			var reserve: int = 0 if o["type"] == "PUBLIC_INSTITUTION" else EconAnnual.input_reserve(world, o, EconAnnual.wages_month(world, o))  # E140 correction: the year's wage bill
 			var spare := world.ledger.balance(acc) + gov_share - reserve
 			if gap > 0 and spare < cost:
 				k = maxi(0, spare / gap)  # a firm without spare cash trains fewer

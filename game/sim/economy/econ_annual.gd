@@ -42,6 +42,14 @@ static func applies(world: WorldState, o: Dictionary) -> bool:
 	return active(world) and String(o.get("type", "")) in KINDS
 
 
+## Who plans and borrows on the yearly line and input budget (user via Wilma 2026-11-16: no exception for who owns the
+## firm): private firms and co-ops, and public enterprises that sell goods or contracts (the Colony Works Department was
+## 70 % of all cash-blocked builder-months). Narrow: the line, the overdraft and the input budget only; distress,
+## recovery and payouts keep applies(). Public institutions paid from a budget line are not included.
+static func lends(world: WorldState, o: Dictionary) -> bool:
+	return applies(world, o) or (active(world) and String(o.get("type", "")) == "PUBLIC_ENTERPRISE")
+
+
 ## 1. Called by EconMarket.trade when the month's P&L rolls over (always: the ring is measurement only).
 static func record(o: Dictionary) -> void:
 	if (o.get("pl_last", {}) as Dictionary).is_empty():
@@ -82,6 +90,113 @@ static func plan_rev(world: WorldState, o: Dictionary) -> int:
 static func avg_rev(o: Dictionary) -> int:
 	var n := months(o)
 	return int(sum12(o).get("rev", 0)) / n if n > 0 else 0
+
+
+## What a firm is going to sell in a month: the base of every credit limit and input budget (user 2026-11-16: "With the
+## limit you will always shrink the companies. THEY CAN NEVER GROW."). Limits that were a multiple of past sales ratchet
+## down after one bad stretch and never rise ahead of sales. Past sales stay as evidence, a floor for a steady firm, never
+## the cap: expected = max(history, what it is going to sell), where that is
+## - a producer: its production plan (each open plant's target output) valued at what the good trades for. The plan
+##   already follows the orders it can reach (R8 rules 3/4 where a sector is on, the sales and orders rule otherwise);
+## - a builder: what its signed contracts still pay, at the pace the work is due;
+## - a firm too new to have a history: its founders' forecast (EconForecast.first_year) for each plant.
+## Pure: reads the plan, the contracts and the forecast, writes nothing.
+static func expected_rev(world: WorldState, o: Dictionary) -> int:
+	var hist := plan_rev(world, o)
+	var ahead := maxi(_plan_value(world, o), _contracts_month(world, o))
+	if months(o) < MIN_M:
+		ahead = maxi(ahead, _forecast_month(world, o))
+	return maxi(hist, ahead)
+
+
+## A month of the firm's production plan at its targets, valued at the traded price (services at the district's price).
+static func _plan_value(world: WorldState, o: Dictionary) -> int:
+	var s := EconUtil.st(world)
+	var v := 0
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["org"] != o.get("id", "") or f["mothball"]:
+			continue
+		var r: Dictionary = EconData.RECIPES.get(f["type"], {})
+		if r.is_empty():
+			continue
+		var good := String(r["out"][0])
+		var price := 0
+		if good in EconData.MARKET_GOODS:
+			price = int(s["prices"].get(good, 0))
+		elif good == "SERVICES":
+			price = int(s.get("svc_price", {}).get(f["district"], 0))
+		else:
+			continue  # utilities and institutions: tariffs and budgets
+		var q := int(float(r["out"][1]) * float(EconUtil.S) * float(int(f["T"])) / 1000.0 * EconUtil.fscale(f))
+		v += EconUtil.val(q, price)
+	return v
+
+
+## What a builder's signed, active contracts still pay (price − paid so far), mcr.
+static func unbilled(world: WorldState, o: Dictionary) -> int:
+	var t := 0
+	for pid in o.get("contracts", []):
+		var p: Dictionary = world.table("project").get(pid, {})
+		if p.is_empty() or not (String(p.get("status", "")) in ["ACTIVE", "AWARDED"]):
+			continue
+		t += maxi(0, int(p.get("price", 0)) - int(p.get("paid", 0)))
+	return t
+
+
+## A builder's contracts per month: each contract's unbilled value over the months its remaining work takes.
+static func _contracts_month(world: WorldState, o: Dictionary) -> int:
+	var t := 0
+	for pid in o.get("contracts", []):
+		var p: Dictionary = world.table("project").get(pid, {})
+		if p.is_empty() or not (String(p.get("status", "")) in ["ACTIVE", "AWARDED"]):
+			continue
+		var left := maxi(0, int(p.get("price", 0)) - int(p.get("paid", 0)))
+		var wu := maxi(1, int(p.get("wu_total", 1)))
+		var share := float(maxi(0, wu - int(p.get("wu_done", 0)))) / float(wu)
+		var m := maxi(1, int(ceil(float(maxi(1, int(p.get("min_months", 1)))) * share)))
+		t += left / m
+	return t
+
+
+## A new firm's first-year forecast per month, summed over its plants.
+static func _forecast_month(world: WorldState, o: Dictionary) -> int:
+	var t := 0
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["org"] != o.get("id", "") or f["mothball"]:
+			continue
+		if not EconData.BUILD.has(f["type"]) or not EconData.RECIPES.has(f["type"]):
+			continue
+		t += int(EconForecast.first_year(world, String(f["type"]), String(f["district"])).get("revenue", 0)) / 12
+	return t
+
+
+## The borrower's record: a payment missed on any of its loans (the lender's side, with the bank's room).
+static func missed_payment(world: WorldState, oid: String) -> bool:
+	for lid in world.table("loan"):
+		var l: Dictionary = world.table("loan")[lid]
+		if l["borrower"] == oid and int(l.get("missed", 0)) > 0:
+			return true
+	return false
+
+
+## Cash a firm holds back from buying inputs for `costs` it must pay this month (user 2026-11-16: a reserve of costs may
+## limit paying owners, not buying what the firm needs to produce). Under E140 the line's overdraft covers wages at
+## SETTLEMENT (pre_settle), so a firm whose line room covers them holds nothing back; otherwise it keeps them.
+static func input_reserve(world: WorldState, o: Dictionary, costs: int) -> int:
+	if costs <= 0:
+		return 0
+	if lends(world, o) and room(world, String(o.get("id", ""))) >= costs:
+		return 0
+	return costs
+
+
+## The average month's wage bill (the year under E140 once there is history, else last month's).
+static func wages_month(world: WorldState, o: Dictionary) -> int:
+	if active(world) and months(o) >= MIN_M:
+		return int(sum12(o).get("wages", 0)) / months(o)
+	return int((o.get("pl_last", {}) as Dictionary).get("wages", 0))
 
 
 ## Average month's running costs over the ring (wages, inputs, utilities, freight, interest).
@@ -132,15 +247,17 @@ static func drawn(world: WorldState, oid: String) -> int:
 	return int(world.table("loan")[lid]["principal"]) if lid != "" else 0
 
 
-## Limit: LINE_MONTHS × the average month's sales, for a firm profitable over the year (0 otherwise: no new draws).
+## Limit: LINE_MONTHS × what the firm is going to sell a month (expected_rev; user 2026-11-16: never a multiple of past
+## sales as the cap). The lender's side is the borrower's record (no missed payment) and the bank's room (draw()); a year
+## of losses no longer closes the line by itself (it ratcheted: lower sales, lower line, fewer inputs, lower sales).
 static func limit(world: WorldState, o: Dictionary) -> int:
 	if EconMoney.asset_lines(world) and applies(world, o) and months(o) >= MIN_M and o["status"] in ["ACTIVE", "DISTRESSED"]:
 		return EconMoney.line_limit(world, o)  # E153: secured on stock and receivables, no profit test
-	if not applies(world, o) or months(o) < MIN_M or profit12(o) <= 0:
+	if not lends(world, o) or months(o) < MIN_M:
 		return 0
-	if not (o["status"] in ["ACTIVE", "DISTRESSED"]):
+	if not (o["status"] in ["ACTIVE", "DISTRESSED"]) or missed_payment(world, String(o.get("id", ""))):
 		return 0
-	return int(LINE_MONTHS * float(avg_rev(o)))
+	return int(LINE_MONTHS * float(expected_rev(world, o)))
 
 
 static func room(world: WorldState, oid: String) -> int:
@@ -176,7 +293,7 @@ static func draw(world: WorldState, oid: String, amount: int) -> int:
 ## Input budget plan (2): how much the line may add to `own` (cash above the wage reserve) at order time.
 static func input_draw(world: WorldState, oid: String, own: int, cost_needed: int) -> int:
 	var o: Dictionary = world.table("org")[oid]
-	var plan := int(PLAN_MULT * float(avg_rev(o)))
+	var plan := maxi(int(PLAN_MULT * float(expected_rev(world, o))), unbilled(world, o))  # what it is going to sell; a builder's contracts
 	var want := mini(cost_needed - own, plan - maxi(0, own))
 	return draw(world, oid, want) if want > 0 else 0
 
@@ -187,7 +304,7 @@ static func pre_settle(world: WorldState) -> void:
 		return
 	for oid in EconUtil.sorted_keys(world.table("org")):
 		var o: Dictionary = world.table("org")[oid]
-		if not applies(world, o) or not (o["status"] in ["ACTIVE", "DISTRESSED"]):
+		if not lends(world, o) or not (o["status"] in ["ACTIVE", "DISTRESSED"]):
 			continue
 		var pl: Dictionary = o["pl_last"] if not (o.get("pl_last", {}) as Dictionary).is_empty() else o["pl"]
 		var need := int(pl.get("wages", 0)) + int(pl.get("interest", 0))

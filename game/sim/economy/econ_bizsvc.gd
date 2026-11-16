@@ -112,7 +112,7 @@ static func monthly(world: WorldState) -> void:
 		if PROFIT_ONLY:
 			if o["type"] == "PUBLIC_INSTITUTION":
 				continue
-			var pr := EconFinance.profit(o.get("pl_last", {})) if not (o.get("pl_last", {}) as Dictionary).is_empty() else 0
+			var pr := EconAnnual.profit_month(world, o) if not (o.get("pl_last", {}) as Dictionary).is_empty() else 0  # E140 correction: the year's average month
 			var room := int(float(maxi(0, pr)) * PROFIT_CAP) - int(spent_o.get(f["org"], 0))
 			due = mini(due, maxi(0, room))
 			if due <= 0:

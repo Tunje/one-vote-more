@@ -52,7 +52,8 @@ func test_line_covers_wages_interest_only() -> void:
 	var oid := _private(w)
 	var o: Dictionary = w.table("org")[oid]
 	_good_year(o)
-	check_eq(EconAnnual.limit(w, o), 200000 * EconUtil.S, "limit = 2 months of average sales")
+	check_eq(EconAnnual.limit(w, o), 2 * EconAnnual.expected_rev(w, o), "limit = 2 months of what it is going to sell")
+	check(EconAnnual.limit(w, o) >= 200000 * EconUtil.S, "never below 2 months of its average sales")
 	var ob0 := EconInsolvency.obligations(w, oid)
 	_drain(w, oid)
 	EconAnnual.pre_settle(w)
@@ -171,3 +172,94 @@ func test_borrowing_reads_the_year_not_last_month() -> void:
 	_good_year(o)
 	(o["pl_last"] as Dictionary)["rev"] = 5 * EconUtil.S
 	check_eq(EconAnnual.plan_rev(w, o), 5 * EconUtil.S, "without yearly budgeting the old rule stands")
+
+
+## E140 correction (user 2026-11-16: "THEY CAN NEVER GROW"): limits follow what a firm is going to sell, not its past.
+func _set_plan(w: WorldState, oid: String, t_pm: int) -> void:
+	for fid in w.table("facility"):
+		var f: Dictionary = w.table("facility")[fid]
+		if f["org"] == oid:
+			f["T"] = t_pm
+
+
+func test_orders_beyond_history_can_be_financed() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["E140"]
+	sim.run(4)
+	var oid := _private(w)
+	var o: Dictionary = w.table("org")[oid]
+	_good_year(o)
+	_set_plan(w, oid, 1000)
+	var plan := EconAnnual._plan_value(w, o)
+	check(plan > 0, "the firm plans output at full targets")
+	for pl in o["pl_ring"]:
+		(pl as Dictionary)["rev"] = plan / 2   # it sold half of what it now plans to make
+	(o["pl_last"] as Dictionary)["rev"] = plan / 2
+	check_eq(EconAnnual.expected_rev(w, o), plan, "it plans on its orders, twice its history")
+	check_eq(EconAnnual.limit(w, o), 2 * plan, "the line follows the plan, not the past")
+	var room0 := EconAnnual.input_draw(w, oid, 0, 3 * plan)
+	check(room0 > plan / 2 * 2, "the input budget can buy beyond what its history would allow (%d)" % room0)
+
+
+func test_no_orders_no_credit_beyond_steady_need() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["E140"]
+	sim.run(4)
+	var oid := _private(w)
+	var o: Dictionary = w.table("org")[oid]
+	_good_year(o)
+	_set_plan(w, oid, 0)
+	check_eq(EconAnnual.expected_rev(w, o), 100000 * EconUtil.S, "with no orders it plans on its steady history")
+	check_eq(EconAnnual.limit(w, o), 200000 * EconUtil.S, "no more than 2 months of it")
+	var lid := w.new_id("loan")
+	w.table("loan")[lid] = {"id": lid, "borrower": oid, "principal": 1000 * EconUtil.S, "rate_ppm": 6000, "term_left": 12, "missed": 1}
+	check_eq(EconAnnual.limit(w, o), 0, "a missed payment closes the line (the borrower's record)")
+	w.table("loan").erase(lid)
+
+
+func test_builder_with_a_contract_and_no_history_can_buy_material() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["E140"]
+	sim.run(2)
+	var oid := ""
+	for k in EconUtil.sorted_keys(w.table("org")):
+		if bool(w.table("org")[k].get("is_contractor", false)) and w.table("org")[k]["status"] == "ACTIVE":
+			oid = k
+			break
+	check(oid != "", "a builder")
+	var o: Dictionary = w.table("org")[oid]
+	o["pl_ring"] = []
+	o["pl_last"] = EconFinance.empty_pl()
+	var pid := w.new_id("project")
+	w.table("project")[pid] = {"id": pid, "status": "ACTIVE", "price": 300000 * EconUtil.S, "paid": 0, "wu_total": 100 * EconUtil.S, "wu_done": 0, "min_months": 6}
+	var old_c: Array = (o.get("contracts", []) as Array).duplicate()
+	o["contracts"] = [pid]
+	check_eq(EconAnnual.unbilled(w, o), 300000 * EconUtil.S, "the contract still pays its full price")
+	check(EconAnnual.expected_rev(w, o) >= 50000 * EconUtil.S, "it expects the contract's pay, not its empty history")
+	EconUtil.pay_upto(w, EconUtil.acct(oid), Ledger.EXTERNAL, w.ledger.balance(EconUtil.acct(oid)), "TEST")
+	var got := FirmAI._working_capital(w, oid, 120000 * EconUtil.S)
+	check(got > 0, "a builder with a signed contract and no history can borrow for its material (%d)" % got)
+	o["contracts"] = old_c
+	w.table("project").erase(pid)
+
+
+func test_public_enterprise_plans_on_the_yearly_line() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	w.meta["on"] = ["E140"]
+	sim.run(4)
+	var pe := ""
+	for k in EconUtil.sorted_keys(w.table("org")):
+		if w.table("org")[k]["type"] == "PUBLIC_ENTERPRISE" and w.table("org")[k]["status"] == "ACTIVE":
+			pe = k
+			break
+	check(pe != "", "a public enterprise")
+	var o: Dictionary = w.table("org")[pe]
+	_good_year(o)
+	check(EconAnnual.lends(w, o) and not EconAnnual.applies(w, o), "it gets the line, not E140's other rules")
+	check(EconAnnual.limit(w, o) >= 200000 * EconUtil.S, "a line on what it is going to sell, like any firm")
+	w.meta["on"] = []
+	check_eq(EconAnnual.limit(w, o), 0, "without E140 no line")
