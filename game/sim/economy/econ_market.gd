@@ -161,7 +161,7 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 	var good: String = bid["good"]
 	var cta := EconFinance.org_by_key(world, "CTA")
 	var credit := EconCredit.active(world)
-	var roads: bool = (world.meta.get("on", []) as Array).has("FREIGHT_ROADS")
+	var roads: bool = FreightRoads.on(world)  # meta.off wins
 	var ranked := offers.duplicate()
 	ranked.sort_custom(func(a, b):
 		var pa: int = a["ask"] + EconUtil.hops(a["district"], bid["district"]) * tariff

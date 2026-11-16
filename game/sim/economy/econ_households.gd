@@ -1,5 +1,6 @@
 class_name EconHouseholds
 extends RefCounted
+const EconInst := preload("res://sim/economy/econ_institutions.gd")
 const EconRulesSvc := preload("res://sim/economy/econ_rules_svc.gd")
 ## SOCIAL phase, household side (spec §7): consumption, services, next month's orders, housing, demography,
 ## migration, pollution. Indicators and the census are published by EconIndicators afterwards.
@@ -289,6 +290,7 @@ static func _buy_services(world: WorldState) -> void:
 		var d: String = g["district"]
 		var budget := int((1.0 - EconData.DISC_CONSUMER_SHARE) * discretionary_budget(world, g)) - int(g.get("media_spent", 0))
 		budget = maxi(0, mini(budget, world.ledger.balance(EconUtil.hh_acct(gid))))
+		budget -= EconInst.buy_places(world, g, budget)  # R8_INSTITUTIONS (Maja): private clinic and school places for the unserved, first
 		budget -= EconComfort.spend(world, g, budget)  # §8b (opt-in): comfort services come out of the services budget
 		var price: int = s["svc_price"][d]
 		var want := int(float(budget) * S / float(maxi(1, price)))

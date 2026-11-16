@@ -39,11 +39,11 @@ const PE_KEEP_M := 6
 
 
 static func b_on(world: WorldState) -> bool:
-	return active(world) and (world.meta["on"] as Array).has("E150B")
+	return active(world) and (world.meta["on"] as Array).has("E150B") and not EconUtil.off(world, "E150B")
 
 
 static func c_on(world: WorldState) -> bool:
-	return active(world) and (world.meta["on"] as Array).has("E150C")
+	return active(world) and (world.meta["on"] as Array).has("E150C") and not EconUtil.off(world, "E150C")
 
 
 ## Cash a public enterprise keeps before paying a dividend (mcr).
@@ -152,7 +152,7 @@ static func quarterly(world: WorldState) -> void:
 ## E150P (opt-in with E150): tariff rises are proposals the government decides on (the automatic step stands in for "a
 ## government that always approves" when E150P is off).
 static func proposals(world: WorldState) -> bool:
-	return active(world) and (world.meta["on"] as Array).has("E150P")
+	return active(world) and (world.meta["on"] as Array).has("E150P") and not EconUtil.off(world, "E150P")
 
 
 ## Open proposals {org id: {month, levers [[lever, old, new]], gap12, subsidy_needed}} (credits) — for the legislature.

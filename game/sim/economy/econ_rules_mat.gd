@@ -56,7 +56,7 @@ static func _part(world: WorldState, kill: String) -> bool:
 
 
 static func prices_on(world: WorldState, good: String) -> bool:
-	return TYPE_FOR.has(good) and on(world) and (world.meta.get("on", []) as Array).has("R8M_PX")
+	return TYPE_FOR.has(good) and on(world) and (world.meta.get("on", []) as Array).has("R8M_PX") and not EconUtil.off(world, "R8M_PX")
 
 
 static func output_on(world: WorldState, ftype: String) -> bool:

@@ -58,7 +58,7 @@ const SECTORS := {
 
 
 static func sector_on(world: WorldState, name: String) -> bool:
-	return active(world) and SECTORS.has(name) and (world.meta.get("on", []) as Array).has(String(SECTORS[name]["switch"]))
+	return active(world) and SECTORS.has(name) and (world.meta.get("on", []) as Array).has(String(SECTORS[name]["switch"])) and not EconUtil.off(world, String(SECTORS[name]["switch"]))
 
 
 ## The travel half for services (customer to hub): own district 1000, neighbours 1000 (at +10% price), farther 0.
@@ -171,7 +171,7 @@ static func monthly(world: WorldState) -> void:
 
 ## The road half (Terra, FREIGHT_ROADS): 1000 when the flag or the function is absent.
 static func _road_pm(world: WorldState, d1: String, d2: String) -> int:
-	if not (world.meta.get("on", []) as Array).has("FREIGHT_ROADS"):
+	if not FreightRoads.on(world):  # meta.off wins
 		return 1000
 	return clampi(Transport.deliverable_pm(world, d1, d2), 0, 1000)
 

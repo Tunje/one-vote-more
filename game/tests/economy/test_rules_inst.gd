@@ -176,3 +176,88 @@ func test_under_delegation_a_due_request_is_a_case() -> void:
 		if q["line"] == "ECON_BUDGET_HEALTH":
 			open = bool(q["due"])
 	check(not open, "the request is with the government, not asked again")
+
+
+# ------------------------------------------------------------------ private clinics and schools
+
+func _private_clinic(w: WorldState) -> Dictionary:
+	var oid := ""
+	for o in EconUtil.sorted_keys(w.table("org")):
+		if w.table("org")[o]["type"] == "PRIVATE" and w.table("org")[o]["status"] == "ACTIVE":
+			oid = String(o)
+			break
+	var f: Dictionary = _clinics(w)[0].duplicate(true)
+	f["id"] = "f_private_clinic"
+	f["org"] = oid
+	f["staff"] = {}
+	w.table("facility")[f["id"]] = f
+	return f
+
+
+func _buy_all(w: WorldState) -> int:
+	var spent := 0
+	for gid in EconUtil.sorted_keys(w.table("hh")):
+		spent += EconInst.buy_places(w, w.table("hh")[gid], 1000000 * EconUtil.S)
+	return spent
+
+
+func test_the_unserved_buy_private_places_the_served_do_not() -> void:
+	var sim := _sim()
+	var w := sim.world
+	sim.run(2)
+	w.levers["ECON_BUDGET_HEALTH"] = 10   # the public clinics can hardly pay a crew
+	EconInst.monthly(w)
+	var f := _private_clinic(w)
+	check(String(f["org"]) != "", "a private owner")
+	var cash0 := w.ledger.balance(EconUtil.acct(f["org"]))
+	var spent := _buy_all(w)
+	check(spent > 0 and int(f["inst_sold"]) > 0, "unserved patients buy places (%d sold)" % int(f["inst_sold"]))
+	check(int(f["inst_sold"]) <= EconInst.places(w, f), "never more than its places")
+	check_eq(w.ledger.balance(EconUtil.acct(f["org"])) - cash0, spent, "the fees reach the owner")
+	# the state serves everyone: nobody pays
+	w.levers["ECON_BUDGET_HEALTH"] = 4000
+	for c in _clinics(w):
+		if c["id"] != f["id"]:
+			c["scale"] = 50000
+	EconInst.monthly(w)
+	w.month += 1
+	check_eq(_buy_all(w), 0, "with free places for all, nobody buys a private one")
+	check_eq(EconInst.entry_district(w, "CLINIC"), "", "and no founder sees a market")
+
+
+func test_the_fee_rises_when_full_and_falls_when_priced_out() -> void:
+	var sim := _sim()
+	var w := sim.world
+	sim.run(2)
+	EconInst.monthly(w)
+	var f := _private_clinic(w)
+	var fe := EconInst.fee(w, f)
+	var r: Dictionary = EconUtil.st(w)["r8_inst"]
+	for i in EconInst.FEE_HOLD_M:
+		f["inst_sold"] = EconInst.places(w, f)
+		f["inst_away"] = 10
+		var t := {}
+		EconInst._private_month(w, r, t)
+	check(EconInst.fee(w, f) > fe, "full and turning patients away: the fee rises (%d -> %d)" % [fe, EconInst.fee(w, f)])
+	var high := EconInst.fee(w, f)
+	f["inst_sold"] = 0
+	f["inst_away"] = 0
+	r["priced"] = {"CLINIC": {String(f["district"]): 50}}
+	EconInst._private_month(w, r, {})
+	check(EconInst.fee(w, f) < high, "empty places and patients priced out: the fee falls")
+	f["fee"] = EconInst.cost_per_client(w, "CLINIC")
+	EconInst._private_month(w, r, {})
+	check(EconInst.fee(w, f) >= EconInst.cost_per_client(w, "CLINIC"), "never below its cost per client")
+
+
+func test_a_private_crew_follows_its_paying_clients() -> void:
+	var sim := _sim()
+	var w := sim.world
+	sim.run(2)
+	EconInst.monthly(w)
+	var f := _private_clinic(w)
+	f["inst_sold"] = EconInst.places(w, f) / 2
+	var t := {}
+	EconInst._private_month(w, EconUtil.st(w)["r8_inst"], t)
+	check(int(t[f["id"]]) > 450 and int(t[f["id"]]) < 600, "half its places sold, about half a crew (%d)" % int(t[f["id"]]))
+	check(EconInst.target(w, f, 1.0) >= 0.0, "FirmAI reads it")

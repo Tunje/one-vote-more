@@ -243,6 +243,14 @@ school, power plant or haulier is paid for what it serves or carries, so it has 
 stay as they are. Still open with the user: whether public clinics and schools ever charge a fee; a client measure
 for administration.
 
+**The user, same day (verbatim), on rules that cannot take effect yet:** "AND WHEN I SAY THAT I DON'T MEAN REMOVE THE
+DAMNED SWITCH FOR IT What if for example we run 500 years at that poinr there might be a need for another powerplant
+On private holliers its easy build them as if they're could be a profit to base making new companies on, and to
+reduce size on. They don't get skipped even if the rules won't be able to take affect because its free". So: no rule
+is left out for any company type because its condition would not come true today. A second power plant's founding
+rule exists and waits. Private hauliers are built with founding and shrinking on profit. Free services (clinics,
+schools, care, administration) get their price rules too; they do nothing while the service is free.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and

@@ -599,7 +599,7 @@ static func _profit_tax_and_dividends(world: WorldState) -> void:
 			o["tax_loss_cf"] = -taxable  # remaining loss carried forward indefinitely (E22)
 		var after := p - tax
 		o["profit_q"] = 0
-		if EconAnnual.yearly_payout(world) and o["type"] == "PRIVATE" and o["owner_group"] != "" and (world.meta.get("on", []) as Array).has("PAYOUT"):
+		if EconAnnual.yearly_payout(world) and o["type"] == "PRIVATE" and o["owner_group"] != "" and (world.meta.get("on", []) as Array).has("PAYOUT") and not EconUtil.off(world, "PAYOUT"):
 			# E140P: owners are paid once a year, after the December accounts, on the year's profit
 			if world.month_of_year() == 12 and o["status"] == "ACTIVE":
 				EconAnnual.payout(world, oid, o)
@@ -613,7 +613,7 @@ static func _profit_tax_and_dividends(world: WorldState) -> void:
 				world.ledger.transfer(acc, EconUtil.TREASURY, d, "DIVIDEND", world.month)
 				_gov_rev(world, d)
 				EconPublicCo.note_out(world, oid, d)
-		elif o["type"] == "PRIVATE" and o["owner_group"] != "" and (world.meta.get("on", []) as Array).has("PAYOUT"):
+		elif o["type"] == "PRIVATE" and o["owner_group"] != "" and (world.meta.get("on", []) as Array).has("PAYOUT") and not EconUtil.off(world, "PAYOUT"):
 			_payout_surplus(world, oid, o, monthly_costs)  # money-stock check: idle firm cash goes back to the owners
 		elif o["type"] == "PRIVATE" and o["owner_group"] != "":
 			if world.ledger.balance(acc) >= 3 * monthly_costs:

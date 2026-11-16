@@ -1100,7 +1100,7 @@ static func _builder_entry(world: WorldState) -> void:
 	var equity := EconData.BUILDER_EQUITY * S
 	# E155 (user, money fix): a construction company coming from the home world brings its own capital — 5 years of its
 	# running costs, from outside (new money), not a colony household's savings
-	var e155: bool = ((world.meta.get("on", []) as Array).has("E155") and not EconUtil.off(world, "E155")) 		or (world.meta.get("on", []) as Array).has("E155BLD")  # E155BLD: only the home-world builders of E155
+	var e155: bool = ((world.meta.get("on", []) as Array).has("E155") and not EconUtil.off(world, "E155")) 		or ((world.meta.get("on", []) as Array).has("E155BLD") and not EconUtil.off(world, "E155BLD"))  # E155BLD: only the home-world builders of E155
 	if not e155 and (best == "" or best_cash < equity * 2):
 		return
 	var g: Dictionary = world.table("hh")[best] if best != "" else {}
@@ -1166,6 +1166,9 @@ static func _entry(world: WorldState) -> void:
 	var entry_types: Array = ["FARM", "CONSUMERF", "SERVICEHUB", "PROCESSING", "MINE", "TEXTILE", "FURNITURE", "BAKERY"]  # D2: consumer workshops
 	if EconRulesMat.entry_on(world, "COMPONENTS"):
 		entry_types.append("COMPONENTS")  # R8 step 2b: component works get an entry path
+	var inst_district := {}
+	if EconRules.sector_on(world, "INSTITUTIONS"):
+		entry_types.append_array(["CLINIC", "SCHOOL"])  # R8_INSTITUTIONS (Maja): private clinics and schools, rules 7/8
 	for ftype in entry_types:
 		var good: String = EconData.RECIPES[ftype]["out"][0]
 		var price := float(s["prices"].get(good, 0))
@@ -1196,6 +1199,11 @@ static func _entry(world: WorldState) -> void:
 			hot = sd != ""
 			if hot:
 				svc_district = sd
+		if ftype in ["CLINIC", "SCHOOL"]:
+			var idist: String = EconInst.entry_district(world, ftype)   # rules 7/8: unserved clients who can pay, in reach
+			hot = idist != "" and world.month - int(fails.get(ftype, -9999)) >= ENTRY_FAIL_COOL_M
+			if hot:
+				inst_district[ftype] = idist
 		hist[ftype] = hist.get(ftype, 0) + 1 if hot else 0
 		if hist[ftype] >= 2:
 			hot_list.append([ftype, price / maxf(1.0, uc)])
@@ -1249,6 +1257,8 @@ static func _entry(world: WorldState) -> void:
 		var d: String = "d:3" if ft == "MINE" else (svc_district if ft == "SERVICEHUB" else g["district"])
 		if EconRulesMat.entry_on(world, ft):
 			d = EconRulesMat.entry_district(world, ft, g["district"])  # R8 step 2b: where the forecast is best
+		if inst_district.has(ft):
+			d = String(inst_district[ft])
 		if best_cash < e * EconBankRisk.founder_equity_pm(world) / 1000:
 			continue
 		if not LawBridge.allowed(world, "new", "BUILD_FACILITY", {"facility_type": ft, "district": d, "owner_kind": "COMPANY", "value_wref": 0}):

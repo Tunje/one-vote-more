@@ -189,6 +189,8 @@ static func bid_round(world: WorldState) -> void:
 			if load > allowance and not q:
 				continue  # (E165Q: a busy builder still bids, with a later start date)
 			var wait := int(float(committed(world, oid) + tentative.get(oid, 0)) / float(k)) if q else 0
+			if q and material_chain_job(world, p):
+				wait = 0  # RULE OF OURS (same intent as E65, not a market signal): the material chain starts ahead of the queue
 			var mgmt := float(o["ceo"]["mgmt"])
 			var est_wu := float(p["wu_total"]) * maxf(0.5, 1.0 + EconUtil.normal(world, "comp.bid", 0.25 * (1.0 - mgmt / 100.0)))
 			var wage_per_wu := _crew_wage(world, oid)
@@ -262,6 +264,21 @@ static func _private_builder_alive(world: WorldState) -> bool:
 		var o: Dictionary = world.table("org")[oid]
 		if o["is_contractor"] and o["type"] != "PUBLIC_ENTERPRISE" and o["status"] in ["ACTIVE", "DISTRESSED"]:
 			return true
+	return false
+
+
+## RULE OF OURS (Wilma 2026-11-16, Otto's choke trace; same intent as E65, not a market signal): under E165Q a job that
+## builds or extends a mine, a processing plant or a components works is quoted with no wait, so it starts ahead of the
+## builder's queue (_progress_fill already works it first; the crew is hired for it as work due now). Seed 3 under the
+## order book: the chain's extensions waited in the books, the chain never grew, decayed and died (Y21-29).
+const MATERIAL_CHAIN := ["MINE", "PROCESSING", "COMPONENTS"]
+
+
+static func material_chain_job(world: WorldState, p: Dictionary) -> bool:
+	if p["type"] in MATERIAL_CHAIN:
+		return true
+	if p["type"] in ["EXPAND", "UPGRADE"] and world.table("facility").has(p.get("target", "")):
+		return world.table("facility")[p["target"]]["type"] in MATERIAL_CHAIN
 	return false
 
 

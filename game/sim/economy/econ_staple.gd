@@ -67,7 +67,7 @@ const IDLE_UTIL := 0.85
 
 
 static func dissatisfaction(world: WorldState) -> bool:
-	return active(world) and (world.meta["on"] as Array).has("E156")
+	return active(world) and (world.meta["on"] as Array).has("E156") and not EconUtil.off(world, "E156")
 
 
 static func _record_gate(world: WorldState, want: int, cap_eff: int, spare: int, pf_eff: int, ordered: int) -> void:

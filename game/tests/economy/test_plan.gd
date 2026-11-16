@@ -116,3 +116,44 @@ func test_e165q_order_book() -> void:
 		if p["status"] == "ACTIVE" and int(p["start_month"]) > w.month:
 			check_eq(int(p["wu_done"]), 0, "a queued job is not worked on")
 			check(bool(p.get("advance_due", false)), "its advance waits for the start")
+
+
+## Rule of ours (Wilma 2026-11-16): under E165Q a material-chain job is quoted with no wait; others queue.
+func test_material_chain_starts_ahead_of_the_queue() -> void:
+	var sim := EconSim.make_econ_only(3)
+	sim.run(3)
+	var w := sim.world
+	w.meta["on"] = ["E165", "E165B", "E165Q"]
+	var b := ""
+	for oid in EconUtil.sorted_keys(w.table("org")):
+		var o: Dictionary = w.table("org")[oid]
+		if bool(o.get("is_contractor", false)) and o["type"] == "PRIVATE" and o["status"] == "ACTIVE":
+			b = oid
+			break
+	check(b != "", "a private builder")
+	if b == "":
+		return
+	var big := EconConstruction.create(w, "TEXTILE", "d:1", "gov", "gov", "ECON_BUDGET_INFRASTRUCTURE")
+	var bp: Dictionary = w.table("project")[big]
+	bp["status"] = "ACTIVE"
+	bp["contractor"] = b
+	bp["price"] = int(bp["est_cost"])
+	bp["start_month"] = w.month
+	bp["bid_duration"] = 12
+	bp["wu_total"] = 5000 * EconUtil.S  # a long book
+	(w.table("org")[b]["contracts"] as Array).append(big)
+	var mine := EconConstruction.create(w, "MINE", "d:1", "gov", "gov", "ECON_BUDGET_INFRASTRUCTURE")
+	var shop := EconConstruction.create(w, "SERVICEHUB", "d:1", "gov", "gov", "ECON_BUDGET_INFRASTRUCTURE")
+	EconConstruction.bid_round(w)
+	var wm := -1
+	var ws := -1
+	for x in w.table("project")[mine]["bids"]:
+		if x["org"] == b:
+			wm = int(x["wait"])
+	for x in w.table("project")[shop]["bids"]:
+		if x["org"] == b:
+			ws = int(x["wait"])
+	check_eq(wm, 0, "a mine is quoted with no wait")
+	check(ws > 0, "another job waits behind the book (%d)" % ws)
+	check(EconConstruction.material_chain_job(w, w.table("project")[mine]), "a mine is a material-chain job")
+	check(not EconConstruction.material_chain_job(w, w.table("project")[shop]), "a service hub is not")

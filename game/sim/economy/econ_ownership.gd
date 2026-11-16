@@ -31,12 +31,14 @@ static func econ_role(world: WorldState) -> float:
 
 
 ## Utilities stay public in v1 (Wilma): a private power or water plant has no buyer but the public grid.
+## Under R8_UTILITIES no type is public-only (the user, 2026-11-16: "All company types needs to be able to be created as
+## private"): private plants sell to the grid (EconRulesUtil).
 const PUBLIC_ONLY := ["POWER", "WATERWORKS"]
 
 
 ## The policy for one plant type (utilities always "STATE").
 static func policy_for(world: WorldState, ftype: String) -> String:
-	return "STATE" if ftype in PUBLIC_ONLY else policy(world)
+	return "STATE" if ftype in PUBLIC_ONLY and not EconRulesUtil.on(world) else policy(world)
 
 
 ## "MARKET" | "MIXED" | "STATE" ("STATE" = the old behaviour when E137 is off).

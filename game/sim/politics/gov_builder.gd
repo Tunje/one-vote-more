@@ -1215,13 +1215,24 @@ static func _safety_cases(world: WorldState, st: Dictionary, who: Dictionary) ->
 ## request is an INSTITUTION_BUDGET case (its "yes" tables the bill); without it the budget goes through the
 ## legislature's need signal (st["lever_need"]) alone.
 static func _inst_builds(world: WorldState, st: Dictionary, busy: Dictionary, who: Dictionary) -> int:
+	# no count of ours: as many as the line's headroom pays for (orders queued this quarter are not committed yet, so
+	# they are counted here), the most unserved first; the builders' quotes then decide what gets built
 	var orders := 0
+	var room := {}
 	for b in EconInst.build_needs(world):
-		if orders >= 2:
-			break
-		if int(b["mothballed"]) > 0 or busy.has(String(b["type"]) + "|" + String(b["district"])):
+		var typ := String(b["type"])
+		if int(b["mothballed"]) > 0 or busy.has(typ + "|" + String(b["district"])):
 			continue
-		orders += _order(world, st, busy, who, String(b["type"]), String(b["district"]), "")
+		var line := String(EconActions.LINE_OF.get(typ, "ECON_BUDGET_INFRASTRUCTURE"))
+		if not room.has(line):
+			room[line] = EconActions.headroom(world, line)
+		var cost := EconConstruction.estimate(typ) * 11 / 10
+		if cost > int(room[line]):
+			continue
+		var n := _order(world, st, busy, who, typ, String(b["district"]), "")
+		if n > 0:
+			room[line] = int(room[line]) - cost
+		orders += n
 	return orders
 
 
