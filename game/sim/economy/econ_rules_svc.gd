@@ -222,6 +222,37 @@ static func reach_d(world: WorldState, d: String) -> int:
 	return t
 
 
+## All service demand (mu a month) whose customers could reach a hub in d, filled or not (the SERVICES row's w,
+## by travel).
+static func reach_w(world: WorldState, d: String) -> int:
+	var row: Dictionary = EconUtil.peek_st(world).get("r8", {}).get("goods", {}).get("SERVICES", {})
+	var t := 0
+	for d2 in EconUtil.sorted_keys(row):
+		t += int(row[d2]["w"]) * EconRules.travel_pm(world, String(d2), d) / 1000
+	return t
+
+
+## The hub capacity (mu) serving d's reach: open hubs in d and its neighbours, plus hubs being built or extended
+## there (a full hub, a quarter for an extension; the same count as EconForecast._incumbent_cap, over the reach).
+static func _cap_in_reach(world: WorldState, d: String) -> float:
+	var near := [d] + EconUtil.neighbours(d)
+	var full := float(EconData.RECIPES[HUB]["out"][1]) * float(S)
+	var t := 0.0
+	for fid in EconUtil.sorted_keys(world.table("facility")):
+		var f: Dictionary = world.table("facility")[fid]
+		if f["type"] == HUB and not f["mothball"] and String(f["district"]) in near:
+			t += _cap(f)
+	for pid in EconUtil.sorted_keys(world.table("project")):
+		var p: Dictionary = world.table("project")[pid]
+		if not (String(p.get("status", "")) in ["TENDER", "TENDERABLE", "ACTIVE", "PLANNING"]) or not (String(p["district"]) in near):
+			continue
+		if p["type"] == HUB:
+			t += full
+		elif p["type"] == "EXPAND" and world.table("facility").has(String(p.get("target", ""))) 				and world.table("facility")[p["target"]]["type"] == HUB:
+			t += full / 4.0
+	return t
+
+
 ## Capacity (mu) the open hubs in d and its neighbours did not sell this month (nameplate less sales: a hub at
 ## zero output has all of it unused), except hub `skip`.
 static func _unused_near(world: WorldState, d: String, skip: String) -> int:
@@ -325,19 +356,20 @@ static func entry_district(world: WorldState, scale_pm: int) -> String:
 
 
 ## A new hub's first year in district d (mcr): {volume (mu a month), revenue, costs, profit, reasons}.
-## volume = the unfilled demand it could reach, net of what the hubs near it could still serve (spare hours, hubs
-## being built or expanded, mothballed hubs that would reopen), at most its capacity.
+## volume = its average share of all the service demand in its reach, filled or not, shared by capacity among the
+## open hubs near d, the hubs being built or extended near d, and itself (EconForecast.share_of_work; the user,
+## 2026-11-16: "instead of reading the leftovers, they read an average of all available jobs").
 static func forecast(world: WorldState, d: String, scale_pm: int) -> Dictionary:
 	var s := EconUtil.peek_st(world)
 	var r: Dictionary = EconData.RECIPES[HUB]
 	var cap := float(r["out"][1]) * float(S) * float(scale_pm) / 1000.0
 	var reasons: Array = []
-	var gap := reach_d(world, d) - _unused_near(world, d, "") - _coming_near(world, d)
-	if gap <= 0:
+	var share: float = EconForecast.share_of_work(world, HUB, d, cap, "", float(reach_w(world, d)), _cap_in_reach(world, d))
+	if share <= 0.0:
 		reasons.append("no_customers")
 	if _incumbents_losing(world, d):
 		reasons.append("incumbents_losing")
-	var volume := clampf(float(gap), 0.0, cap) * _crew_fill(world, scale_pm)  # it serves what a crew it can hire can serve
+	var volume := clampf(share, 0.0, cap) * _crew_fill(world, scale_pm)  # it serves what a crew it can hire can serve
 	var price := float(s.get("svc_price", {}).get(d, 0))
 	var revenue := volume / float(S) * price * 12.0
 	var crew := 0.0

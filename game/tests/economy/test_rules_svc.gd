@@ -221,30 +221,44 @@ func test_rule_5_a_sold_out_earning_hub_expands() -> void:
 
 
 func test_rules_7_and_8_founding() -> void:
+	# the user, 2026-11-16: a newcomer reads the average of all the work in its reach, not the leftovers
 	var sim := _sim(true)
 	sim.run(4)
 	var w := sim.world
 	var d := "d:3"
 	var near := [d] + EconUtil.neighbours(d)
+	var cap := float(EconData.RECIPES["SERVICEHUB"]["out"][1]) * float(S)
 	_sold(w, true)
 	_set_unfilled(w, d, 3000 * S)
 	var fc := EconRulesSvc.forecast(w, d, 1000)
-	check(int(fc["volume"]) > 0 or EconRulesSvc._crew_fill(w, 1000) <= 0.0, "customers waiting net of the hubs near it")
+	var share := minf(3000.0 * S * cap / maxf(1.0, EconRulesSvc._cap_in_reach(w, d) + cap), cap)
+	check(absi(int(fc["volume"]) - int(share * EconRulesSvc._crew_fill(w, 1000))) <= 1, "volume = its capacity's share of all the work in reach")
 	if (fc["reasons"] as Array).is_empty():
 		check(int(fc["profit"]) > 0, "a profit when nothing blocks it")
 		check(EconRulesSvc.entry_district(w, 1000) != "", "rule 7: a district where a hub pays")
+	# every customer served already: the newcomer still counts its share of them (no leftovers reading)
+	var row: Dictionary = EconUtil.st(w)["r8"]["goods"]["SERVICES"]
+	row[d]["f"] = 3000 * S
+	row[d]["u"] = 0
+	check_eq(int(EconRulesSvc.forecast(w, d, 1000)["volume"]), int(fc["volume"]), "filled work counts like unfilled work")
 	_set_unfilled(w, d, 0)
-	check(EconRulesSvc.forecast(w, d, 1000)["reasons"].has("no_customers"), "rule 8: nobody waiting, no founding")
+	check(EconRulesSvc.forecast(w, d, 1000)["reasons"].has("no_customers"), "rule 8: no work in reach, no founding")
 	check_eq(EconRulesSvc.entry_district(w, 1000), "", "no district")
+	# more hub capacity in reach: a smaller share
 	_set_unfilled(w, d, 3000 * S)
-	for fid in w.table("facility"):
+	var before := EconRulesSvc._cap_in_reach(w, d)
+	var hub := ""
+	for fid in EconUtil.sorted_keys(w.table("facility")):
 		var f: Dictionary = w.table("facility")[fid]
-		if f["type"] == "SERVICEHUB" and String(f["district"]) in near:
-			f["svc_sold"] = 0
-	check(EconRulesSvc._unused_near(w, d, "") < 3000 * S or EconRulesSvc.forecast(w, d, 1000)["reasons"].has("no_customers"), "rule 8: incumbents' unused hours serve them first")
-	_set_unfilled(w, d, 100 * S)
-	check(EconRulesSvc.forecast(w, d, 1000)["reasons"].has("no_customers"), "rule 8: a hub at zero output near them counts as room")
-	_set_unfilled(w, d, 3000 * S)
+		if f["type"] == "SERVICEHUB" and String(f["district"]) in near and not f["mothball"]:
+			hub = fid
+			break
+	if hub != "":
+		var v0 := int(EconRulesSvc.forecast(w, d, 1000)["volume"])
+		w.table("facility")[hub]["scale"] = int(w.table("facility")[hub].get("scale", 1000)) + 1000
+		check(EconRulesSvc._cap_in_reach(w, d) > before, "the bigger hub counts in reach")
+		check(int(EconRulesSvc.forecast(w, d, 1000)["volume"]) < v0 or v0 == 0, "more capacity in reach, a smaller share")
+		w.table("facility")[hub]["scale"] = int(w.table("facility")[hub]["scale"]) - 1000
 	var any_near := false
 	for fid in w.table("facility"):
 		var f: Dictionary = w.table("facility")[fid]
