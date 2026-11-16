@@ -87,3 +87,9 @@ Owner: Wilma. Built with the economy side, not after it.
   the parts it is built from (Wilma's reading: the workshop's own wear, and the components it gets; to be confirmed
   with the user if Ella needs it narrower). Still not answered: whether a workshop repair brings a truck's wear back
   to new while a self-repair leaves it; whether a workshop repair uses components.
+- 2026-11-16, on Ella's proposal to take "quality of parts" from the state of the components works, since components
+  carry no quality of their own in the game (the user, verbatim): "Then leave it at workers are they stressed out
+  not maybe they can add more parts to make better trucks". So a workshop truck's quality depends on its workers:
+  whether they are stressed out or not. Nothing is taken from the components works, and components get no quality of
+  their own. As an idea, not a decision ("maybe"): a workshop could put more parts into a truck to make a better
+  one.
