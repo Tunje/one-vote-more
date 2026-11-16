@@ -132,8 +132,32 @@ The whole point is that a paper should not read the same twice. Within one file,
 they open, in their angle, and in their headline's shape, not just in a few swapped words. Across files, do not
 reuse stock phrases.
 
+## Pictures
+
+The front page has a large space beside the main headline. `images_wanted.json` lists the pictures wanted for
+it. They are generic: a picture stands for a kind of event, not for one particular event, so it must fit any
+time that kind of thing happens. For each entry make ONE image and save it into the folder `images/` under
+exactly the entry's `file` name. Skip an entry whose file already exists.
+
+Each entry has `for` (the kind of event or feature it illustrates), `show` (what the picture shows) and sometimes a
+`note`.
+
+Every picture:
+
+- PNG, 800 pixels wide and 500 high, landscape.
+- Looks like a black-and-white press photograph printed on newsprint: greyscale, a little grain, plain and
+  documentary. Not a painting, not a cartoon, not a poster.
+- The setting is a small, plain colonial town of roughly late-twentieth-century technology: low buildings,
+  trucks and buses, a small port, wide skies. It may show two moons in the sky. No aliens, no spacecraft
+  overhead, no futuristic city.
+- No words, letters or numbers anywhere in the picture: placards, signs and documents are blank or
+  illegible. No logos or flags of any real country, company or party.
+- No real, recognisable person. People are ordinary and unposed, mostly seen from a distance, from behind or in
+  groups.
+- Nothing gory. An accident or a storm shows the aftermath, not the injured.
+
 ## Checking your work
 
-Run `python check.py` in this folder. It reads `wanted.json` and every file in `articles/` and reports any file
+Run `python check.py` in this folder. It reads the two lists and every file in `articles/` and `images/` and reports any file
 that is misnamed, malformed, too long or too short, or uses a blank it may not use. Fix what it reports. It also
 prints how many of the wanted articles exist.

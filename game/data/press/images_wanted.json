@@ -1,0 +1,521 @@
+{
+ "version": 1,
+ "images": [
+  {
+   "file": "ECON_FAMINE_1.png",
+   "for": "ECON_FAMINE",
+   "show": "A long queue of people outside a small bakery with empty shelves visible through the window.",
+   "note": ""
+  },
+  {
+   "file": "ECON_FAMINE_2.png",
+   "for": "ECON_FAMINE",
+   "show": "A long queue of people outside a small bakery with empty shelves visible through the window.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_ELECTION_HELD_1.png",
+   "for": "POL_ELECTION_HELD",
+   "show": "People queueing to vote outside a plain public hall, a ballot box visible through the door.",
+   "note": ""
+  },
+  {
+   "file": "POL_ELECTION_HELD_2.png",
+   "for": "POL_ELECTION_HELD",
+   "show": "People queueing to vote outside a plain public hall, a ballot box visible through the door.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_GOVERNMENT_FORMED_1.png",
+   "for": "POL_GOVERNMENT_FORMED",
+   "show": "A group of men and women in plain suits standing on the steps of an assembly building, seen from a distance.",
+   "note": ""
+  },
+  {
+   "file": "POL_GOVERNMENT_FORMED_2.png",
+   "for": "POL_GOVERNMENT_FORMED",
+   "show": "A group of men and women in plain suits standing on the steps of an assembly building, seen from a distance.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_NO_CONFIDENCE_PASSED_1.png",
+   "for": "POL_NO_CONFIDENCE_PASSED",
+   "show": "An assembly chamber seen from the public gallery, members standing, papers in the air.",
+   "note": ""
+  },
+  {
+   "file": "POL_NO_CONFIDENCE_PASSED_2.png",
+   "for": "POL_NO_CONFIDENCE_PASSED",
+   "show": "An assembly chamber seen from the public gallery, members standing, papers in the air.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_NO_CONFIDENCE_FAILED_1.png",
+   "for": "POL_NO_CONFIDENCE_FAILED",
+   "show": "An assembly chamber seen from the public gallery, members seated, one side applauding.",
+   "note": ""
+  },
+  {
+   "file": "POL_NO_CONFIDENCE_FAILED_2.png",
+   "for": "POL_NO_CONFIDENCE_FAILED",
+   "show": "An assembly chamber seen from the public gallery, members seated, one side applauding.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_SCANDAL_REVEALED_1.png",
+   "for": "POL_SCANDAL_REVEALED",
+   "show": "A crowd of reporters with notebooks and cameras outside a closed office door.",
+   "note": ""
+  },
+  {
+   "file": "POL_SCANDAL_REVEALED_2.png",
+   "for": "POL_SCANDAL_REVEALED",
+   "show": "A crowd of reporters with notebooks and cameras outside a closed office door.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_PARTNER_LEFT_1.png",
+   "for": "POL_PARTNER_LEFT",
+   "show": "Several people in suits walking down the steps of an assembly building, away from the camera.",
+   "note": ""
+  },
+  {
+   "file": "POL_PARTNER_LEFT_2.png",
+   "for": "POL_PARTNER_LEFT",
+   "show": "Several people in suits walking down the steps of an assembly building, away from the camera.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_LEADER_CHANGED_1.png",
+   "for": "POL_LEADER_CHANGED",
+   "show": "A person at a lectern in a hall, arms raised, seen from behind over a cheering crowd.",
+   "note": ""
+  },
+  {
+   "file": "POL_LEADER_CHANGED_2.png",
+   "for": "POL_LEADER_CHANGED",
+   "show": "A person at a lectern in a hall, arms raised, seen from behind over a cheering crowd.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_LEADERSHIP_RACE_OPENED_1.png",
+   "for": "POL_LEADERSHIP_RACE_OPENED",
+   "show": "Two lecterns on a small stage in a meeting hall, empty, with rows of chairs.",
+   "note": ""
+  },
+  {
+   "file": "POL_LEADERSHIP_RACE_OPENED_2.png",
+   "for": "POL_LEADERSHIP_RACE_OPENED",
+   "show": "Two lecterns on a small stage in a meeting hall, empty, with rows of chairs.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_PARTY_SPLIT_1.png",
+   "for": "POL_PARTY_SPLIT",
+   "show": "A meeting hall with half the chairs empty and overturned, a banner hanging loose.",
+   "note": ""
+  },
+  {
+   "file": "POL_PARTY_SPLIT_2.png",
+   "for": "POL_PARTY_SPLIT",
+   "show": "A meeting hall with half the chairs empty and overturned, a banner hanging loose.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_BILL_DEFEATED_1.png",
+   "for": "POL_BILL_DEFEATED",
+   "show": "A stack of papers on a clerk's desk in an assembly chamber, a hand stamping them.",
+   "note": ""
+  },
+  {
+   "file": "POL_BILL_DEFEATED_2.png",
+   "for": "POL_BILL_DEFEATED",
+   "show": "A stack of papers on a clerk's desk in an assembly chamber, a hand stamping them.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "HOME_DEMAND_RAISED_1.png",
+   "for": "HOME_DEMAND_RAISED",
+   "show": "A sealed official document with a wax seal on a wooden desk beside a globe.",
+   "note": ""
+  },
+  {
+   "file": "HOME_DEMAND_RAISED_2.png",
+   "for": "HOME_DEMAND_RAISED",
+   "show": "A sealed official document with a wax seal on a wooden desk beside a globe.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "HOME_SANCTION_1.png",
+   "for": "HOME_SANCTION",
+   "show": "A warehouse at a port with its doors chained shut.",
+   "note": ""
+  },
+  {
+   "file": "HOME_SANCTION_2.png",
+   "for": "HOME_SANCTION",
+   "show": "A warehouse at a port with its doors chained shut.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "HOME_EXPEDITION_SENT_1.png",
+   "for": "HOME_EXPEDITION_SENT",
+   "show": "A large ship far out at sea under a dark sky, seen from a headland.",
+   "note": ""
+  },
+  {
+   "file": "HOME_EXPEDITION_SENT_2.png",
+   "for": "HOME_EXPEDITION_SENT",
+   "show": "A large ship far out at sea under a dark sky, seen from a headland.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "HOME_PETITION_ANSWERED_1.png",
+   "for": "HOME_PETITION_ANSWERED",
+   "show": "An opened envelope and a letter on a desk, a pair of spectacles laid on it.",
+   "note": ""
+  },
+  {
+   "file": "HOME_PETITION_ANSWERED_2.png",
+   "for": "HOME_PETITION_ANSWERED",
+   "show": "An opened envelope and a letter on a desk, a pair of spectacles laid on it.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "HOME_SHIP_BUILT_1.png",
+   "for": "HOME_SHIP_BUILT",
+   "show": "A very large cargo ship in a harbour, small figures on the quay for scale.",
+   "note": ""
+  },
+  {
+   "file": "HOME_SHIP_BUILT_2.png",
+   "for": "HOME_SHIP_BUILT",
+   "show": "A very large cargo ship in a harbour, small figures on the quay for scale.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "HOME_SHIPPING_REFUSED_1.png",
+   "for": "HOME_SHIPPING_REFUSED",
+   "show": "A quay stacked high with crates and no ship at it.",
+   "note": ""
+  },
+  {
+   "file": "HOME_SHIPPING_REFUSED_2.png",
+   "for": "HOME_SHIPPING_REFUSED",
+   "show": "A quay stacked high with crates and no ship at it.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "LAW_CHARTER_AMENDED_1.png",
+   "for": "LAW_CHARTER_AMENDED",
+   "show": "A framed charter document on a wall, a hand pinning a notice over it.",
+   "note": ""
+  },
+  {
+   "file": "LAW_CHARTER_AMENDED_2.png",
+   "for": "LAW_CHARTER_AMENDED",
+   "show": "A framed charter document on a wall, a hand pinning a notice over it.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "LAW_CHARTER_DEFIANCE_1.png",
+   "for": "LAW_CHARTER_DEFIANCE",
+   "show": "A crowd in a town square with raised fists, a public building behind.",
+   "note": ""
+  },
+  {
+   "file": "LAW_CHARTER_DEFIANCE_2.png",
+   "for": "LAW_CHARTER_DEFIANCE",
+   "show": "A crowd in a town square with raised fists, a public building behind.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "UNION_STRIKE_CALLED_1.png",
+   "for": "UNION_STRIKE_CALLED",
+   "show": "A picket line of workers with blank placards outside a factory gate.",
+   "note": ""
+  },
+  {
+   "file": "UNION_STRIKE_CALLED_2.png",
+   "for": "UNION_STRIKE_CALLED",
+   "show": "A picket line of workers with blank placards outside a factory gate.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "UNION_STRIKE_COLLAPSED_1.png",
+   "for": "UNION_STRIKE_COLLAPSED",
+   "show": "Workers walking back through a factory gate in the early morning, heads down.",
+   "note": ""
+  },
+  {
+   "file": "UNION_STRIKE_COLLAPSED_2.png",
+   "for": "UNION_STRIKE_COLLAPSED",
+   "show": "Workers walking back through a factory gate in the early morning, heads down.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "ECON_SOVEREIGN_DEFAULT_1.png",
+   "for": "ECON_SOVEREIGN_DEFAULT",
+   "show": "A closed bank counter with a hand-written notice in the window, people waiting outside.",
+   "note": ""
+  },
+  {
+   "file": "ECON_SOVEREIGN_DEFAULT_2.png",
+   "for": "ECON_SOVEREIGN_DEFAULT",
+   "show": "A closed bank counter with a hand-written notice in the window, people waiting outside.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "ECON_SHIP_ARRIVED_1.png",
+   "for": "ECON_SHIP_ARRIVED",
+   "show": "A cargo ship coming into a small harbour, a crowd on the quay.",
+   "note": ""
+  },
+  {
+   "file": "ECON_SHIP_ARRIVED_2.png",
+   "for": "ECON_SHIP_ARRIVED",
+   "show": "A cargo ship coming into a small harbour, a crowd on the quay.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "PLANET_CYCLONE_1.png",
+   "for": "PLANET_CYCLONE",
+   "show": "A street of low houses after a storm: a roof torn off, debris, people clearing up.",
+   "note": ""
+  },
+  {
+   "file": "PLANET_CYCLONE_2.png",
+   "for": "PLANET_CYCLONE",
+   "show": "A street of low houses after a storm: a roof torn off, debris, people clearing up.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "ECON_CONTRACT_SEVERELY_DELAYED_1.png",
+   "for": "ECON_CONTRACT_SEVERELY_DELAYED",
+   "show": "A half-built apartment block with scaffolding and nobody working on it.",
+   "note": ""
+  },
+  {
+   "file": "ECON_CONTRACT_SEVERELY_DELAYED_2.png",
+   "for": "ECON_CONTRACT_SEVERELY_DELAYED",
+   "show": "A half-built apartment block with scaffolding and nobody working on it.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "COMP_LIQUIDATED_1.png",
+   "for": "COMP_LIQUIDATED",
+   "show": "A factory gate with a 'closed' board across it and weeds growing in the yard.",
+   "note": ""
+  },
+  {
+   "file": "COMP_LIQUIDATED_2.png",
+   "for": "COMP_LIQUIDATED",
+   "show": "A factory gate with a 'closed' board across it and weeds growing in the yard.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "ECON_LAYOFFS_MASS_1.png",
+   "for": "ECON_LAYOFFS_MASS",
+   "show": "Workers leaving a factory carrying their things in boxes.",
+   "note": ""
+  },
+  {
+   "file": "ECON_LAYOFFS_MASS_2.png",
+   "for": "ECON_LAYOFFS_MASS",
+   "show": "Workers leaving a factory carrying their things in boxes.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "COMP_WORKPLACE_ACCIDENT_1.png",
+   "for": "COMP_WORKPLACE_ACCIDENT",
+   "show": "An ambulance outside an industrial building, workers standing in a group.",
+   "note": ""
+  },
+  {
+   "file": "COMP_WORKPLACE_ACCIDENT_2.png",
+   "for": "COMP_WORKPLACE_ACCIDENT",
+   "show": "An ambulance outside an industrial building, workers standing in a group.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_GRANT_FAVOURITISM_1.png",
+   "for": "POL_GRANT_FAVOURITISM",
+   "show": "A new building with a ribbon across the door on one side of a road and a bare field on the other.",
+   "note": ""
+  },
+  {
+   "file": "POL_GRANT_FAVOURITISM_2.png",
+   "for": "POL_GRANT_FAVOURITISM",
+   "show": "A new building with a ribbon across the door on one side of a road and a bare field on the other.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "POL_DEBATE_GAFFE_1.png",
+   "for": "POL_DEBATE_GAFFE",
+   "show": "Two people at lecterns on a stage under bright lights, one looking down at their notes.",
+   "note": ""
+  },
+  {
+   "file": "POL_DEBATE_GAFFE_2.png",
+   "for": "POL_DEBATE_GAFFE",
+   "show": "Two people at lecterns on a stage under bright lights, one looking down at their notes.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "FEATURE_DISTRICT_PORTRAIT_1.png",
+   "for": "FEATURE_DISTRICT_PORTRAIT",
+   "show": "A quiet street of low houses with a truck parked and washing on a line.",
+   "note": ""
+  },
+  {
+   "file": "FEATURE_DISTRICT_PORTRAIT_2.png",
+   "for": "FEATURE_DISTRICT_PORTRAIT",
+   "show": "A quiet street of low houses with a truck parked and washing on a line.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "FEATURE_LETTERS_1.png",
+   "for": "FEATURE_LETTERS",
+   "show": "A desk with a pile of hand-written letters and an inkwell.",
+   "note": ""
+  },
+  {
+   "file": "FEATURE_LETTERS_2.png",
+   "for": "FEATURE_LETTERS",
+   "show": "A desk with a pile of hand-written letters and an inkwell.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "FEATURE_SHIP_DAY_1.png",
+   "for": "FEATURE_SHIP_DAY",
+   "show": "An empty quay at dawn with a single figure looking out to sea.",
+   "note": ""
+  },
+  {
+   "file": "FEATURE_SHIP_DAY_2.png",
+   "for": "FEATURE_SHIP_DAY",
+   "show": "An empty quay at dawn with a single figure looking out to sea.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "FEATURE_SEASON_1.png",
+   "for": "FEATURE_SEASON",
+   "show": "Wide fields under a big sky with two moons faintly visible.",
+   "note": ""
+  },
+  {
+   "file": "FEATURE_SEASON_2.png",
+   "for": "FEATURE_SEASON",
+   "show": "Wide fields under a big sky with two moons faintly visible.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "FEATURE_FOUNDERS_1.png",
+   "for": "FEATURE_FOUNDERS",
+   "show": "A row of the first prefabricated shelters of a settlement, with people posing stiffly in front.",
+   "note": ""
+  },
+  {
+   "file": "FEATURE_FOUNDERS_2.png",
+   "for": "FEATURE_FOUNDERS",
+   "show": "A row of the first prefabricated shelters of a settlement, with people posing stiffly in front.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "FEATURE_MARKET_1.png",
+   "for": "FEATURE_MARKET",
+   "show": "A covered market with stalls of bread and vegetables and shoppers.",
+   "note": ""
+  },
+  {
+   "file": "FEATURE_MARKET_2.png",
+   "for": "FEATURE_MARKET",
+   "show": "A covered market with stalls of bread and vegetables and shoppers.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "FEATURE_ASSEMBLY_SKETCH_1.png",
+   "for": "FEATURE_ASSEMBLY_SKETCH",
+   "show": "An almost empty assembly chamber, one member asleep on a bench.",
+   "note": ""
+  },
+  {
+   "file": "FEATURE_ASSEMBLY_SKETCH_2.png",
+   "for": "FEATURE_ASSEMBLY_SKETCH",
+   "show": "An almost empty assembly chamber, one member asleep on a bench.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "FEATURE_WORK_1.png",
+   "for": "FEATURE_WORK",
+   "show": "A baker at an oven before dawn.",
+   "note": ""
+  },
+  {
+   "file": "FEATURE_WORK_2.png",
+   "for": "FEATURE_WORK",
+   "show": "A baker at an oven before dawn.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "GENERIC_ASSEMBLY_1.png",
+   "for": "GENERIC_ASSEMBLY",
+   "show": "The front of the assembly building, a plain public building with wide steps.",
+   "note": ""
+  },
+  {
+   "file": "GENERIC_ASSEMBLY_2.png",
+   "for": "GENERIC_ASSEMBLY",
+   "show": "The front of the assembly building, a plain public building with wide steps.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "GENERIC_PORT_1.png",
+   "for": "GENERIC_PORT",
+   "show": "A small working harbour with cranes and warehouses.",
+   "note": ""
+  },
+  {
+   "file": "GENERIC_PORT_2.png",
+   "for": "GENERIC_PORT",
+   "show": "A small working harbour with cranes and warehouses.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "GENERIC_STREET_1.png",
+   "for": "GENERIC_STREET",
+   "show": "A main street of a small town with a bus and people walking.",
+   "note": ""
+  },
+  {
+   "file": "GENERIC_STREET_2.png",
+   "for": "GENERIC_STREET",
+   "show": "A main street of a small town with a bus and people walking.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "GENERIC_FACTORY_1.png",
+   "for": "GENERIC_FACTORY",
+   "show": "A factory with a chimney and a yard of trucks.",
+   "note": ""
+  },
+  {
+   "file": "GENERIC_FACTORY_2.png",
+   "for": "GENERIC_FACTORY",
+   "show": "A factory with a chimney and a yard of trucks.",
+   "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "GENERIC_FARM_1.png",
+   "for": "GENERIC_FARM",
+   "show": "A farmhouse with barns and a tractor in a field.",
+   "note": ""
+  },
+  {
+   "file": "GENERIC_FARM_2.png",
+   "for": "GENERIC_FARM",
+   "show": "A farmhouse with barns and a tractor in a field.",
+   "note": "second picture: the same subject from a different angle or moment"
+  }
+ ]
+}

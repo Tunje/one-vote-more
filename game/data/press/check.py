@@ -71,4 +71,28 @@ for name in sorted(os.listdir(adir)) if os.path.isdir(adir) else []:
     else:
         ok += 1
 print("%d of %d wanted articles exist and pass; %d problems" % (ok, len(wanted), bad))
+# pictures: named as in images_wanted.json, PNG, 800 x 500
+import struct
+iw = {r["file"] for r in json.load(io.open(os.path.join(HERE, "images_wanted.json"), encoding="utf-8"))["images"]}
+idir = os.path.join(HERE, "images")
+iok = 0
+for name in sorted(os.listdir(idir)) if os.path.isdir(idir) else []:
+    if name.startswith(".") or name.endswith(".import"):
+        continue
+    if name not in iw:
+        problem(name, "not in images_wanted.json (wrong file name?)")
+        continue
+    with open(os.path.join(idir, name), "rb") as fh:
+        head = fh.read(24)
+    if head[:8] != b"PNG
+
+":
+        problem(name, "not a PNG file")
+        continue
+    wpx, hpx = struct.unpack(">II", head[16:24])
+    if (wpx, hpx) != (800, 500):
+        problem(name, "is %d x %d, wanted 800 x 500" % (wpx, hpx))
+        continue
+    iok += 1
+print("%d of %d wanted pictures exist and pass" % (iok, len(iw)))
 sys.exit(1 if bad else 0)
