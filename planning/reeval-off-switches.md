@@ -343,4 +343,21 @@ Reading (Wilma):
 - Builders' quotes: 2,197 of 2,380 refused for the wait in years 1-10, 13,837 of 14,107 in years 11-20; median
   quoted wait 203-326 months; price against the client's ceiling 0.8-0.9 (fixed since, 4a6f8a9).
 
+### 30 years, everything on without ORDER_IN, code a19ee06 (wage clause in; the stock cut still counting held-back stock)
+
+| arm | seed | adults | u % | food | real | priv alive/dead | builders alive/dead | bank capital | material % of cost / filled | plans / opened |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | 1 | 4263 | 23.6 | 25 | 2.77 | 112/111 | 2/19 | -3 | 76 / 863 | 57 / 4 |
+| base | 2 | 4947 | 20.1 | 11 | 3.16 | 70/118 | 0/17 | -2 | 79 / 904 | 75 / 17 |
+| base | 3 | 4045 | 21.8 | 15 | 4.31 | 105/135 | 4/17 | 0 | 79 / 889 | 71 / 6 |
+| ALL | 1 | 1465 | 17.9 | 994 | 8.97 | 42/22 | 0/13 | 13 | 44 / 0 | 28 / 4 |
+| ALL | 2 | 3060 | 21.2 | 137 | 4.79 | 97/135 | 4/64 | -4 | 22 / 540 | 40 / 30 |
+| ALL | 3 | 2562 | 29.9 | 209 | 3.95 | 126/87 | 1/32 | -2 | 25 / 128 | 56 / 28 |
+
+Reading (Wilma): the worst so far, and it is the lock Bob found: below cost a seller holds stock back, the stock
+cut counted the held stock and cut again, and prices went to the floor with nothing sold (material at 22-44% of cost,
+0-54% filled; seed 1 starves, food shortfall 994 permille, 1,465 adults). Plans now get built where anything is
+(opened 30 and 28 on seeds 2 and 3 against 17 and 6 in the base). Superseded once the cut reads only what was
+offered and unsold.
+
 (more filled in as the reviews and runs come in)

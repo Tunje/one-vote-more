@@ -73,7 +73,7 @@ static func _part(world: WorldState, kill: String) -> bool:
 ## Rules 1/2 on the seller's own signals (R8M_OWNPX, opt-in until its A/B; Wilma 2026-11-16): each MINE, PROCESSING and
 ## COMPONENTS plant has its own price, set after each month's clearing from its own R8 readings. Both rules act every
 ## month: rule 1 up by OWN_ALPHA × the orders it could reach but not supply ÷ its capacity (at most OWN_UP); rule 2 down
-## by stock_cut of its own stock (cover), the more stock the bigger the cut.
+## by stock_cut of the stock it offered and did not sell (not stock it holds back), the more the bigger the cut.
 ## No floor, no creep to cost, no "never below" (the hard rules the user objected to); only the bounds every price in
 ## the game has (PRICE_MIN_MULT .. PRICE_MAX_MULT × the wage level). The seller asks its own price (FirmAI: no cover
 ## markup, no 0.9 × full-cost ask floor for these goods); the good's market price, which buyers' limits and rules 5/7
@@ -143,8 +143,10 @@ static func own_prices(world: WorldState) -> void:
 				if int(r["reach"]) > 0:
 					p *= 1.0 + minf(OWN_UP, OWN_ALPHA * float(int(r["reach"])) / maxf(1.0, cap))
 				# rule 2 (the user, 2026-11-16: "the more inventory you have, the more you reduce your price ... a soft
-				# lock, not a hard lock"): every month, whatever else happens, a cut that grows smoothly with its own stock
-				p *= 1.0 - stock_cut(float(int(r["cover"])) / 1000.0)
+				# lock, not a hard lock"): every month a cut that grows smoothly with the stock it put on the market and
+				# did not sell. Stock it holds back below its own cost waits for a better price and does not push the
+				# price down (Wilma, option (a): with both rulings read on all stock, the price ran to the floor unsold).
+				p *= 1.0 - stock_cut(_unsold_ratio(world, f, good, r))
 			f["r8_px"] = _px_bounds(world, good, p)
 			if not f["mothball"]:
 				wsum += float(int(f["r8_px"])) * cap
@@ -156,6 +158,17 @@ static func own_prices(world: WorldState) -> void:
 ## Rule 2's signal (mu): what the plant's owner put on offer this month and did not sell, this plant's share by
 ## capacity. Stock it held back (FirmAI's hold-back below its own cost) is not in it: a seller does not cut its price
 ## for stock it chose to keep. Before any offer is recorded, the plant's stock (cover × sales).
+## The stock cut's c: what the plant's owner offered this month and did not sell, ÷ what it sold (as the market table
+## reads S − filled ÷ filled for every other good). Before any offer is recorded, the plant's cover.
+static func _unsold_ratio(world: WorldState, f: Dictionary, good: String, r: Dictionary) -> float:
+	var o: Dictionary = world.table("org").get(f["org"], {})
+	if o.has("offered"):
+		var offered := int((o["offered"] as Dictionary).get(good, 0))
+		var sold := int((o.get("sold", {}) as Dictionary).get(good, 0))
+		return float(maxi(0, offered - sold)) / maxf(float(sold), float(S))
+	return float(int(r["cover"])) / 1000.0
+
+
 static func _unsold_mu(world: WorldState, f: Dictionary, good: String, r: Dictionary, cap: float) -> float:
 	var o: Dictionary = world.table("org").get(f["org"], {})
 	if o.has("offered"):
@@ -638,6 +651,7 @@ static func job_value(world: WorldState, oid: String, good: String) -> int:
 		var o_award := float(int(p.get(opkey, prices["COMPONENT" if mat else "MATERIAL"])))
 		money += award * n / float(S) + (float(int(p["price"])) - penalty) * frac \
 			- wu_left / float(S) * wage - float(int(p[okey])) * frac / float(S) * o_award
+		money += EconBuilders.wage_change(world, p, frac)  # the wage clause (a19ee06): the work left earns the wage rise since award
 		need += n
 	if need <= 0.0 or money <= 0.0:
 		return 0

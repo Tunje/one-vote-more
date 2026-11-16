@@ -267,3 +267,25 @@ func test_a_sole_seller_on_stock_comes_down_from_the_ceiling() -> void:
 		pl[fid]["cover"] = 9000
 		EconRulesMat.own_prices(w)
 	check(int(f["r8_px"]) < ceiling * 7 / 10, "a year later it is well below the ceiling (%d of %d)" % [int(f["r8_px"]) / S, ceiling / S])
+
+
+func test_stock_held_back_does_not_push_the_price_down() -> void:
+	var sim := _sim(["R8M_OWNPX"], 6)
+	var w := sim.world
+	var fid := _plant(w, "PROCESSING")
+	if fid == "":
+		check(false, "a processing plant exists")
+		return
+	var f: Dictionary = w.table("facility")[fid]
+	var p0 := 300 * S
+	_only(w, fid, 0, 9000, p0)  # nine months of stock in store ...
+	var o: Dictionary = w.table("org")[f["org"]]
+	o["offered"] = {"MATERIAL": 10 * S}  # ... of which it offered a little, and sold it all
+	o["sold"] = {"MATERIAL": 10 * S}
+	EconRulesMat.own_prices(w)
+	check_eq(int(f["r8_px"]), p0, "held-back stock is not cut for")
+	o["offered"] = {"MATERIAL": 40 * S}  # offered 40, sold 10: the market saw 30 unsold
+	o["sold"] = {"MATERIAL": 10 * S}
+	f["r8_px"] = p0
+	EconRulesMat.own_prices(w)
+	check_near(float(int(f["r8_px"])), float(p0) * (1.0 - EconRulesMat.stock_cut(3.0)), float(S), "offered and unsold: cut by c = 30 ÷ 10")
