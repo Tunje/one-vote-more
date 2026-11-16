@@ -527,7 +527,10 @@ static func _order(world: WorldState, st: Dictionary, busy: Dictionary, who: Dic
 ## the government names the districts it covers: those with the greatest need (Bob's st["family_need_d"][kind] = {d:
 ## need}), two by default, more for egalitarian and spending-minded governments. EconFamily reads st["grant_cover"][kind]
 ## (absent = not decided yet, no grants that month) and the entry is dropped when the lever is back at 0, so the next programme chooses again.
-const GRANT_KINDS := {"FARM": "ECON_FAMILY_FARM_GRANT", "BAKERY": "ECON_FAMILY_BAKERY_GRANT"}
+## The truck drivers' and truck workshops' grants (the user, 2026-11-16: "Don't forget the political side") are decided
+## the same way: the government names the districts a programme covers, by need and by its politics.
+const GRANT_KINDS := {"FARM": "ECON_FAMILY_FARM_GRANT", "BAKERY": "ECON_FAMILY_BAKERY_GRANT",
+	"TRUCKER": "ECON_TRUCK_DRIVER_GRANT", "TRUCKSHOP": "ECON_TRUCK_WORKSHOP_GRANT"}
 const GRANT_FAVOUR := 0.5   # weight of the governing parties' vote share in a district against its (normalised) need
 static func _grant_cover(world: WorldState, st: Dictionary) -> void:
 	var s := EconUtil.st(world)
