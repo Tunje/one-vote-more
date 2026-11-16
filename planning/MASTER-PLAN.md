@@ -318,6 +318,17 @@ world when the colony has no working producer. Wilma approved a wider build (any
 limit reached the landed price), which made imports routine: 14.7M paid out in 60 years. Corrected: ordering in only
 while the colony has no working producer of the good.
 
+**No word to the home world without a ship (the user, verbatim):** "Okay, let me explain something that you seem to
+have completely bloody missed. They can't order when there's not a ship there to take the order. There is no magical
+sending money through space without ships. They can't order, they can't ask for, they have to ask for one when the
+ship is there, which means they have the full period of waiting every time. There's no ordering when it's 6 months
+out because that ship's already left Earth and they have no way of sending a message to it." So every order, request
+and payment to the home world is handed to a ship that is in port; the answer or the goods come back with that same
+ship on its next call; a ship that calls in between left home before the message arrived. Every instance in the tree:
+goods ordered in (ORDER_IN), the government's imports (ECON_ORDER_IMPORTS, which today arrive next quarter with no
+ship), buses and parts bought from the home world, petitions and requests for more shipping (home_world.gd, done),
+recapitalising the bank from home, builders and capital arriving from home.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and

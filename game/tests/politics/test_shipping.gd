@@ -48,19 +48,39 @@ func test_off_without_the_flag() -> void:
 	check(not w.values.has("SHIP_HOLD") and not w.values.has("HOME_TARIFF") and EconTrade.fleet(w).is_empty(), "the ship is unchanged")
 
 
-func test_a_full_port_makes_the_colony_press_again_and_again() -> void:
+## No word reaches the home world without a ship (the user, 2026-11-16): the request goes with the ship in port, the
+## answer comes back with the same ship on its next call, and a ship calling in between knows nothing.
+func test_a_request_travels_with_the_ship_and_the_answer_comes_back_with_it() -> void:
 	var w := _world(true)
 	var h := HomeWorld.state(w)
-	HomeWorld._shipping_pressure(w, h)
-	check(w.facts.query("HOME_SHIPPING_REQUESTED").is_empty(), "nothing to ask for while the port has room")
+	var sv: Dictionary = LQ.sovereignty(w)
+	var r := w.rng.stream("pol.home")
+	h["need"] = 100
+	h["loyalty"] = 100
 	_port_full(w)
 	HomeWorld._shipping_pressure(w, h)
-	HomeWorld._shipping_pressure(w, h)
-	check_eq(w.facts.query("HOME_SHIPPING_REQUESTED").size(), 1, "a full port: the government presses, once for now")
-	w.month += HomeWorld.SHIP_ASK_GAP
+	w.month += 5
 	_port_full(w)
 	HomeWorld._shipping_pressure(w, h)
-	check_eq(w.facts.query("HOME_SHIPPING_REQUESTED").size(), 2, "and again a year later while the shortage lasts")
+	check(w.facts.query("HOME_SHIPPING_REQUESTED").is_empty(), "a full port between ships: nobody to ask")
+	w.month += 15
+	HomeWorld._shipping(w, h, sv, r)
+	check_eq(w.facts.query("HOME_SHIPPING_REQUESTED").size(), 1, "the ship is in port: the request goes with it")
+	check(w.facts.query("HOME_SHIP_BUILT").is_empty() and w.facts.query("HOME_SHIPPING_REFUSED").is_empty(), "no answer on the same call")
+	# another ship calls in between: it left home before the request arrived
+	EconUtil.st(w)["ship_idx"] = 1
+	w.month += 10
+	_port_full(w)
+	HomeWorld._shipping_pressure(w, h)
+	HomeWorld._shipping(w, h, sv, r)
+	check_eq(w.facts.query("HOME_SHIPPING_REQUESTED").size(), 1, "one request under way, no second one")
+	check(w.facts.query("HOME_SHIP_BUILT").is_empty() and w.facts.query("HOME_SHIPPING_REFUSED").is_empty(), "the other ship carries no answer")
+	# the ship that carried it is back
+	EconUtil.st(w)["ship_idx"] = 0
+	w.month += 10
+	HomeWorld._shipping(w, h, sv, r)
+	check_eq(w.facts.query("HOME_SHIP_BUILT").size() + w.facts.query("HOME_SHIPPING_REFUSED").size(), 1, "the answer comes back with the ship that took the request")
+	check(not h.has("ship_ask"), "and the request is settled")
 
 
 func test_the_home_world_builds_and_takes_a_higher_price_until_it_is_paid() -> void:
@@ -141,7 +161,7 @@ func test_a_defiant_colony_is_mostly_refused() -> void:
 		w.month += 20
 		HomeWorld._shipping(w, h, {"refusal": true}, r)
 	var refused := w.facts.query("HOME_SHIPPING_REFUSED").size()
-	check(refused >= 9, "mostly no (%d of 12)" % refused)
+	check(refused >= 5, "mostly no (%d of 6 answers: a request and its answer take two calls)" % refused)
 	if refused > 0:
 		var f: Dictionary = w.facts.query("HOME_SHIPPING_REFUSED")[0]
 		check(int(f["impact"].get("COLONIAL_BURDEN", 0)) < 0, "a refusal is felt as colonial burden")
