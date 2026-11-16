@@ -40,6 +40,8 @@ func _only(w: WorldState, fid: String, reach: int, cover: int, px: int) -> void:
 		pl[fid] = {"g": EconRulesMat.GOOD_FOR[ft], "util": 1000, "sales": 1000, "cost_var": 0}
 	pl[fid]["reach"] = reach
 	pl[fid]["cover"] = cover
+	var fc: Dictionary = w.table("facility")[fid]
+	pl[fid]["sales"] = int(float(EconData.RECIPES[fc["type"]]["out"][1]) * float(S) * EconUtil.fscale(fc))  # a month's sales = its capacity
 	w.table("facility")[fid]["r8_px"] = px
 	w.table("org")[w.table("facility")[fid]["org"]].erase("offered")  # rule 2 reads the plant's cover until offers are recorded
 
@@ -81,17 +83,17 @@ func test_rule2_unsold_stock_with_every_order_filled_lowers_it_with_no_floor() -
 	var p0 := 500 * S
 	_only(w, fid, 0, 100, p0)  # a tenth of a month's sales unsold
 	EconRulesMat.own_prices(w)
-	check_near(float(int(f["r8_px"])), float(p0) * (1.0 - EconRulesMat.OWN_ALPHA * 0.1), float(S), "down by ALPHA × unsold ÷ sales")
+	check_near(float(int(f["r8_px"])), float(p0) * (1.0 - EconRulesMat.stock_cut(0.1)), float(S), "a little stock, a little cut")
 	_only(w, fid, 0, 3000, p0)
 	EconRulesMat.own_prices(w)
-	check_near(float(int(f["r8_px"])), float(p0) * (1.0 - EconRulesMat.OWN_DOWN), float(S), "at most OWN_DOWN a month")
+	check_near(float(int(f["r8_px"])), float(p0) * (1.0 - EconRulesMat.stock_cut(3.0)), float(S), "three months of stock: 7.5%")
 	# no floor at cost: a price already below the plant's full cost still falls while stock goes unsold
 	var full := FirmAI.unit_cost(w, "PROCESSING")
 	var low := int(full * 0.5)
 	_only(w, fid, 0, 3000, low)
 	EconRulesMat.own_prices(w)
 	var base := float(EconUtil.st(w)["base"]["MATERIAL"])
-	if float(low) * (1.0 - EconRulesMat.OWN_DOWN) > base * EconData.PRICE_MIN_MULT:
+	if float(low) * (1.0 - EconRulesMat.stock_cut(3.0)) > base * EconData.PRICE_MIN_MULT:
 		check(int(f["r8_px"]) < low, "below full cost it still falls (%d < %d)" % [int(f["r8_px"]), low])
 	_only(w, fid, 0, 0, p0)
 	EconRulesMat.own_prices(w)
@@ -220,3 +222,48 @@ func test_both_run_save_and_load_identically() -> void:
 
 func check_near(a: float, b: float, tol: float, msg: String) -> void:
 	check(absf(a - b) <= tol, "%s (%.0f vs %.0f)" % [msg, a, b])
+
+
+func test_a_pile_of_unsold_stock_outweighs_a_few_unfilled_orders() -> void:
+	var sim := _sim(["R8M_OWNPX"], 6)
+	var w := sim.world
+	var fid := _plant(w, "PROCESSING")
+	if fid == "":
+		check(false, "a processing plant exists")
+		return
+	var f: Dictionary = w.table("facility")[fid]
+	var cap := _cap(f)
+	var p0 := 500 * S
+	_only(w, fid, int(cap * 0.05), 9000, p0)  # a few distant orders unfilled, nine months of sales in store
+	EconRulesMat.own_prices(w)
+	check(int(f["r8_px"]) < p0, "the stock cut outweighs a few unfilled orders (%d < %d)" % [int(f["r8_px"]), p0])
+
+
+func test_more_stock_a_bigger_cut() -> void:
+	var last := 0.0
+	for c in [0.0, 0.5, 1.0, 3.0, 9.0, 100.0]:
+		var cut := EconRulesMat.stock_cut(c)
+		check(cut >= last, "%.1f months: %.4f, not less than before" % [c, cut])
+		check(cut < EconRulesMat.STOCK_CUT_MAX, "never above STOCK_CUT_MAX")
+		last = cut
+	check_eq(EconRulesMat.stock_cut(0.0), 0.0, "no stock, no cut")
+	check(EconRulesMat.stock_cut(9.0) > EconRulesMat.stock_cut(1.0), "nine months cut more than one")
+
+
+func test_a_sole_seller_on_stock_comes_down_from_the_ceiling() -> void:
+	var sim := _sim(["R8M_OWNPX"], 6)
+	var w := sim.world
+	var fid := _plant(w, "PROCESSING")
+	if fid == "":
+		check(false, "a processing plant exists")
+		return
+	var f: Dictionary = w.table("facility")[fid]
+	var s := EconUtil.st(w)
+	var ceiling := int(float(s["base"]["MATERIAL"]) * EconData.PRICE_MAX_MULT * EconMarket.wage_level(w))
+	_only(w, fid, int(_cap(f) * 0.02), 9000, ceiling)  # at the ceiling, one buyer short, nine months in store
+	for i in 12:
+		var pl: Dictionary = s["r8"]["plants"]
+		pl[fid]["reach"] = int(_cap(f) * 0.02)
+		pl[fid]["cover"] = 9000
+		EconRulesMat.own_prices(w)
+	check(int(f["r8_px"]) < ceiling * 7 / 10, "a year later it is well below the ceiling (%d of %d)" % [int(f["r8_px"]) / S, ceiling / S])

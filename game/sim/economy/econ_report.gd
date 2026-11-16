@@ -22,8 +22,11 @@ static func year_line(world: WorldState) -> String:
 	var a := 0
 	var d := 0
 	var x := 0
+	var plans := EconInsolvency.planning_stage(world)
 	for oid in world.peek("org"):
 		var st: String = world.peek("org")[oid]["status"]
+		if plans and (st == "FORMING" or bool(world.peek("org")[oid].get("plan_abandoned", false))):
+			continue  # E165: a plan is not a company (not alive, and a withdrawn plan is not a death)
 		if st in ["ACTIVE", "FORMING"]: a += 1
 		elif st in ["DISSOLVED", "LIQUIDATION"]: x += 1
 		else: d += 1

@@ -301,6 +301,16 @@ What the code does today, which is wrong by this: a family farm is created as a 
 approved at founding, counts as founded, and is dropped as "stalled" after 12 months without a build (6 months for
 other plans), counted as a death.
 
+**Price rule 2, the user's ruling (verbatim), after the recorder showed sellers at 3-4.7 times cost with goods piling
+up:** "Now, instead, add a rule that the more inventory you have, the more you reduce your price. That way, the
+further up they have in supplies, the more they reduce their price. That would solve this problem much faster. And
+it would be a soft lock, not a hard lock, like your 9-month one would be." So: a seller's price cut grows with the
+inventory it holds, continuously; no threshold of months or of any other kind.
+
+**Builders' supplies, the user's ruling (verbatim):** "They should not need 90% of supplies up front they should need
+3 months up front and add 1 month of additional supplies every month". So a builder starts a job with three months
+of that job's supplies and adds one more month's supplies every month; it is not held to having 90% of its supplies.
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and

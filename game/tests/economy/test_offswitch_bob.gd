@@ -8,12 +8,12 @@ const MONTHS := 48
 const FULL_MONTHS := 36
 
 
-func _run(extra: Array, full: bool) -> WorldState:
+func _run(extra: Array, full: bool, sd: int = 1) -> WorldState:
 	var on: Array = EconSim.DEFAULT_ON.duplicate()
 	for f in extra:
 		if not on.has(f):
 			on.append(f)
-	var sim: Simulation = EconSim.make(1) if full else EconSim.make_econ_only(1)
+	var sim: Simulation = EconSim.make(sd) if full else EconSim.make_econ_only(sd)
 	sim.world.meta["on"] = on  # the switches are read month by month, so setting them after new_game is enough
 	sim.run(FULL_MONTHS if full else MONTHS)
 	return sim.world
@@ -39,9 +39,9 @@ func _priv_alive(w: WorldState) -> int:
 
 ## inert: a switch known to change nothing on this seed and span (planning/reeval-bob.md says why); the test records
 ## that it is still inert, so a change in the code that wakes it shows up here.
-func _case(flag: String, needs: Array = [], full: bool = false, inert: bool = false) -> void:
-	var a := _run(needs, full)
-	var b := _run(needs + [flag], full)
+func _case(flag: String, needs: Array = [], full: bool = false, inert: bool = false, sd: int = 1) -> void:
+	var a := _run(needs, full, sd)
+	var b := _run(needs + [flag], full, sd)
 	check_eq(b.ledger.total(), 0, flag + ": ledger closed")
 	check(EconPop.check(b).is_empty(), flag + ": jobs equal people")
 	if inert:
@@ -66,10 +66,10 @@ func test_e151() -> void: _case("E151", [], true)
 func test_e152() -> void: _case("E152")
 func test_e153() -> void: _case("E153")
 func test_e155() -> void: _case("E155")
-func test_e156() -> void: _case("E156")
+func test_e156() -> void: _case("E156", [], false, true)  # no priced-out bread on seeds 1-3 by month 48 since the founding cap went
 func test_e168() -> void: _case("E168", [], false, true)  # FOOD in the 0-5% unfilled band below farm cost: not on seed 1 by month 48
 func test_e171() -> void: _case("E171", [], true, true)  # nothing in the game calls CharterOps.record_delivery
-func test_s7() -> void: _case("S7")
+func test_s7() -> void: _case("S7", [], false, false, 2)  # seed 2: on seed 1 no household is left without a home by month 48
 func test_s7f() -> void: _case("S7F")
 func test_s7c() -> void: _case("S7C", [], false, true)  # FOOD fully supplied with surplus cover: not on seed 1 by month 48
 func test_support_b() -> void: _case("SUPPORT_B")

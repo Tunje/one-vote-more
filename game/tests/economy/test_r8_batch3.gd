@@ -98,14 +98,20 @@ func test_rule_2_reads_only_what_it_offered_and_did_not_sell() -> void:
 			break
 	var f: Dictionary = w.table("facility")[fid]
 	var o: Dictionary = w.table("org")[f["org"]]
-	var r := {"cover": 5000, "reach": 0}
+	var cap := float(EconData.RECIPES["PROCESSING"]["out"][1]) * float(S) * EconUtil.fscale(f)
+	var own_cap := 0.0
+	for f_id in w.table("facility"):
+		var f2: Dictionary = w.table("facility")[f_id]
+		if f2["org"] == f["org"] and not f2["mothball"] and f2["type"] == "PROCESSING":
+			own_cap += float(EconData.RECIPES["PROCESSING"]["out"][1]) * float(S) * EconUtil.fscale(f2)
+	var r := {"cover": 5000, "reach": 0, "sales": 10 * S}
 	o["offered"] = {"MATERIAL": 100 * S}
 	o["sold"] = {"MATERIAL": 100 * S}
-	check_eq(EconRulesMat._unsold(w, f, "MATERIAL", r), 0.0, "all it offered sold: no cut, whatever it keeps in store")
+	check_eq(EconRulesMat._unsold_mu(w, f, "MATERIAL", r, cap), 0.0, "all it offered sold: no cut, whatever it keeps in store")
 	o["sold"] = {"MATERIAL": 50 * S}
-	check(absf(EconRulesMat._unsold(w, f, "MATERIAL", r) - 1.0) < 0.001, "half of it unsold: unsold ÷ sold")
+	check(absf(EconRulesMat._unsold_mu(w, f, "MATERIAL", r, cap) - 50.0 * S * cap / maxf(cap, own_cap)) < 1.0, "unsold: this plant's share by capacity")
 	o.erase("offered")
-	check(absf(EconRulesMat._unsold(w, f, "MATERIAL", r) - 5.0) < 0.001, "before any offer is recorded: its cover")
+	check(absf(EconRulesMat._unsold_mu(w, f, "MATERIAL", r, cap) - 50.0 * S) < 1.0, "before any offer is recorded: its stock (cover × sales)")
 
 
 func test_carriers_cheapest_first_and_cta_first_on_a_tie() -> void:

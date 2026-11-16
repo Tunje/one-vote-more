@@ -305,4 +305,42 @@ Reading (Wilma): the freight fix does not change the picture. The bank's large l
 -22, -1, -23), the rest is as bad. In six games, 115 firms were planned and one opened (base seed 1: 70 planned, 45
 opened).
 
+### The price recorder (the user's order, 2026-11-16), seed 1, 60 years, code 7a41196 (before the waits fix, the cap removal and the forecast fix)
+
+The user: "Instead of measuring how many are unemployed measure the price dif between them? ... make it one run recod
+all index prices for every company and for every buyer that way we know what the dif lies in and where they want to
+gauge". Recorder: scratch px/ (sim/economy/px_probe.gd; market.csv = every offer and order before the market
+clears, quotes.csv = every builder's quote the client judged); summaries px/all_summary.txt and px/base_summary.txt.
+
+Per unit, by decade (ask = sellers' asking price by quantity offered; cost = their full cost; wanted and offered are
+yearly sums of the monthly books):
+
+| good | arm | Y1-10 ask / cost | Y21-30 ask / cost | Y41-50 ask / cost | Y51-60 ask / cost | Y51-60 offered / wanted |
+|---|---|---|---|---|---|---|
+| MATERIAL | base | 498 / 479 | 343 / 329 | 455 / 388 | 386 / 395 | 15181 / 10871 |
+| MATERIAL | all on | 404 / 373 | 737 / 441 | 1597 / 376 | 1600 / 343 | 21388 / 2369 |
+| FOOD | base | 198 / 165 | 230 / 204 | 221 / 149 | 211 / 130 | 333992 / 186060 |
+| FOOD | all on | 361 / 150 | 475 / 181 | 436 / 142 | 436 / 122 | 249999 / 31840 |
+| CONSUMER | base | 297 / 149 | 658 / 144 | 158 / 128 | 134 / 108 | 75903 / 38949 |
+| CONSUMER | all on | 442 / 118 | 569 / 158 | 280 / 217 | 382 / 207 | 116980 / 1311 |
+| FINE_FOOD | base | 602 / 392 | 432 / 402 | 366 / 348 | 383 / 328 | 37953 / 31782 |
+| FINE_FOOD | all on | 1316 / 586 | 900 / 630 | 464 / 483 | 438 / 463 | 2181 / 20608 |
+
+Reading (Wilma):
+- No buyer is ever priced out by its limit, in either arm (one exception: base MINERAL in years 11-30, index 38-40
+  against a cost of 165, 85-99% of orders under the cheapest ask: the old deadlock). Limits sit at 1.3-3 times the
+  ask because they are multiples of the going price; they never bind. What shrinks is the quantity buyers want.
+- With the rules on, sellers hold prices far above cost while their goods pile up: MATERIAL climbs every decade to
+  1,600 (the price ceiling, 4.7 times its cost), from a single public seller, with nine times the wanted quantity on
+  offer; FOOD sits at 3-3.6 times cost with eight times the wanted quantity on offer; CONSUMER at 1.8 times cost with
+  ninety times. In the base the same goods sell at about cost to 1.6 times cost.
+- Quantities wanted collapse with the rules on: food 31,840 a year against 186,060, material 2,369 against 10,871,
+  consumer goods 1,311 against 38,949.
+- Bread is the opposite: wanted 20,608, offered 2,181, at cost. Buyers would pay 2.5 times the ask; the bakeries are
+  not there.
+- So the gap is on the sellers' side: the own-price rules raise and do not come down (rule 2 acts only with no
+  reachable unfilled order at all).
+- Builders' quotes: 2,197 of 2,380 refused for the wait in years 1-10, 13,837 of 14,107 in years 11-20; median
+  quoted wait 203-326 months; price against the client's ceiling 0.8-0.9 (fixed since, 4a6f8a9).
+
 (more filled in as the reviews and runs come in)

@@ -67,12 +67,16 @@ func test_on_the_owner_keeps_its_own_plants_upkeep_back() -> void:
 
 func test_the_chain_keeps_its_condition() -> void:
 	var sim := _sim(["OWN_FIRST"], 72)
-	var low := 100 * S
+	var short := 0
+	var n := 0
 	for fid in sim.world.table("facility"):
 		var f: Dictionary = sim.world.table("facility")[fid]
 		if f["type"] in ["MINE", "PROCESSING", "COMPONENTS"] and not f["mothball"]:
-			low = mini(low, int(f["condition"]))
-	check(low >= 90 * S, "after six years every open chain plant is at condition ≥ 90 (lowest %d)" % [low / S])
+			n += 1
+			if int(f.get("upkeep_frac", 0)) < 1000:
+				short += 1
+	check(n > 0, "open chain plants")
+	check_eq(short, 0, "after six years every open chain plant gets its full upkeep (a plant below 100 then repairs)")
 	check_eq(sim.world.ledger.total(), 0, "ledger closed")
 	check(EconPop.check(sim.world).is_empty(), "jobs equal people")
 

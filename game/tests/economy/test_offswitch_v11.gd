@@ -58,8 +58,14 @@ func test_e166_rescues() -> void:
 	_case("E166", ["E165", "E165B"], "E166", "rescue_stats")
 
 
+## E169's shells came from plans abandoned mid-build. Under E165 (the user 2026-11-16) a plan with a signed contract
+## is never abandoned (it waits for a new builder), so E169 has nothing to take over: on, it changes nothing.
 func test_e169_shells() -> void:
-	_case("E169", ["E165", "E165B"], "E169", "e169_stats")
+	var a := _run(["E165", "E165B"])
+	var b := _run(["E165", "E165B", "E169"])
+	check_eq(b.ledger.total(), 0, "E169: ledger closed")
+	check(EconPop.check(b).is_empty(), "E169: jobs equal people")
+	check_eq(_print(a), _print(b), "E169: no plan leaves a half-built shell, so the switch has nothing to do")
 
 
 func test_r8_builders() -> void:

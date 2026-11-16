@@ -33,6 +33,8 @@ func _only(w: WorldState, fid: String, good: String, reach: int, cover: int, px:
 		pl[fid] = {"g": good, "util": 1000, "sales": 1000, "cost_var": 0}
 	pl[fid]["reach"] = reach
 	pl[fid]["cover"] = cover
+	var fc: Dictionary = w.table("facility")[fid]
+	pl[fid]["sales"] = int(float(EconData.RECIPES[fc["type"]]["out"][1]) * float(S) * EconUtil.fscale(fc))  # a month's sales = its capacity
 	w.table("facility")[fid]["r8_px"] = px
 	w.table("org")[w.table("facility")[fid]["org"]].erase("offered")  # rule 2 reads the plant's cover until offers are recorded
 
@@ -64,7 +66,7 @@ func test_farm_and_family_farm_set_their_own_price() -> void:
 		check(absf(float(int(f["r8_px"])) - 200.0 * S * (1.0 + EconRulesMat.OWN_ALPHA * 0.1)) <= float(S), ft + ": rule 1 raises on its reachable unfilled orders")
 		_only(w, fid, good, 0, 3000, 200 * S)
 		EconRulesMat.own_prices(w)
-		check(absf(float(int(f["r8_px"])) - 200.0 * S * (1.0 - EconRulesMat.OWN_DOWN)) <= float(S), ft + ": rule 2 lowers on unsold stock")
+		check(absf(float(int(f["r8_px"])) - 200.0 * S * (1.0 - EconRulesMat.stock_cut(3.0))) <= float(S), ft + ": rule 2 lowers on its stock")
 		f["r8_px"] = 77 * S
 		var alone := true
 		for f_id in w.table("facility"):

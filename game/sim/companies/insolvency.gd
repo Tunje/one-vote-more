@@ -96,28 +96,15 @@ static func _step(world: WorldState, oid: String) -> void:
 					if p["owner"] == oid and p["status"] == "ACTIVE":
 						building = true
 				o["forming_idle"] = 0 if building else o.get("forming_idle", 0) + 1
-				if plan_q(world):
-					var pstate := plan_state(world, oid)
-					if pstate == "building":
+				if planning_stage(world):
+					# E165 (the user 2026-11-16: "PLANS ARE MADE BEFORE THEY BECOME COMPANIES"): a plan cannot fail and no
+					# count of months ends it. It waits for a builder, goes back to tender when its builder dies, and ends
+					# only by its owner's decision (plan_withdrawal), a withdrawal, not a death.
+					if plan_state(world, oid) == "building":
 						o["build_started"] = true
-					var sig: Dictionary = EconUtil.st(world).get("entry_signal", {})
-					if pstate != "building" and not bool(o.get("build_started", false)) and o.has("entry_type") and int(sig.get(o["entry_type"], 0)) == 0:
-						o["sig_off"] = int(o.get("sig_off", 0)) + 1
-					else:
-						o["sig_off"] = 0
-					if int(o.get("sig_off", 0)) >= SIGNAL_OFF_M:
-						abandon_plan(world, oid, "no_reason")
-					elif bool(o.get("build_started", false)) and o["forming_idle"] >= 6:
-						abandon_plan(world, oid, "stalled")
-				elif planning_stage(world):
-					var age := world.month - int(o.get("planned_month", world.month))
-					if o["forming_idle"] >= 6 or age >= PLAN_MAX_M:
-						var cause := "limit" if o["forming_idle"] < 6 else "stalled"
-						for pid in world.table("project"):
-							var p0: Dictionary = world.table("project")[pid]
-							if p0["owner"] == oid and p0["status"] in ["TENDER", "TENDERABLE"] and cause == "stalled":
-								cause = "no_builder"
-						abandon_plan(world, oid, cause)
+					var why := plan_withdrawal(world, oid)
+					if why != "":
+						abandon_plan(world, oid, why)
 				elif o["forming_idle"] >= 6:
 					for pid in EconUtil.sorted_keys(world.table("project")):
 						var p: Dictionary = world.table("project")[pid]
@@ -579,10 +566,37 @@ static func _find_buyer(world: WorldState, seller: String, f: Dictionary, reserv
 ## you can't fail before you exist"; opt-in): a new firm is a PLAN until its plant opens — no workers, office, wages or
 ## inspections (those already skip FORMING firms) and no loan service (EconFinance._loan_service skips plans; interest
 ## starts when the plant opens). COMP_COMPANY_PLANNED at creation, COMP_COMPANY_FOUNDED at opening; its age (the P&L
-## ring) counts from opening. A plan cannot fail: with no build under way for 6 months, or not open PLAN_MAX_M months
-## after it was made, it is ABANDONED — tenders and projects cancelled, its cash repays the bank (the rest is written
-## off), what is left goes back to the founder — not a liquidation, not a firm death, and no sector cooling (E128).
-const PLAN_MAX_M := 36
+## ring) counts from opening. A plan is not a company (the user 2026-11-16: "PLANS ARE MADE BEFORE THEY BECOME
+## COMPANIES"): it is not counted as founded, alive or dead. It cannot fail and no count of months ends it; it is
+## WITHDRAWN only by its owner (plan_withdrawal) — tenders and projects cancelled, its cash repays the bank (the rest
+## is written off), what is left goes back to the founder — not a liquidation, not a firm death, no sector cooling.
+
+
+## Why the owner withdraws its plan this month, or "" (pure). Its own decisions only:
+##   no_building: nothing is left to build (its project was cancelled; one whose builder failed is back in tender and
+##       waits for a new builder);
+##   no_reason: no builder has accepted the job yet and the reason it planned for has gone (its sector's entry signal is
+##       off: the founder's own forecast no longer supports it; once a builder accepted, it has a contract).
+static func plan_withdrawal(world: WorldState, oid: String) -> String:
+	var o: Dictionary = world.peek("org")[oid]
+	var job := false
+	var accepted := false
+	for pid in world.peek("project"):
+		var p: Dictionary = world.peek("project")[pid]
+		if p["owner"] != oid:
+			continue
+		if p["status"] in ["TENDER", "TENDERABLE", "ACTIVE"]:
+			job = true
+		if p["status"] == "ACTIVE":
+			accepted = true
+	if not job:
+		return "no_building"
+	if accepted or bool(o.get("build_started", false)) or not o.has("entry_type"):
+		return ""
+	var sig: Dictionary = EconUtil.peek_st(world).get("entry_signal", {})
+	if sig.has(o["entry_type"]) and int(sig[o["entry_type"]]) == 0:
+		return "no_reason"
+	return ""
 
 
 static func planning_stage(world: WorldState) -> bool:
@@ -609,10 +623,8 @@ static func plan_a(world: WorldState) -> bool:
 ## E165Q (user + Wilma 2026-11-15, "firms queue work up: we do this in three months"; opt-in, implies E165 and E165b
 ## (c)): builders quote a start date from their order book as well as a price; the founder takes the best offer; an
 ## accepted job waits in the builder's book and the plan waits with it at no cost. No plan is dropped for want of a
-## builder: it is withdrawn only when its sector's entry signal has been off for SIGNAL_OFF_M months (the founder's
-## reason has gone), or by the stall rule once building has started. Builders enter when the books hold
+## builder: it is withdrawn only by its owner (plan_withdrawal). Builders enter when the books hold
 ## ENTRY_BOOK_YEARS of work for a standard entrant (EconConstruction.book_entry).
-const SIGNAL_OFF_M := 12
 
 
 static func plan_q(world: WorldState) -> bool:
@@ -719,6 +731,7 @@ static func abandon_plan(world: WorldState, oid: String, cause: String) -> void:
 	var s := EconUtil.st(world)
 	var ps: Dictionary = s.get("plan_stats", {})
 	ps["abandoned_" + cause] = int(ps.get("abandoned_" + cause, 0)) + 1
+	ps["withdrawn"] = int(ps.get("withdrawn", 0)) + 1
 	ps["written_off"] = int(ps.get("written_off", 0)) + written
 	ps["written_off_" + cause] = int(ps.get("written_off_" + cause, 0)) + written
 	s["plan_stats"] = ps

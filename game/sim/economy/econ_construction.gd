@@ -345,6 +345,14 @@ static func award(world: WorldState, pid: String, org_id: String) -> bool:
 			rank = i
 	if chosen.is_empty():
 		return false
+	var po: Dictionary = world.table("org").get(p["owner"], {})
+	if not po.is_empty() and po["status"] == "FORMING" and bool(po.get("fund_on_award", false)) 			and not EconFamily.fund_plan(world, String(p["owner"]), pid):
+		# E165 (the user 2026-11-16: the plan comes before the grant): the family applies for its grant and the bank's
+		# share once a builder's quote is accepted; without the money nothing is signed and the owner withdraws the plan
+		p["status"] = "CANCELLED"
+		p["bids"] = []
+		EconInsolvency.abandon_plan(world, String(p["owner"]), "no_funding")
+		return false
 	p["contractor"] = org_id
 	p["price"] = chosen["price"]
 	p["bid_duration"] = chosen["duration"]

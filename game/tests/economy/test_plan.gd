@@ -157,3 +157,71 @@ func test_material_chain_starts_ahead_of_the_queue() -> void:
 	check(ws > 0, "another job waits behind the book (%d)" % ws)
 	check(EconConstruction.material_chain_job(w, w.table("project")[mine]), "a mine is a material-chain job")
 	check(not EconConstruction.material_chain_job(w, w.table("project")[shop]), "a service hub is not")
+
+
+## The user 2026-11-16 ("PLANS ARE MADE BEFORE THEY BECOME COMPANIES"): a plan cannot fail and no count of months ends
+## it; it waits for a builder, back in tender when its builder fails, and ends only by its owner's decision.
+func test_plan_waits_and_ends_only_by_its_owner() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	sim.run(2)
+	w.meta["on"] = ["E165"]
+	var oid := _plan(w)
+	var pid := EconConstruction.create(w, "TEXTILE", "d:1", oid, oid, "")
+	var p: Dictionary = w.table("project")[pid]
+	var o: Dictionary = w.table("org")[oid]
+	o["build_started"] = true
+	p["status"] = "TENDERABLE"  # its builder failed: the job is back in tender
+	o["forming_idle"] = 40
+	o["planned_month"] = w.month - 100
+	EconInsolvency._step(w, oid)
+	check_eq(o["status"], "FORMING", "40 idle months, 100 months old, the job in tender: the plan waits")
+	p["status"] = "CANCELLED"
+	EconInsolvency._step(w, oid)
+	check_eq(o["status"], "DISSOLVED", "nothing left to build: the owner withdraws it")
+	check(bool(o.get("plan_abandoned", false)), "a withdrawal, not a death")
+	check_eq(int(EconUtil.st(w)["plan_stats"]["abandoned_no_building"]), 1, "counted as no_building")
+	check_eq(int(EconUtil.st(w)["plan_stats"]["withdrawn"]), 1, "and as withdrawn")
+
+
+func test_plan_withdrawn_when_its_reason_goes() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	sim.run(2)
+	w.meta["on"] = ["E165", "E165Q"]
+	var oid := _plan(w)
+	var pid := EconConstruction.create(w, "TEXTILE", "d:1", oid, oid, "")
+	EconUtil.st(w)["entry_signal"] = {"TEXTILE": 3}
+	check_eq(EconInsolvency.plan_withdrawal(w, oid), "", "its reason holds: it waits for a builder")
+	EconUtil.st(w)["entry_signal"] = {"TEXTILE": 0}
+	w.table("project")[pid]["status"] = "ACTIVE"
+	w.table("project")[pid]["start_month"] = w.month + 10
+	check_eq(EconInsolvency.plan_withdrawal(w, oid), "", "a builder accepted: it has a contract and keeps it")
+	w.table("project")[pid]["status"] = "TENDER"
+	check_eq(EconInsolvency.plan_withdrawal(w, oid), "no_reason", "no builder yet and its reason gone: the owner withdraws")
+
+
+## The user 2026-11-16: a family's grant comes after its plan has a builder; without the money, nothing is signed.
+func test_family_plan_funded_at_the_award() -> void:
+	var sim := EconSim.make_econ_only(3)
+	var w := sim.world
+	sim.run(2)
+	w.meta["on"] = ["E165"]
+	var oid := _plan(w)
+	var o: Dictionary = w.table("org")[oid]
+	var b := ""
+	for o0 in EconUtil.sorted_keys(w.table("org")):
+		if bool(w.table("org")[o0].get("is_contractor", false)) and w.table("org")[o0]["status"] == "ACTIVE":
+			b = o0
+			break
+	var pid := EconConstruction.create(w, "TEXTILE", "d:1", oid, oid, "")
+	var p: Dictionary = w.table("project")[pid]
+	p["bids"] = [{"org": b, "price": 1000 * EconUtil.S, "duration": 12, "reliability": 50, "wait": 0}]
+	o["fund_on_award"] = true
+	o["family_type"] = "FAMFARM"
+	o["fund_gid"] = "hh:none"  # the household is gone: no money
+	check(not EconConstruction.award(w, pid, b), "no money: no award")
+	check_eq(p["status"], "CANCELLED", "nothing signed")
+	check(not (w.table("org")[b]["contracts"] as Array).has(pid), "not in the builder's book")
+	check_eq(o["status"], "DISSOLVED", "the owner withdraws")
+	check_eq(int(EconUtil.st(w)["plan_stats"]["abandoned_no_funding"]), 1, "as no_funding")

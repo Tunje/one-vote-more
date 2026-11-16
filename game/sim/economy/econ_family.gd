@@ -581,7 +581,61 @@ static func startup_cost(world: WorldState, ftype: String) -> Dictionary:
 ## `d`: where the plant stands; `home`: the district the family lives in and is hired from (a farm may stand elsewhere).
 static func _start(world: WorldState, ftype: String, d: String, gid: String, pct: int, home: String = "") -> bool:
 	var s := EconUtil.st(world)
-	var k: Dictionary = KINDS[ftype]
+	if EconInsolvency.planning_stage(world):
+		# E165 with E160/E162 (the user, 2026-11-16: "PLANS ARE MADE BEFORE THEY BECOME COMPANIES ... THAT'S BEFORE
+		# ACCEPTING A GRANT"): only the plan, an org row in FORMING and its project. No grant, loan or savings move, no
+		# programme place, no founded count; the money comes in fund_plan when a builder's quote is accepted (Otto's
+		# EconConstruction.award), and the founded count and fact at the opening (on_open).
+		var pid := _make_org(world, ftype, d, gid, home)
+		var po: Dictionary = world.table("org")[pid]
+		po["fund_on_award"] = true
+		po["fund_pct"] = pct
+		po["fund_gid"] = gid
+		po["fam_plan"] = true
+		EconConstruction.create(world, ftype, d, pid, pid, "")
+		EconFacts.emit(world, "COMP_COMPANY_PLANNED", d, [["COMPANY", pid]], [["COMPANY", pid, 1.0]], {}, 10, "PUBLIC",
+			{"type": ftype, "family": true, "grant_pct": pct}, {"districts": [d]})
+		return true
+	var m := _money(world, ftype, gid, pct)
+	if not bool(m["ok"]):
+		return false
+	var g: Dictionary = world.table("hh")[gid]
+	var id := _make_org(world, ftype, d, gid, home)
+	_fund_apply(world, id, ftype, d, gid, pct, m)
+	EconPop.make_owner(world, g["hb"], g["band"])
+	EconPop.sync(world)
+	EconConstruction.create(world, ftype, d, id, id, "")
+	_count_founded(world, id, ftype, d, pct)
+	return true
+
+
+## Otto's award hook (E165): a family's plan has a builder's accepted quote; now it applies for its grant and the
+## bank's share and puts in its savings, as _start did at founding before. false: the money is not there (the grant
+## refused or no bank room under the family rules), and the award is reverted and the plan withdrawn (Otto's side).
+static func fund_plan(world: WorldState, oid: String, pid: String) -> bool:
+	var o: Dictionary = world.table("org").get(oid, {})
+	if o.is_empty() or not bool(o.get("fund_on_award", false)):
+		return true
+	var ftype := String(o["family_type"])
+	var gid := String(o.get("fund_gid", o.get("owner_group", "")))
+	if not world.table("hh").has(gid):
+		return false
+	var pct := int(o.get("fund_pct", 0))
+	var m := _money(world, ftype, gid, pct)
+	if not bool(m["ok"]):
+		return false
+	_fund_apply(world, oid, ftype, String(o["hq"]), gid, pct, m)
+	var g: Dictionary = world.table("hh")[gid]
+	EconPop.make_owner(world, g["hb"], g["band"])
+	EconPop.sync(world)
+	o.erase("fund_on_award")
+	return true
+
+
+## The funding test (unchanged): a grant of pct of the start-up cost; with a grant the bank lends the whole rest when
+## it has room, else savings and a build loan for part of the build.
+static func _money(world: WorldState, ftype: String, gid: String, pct: int) -> Dictionary:
+	var s := EconUtil.st(world)
 	var c := startup_cost(world, ftype)
 	var total := int(c["build"]) + int(c["wc"]) + int(c["course"])
 	var grant := total * pct / 100
@@ -601,8 +655,11 @@ static func _start(world: WorldState, ftype: String, d: String, gid: String, pct
 	if not fam_loan and savings < own:
 		loan = mini(own - savings, int(c["build"]) * 7 / 10)  # a small bank loan for part of the build
 		if savings + loan < own:
-			return false
-	var g: Dictionary = world.table("hh")[gid]
+			return {"ok": false}
+	return {"ok": true, "grant": grant, "own": own, "savings": savings, "loan": loan, "fam_loan": fam_loan, "c": c}
+
+
+static func _make_org(world: WorldState, ftype: String, d: String, gid: String, home: String) -> String:
 	var id := world.new_id("org")
 	world.table("org")[id] = {"id": id, "key": "FAM_" + id, "name": EconUtil.firm_name(world, d, "FAMILY", "& Family"), "type": "PRIVATE",
 		"hq": d, "status": "FORMING", "ceo": {"mgmt": 45, "risk": 25, "age_m": 38 * 12}, "reliability": 0, "is_contractor": false,
@@ -614,6 +671,18 @@ static func _start(world: WorldState, ftype: String, d: String, gid: String, pct
 	world.table("org")[id]["home"] = home if home != "" else d
 	world.table("org")[id]["grant_paid"] = 0  # what the government gave (mcr; 0 = self-funded), for news and blame later
 	world.table("org")[id]["grant_month"] = -1
+	return id
+
+
+static func _fund_apply(world: WorldState, id: String, ftype: String, d: String, gid: String, pct: int, m: Dictionary) -> void:
+	var s := EconUtil.st(world)
+	var k: Dictionary = KINDS[ftype]
+	var c: Dictionary = m["c"]
+	var grant := int(m["grant"])
+	var own := int(m["own"])
+	var savings := int(m["savings"])
+	var loan := int(m["loan"])
+	var fam_loan := bool(m["fam_loan"])
 	if grant > 0:
 		var paid := EconFinance.gov_pay(world, EconUtil.acct(id), grant, "FAMILY_GRANT")
 		world.table("org")[id]["grant_paid"] = paid
@@ -674,15 +743,15 @@ static func _start(world: WorldState, ftype: String, d: String, gid: String, pct
 				s["train_hist"] = h
 				s["fam_courses"] = int(s.get("fam_courses", 0)) + 1
 				break
-	EconPop.make_owner(world, g["hb"], g["band"])
-	EconPop.sync(world)
-	EconConstruction.create(world, ftype, d, id, id, "")
+
+
+static func _count_founded(world: WorldState, id: String, ftype: String, d: String, pct: int) -> void:
+	var s := EconUtil.st(world)
 	var fd: Dictionary = s.get("fam_founded", {})
 	fd[ftype] = int(fd.get(ftype, 0)) + 1
 	s["fam_founded"] = fd
 	EconFacts.emit(world, "COMP_COMPANY_FOUNDED", d, [["COMPANY", id]], [["COMPANY", id, 0.6], ["GOVERNMENT", "government", 0.4]],
 		{"JOBS": 2, "FAIRNESS": 2}, 10, "PUBLIC", {"type": ftype, "family": true, "grant_pct": pct}, {"districts": [d]})
-	return true
 
 
 # ------------------------------------------------------------------ opening: the family goes to work
@@ -692,6 +761,10 @@ static func _start(world: WorldState, ftype: String, d: String, gid: String, pct
 static func on_open(world: WorldState, oid: String, fid: String) -> void:
 	if not is_family(world, oid):
 		return
+	var oo: Dictionary = world.table("org")[oid]
+	if bool(oo.get("fam_plan", false)):
+		oo.erase("fam_plan")  # E165: a family's plan is counted as founded only when its plant opens
+		_count_founded(world, oid, String(oo["family_type"]), String(world.table("facility")[fid]["district"]), int(oo.get("fund_pct", 0)))
 	var f: Dictionary = world.table("facility")[fid]
 	var hb := EconPop.hb_of(String(world.table("org")[oid].get("home", f["district"])))   # the family, wherever its farm stands
 	var occ := EconPop.person_occ(world, oid, f["type"], "G")

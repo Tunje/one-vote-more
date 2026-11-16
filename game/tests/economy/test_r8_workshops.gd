@@ -66,14 +66,17 @@ func test_a_workshop_prices_on_its_own_orders_and_stock() -> void:
 	var cap := float(EconData.RECIPES["CONSUMERF"]["out"][1]) * float(S) * EconUtil.fscale(f)
 	var p0 := int(EconUtil.st(w)["base"]["CONSUMER"])  # inside the bounds every price has
 	pl[fid]["reach"] = int(cap * 1.0)
+	w.table("org")[f["org"]].erase("offered")
 	f["r8_px"] = p0
 	EconRulesMat.own_prices(w)
 	check(absf(float(int(f["r8_px"])) - float(p0) * (1.0 + EconRulesMat.OWN_UP)) <= 2.0, "rule 1: up on its reachable unfilled orders (capped at OWN_UP)")
 	pl[fid]["reach"] = 0
 	pl[fid]["cover"] = 2000
+	pl[fid]["sales"] = int(cap)
+	w.table("org")[f["org"]].erase("offered")
 	f["r8_px"] = p0
 	EconRulesMat.own_prices(w)
-	check(absf(float(int(f["r8_px"])) - float(p0) * (1.0 - EconRulesMat.OWN_DOWN)) <= 2.0, "rule 2: down on unsold stock")
+	check(absf(float(int(f["r8_px"])) - float(p0) * (1.0 - EconRulesMat.stock_cut(2.0))) <= 2.0, "rule 2: down on its stock")
 	var before := int(EconUtil.st(w)["prices"]["CONSUMER"])
 	EconUtil.st(w)["market_stats"]["CONSUMER"] = {"S": 0, "D": 1000 * S, "wanted": 1000 * S, "filled": 0}
 	EconMarket._update_prices(w)

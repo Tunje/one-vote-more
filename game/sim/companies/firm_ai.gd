@@ -1055,8 +1055,6 @@ const STALE_TENDER_M := 3  # E117a: months a tender sits without a bid before it
 const ENTRY_MARGIN := 1.25  # price / unit cost that makes a sector attractive at a neutral climate
 const ENTRY_FAIL_COOL_M := 36  # months a sector stays unattractive after an entrant there failed
 const ENTRY_D2_FILL := 900  # ‰: consumer workshops are founded only while buyers get less than this share of their orders
-const ENTRY_LF_PER_SLOT := 2000.0  # workers per extra founding slot
-const ENTRY_MAX_FORMING := 6
 
 
 ## Business climate 0.5..1.5 (1.0 at the default profit tax 20% and the minimum wage floor): lower profit tax and a
@@ -1081,7 +1079,6 @@ static func _note_entry_failures(world: WorldState) -> Dictionary:
 
 
 const HUB_STEP := 0.15  # E134: a sold-out hub raises its target by this much a month
-const MAX_FORMING := 3  # D2: new companies being set up at once (was 1; the consumer industries waited years in line)
 const ADMIN_INPUT_SHARE := 0.6  # E119: share of last month's revenue an administrator spends on inputs
 const BAKERY_YIELD := 1.2  # D2: fine food made per unit of food (BAKERY recipe 300 out / 250 in)
 const BAKERY_FOOD_SHARE := 0.6  # of the fine-food value a bakery will pay for its food
@@ -1251,57 +1248,23 @@ static func _entry(world: WorldState) -> void:
 	s["entry_signal"] = hist
 	if hot_list.is_empty():
 		return
-	var forming := 0
-	var forming_types := {}  # sectors with an entrant already being set up
-	for oid in world.table("org"):
-		if world.table("org")[oid]["status"] == "FORMING":
-			if bool(world.table("org")[oid].get("family", false)):
-				continue  # family farms and bakeries come through their own programme; they never held a company's founding slot
-			for pid in world.table("project"):
-				if world.table("project")[pid]["owner"] == oid:
-					forming_types[world.table("project")[pid]["type"]] = true
-			if EconInsolvency.plan_q(world) and EconInsolvency.plan_state(world, oid) != "no_offer":
-				continue  # E165Q: a plan with an accepted offer waits in a builder's book and holds no founding slot
-			forming += 1
-	var u_now := colony_unemployment(world)
-	var max_forming := mini(MAX_FORMING, 1 + (1 if u_now >= 0.08 else 0) + (1 if u_now >= 0.12 else 0))  # more entrants only with idle hands
-	if e128:
-		# E128: entry scales with the workforce (one more founding slot per ENTRY_LF_PER_SLOT workers) and the climate
-		var lf := int(EconQuery.labour(world)["labour_force"])
-		var slots := 1.0 + float(lf) / ENTRY_LF_PER_SLOT + (1.0 if u_now >= 0.08 else 0.0) + (1.0 if u_now >= 0.12 else 0.0)
-		max_forming = clampi(int(round(slots * climate)), 1, ENTRY_MAX_FORMING)
-	# E77: a few entrants at a time (each needs a builder and a market); D2: was one. Under the eight rules' entry (a
-	# sector whose rules 7/8 are on) there is no count of our own: the forecast, the builders' quotes and the founders'
-	# money decide (the user's "no hard rules"; Wilma 2026-11-16). The old count stays for the other sectors.
-	var slots_full := forming >= max_forming
-	# founder capital from the richest high-income household pool with an adult outside the labour force
-	var best := ""
-	var best_cash := 0
-	for gid in EconUtil.sorted_keys(world.table("hh")):
-		var g0: Dictionary = world.table("hh")[gid]
-		if g0["band"] in ["I4", "I5"] and g0["nonpart"] >= S:
-			var c := world.ledger.balance(EconUtil.hh_acct(gid))
-			if c > best_cash:
-				best_cash = c
-				best = gid
-	if best == "":
-		return
-	var g: Dictionary = world.table("hh")[best]
-	# D2: try every hot sector, the most profitable first (a blocked one no longer stops the others)
+	# No count of companies being set up at once (the user, 2026-11-16: "A hard limit?" ... "not the max companies one"):
+	# the founder's forecast, its money, the bank and the builders' quotes decide. The old slots (MAX_FORMING,
+	# ENTRY_MAX_FORMING, more with idle hands and the business climate) and "one entrant forming per sector" are gone.
+	# Every hot sector may found this quarter, each with its own founder (the richest household of the top bands with an
+	# adult outside the labour force and the founder's share of the build); no count of ours. One founding per sector a
+	# quarter: its forecast is read once a quarter and does not yet see a plant founded in the same pass.
 	hot_list.sort_custom(func(a, b): return float(a[1]) > float(b[1]) or (float(a[1]) == float(b[1]) and str(a[0]) < str(b[0])))
-	var candidate := ""
-	var district := ""
-	var est := 0
+	var used := {}
 	for row in hot_list:
 		var ft: String = row[0]
-		var r8e: bool = EconRulesMat.entry_on(world, ft) or ft == "DEPOT" or (ft in ["CLINIC", "SCHOOL"] and EconRules.sector_on(world, "INSTITUTIONS"))
-		if slots_full and not r8e:
-			continue
 		if ft in ["TEXTILE", "FURNITURE", "BAKERY"] and (world.month < D2_ENTRY_MONTH or colony_unemployment(world) < D2_ENTRY_UNEMP) 				and not (ft == "BAKERY" and EconStaple.active(world)) and not EconRulesMat.entry_on(world, ft):
 			continue  # D2: consumer workshops start once there are idle hands (not while the farms still need every worker)
-		if forming_types.has(ft) and not (r8e and EconForecast.v2_on(world)):
-			continue  # (R8_FORECAST2: the forecast counts the capacity already being built, so no one-at-a-time rule)
 		var e := EconConstruction.estimate(ft)
+		var best := _founder(world, e * EconBankRisk.founder_equity_pm(world) / 1000, used)
+		if best == "":
+			continue
+		var g: Dictionary = world.table("hh")[best]
 		var d: String = "d:3" if ft == "MINE" else (svc_district if ft == "SERVICEHUB" else g["district"])
 		if EconRulesMat.entry_on(world, ft):
 			d = EconRulesMat.entry_district(world, ft, g["district"])  # R8 step 2b: where the forecast is best
@@ -1309,21 +1272,35 @@ static func _entry(world: WorldState) -> void:
 			d = String(haul["district"])  # R8FR_PRIVATE: where most freight was left behind
 		if inst_district.has(ft):
 			d = String(inst_district[ft])
-		if best_cash < e * EconBankRisk.founder_equity_pm(world) / 1000:
-			continue
 		if not LawBridge.allowed(world, "new", "BUILD_FACILITY", {"facility_type": ft, "district": d, "owner_kind": "COMPANY", "value_wref": 0}):
 			continue
-		candidate = ft
-		district = d
-		est = e
-		break
-	if candidate == "":
-		return
-	if EconInsolvency.plan_a(world) and not EconInsolvency.builder_free(world):
-		var ps0: Dictionary = s.get("plan_stats", {})
-		ps0["skipped_no_builder"] = int(ps0.get("skipped_no_builder", 0)) + 1
-		s["plan_stats"] = ps0
-		return  # E165b (a): a founder talks to a builder first; with every builder booked, no plan is made
+		if EconInsolvency.plan_a(world) and not EconInsolvency.builder_free(world):
+			var ps0: Dictionary = s.get("plan_stats", {})
+			ps0["skipped_no_builder"] = int(ps0.get("skipped_no_builder", 0)) + 1
+			s["plan_stats"] = ps0
+			return  # E165b (a): a founder talks to a builder first; with every builder booked, no plan is made
+		_found(world, s, ft, d, e, best, g)
+		used[best] = true
+		hist[ft] = 0
+
+
+## The richest household of the top income bands with an adult outside the labour force and at least `need` in cash,
+## not yet a founder this quarter ("" when none).
+static func _founder(world: WorldState, need: int, used: Dictionary) -> String:
+	var best := ""
+	var best_cash := 0
+	for gid in EconUtil.sorted_keys(world.table("hh")):
+		var g0: Dictionary = world.table("hh")[gid]
+		if used.has(gid) or not (g0["band"] in ["I4", "I5"]) or g0["nonpart"] < S:
+			continue
+		var c := world.ledger.balance(EconUtil.hh_acct(gid))
+		if c > best_cash:
+			best_cash = c
+			best = gid
+	return best if best_cash >= need else ""
+
+
+static func _found(world: WorldState, s: Dictionary, candidate: String, district: String, est: int, best: String, g: Dictionary) -> void:
 	var id := world.new_id("org")
 	var mgmt := int(clampf(50.0 + EconUtil.normal(world, "comp.entry", 15.0), 10.0, 95.0))
 	var risk := world.rng.stream("comp.entry").randi_range(20, 80)
@@ -1354,7 +1331,6 @@ static func _entry(world: WorldState) -> void:
 	else:
 		EconFacts.emit(world, "COMP_COMPANY_FOUNDED", district, [["COMPANY", id]], [["COMPANY", id, 0.8], ["GOVERNMENT", "government", 0.2]],
 			{"JOBS": 3}, 15, "PUBLIC", {"type": candidate}, {"districts": [district]})
-	hist[candidate] = 0
 
 
 ## E120: private housing developers. Each quarter the most crowded district (occupancy ≥ DEV_OCC) gets a housing

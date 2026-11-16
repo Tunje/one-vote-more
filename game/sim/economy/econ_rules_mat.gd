@@ -71,10 +71,9 @@ static func _part(world: WorldState, kill: String) -> bool:
 
 
 ## Rules 1/2 on the seller's own signals (R8M_OWNPX, opt-in until its A/B; Wilma 2026-11-16): each MINE, PROCESSING and
-## COMPONENTS plant has its own price, set after each month's clearing from its own R8 readings.
-##   1 raise: it has reachable unfilled orders → up by OWN_ALPHA × reach ÷ its capacity, at most OWN_UP a month;
-##   2 lower: no reachable unfilled order and stock left unsold → down by OWN_ALPHA × unsold ÷ sales (its cover), at
-##     most OWN_DOWN a month.
+## COMPONENTS plant has its own price, set after each month's clearing from its own R8 readings. Both rules act every
+## month: rule 1 up by OWN_ALPHA × the orders it could reach but not supply ÷ its capacity (at most OWN_UP); rule 2 down
+## by stock_cut of its own stock (cover), the more stock the bigger the cut.
 ## No floor, no creep to cost, no "never below" (the hard rules the user objected to); only the bounds every price in
 ## the game has (PRICE_MIN_MULT .. PRICE_MAX_MULT × the wage level). The seller asks its own price (FirmAI: no cover
 ## markup, no 0.9 × full-cost ask floor for these goods); the good's market price, which buyers' limits and rules 5/7
@@ -83,6 +82,15 @@ static func _part(world: WorldState, kill: String) -> bool:
 const OWN_ALPHA := 0.15
 const OWN_UP := 0.05
 const OWN_DOWN := 0.03
+## Rule 2's curve (Bob's): the monthly cut = STOCK_CUT_MAX × c ÷ (1 + c), c = the seller's own stock in months of its
+## sales (its cover; stock nobody buys counts as a great many months). No threshold: a little stock is a little cut
+## (1 month 5%, 3 months 7.5%, 9 months 9%), never more than STOCK_CUT_MAX a month.
+const STOCK_CUT_MAX := 0.10
+
+
+static func stock_cut(cover_months: float) -> float:
+	var c := maxf(0.0, cover_months)
+	return STOCK_CUT_MAX * c / (1.0 + c)
 
 
 ## Which switch puts a good's sellers on rules 1/2: materials R8M_OWNPX; food (big farms, bakeries and the family
@@ -131,12 +139,12 @@ static func own_prices(world: WorldState) -> void:
 			var cap := float(EconData.RECIPES[f["type"]]["out"][1]) * float(S) * EconUtil.fscale(f)
 			var r: Dictionary = pl.get(fid, {})
 			if not r.is_empty():
+				# rule 1: orders it could reach but not supply raise it
 				if int(r["reach"]) > 0:
 					p *= 1.0 + minf(OWN_UP, OWN_ALPHA * float(int(r["reach"])) / maxf(1.0, cap))
-				else:
-					var ex := _unsold(world, f, good, r)
-					if ex > 0.0:
-						p *= 1.0 - minf(OWN_DOWN, OWN_ALPHA * ex)
+				# rule 2 (the user, 2026-11-16: "the more inventory you have, the more you reduce your price ... a soft
+				# lock, not a hard lock"): every month, whatever else happens, a cut that grows smoothly with its own stock
+				p *= 1.0 - stock_cut(float(int(r["cover"])) / 1000.0)
 			f["r8_px"] = _px_bounds(world, good, p)
 			if not f["mothball"]:
 				wsum += float(int(f["r8_px"])) * cap
@@ -145,16 +153,21 @@ static func own_prices(world: WorldState) -> void:
 			s["prices"][good] = _px_bounds(world, good, wsum / csum)
 
 
-## Rule 2's signal: what the seller put on offer this month and did not sell, ÷ what it sold. Stock it held back
-## (FirmAI's hold-back below its own cost) is not in it: a seller does not cut its price for stock it chose to keep.
-## Before any offer is recorded, the plant's cover (stock ÷ sales).
-static func _unsold(world: WorldState, f: Dictionary, good: String, r: Dictionary) -> float:
+## Rule 2's signal (mu): what the plant's owner put on offer this month and did not sell, this plant's share by
+## capacity. Stock it held back (FirmAI's hold-back below its own cost) is not in it: a seller does not cut its price
+## for stock it chose to keep. Before any offer is recorded, the plant's stock (cover × sales).
+static func _unsold_mu(world: WorldState, f: Dictionary, good: String, r: Dictionary, cap: float) -> float:
 	var o: Dictionary = world.table("org").get(f["org"], {})
 	if o.has("offered"):
 		var offered := int((o["offered"] as Dictionary).get(good, 0))
 		var sold := int((o.get("sold", {}) as Dictionary).get(good, 0))
-		return float(maxi(0, offered - sold)) / maxf(float(sold), float(S))
-	return float(int(r["cover"])) / 1000.0
+		var own_cap := 0.0
+		for fid in world.table("facility"):
+			var f2: Dictionary = world.table("facility")[fid]
+			if f2["org"] == f["org"] and not f2["mothball"] and _makes(f2, good):
+				own_cap += float(EconData.RECIPES[f2["type"]]["out"][1]) * float(S) * EconUtil.fscale(f2)
+		return float(maxi(0, offered - sold)) * cap / maxf(cap, own_cap)
+	return float(int(r["cover"])) / 1000.0 * float(int(r.get("sales", 0)))
 
 
 ## What a seller asks for `good` in district `d` under R8M_OWNPX: the mean own price of its plants of that good there
