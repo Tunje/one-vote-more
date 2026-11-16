@@ -4,7 +4,9 @@ extends SubViewportContainer
 ## layout and scale of the "Modern Office 3D PBR" pack (1 unit = 1 m), every object a named node, so the OBJ models
 ## (game/assets/office3d) replace the meshes later without touching the logic.
 ## The same objects as the 2D desk (OfficeDesk), the same data (OfficeDesk.gather) and the same signal: clicking emits
-## object_clicked(tab). Flat things that carry information (calendar, charter, newspaper, monitor screen, the view out
+## object_clicked(tab). The models (the user: "yes use them", 2026-11-16): each object loads its pack mesh with its PBR
+## textures when the file is there and keeps its placeholder primitives when it is not (the art is not committed), with
+## the same node names, so clicking, picking and the live state work either way. Flat things that carry information (calendar, charter, newspaper, monitor screen, the view out
 ## of the window) are cut from a hidden render of the 2D desk, so both desks always show the same content.
 ## Seated camera: the view drifts gently with the mouse, and dragging looks further around.
 
@@ -25,6 +27,13 @@ const LOOK_AT := Vector3(0.0, 1.0, -1.0)
 const C_WOOD := Color("#8a5a35")
 const C_WOOD_DARK := Color("#5f3c22")
 const C_WALL := Color("#e9d8b8")
+const MODEL_DIR := "res://assets/office3d"
+const ITEM_YAW := 0.0        # the pack's fronts face +z (towards the chair)
+const SCREEN_Z := 0.017      # the screen picture just in front of the model's panel
+const PHONE_RED := Color("#ff5a4a")   # the red phone: the pack's phone, tinted
+const LAMP_BULB := Vector3(0, 0.42, 0.1)
+static var model_dir := MODEL_DIR   # tests point it at an empty folder: the placeholders
+static var _mats := {}
 
 var session
 var outside := "MAP":
@@ -49,6 +58,7 @@ var _drag := false
 var _drag_moved := 0.0
 var _t := 0.0
 var _built := false
+var _top := 0.775   # the desk top (the model's own height when it loads)
 
 
 func _init() -> void:
@@ -203,6 +213,82 @@ func _node(name: String, pos := Vector3.ZERO) -> Node3D:
 	return n
 
 
+## A pack model (<model_dir>/<folder>/<file>.obj) under `parent` with its textures, or null when the file is missing.
+func _model(parent: Node3D, name: String, folder: String, file: String, pos := Vector3.ZERO, rot := Vector3.ZERO, tint := Color.WHITE) -> MeshInstance3D:
+	var path := "%s/%s/%s.obj" % [model_dir, folder, file]
+	if not ResourceLoader.exists(path):
+		return null
+	var mesh = load(path)
+	if not mesh is Mesh:
+		return null
+	var mi := MeshInstance3D.new()
+	mi.name = name
+	mi.mesh = mesh
+	mi.position = pos
+	mi.rotation_degrees = rot
+	mi.material_override = _pbr(folder, file, tint)
+	parent.add_child(mi)
+	return mi
+
+
+## The model's material from the textures beside it: <prefix>_Base_Color, _Metallic, _Roughness, _Normal_OpenGL,
+## _Mixed_AO, _Emissive (.jpg or .png); the prefix is the file's, the folder's, "DefaultMaterial" or the folder's first.
+static func _pbr(folder: String, file: String, tint: Color) -> StandardMaterial3D:
+	var key := "%s/%s/%s/%s" % [model_dir, folder, file, tint.to_html()]
+	if _mats.has(key):
+		return _mats[key]
+	var dir := "%s/%s/" % [model_dir, folder]
+	var prefix := ""
+	for c in [file, folder, "DefaultMaterial"]:
+		if _tex(dir, c, "Base_Color") != null:
+			prefix = c
+			break
+	if prefix == "":
+		var da := DirAccess.open(dir)
+		if da != null:
+			for f in da.get_files():
+				if f.contains("_Base_Color.") and not f.ends_with(".import"):
+					prefix = f.get_slice("_Base_Color.", 0)
+					break
+	var m := StandardMaterial3D.new()
+	m.albedo_color = tint
+	m.roughness = 0.7
+	if prefix != "":
+		m.albedo_texture = _tex(dir, prefix, "Base_Color")
+		if ResourceLoader.exists(dir + prefix + "_Base_Color.png"):
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		var t = _tex(dir, prefix, "Metallic")
+		m.metallic = 1.0 if t != null else 0.0
+		m.metallic_texture = t
+		t = _tex(dir, prefix, "Roughness")
+		if t != null:
+			m.roughness = 1.0
+			m.roughness_texture = t
+		t = _tex(dir, prefix, "Normal_OpenGL")
+		if t != null:
+			m.normal_enabled = true
+			m.normal_texture = t
+		t = _tex(dir, prefix, "Mixed_AO")
+		if t != null:
+			m.ao_enabled = true
+			m.ao_texture = t
+		t = _tex(dir, prefix, "Emissive")
+		if t != null:
+			m.emission_enabled = true
+			m.emission = Color.WHITE
+			m.emission_texture = t
+	_mats[key] = m
+	return m
+
+
+static func _tex(dir: String, prefix: String, kind: String):
+	for ext in [".jpg", ".png"]:
+		var p := "%s%s_%s%s" % [dir, prefix, kind, ext]
+		if ResourceLoader.exists(p):
+			return load(p)
+	return null
+
+
 func _room() -> void:
 	var room := _node("Room")
 	_box(room, "Floor", Vector3(5.6, 0.04, 4.0), Vector3(0, -0.02, -0.1), Color("#6b4a32"), 0.6)
@@ -212,9 +298,14 @@ func _room() -> void:
 	_box(room, "LeftWall", Vector3(0.06, 2.9, 4.0), Vector3(-2.8, 1.45, -0.1), C_WALL.darkened(0.08))
 	_box(room, "RightWall", Vector3(0.06, 2.9, 4.0), Vector3(2.8, 1.45, -0.1), C_WALL.darkened(0.08))
 	_box(room, "Ceiling", Vector3(5.6, 0.04, 4.0), Vector3(0, 2.9, -0.1), Color("#f2eadb"))
-	_box(room, "FileCabinet", Vector3(0.5, 1.3, 0.6), Vector3(-2.4, 0.65, -1.4), Color("#7d8288"), 0.5)
-	for k in 4:   # binders on the cabinet
-		_box(room, "Binder%d" % k, Vector3(0.07, 0.3, 0.26), Vector3(-2.58 + k * 0.09, 1.45, -1.4), [Color("#2f5d9c"), Color("#b8452f"), Color("#2f7a5c"), Color("#c9a34e")][k])
+	var cab := _model(room, "FileCabinet", "FileCabinetTall", "FileCabinetTall", Vector3(-2.4, 0, -1.4))
+	if cab == null:
+		_box(room, "FileCabinet", Vector3(0.5, 1.3, 0.6), Vector3(-2.4, 0.65, -1.4), Color("#7d8288"), 0.5)
+	var cab_top := 1.3 if cab == null else cab.get_aabb().end.y
+	var tints := [Color("#2f5d9c"), Color("#b8452f"), Color("#2f7a5c"), Color("#c9a34e")]
+	for k in 4:   # binders on the cabinet, standing on their spines
+		if _model(room, "Binder%d" % k, "Binder", "Binder", Vector3(-2.5 + k * 0.065, cab_top + 0.155, -1.4), Vector3(0, 0, 90), tints[k].lightened(0.3)) == null:
+			_box(room, "Binder%d" % k, Vector3(0.07, 0.3, 0.26), Vector3(-2.58 + k * 0.09, cab_top + 0.15, -1.4), tints[k])
 
 
 func _window() -> void:
@@ -244,12 +335,14 @@ func _wall_things() -> void:
 	var cal := _node("Calendar", Vector3(0.98, 1.58, -1.795))
 	_picture(cal, "Sheet", OfficeDesk.SPOTS["calendar"][0], 0.44, Vector3.ZERO)
 	var clk := _node("WallClock", Vector3(1.3, 2.15, -1.79))
-	var face := _cyl(clk, "Face", 0.15, 0.15, 0.03, Vector3.ZERO, Color("#fbf7ee"))
-	face.rotation_degrees = Vector3(90, 0, 0)
-	var rim := _cyl(clk, "Rim", 0.165, 0.165, 0.02, Vector3(0, 0, -0.01), C_WOOD_DARK)
-	rim.rotation_degrees = Vector3(90, 0, 0)
+	if _model(clk, "Face", "ClockWall", "ClockWall", Vector3(0, 0, -0.012)) == null:
+		var face := _cyl(clk, "Face", 0.15, 0.15, 0.03, Vector3.ZERO, Color("#fbf7ee"))
+		face.rotation_degrees = Vector3(90, 0, 0)
+		var rim := _cyl(clk, "Rim", 0.165, 0.165, 0.02, Vector3(0, 0, -0.01), C_WOOD_DARK)
+		rim.rotation_degrees = Vector3(90, 0, 0)
 	var hand := _box(clk, "Hand", Vector3(0.012, 0.1, 0.005), Vector3(0, 0.04, 0.02), Color("#2b2620"))
 	hand.name = "Hand"
+	hand.visible = (clk.get_node("Face") as MeshInstance3D).mesh is CylinderMesh   # the pack's clock has its own hands
 	var lbl := Label3D.new()
 	lbl.name = "HoursLeft"
 	lbl.position = Vector3(0, -0.24, 0.02)
@@ -259,9 +352,10 @@ func _wall_things() -> void:
 	lbl.outline_size = 0
 	clk.add_child(lbl)
 	var frame := _node("PictureFrame", Vector3(-2.77, 1.7, -0.7))
-	var pf := _box(frame, "Frame", Vector3(0.03, 0.4, 0.55), Vector3.ZERO, C_WOOD_DARK)
-	pf.name = "Frame"
-	_box(frame, "Art", Vector3(0.01, 0.32, 0.47), Vector3(0.02, 0, 0), Color("#6a8fb0"))
+	if _model(frame, "Frame", "PictureFrame", "PictureFrame", Vector3.ZERO, Vector3(0, 90, 0)) == null:
+		var pf := _box(frame, "Frame", Vector3(0.03, 0.4, 0.55), Vector3.ZERO, C_WOOD_DARK)
+		pf.name = "Frame"
+		_box(frame, "Art", Vector3(0.01, 0.32, 0.47), Vector3(0.02, 0, 0), Color("#6a8fb0"))
 
 
 func _door() -> void:
@@ -326,11 +420,16 @@ func _badge(name: String, pos: Vector3) -> Label3D:
 
 func _desk() -> void:
 	var desk := _node("Desk", Vector3(0, 0, -0.25))
-	_box(desk, "Top", Vector3(1.7, 0.05, 0.85), Vector3(0, 0.75, 0), Color("#9b6a3f"), 0.55)
-	_box(desk, "ModestyPanel", Vector3(1.6, 0.55, 0.03), Vector3(0, 0.45, -0.38), Color("#7e5331"))
-	_box(desk, "PedestalLeft", Vector3(0.42, 0.72, 0.78), Vector3(-0.62, 0.36, 0), Color("#8a5d36"))
-	_box(desk, "PedestalRight", Vector3(0.42, 0.72, 0.78), Vector3(0.62, 0.36, 0), Color("#8a5d36"))
-	var plate := _node("NamePlate", Vector3(0, 0.79, 0.12))
+	var dm := _model(desk, "Body", "Desk", "Desk", Vector3.ZERO, Vector3(0, ITEM_YAW, 0))
+	if dm != null:
+		_top = dm.get_aabb().end.y
+	else:
+		_top = 0.775
+		_box(desk, "Top", Vector3(1.7, 0.05, 0.85), Vector3(0, 0.75, 0), Color("#9b6a3f"), 0.55)
+		_box(desk, "ModestyPanel", Vector3(1.6, 0.55, 0.03), Vector3(0, 0.45, -0.38), Color("#7e5331"))
+		_box(desk, "PedestalLeft", Vector3(0.42, 0.72, 0.78), Vector3(-0.62, 0.36, 0), Color("#8a5d36"))
+		_box(desk, "PedestalRight", Vector3(0.42, 0.72, 0.78), Vector3(0.62, 0.36, 0), Color("#8a5d36"))
+	var plate := _node("NamePlate", Vector3(0, _top + 0.015, 0.12))
 	_box(plate, "Plate", Vector3(0.4, 0.05, 0.02), Vector3.ZERO, Color("#c9a34e"), 0.3).rotation_degrees = Vector3(-20, 0, 0)
 	var pl := Label3D.new()
 	pl.name = "Role"
@@ -344,20 +443,31 @@ func _desk() -> void:
 
 
 func _desk_things() -> void:
-	var top := 0.775
+	var top := _top
 	var mon := _node("Monitor", Vector3(0.0, top, -0.5))
-	_box(mon, "Stand", Vector3(0.06, 0.18, 0.06), Vector3(0, 0.09, 0), Color("#2b2d31"))
-	_box(mon, "Base", Vector3(0.24, 0.015, 0.16), Vector3(0, 0.008, 0), Color("#2b2d31"))
-	_box(mon, "Bezel", Vector3(0.52, 0.33, 0.03), Vector3(0, 0.34, 0), Color("#2b2d31"), 0.4)
+	var scr_z := 0.017
+	if _model(mon, "Body", "ComputerMonitor16-9", "ComputerMonitor16-9", Vector3.ZERO, Vector3(0, ITEM_YAW, 0)) != null:
+		scr_z = SCREEN_Z
+	else:
+		_box(mon, "Stand", Vector3(0.06, 0.18, 0.06), Vector3(0, 0.09, 0), Color("#2b2d31"))
+		_box(mon, "Base", Vector3(0.24, 0.015, 0.16), Vector3(0, 0.008, 0), Color("#2b2d31"))
+		_box(mon, "Bezel", Vector3(0.52, 0.33, 0.03), Vector3(0, 0.34, 0), Color("#2b2d31"), 0.4)
 	var r: Rect2 = OfficeDesk.SPOTS["pc"][0]
-	var scr := _picture(mon, "Screen", Rect2(r.position + Vector2(10, 10), Vector2(r.size.x - 20, 170)), 0.48, Vector3(0, 0.34, 0.017), true)
+	var scr := _picture(mon, "Screen", Rect2(r.position + Vector2(10, 10), Vector2(r.size.x - 20, 170)), 0.48, Vector3(0, 0.34, scr_z), true)
 	scr.name = "Screen"
 	mon.add_child(_badge("Badge", Vector3(0.26, 0.52, 0.03)))
-	_box(_node("Keyboard", Vector3(-0.08, top, -0.16)), "Body", Vector3(0.44, 0.02, 0.14), Vector3(0, 0.01, 0), Color("#3d4046"))
-	_box(_node("Mouse", Vector3(0.24, top, -0.16)), "Body", Vector3(0.06, 0.025, 0.1), Vector3(0, 0.012, 0), Color("#3d4046"))
-	_box(_node("Tower", Vector3(0.95, 0, -0.45)), "Case", Vector3(0.2, 0.45, 0.45), Vector3(0, 0.225, 0), Color("#2b2d31"))
+	var kb := _node("Keyboard", Vector3(-0.08, top, -0.16))
+	if _model(kb, "Body", "ComputerKeyboard", "ComputerKeyboard", Vector3.ZERO, Vector3(0, ITEM_YAW, 0)) == null:
+		_box(kb, "Body", Vector3(0.44, 0.02, 0.14), Vector3(0, 0.01, 0), Color("#3d4046"))
+	var mouse := _node("Mouse", Vector3(0.24, top, -0.16))
+	if _model(mouse, "Body", "ComputerMousePad", "ComputerMouse", Vector3.ZERO, Vector3(0, ITEM_YAW, 0)) == null:
+		_box(mouse, "Body", Vector3(0.06, 0.025, 0.1), Vector3(0, 0.012, 0), Color("#3d4046"))
+	var tower := _node("Tower", Vector3(0.95, 0, -0.45))
+	if _model(tower, "Case", "ComputerCaseTower", "ComputerCaseTower", Vector3(0.2, 0, 0.1), Vector3(0, ITEM_YAW, 0)) == null:
+		_box(tower, "Case", Vector3(0.2, 0.45, 0.45), Vector3(0, 0.225, 0), Color("#2b2d31"))
 	var tray := _node("InTray", Vector3(-0.56, top, -0.3))
-	_box(tray, "Tray", Vector3(0.36, 0.04, 0.28), Vector3(0, 0.02, 0), Color("#4d4a45"))
+	if _model(tray, "Tray", "PaperTray", "PaperTray", Vector3.ZERO, Vector3(0, ITEM_YAW, 0)) == null:
+		_box(tray, "Tray", Vector3(0.36, 0.04, 0.28), Vector3(0, 0.02, 0), Color("#4d4a45"))
 	var stack := Node3D.new()
 	stack.name = "Stack"
 	tray.add_child(stack)
@@ -368,10 +478,13 @@ func _desk_things() -> void:
 	var sheet := _picture(paper, "Sheet", pr, 0.44, Vector3.ZERO)
 	sheet.rotation_degrees = Vector3(-90, 0, 0)
 	var phone := _node("Phone", Vector3(0.62, top, -0.32))
-	_box(phone, "Body", Vector3(0.2, 0.07, 0.17), Vector3(0, 0.035, 0), Color("#b3261e"), 0.35)
-	_box(phone, "Handset", Vector3(0.24, 0.045, 0.06), Vector3(0, 0.09, -0.02), Color("#c62f25"), 0.35)
-	var dial := _cyl(phone, "Dial", 0.045, 0.045, 0.01, Vector3(0, 0.072, 0.045), Color("#f2ede1"))
-	dial.name = "Dial"
+	if _model(phone, "Body", "Phone", "PhoneBase", Vector3.ZERO, Vector3(0, ITEM_YAW, 0), PHONE_RED) != null:
+		_model(phone, "Handset", "Phone", "PhoneHandset", Vector3.ZERO, Vector3(0, ITEM_YAW, 0), PHONE_RED)
+	else:
+		_box(phone, "Body", Vector3(0.2, 0.07, 0.17), Vector3(0, 0.035, 0), Color("#b3261e"), 0.35)
+		_box(phone, "Handset", Vector3(0.24, 0.045, 0.06), Vector3(0, 0.09, -0.02), Color("#c62f25"), 0.35)
+		var dial := _cyl(phone, "Dial", 0.045, 0.045, 0.01, Vector3(0, 0.072, 0.045), Color("#f2ede1"))
+		dial.name = "Dial"
 	var glow := OmniLight3D.new()
 	glow.name = "Glow"
 	glow.position = Vector3(0, 0.2, 0.05)
@@ -381,12 +494,14 @@ func _desk_things() -> void:
 	phone.add_child(glow)
 	phone.add_child(_badge("Badge", Vector3(0.12, 0.25, 0.05)))
 	var lamp := _node("Lamp", Vector3(-0.72, top, -0.5))
-	_cyl(lamp, "Base", 0.08, 0.09, 0.02, Vector3(0, 0.01, 0), Color("#2f3b33"))
-	_box(lamp, "Arm", Vector3(0.02, 0.36, 0.02), Vector3(0, 0.19, 0.03), Color("#2f3b33")).rotation_degrees = Vector3(12, 0, 0)
-	_cyl(lamp, "Shade", 0.05, 0.11, 0.12, Vector3(0, 0.38, 0.1), Color("#2e6b4f"))
+	var lm := _model(lamp, "Body", "DeskLamp", "DeskLamp", Vector3.ZERO, Vector3(0, ITEM_YAW, 0))
+	if lm == null:
+		_cyl(lamp, "Base", 0.08, 0.09, 0.02, Vector3(0, 0.01, 0), Color("#2f3b33"))
+		_box(lamp, "Arm", Vector3(0.02, 0.36, 0.02), Vector3(0, 0.19, 0.03), Color("#2f3b33")).rotation_degrees = Vector3(12, 0, 0)
+		_cyl(lamp, "Shade", 0.05, 0.11, 0.12, Vector3(0, 0.38, 0.1), Color("#2e6b4f"))
 	var bulb := SpotLight3D.new()
 	bulb.name = "Bulb"
-	bulb.position = Vector3(0, 0.36, 0.1)
+	bulb.position = Vector3(0, 0.36, 0.1) if lm == null else LAMP_BULB
 	bulb.rotation_degrees = Vector3(-90, 0, 0)
 	bulb.light_color = Color("#ffe2a8")
 	bulb.light_energy = 1.4
@@ -394,11 +509,17 @@ func _desk_things() -> void:
 	bulb.spot_angle = 38.0
 	lamp.add_child(bulb)
 	var cup := _node("CoffeeCup", Vector3(-0.3, top, -0.05))
-	_cyl(cup, "Cup", 0.04, 0.035, 0.09, Vector3(0, 0.045, 0), Color("#f2ede1"))
-	_cyl(_node("Bin", Vector3(-1.05, 0, 0.1)), "Body", 0.14, 0.12, 0.32, Vector3(0, 0.16, 0), Color("#5d6166"))
+	if _model(cup, "Cup", "CupCoffee", "CupCoffee", Vector3.ZERO, Vector3(0, 200, 0)) == null:
+		_cyl(cup, "Cup", 0.04, 0.035, 0.09, Vector3(0, 0.045, 0), Color("#f2ede1"))
+	var bin := _node("Bin", Vector3(-1.05, 0, 0.1))
+	if _model(bin, "Body", "RubbishBin", "RubbishBin", Vector3(-0.15, 0, 0), Vector3(0, ITEM_YAW + 90, 0)) == null:
+		_cyl(bin, "Body", 0.14, 0.12, 0.32, Vector3(0, 0.16, 0), Color("#5d6166"))
 	var pens := _node("Pens", Vector3(-0.38, top, -0.42))
-	_cyl(pens, "Holder", 0.035, 0.035, 0.1, Vector3(0, 0.05, 0), Color("#2b2d31"))
-	_box(_node("Stapler", Vector3(-0.2, top, -0.4)), "Body", Vector3(0.05, 0.04, 0.16), Vector3(0, 0.02, 0), Color("#8a1f1f"))
+	if _model(pens, "Holder", "UtensilCup", "UtensilCupWith", Vector3.ZERO, Vector3(0, ITEM_YAW, 0)) == null:
+		_cyl(pens, "Holder", 0.035, 0.035, 0.1, Vector3(0, 0.05, 0), Color("#2b2d31"))
+	var stap := _node("Stapler", Vector3(-0.2, top, -0.4))
+	if _model(stap, "Body", "Stapler", "Stapler", Vector3.ZERO, Vector3(0, ITEM_YAW, 0)) == null:
+		_box(stap, "Body", Vector3(0.05, 0.04, 0.16), Vector3(0, 0.02, 0), Color("#8a1f1f"))
 
 
 # ------------------------------------------------------------------ live state
