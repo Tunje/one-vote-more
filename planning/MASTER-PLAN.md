@@ -348,6 +348,16 @@ cover all monthly expences!!!" So below its cost a seller offers enough to cover
 whatever cash it holds, and keeps the rest. (As first built it offered its expenses less its cash, so a seller with
 money offered nothing.)
 
+### RULE NINE (the user, 2026-11-16, verbatim)
+> "Okay no, one more rule rule nine, if below making price climbing allways had priority if above lowering has
+> priority if both signals come in the same month only the one with priority happens, and if your going to cap it
+> at 5% THEN DO THE SAME FOR BOTH"
+
+So, for every price a producer sets: while the price is below what the good costs to make, raising has priority;
+while it is above, lowering has priority; when the signal to raise and the signal to lower both come in the same
+month, only the one with priority acts, the other does nothing that month. Whatever limit there is on how far a
+price moves in a month is the same for a rise and for a cut (it was 5% up and 10% down).
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and
