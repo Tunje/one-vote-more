@@ -14,6 +14,35 @@ const S := EconUtil.S
 const WIN_SHARE := 0.5  # of a filled market a new plant can take at the going price (incumbents keep customers)
 const LOAN_SHARE := 0.6
 const LOAN_TERM_M := 60
+## R8_FORECAST2 (opt-in until its A/B; Wilma 2026-11-16, the user: "build them as if there could be a profit to base
+## making new companies on"): a newcomer is forecast at a price just under the going price (never above it), taking a
+## share of the filled market by its capacity against the incumbents' capacity and what is being built, with the crew
+## for the volume it forecasts (rule 4's core crew at least), not a full crew for a sliver. UNDERCUT_PM and the share by
+## capacity are Bob's.
+const UNDERCUT_PM := 50
+const CORE_CREW := 0.2
+
+
+static func v2_on(world: WorldState) -> bool:
+	return (world.meta.get("on", []) as Array).has("R8_FORECAST2") and not EconUtil.off(world, "R8_FORECAST2")
+
+
+## The incumbents' capacity of `ftype` (open plants) plus what is being built or extended (mu a month).
+static func _incumbent_cap(world: WorldState, ftype: String, r: Dictionary, skip_fid: String) -> float:
+	var c := 0.0
+	for fid in world.peek("facility"):
+		var f: Dictionary = world.peek("facility")[fid]
+		if f["type"] == ftype and not f["mothball"] and fid != skip_fid:
+			c += float(r["out"][1]) * float(S) * EconUtil.fscale(f)
+	for pid in world.peek("project"):
+		var p: Dictionary = world.peek("project")[pid]
+		if not (String(p.get("status", "")) in ["TENDER", "TENDERABLE", "ACTIVE", "PLANNING"]):
+			continue
+		if p["type"] == ftype:
+			c += float(r["out"][1]) * float(S)
+		elif p["type"] == "EXPAND" and world.peek("facility").has(p.get("target", "")) and world.peek("facility")[p["target"]]["type"] == ftype:
+			c += float(r["out"][1]) * float(S) / 4.0
+	return c
 
 
 static func first_year(world: WorldState, ftype: String, district: String, founder: Dictionary = {}, purchase: Dictionary = {}) -> Dictionary:
@@ -46,7 +75,11 @@ static func first_year(world: WorldState, ftype: String, district: String, found
 	var ms: Dictionary = s.get("market_stats", {}).get(good, {})
 	var filled := float(int(ms.get("filled", 0)))
 	var supply := float(int(ms.get("S", 0)))
+	var v2 := v2_on(world)
 	var win := WIN_SHARE * filled * cap / maxf(1.0, supply + cap)
+	if v2:
+		var inc := _incumbent_cap(world, ftype, r, String(purchase.get("fid", "")) if buying else "")
+		win = filled * cap / maxf(1.0, inc + cap)  # its capacity's share of what buyers bought, at a price just under theirs
 	var volume := float(maxi(0, unfilled - spare)) + win
 	if buying:
 		volume = maxf(volume, float(int(world.peek("facility")[purchase["fid"]].get("out_last", 0))))
@@ -68,6 +101,8 @@ static func first_year(world: WorldState, ftype: String, district: String, found
 		reasons.append("workers")
 	volume = minf(volume, cap) * minf(fill, lab)
 	var price := float(EconTrade.plan_price(world, good))  # the local price, or the net home price when the ship pays more (EXP)
+	if v2:
+		price *= 1.0 - float(UNDERCUT_PM) / 1000.0  # just under the going price, never above it
 	var revenue := volume / float(S) * price * 12.0
 	# costs: a full crew at today's wages, inputs and utilities for that volume, and loan service on the capital
 	var crew := 0.0
@@ -86,6 +121,8 @@ static func first_year(world: WorldState, ftype: String, district: String, found
 	var loan := capital * LOAN_SHARE
 	var rate := EconData.BANK_FIRM_BASE_PM  # already a monthly rate
 	var service := loan / float(LOAN_TERM_M) + loan * rate
+	if v2:
+		crew *= clampf(volume / maxf(1.0, cap), CORE_CREW, 1.0)  # the crew for the volume it forecasts
 	var costs := crew * 12.0 + per_unit * volume / float(S) * 12.0 + float(r["upkeep"]) * float(int(s["prices"].get("MATERIAL", 0))) * 12.0 + service * 12.0
 	var profit := revenue - costs
 	if volume > 0.0 and profit < 0.0:

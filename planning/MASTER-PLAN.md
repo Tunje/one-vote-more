@@ -265,6 +265,14 @@ not a fee at the door (Wilma's reading: the same shape for clinics and care unle
 they all get tax brackets". So the school bracket is calibrated per pupil plus staff, and clinics, care homes and
 administration each get a tax bracket of their own in the same way.
 
+**Hard limits (the user, verbatim, on hearing that at most six companies may be forming at once):** "A hard limit?"
+Earlier the same day: "I don't like hard rules you know that". Wilma's order to every owner on that: list every
+number of ours in your files that caps, floors, gates or times what a company, household or government may do (at
+most N, never below, not before month M, once a year, after K months), say what market fact stands behind it, and
+replace those that have none. The list goes in planning/hard-limits.md, by owner. Known so far: ENTRY_MAX_FORMING 6
+and MAX_FORMING 3 (companies forming at once), a plan abandoned after 6 months without an active job, a firm
+dissolved after 6 months in administration, the clients' wait limits (GOV_WAIT_M, PRIV_WAIT_BASE_M).
+
 ### Queued future work (the user, 2026-11-16: "Que it as future work"; not started, waits for the end of the feature freeze)
 The user's words on what it is: "Also firms in trouble should be able to be bought up by larger firms why did they not
 renegotiate jobs that was a loss? We talked about improving them and the new way contractors work with the plan and

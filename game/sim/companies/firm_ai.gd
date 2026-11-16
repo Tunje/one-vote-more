@@ -1255,6 +1255,8 @@ static func _entry(world: WorldState) -> void:
 	var forming_types := {}  # sectors with an entrant already being set up
 	for oid in world.table("org"):
 		if world.table("org")[oid]["status"] == "FORMING":
+			if bool(world.table("org")[oid].get("family", false)):
+				continue  # family farms and bakeries come through their own programme; they never held a company's founding slot
 			for pid in world.table("project"):
 				if world.table("project")[pid]["owner"] == oid:
 					forming_types[world.table("project")[pid]["type"]] = true
@@ -1268,8 +1270,10 @@ static func _entry(world: WorldState) -> void:
 		var lf := int(EconQuery.labour(world)["labour_force"])
 		var slots := 1.0 + float(lf) / ENTRY_LF_PER_SLOT + (1.0 if u_now >= 0.08 else 0.0) + (1.0 if u_now >= 0.12 else 0.0)
 		max_forming = clampi(int(round(slots * climate)), 1, ENTRY_MAX_FORMING)
-	if forming >= max_forming:
-		return  # E77: a few entrants at a time (each needs a builder and a market); D2: was one
+	# E77: a few entrants at a time (each needs a builder and a market); D2: was one. Under the eight rules' entry (a
+	# sector whose rules 7/8 are on) there is no count of our own: the forecast, the builders' quotes and the founders'
+	# money decide (the user's "no hard rules"; Wilma 2026-11-16). The old count stays for the other sectors.
+	var slots_full := forming >= max_forming
 	# founder capital from the richest high-income household pool with an adult outside the labour force
 	var best := ""
 	var best_cash := 0
@@ -1290,10 +1294,13 @@ static func _entry(world: WorldState) -> void:
 	var est := 0
 	for row in hot_list:
 		var ft: String = row[0]
+		var r8e: bool = EconRulesMat.entry_on(world, ft) or ft == "DEPOT" or (ft in ["CLINIC", "SCHOOL"] and EconRules.sector_on(world, "INSTITUTIONS"))
+		if slots_full and not r8e:
+			continue
 		if ft in ["TEXTILE", "FURNITURE", "BAKERY"] and (world.month < D2_ENTRY_MONTH or colony_unemployment(world) < D2_ENTRY_UNEMP) 				and not (ft == "BAKERY" and EconStaple.active(world)) and not EconRulesMat.entry_on(world, ft):
 			continue  # D2: consumer workshops start once there are idle hands (not while the farms still need every worker)
-		if forming_types.has(ft):
-			continue
+		if forming_types.has(ft) and not (r8e and EconForecast.v2_on(world)):
+			continue  # (R8_FORECAST2: the forecast counts the capacity already being built, so no one-at-a-time rule)
 		var e := EconConstruction.estimate(ft)
 		var d: String = "d:3" if ft == "MINE" else (svc_district if ft == "SERVICEHUB" else g["district"])
 		if EconRulesMat.entry_on(world, ft):
