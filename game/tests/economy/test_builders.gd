@@ -371,3 +371,22 @@ func test_work_under_way_valued_at_todays_wages() -> void:
 	check(EconBuilders.job_margin(w, oid) < jm0 and EconBuilders.job_margin(w, oid) > jm0 - int(float(p["esc_wage_cost"]) * 2.0),
 		"its job loses only the overhead on the wage rise, not the whole rise (the clause pays the rest)")
 	check(float(EconBuilders.average_share(w)["value_pw"]) > av0, "the average a newcomer reads is at today's wages")
+
+
+## The standing ruling, Wilma 2026-11-16: a builder with a signed job buys its material on credit from its first month.
+func test_new_builder_buys_its_material_on_credit() -> void:
+	var w := _sim(["R8", "R8_BUILDERS", "E140"]).world
+	var oid := _builder(w)
+	var o: Dictionary = w.table("org")[oid]
+	o["pl_ring"] = []  # no history: a builder in its first month
+	check(EconAnnual.limit(w, o) >= EconAnnual.unbilled(w, o), "its line covers what its contracts still bill (%d)" % EconAnnual.limit(w, o))
+	check(EconAnnual.unbilled(w, o) > 0 or (o["contracts"] as Array).is_empty(), "it has contract work")
+	var cash := w.ledger.balance(EconUtil.acct(oid))
+	w.ledger.transfer(EconUtil.acct(oid), Ledger.EXTERNAL, cash, "TEST", w.month)  # no cash at all
+	EconUtil.st(w)["orders"] = []
+	EconConstruction.contractor_plans(w)
+	var ordered := 0
+	for od in EconUtil.st(w)["orders"]:
+		if od["buyer"] == oid and od["good"] in ["MATERIAL", "COMPONENT"]:
+			ordered += int(od["qty"])
+	check(ordered > 0 or (o["contracts"] as Array).is_empty(), "with no cash and no history it still orders its jobs' material (%d)" % ordered)

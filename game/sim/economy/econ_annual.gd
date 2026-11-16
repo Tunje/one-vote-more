@@ -255,6 +255,15 @@ static func drawn(world: WorldState, oid: String) -> int:
 ## sales as the cap). The lender's side is the borrower's record (no missed payment) and the bank's room (draw()); a year
 ## of losses no longer closes the line by itself (it ratcheted: lower sales, lower line, fewer inputs, lower sales).
 static func limit(world: WorldState, o: Dictionary) -> int:
+	var l := _limit(world, o)
+	if EconBuilders.on(world) and bool(o.get("is_contractor", false)) and lends(world, o) and o["status"] in ["ACTIVE", "DISTRESSED"] 			and not missed_payment(world, String(o.get("id", ""))):
+		# R8_BUILDERS (the user's standing ruling: credit follows orders, contracts and forecasts, never a firm's past;
+		# Wilma 2026-11-16): a builder's line covers what its signed contracts still bill, from its first month
+		l = maxi(l, unbilled(world, o))
+	return l
+
+
+static func _limit(world: WorldState, o: Dictionary) -> int:
 	if EconMoney.asset_lines(world) and applies(world, o) and months(o) >= MIN_M and o["status"] in ["ACTIVE", "DISTRESSED"]:
 		return EconMoney.line_limit(world, o)  # E153: secured on stock and receivables, no profit test
 	if not lends(world, o) or months(o) < MIN_M:

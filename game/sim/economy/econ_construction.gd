@@ -800,8 +800,12 @@ static func contractor_plans(world: WorldState) -> void:
 		# E140 correction (user 2026-11-16): no cost reserve held back from the material a signed contract needs when the
 		# line's overdraft covers the month's costs
 		var budget := world.ledger.balance(EconUtil.acct(oid)) - EconAnnual.input_reserve(world, o, int(EconFinance._monthly_costs(o) * 0.5))
+		if r8b:
+			# R8_BUILDERS (the standing ruling: credit follows contracts, never a firm's past): what its signed jobs need is
+			# bought on its line from its first month, with no cost reserve held back from it and no wait for history
+			budget = world.ledger.balance(EconUtil.acct(oid))
 		var mat_cost := EconUtil.val(maxi(0, mat - EconUtil.inv_get(world, oid, "MATERIAL", hq)), s["prices"]["MATERIAL"]) 			+ EconUtil.val(maxi(0, comp - EconUtil.inv_get(world, oid, "COMPONENT", hq)), s["prices"]["COMPONENT"])
-		if mat_cost > budget and EconAnnual.lends(world, o) and EconAnnual.months(o) >= EconAnnual.MIN_M:
+		if mat_cost > budget and EconAnnual.lends(world, o) and (r8b or EconAnnual.months(o) >= EconAnnual.MIN_M):
 			# the yearly credit line every other firm buys its inputs on (E140): builders were the one kind of firm
 			# sized on this month's cash alone (Otto's trace: 80 % of their material-blocked months)
 			budget += EconAnnual.input_draw(world, oid, budget, mat_cost)
