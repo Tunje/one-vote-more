@@ -80,3 +80,10 @@ Owner: Wilma. Built with the economy side, not after it.
   changes. Ella's other proposals (a repair brings wear back to new; a self-repair leaves the wear; trucks wear with
   age like buses; a workshop repair uses components and a self-repair none; a workshop's trucks are better as a fact
   of who made them) are not yet answered.
+- 2026-11-16, on whether trucks wear with age and whether a workshop's trucks are simply better than the components
+  works' (the user, verbatim): "Yes they ware, yes and no the components ones are always lowest quality workshops
+  make different depending on ware and quality of parts". So trucks wear with age. A truck from the components works
+  is always of the lowest quality. A truck from a workshop is of a quality that depends on wear and on the quality of
+  the parts it is built from (Wilma's reading: the workshop's own wear, and the components it gets; to be confirmed
+  with the user if Ella needs it narrower). Still not answered: whether a workshop repair brings a truck's wear back
+  to new while a self-repair leaves it; whether a workshop repair uses components.
