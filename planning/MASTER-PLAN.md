@@ -401,6 +401,12 @@ Asked whether Bob may change how the depot sets its output (he proposed: all fre
 
 Passed to Bob the same turn. He tests his change in his scratch copy; if it does not work the depot counts the work queue, not the work it carried.
 
+Bob's test of the averaged rule (2026-11-16, scratch t2): it never fell into the swing but left 140–670 units of freight behind a month in every year; the old rule ran tight but fell into the swing on seed 2 (1,655 and 2,323 left behind in years 9–10). So the work queue is next. Bob's reading of "the work queue", put to the user: unmoved freight stays in a real queue and is carried the following month; the queue is what still waits from last month plus this month's new freight orders, less what the other carriers take; the depot sets its crew on that queue. The user's answer, 2026-11-17, verbatim:
+
+> That works
+
+Passed to Bob the same turn; he builds it in his scratch copy behind a switch and reports before merging.
+
 ### Newspapers: each paper its own look (the user, 2026-11-16, verbatim)
 
 > Oh and make sure other newpapers have their own fonts and layouts
