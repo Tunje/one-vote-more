@@ -358,9 +358,13 @@ fills first. What a service sells is not on the market; its clients come to it (
 
 - A company may buy more of an input than it needs this month when the price is low, and a household more of what it
   uses. What they bought ahead they do not buy later.
-- **(proposal, how it works:)** "low" is below what that buyer has paid on average over the last twelve months. How
-  much: as far as its money reaches and the goods keep; food spoils, so nobody stocks far ahead on it. A stock-up order
-  is a real order with money behind it, so it counts as demand for the seller's price rules like any other.
+- **What "low" is measured against** (the user, correcting Wilma's "below its average over twelve months"): "No what's low should be against what its worth to the buyer, like when they buy normaly". Every
+  buyer already has a worth for what it buys: the most it will pay, which is what it puts on an ordinary order (for a
+  company, what the input is worth in what it makes and sells; for a household, what the thing is worth to it). A
+  price is low when it is under that worth. The further under, the more reason to buy ahead.
+- **(proposal, the rest:)** how much: as far as its money reaches and the goods keep; food spoils, so nobody stocks far
+  ahead on it. A stock-up order is a real order with money behind it, so it counts as demand for the seller's price
+  rules like any other.
 
 ### 9.4 The bank and owners' money
 

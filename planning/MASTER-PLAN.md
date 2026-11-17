@@ -704,6 +704,15 @@ The user pasted the outside reviewer's review of version 12. Its corrections are
 Written into [rebuild-company.md](rebuild-company.md) section 9.3 the same turn. Asked in the same message and not yet decided by the user: what becomes of a dead company's unsold stock (to the government as surplus with the sales going to the bank until the loans are paid, or to the bank as compensation at 10% under its value). Wilma's opinion, given when asked: the bank.
 
 
+### The rebuild: what "low" is measured against (the user, 2026-11-17, verbatim)
+
+About stocking up, correcting Wilma's proposal that low meant below the buyer's own average price over twelve months:
+
+> No what's low should be against what its worth to the buyer, like when they buy normaly
+
+Corrected in [rebuild-company.md](rebuild-company.md) section 9.3.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
