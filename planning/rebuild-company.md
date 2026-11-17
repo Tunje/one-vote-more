@@ -966,6 +966,21 @@ therefore the whole loop once, end to end, through the real company object:
   ground it touches. A pair is the default, not a limit: anything that crosses into another's ground is also read by
   that session.
 
+**The log** (the user, 2026-11-17, verbatim): "Can we have a backend column somhere that records all things happening like a log we can investigate from?"
+
+- `game/sim/core/logbook.gd` (Logbook). One row for every thing that happens in the economy: a rule acting, a sale, a
+  hire or layoff, a plan made or given up, a contract signed, a loan, a company ending. A row says when, what kind,
+  who, what, WHY (the numbers the decision read) and what changed (from, to).
+- Money already has its own log: every payment is in the ledger's journal, with who paid whom, how much and for what.
+- The log is not part of the game's state: not saved, not hashed, and nothing reads it to decide anything, so writing
+  to it can never change a result. A test checks that.
+- It can be searched by kind, by who, by a word, by month; it can give the whole story of one company from plan to
+  end; it can count what happened; and it can be written to a file, one row per line.
+- **Every piece of the rebuilt economy writes to it when it decides or does something. A decision with no row is a
+  fault,** and the reviewer of a piece of code checks for it.
+- Test games keep every row. The game itself keeps the last months only, a number set when the screens need it.
+- When a result looks wrong, the log is where the tracing starts: which rule acted on which numbers.
+
 **How each step is tested**
 
 - **What step 3 is and is not.** It is the first loop on one place, paid from savings and the purse. The bank does not

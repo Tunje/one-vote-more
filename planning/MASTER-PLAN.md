@@ -720,6 +720,13 @@ Corrected in [rebuild-company.md](rebuild-company.md) section 9.3.
 Written into [rebuild-company.md](rebuild-company.md) section 13 the same turn: each session has its own piece; no code is committed until at least one other session has read it; review pairs Terra and Maja, Bob and Otto, Ella and Anni.
 
 
+### The rebuild: a log of everything that happens (the user, 2026-11-17, verbatim)
+
+> Can we have a backend column somhere that records all things happening like a log we can investigate from?
+
+Built the same turn as `game/sim/core/logbook.gd` with its test, and written into [rebuild-company.md](rebuild-company.md) section 13: every piece of the rebuilt economy writes a row when it decides or does something; a decision with no row is a fault.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
