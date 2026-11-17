@@ -451,6 +451,19 @@ Read as: 1 = a private landlord; the "yes" answers 2 (a real building that build
 Not built yet. Follows directly: OFFICE_E99 stays off and gets no narrower version. Open, asked of the user: who owns and builds the office buildings; whether Bob builds this now; the full test of the freight queue on its own.
 
 
+### How large fixes are built (the user, 2026-11-17, verbatim)
+
+After v12, where 22 fixes that had each been tested alone and merged switched off ran together for the first time:
+
+> Okay but that implies that each system builds and tested to fix you shut off before the next switch is literally the worse way to deal with this type of problem
+
+> And hear this building fixes behind off switches is not a valid way to do large scale fixes
+
+> You will swich the fixes on one at the time until all are one run the tests for each and report where the bottle neck is at that time
+
+The series (one more fix on at each step, three 30-year games per step, the bottleneck reported at each) was started the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
