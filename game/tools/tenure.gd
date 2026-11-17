@@ -24,11 +24,14 @@ func _initialize() -> void:
 	var person_months := {}  # type -> months worked in all
 	var headcount := {}    # type -> sum over months of staff
 	var unexplained := 0
-	var seen := 0
+	var last_m := -1
 	for m in months + 1:
-		var rows: Array = Logbook.rows(w)
-		for i in range(seen, rows.size()):
-			var r: Dictionary = rows[i]
+		# only this month's rows of the four kinds: copying the whole log every month made a long game take hours
+		var rows: Array = []
+		for kind in ["HIRE", "JOB", "LAYOFF", "LEAVE"]:
+			rows.append_array(Logbook.rows(w, {"kind": kind, "from": last_m + 1}))
+		last_m = w.month
+		for r in rows:
 			var who := String(r["who"])
 			match String(r["kind"]):
 				"HIRE":
@@ -42,7 +45,6 @@ func _initialize() -> void:
 					_out(cohorts, spells, ended, w, who, int(r["m"]), int(r["change"]["staff"][0]), "laid off")
 				"LEAVE":
 					_out(cohorts, spells, ended, w, who, int(r["m"]), int(r["change"]["staff"][0]), "left: " + String(r["why"].get("reason", "?")).to_lower())
-		seen = rows.size()
 		for cid in Company.ids(w):
 			var t := Company.type_of(w, cid)
 			var real := Company.staff_count(w, cid) / S

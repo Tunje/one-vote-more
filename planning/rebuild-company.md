@@ -782,6 +782,26 @@ is wrong; nothing here is asked again.
       - It holds for every family-size company, not only farms. The user spoke of the family farm.
       - Ship food is the landed stock and anything imported. A buyer choosing between offers counts ship food as a
         quarter dearer than its price, so colony food up to a quarter dearer is bought first. A starting number.
+15f. **Farmers know winter is coming** (the user, 2026-11-17, verbatim). The first loop with every ruling in showed
+    feast in summer and famine in winter: the growing year swings from about 19% of normal in midwinter to 187% at
+    the summer peak; in the summer glut the farms held unsold food, rule 4 cut their output to about a third by
+    autumn, and they entered winter throttled; nobody kept summer food for winter. The user:
+    "So we tell the farmers winder is coming and that they need to throttle up, and the rest of the year we tell them they must produce say 10% extra?"
+    and, after Wilma's view (a farm judges its output over the year; food kept for winter must not count as unsold):
+    "The 10 precent enter the hidden stock that don't affect marketing"
+    So:
+    - Farmers are told winter is coming, and throttle UP for it instead of down.
+    - The rest of the year they produce about 10% extra.
+    - That extra goes into a hidden stock that does not affect marketing: it is not offered, and it does not count
+      as unsold for the price rule or the output rule.
+    - **(Wilma's readings, marked as mine)** The hidden stock is the farm's own, kept on the farm. It is what the
+      farm sells from in winter, when it grows less than it sells. "Throttle up" means full output, with what does
+      not sell going into the hidden stock too. "Winter is coming" starts when the season's yield has passed its
+      peak. A farm knows this from its first year.
+    - **(to be checked by Bob with the planet's numbers before it is built)** By the year's arithmetic the winter is
+      short by about 3.3 months of the colony's food, and 10% extra over the seven good months is about 0.7 of a
+      month; the rest has to come from the throttle-up before winter. If the two together do not reach, the figures
+      go to the user; no number is changed silently.
 15c. **Builders' prices at the start and for claimed jobs** (the user, 2026-11-17, verbatim, answering two results of
     the first loop's run: in month 0, before any plan could exist, every builder read its empty book as no customers
     and cut its price by a fifth, and 158 contracts then locked that price below cost; and the builders' price then

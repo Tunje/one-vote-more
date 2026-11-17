@@ -6,6 +6,7 @@ extends SceneTree
 const Company := preload("res://sim/economy/company.gd")
 const Households := preload("res://sim/population/households.gd")
 const Landing := preload("res://sim/economy/landing.gd")
+const Market := preload("res://sim/economy/market.gd")
 const S := CoreUtil.S
 
 
@@ -18,7 +19,7 @@ func _initialize() -> void:
 	var w := sim.world
 	var made := Landing.land(w, AreaStore.found_landing(w))
 	var stores := String(made["stores"])
-	print("month | people employed jobless | plans made/signed/done/given-up | farms open (staff) | Stores food | food held by farms | pools' money | treasury | builders' crew")
+	print("month | people employed jobless | plans made/signed/done/given-up | farms open (staff) | Stores food | food held by farms | pools' money | treasury | builders' crew | FOOD ordered / got / price | unfilled why | family on own farms")
 	for m in months + 1:
 		if m % every == 0 or m == months:
 			var emp := 0
@@ -47,9 +48,17 @@ func _initialize() -> void:
 					farm_food += int(Company.stock_of(w, cid, "FOOD")["qty"]) / S
 				elif String(r["type"]) == "BUILDER":
 					crew += Company.staff_count(w, cid) / S
-			print("%5d | %5d %5d %5d | %s | %3d (%d) | %6d | %6d | %8d | %8d | %d" % [w.month, PopStore.total(w), emp, job,
+			var mk: Dictionary = Market.summary(w, "FOOD")
+			var fam := 0
+			for fid in w.peek("founder"):
+				if Landing.lives_on_own_farm(w, fid):
+					var fa: Dictionary = Households.family_adults(w, fid)
+					for k in fa:
+						fam += int(fa[k])
+			print("%5d | %5d %5d %5d | %s | %3d (%d) | %6d | %6d | %8d | %8d | %d | %d / %d / %d | %s | %d" % [w.month, PopStore.total(w), emp, job,
 				str(plans), farms, farm_staff, int(Company.stock_of(w, stores, "FOOD")["qty"]) / S, farm_food, money,
-				w.ledger.balance(CoreUtil.TREASURY) / S, crew])
+				w.ledger.balance(CoreUtil.TREASURY) / S, crew, int(mk.get("ordered", 0)) / S, int(mk.get("filled", 0)) / S,
+				int(mk.get("avg_price", 0)) / S, str(mk.get("unfilled", {})), fam])
 		if m < months:
 			sim.step()
 	print("\nWHAT THE LOG HOLDS (kind what: rows), the 60 most frequent:")
