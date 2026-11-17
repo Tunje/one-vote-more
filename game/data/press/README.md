@@ -162,11 +162,18 @@ Each entry has `for` (the kind of event or feature it illustrates), `show` (what
 Every picture:
 
 - PNG, 800 pixels wide and 500 high, landscape.
-- ILLUSTRATIVE (the user's word): an illustration, a drawn picture as a newspaper's illustrator would make it.
-  NOT photo-realistic and NOT a photograph. An earlier version of this brief said "press photograph"; that was
-  wrong (Wilma's wording, not the user's) and is withdrawn. Every prompt that says "photorealistic", "photograph"
-  or "documentary photograph" must be rewritten as an illustration before any picture is made.
-- Black and white, as printed on newsprint.
+- ILLUSTRATIVE (the user's word), and the user's own example of it is `reference/style_reference_1.png`: a
+  picture as it was PRINTED in an old newspaper. Look at that file before making anything. What it shows:
+  - coarse print: the picture is made of the press's dots and ink, soft and grainy, with little fine detail;
+  - one ink on aged newsprint: a brownish-black ink on yellowed paper, no other colour;
+  - low contrast, with the ink a little uneven and blotchy;
+  - a wide view of a whole scene (a square full of people, buildings behind, a row of cars in front), nobody close
+    up, no face you could recognise;
+  - a thin ruled border round the picture.
+- NOT photo-realistic, not a clean modern photograph, not sharp. An earlier version of this brief said "press
+  photograph" and prompts were written as "photorealistic"; that was wrong (Wilma's wording, not the user's) and is
+  withdrawn. Every prompt that says "photorealistic", "photograph" or "documentary photograph" must be rewritten to
+  give the printed-in-an-old-newspaper look of the reference before any picture is made.
 - The setting is a small, plain colonial town of roughly late-twentieth-century technology: low buildings,
   trucks and buses, a small port, wide skies. It may show two moons in the sky. No aliens, no spacecraft
   overhead, no futuristic city.
