@@ -685,6 +685,13 @@ On the list of 36 old systems the plan did not include, and on Wilma's claim tha
 The 36 are worked into [rebuild-company.md](rebuild-company.md) version 12, section 12.11 (all but the home world's unordered emergency rations). The five years: the old rule and the new one are separate; only the new one, as the user said it, is in the plan.
 
 
+### The rebuild: households are carried over as behaviour, not code; the order of paying (the user, 2026-11-17, verbatim)
+
+> Households, i mean we take how it works and transfer over not take the code you understood this right? And water and power before rent what are you paying power and water on if you can't pay the rent?
+
+Wilma had written "taken wholesale" down as taking the old household code, and called it the one exception to "no old code". That was wrong: how it worked is carried over and written new. The order a short household pays in is food, then rent, then water and power. Corrected in [rebuild-company.md](rebuild-company.md) sections 1, 9.1, 11 and 12.5.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

@@ -29,7 +29,8 @@ How the work is done (rulings of the same day):
 - "You will swich the fixes on one at the time until all are one run the tests for each and report where the bottle
   neck is at that time". The same holds for the rebuild's steps.
 - "Same company types can come but not their code or balancing". The old type names are the starting list. No old rule
-  code is copied and every number is set again. The one exception is the household side (section 9.1).
+  code is copied and every number is set again. That holds for the household side too: HOW it worked is carried
+  over, not its code (section 9.1).
 - "set a credit prices we are going to have to adjust it anyway i don't have a sheet of what costs what so i can't tell
   you what it should cost". Every price and quantity is ours to set and is adjusted in testing.
 
@@ -257,15 +258,18 @@ A fourth way that is the law's own, not yet ruled: the court winding a company u
 
 ### 9.1 Households
 
-"Okay i think we can take it wholesale as long as we make sure it fits in". The household side of the old game is taken
-as a whole and fitted in. It is the one exception to "no old code". It stands in `game_full_copy/` (econ_households,
-econ_pop, econ_cohorts, econ_informal). What it holds:
+"Okay i think we can take it wholesale as long as we make sure it fits in". And, when Wilma had written this down as
+taking the old code: "Households, i mean we take how it works and transfer over not take the code".
+
+So: HOW the old household side worked is carried over as a whole. Its code is not. It is written new, like everything
+else, to do what the old one did. The old code in `game_full_copy/` (econ_households, econ_pop, econ_cohorts,
+econ_informal) is the description to work from. How it worked:
 
 - **Pools, not single families:** one pool per housing block and income band, with one account. Each pool knows its
   workers and jobless, adults outside the labour force, retired, children, owners, the self-employed, and their skills.
 - **Money in:** wages, the unemployment benefit, pensions, dividends to owners, the earnings of the self-employed, the
   savings migrants bring.
-- **Money out, in this order:** food; water and power; rent (unpaid rent becomes a debt to the landlord); the other
+- **Money out, in this order:** food; rent (unpaid rent becomes a debt to the landlord); water and power; the other
   essentials; then what is left, split between consumer goods, services, comfort spending, newspapers and saving. Orders are placed a month ahead; a household that
   cannot afford everything buys less of each.
 - **Life:** ages 0 to 99 per area; births from women 18 to 42, fewer with income, schooling, density and crowding, and
@@ -280,8 +284,8 @@ econ_pop, econ_cohorts, econ_informal). What it holds:
 that reach is cut and replaced by the company record.
 
 **Wholesale is not unchecked** (the user, 2026-11-17: "Oh no wholesale does  not mean unchecked"). Nothing of the old household code comes in
-unlooked at. Before it is fitted in at build step 3, every mechanism in it is gone through and given one of three
-verdicts: keep, change, or remove. The first pass, from the function lists of the four files and Maja's check:
+unlooked at. Before the household side is written at build step 3, every mechanism of the old one is gone through and
+given one of three verdicts: keep (write it new to work the same), change, or leave out. The first pass, from the function lists of the four files and Maja's check:
 
 | Mechanism in the old household code | Verdict | Why |
 |---|---|---|
@@ -291,7 +295,7 @@ verdicts: keep, change, or remove. The first pass, from the function lists of th
 | Wages, dividends, the benefit, pensions as money in | keep | the payers are the company, the owner's company and the purse |
 | The self-employed selling services from the pool | remove | "ONE kind of thing that produces"; they become family-size service companies |
 | What a household needs each month, per person | change | the amounts are in the old units and are set new |
-| The order of paying when short (food, then water and power, then rent) | keep | it is what the old game did; unpaid rent becomes a debt to the landlord |
+| The order of paying when short | change | the old order was food, water and power, then rent. The user: "what are you paying power and water on if you can't pay the rent?" So: food, then rent, then water and power |
 | Buying: essentials first, the rest split over goods, services, comfort, papers, saving | keep | every line now has a seller (12.6, 48) |
 | Price floors and ceilings inside the household code | remove | "No hard floors or ceilings of our own" |
 | A household budgeting food at price plus freight, tax and the shop's margin | change | the shop is a company now; the household pays the shop's price |
@@ -515,7 +519,7 @@ a building contract, `hh` is the household pools.
 
 ## 11. Every part of the old economy, placed
 
-All 72 files. None of the code or numbers carries over, except the household side.
+All 72 files. None of the code or numbers carries over. For the household side, how it worked carries over.
 
 **Inside the company object**
 
@@ -546,7 +550,7 @@ All 72 files. None of the code or numbers carries over, except the household sid
 
 | Old part | What it was | What it is now |
 |---|---|---|
-| econ_households, econ_pop, econ_cohorts, econ_informal | households | 9.1, taken wholesale |
+| econ_households, econ_pop, econ_cohorts, econ_informal | households | 9.1: how it worked, written new |
 | econ_labor, econ_training | the labour market | 9.2 |
 | econ_market, econ_credit | the order books; buying on account | 9.3 |
 | econ_bank, econ_bank_risk, econ_money, econ_finance (loans) | the bank | 9.4 |
@@ -664,7 +668,7 @@ is wrong; nothing here is asked again.
     its owner is taken out of the pool and becomes a person of their own, with their own account. That is who the court,
     a grant, the profit and a settlement act on. Everyone else stays in the pools, so the number of people tracked one
     by one stays small: one per company owner.
-36. **The old household code is fitted like this:** its district keys become areas; its self-employed become family-size
+36. **The old household side is carried over like this (as behaviour, written new):** its district keys become areas; its self-employed become family-size
     service companies; its price floors and ceilings and the ceiling on the self-employed are removed; every number it
     read from the old data file is set new. The 130% crowding limit stays: it is how many people fit in a home.
 37. **The starting salary is per worker:** the housing and food of a household in the area, divided by its earners,
