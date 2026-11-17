@@ -24,7 +24,9 @@ const TypeTable := preload("res://sim/economy/type_table.gd")
 const TABLE := "market"
 const SALES := "sale"
 const KEEP_MONTHS := 12
-const BUYER_KINDS: Array[String] = ["COMPANY", "POOL", "PLAN", "GOV"]
+## SITE: a building site's supplies (Otto's contracts), paid from the client's account whoever the client is; the goods
+## leave the seller as SOLD and only the site books them, never a company's stock.
+const BUYER_KINDS: Array[String] = ["COMPANY", "POOL", "PLAN", "GOV", "SITE"]
 const KINDS: Array[String] = ["NEED", "AHEAD"]
 const WHYS: Array[String] = ["NO_MONEY", "PRICE", "SOLD_OUT", "NO_SELLER"]
 const S := 1000
@@ -32,21 +34,27 @@ const S := 1000
 
 # ---------------------------------------------------------------- orders
 
-## Posts an order to buy, for this month's clear. buyer: {"kind": COMPANY|POOL|PLAN|GOV, "id": ..., "acct": its ledger
+## Posts an order to buy, for this month's clear. buyer: {"kind": COMPANY|POOL|PLAN|GOV|SITE, "id": ..., "acct": its ledger
 ## account, "area": where it buys}. max_price: the most it will AND can pay per unit, milli-credits (0 = it can pay
 ## nothing: the order is NO_MONEY). kind: NEED (an ordinary order) or AHEAD (stocking up, plan 9.3); both are real
-## orders with money behind them and count alike. Returns the order id, or "" if refused (bad buyer, item or numbers).
-static func order(world: WorldState, buyer: Dictionary, item: String, qty_milli: int, max_price: int, kind: String = "NEED") -> String:
+## orders with money behind them and count alike. budget: the most this order may spend in all, milli-credits (-1: no
+## limit beyond the buyer's account). A buyer that sets money aside line by line (households: food, rent, then water
+## and power) gives each order its line's money as budget, so no order spends another's money; when the budget runs
+## out at the seller's price the order buys less, and its rest is a refusal of the price (23a), as when an account
+## runs out. Returns the order id, or "" if refused (bad buyer, item or numbers).
+static func order(world: WorldState, buyer: Dictionary, item: String, qty_milli: int, max_price: int, kind: String = "NEED", budget: int = -1) -> String:
 	if not BUYER_KINDS.has(String(buyer.get("kind", ""))) or String(buyer.get("acct", "")) == "" or not TypeTable.is_item(item):
 		return ""
-	if bool(TypeTable.ITEMS[item]["grid"]) or qty_milli <= 0 or max_price < 0 or not KINDS.has(kind):
+	if bool(TypeTable.ITEMS[item]["grid"]) or qty_milli <= 0 or max_price < 0 or not KINDS.has(kind) or budget < -1:
 		return ""
 	var st := _state(world)
 	var oid := world.new_id("order")
 	st["orders"][oid] = {"id": oid, "m": world.month, "buyer": {"kind": String(buyer["kind"]), "id": String(buyer.get("id", "")),
 		"acct": String(buyer["acct"]), "area": String(buyer.get("area", ""))}, "item": item, "qty": qty_milli, "max": max_price,
-		"kind": kind, "got": 0, "paid": 0, "why": "", "cleared": false, "broke": false, "broke_price": 0, "cash0": 0}
-	Logbook.note(world, "ORDER", String(buyer.get("id", "")), "order posted", {"item": item, "qty": qty_milli, "max": max_price, "kind": kind}, {}, "", oid)
+		"kind": kind, "got": 0, "paid": 0, "why": "", "cleared": false, "broke": false, "broke_price": 0, "cash0": 0,
+		"budget": budget}
+	Logbook.note(world, "ORDER", String(buyer.get("id", "")), "order posted", {"item": item, "qty": qty_milli, "max": max_price, "kind": kind,
+		"budget": budget}, {}, "", oid)
 	return oid
 
 
@@ -173,7 +181,7 @@ static func _clear_book(world: WorldState, st: Dictionary, item: String, area: S
 		o["cleared"] = true
 		if short <= 0:
 			continue
-		if int(o["max"]) <= 0 or int(o["cash0"]) <= 0:
+		if int(o["max"]) <= 0 or int(o["cash0"]) <= 0 or int(o["budget"]) == 0:
 			o["why"] = "NO_MONEY"   # it could pay nothing at all: the only case that is not price (23a)
 		elif bool(o["broke"]):
 			o["why"] = "PRICE"      # it paid for some, and could not pay THIS price for the rest: a refusal of the price
@@ -243,7 +251,9 @@ static func _sell(world: WorldState, st: Dictionary, seller: String, oid: String
 	var o: Dictionary = st["orders"][oid]
 	var acct := String(o["buyer"]["acct"])
 	var cash := world.ledger.balance(acct) if world.ledger.has_account(acct) else 0
-	var afford := q if price <= 0 else mini(q, cash * S / price)
+	if int(o["budget"]) >= 0:
+		cash = mini(cash, int(o["budget"]) - int(o["paid"]))   # what is left of this order's own money
+	var afford := q if price <= 0 else mini(q, maxi(0, cash) * S / price)
 	if afford < q:
 		o["broke"] = true
 		o["broke_price"] = price

@@ -187,6 +187,42 @@ func test_orders_last_until_the_next_clear_and_the_summary_twelve_months() -> vo
 	check_eq(w.peek("sale").size(), 12, "and twelve months of sale records")
 
 
+func test_a_budget_keeps_each_order_to_its_own_money() -> void:
+	var w := _w()
+	var f := _farm(w, 100, 60 * S)
+	var tex := Company.create(w, "TEXTILE", "SMALL", HW, "T", {"area": "landing"})
+	Company.stock_add(w, tex, "CLOTHING", 100 * S, 10 * S, "OUTPUT", "made")
+	Company.set_price(w, tex, "CLOTHING", 20 * S)
+	var b := _buyer(w, "pool", 400 * S)
+	# food first: 300 set aside for it, 100 for clothing; CLOTHING's book clears before FOOD's ("C" before "F")
+	var food := Market.order(w, b, "FOOD", 10 * S, 70 * S, "NEED", 300 * S)
+	var cloth := Market.order(w, b, "CLOTHING", 10 * S, 30 * S, "NEED", 100 * S)
+	Market.clear(w)
+	check_eq(Market.filled(w, cloth), {"qty": 5 * S, "paid": 100 * S, "why": "PRICE", "cleared": true}, "clothing spends only its 100: 5 at 20")
+	check_eq(Market.filled(w, food), {"qty": 5 * S, "paid": 300 * S, "why": "PRICE", "cleared": true}, "food still has its 300: 5 at 60, not nothing")
+	check_eq(int(Market.seller_signal(w, f, "FOOD")["refused"]), 5 * S, "the 5 it could not afford tell the farm its price was refused (23a)")
+	check_eq(w.ledger.balance("hh:pool"), 0, "it spent exactly what it set aside")
+	var none := Market.order(w, _buyer(w, "z", 1000 * S), "FOOD", S, 70 * S, "NEED", 0)
+	Market.clear(w)
+	check_eq(Market.filled(w, none)["why"], "NO_MONEY", "a budget of 0 is no money")
+	check_eq(Market.order(w, b, "FOOD", S, S, "NEED", -2), "", "a budget below -1 is refused")
+
+
+func test_goods_for_a_building_site_never_go_into_a_companys_stock() -> void:
+	var w := _w()
+	var stores := Company.create(w, "SHOP", "LARGE", HW, "Stores", {"area": "landing"})
+	Company.stock_add(w, stores, "MATERIAL", 100 * S, 37 * S, "LANDING", "x")
+	Company.offer(w, stores, "MATERIAL", 37 * S)
+	var client := Company.create(w, "FARM", "SMALL", HW, "F", {"area": "landing"})
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(client), 10000 * S, "TEST", 0)
+	var oid := Market.order(w, {"kind": "SITE", "id": "contract:1", "acct": CoreUtil.acct(client), "area": "landing"}, "MATERIAL", 40 * S, 40 * S)
+	Market.clear(w)
+	check_eq(int(Market.filled(w, oid)["qty"]), 40 * S, "the site got 40")
+	check_eq(int(Company.stock_of(w, client, "MATERIAL")["qty"]), 0, "the company paying holds none of it: the site books it")
+	check_eq(int(Company.stock_of(w, stores, "MATERIAL")["qty"]), 60 * S, "out of the seller as SOLD")
+	check_eq(w.ledger.balance(CoreUtil.acct(client)), 10000 * S - 40 * 37 * S, "paid from the client's account")
+
+
 func test_bad_orders_are_refused() -> void:
 	var w := _w()
 	var b := _buyer(w, "a", 100 * S)

@@ -116,13 +116,15 @@ Worked month by month, with these assumptions:
 
 | Case | When the farms make food | Lowest stock (seeds 1, 2, 3) | Short |
 |---|---|---|---|
-| **Step 3, builders hire** to the work (all 41 jobs at once) | all 41 from month 7 | 3,650 / 3,940 / 3,650 at month 15 | **never** |
-| **Step 3, crews stay at 180** (13 jobs at a time) | 13 from month 7, 13 from 9, 13 from 12, 2 from 14 | 300 / 830 / 250 at month 15 | **never, by a few days' food** |
+| **Builders hire past their landing crews** to the work (all 41 jobs at once). Not step 3: a crew grows past full only by rule 5, step 6 (Otto) | all 41 from month 7 | 3,650 / 3,940 / 3,650 at month 15 | **never** |
+| **Step 3: crews stay at 180** (13 jobs at a time) | 13 from month 7, 13 from 9, 13 from 12, 2 from 14 | 300 / 830 / 250 at month 15 | **never, by a few days' food** |
 | **A full game**, the state's power plant and waterworks on two builders, crews that cannot grow (6 farm jobs every 3 months) | 6 more every 3 months from month 7, all 41 by month 25 | 0 from month 13 | **from month 13**; about 5,000 to 5,500 meals short over three years, most in the first two winters |
 
 So with step 3's timeline and the real seasons:
-- **twelve months of landed food reaches in step 3**, whether or not the builders grow their crews;
-- with crews that cannot grow, it reaches by a few days' food, at the end of the first winter (month 15);
+- **twelve months of landed food reaches in step 3, by a few days' food**, at the end of the first winter (month
+  15). In step 3 a builder's crew cannot grow past full (that is rule 5, step 6; Otto's review), so 180 crew is step
+  3's case;
+- once builders can grow (step 6) it reaches with about 3,650 to spare;
 - in a full game where the state's big jobs take two builders first and crews cannot grow, it does not reach: the
   colony is short from month 13, through the first two winters.
 
@@ -130,5 +132,5 @@ So with step 3's timeline and the real seasons:
 other month, if that is ever possible, would open its first farms into a weaker season. The figures above hold only
 for a January landing.
 
-No number was changed. The first case is what step 3's games will show. The third case is for step 8, when the
+No number was changed. The second case is what step 3's games will show. The third case is for step 8, when the
 government commissions.

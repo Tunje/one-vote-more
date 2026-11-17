@@ -132,6 +132,70 @@ The area code (`game/sim/population/area_store.gd`) was a separate design. Areas
 - An area's homes are the homes in its blocks (TownGrid.block_homes).
 - Homes recorded on country tiles (place_housing) remain only as tests' and tools' way to make an area outside a town. No game code writes them.
 
+## 2b. Step 3 as built (Maja, 2026-11-17)
+
+The households' month is built against Wilma's joins (rebuild-step3-joins.md): buying, eating, rent, applying, quitting, the negotiation, the yearly raise, founders, life and ships. Its code is in `households.gd` and `demography.gd`.
+
+**What the plan gave, and where the code follows it:**
+
+- **The order of paying when short:** food, then rent, then water and power (9.1). Food comes first, so its order may use all of a household's money. The rent is paid from what is left. Water and power have no grid in step 3.
+- **Every order carries the most its buyer will and can pay** (23a). The market's answer gives each order's shortfall one "why", and hunger is split the same way:
+  - no money behind the order;
+  - could pay something but refused the price;
+  - none to be had.
+- **Hunger is counted from need** (23).
+- **Workers apply only to jobs that meet their needs** (9.2, the user). A worker's needs are a household's rent and food in the area (12.5, 38 as revised: no longer divided by earners). They are Bob's Rules.needs_line, the one figure his salary rule reads too. A hire below it finds nobody, and the log says why.
+- **Quitting for better pay** (12.5, 39): an employed worker moves to an open post in reach that pays more.
+- **The negotiation** (9.2, the user): underpaid = below the company's average for the post. The worker negotiates first, and only if that fails do they look for better pay.
+- **The yearly raise:** the company's choice, and at least the government's minimum (the lever ECON_YEARLY_RAISE_MIN_PCT).
+- **Founders** are counted individually from the day the plan is made, take their household's share, and go back into the pool when they own nothing (12.5, 35; 60a–60c).
+- **Life:**
+  - births and deaths by age;
+  - growing up and retiring at the law's age;
+  - rejoining the labour force;
+  - the January band moves.
+  The age histogram per area is the authority on age (C1).
+- **Ships:** settlers land and people leave only with a ship in port (9.6, 12.5, 42). Nobody arrives or leaves otherwise.
+
+**What I added where the plan is silent** (each is marked in the code; strike any):
+
+- **Founders:**
+  - A founder is drawn by a seeded draw among the households of the area that can pay (one household's share + the grant its pool would get), weighted by how many such households each pool holds (Wilma: no band before another).
+  - The adult who founds: the unemployed first, then those outside the labour force, then the employed; skilled and specialists first within each.
+  - The founders' table is `"founder"` (ids "founder:N"), because "person" is the staff side's.
+  - One grant per household (61) survives a founder going back (agreed with Ella):
+    - each pool counts its households that have had a grant;
+    - the draw picks a household, which can pay only from its share if it had a grant, or from its share + the grant if not;
+    - the founder record carries "had_grant", and Ella's Grants.apply calls Households.mark_granted;
+    - a returning founder who had one goes back as a granted household.
+    It is exact in number: a pool never takes more grants than it has households without one. Which family it is cannot be remembered, since households are counts.
+  - A founder's household is themselves: they eat and pay rent from their own account. Their family stays in the pool.
+  - The founder takes ONE household's share of the pool's savings with them, though only one adult leaves; the partner and children stay in the pool (Bob's review). Plan 35 speaks of one person taken out; the money is a household's because the plan is the household's venture.
+  - What a founder must be able to pay includes Otto's three months of opening money. My reading of "the founder's own reckoning" is that a founder simply won't plan without it, so in effect it narrows who may found. Bob's 9.2 shows it moves a family farm from band I3 to I4. Strike it if the reckoning was meant to be optional.
+  - A founder who goes back returns to the status they came from: outside the labour force stays outside, anyone else looks for work.
+- **Each order's money is its line's budget (Wilma's ruling, Bob's Market.order budget argument):**
+  - A household sets its money aside line by line in the ruled order: food, rent, water and power, the rest. Each order carries its line's money as its budget, so no line can spend another's money, whatever order the market clears its books in.
+  - The order is the real need at the real worth. Food comes first, so a unit of it is worth all the money set aside for food.
+  - What the budget does not reach is a refusal of the price, which the sellers hear (23a). A pool with half the money for its food buys half its food.
+  - In step 3 households post food only, so the food line is all their money and the rent is paid from what it leaves.
+  - Watch item (Bob): with food's worth = the whole food budget, a food order never refuses through its price, only by running out of money. So the farms' prices are held up only by how much money households have. That fits food alone in step 3: a hungry household pays what it has. When bread and other foods come (step 4), food gets a worth per unit below the whole budget, so households can switch or eat less at a high price.
+- **Stocking up:** not built in this piece. Households post their month's need only. Stocking up when a price is under a good's worth (9.3) is in Bob's piece; the household side's "worth" is to be agreed with him.
+- **The negotiation's terms:**
+  - It happens once a year, in July. Wilma said "once a year"; the month is mine.
+  - The manager meets the worker halfway to the average, when the company's account holds a year of the rise.
+  - A refusal is a log row.
+- **Who leaves on a ship:** a share of the unemployed young adults × how unattractive the colony looks, and every homeless household (none while the shelters hold everyone).
+- **How attractive the colony looks:** jobs 40%, food 40%, homes 20%. The home world knows it as of the last ship's departure.
+- **The numbers of life, all new:**
+  - death chances by age without a clinic;
+  - hunger's and crowding's weight on deaths;
+  - births: 4.0 a woman at the lowest band, 40% fewer at the highest, × the share fed × room;
+  - 90% of 18-year-olds look for work, all at the general tier (no schools yet);
+  - 1% a month of those outside the labour force come back;
+  - bands: the income average moves a sixth a month, and the margin past a cut is 10%.
+- **The press's notices:** a famine is a quarter of the colony's food need uneaten three months running. Food scarce or unaffordable is a twentieth of the need for that reason.
+- **Deaths and births are carried as one remainder per area,** then shared over the pools. Per pool, a small colony's fractions never reached one person (found in testing).
+
 ## 3. The check, mechanism by mechanism
 
 ### 3.1 econ_pop: pools, jobs and income bands
