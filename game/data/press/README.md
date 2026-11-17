@@ -165,10 +165,12 @@ Every picture:
 - ILLUSTRATIVE (the user's word). Two examples of the LOOK are in `reference/`. **They are examples of how a
   picture is printed, NOT of what it shows.** Do not copy their subjects, their framing or their arrangement: a
   crowd in a square and people at a kiosk are just what those two old pictures happened to be of. WHAT each
-  picture shows comes only from its own entry's `show` in `images_wanted.json`, and the 88 entries are all
-  different: a ship in port, a field, a factory floor, a courtroom, a storm, an empty shelf, one person at a desk.
-  Vary the view as freely as a real paper does: close or far, indoors or outdoors, one person or many or none,
-  a thing, a place, a landscape.
+  picture is about comes from its own entry in `images_wanted.json`: `for` names the kind of news, and `show` is
+  ONE suggestion of a scene for it, not an instruction. Many of the `show` lines say "a queue outside" or "a crowd
+  in front of" a building; that is a fault of the list (Wilma's), not a wish. You are the illustrator: for each
+  kind of news choose the picture a good paper would run, and make the 88 as varied as a real paper's pictures
+  are: close or far, indoors or outdoors, one person or many or none, a single object, a pair of hands, a
+  machine, a room, a ship, a landscape, weather. If two pictures of yours look alike, change one.
   - `reference/style_reference_1.png`, the look of a picture printed in an old newspaper: coarse and grainy, made
     of the press's dots and ink with little fine detail; one brownish-black ink on aged, yellowed paper, no other
     colour; low contrast, the ink a little uneven.
