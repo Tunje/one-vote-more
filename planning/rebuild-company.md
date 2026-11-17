@@ -372,6 +372,25 @@ Terra's town grid (section 9.8).
       per person hired. A new hire's output: half in the first month, rising evenly to full after six. A company
       weighs a layoff as the user described: the wages it would save while the post stands idle against the pay
       owed, the advert and the months of lower output when it hires again.
+    - **(proposal, Bob's: how the weighing reads)**
+      - *Training.* A hire's output in its month a (0 in the month hired) is 500 + 500 × a / 6 per mille; full from
+        a = 6. Kept as monthly hire groups on each staff entry (not the entry's average "since", which is for the
+        years at the workplace). A move within the workplace brings no training; a hire from outside does. Summed
+        over the six months, a new hire makes 1.75 months of a worker's output less than a trained one.
+      - *How long a post would stand idle*, from what a company really has: how many months in a row its posts
+        have wanted fewer people than it has at that tier and plant (its output level has been falling or held
+        down for that long). The longer the slack has lasted, the longer it is expected to last: idle = that run of
+        months, at least 1. The run resets the month posts want as many as it has.
+      - *The weighing, per person, at the tier's pay of the entry laid off first*: lay off only if
+        idle × pay > layoff months × pay + advert (a tenth of the hiring salary) + 1.75 × the output of one
+        worker at that post × today's price of what it makes. With the law at 3 months and a farm worker's output
+        worth about their pay, a post must have stood slack about 5 months before its holder is laid off.
+      - *Rule 19a* (staff it could not pay) is not weighed: those are laid off as now, and owed their layoff pay as
+        a debt (Maja pays it, Anni holds the debt).
+      - *Hiring*: a company that cannot pay the adverts for the people it wants this month (Ella's
+        Media.job_advert_cost) hires none that month; it pays the adverts for those actually hired.
+      - Every layoff decision's row carries idle, pay, layoff months, advert, training loss and price; a decision
+        to keep slack staff is logged too.
   - **Negotiation with the manager** (the user, 2026-11-17, verbatim): "Lets as one more thing to the sallery, the manager, negotiation can bring it closer to avrage". An underpaid
     worker can negotiate with the company's manager, and a negotiation can bring their salary closer to the average.
     So a salary has three ways to change after hiring: the yearly raise, a negotiation, and leaving for another job.
