@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: grant programme passes over needy districts",
       "sub": "Districts in need were passed over by a government grant programme.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A government grant programme has passed over districts that needed it.\n\nThe stewardship of {target} requires examination against the districts passed over. This paper records the allocation problem without supplying an unreported intention, recipient or legal conclusion as its explanation."
+      "body": "A government grant programme has passed over districts that needed it. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nThe gazette records the omission of districts in need without supplying the programme's terms or a motive for its allocation. The gazette records the development as a matter deserving careful attention in the public interest."
     },
     {
       "headline": "Still in view: need goes unanswered in grant allocation",
       "sub": "A government grant allocation has overlooked the districts that needed support.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Districts in need were passed over by a government grant programme.\n\nThe stewardship of {target} requires examination against the districts passed over. This paper records the allocation problem without supplying an unreported intention, recipient or legal conclusion as its explanation."
+      "body": "Districts in need were passed over by a government grant programme. This story remains under examination, {months_running} months into our coverage of the original event.\n\nThe gazette records the omission of districts in need without supplying the programme's terms or a motive for its allocation. The gazette records the development as a matter deserving careful attention in the public interest."
     },
     {
       "headline": "Still in view: government grants miss the districts in need",
       "sub": "A government grant programme has passed over districts that needed it.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A government grant allocation has overlooked the districts that needed support.\n\nThe stewardship of {target} requires examination against the districts passed over. This paper records the allocation problem without supplying an unreported intention, recipient or legal conclusion as its explanation."
+      "body": "A government grant allocation has overlooked the districts that needed support. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nThe gazette records the omission of districts in need without supplying the programme's terms or a motive for its allocation. The gazette records the development as a matter deserving careful attention in the public interest."
     }
   ]
 }

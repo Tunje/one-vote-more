@@ -7,17 +7,17 @@
     {
       "headline": "Party leader blunders in election debate",
       "sub": "",
-      "body": "A party leader has blundered in an election debate. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The leader of {party}, {leader}, has blundered in an election debate. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "A debate brings a leader's misstep",
       "sub": "",
-      "body": "An election debate has included a blunder by a party leader. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "An election debate has included a blunder by {leader}, leader of {party}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "Election argument meets an awkward moment",
       "sub": "",
-      "body": "A party leader has made a misstep in an election debate. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The party leader {leader}, of {party}, has made a debate misstep. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     }
   ]
 }

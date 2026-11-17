@@ -7,17 +7,17 @@
     {
       "headline": "Party leader blunders in election debate",
       "sub": "",
-      "body": "A party leader has blundered in an election debate. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "The leader of {party}, {leader}, has blundered in an election debate. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "A debate brings a leader's misstep",
       "sub": "",
-      "body": "An election debate has included a blunder by a party leader. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "An election debate has included a blunder by {leader}, leader of {party}. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "Election argument meets an awkward moment",
       "sub": "",
-      "body": "A party leader has made a misstep in an election debate. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "The party leader {leader}, of {party}, has made a debate misstep. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     }
   ]
 }

@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: food shortage leaves the colony hungry",
       "sub": "People in the colony are hungry because food is insufficient.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. There is not enough food in {colony}, and people are going hungry.\n\nWe hold {target} to account critically. Hunger is an unacceptable condition for the colony, and the standard of stewardship should be judged against the basic requirement that people have enough to eat."
+      "body": "There is not enough food in {colony}, and people are going hungry. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nPeople are hungry. A plain fact with no need for an invented victim or a grand phrase. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "Still in view: enough to eat remains the central need",
       "sub": "The colony's food supply is insufficient, leaving people hungry.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. People in the colony are hungry because food is insufficient.\n\nWe hold {target} to account critically. Hunger is an unacceptable condition for the colony, and the standard of stewardship should be judged against the basic requirement that people have enough to eat."
+      "body": "People in the colony are hungry because food is insufficient. This story remains under examination, {months_running} months into our coverage of the original event.\n\nPeople are hungry. A plain fact with no need for an invented victim or a grand phrase. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "Still in view: hunger is a fact, not a figure of speech",
       "sub": "There is not enough food in {colony}, and people are going hungry.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony's food supply is insufficient, leaving people hungry.\n\nWe hold {target} to account critically. Hunger is an unacceptable condition for the colony, and the standard of stewardship should be judged against the basic requirement that people have enough to eat."
+      "body": "The colony's food supply is insufficient, leaving people hungry. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nPeople are hungry. A plain fact with no need for an invented victim or a grand phrase. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     }
   ]
 }

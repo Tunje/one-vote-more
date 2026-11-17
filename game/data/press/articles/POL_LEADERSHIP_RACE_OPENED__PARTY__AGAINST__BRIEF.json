@@ -7,17 +7,17 @@
     {
       "headline": "Party leader faces a challenge",
       "sub": "",
-      "body": "A party's leader is being challenged in {colony}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "The leader of {party} is being challenged. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "Leadership becomes a contested question",
       "sub": "",
-      "body": "A challenge to a party leader has opened in the colony. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "A challenge to the leadership of {party} has opened. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "A challenge inside the party",
       "sub": "",
-      "body": "The leadership of a political party is under challenge. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "Leadership of the party {party} is under challenge. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     }
   ]
 }

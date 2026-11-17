@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: government cannot pay its debts",
       "sub": "The colony's government is unable to pay its debts.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The government of {colony} cannot pay its debts.\n\nWe support {target} against an indiscriminate verdict. The failure to pay is serious, but it does not establish every accusation about its origins or prove that an imagined alternative would have performed better."
+      "body": "The government of {colony} cannot pay its debts. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nPublic finance is political because obligations are made and honoured in the name of a common undertaking. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "Still in view: public debt meets a payment failure",
       "sub": "Government debt in the colony cannot be paid by the administration.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony's government is unable to pay its debts.\n\nWe support {target} against an indiscriminate verdict. The failure to pay is serious, but it does not establish every accusation about its origins or prove that an imagined alternative would have performed better."
+      "body": "The colony's government is unable to pay its debts. This story remains under examination, {months_running} months into our coverage of the original event.\n\nPublic finance is political because obligations are made and honoured in the name of a common undertaking. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "Still in view: the colony's government faces default",
       "sub": "The government of {colony} cannot pay its debts.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. Government debt in the colony cannot be paid by the administration.\n\nWe support {target} against an indiscriminate verdict. The failure to pay is serious, but it does not establish every accusation about its origins or prove that an imagined alternative would have performed better."
+      "body": "Government debt in the colony cannot be paid by the administration. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nPublic finance is political because obligations are made and honoured in the name of a common undertaking. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     }
   ]
 }

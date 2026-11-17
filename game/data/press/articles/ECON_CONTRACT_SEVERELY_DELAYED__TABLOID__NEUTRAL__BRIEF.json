@@ -7,17 +7,17 @@
     {
       "headline": "Building project badly behind schedule",
       "sub": "",
-      "body": "A building project in the colony is badly behind schedule. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "The project {project} is badly behind schedule. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "Construction timetable falls seriously short",
       "sub": "",
-      "body": "Construction of a building project is severely delayed in {colony}. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "Construction on {project} is severely delayed. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "A project waits beyond its schedule",
       "sub": "",
-      "body": "A colony building project has fallen badly behind its schedule. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "The project {project} has fallen badly behind its schedule. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     }
   ]
 }

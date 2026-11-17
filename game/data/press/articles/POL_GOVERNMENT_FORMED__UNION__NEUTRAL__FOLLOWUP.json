@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Still in view: a new government takes shape",
-      "sub": "The colony has a newly formed government.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A new government has been formed in {colony}.\n\nThe position of {target} should be assessed through the responsibilities of formation without a verdict on decisions not yet established by this report. A new government is a fact, not a forecast."
+      "sub": "The colony has a new government comprising {members}.",
+      "body": "A new government comprising {members} has been formed. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nWorkers have good reason to ask what a government means for ordinary life. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "Still in view: formation is the beginning of governing",
-      "sub": "Government formation has produced a new administration in {colony}.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has a newly formed government.\n\nThe position of {target} should be assessed through the responsibilities of formation without a verdict on decisions not yet established by this report. A new government is a fact, not a forecast."
+      "sub": "Government formation has produced an administration comprising {members}.",
+      "body": "The colony has a new government comprising {members}. This story remains under examination, {months_running} months into our coverage of the original event.\n\nWorkers have good reason to ask what a government means for ordinary life. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "Still in view: new ministry, practical obligations",
-      "sub": "A new government has been formed in {colony}.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. Government formation has produced a new administration in {colony}.\n\nThe position of {target} should be assessed through the responsibilities of formation without a verdict on decisions not yet established by this report. A new government is a fact, not a forecast."
+      "sub": "A new government comprising {members} has been formed.",
+      "body": "Government formation has produced an administration comprising {members}. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nWorkers have good reason to ask what a government means for ordinary life. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     }
   ]
 }

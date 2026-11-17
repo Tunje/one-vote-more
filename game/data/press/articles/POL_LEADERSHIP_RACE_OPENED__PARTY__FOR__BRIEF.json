@@ -7,17 +7,17 @@
     {
       "headline": "Party leader faces a challenge",
       "sub": "",
-      "body": "A party's leader is being challenged in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "The leader of {party} is being challenged. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "Leadership becomes a contested question",
       "sub": "",
-      "body": "A challenge to a party leader has opened in the colony. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "A challenge to the leadership of {party} has opened. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "A challenge inside the party",
       "sub": "",
-      "body": "The leadership of a political party is under challenge. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "Leadership of the party {party} is under challenge. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     }
   ]
 }

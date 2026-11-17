@@ -7,17 +7,17 @@
     {
       "headline": "Union calls a strike",
       "sub": "",
-      "body": "A union has called a strike in {colony}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "The union {name} has called a strike. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "A call to withhold labour",
       "sub": "",
-      "body": "A strike has been called by a union in the colony. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "A strike has been called by the union {name}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "Work becomes the subject of a strike call",
       "sub": "",
-      "body": "The colony has a union call for strike action. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "The union {name} has issued a call for strike action. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     }
   ]
 }

@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Still in view: party leader faces a public scandal",
-      "sub": "A party leader is the subject of a newly revealed scandal.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A scandal concerning a party leader has come to light in {colony}.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing."
+      "sub": "The leader of {party}, {leader}, is the subject of a newly revealed scandal.",
+      "body": "A scandal concerning {leader}, the leader of {party}, has come to light. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nWorkers know the difference between being held responsible and being made the subject of gossip. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "Still in view: leadership under an unwelcome spotlight",
-      "sub": "A scandal about a party leader has become public in the colony.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A party leader is the subject of a newly revealed scandal.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing."
+      "sub": "A scandal about {leader}, leader of {party}, has become public.",
+      "body": "The leader of {party}, {leader}, is the subject of a newly revealed scandal. This story remains under examination, {months_running} months into our coverage of the original event.\n\nWorkers know the difference between being held responsible and being made the subject of gossip. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "Still in view: a scandal tests political trust",
-      "sub": "A scandal concerning a party leader has come to light in {colony}.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A scandal about a party leader has become public in the colony.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing."
+      "sub": "A scandal concerning {leader}, the leader of {party}, has come to light.",
+      "body": "A scandal about {leader}, leader of {party}, has become public. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nWorkers know the difference between being held responsible and being made the subject of gossip. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     }
   ]
 }

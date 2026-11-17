@@ -7,17 +7,17 @@
     {
       "headline": "A new government takes shape",
       "sub": "",
-      "body": "A new government has been formed in {colony}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+      "body": "A new government comprising {members} has been formed. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "Formation is the beginning of governing",
       "sub": "",
-      "body": "The colony has a newly formed government. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+      "body": "The colony has a new government comprising {members}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "New ministry, practical obligations",
       "sub": "",
-      "body": "Government formation has produced a new administration in {colony}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+      "body": "Government formation has produced an administration comprising {members}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     }
   ]
 }

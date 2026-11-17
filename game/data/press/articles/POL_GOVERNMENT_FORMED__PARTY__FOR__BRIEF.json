@@ -7,17 +7,17 @@
     {
       "headline": "A new government takes shape",
       "sub": "",
-      "body": "A new government has been formed in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "A new government comprising {members} has been formed. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "Formation is the beginning of governing",
       "sub": "",
-      "body": "The colony has a newly formed government. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "The colony has a new government comprising {members}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "New ministry, practical obligations",
       "sub": "",
-      "body": "Government formation has produced a new administration in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "Government formation has produced an administration comprising {members}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     }
   ]
 }

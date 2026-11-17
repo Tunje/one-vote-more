@@ -7,17 +7,17 @@
     {
       "headline": "Party leader blunders in election debate",
       "sub": "",
-      "body": "A party leader has blundered in an election debate. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The leader of {party}, {leader}, has blundered in an election debate. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "A debate brings a leader's misstep",
       "sub": "",
-      "body": "An election debate has included a blunder by a party leader. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "An election debate has included a blunder by {leader}, leader of {party}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "Election argument meets an awkward moment",
       "sub": "",
-      "body": "A party leader has made a misstep in an election debate. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The party leader {leader}, of {party}, has made a debate misstep. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     }
   ]
 }

@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Still in view: company lays off many workers",
-      "sub": "Many workers have been laid off by a company in the colony.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A company has laid off many workers in {colony}.\n\nThe conduct of {target} deserves scrutiny in relation to the layoff. This paper does not presume a financial cause, a compensation arrangement or the subsequent circumstances of those whose employment has been affected."
+      "sub": "Many workers have been laid off by {company}.",
+      "body": "The company {company} has laid off many workers. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nMany people have lost their work at a company. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "Still in view: a large loss of jobs at a company",
-      "sub": "The colony has seen a company carry out a large layoff.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Many workers have been laid off by a company in the colony.\n\nThe conduct of {target} deserves scrutiny in relation to the layoff. This paper does not presume a financial cause, a compensation arrangement or the subsequent circumstances of those whose employment has been affected."
+      "sub": "The company {company} has carried out a large layoff.",
+      "body": "Many workers have been laid off by {company}. This story remains under examination, {months_running} months into our coverage of the original event.\n\nMany people have lost their work at a company. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "Still in view: workers face a company layoff",
-      "sub": "A company has laid off many workers in {colony}.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony has seen a company carry out a large layoff.\n\nThe conduct of {target} deserves scrutiny in relation to the layoff. This paper does not presume a financial cause, a compensation arrangement or the subsequent circumstances of those whose employment has been affected."
+      "sub": "The company {company} has laid off many workers.",
+      "body": "The company {company} has carried out a large layoff. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nMany people have lost their work at a company. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     }
   ]
 }

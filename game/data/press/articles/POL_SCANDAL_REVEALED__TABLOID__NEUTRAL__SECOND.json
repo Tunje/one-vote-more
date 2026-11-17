@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Party leader faces a public scandal",
-      "sub": "A party leader is the subject of a newly revealed scandal.",
-      "body": "A scandal about a party leader has come to light. The revelation makes political trust an immediate subject of public attention. An assessment of {target} must distinguish that known fact from unreported details about the conduct involved, its cause or any proceedings that might follow.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing."
+      "sub": "The leader of {party}, {leader}, is the subject of a newly revealed scandal.",
+      "body": "A scandal concerning {leader}, the leader of {party}, has come to light. The revelation makes political trust an immediate subject of public attention. An assessment of {target} must distinguish that known fact from unreported details about the conduct involved, its cause or any proceedings that might follow.\n\nA leader, a scandal, and a story everyone can be tempted to improve in the telling. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "Leadership under an unwelcome spotlight",
-      "sub": "A scandal about a party leader has become public in the colony.",
-      "body": "Leadership brings a claim to trust. A newly revealed scandal concerning a party leader gives that claim an uncomfortable setting in {colony}. Readers considering {target} should be able to examine responsibility without being invited to accept a more specific accusation than the report establishes.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing."
+      "sub": "A scandal about {leader}, leader of {party}, has become public.",
+      "body": "The leader of {party}, {leader}, is the subject of a newly revealed scandal. A newly revealed scandal concerning a party leader gives that claim an uncomfortable setting in {colony}. Readers considering {target} should be able to examine responsibility without being invited to accept a more specific accusation than the report establishes.\n\nA leader, a scandal, and a story everyone can be tempted to improve in the telling. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "A scandal tests political trust",
-      "sub": "A scandal concerning a party leader has come to light in {colony}.",
-      "body": "The public record now includes a scandal about a party leader. That is serious political news; it is not permission to fill gaps with an attractive story. For {target}, the question of trust deserves attention without a fabricated account of money, private life or criminal conduct.\n\nThis paper treats {target} as a subject for scrutiny, while withholding conclusions the reported revelation does not establish. Attention to trust need not depend upon an invented account of wrongdoing."
+      "sub": "A scandal concerning {leader}, the leader of {party}, has come to light.",
+      "body": "A scandal about {leader}, leader of {party}, has become public. That is serious political news; it is not permission to fill gaps with an attractive story. For {target}, the question of trust deserves attention without a fabricated account of money, private life or criminal conduct.\n\nA leader, a scandal, and a story everyone can be tempted to improve in the telling. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     }
   ]
 }

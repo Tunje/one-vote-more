@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: assembly votes down government bill",
       "sub": "The Assembly has rejected a bill put forward by the government.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A government bill has been voted down in the Colonial Assembly.\n\nWe take an adverse view of {target}. Serious legislative work requires judgment as well as intention, and a defeated proposal is a proper occasion to question whether that responsibility has been met."
+      "body": "A government bill has been voted down in the Colonial Assembly. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nA legislature is supposed to decide, not merely to decorate a government's intentions. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "Still in view: a proposal meets its parliamentary limit",
       "sub": "A proposed government bill has failed in the Assembly vote.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The Assembly has rejected a bill put forward by the government.\n\nWe take an adverse view of {target}. Serious legislative work requires judgment as well as intention, and a defeated proposal is a proper occasion to question whether that responsibility has been met."
+      "body": "The Assembly has rejected a bill put forward by the government. This story remains under examination, {months_running} months into our coverage of the original event.\n\nA legislature is supposed to decide, not merely to decorate a government's intentions. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "Still in view: government legislation fails the vote",
       "sub": "A government bill has been voted down in the Colonial Assembly.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A proposed government bill has failed in the Assembly vote.\n\nWe take an adverse view of {target}. Serious legislative work requires judgment as well as intention, and a defeated proposal is a proper occasion to question whether that responsibility has been met."
+      "body": "A proposed government bill has failed in the Assembly vote. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nA legislature is supposed to decide, not merely to decorate a government's intentions. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     }
   ]
 }

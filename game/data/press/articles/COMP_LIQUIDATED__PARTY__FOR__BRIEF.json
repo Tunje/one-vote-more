@@ -7,17 +7,17 @@
     {
       "headline": "A company goes under",
       "sub": "",
-      "body": "A company has gone under in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "The company {company} has gone under. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "Business failure enters the colony's record",
       "sub": "",
-      "body": "The colony has seen a company fail. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "The colony has seen the failure of {company}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "An enterprise reaches failure",
       "sub": "",
-      "body": "A business in the colony has gone under. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "The business {company} has gone under. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     }
   ]
 }

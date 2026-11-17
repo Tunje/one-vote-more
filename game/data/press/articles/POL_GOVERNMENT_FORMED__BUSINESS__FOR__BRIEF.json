@@ -7,17 +7,17 @@
     {
       "headline": "A new government takes shape",
       "sub": "",
-      "body": "A new government has been formed in {colony}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+      "body": "A new government comprising {members} has been formed. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
     },
     {
       "headline": "Formation is the beginning of governing",
       "sub": "",
-      "body": "The colony has a newly formed government. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+      "body": "The colony has a new government comprising {members}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
     },
     {
       "headline": "New ministry, practical obligations",
       "sub": "",
-      "body": "Government formation has produced a new administration in {colony}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+      "body": "Government formation has produced an administration comprising {members}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
     }
   ]
 }

@@ -7,17 +7,17 @@
     {
       "headline": "Strike collapses",
       "sub": "",
-      "body": "A strike has collapsed in {colony}. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "The strike by the union {name} has collapsed. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "Labour action loses its course",
       "sub": "",
-      "body": "The colony has seen a strike collapse. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "The union {name} has seen its strike collapse. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "A strike ends in collapse",
       "sub": "",
-      "body": "A strike in the colony has ended in collapse. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "The strike by {name} has ended in collapse. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     }
   ]
 }

@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Still in view: party leader blunders in election debate",
-      "sub": "An election debate has included a blunder by a party leader.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A party leader has blundered in an election debate.\n\nWe criticise {target} in this assessment. Political leadership includes judgment under scrutiny, and a debate blunder is an appropriate occasion to question whether the standard of public presentation has been adequate."
+      "sub": "An election debate has included a blunder by {leader}, leader of {party}.",
+      "body": "The leader of {party}, {leader}, has blundered in an election debate. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nA debate error is not an economic programme or an electoral result. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     },
     {
       "headline": "Still in view: a debate brings a leader's misstep",
-      "sub": "A party leader has made a misstep in an election debate.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. An election debate has included a blunder by a party leader.\n\nWe criticise {target} in this assessment. Political leadership includes judgment under scrutiny, and a debate blunder is an appropriate occasion to question whether the standard of public presentation has been adequate."
+      "sub": "The party leader {leader}, of {party}, has made a debate misstep.",
+      "body": "An election debate has included a blunder by {leader}, leader of {party}. This story remains under examination, {months_running} months into our coverage of the original event.\n\nA debate error is not an economic programme or an electoral result. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     },
     {
       "headline": "Still in view: election argument meets an awkward moment",
-      "sub": "A party leader has blundered in an election debate.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A party leader has made a misstep in an election debate.\n\nWe criticise {target} in this assessment. Political leadership includes judgment under scrutiny, and a debate blunder is an appropriate occasion to question whether the standard of public presentation has been adequate."
+      "sub": "The leader of {party}, {leader}, has blundered in an election debate.",
+      "body": "The party leader {leader}, of {party}, has made a debate misstep. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nA debate error is not an economic programme or an electoral result. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     }
   ]
 }

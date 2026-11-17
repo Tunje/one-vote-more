@@ -7,17 +7,17 @@
     {
       "headline": "Union calls a strike",
       "sub": "",
-      "body": "A union has called a strike in {colony}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+      "body": "The union {name} has called a strike. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
     },
     {
       "headline": "A call to withhold labour",
       "sub": "",
-      "body": "A strike has been called by a union in the colony. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+      "body": "A strike has been called by the union {name}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
     },
     {
       "headline": "Work becomes the subject of a strike call",
       "sub": "",
-      "body": "The colony has a union call for strike action. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+      "body": "The union {name} has issued a call for strike action. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
     }
   ]
 }

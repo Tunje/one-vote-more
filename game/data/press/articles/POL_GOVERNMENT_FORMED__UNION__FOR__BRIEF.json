@@ -7,17 +7,17 @@
     {
       "headline": "A new government takes shape",
       "sub": "",
-      "body": "A new government has been formed in {colony}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "A new government comprising {members} has been formed. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "Formation is the beginning of governing",
       "sub": "",
-      "body": "The colony has a newly formed government. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The colony has a new government comprising {members}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "New ministry, practical obligations",
       "sub": "",
-      "body": "Government formation has produced a new administration in {colony}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "Government formation has produced an administration comprising {members}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     }
   ]
 }

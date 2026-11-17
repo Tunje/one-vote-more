@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Strike collapses",
-      "sub": "The colony has seen a strike collapse.",
-      "body": "A strike has collapsed in {colony}. The collapse is a result for the labour action, not an established agreement about the underlying dispute. Readers judging {target} should avoid treating it as proof of a particular settlement, a change in wages or a complete account of responsibility.\n\nWe take a sympathetic view of {target}. Collapse does not prove every adverse claim about the people involved, and a fair hearing should survive an outcome that lends itself to easy recrimination."
+      "sub": "The union {name} has seen its strike collapse.",
+      "body": "The strike by the union {name} has collapsed. The collapse is a result for the labour action, not an established agreement about the underlying dispute. Readers judging {target} should avoid treating it as proof of a particular settlement, a change in wages or a complete account of responsibility.\n\nThe strike has collapsed. It is an ending, but do not turn it into a fairy tale in which every question has been solved. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "Labour action loses its course",
-      "sub": "A strike in the colony has ended in collapse.",
-      "body": "The course of a strike has reached collapse. That is serious news for the colony's labour relations, even without the reasons being specified. An assessment of {target} should distinguish the failure of the action from a judgment that every concern behind it has therefore been answered.\n\nWe take a sympathetic view of {target}. Collapse does not prove every adverse claim about the people involved, and a fair hearing should survive an outcome that lends itself to easy recrimination."
+      "sub": "The strike by {name} has ended in collapse.",
+      "body": "The union {name} has seen its strike collapse. That is serious news for the colony's labour relations, even without the reasons being specified. An assessment of {target} should distinguish the failure of the action from a judgment that every concern behind it has therefore been answered.\n\nThe strike has collapsed. It is an ending, but do not turn it into a fairy tale in which every question has been solved. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "A strike ends in collapse",
-      "sub": "A strike has collapsed in {colony}.",
-      "body": "A strike has ended in collapse in the colony. The report establishes that outcome without describing the circumstances that produced it. For {target}, the question is responsibility in the labour dispute, rather than an invented story about participation, concessions or the conduct of particular workers.\n\nWe take a sympathetic view of {target}. Collapse does not prove every adverse claim about the people involved, and a fair hearing should survive an outcome that lends itself to easy recrimination."
+      "sub": "The strike by the union {name} has collapsed.",
+      "body": "The strike by {name} has ended in collapse. The report establishes that outcome without describing the circumstances that produced it. For {target}, the question is responsibility in the labour dispute, rather than an invented story about participation, concessions or the conduct of particular workers.\n\nThe strike has collapsed. It is an ending, but do not turn it into a fairy tale in which every question has been solved. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     }
   ]
 }

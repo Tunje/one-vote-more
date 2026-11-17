@@ -7,17 +7,17 @@
     {
       "headline": "Company lays off many workers",
       "sub": "",
-      "body": "A company has laid off many workers in {colony}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The company {company} has laid off many workers. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "A large loss of jobs at a company",
       "sub": "",
-      "body": "Many workers have been laid off by a company in the colony. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "Many workers have been laid off by {company}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "Workers face a company layoff",
       "sub": "",
-      "body": "The colony has seen a company carry out a large layoff. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The company {company} has carried out a large layoff. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     }
   ]
 }

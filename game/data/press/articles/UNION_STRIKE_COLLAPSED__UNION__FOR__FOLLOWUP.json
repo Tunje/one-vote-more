@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Still in view: strike collapses",
-      "sub": "The colony has seen a strike collapse.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A strike has collapsed in {colony}.\n\nWe take a sympathetic view of {target}. Collapse does not prove every adverse claim about the people involved, and a fair hearing should survive an outcome that lends itself to easy recrimination."
+      "sub": "The union {name} has seen its strike collapse.",
+      "body": "The strike by the union {name} has collapsed. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nWorkers deserve solidarity in an unwelcome outcome as well as an attractive one. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "Still in view: labour action loses its course",
-      "sub": "A strike in the colony has ended in collapse.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has seen a strike collapse.\n\nWe take a sympathetic view of {target}. Collapse does not prove every adverse claim about the people involved, and a fair hearing should survive an outcome that lends itself to easy recrimination."
+      "sub": "The strike by {name} has ended in collapse.",
+      "body": "The union {name} has seen its strike collapse. This story remains under examination, {months_running} months into our coverage of the original event.\n\nWorkers deserve solidarity in an unwelcome outcome as well as an attractive one. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "Still in view: a strike ends in collapse",
-      "sub": "A strike has collapsed in {colony}.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A strike in the colony has ended in collapse.\n\nWe take a sympathetic view of {target}. Collapse does not prove every adverse claim about the people involved, and a fair hearing should survive an outcome that lends itself to easy recrimination."
+      "sub": "The strike by the union {name} has collapsed.",
+      "body": "The strike by {name} has ended in collapse. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nWorkers deserve solidarity in an unwelcome outcome as well as an attractive one. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     }
   ]
 }

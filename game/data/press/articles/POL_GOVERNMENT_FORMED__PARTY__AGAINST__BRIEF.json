@@ -7,17 +7,17 @@
     {
       "headline": "A new government takes shape",
       "sub": "",
-      "body": "A new government has been formed in {colony}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "A new government comprising {members} has been formed. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "Formation is the beginning of governing",
       "sub": "",
-      "body": "The colony has a newly formed government. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "The colony has a new government comprising {members}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "New ministry, practical obligations",
       "sub": "",
-      "body": "Government formation has produced a new administration in {colony}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "Government formation has produced an administration comprising {members}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     }
   ]
 }

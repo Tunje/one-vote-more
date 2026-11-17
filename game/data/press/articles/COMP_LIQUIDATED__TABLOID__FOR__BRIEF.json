@@ -7,17 +7,17 @@
     {
       "headline": "A company goes under",
       "sub": "",
-      "body": "A company has gone under in {colony}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+      "body": "The company {company} has gone under. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "Business failure enters the colony's record",
       "sub": "",
-      "body": "The colony has seen a company fail. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+      "body": "The colony has seen the failure of {company}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "An enterprise reaches failure",
       "sub": "",
-      "body": "A business in the colony has gone under. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+      "body": "The business {company} has gone under. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     }
   ]
 }

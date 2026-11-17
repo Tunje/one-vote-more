@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: home-world ship reaches the colony",
       "sub": "The colony has received the arrival of a home-world ship.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A ship from the home world has arrived in the colony.\n\nWe remain critical of {target}. An arrival should not place the stewardship of the colony's transport connection beyond scrutiny; the existence of a ship is not a complete account of responsible provision."
+      "body": "A ship from the home world has arrived in the colony. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nOur movement sees the home-world connection as a relationship between people as well as an item of transport. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "Still in view: an arrival on the colonial route",
       "sub": "A vessel from the home world has reached {colony}.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has received the arrival of a home-world ship.\n\nWe remain critical of {target}. An arrival should not place the stewardship of the colony's transport connection beyond scrutiny; the existence of a ship is not a complete account of responsible provision."
+      "body": "The colony has received the arrival of a home-world ship. This story remains under examination, {months_running} months into our coverage of the original event.\n\nOur movement sees the home-world connection as a relationship between people as well as an item of transport. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "Still in view: the distant connection comes into port",
       "sub": "A ship from the home world has arrived in the colony.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A vessel from the home world has reached {colony}.\n\nWe remain critical of {target}. An arrival should not place the stewardship of the colony's transport connection beyond scrutiny; the existence of a ship is not a complete account of responsible provision."
+      "body": "A vessel from the home world has reached {colony}. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nOur movement sees the home-world connection as a relationship between people as well as an item of transport. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     }
   ]
 }

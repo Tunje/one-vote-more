@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: bid to remove government fails",
       "sub": "The attempt to remove the government by an Assembly vote has failed.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A vote to bring down the government has failed in {colony}.\n\nWe find the conduct of {target} wanting. Whatever the result of this attempt, parliamentary manoeuvre is no substitute for political responsibility or an adequate account of the public interest."
+      "body": "A vote to bring down the government has failed in {colony}. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nThere are people whose whole interest in this vote is whether it helps them live decently. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     },
     {
       "headline": "Still in view: confidence challenge falls short",
       "sub": "The government has survived a vote intended to bring it down.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The attempt to remove the government by an Assembly vote has failed.\n\nWe find the conduct of {target} wanting. Whatever the result of this attempt, parliamentary manoeuvre is no substitute for political responsibility or an adequate account of the public interest."
+      "body": "The attempt to remove the government by an Assembly vote has failed. This story remains under examination, {months_running} months into our coverage of the original event.\n\nThere are people whose whole interest in this vote is whether it helps them live decently. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     },
     {
       "headline": "Still in view: government survives the Assembly test",
       "sub": "A vote to bring down the government has failed in {colony}.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The government has survived a vote intended to bring it down.\n\nWe find the conduct of {target} wanting. Whatever the result of this attempt, parliamentary manoeuvre is no substitute for political responsibility or an adequate account of the public interest."
+      "body": "The government has survived a vote intended to bring it down. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nThere are people whose whole interest in this vote is whether it helps them live decently. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     }
   ]
 }

@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: grant programme passes over needy districts",
       "sub": "Districts in need were passed over by a government grant programme.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A government grant programme has passed over districts that needed it.\n\nWe judge {target} adversely. Public grants deserve an allocation that takes need seriously, and passing over the districts that needed support is a proper reason to question the fairness of stewardship."
+      "body": "A government grant programme has passed over districts that needed it. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nA grant programme should be assessed against its allocation objective, not merely the fact that it exists. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     },
     {
       "headline": "Still in view: need goes unanswered in grant allocation",
       "sub": "A government grant allocation has overlooked the districts that needed support.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Districts in need were passed over by a government grant programme.\n\nWe judge {target} adversely. Public grants deserve an allocation that takes need seriously, and passing over the districts that needed support is a proper reason to question the fairness of stewardship."
+      "body": "Districts in need were passed over by a government grant programme. This story remains under examination, {months_running} months into our coverage of the original event.\n\nA grant programme should be assessed against its allocation objective, not merely the fact that it exists. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     },
     {
       "headline": "Still in view: government grants miss the districts in need",
       "sub": "A government grant programme has passed over districts that needed it.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A government grant allocation has overlooked the districts that needed support.\n\nWe judge {target} adversely. Public grants deserve an allocation that takes need seriously, and passing over the districts that needed support is a proper reason to question the fairness of stewardship."
+      "body": "A government grant allocation has overlooked the districts that needed support. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nA grant programme should be assessed against its allocation objective, not merely the fact that it exists. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     }
   ]
 }

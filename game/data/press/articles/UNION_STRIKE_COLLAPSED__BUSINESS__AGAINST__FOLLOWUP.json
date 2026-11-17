@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Still in view: strike collapses",
-      "sub": "The colony has seen a strike collapse.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A strike has collapsed in {colony}.\n\nWe judge {target} critically. A failed labour action is a proper occasion to ask whether responsibility has been exercised adequately, rather than to excuse poor judgment through the convenience of the outcome."
+      "sub": "The union {name} has seen its strike collapse.",
+      "body": "The strike by the union {name} has collapsed. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nThe collapse of a strike is not a sufficient account of future labour conditions. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     },
     {
       "headline": "Still in view: labour action loses its course",
-      "sub": "A strike in the colony has ended in collapse.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has seen a strike collapse.\n\nWe judge {target} critically. A failed labour action is a proper occasion to ask whether responsibility has been exercised adequately, rather than to excuse poor judgment through the convenience of the outcome."
+      "sub": "The strike by {name} has ended in collapse.",
+      "body": "The union {name} has seen its strike collapse. This story remains under examination, {months_running} months into our coverage of the original event.\n\nThe collapse of a strike is not a sufficient account of future labour conditions. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     },
     {
       "headline": "Still in view: a strike ends in collapse",
-      "sub": "A strike has collapsed in {colony}.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A strike in the colony has ended in collapse.\n\nWe judge {target} critically. A failed labour action is a proper occasion to ask whether responsibility has been exercised adequately, rather than to excuse poor judgment through the convenience of the outcome."
+      "sub": "The strike by the union {name} has collapsed.",
+      "body": "The strike by {name} has ended in collapse. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nThe collapse of a strike is not a sufficient account of future labour conditions. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     }
   ]
 }

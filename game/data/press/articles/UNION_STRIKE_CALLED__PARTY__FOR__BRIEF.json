@@ -7,17 +7,17 @@
     {
       "headline": "Union calls a strike",
       "sub": "",
-      "body": "A union has called a strike in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "The union {name} has called a strike. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "A call to withhold labour",
       "sub": "",
-      "body": "A strike has been called by a union in the colony. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "A strike has been called by the union {name}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "Work becomes the subject of a strike call",
       "sub": "",
-      "body": "The colony has a union call for strike action. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "The union {name} has issued a call for strike action. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     }
   ]
 }

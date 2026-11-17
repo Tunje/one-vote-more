@@ -7,17 +7,17 @@
     {
       "headline": "Party names a new leader",
       "sub": "",
-      "body": "A party has a new leader in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "The party {party} has a new leader: {new}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "Leadership changes hands",
       "sub": "",
-      "body": "Leadership of a political party has changed in the colony. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "Leadership of {party} has changed, with {new} the new leader. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "A new name at the head of the party",
       "sub": "",
-      "body": "A new leader is now at the head of a party in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "The new leader of {party} is {new}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     }
   ]
 }

@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Building project badly behind schedule",
-      "sub": "Construction of a building project is severely delayed in {colony}.",
-      "body": "A building project is badly behind schedule in {colony}. The delay is the established failure against its timetable, not a complete account of why it occurred. Readers considering {target} should distinguish that known position from invented shortages, contractor disputes or financial consequences not supplied in the report.\n\nThe stewardship of {target} warrants scrutiny against the severe delay. This report does not assign an unreported cause or presume that lateness means the project has been abandoned rather than delayed."
+      "sub": "Construction on {project} is severely delayed.",
+      "body": "The project {project} is badly behind schedule. The delay is the established failure against its timetable, not a complete account of why it occurred. Readers considering {target} should distinguish that known position from invented shortages, contractor disputes or financial consequences not supplied in the report.\n\nA severe delay is a delivery issue, not automatically a quantified cost overrun. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "Construction timetable falls seriously short",
-      "sub": "A colony building project has fallen badly behind its schedule.",
-      "body": "A construction schedule is an expectation about when something will be ready. A building project in the colony is falling badly short of that expectation. In assessing {target}, the question is responsible delivery, without assuming either the cause of the delay or a new date for completion.\n\nThe stewardship of {target} warrants scrutiny against the severe delay. This report does not assign an unreported cause or presume that lateness means the project has been abandoned rather than delayed."
+      "sub": "The project {project} has fallen badly behind its schedule.",
+      "body": "Construction on {project} is severely delayed. A building project in the colony is falling badly short of that expectation. In assessing {target}, the question is responsible delivery, without assuming either the cause of the delay or a new date for completion.\n\nA severe delay is a delivery issue, not automatically a quantified cost overrun. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "A project waits beyond its schedule",
-      "sub": "A building project in the colony is badly behind schedule.",
-      "body": "The colony has a building project severely behind schedule. The gap between planned timing and delivery deserves scrutiny in its own right. For {target}, responsibility should be considered without attaching an unreported overrun, contractual penalty or abandoned purpose to the fact of the project's lateness.\n\nThe stewardship of {target} warrants scrutiny against the severe delay. This report does not assign an unreported cause or presume that lateness means the project has been abandoned rather than delayed."
+      "sub": "The project {project} is badly behind schedule.",
+      "body": "The project {project} has fallen badly behind its schedule. The gap between planned timing and delivery deserves scrutiny in its own right. For {target}, responsibility should be considered without attaching an unreported overrun, contractual penalty or abandoned purpose to the fact of the project's lateness.\n\nA severe delay is a delivery issue, not automatically a quantified cost overrun. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     }
   ]
 }

@@ -7,17 +7,17 @@
     {
       "headline": "Accident at a workplace",
       "sub": "",
-      "body": "An accident has occurred at a workplace in {colony}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "An accident has occurred at {facility}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "Workplace safety becomes immediate news",
       "sub": "",
-      "body": "The colony has had an accident at a workplace. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "The workplace {facility} has had an accident. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "An accident enters the working day",
       "sub": "",
-      "body": "A workplace in the colony has been the scene of an accident. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "There has been an accident at {facility}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     }
   ]
 }

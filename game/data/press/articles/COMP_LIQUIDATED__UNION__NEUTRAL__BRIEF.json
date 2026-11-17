@@ -7,17 +7,17 @@
     {
       "headline": "A company goes under",
       "sub": "",
-      "body": "A company has gone under in {colony}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "The company {company} has gone under. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "Business failure enters the colony's record",
       "sub": "",
-      "body": "The colony has seen a company fail. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "The colony has seen the failure of {company}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "An enterprise reaches failure",
       "sub": "",
-      "body": "A business in the colony has gone under. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "The business {company} has gone under. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     }
   ]
 }

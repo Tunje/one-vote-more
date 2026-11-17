@@ -7,17 +7,17 @@
     {
       "headline": "Party leader faces a public scandal",
       "sub": "",
-      "body": "A scandal concerning a party leader has come to light in {colony}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "A scandal concerning {leader}, the leader of {party}, has come to light. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "Leadership under an unwelcome spotlight",
       "sub": "",
-      "body": "A party leader is the subject of a newly revealed scandal. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The leader of {party}, {leader}, is the subject of a newly revealed scandal. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "A scandal tests political trust",
       "sub": "",
-      "body": "A scandal about a party leader has become public in the colony. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "A scandal about {leader}, leader of {party}, has become public. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     }
   ]
 }

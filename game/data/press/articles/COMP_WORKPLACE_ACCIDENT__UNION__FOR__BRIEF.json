@@ -7,17 +7,17 @@
     {
       "headline": "Accident at a workplace",
       "sub": "",
-      "body": "An accident has occurred at a workplace in {colony}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "An accident has occurred at {facility}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "Workplace safety becomes immediate news",
       "sub": "",
-      "body": "The colony has had an accident at a workplace. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The workplace {facility} has had an accident. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "An accident enters the working day",
       "sub": "",
-      "body": "A workplace in the colony has been the scene of an accident. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "There has been an accident at {facility}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     }
   ]
 }

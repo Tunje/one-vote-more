@@ -1,0 +1,28 @@
+{
+  "event": "FEATURE_SEASON",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "FEATURE",
+  "variants": [
+    {
+      "headline": "Living inside a season",
+      "sub": "A reflection on {season} and the habit of making a life on this planet.",
+      "body": "A season is a name on the calendar and a way of paying attention. In {colony}, the subject is {season}. A portrait of it need not pretend that the name alone supplies a forecast or tells every resident what the day feels like.\n\nConsider how weather enters an ordinary decision. It is something to think about when work, a journey or a field is the subject. Different people can encounter the same season as different practical questions. The useful writer remembers that variety instead of inventing a single mood for the whole colony.\n\nSeasonal colour should not be an excuse for false precision. A newspaper can invite readers to look at the world around them without announcing rain, a harvest or a change in temperature it has not established. The season deserves observation before it is fitted to a convenient description.\n\nFor a commercial reader, the discipline is to distinguish seasonal attention from an output forecast. A calendar label does not establish a crop yield, a cost or a delivery condition. Practical judgment begins with the circumstances actually observed."
+    },
+    {
+      "headline": "The calendar and the ordinary day",
+      "sub": "A reflection on {season} and the habit of making a life on this planet.",
+      "body": "The calendar calls the season {season}. That is a beginning for a feature, rather than a complete picture of the weather in {colony}. A season becomes meaningful through the ordinary business of inhabiting it: the questions people bring to work, movement and the land.\n\nImagine asking what someone would notice first. A person considering a field might look differently from a person considering a journey. Neither point of view has to be dismissed to make room for the other. A good seasonal portrait should be able to keep both in mind.\n\nThere is a temptation to make the planet behave like a familiar phrase. Resist it. The subject is the colony's relationship with its surroundings, not the writer's wish for an easy opening about the weather. A careful look is more interesting than a borrowed certainty.\n\nFor a commercial reader, the discipline is to distinguish seasonal attention from an output forecast. A calendar label does not establish a crop yield, a cost or a delivery condition. Practical judgment begins with the circumstances actually observed."
+    },
+    {
+      "headline": "A seasonal view of the colony",
+      "sub": "A reflection on {season} and the habit of making a life on this planet.",
+      "body": "What does it mean to notice {season}? One answer is to stop treating the environment as scenery around the real business of the colony. Daily life takes place somewhere, and that somewhere deserves attention even when no dramatic event has made it news.\n\nA seasonal feature can ask what people would need to consider in their work or their plans. It should not claim to know a particular day's conditions from the calendar alone. The distinction matters: a name is useful, but it is not a measurement or a report from a field.\n\nThe most honest portrait leaves room for the reader's own observation. Look at the season as a setting for practical life, with different interests bringing different questions. There is enough to think about without inventing a flourishing crop or a sudden chill to give the paragraph a flourish.\n\nFor a commercial reader, the discipline is to distinguish seasonal attention from an output forecast. A calendar label does not establish a crop yield, a cost or a delivery condition. Practical judgment begins with the circumstances actually observed."
+    },
+    {
+      "headline": "What the season asks us to notice",
+      "sub": "A reflection on {season} and the habit of making a life on this planet.",
+      "body": "A season can be a practical matter before it becomes an attractive subject for a column. In writing about {season}, begin with the idea that weather and the land belong to the conditions of daily life, rather than to the newspaper's supply of decorative phrases.\n\nConsider the questions a portrait should ask. What would matter to someone thinking about a field? What would matter to someone thinking about a journey or a day's work? These are points of view, not an assertion that the season has produced a particular result.\n\nThe colony inhabits a planet, and a useful feature should make that thought feel ordinary rather than grand. We can pay attention without pretending the calendar supplies facts it does not contain. The invitation is to observe the surroundings carefully, not to applaud a description before asking whether it fits.\n\nFor a commercial reader, the discipline is to distinguish seasonal attention from an output forecast. A calendar label does not establish a crop yield, a cost or a delivery condition. Practical judgment begins with the circumstances actually observed."
+    }
+  ]
+}

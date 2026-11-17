@@ -7,17 +7,17 @@
     {
       "headline": "Building project badly behind schedule",
       "sub": "",
-      "body": "A building project in the colony is badly behind schedule. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "The project {project} is badly behind schedule. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "Construction timetable falls seriously short",
       "sub": "",
-      "body": "Construction of a building project is severely delayed in {colony}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "Construction on {project} is severely delayed. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "A project waits beyond its schedule",
       "sub": "",
-      "body": "A colony building project has fallen badly behind its schedule. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "The project {project} has fallen badly behind its schedule. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     }
   ]
 }

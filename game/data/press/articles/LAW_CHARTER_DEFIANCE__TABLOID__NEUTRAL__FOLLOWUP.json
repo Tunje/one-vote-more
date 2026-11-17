@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: colony openly defies its charter",
       "sub": "Open defiance of the charter is taking place in {colony}.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The colony is openly defying its charter.\n\nThe position of {target} warrants scrutiny through the reported defiance. This account does not presume the precise breach or announce a punitive consequence that has not been established in the report."
+      "body": "The colony is openly defying its charter. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nThe colony is openly defying its charter. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "Still in view: a public break with charter authority",
       "sub": "The colony has taken an openly defiant position towards its charter.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Open defiance of the charter is taking place in {colony}.\n\nThe position of {target} warrants scrutiny through the reported defiance. This account does not presume the precise breach or announce a punitive consequence that has not been established in the report."
+      "body": "Open defiance of the charter is taking place in {colony}. This story remains under examination, {months_running} months into our coverage of the original event.\n\nThe colony is openly defying its charter. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "Still in view: charter compliance becomes an open dispute",
       "sub": "The colony is openly defying its charter.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony has taken an openly defiant position towards its charter.\n\nThe position of {target} warrants scrutiny through the reported defiance. This account does not presume the precise breach or announce a punitive consequence that has not been established in the report."
+      "body": "The colony has taken an openly defiant position towards its charter. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nThe colony is openly defying its charter. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     }
   ]
 }

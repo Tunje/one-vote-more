@@ -7,17 +7,17 @@
     {
       "headline": "Party names a new leader",
       "sub": "",
-      "body": "A party has a new leader in {colony}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "The party {party} has a new leader: {new}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "Leadership changes hands",
       "sub": "",
-      "body": "Leadership of a political party has changed in the colony. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "Leadership of {party} has changed, with {new} the new leader. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "A new name at the head of the party",
       "sub": "",
-      "body": "A new leader is now at the head of a party in {colony}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "The new leader of {party} is {new}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     }
   ]
 }

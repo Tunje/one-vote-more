@@ -7,17 +7,17 @@
     {
       "headline": "A new government takes shape",
       "sub": "",
-      "body": "A new government has been formed in {colony}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+      "body": "A new government comprising {members} has been formed. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     },
     {
       "headline": "Formation is the beginning of governing",
       "sub": "",
-      "body": "The colony has a newly formed government. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+      "body": "The colony has a new government comprising {members}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     },
     {
       "headline": "New ministry, practical obligations",
       "sub": "",
-      "body": "Government formation has produced a new administration in {colony}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+      "body": "Government formation has produced an administration comprising {members}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     }
   ]
 }

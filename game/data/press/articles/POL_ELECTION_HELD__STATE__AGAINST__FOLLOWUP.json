@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: the colony has voted",
       "sub": "The colony has held its election to the Colonial Assembly.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. An election to the Colonial Assembly has been held in {colony}.\n\nIn our view, {target} deserves criticism. A claim to public trust must withstand scrutiny after the ballots as well as before them; an election should never shelter inadequate political conduct."
+      "body": "An election to the Colonial Assembly has been held in {colony}. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nThe gazette records the holding of the election without attributing a particular intention to the electorate. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     },
     {
       "headline": "Still in view: ballots before the business of government",
       "sub": "Voting in an election to the Colonial Assembly has taken place.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has held its election to the Colonial Assembly.\n\nIn our view, {target} deserves criticism. A claim to public trust must withstand scrutiny after the ballots as well as before them; an election should never shelter inadequate political conduct."
+      "body": "The colony has held its election to the Colonial Assembly. This story remains under examination, {months_running} months into our coverage of the original event.\n\nThe gazette records the holding of the election without attributing a particular intention to the electorate. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     },
     {
       "headline": "Still in view: an Assembly election enters the record",
       "sub": "An election to the Colonial Assembly has been held in {colony}.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. Voting in an election to the Colonial Assembly has taken place.\n\nIn our view, {target} deserves criticism. A claim to public trust must withstand scrutiny after the ballots as well as before them; an election should never shelter inadequate political conduct."
+      "body": "Voting in an election to the Colonial Assembly has taken place. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nThe gazette records the holding of the election without attributing a particular intention to the electorate. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     }
   ]
 }

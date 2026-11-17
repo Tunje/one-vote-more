@@ -1,0 +1,28 @@
+{
+  "event": "FEATURE_MARKET",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "FEATURE",
+  "variants": [
+    {
+      "headline": "A market walk without a price list",
+      "sub": "A reflective walk through the market, with attention to cost, need and availability.",
+      "body": "A walk through the market is a good way to think about the distance between wanting something and being able to obtain it. The useful questions are plain: what is dear, what is cheap, and what cannot be had? The questions do not supply their own answers.\n\nConsider the buyer's point of view. A price has meaning in relation to a need and the means of meeting it. Something can look attractive in a display and still fail that practical test. A portrait of the market should keep the distinction visible rather than substitute enthusiasm for an account of affordability.\n\nThis is an invitation to look carefully, not a list of current bargains in {colony}. A good market walk should leave the reader more attentive to the relationship between cost and daily life, without pretending the writer can announce a price or a shortage from the idea of a market alone.\n\nCommercial judgment distinguishes asking price, value and availability. The market is best understood by attending to those particulars rather than inventing a general mood from its existence. A buyer's practical questions are part of commerce, not an interruption of it."
+    },
+    {
+      "headline": "What a price is meant to tell us",
+      "sub": "A reflective walk through the market, with attention to cost, need and availability.",
+      "body": "What makes something cheap? The question sounds simple until the person asking it has a particular need to meet. A market walk should be capable of looking at the same offer from more than the seller's position. Price is a relation, not merely an attractive word.\n\nImagine following a buyer's questions rather than the shape of a display. Is the thing needed? Is it obtainable? What does its cost mean for the person considering it? Those are useful ways of looking without inventing a basket, a wage or a current price for the colony.\n\nThe market deserves a portrait that connects exchange to ordinary life. Admiration for commerce need not require the buyer to disappear. Nor does concern for need require a fictional shortage. There is interest in the practical judgment itself, if the writer resists the temptation to supply answers that have not been established.\n\nCommercial judgment distinguishes asking price, value and availability. The market is best understood by attending to those particulars rather than inventing a general mood from its existence. A buyer's practical questions are part of commerce, not an interruption of it."
+    },
+    {
+      "headline": "The market from the buyer's end",
+      "sub": "A reflective walk through the market, with attention to cost, need and availability.",
+      "body": "The most revealing part of a market can be the question someone brings to it. A person looking for a necessity and a person considering a pleasant extra need not see the same offer in the same way. A useful portrait should leave room for both positions.\n\nThis walk through the idea of the market begins with availability. What cannot be had is a different question from what is costly, and a low price is not useful for a thing that cannot actually be obtained. The distinctions matter without requiring a made-up example from a stall.\n\nFor readers in {colony}, the invitation is to connect the commercial language to the practical need it is supposed to serve. A market is not fully understood by admiring the possibility of exchange. The interesting question is how an exchange looks from the life of the person who needs to make it.\n\nCommercial judgment distinguishes asking price, value and availability. The market is best understood by attending to those particulars rather than inventing a general mood from its existence. A buyer's practical questions are part of commerce, not an interruption of it."
+    },
+    {
+      "headline": "Looking beyond the attractive display",
+      "sub": "A reflective walk through the market, with attention to cost, need and availability.",
+      "body": "A market portrait should not make every reader into the same customer. People can approach an offer with different purposes, means and priorities. The question is how to look at that variety without announcing a collection of local prices the newspaper does not possess.\n\nBegin with the distinction between cost and value. Something may deserve admiration and still be the wrong purchase for a particular need. Something plain may be exactly what is wanted. These are judgments a market invites; they are not a claim about a particular item on sale in {colony}.\n\nA walk worth writing about therefore pays attention to decisions, not just displays. Ask what is dear, what is cheap and what cannot be had, then remember that each answer needs observation. The reader should leave with sharper questions rather than a fictional shopping list dressed up as a report from the colony's commercial life.\n\nCommercial judgment distinguishes asking price, value and availability. The market is best understood by attending to those particulars rather than inventing a general mood from its existence. A buyer's practical questions are part of commerce, not an interruption of it."
+    }
+  ]
+}

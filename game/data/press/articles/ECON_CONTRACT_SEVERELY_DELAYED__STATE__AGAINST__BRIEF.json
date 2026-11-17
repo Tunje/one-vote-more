@@ -7,17 +7,17 @@
     {
       "headline": "Building project badly behind schedule",
       "sub": "",
-      "body": "A building project in the colony is badly behind schedule. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+      "body": "The project {project} is badly behind schedule. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     },
     {
       "headline": "Construction timetable falls seriously short",
       "sub": "",
-      "body": "Construction of a building project is severely delayed in {colony}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+      "body": "Construction on {project} is severely delayed. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     },
     {
       "headline": "A project waits beyond its schedule",
       "sub": "",
-      "body": "A colony building project has fallen badly behind its schedule. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+      "body": "The project {project} has fallen badly behind its schedule. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     }
   ]
 }

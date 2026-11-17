@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Still in view: company lays off many workers",
-      "sub": "Many workers have been laid off by a company in the colony.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A company has laid off many workers in {colony}.\n\nWe hold {target} to account critically. A large loss of jobs is not a minor adjustment in the lives of workers, and its stewardship deserves a more demanding standard than a convenient abstraction."
+      "sub": "Many workers have been laid off by {company}.",
+      "body": "The company {company} has laid off many workers. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nThe gazette records the large layoff without assigning a count or a reason not supplied in the report. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     },
     {
       "headline": "Still in view: a large loss of jobs at a company",
-      "sub": "The colony has seen a company carry out a large layoff.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Many workers have been laid off by a company in the colony.\n\nWe hold {target} to account critically. A large loss of jobs is not a minor adjustment in the lives of workers, and its stewardship deserves a more demanding standard than a convenient abstraction."
+      "sub": "The company {company} has carried out a large layoff.",
+      "body": "Many workers have been laid off by {company}. This story remains under examination, {months_running} months into our coverage of the original event.\n\nThe gazette records the large layoff without assigning a count or a reason not supplied in the report. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     },
     {
       "headline": "Still in view: workers face a company layoff",
-      "sub": "A company has laid off many workers in {colony}.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony has seen a company carry out a large layoff.\n\nWe hold {target} to account critically. A large loss of jobs is not a minor adjustment in the lives of workers, and its stewardship deserves a more demanding standard than a convenient abstraction."
+      "sub": "The company {company} has laid off many workers.",
+      "body": "The company {company} has carried out a large layoff. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nThe gazette records the large layoff without assigning a count or a reason not supplied in the report. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     }
   ]
 }

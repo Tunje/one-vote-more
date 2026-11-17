@@ -7,17 +7,17 @@
     {
       "headline": "Accident at a workplace",
       "sub": "",
-      "body": "An accident has occurred at a workplace in {colony}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+      "body": "An accident has occurred at {facility}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     },
     {
       "headline": "Workplace safety becomes immediate news",
       "sub": "",
-      "body": "The colony has had an accident at a workplace. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+      "body": "The workplace {facility} has had an accident. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     },
     {
       "headline": "An accident enters the working day",
       "sub": "",
-      "body": "A workplace in the colony has been the scene of an accident. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+      "body": "There has been an accident at {facility}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     }
   ]
 }

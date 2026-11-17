@@ -7,17 +7,17 @@
     {
       "headline": "Strike collapses",
       "sub": "",
-      "body": "A strike has collapsed in {colony}. The gazette records the development as a matter deserving careful attention in the public interest."
+      "body": "The strike by the union {name} has collapsed. The gazette records the development as a matter deserving careful attention in the public interest."
     },
     {
       "headline": "Labour action loses its course",
       "sub": "",
-      "body": "The colony has seen a strike collapse. The gazette records the development as a matter deserving careful attention in the public interest."
+      "body": "The union {name} has seen its strike collapse. The gazette records the development as a matter deserving careful attention in the public interest."
     },
     {
       "headline": "A strike ends in collapse",
       "sub": "",
-      "body": "A strike in the colony has ended in collapse. The gazette records the development as a matter deserving careful attention in the public interest."
+      "body": "The strike by {name} has ended in collapse. The gazette records the development as a matter deserving careful attention in the public interest."
     }
   ]
 }

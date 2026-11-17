@@ -7,17 +7,17 @@
     {
       "headline": "Party divides in two",
       "sub": "",
-      "body": "A political party has split in two in {colony}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "The party {party} has split, with {splinter} the new breakaway party. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "A political organisation breaks apart",
       "sub": "",
-      "body": "The colony has seen a party divide into two organisations. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "A split in {party} has produced the new party {splinter}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "Unity gives way to a party split",
       "sub": "",
-      "body": "A split has divided a political party in the colony. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "The new party {splinter} has broken away from {party}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     }
   ]
 }

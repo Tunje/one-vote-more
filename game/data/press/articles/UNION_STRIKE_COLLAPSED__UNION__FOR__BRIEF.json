@@ -7,17 +7,17 @@
     {
       "headline": "Strike collapses",
       "sub": "",
-      "body": "A strike has collapsed in {colony}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The strike by the union {name} has collapsed. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "Labour action loses its course",
       "sub": "",
-      "body": "The colony has seen a strike collapse. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The union {name} has seen its strike collapse. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "A strike ends in collapse",
       "sub": "",
-      "body": "A strike in the colony has ended in collapse. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The strike by {name} has ended in collapse. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     }
   ]
 }

@@ -7,17 +7,17 @@
     {
       "headline": "Party leader faces a challenge",
       "sub": "",
-      "body": "A party's leader is being challenged in {colony}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The leader of {party} is being challenged. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "Leadership becomes a contested question",
       "sub": "",
-      "body": "A challenge to a party leader has opened in the colony. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "A challenge to the leadership of {party} has opened. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "A challenge inside the party",
       "sub": "",
-      "body": "The leadership of a political party is under challenge. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "Leadership of the party {party} is under challenge. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     }
   ]
 }

@@ -7,17 +7,17 @@
     {
       "headline": "Strike collapses",
       "sub": "",
-      "body": "A strike has collapsed in {colony}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+      "body": "The strike by the union {name} has collapsed. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "Labour action loses its course",
       "sub": "",
-      "body": "The colony has seen a strike collapse. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+      "body": "The union {name} has seen its strike collapse. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "A strike ends in collapse",
       "sub": "",
-      "body": "A strike in the colony has ended in collapse. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+      "body": "The strike by {name} has ended in collapse. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     }
   ]
 }

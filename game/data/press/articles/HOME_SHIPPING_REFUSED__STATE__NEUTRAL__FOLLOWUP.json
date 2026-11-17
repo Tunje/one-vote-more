@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: request for more shipping refused",
       "sub": "A colonial request for additional shipping has been rejected by the home world.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has refused the colony's request for more shipping.\n\nThe responsibility of {target} should be examined through the refused request. This paper does not presume an explanation for the refusal or a change in existing shipping that has not been reported."
+      "body": "The home world has refused the colony's request for more shipping. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nThe gazette records rejection of the request for an increase. The gazette records the development as a matter deserving careful attention in the public interest."
     },
     {
       "headline": "Still in view: home world declines route expansion request",
       "sub": "The colony's plea for more shipping has been refused.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A colonial request for additional shipping has been rejected by the home world.\n\nThe responsibility of {target} should be examined through the refused request. This paper does not presume an explanation for the refusal or a change in existing shipping that has not been reported."
+      "body": "A colonial request for additional shipping has been rejected by the home world. This story remains under examination, {months_running} months into our coverage of the original event.\n\nThe gazette records rejection of the request for an increase. The gazette records the development as a matter deserving careful attention in the public interest."
     },
     {
       "headline": "Still in view: no assent to the colony's shipping plea",
       "sub": "The home world has refused the colony's request for more shipping.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony's plea for more shipping has been refused.\n\nThe responsibility of {target} should be examined through the refused request. This paper does not presume an explanation for the refusal or a change in existing shipping that has not been reported."
+      "body": "The colony's plea for more shipping has been refused. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nThe gazette records rejection of the request for an increase. The gazette records the development as a matter deserving careful attention in the public interest."
     }
   ]
 }

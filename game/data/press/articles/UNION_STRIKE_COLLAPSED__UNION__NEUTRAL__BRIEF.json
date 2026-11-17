@@ -7,17 +7,17 @@
     {
       "headline": "Strike collapses",
       "sub": "",
-      "body": "A strike has collapsed in {colony}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "The strike by the union {name} has collapsed. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "Labour action loses its course",
       "sub": "",
-      "body": "The colony has seen a strike collapse. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "The union {name} has seen its strike collapse. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "A strike ends in collapse",
       "sub": "",
-      "body": "A strike in the colony has ended in collapse. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "The strike by {name} has ended in collapse. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     }
   ]
 }

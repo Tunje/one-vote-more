@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: home world raises its demands",
       "sub": "The demands placed on the colony by the home world have increased.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has raised what it demands of the colony.\n\nThis paper examines {target} through the increased demand, without presuming either its justification or its practical burden. The change is established; its unreported terms should remain outside the factual account."
+      "body": "The home world has raised what it demands of the colony. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nMore. It is a short word when somebody else has to supply it. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "Still in view: a larger claim on the colony",
       "sub": "The home world is demanding more from {colony}.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The demands placed on the colony by the home world have increased.\n\nThis paper examines {target} through the increased demand, without presuming either its justification or its practical burden. The change is established; its unreported terms should remain outside the factual account."
+      "body": "The demands placed on the colony by the home world have increased. This story remains under examination, {months_running} months into our coverage of the original event.\n\nMore. It is a short word when somebody else has to supply it. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "Still in view: distant authority asks for more",
       "sub": "The home world has raised what it demands of the colony.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The home world is demanding more from {colony}.\n\nThis paper examines {target} through the increased demand, without presuming either its justification or its practical burden. The change is established; its unreported terms should remain outside the factual account."
+      "body": "The home world is demanding more from {colony}. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nMore. It is a short word when somebody else has to supply it. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     }
   ]
 }

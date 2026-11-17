@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: shipbuilding for the colony route",
       "sub": "Shipbuilding by the home world has provided a larger vessel or another vessel for the colony route.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has built a larger ship or an additional ship for the colony route.\n\nWe welcome {target} in this assessment. Construction for the route deserves recognition as a tangible development, even while a fair account keeps that achievement distinct from promises about voyages not established here."
+      "body": "The home world has built a larger ship or an additional ship for the colony route. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nTransport is part of the material relationship between the colony and the home world. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "Still in view: home world builds for the colonial crossing",
       "sub": "A larger ship or one more ship has been built for the colony route.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Shipbuilding by the home world has provided a larger vessel or another vessel for the colony route.\n\nWe welcome {target} in this assessment. Construction for the route deserves recognition as a tangible development, even while a fair account keeps that achievement distinct from promises about voyages not established here."
+      "body": "Shipbuilding by the home world has provided a larger vessel or another vessel for the colony route. This story remains under examination, {months_running} months into our coverage of the original event.\n\nTransport is part of the material relationship between the colony and the home world. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "Still in view: route gains a shipbuilding development",
       "sub": "The home world has built a larger ship or an additional ship for the colony route.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A larger ship or one more ship has been built for the colony route.\n\nWe welcome {target} in this assessment. Construction for the route deserves recognition as a tangible development, even while a fair account keeps that achievement distinct from promises about voyages not established here."
+      "body": "A larger ship or one more ship has been built for the colony route. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nTransport is part of the material relationship between the colony and the home world. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     }
   ]
 }

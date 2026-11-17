@@ -7,17 +7,17 @@
     {
       "headline": "Building project badly behind schedule",
       "sub": "",
-      "body": "A building project in the colony is badly behind schedule. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "The project {project} is badly behind schedule. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "Construction timetable falls seriously short",
       "sub": "",
-      "body": "Construction of a building project is severely delayed in {colony}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "Construction on {project} is severely delayed. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "A project waits beyond its schedule",
       "sub": "",
-      "body": "A colony building project has fallen badly behind its schedule. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "The project {project} has fallen badly behind its schedule. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     }
   ]
 }

@@ -7,17 +7,17 @@
     {
       "headline": "Party divides in two",
       "sub": "",
-      "body": "A political party has split in two in {colony}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "The party {party} has split, with {splinter} the new breakaway party. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "A political organisation breaks apart",
       "sub": "",
-      "body": "The colony has seen a party divide into two organisations. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "A split in {party} has produced the new party {splinter}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "Unity gives way to a party split",
       "sub": "",
-      "body": "A split has divided a political party in the colony. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "The new party {splinter} has broken away from {party}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     }
   ]
 }

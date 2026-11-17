@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: colony openly defies its charter",
       "sub": "Open defiance of the charter is taking place in {colony}.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The colony is openly defying its charter.\n\nWe defend {target} in this assessment. Compliance is not the only possible political virtue, and a fair hearing must allow a principled challenge to authority rather than treating defiance as self-proving guilt."
+      "body": "The colony is openly defying its charter. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nThe colony is openly defying its charter. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "Still in view: a public break with charter authority",
       "sub": "The colony has taken an openly defiant position towards its charter.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. Open defiance of the charter is taking place in {colony}.\n\nWe defend {target} in this assessment. Compliance is not the only possible political virtue, and a fair hearing must allow a principled challenge to authority rather than treating defiance as self-proving guilt."
+      "body": "Open defiance of the charter is taking place in {colony}. This story remains under examination, {months_running} months into our coverage of the original event.\n\nThe colony is openly defying its charter. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "Still in view: charter compliance becomes an open dispute",
       "sub": "The colony is openly defying its charter.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony has taken an openly defiant position towards its charter.\n\nWe defend {target} in this assessment. Compliance is not the only possible political virtue, and a fair hearing must allow a principled challenge to authority rather than treating defiance as self-proving guilt."
+      "body": "The colony has taken an openly defiant position towards its charter. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nThe colony is openly defying its charter. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     }
   ]
 }

@@ -7,17 +7,17 @@
     {
       "headline": "Union calls a strike",
       "sub": "",
-      "body": "A union has called a strike in {colony}. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+      "body": "The union {name} has called a strike. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     },
     {
       "headline": "A call to withhold labour",
       "sub": "",
-      "body": "A strike has been called by a union in the colony. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+      "body": "A strike has been called by the union {name}. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     },
     {
       "headline": "Work becomes the subject of a strike call",
       "sub": "",
-      "body": "The colony has a union call for strike action. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+      "body": "The union {name} has issued a call for strike action. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     }
   ]
 }

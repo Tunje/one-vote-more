@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Still in view: accident at a workplace",
-      "sub": "The colony has had an accident at a workplace.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. An accident has occurred at a workplace in {colony}.\n\nWe defend {target} against automatic blame. The fact of an accident does not by itself establish a breach or settle responsibility, and a fair account should resist treating a feared explanation as proven."
+      "sub": "The workplace {facility} has had an accident.",
+      "body": "An accident has occurred at {facility}. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nGoing to work should not make a person's safety an afterthought. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "Still in view: workplace safety becomes immediate news",
-      "sub": "A workplace in the colony has been the scene of an accident.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony has had an accident at a workplace.\n\nWe defend {target} against automatic blame. The fact of an accident does not by itself establish a breach or settle responsibility, and a fair account should resist treating a feared explanation as proven."
+      "sub": "There has been an accident at {facility}.",
+      "body": "The workplace {facility} has had an accident. This story remains under examination, {months_running} months into our coverage of the original event.\n\nGoing to work should not make a person's safety an afterthought. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "Still in view: an accident enters the working day",
-      "sub": "An accident has occurred at a workplace in {colony}.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A workplace in the colony has been the scene of an accident.\n\nWe defend {target} against automatic blame. The fact of an accident does not by itself establish a breach or settle responsibility, and a fair account should resist treating a feared explanation as proven."
+      "sub": "An accident has occurred at {facility}.",
+      "body": "There has been an accident at {facility}. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nGoing to work should not make a person's safety an afterthought. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     }
   ]
 }

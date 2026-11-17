@@ -7,17 +7,17 @@
     {
       "headline": "Party leader blunders in election debate",
       "sub": "",
-      "body": "A party leader has blundered in an election debate. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "The leader of {party}, {leader}, has blundered in an election debate. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "A debate brings a leader's misstep",
       "sub": "",
-      "body": "An election debate has included a blunder by a party leader. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "An election debate has included a blunder by {leader}, leader of {party}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     },
     {
       "headline": "Election argument meets an awkward moment",
       "sub": "",
-      "body": "A party leader has made a misstep in an election debate. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+      "body": "The party leader {leader}, of {party}, has made a debate misstep. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
     }
   ]
 }

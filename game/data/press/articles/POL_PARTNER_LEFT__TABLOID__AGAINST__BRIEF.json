@@ -7,17 +7,17 @@
     {
       "headline": "Party walks out of government",
       "sub": "",
-      "body": "A party has walked out of the government in {colony}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "The party {party} has walked out of the government. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "A governing partnership breaks",
       "sub": "",
-      "body": "A governing party has left the colony's government. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "The government has lost the party {party} from its governing arrangement. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "Departure redraws the question of cooperation",
       "sub": "",
-      "body": "The government has lost a party from its governing arrangement. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "The party {party} has left the colony's government. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     }
   ]
 }

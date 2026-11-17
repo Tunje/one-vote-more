@@ -7,17 +7,17 @@
     {
       "headline": "Party walks out of government",
       "sub": "",
-      "body": "A party has walked out of the government in {colony}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The party {party} has walked out of the government. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "A governing partnership breaks",
       "sub": "",
-      "body": "A governing party has left the colony's government. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The government has lost the party {party} from its governing arrangement. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "Departure redraws the question of cooperation",
       "sub": "",
-      "body": "The government has lost a party from its governing arrangement. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The party {party} has left the colony's government. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     }
   ]
 }

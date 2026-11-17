@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "Party leader blunders in election debate",
-      "sub": "An election debate has included a blunder by a party leader.",
-      "body": "A party leader has blundered in an election debate. The misstep is established, but the words involved and their effect on voters are not supplied here. Readers assessing {target} should distinguish the debate event from a fabricated quotation or a claim that the election's outcome has been decided.\n\nWe criticise {target} in this assessment. Political leadership includes judgment under scrutiny, and a debate blunder is an appropriate occasion to question whether the standard of public presentation has been adequate."
+      "sub": "An election debate has included a blunder by {leader}, leader of {party}.",
+      "body": "The leader of {party}, {leader}, has blundered in an election debate. The misstep is established, but the words involved and their effect on voters are not supplied here. Readers assessing {target} should distinguish the debate event from a fabricated quotation or a claim that the election's outcome has been decided.\n\nWorkers deserve political debate about the conditions of their lives, not merely a competition in speaking neatly. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     },
     {
       "headline": "A debate brings a leader's misstep",
-      "sub": "A party leader has made a misstep in an election debate.",
-      "body": "An election debate has produced a leader's blunder. Public speaking is part of political leadership, though an awkward moment is not a complete political record. For {target}, the question is judgment under scrutiny, without inventing what was said or how the audience responded to the mistake.\n\nWe criticise {target} in this assessment. Political leadership includes judgment under scrutiny, and a debate blunder is an appropriate occasion to question whether the standard of public presentation has been adequate."
+      "sub": "The party leader {leader}, of {party}, has made a debate misstep.",
+      "body": "An election debate has included a blunder by {leader}, leader of {party}. Public speaking is part of political leadership, though an awkward moment is not a complete political record. For {target}, the question is judgment under scrutiny, without inventing what was said or how the audience responded to the mistake.\n\nWorkers deserve political debate about the conditions of their lives, not merely a competition in speaking neatly. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     },
     {
       "headline": "Election argument meets an awkward moment",
-      "sub": "A party leader has blundered in an election debate.",
-      "body": "The colony's election argument includes a blunder by a party leader in debate. It is legitimate political news, not a substitute for the whole contest. An assessment of {target} should keep the misstep in proportion and leave polling changes or electoral consequences outside the factual account.\n\nWe criticise {target} in this assessment. Political leadership includes judgment under scrutiny, and a debate blunder is an appropriate occasion to question whether the standard of public presentation has been adequate."
+      "sub": "The leader of {party}, {leader}, has blundered in an election debate.",
+      "body": "The party leader {leader}, of {party}, has made a debate misstep. It is legitimate political news, not a substitute for the whole contest. An assessment of {target} should keep the misstep in proportion and leave polling changes or electoral consequences outside the factual account.\n\nWorkers deserve political debate about the conditions of their lives, not merely a competition in speaking neatly. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     }
   ]
 }

@@ -7,17 +7,17 @@
     {
       "headline": "Accident at a workplace",
       "sub": "",
-      "body": "An accident has occurred at a workplace in {colony}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "An accident has occurred at {facility}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "Workplace safety becomes immediate news",
       "sub": "",
-      "body": "The colony has had an accident at a workplace. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "The workplace {facility} has had an accident. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "An accident enters the working day",
       "sub": "",
-      "body": "A workplace in the colony has been the scene of an accident. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+      "body": "There has been an accident at {facility}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     }
   ]
 }

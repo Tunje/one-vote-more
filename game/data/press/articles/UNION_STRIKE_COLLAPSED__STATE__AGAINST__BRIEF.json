@@ -7,17 +7,17 @@
     {
       "headline": "Strike collapses",
       "sub": "",
-      "body": "A strike has collapsed in {colony}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+      "body": "The strike by the union {name} has collapsed. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     },
     {
       "headline": "Labour action loses its course",
       "sub": "",
-      "body": "The colony has seen a strike collapse. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+      "body": "The union {name} has seen its strike collapse. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     },
     {
       "headline": "A strike ends in collapse",
       "sub": "",
-      "body": "A strike in the colony has ended in collapse. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+      "body": "The strike by {name} has ended in collapse. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
     }
   ]
 }

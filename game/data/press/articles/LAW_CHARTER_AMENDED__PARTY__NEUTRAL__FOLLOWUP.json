@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: home world changes the charter",
       "sub": "An amendment to the colony's charter has been made by the home world.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has changed the colony's charter.\n\nThis paper examines {target} through the fact of the amendment, without announcing a specific legal effect not contained in the report. The exercise of authority and its justification merit separate scrutiny."
+      "body": "The home world has changed the colony's charter. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nOur movement believes the rules of public authority deserve political argument, not ceremonial submission. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "Still in view: colonial charter amended",
       "sub": "The colony's charter has been altered by the home world.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. An amendment to the colony's charter has been made by the home world.\n\nThis paper examines {target} through the fact of the amendment, without announcing a specific legal effect not contained in the report. The exercise of authority and its justification merit separate scrutiny."
+      "body": "An amendment to the colony's charter has been made by the home world. This story remains under examination, {months_running} months into our coverage of the original event.\n\nOur movement believes the rules of public authority deserve political argument, not ceremonial submission. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "Still in view: the terms of authority are altered",
       "sub": "The home world has changed the colony's charter.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony's charter has been altered by the home world.\n\nThis paper examines {target} through the fact of the amendment, without announcing a specific legal effect not contained in the report. The exercise of authority and its justification merit separate scrutiny."
+      "body": "The colony's charter has been altered by the home world. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nOur movement believes the rules of public authority deserve political argument, not ceremonial submission. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     }
   ]
 }

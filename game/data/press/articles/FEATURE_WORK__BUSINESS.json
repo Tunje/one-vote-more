@@ -1,0 +1,28 @@
+{
+  "event": "FEATURE_WORK",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "FEATURE",
+  "variants": [
+    {
+      "headline": "A day's work, considered from the inside",
+      "sub": "A quiet-month reflection on the people whose work makes a colony possible.",
+      "body": "A day with the people who do a job should begin with the people, not with an impressive description of the output. Consider the baker as a subject for a feature. The interest is not simply the idea of bread, but the human responsibility involved in useful work.\n\nThis is an invitation to consider the job, not an account of a named bakery in {colony}. No particular shift, wage or production figure is being reported. The useful question is what it means to perform work that someone else needs, and how easily the worker can disappear behind the thing produced.\n\nA portrait should leave room for skill, effort and the life around the job. Admiring a useful occupation need not mean making its demands invisible. The person who does the work deserves to be considered as more than the answer to somebody else's need.\n\nA useful output depends on work, and a sound management view should keep the person and the task in the same account. Respect for skill and responsibility need not be treated as a departure from practical commercial judgment."
+    },
+    {
+      "headline": "The person behind the useful job",
+      "sub": "A quiet-month reflection on the people whose work makes a colony possible.",
+      "body": "A useful way to think about a day of work is to follow its purpose. Consider nursing: the subject is care, and the person doing the job should not disappear into an attractive phrase about dedication. A portrait ought to allow a human life on both sides of the work.\n\nThis feature does not report a particular patient, workplace or shift in the colony. It asks what a reader should notice when considering an occupation whose purpose matters to others. Skill and responsibility deserve attention without an invented emergency to make the story feel important.\n\nThe ordinary day is enough of a subject. A job can be admired while its conditions remain a legitimate question, and a worker can be valued without being required to become a hero first. That is a useful standard for a newspaper trying to write about the people who do necessary work.\n\nA useful output depends on work, and a sound management view should keep the person and the task in the same account. Respect for skill and responsibility need not be treated as a departure from practical commercial judgment."
+    },
+    {
+      "headline": "Work is a life as well as an output",
+      "sub": "A quiet-month reflection on the people whose work makes a colony possible.",
+      "body": "Consider a driver's day as a question about responsibility. A journey is often described from the position of the person who wants to arrive or receive something. A feature about work should also have room for the person expected to make that movement possible.\n\nNo particular route, load or vehicle is being reported here. The subject is the perspective a portrait ought to take. A job can appear simple from its useful result, while the person doing it deserves attention as someone exercising judgment rather than merely supplying movement.\n\nA newspaper need not invent an exciting incident to make ordinary work worth considering. The more useful question is what respectful attention looks like: enough interest in the task to understand its purpose, and enough interest in the worker to remember that the task belongs within a whole life, not the other way around.\n\nA useful output depends on work, and a sound management view should keep the person and the task in the same account. Respect for skill and responsibility need not be treated as a departure from practical commercial judgment."
+    },
+    {
+      "headline": "Following the ordinary purpose of a job",
+      "sub": "A quiet-month reflection on the people whose work makes a colony possible.",
+      "body": "A builder is a good subject for thinking about the difference between a plan and the work required to make something real. The finished purpose can attract all the attention. A portrait of a working day should look at the person as well as the promise.\n\nThis is not a report from a particular building site in {colony}. It supplies no task list, wage or account of conditions. Instead, it asks what a reader should keep in view when thinking about an occupation whose result can be easier to admire than the human effort behind it.\n\nWork deserves attention without an invented achievement to make the feature grand. The job has a purpose; the person has a life. A serious portrait should be able to respect both, without making decent conditions seem like an inconvenient footnote to the thing somebody else wants completed.\n\nA useful output depends on work, and a sound management view should keep the person and the task in the same account. Respect for skill and responsibility need not be treated as a departure from practical commercial judgment."
+    }
+  ]
+}

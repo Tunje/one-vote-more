@@ -7,17 +7,17 @@
     {
       "headline": "Party names a new leader",
       "sub": "",
-      "body": "A party has a new leader in {colony}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "The party {party} has a new leader: {new}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "Leadership changes hands",
       "sub": "",
-      "body": "Leadership of a political party has changed in the colony. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "Leadership of {party} has changed, with {new} the new leader. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "A new name at the head of the party",
       "sub": "",
-      "body": "A new leader is now at the head of a party in {colony}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "The new leader of {party} is {new}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     }
   ]
 }

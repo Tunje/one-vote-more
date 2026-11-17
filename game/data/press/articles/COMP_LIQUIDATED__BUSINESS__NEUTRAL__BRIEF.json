@@ -7,17 +7,17 @@
     {
       "headline": "A company goes under",
       "sub": "",
-      "body": "A company has gone under in {colony}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The company {company} has gone under. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "Business failure enters the colony's record",
       "sub": "",
-      "body": "The colony has seen a company fail. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The colony has seen the failure of {company}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "An enterprise reaches failure",
       "sub": "",
-      "body": "A business in the colony has gone under. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The business {company} has gone under. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     }
   ]
 }

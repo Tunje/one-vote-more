@@ -7,17 +7,17 @@
     {
       "headline": "Party leader faces a public scandal",
       "sub": "",
-      "body": "A scandal concerning a party leader has come to light in {colony}. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "A scandal concerning {leader}, the leader of {party}, has come to light. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "Leadership under an unwelcome spotlight",
       "sub": "",
-      "body": "A party leader is the subject of a newly revealed scandal. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "The leader of {party}, {leader}, is the subject of a newly revealed scandal. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     },
     {
       "headline": "A scandal tests political trust",
       "sub": "",
-      "body": "A scandal about a party leader has become public in the colony. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+      "body": "A scandal about {leader}, leader of {party}, has become public. Keep the people behind the story in view, and ask the hard questions without inventing answers."
     }
   ]
 }

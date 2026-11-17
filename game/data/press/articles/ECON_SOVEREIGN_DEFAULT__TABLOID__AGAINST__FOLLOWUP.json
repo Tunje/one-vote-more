@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: government cannot pay its debts",
       "sub": "The colony's government is unable to pay its debts.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The government of {colony} cannot pay its debts.\n\nWe hold {target} to a critical standard. An inability to meet public debts is a fundamental failure of financial stewardship, and responsibility should not be displaced by an attractive description of the difficulty."
+      "body": "The government of {colony} cannot pay its debts. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nThe government cannot pay its debts. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "Still in view: public debt meets a payment failure",
       "sub": "Government debt in the colony cannot be paid by the administration.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony's government is unable to pay its debts.\n\nWe hold {target} to a critical standard. An inability to meet public debts is a fundamental failure of financial stewardship, and responsibility should not be displaced by an attractive description of the difficulty."
+      "body": "The colony's government is unable to pay its debts. This story remains under examination, {months_running} months into our coverage of the original event.\n\nThe government cannot pay its debts. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     },
     {
       "headline": "Still in view: the colony's government faces default",
       "sub": "The government of {colony} cannot pay its debts.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. Government debt in the colony cannot be paid by the administration.\n\nWe hold {target} to a critical standard. An inability to meet public debts is a fundamental failure of financial stewardship, and responsibility should not be displaced by an attractive description of the difficulty."
+      "body": "Government debt in the colony cannot be paid by the administration. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nThe government cannot pay its debts. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
     }
   ]
 }

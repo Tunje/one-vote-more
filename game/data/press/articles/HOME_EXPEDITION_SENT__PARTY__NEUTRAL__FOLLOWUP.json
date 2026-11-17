@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: home world sends punitive expedition",
       "sub": "A punitive expedition has been dispatched by the home world.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has sent a punitive expedition.\n\nThe conduct of {target} warrants scrutiny in relation to the dispatch. This newspaper does not treat the expedition's purpose as evidence of an unreported encounter or an established outcome in the colony."
+      "body": "The home world has sent a punitive expedition. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nA claim to authority becomes especially important to examine when it takes a punitive form. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "Still in view: an expedition with a punitive purpose",
       "sub": "The home world has dispatched an expedition intended to punish the colony.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. A punitive expedition has been dispatched by the home world.\n\nThe conduct of {target} warrants scrutiny in relation to the dispatch. This newspaper does not treat the expedition's purpose as evidence of an unreported encounter or an established outcome in the colony."
+      "body": "A punitive expedition has been dispatched by the home world. This story remains under examination, {months_running} months into our coverage of the original event.\n\nA claim to authority becomes especially important to examine when it takes a punitive form. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "Still in view: distant authority dispatches an expedition",
       "sub": "The home world has sent a punitive expedition.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The home world has dispatched an expedition intended to punish the colony.\n\nThe conduct of {target} warrants scrutiny in relation to the dispatch. This newspaper does not treat the expedition's purpose as evidence of an unreported encounter or an established outcome in the colony."
+      "body": "The home world has dispatched an expedition intended to punish the colony. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nA claim to authority becomes especially important to examine when it takes a punitive form. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     }
   ]
 }

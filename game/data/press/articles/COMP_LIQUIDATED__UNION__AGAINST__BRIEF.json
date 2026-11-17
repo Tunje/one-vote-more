@@ -7,17 +7,17 @@
     {
       "headline": "A company goes under",
       "sub": "",
-      "body": "A company has gone under in {colony}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+      "body": "The company {company} has gone under. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     },
     {
       "headline": "Business failure enters the colony's record",
       "sub": "",
-      "body": "The colony has seen a company fail. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+      "body": "The colony has seen the failure of {company}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     },
     {
       "headline": "An enterprise reaches failure",
       "sub": "",
-      "body": "A business in the colony has gone under. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+      "body": "The business {company} has gone under. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     }
   ]
 }

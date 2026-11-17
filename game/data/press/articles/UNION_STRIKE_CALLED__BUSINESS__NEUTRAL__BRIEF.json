@@ -7,17 +7,17 @@
     {
       "headline": "Union calls a strike",
       "sub": "",
-      "body": "A union has called a strike in {colony}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The union {name} has called a strike. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "A call to withhold labour",
       "sub": "",
-      "body": "A strike has been called by a union in the colony. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "A strike has been called by the union {name}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "Work becomes the subject of a strike call",
       "sub": "",
-      "body": "The colony has a union call for strike action. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+      "body": "The union {name} has issued a call for strike action. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     }
   ]
 }

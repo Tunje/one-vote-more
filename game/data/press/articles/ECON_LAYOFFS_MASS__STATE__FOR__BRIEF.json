@@ -7,17 +7,17 @@
     {
       "headline": "Company lays off many workers",
       "sub": "",
-      "body": "A company has laid off many workers in {colony}. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+      "body": "The company {company} has laid off many workers. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
     },
     {
       "headline": "A large loss of jobs at a company",
       "sub": "",
-      "body": "Many workers have been laid off by a company in the colony. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+      "body": "Many workers have been laid off by {company}. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
     },
     {
       "headline": "Workers face a company layoff",
       "sub": "",
-      "body": "The colony has seen a company carry out a large layoff. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+      "body": "The company {company} has carried out a large layoff. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
     }
   ]
 }

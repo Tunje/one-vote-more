@@ -7,17 +7,17 @@
     {
       "headline": "Party divides in two",
       "sub": "",
-      "body": "A political party has split in two in {colony}. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+      "body": "The party {party} has split, with {splinter} the new breakaway party. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
     },
     {
       "headline": "A political organisation breaks apart",
       "sub": "",
-      "body": "The colony has seen a party divide into two organisations. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+      "body": "A split in {party} has produced the new party {splinter}. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
     },
     {
       "headline": "Unity gives way to a party split",
       "sub": "",
-      "body": "A split has divided a political party in the colony. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+      "body": "The new party {splinter} has broken away from {party}. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
     }
   ]
 }

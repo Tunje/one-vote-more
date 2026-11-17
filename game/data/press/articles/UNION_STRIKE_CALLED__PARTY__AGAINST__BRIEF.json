@@ -7,17 +7,17 @@
     {
       "headline": "Union calls a strike",
       "sub": "",
-      "body": "A union has called a strike in {colony}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "The union {name} has called a strike. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "A call to withhold labour",
       "sub": "",
-      "body": "A strike has been called by a union in the colony. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "A strike has been called by the union {name}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     },
     {
       "headline": "Work becomes the subject of a strike call",
       "sub": "",
-      "body": "The colony has a union call for strike action. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+      "body": "The union {name} has issued a call for strike action. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
     }
   ]
 }

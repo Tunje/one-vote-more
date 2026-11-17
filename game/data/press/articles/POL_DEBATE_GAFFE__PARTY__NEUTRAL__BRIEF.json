@@ -7,17 +7,17 @@
     {
       "headline": "Party leader blunders in election debate",
       "sub": "",
-      "body": "A party leader has blundered in an election debate. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "The leader of {party}, {leader}, has blundered in an election debate. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "A debate brings a leader's misstep",
       "sub": "",
-      "body": "An election debate has included a blunder by a party leader. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "An election debate has included a blunder by {leader}, leader of {party}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "Election argument meets an awkward moment",
       "sub": "",
-      "body": "A party leader has made a misstep in an election debate. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "The party leader {leader}, of {party}, has made a debate misstep. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     }
   ]
 }

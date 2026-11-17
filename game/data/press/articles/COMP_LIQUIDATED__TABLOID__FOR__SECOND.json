@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "A company goes under",
-      "sub": "The colony has seen a company fail.",
-      "body": "A company has gone under in {colony}. The failure is a business event, not a detailed account of its consequences for particular people. Readers considering {target} should distinguish that known outcome from unreported claims about creditors, employment or the circumstances that brought the company to this position.\n\nWe take a sympathetic view of {target}. A failed enterprise does not establish every accusation of poor conduct, and fair assessment must survive an outcome that makes easy blame particularly tempting."
+      "sub": "The colony has seen the failure of {company}.",
+      "body": "The company {company} has gone under. The failure is a business event, not a detailed account of its consequences for particular people. Readers considering {target} should distinguish that known outcome from unreported claims about creditors, employment or the circumstances that brought the company to this position.\n\nA company has gone under. A stark ending for an enterprise, and an invitation to a story with a villain already fitted. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "Business failure enters the colony's record",
-      "sub": "A business in the colony has gone under.",
-      "body": "A business has failed in the colony. An enterprise is more than a name in a commercial register, but its failure does not by itself identify every consequence. An assessment of {target} should address stewardship without supplying a balance sheet or a story about the firm's trade.\n\nWe take a sympathetic view of {target}. A failed enterprise does not establish every accusation of poor conduct, and fair assessment must survive an outcome that makes easy blame particularly tempting."
+      "sub": "The business {company} has gone under.",
+      "body": "The colony has seen the failure of {company}. An enterprise is more than a name in a commercial register, but its failure does not by itself identify every consequence. An assessment of {target} should address stewardship without supplying a balance sheet or a story about the firm's trade.\n\nA company has gone under. A stark ending for an enterprise, and an invitation to a story with a villain already fitted. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     },
     {
       "headline": "An enterprise reaches failure",
-      "sub": "A company has gone under in {colony}.",
-      "body": "The colony's business record includes a company going under. That outcome invites questions of responsibility without answering them all. For {target}, the relevant scrutiny should remain separate from an invented cause, a presumed creditor loss or an announcement about workers that the report does not establish.\n\nWe take a sympathetic view of {target}. A failed enterprise does not establish every accusation of poor conduct, and fair assessment must survive an outcome that makes easy blame particularly tempting."
+      "sub": "The company {company} has gone under.",
+      "body": "The business {company} has gone under. That outcome invites questions of responsibility without answering them all. For {target}, the relevant scrutiny should remain separate from an invented cause, a presumed creditor loss or an announcement about workers that the report does not establish.\n\nA company has gone under. A stark ending for an enterprise, and an invitation to a story with a villain already fitted. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
     }
   ]
 }

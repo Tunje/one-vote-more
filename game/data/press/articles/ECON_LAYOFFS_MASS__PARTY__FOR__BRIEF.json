@@ -7,17 +7,17 @@
     {
       "headline": "Company lays off many workers",
       "sub": "",
-      "body": "A company has laid off many workers in {colony}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "The company {company} has laid off many workers. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "A large loss of jobs at a company",
       "sub": "",
-      "body": "Many workers have been laid off by a company in the colony. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "Many workers have been laid off by {company}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     },
     {
       "headline": "Workers face a company layoff",
       "sub": "",
-      "body": "The colony has seen a company carry out a large layoff. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+      "body": "The company {company} has carried out a large layoff. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
     }
   ]
 }

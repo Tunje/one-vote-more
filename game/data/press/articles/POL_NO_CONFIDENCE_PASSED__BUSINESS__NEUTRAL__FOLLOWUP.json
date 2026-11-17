@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: assembly votes the government out",
       "sub": "The government has been voted out by the Colonial Assembly.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The Colonial Assembly has voted the government out in {colony}.\n\nThe parliamentary outcome supplies the basis for scrutiny of {target}. This paper reports the loss of confidence without treating an unreported motive or future settlement as an established fact."
+      "body": "The Colonial Assembly has voted the government out in {colony}. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nA lost confidence vote is a political fact with administrative significance. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "Still in view: confidence withdrawn",
       "sub": "An Assembly vote has removed the government in {colony}.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The government has been voted out by the Colonial Assembly.\n\nThe parliamentary outcome supplies the basis for scrutiny of {target}. This paper reports the loss of confidence without treating an unreported motive or future settlement as an established fact."
+      "body": "The government has been voted out by the Colonial Assembly. This story remains under examination, {months_running} months into our coverage of the original event.\n\nA lost confidence vote is a political fact with administrative significance. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "Still in view: office meets its parliamentary limit",
       "sub": "The Colonial Assembly has voted the government out in {colony}.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. An Assembly vote has removed the government in {colony}.\n\nThe parliamentary outcome supplies the basis for scrutiny of {target}. This paper reports the loss of confidence without treating an unreported motive or future settlement as an established fact."
+      "body": "An Assembly vote has removed the government in {colony}. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nA lost confidence vote is a political fact with administrative significance. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     }
   ]
 }

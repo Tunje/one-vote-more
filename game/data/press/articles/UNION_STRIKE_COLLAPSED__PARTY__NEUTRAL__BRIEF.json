@@ -7,17 +7,17 @@
     {
       "headline": "Strike collapses",
       "sub": "",
-      "body": "A strike has collapsed in {colony}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "The strike by the union {name} has collapsed. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "Labour action loses its course",
       "sub": "",
-      "body": "The colony has seen a strike collapse. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "The union {name} has seen its strike collapse. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "A strike ends in collapse",
       "sub": "",
-      "body": "A strike in the colony has ended in collapse. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+      "body": "The strike by {name} has ended in collapse. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     }
   ]
 }

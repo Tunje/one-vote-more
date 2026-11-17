@@ -7,17 +7,17 @@
     {
       "headline": "Party walks out of government",
       "sub": "",
-      "body": "A party has walked out of the government in {colony}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The party {party} has walked out of the government. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "A governing partnership breaks",
       "sub": "",
-      "body": "A governing party has left the colony's government. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The government has lost the party {party} from its governing arrangement. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     },
     {
       "headline": "Departure redraws the question of cooperation",
       "sub": "",
-      "body": "The government has lost a party from its governing arrangement. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+      "body": "The party {party} has left the colony's government. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
     }
   ]
 }

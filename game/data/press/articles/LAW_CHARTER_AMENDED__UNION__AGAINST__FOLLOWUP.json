@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: home world changes the charter",
       "sub": "An amendment to the colony's charter has been made by the home world.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The home world has changed the colony's charter.\n\nWe take a critical view of {target}. Altering the governing framework calls for exacting political responsibility, and the prestige of a charter supplies no automatic defence against questions about that responsibility."
+      "body": "The home world has changed the colony's charter. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nWorkers have a stake in the framework within which political choices are made. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     },
     {
       "headline": "Still in view: colonial charter amended",
       "sub": "The colony's charter has been altered by the home world.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. An amendment to the colony's charter has been made by the home world.\n\nWe take a critical view of {target}. Altering the governing framework calls for exacting political responsibility, and the prestige of a charter supplies no automatic defence against questions about that responsibility."
+      "body": "An amendment to the colony's charter has been made by the home world. This story remains under examination, {months_running} months into our coverage of the original event.\n\nWorkers have a stake in the framework within which political choices are made. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     },
     {
       "headline": "Still in view: the terms of authority are altered",
       "sub": "The home world has changed the colony's charter.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. The colony's charter has been altered by the home world.\n\nWe take a critical view of {target}. Altering the governing framework calls for exacting political responsibility, and the prestige of a charter supplies no automatic defence against questions about that responsibility."
+      "body": "The colony's charter has been altered by the home world. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nWorkers have a stake in the framework within which political choices are made. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
     }
   ]
 }

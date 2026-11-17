@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: assembly votes down government bill",
       "sub": "The Assembly has rejected a bill put forward by the government.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. A government bill has been voted down in the Colonial Assembly.\n\nThe conduct of {target} warrants examination against the rejected proposal. This paper records the legislative result without adopting an unreported explanation for it or declaring a wider political outcome."
+      "body": "A government bill has been voted down in the Colonial Assembly. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nA bill that has been rejected is not a new operating rule. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "Still in view: a proposal meets its parliamentary limit",
       "sub": "A proposed government bill has failed in the Assembly vote.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The Assembly has rejected a bill put forward by the government.\n\nThe conduct of {target} warrants examination against the rejected proposal. This paper records the legislative result without adopting an unreported explanation for it or declaring a wider political outcome."
+      "body": "The Assembly has rejected a bill put forward by the government. This story remains under examination, {months_running} months into our coverage of the original event.\n\nA bill that has been rejected is not a new operating rule. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "Still in view: government legislation fails the vote",
       "sub": "A government bill has been voted down in the Colonial Assembly.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. A proposed government bill has failed in the Assembly vote.\n\nThe conduct of {target} warrants examination against the rejected proposal. This paper records the legislative result without adopting an unreported explanation for it or declaring a wider political outcome."
+      "body": "A proposed government bill has failed in the Assembly vote. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nA bill that has been rejected is not a new operating rule. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     }
   ]
 }

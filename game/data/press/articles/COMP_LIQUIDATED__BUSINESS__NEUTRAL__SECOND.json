@@ -6,18 +6,18 @@
   "variants": [
     {
       "headline": "A company goes under",
-      "sub": "The colony has seen a company fail.",
-      "body": "A company has gone under in {colony}. The failure is a business event, not a detailed account of its consequences for particular people. Readers considering {target} should distinguish that known outcome from unreported claims about creditors, employment or the circumstances that brought the company to this position.\n\nThe responsibility of {target} should be examined without presuming the failure's cause. This paper records the business outcome while leaving unreported financial, employment and legal particulars outside its factual account."
+      "sub": "The colony has seen the failure of {company}.",
+      "body": "The company {company} has gone under. The failure is a business event, not a detailed account of its consequences for particular people. Readers considering {target} should distinguish that known outcome from unreported claims about creditors, employment or the circumstances that brought the company to this position.\n\nA failed company is not a complete statement of creditor recoveries or wider commercial conditions. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "Business failure enters the colony's record",
-      "sub": "A business in the colony has gone under.",
-      "body": "A business has failed in the colony. An enterprise is more than a name in a commercial register, but its failure does not by itself identify every consequence. An assessment of {target} should address stewardship without supplying a balance sheet or a story about the firm's trade.\n\nThe responsibility of {target} should be examined without presuming the failure's cause. This paper records the business outcome while leaving unreported financial, employment and legal particulars outside its factual account."
+      "sub": "The business {company} has gone under.",
+      "body": "The colony has seen the failure of {company}. An enterprise is more than a name in a commercial register, but its failure does not by itself identify every consequence. An assessment of {target} should address stewardship without supplying a balance sheet or a story about the firm's trade.\n\nA failed company is not a complete statement of creditor recoveries or wider commercial conditions. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     },
     {
       "headline": "An enterprise reaches failure",
-      "sub": "A company has gone under in {colony}.",
-      "body": "The colony's business record includes a company going under. That outcome invites questions of responsibility without answering them all. For {target}, the relevant scrutiny should remain separate from an invented cause, a presumed creditor loss or an announcement about workers that the report does not establish.\n\nThe responsibility of {target} should be examined without presuming the failure's cause. This paper records the business outcome while leaving unreported financial, employment and legal particulars outside its factual account."
+      "sub": "The company {company} has gone under.",
+      "body": "The business {company} has gone under. That outcome invites questions of responsibility without answering them all. For {target}, the relevant scrutiny should remain separate from an invented cause, a presumed creditor loss or an announcement about workers that the report does not establish.\n\nA failed company is not a complete statement of creditor recoveries or wider commercial conditions. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
     }
   ]
 }

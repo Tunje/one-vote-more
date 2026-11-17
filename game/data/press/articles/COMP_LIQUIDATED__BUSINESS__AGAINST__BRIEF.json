@@ -7,17 +7,17 @@
     {
       "headline": "A company goes under",
       "sub": "",
-      "body": "A company has gone under in {colony}. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+      "body": "The company {company} has gone under. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     },
     {
       "headline": "Business failure enters the colony's record",
       "sub": "",
-      "body": "The colony has seen a company fail. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+      "body": "The colony has seen the failure of {company}. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     },
     {
       "headline": "An enterprise reaches failure",
       "sub": "",
-      "body": "A business in the colony has gone under. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+      "body": "The business {company} has gone under. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
     }
   ]
 }

@@ -1,0 +1,28 @@
+{
+  "event": "FEATURE_LETTERS",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "FEATURE",
+  "variants": [
+    {
+      "headline": "Letters: the ordinary standard",
+      "sub": "Three reader opinions on the everyday purposes of the colony.",
+      "body": "To the editor: I would like our public arguments to be judged by an ordinary day. Can a proposal be explained to someone trying to live decently, without requiring a speech before the explanation? I am not asking politics to be simple. I am asking it to remember its purpose.\n\nTo the editor: Work ought to leave room for a life. I do not think that is an extravagant principle, though it can sound like one when the argument becomes sufficiently grand. A decent standard should be intelligible from the point of view of the person expected to meet it.\n\nTo the editor: Belonging should mean more than being told to feel proud. I would rather hear a serious discussion of what we owe each other than another elegant description of how fortunate people ought to feel.\n\nThe correspondence offers judgments rather than a survey. Commercial readers should value the questions without treating the letters as a numerical account of public opinion. A useful argument need not pretend to be a measurement to deserve space."
+    },
+    {
+      "headline": "Readers ask for a little perspective",
+      "sub": "Three reader opinions on the everyday purposes of the colony.",
+      "body": "To the editor: A promise is not made better by becoming harder to understand. If an idea is worth defending, its purpose should survive a plain explanation. I would welcome a little less admiration for the performance and a little more interest in the obligation the words are meant to express.\n\nTo the editor: Please keep asking whose time a proposal requires. Time belongs to ordinary people too. A plan can sound convenient from the position of its author and rather less convenient from the position of someone expected to fit a working life around it.\n\nTo the editor: I do not want every disagreement to become a test of whether someone loves the colony. It ought to be possible to care about a place and still want it to be better.\n\nThe correspondence offers judgments rather than a survey. Commercial readers should value the questions without treating the letters as a numerical account of public opinion. A useful argument need not pretend to be a measurement to deserve space."
+    },
+    {
+      "headline": "From the letters desk: daily life",
+      "sub": "Three reader opinions on the everyday purposes of the colony.",
+      "body": "To the editor: I am suspicious of any argument that begins by explaining why ordinary needs are too small to matter. The colony's future should be large enough to contain a decent daily life. Otherwise I am not sure whose future the speaker has in mind.\n\nTo the editor: Fairness is easy to admire when it asks nothing of the admirer. I would like political principles to be tested at the uncomfortable point, where they require us to take someone else's position seriously. That seems a better measure than the warmth of a slogan.\n\nTo the editor: A newspaper should leave room for a quiet subject. There is value in thinking about how we live together without first finding someone to blame. Please consider that an opinion, rather than an instruction to make the paper dull.\n\nThe correspondence offers judgments rather than a survey. Commercial readers should value the questions without treating the letters as a numerical account of public opinion. A useful argument need not pretend to be a measurement to deserve space."
+    },
+    {
+      "headline": "Letters on promises, work and belonging",
+      "sub": "Three reader opinions on the everyday purposes of the colony.",
+      "body": "To the editor: A good public decision should be able to answer the question, 'What is this for?' I do not mean that every answer must please me. I mean that the purpose should be visible, and that the people asked to accept a decision deserve to hear it.\n\nTo the editor: I would rather be treated as a neighbour with an opinion than an audience waiting to applaud. Belonging to a colony should leave room for both loyalty and disagreement. The disagreement may even be one of the ways in which loyalty becomes useful.\n\nTo the editor: Please resist the idea that being practical means having no principles. It should mean taking principles seriously enough to ask how they enter daily life. A conviction that never reaches that question seems rather comfortable for its owner.\n\nThe correspondence offers judgments rather than a survey. Commercial readers should value the questions without treating the letters as a numerical account of public opinion. A useful argument need not pretend to be a measurement to deserve space."
+    }
+  ]
+}

@@ -7,17 +7,17 @@
     {
       "headline": "Still in view: government cannot pay its debts",
       "sub": "The colony's government is unable to pay its debts.",
-      "body": "Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement. The government of {colony} cannot pay its debts.\n\nThe stewardship of {target} requires scrutiny against the inability to pay. This paper does not presume the origin of the debts or announce a response that the financial report has not established."
+      "body": "The government of {colony} cannot pay its debts. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nPublic finance is political because obligations are made and honoured in the name of a common undertaking. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "Still in view: public debt meets a payment failure",
       "sub": "Government debt in the colony cannot be paid by the administration.",
-      "body": "This story remains under examination, {months_running} months into our coverage of the original event. The colony's government is unable to pay its debts.\n\nThe stewardship of {target} requires scrutiny against the inability to pay. This paper does not presume the origin of the debts or announce a response that the financial report has not established."
+      "body": "The colony's government is unable to pay its debts. This story remains under examination, {months_running} months into our coverage of the original event.\n\nPublic finance is political because obligations are made and honoured in the name of a common undertaking. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     },
     {
       "headline": "Still in view: the colony's government faces default",
       "sub": "The government of {colony} cannot pay its debts.",
-      "body": "Our attention to this story continues after {months_running} months, with the original report still the starting point. Government debt in the colony cannot be paid by the administration.\n\nThe stewardship of {target} requires scrutiny against the inability to pay. This paper does not presume the origin of the debts or announce a response that the financial report has not established."
+      "body": "Government debt in the colony cannot be paid by the administration. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nPublic finance is political because obligations are made and honoured in the name of a common undertaking. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
     }
   ]
 }

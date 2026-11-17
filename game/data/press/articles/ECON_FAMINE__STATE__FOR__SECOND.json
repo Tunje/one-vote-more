@@ -7,17 +7,17 @@
     {
       "headline": "Food shortage leaves the colony hungry",
       "sub": "People in the colony are hungry because food is insufficient.",
-      "body": "People in {colony} are going hungry because there is not enough food. That is the central condition, without a cause or a timetable supplied here. Readers assessing {target} should distinguish the need for adequate provision from an invented account of how the shortage came about.\n\nWe support {target} against an automatic adverse judgment. Hunger requires serious attention, but it does not establish every claim about its origin or prove that a particular imagined alternative would meet the need."
+      "body": "People in {colony} are going hungry because there is not enough food. That is the central condition, without a cause or a timetable supplied here. Readers assessing {target} should distinguish the need for adequate provision from an invented account of how the shortage came about.\n\nThe gazette records insufficient food and hunger as matters of public concern. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
     },
     {
       "headline": "Enough to eat remains the central need",
       "sub": "The colony's food supply is insufficient, leaving people hungry.",
-      "body": "Enough to eat is a basic requirement of daily life. The colony does not have enough food, and people are hungry. For {target}, the relevant scrutiny concerns the standard of provision, without assuming a particular policy failure or announcing a remedy not established by this report.\n\nWe support {target} against an automatic adverse judgment. Hunger requires serious attention, but it does not establish every claim about its origin or prove that a particular imagined alternative would meet the need."
+      "body": "Enough to eat is a basic requirement of daily life. The colony does not have enough food, and people are hungry. For {target}, the relevant scrutiny concerns the standard of provision, without assuming a particular policy failure or announcing a remedy not established by this report.\n\nThe gazette records insufficient food and hunger as matters of public concern. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
     },
     {
       "headline": "Hunger is a fact, not a figure of speech",
       "sub": "There is not enough food in {colony}, and people are going hungry.",
-      "body": "The colony's food supply is insufficient and people are going hungry. A clear account should keep that practical condition in view. An assessment of {target} does not need an invented queue, a price increase or a crop failure to establish why adequate food deserves serious public attention.\n\nWe support {target} against an automatic adverse judgment. Hunger requires serious attention, but it does not establish every claim about its origin or prove that a particular imagined alternative would meet the need."
+      "body": "The colony's food supply is insufficient and people are going hungry. A clear account should keep that practical condition in view. An assessment of {target} does not need an invented queue, a price increase or a crop failure to establish why adequate food deserves serious public attention.\n\nThe gazette records insufficient food and hunger as matters of public concern. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
     }
   ]
 }

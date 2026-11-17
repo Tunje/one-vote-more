@@ -1,0 +1,28 @@
+{
+  "event": "FEATURE_DISTRICT_PORTRAIT",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "FEATURE",
+  "variants": [
+    {
+      "headline": "A district is more than its boundary",
+      "sub": "A portrait of {district}, considered through the lives a place must accommodate.",
+      "body": "A district can be described as a boundary on a plan. That is useful if the question is where it ends. It is less useful if the question is what it means to live there. For this portrait of {district}, begin with the second question.\n\nImagine a resident trying to explain home to someone who knows only the colony's public map. The explanation might begin with a route to work, a familiar view or the feeling of knowing where one belongs. None would fit neatly into a boundary line.\n\nA good portrait should leave room for different answers. A place can be convenient to one person and difficult to another, loved for something its neighbour scarcely notices. The most revealing question is not which description can silence the others, but what they allow us to understand together.\n\nOur movement believes belonging should have political meaning. A district is not simply a convenient collection of potential supporters; it is a place whose ordinary life ought to matter to the convictions we bring into public argument."
+    },
+    {
+      "headline": "How to look at a neighbourhood",
+      "sub": "A portrait of {district}, considered through the lives a place must accommodate.",
+      "body": "What should a newspaper mean when it calls {district} a community? The word can be warm, and warmth can be a way of avoiding a harder question. People need a place in which to live, not merely a flattering description of the place.\n\nConsider how a portrait changes with its point of view. A planner might ask about connections. Someone seeking a home might ask about belonging. A person thinking about work might begin with the journey. These are ways of looking, not a claim that every resident has the same priorities.\n\nThe useful portrait is the one that does not pretend a district has a single voice. A boundary can contain competing hopes. Understanding a neighbourhood means taking those hopes seriously without reducing them to a pleasant phrase for the newspaper's quieter pages.\n\nOur movement believes belonging should have political meaning. A district is not simply a convenient collection of potential supporters; it is a place whose ordinary life ought to matter to the convictions we bring into public argument."
+    },
+    {
+      "headline": "The view from ordinary life",
+      "sub": "A portrait of {district}, considered through the lives a place must accommodate.",
+      "body": "To look at {district} only as a location is to miss the question a portrait ought to ask: what kind of daily life should a place make possible? It is an ordinary question, which is one reason it deserves space.\n\nImagine taking a visitor through a neighbourhood without beginning with its most impressive claim. Begin instead with what a resident would need to explain: how a place feels familiar, what makes it easy or awkward to inhabit, and why different people might answer differently.\n\nA district's reputation should not be allowed to answer on everyone's behalf. Admiration and complaint can each reveal something, provided neither is mistaken for the whole. This paper's interest is in the distance between a place as it is described and a place as someone must actually live in it.\n\nOur movement believes belonging should have political meaning. A district is not simply a convenient collection of potential supporters; it is a place whose ordinary life ought to matter to the convictions we bring into public argument."
+    },
+    {
+      "headline": "What makes a place belong to people",
+      "sub": "A portrait of {district}, considered through the lives a place must accommodate.",
+      "body": "There is an attractive temptation in a district portrait: to find a phrase that explains everyone. Resist it. {district} deserves an account that can admit more than a single kind of attachment, more than a single idea of what makes a place good.\n\nThink of the difference between choosing somewhere to live and making a life there. A location may be judged for its practical uses, while belonging is a less tidy matter. A portrait ought to have room for both, without assuming that one person's priorities settle the question for another.\n\nThe most useful question for a reader is therefore a personal one: what would you want a newspaper to notice about the place you call home? The answer is a better beginning than a slogan, and a useful restraint on the writer who wants a neat ending.\n\nOur movement believes belonging should have political meaning. A district is not simply a convenient collection of potential supporters; it is a place whose ordinary life ought to matter to the convictions we bring into public argument."
+    }
+  ]
+}

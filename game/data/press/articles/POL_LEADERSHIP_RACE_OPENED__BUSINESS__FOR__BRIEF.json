@@ -7,17 +7,17 @@
     {
       "headline": "Party leader faces a challenge",
       "sub": "",
-      "body": "A party's leader is being challenged in {colony}. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+      "body": "The leader of {party} is being challenged. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
     },
     {
       "headline": "Leadership becomes a contested question",
       "sub": "",
-      "body": "A challenge to a party leader has opened in the colony. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+      "body": "A challenge to the leadership of {party} has opened. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
     },
     {
       "headline": "A challenge inside the party",
       "sub": "",
-      "body": "The leadership of a political party is under challenge. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+      "body": "Leadership of the party {party} is under challenge. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
     }
   ]
 }
