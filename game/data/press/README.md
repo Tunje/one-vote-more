@@ -11,6 +11,12 @@ Colonial Assembly, parties, a First Minister, unions, companies and a public sec
 player leads a party. Technology is roughly late twentieth century: trucks, buses, power plants, mines, farms,
 bakeries, a port. No aliens, no magic, no faster-than-light news. The tone of the game is dry and a little wry.
 
+**A ship is a spacecraft, not a boat.** The colony is on another planet, so the ships from the home world come
+through space, and the port is the field where they land. Write "landed", "the landing field", "the port",
+"lifted off". Do not write of a harbour, a quay, the sea, sailing, tides or anchors for these ships. ("Dock" as a
+place where cargo is unloaded is fine; a dock on water is not.) Articles already written that put the ship on
+water must be corrected.
+
 The colony has several newspapers. Each month a paper reports what happened. Today every kind of event has one
 flat sentence. You are writing proper articles to replace those sentences.
 
@@ -181,9 +187,14 @@ Every picture:
   photograph" and prompts were written as "photorealistic"; that was wrong (Wilma's wording, not the user's) and is
   withdrawn. Every prompt that says "photorealistic", "photograph" or "documentary photograph" must be rewritten to
   give the printed-in-an-old-newspaper look of the reference before any picture is made.
-- The setting is a small, plain colonial town of roughly late-twentieth-century technology: low buildings,
-  trucks and buses, a small port, wide skies. It may show two moons in the sky. No aliens, no spacecraft
-  overhead, no futuristic city.
+- The setting is a small, plain colonial town on another planet, of roughly late-twentieth-century technology on
+  the ground: low buildings, trucks and buses, wide skies. It may show two moons in the sky. No aliens, no
+  futuristic city.
+- **A SHIP IS A SPACECRAFT, NOT A BOAT.** The colony is on another planet; the ships that call come from the home
+  world through space. The colony's PORT is where they land: a landing field with warehouses, not a harbour.
+  No sea-going ships, no harbour, quay, dock, cranes over water or sails anywhere a "ship" or the "port" is meant.
+  An earlier version of the picture list described cargo ships in a harbour; that was wrong (Wilma's) and those
+  entries are rewritten. Any picture already made of a boat or a harbour for a ship or port entry must be redone.
 - No words, letters or numbers anywhere in the picture: placards, signs and documents are blank or
   illegible. No logos or flags of any real country, company or party.
 - No real, recognisable person.

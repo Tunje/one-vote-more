@@ -148,25 +148,25 @@
   {
    "file": "HOME_SANCTION_1.png",
    "for": "HOME_SANCTION",
-   "show": "A warehouse at a port with its doors chained shut.",
+   "show": "A warehouse at the colony's landing field with its doors chained shut, the field empty behind it.",
    "note": ""
   },
   {
    "file": "HOME_SANCTION_2.png",
    "for": "HOME_SANCTION",
-   "show": "A warehouse at a port with its doors chained shut.",
+   "show": "A warehouse at the colony's landing field with its doors chained shut, the field empty behind it.",
    "note": "second picture: the same subject from a different angle or moment"
   },
   {
    "file": "HOME_EXPEDITION_SENT_1.png",
    "for": "HOME_EXPEDITION_SENT",
-   "show": "A large ship far out at sea under a dark sky, seen from a headland.",
+   "show": "A large spacecraft high in a dark sky, coming down toward the colony, seen from a hill.",
    "note": ""
   },
   {
    "file": "HOME_EXPEDITION_SENT_2.png",
    "for": "HOME_EXPEDITION_SENT",
-   "show": "A large ship far out at sea under a dark sky, seen from a headland.",
+   "show": "A large spacecraft high in a dark sky, coming down toward the colony, seen from a hill.",
    "note": "second picture: the same subject from a different angle or moment"
   },
   {
@@ -184,25 +184,25 @@
   {
    "file": "HOME_SHIP_BUILT_1.png",
    "for": "HOME_SHIP_BUILT",
-   "show": "A very large cargo ship in a harbour, small figures on the quay for scale.",
+   "show": "A very large cargo spacecraft standing on a landing field, small figures beside it for scale.",
    "note": ""
   },
   {
    "file": "HOME_SHIP_BUILT_2.png",
    "for": "HOME_SHIP_BUILT",
-   "show": "A very large cargo ship in a harbour, small figures on the quay for scale.",
+   "show": "A very large cargo spacecraft standing on a landing field, small figures beside it for scale.",
    "note": "second picture: the same subject from a different angle or moment"
   },
   {
    "file": "HOME_SHIPPING_REFUSED_1.png",
    "for": "HOME_SHIPPING_REFUSED",
-   "show": "A quay stacked high with crates and no ship at it.",
+   "show": "A landing field stacked high with crates and no ship on it.",
    "note": ""
   },
   {
    "file": "HOME_SHIPPING_REFUSED_2.png",
    "for": "HOME_SHIPPING_REFUSED",
-   "show": "A quay stacked high with crates and no ship at it.",
+   "show": "A landing field stacked high with crates and no ship on it.",
    "note": "second picture: the same subject from a different angle or moment"
   },
   {
@@ -268,13 +268,13 @@
   {
    "file": "ECON_SHIP_ARRIVED_1.png",
    "for": "ECON_SHIP_ARRIVED",
-   "show": "A cargo ship coming into a small harbour, a crowd on the quay.",
+   "show": "The ship from the home world, a spacecraft, coming down onto the colony's landing field.",
    "note": ""
   },
   {
    "file": "ECON_SHIP_ARRIVED_2.png",
    "for": "ECON_SHIP_ARRIVED",
-   "show": "A cargo ship coming into a small harbour, a crowd on the quay.",
+   "show": "The ship from the home world, a spacecraft, coming down onto the colony's landing field.",
    "note": "second picture: the same subject from a different angle or moment"
   },
   {
@@ -388,13 +388,13 @@
   {
    "file": "FEATURE_SHIP_DAY_1.png",
    "for": "FEATURE_SHIP_DAY",
-   "show": "An empty quay at dawn with a single figure looking out to sea.",
+   "show": "An empty landing field at dawn with a single figure looking up at the sky.",
    "note": ""
   },
   {
    "file": "FEATURE_SHIP_DAY_2.png",
    "for": "FEATURE_SHIP_DAY",
-   "show": "An empty quay at dawn with a single figure looking out to sea.",
+   "show": "An empty landing field at dawn with a single figure looking up at the sky.",
    "note": "second picture: the same subject from a different angle or moment"
   },
   {
@@ -472,13 +472,13 @@
   {
    "file": "GENERIC_PORT_1.png",
    "for": "GENERIC_PORT",
-   "show": "A small working harbour with cranes and warehouses.",
+   "show": "The colony's port: a landing field for spacecraft, with warehouses, loading machines and trucks.",
    "note": ""
   },
   {
    "file": "GENERIC_PORT_2.png",
    "for": "GENERIC_PORT",
-   "show": "A small working harbour with cranes and warehouses.",
+   "show": "The colony's port: a landing field for spacecraft, with warehouses, loading machines and trucks.",
    "note": "second picture: the same subject from a different angle or moment"
   },
   {
