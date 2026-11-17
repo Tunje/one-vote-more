@@ -50,7 +50,7 @@ func _init() -> void:
 		s.end_month()
 	if _buses:   # demo: a breakdown and a crash (Bob's facts, as FLEET emits them) on the first line between districts
 		var w0 := s.world()
-		for r in EconQuery.commuting(w0):
+		for r in EconFace.query_commuting(w0):
 			if r["from_d"] != r["to_d"]:
 				for kind in ["BREAKDOWN", "CRASH"]:
 					var site := Transport.incident_site(w0, r["from_d"], r["to_d"], 4242, kind)

@@ -159,7 +159,7 @@ static func step_month(world: WorldState, storms: Array, phenomena: Array) -> Ar
 	for k in eco:
 		load[int(k)] = int(eco[k][0])
 	# --- release: each district's emissions at its centre hex (v1 fallback, see the header)
-	var em: Dictionary = EconUtil.peek_st(world).get("emissions", {})
+	var em: Dictionary = CoreUtil.peek_st(world).get("emissions", {})
 	var ds: Array = em.keys()
 	ds.sort()
 	for d in ds:
@@ -218,7 +218,7 @@ static func step_month(world: WorldState, storms: Array, phenomena: Array) -> Ar
 	t["eco"] = out
 	# --- harmed land raises dust; spore-prone life releases spores (own stream: ECO off leaves the weather alone)
 	var r := world.rng.stream("planet.eco")
-	for k in EconUtil.sorted_keys(out):
+	for k in CoreUtil.sorted_keys(out):
 		var c := int(k)
 		var hm := int(out[k][1])
 		if Planet.is_water(world, c):

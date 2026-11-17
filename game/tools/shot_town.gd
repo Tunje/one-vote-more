@@ -45,7 +45,7 @@ func _process(_d: float) -> bool:
 			var c0 := Vector2i(int(_view._layout["centre"][0]), int(_view._layout["centre"][1]))
 			var best := Vector2i.ZERO
 			var bd := 1 << 30
-			for ck in EconUtil.sorted_keys(cs):
+			for ck in CoreUtil.sorted_keys(cs):
 				var c := ColonyLayout.as_tile(ck)
 				var d := absi(c.x - c0.x) + absi(c.y - c0.y)
 				if String(cs[ck][1]) != "" and d < bd:

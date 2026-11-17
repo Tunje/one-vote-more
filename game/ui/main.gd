@@ -303,7 +303,7 @@ func _refresh() -> void:
 	var w := session.world()
 	lbl_date.text = session.date_text()
 	lbl_gov.text = session.government_text()
-	var b := EconQuery.budget_view(w)
+	var b := EconFace.query_budget_view(w)
 	var months_to_el := session.next_election_month() - w.month
 	lbl_stats.text = "Treasury %s  |  Approval %.0f%%  |  Unemployment %.1f%%  |  Next election in %d months" % [
 		_money(b["treasury"]), w.indicators.read("POL_GOV_APPROVAL") / 1000.0, _colony_unemployment(w), months_to_el]
@@ -378,7 +378,7 @@ func _panel_briefing() -> String:
 
 func _panel_district() -> String:
 	var w := session.world()
-	var e := EconQuery.district_economy(w, selected_district)
+	var e := EconFace.query_district_economy(w, selected_district)
 	var dp: Dictionary = session.district_politics().get(selected_district, {})
 	var t := "[b]%s[/b]\n\n" % e.get("name", selected_district)
 	t += "Population (voters): %d\nGovernment approval here: %.0f%%\nEconomic lean: %s\n\n" % [
@@ -421,7 +421,7 @@ func _panel_politics() -> String:
 
 
 func _panel_economy() -> String:
-	var b := EconQuery.budget_view(session.world())
+	var b := EconFace.query_budget_view(session.world())
 	var t := "[b]Public finances[/b]\n"
 	t += "Treasury %s, debt %s, credit headroom %s\nRunway %d months, budget balance %d%%, origin grant this month %s\n\n" % [
 		_money(b["treasury"]), _money(b["debt"]), _money(b["credit_headroom"]), b["runway_months"], b["balance_pct"], _money(b["grant_this_month"])]

@@ -23,20 +23,20 @@ static func on(world: WorldState) -> bool:
 
 ## {sick, labour, share, worst (district id), worst_access (‰), districts (how many have people too ill to work)}.
 static func measure(world: WorldState) -> Dictionary:
-	var health: Dictionary = EconUtil.st(world).get("health_access", {})
-	var unemp := EconPop.people_by_lab(world, "UNEMPLOYED")
-	var empl := EconPop.people_by_lab(world, "EMPLOYED")
+	var health: Dictionary = CoreUtil.st(world).get("health_access", {})
+	var unemp := EconFace.pop_people_by_lab(world, "UNEMPLOYED")
+	var empl := EconFace.pop_people_by_lab(world, "EMPLOYED")
 	var lf_d := {}
 	for src in [unemp, empl]:
 		for k in src:
-			var d := EconPop.district_of(EconPop.lab_parts(k)[0])
+			var d := EconFace.pop_district_of(EconFace.pop_lab_parts(k)[0])
 			lf_d[d] = int(lf_d.get(d, 0)) + int(src[k])
 	var sick := 0
 	var labour := 0
 	var worst := ""
 	var worst_sick := 0
 	var n := 0
-	for d in EconUtil.sorted_keys(lf_d):
+	for d in CoreUtil.sorted_keys(lf_d):
 		var lf := int(lf_d[d])
 		labour += lf
 		var here := int(float(lf) * SICK_MAX * (1.0 - float(health.get(d, 1000)) / 1000.0))
@@ -58,7 +58,7 @@ static func monthly(world: WorldState) -> void:
 	if share < SHARE_FROM:
 		return
 	var pct := share * 100.0
-	EconFacts.emit(world, "ECON_PANDEMIC", m["worst"] if String(m["worst"]) != "" else null, [], [["GOVERNMENT", "government", 1.0]],
+	EconFace.facts_emit(world, "ECON_PANDEMIC", m["worst"] if String(m["worst"]) != "" else null, [], [["GOVERNMENT", "government", 1.0]],
 		{"PUBLIC_SERVICES": -int(round(10.0 * pct)), "SAFETY": -int(round(5.0 * pct))}, 40 + int(round(7.5 * pct)), "PUBLIC",
 		{"sick": int(m["sick"]), "share_pct": int(round(pct)), "district": String(m["worst"]), "access_pct": int(m["worst_access"]) / 10,
 			"districts": int(m["districts"]), "crisis": share >= CRISIS_FROM, "crisis_type": "PANDEMIC"})

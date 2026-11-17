@@ -140,7 +140,7 @@ static func months_to_election(world: WorldState) -> int:
 
 ## Opt-in until its A/B: world.meta["on"] has "SCANDAL_REVIVAL" (meta["off"] still wins).
 static func revival_on(world: WorldState) -> bool:
-	return world.meta.has("on") and (world.meta["on"] as Array).has("SCANDAL_REVIVAL") and not EconUtil.off(world, "SCANDAL_REVIVAL")
+	return world.meta.has("on") and (world.meta["on"] as Array).has("SCANDAL_REVIVAL") and not CoreUtil.off(world, "SCANDAL_REVIVAL")
 
 
 static func current(world: WorldState) -> Dictionary:
@@ -483,7 +483,7 @@ static func _target_heat(world: WorldState) -> Dictionary:
 ## x REVIVE_DIMINISH[n-1] x (1 - BURY_MAX x buried), fading over SCANDAL_WINDOW like a fresh reveal (no floor).
 static func scandal_memory(world: WorldState) -> Dictionary:
 	var out := {}
-	if EconUtil.off(world, "SCANDAL_FIRE"):
+	if CoreUtil.off(world, "SCANDAL_FIRE"):
 		return out
 	for f in world.facts.query("POL_SCANDAL_REVEALED", world.month - SCANDAL_MEMORY + 1):
 		var pid := String(f["data"].get("party", ""))
@@ -491,7 +491,7 @@ static func scandal_memory(world: WorldState) -> Dictionary:
 		if pid == "" or age < 0:
 			continue
 		var left := 1.0 - float(age) / float(SCANDAL_WINDOW)
-		if not EconUtil.off(world, "SCANDAL_FIRE_V2"):
+		if not CoreUtil.off(world, "SCANDAL_FIRE_V2"):
 			left = maxf(left, SCANDAL_FLOOR)
 		if left <= 0.0:
 			continue
@@ -551,7 +551,7 @@ static func _set_tone(world: WorldState, st: Dictionary, c: Dictionary, p: Dicti
 	var opp := 0.1 if not st.get("government", {}).get("members", []).has(p["id"]) else 0.0
 	var n := 0.2 + trailing + opp - integ / 200.0
 	n += GENE_NEGATIVE_TONE * (float(Learn.gene(p, "G_NEGATIVE")) - 500.0) / 500.0   # A53
-	if String(e["target"]) != "" and not EconUtil.off(world, "SCANDAL_FIRE_V2"):   # a target with a scandal invites attack
+	if String(e["target"]) != "" and not CoreUtil.off(world, "SCANDAL_FIRE_V2"):   # a target with a scandal invites attack
 		n += SCANDAL_TONE * minf(1.0, float(scandal_heat(world).get(String(e["target"]), 0.0)))
 	var mt: Dictionary = martyrs(world).get(p["id"], {})
 	if not mt.is_empty() and String(mt["pm"]) != "" and String(mt["pm"]) == String(e["target"]):
@@ -716,7 +716,7 @@ static func _ads(world: WorldState, c: Dictionary, seg: Dictionary, spend: Dicti
 			if String(e.get("ad_target", "")) != tgt:   # the first attack ad on each new target is news
 				e["ad_target"] = tgt
 				var ad := {"party": pid, "target": tgt, "tone": e["tone"]}
-				if not mem.is_empty() and not EconUtil.off(world, "SCANDAL_FIRE_V2"):   # "remember the donation scandal"
+				if not mem.is_empty() and not CoreUtil.off(world, "SCANDAL_FIRE_V2"):   # "remember the donation scandal"
 					ad["recalls"] = {"fid": mem["fid"], "kind": mem["kind"], "ago": world.month - int(mem["month"]),
 						"outlet": String(mem.get("outlet", "")), "revived_ago": world.month - int(mem.get("at", mem["month"]))}
 					_momentum(c, tgt, RECALL_LINE)
@@ -936,7 +936,7 @@ static func _debate(world: WorldState, st: Dictionary, c: Dictionary, final: boo
 ## governs, else "" (the jailers are gone: sympathy, no line). A/B: off "MARTYR" -> {}.
 static func martyrs(world: WorldState) -> Dictionary:
 	var out := {}
-	if EconUtil.off(world, "MARTYR"):
+	if CoreUtil.off(world, "MARTYR"):
 		return out
 	var g: Dictionary = world.peek("pol").get("state", {}).get("government", {})
 	for f in world.facts.query("LAW_UNLAWFUL_GOV_ACTION_REVEALED", world.month - MARTYR_MEMORY + 1, world.month):
@@ -964,7 +964,7 @@ static func martyrs(world: WorldState) -> Dictionary:
 ## {pid: name} of parties whose leader the police hold now (Police.detained, kind PARTY targets).
 static func held_leaders(world: WorldState) -> Dictionary:
 	var out := {}
-	if EconUtil.off(world, "MARTYR"):
+	if CoreUtil.off(world, "MARTYR"):
 		return out
 	var det: Dictionary = _law_call("detained", [world], {}, POLICE_PATH)
 	for aid in Det.ordered(det):
@@ -1013,7 +1013,7 @@ static func _questioned(world: WorldState, c: Dictionary) -> void:
 
 
 static func _persecution(world: WorldState, st: Dictionary, c: Dictionary) -> void:
-	if EconUtil.off(world, "MARTYR"):
+	if CoreUtil.off(world, "MARTYR"):
 		return
 	var pm := String(st.get("government", {}).get("pm_party", ""))
 	for f in world.facts.query("LAW_POLITICAL_ARREST", world.month, world.month):

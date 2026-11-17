@@ -89,7 +89,7 @@ static func source_weights(world: WorldState, party: String) -> Dictionary:
 	var red := float(pos.get("REDISTRIBUTION", 0)) / 1000.0
 	var eco := float(pos.get("ECON_ROLE", 0)) / 1000.0
 	var w := {"CIVIL_SERVICE": 1.0, "NOTABLE": 1.2, "PRESS": 0.5 if world.peek("outlet").size() > 1 else 0.3}
-	w["UNION"] = (1.0 + maxf(0.0, red) / 25.0) if not Unions.federation(world).is_empty() else 0.0
+	w["UNION"] = (1.0 + maxf(0.0, red) / 25.0) if not EconFace.unions_federation(world).is_empty() else 0.0
 	w["COMPANY"] = (1.0 + maxf(0.0, -eco) / 25.0) if not _companies(world).is_empty() else 0.0
 	return w
 
@@ -122,7 +122,7 @@ static func make_prospect(world: WorldState, party: String, source: String, rng:
 	var src_lean: Dictionary = SOURCE_LEAN[source]
 	match source:
 		"UNION":
-			ties = {"kind": "UNION", "id": String(Unions.federation(world).get("id", ""))}
+			ties = {"kind": "UNION", "id": String(EconFace.unions_federation(world).get("id", ""))}
 		"COMPANY":
 			var cs := _companies(world)
 			ties = {"kind": "COMPANY", "id": String(cs[rng.randi_range(0, cs.size() - 1)])} if not cs.is_empty() else {}

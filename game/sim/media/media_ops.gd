@@ -819,7 +819,7 @@ static func demand(world: WorldState) -> Dictionary:
 	for gid in Det.ordered(hh):
 		var g: Dictionary = hh[gid]
 		var d := String(g.get("district", ""))
-		var n := EconHouseholds.persons(g)
+		var n := EconFace.households_persons(g)
 		if n <= 0:
 			continue
 		if not by_d.has(d):
@@ -835,7 +835,7 @@ static func demand(world: WorldState) -> Dictionary:
 			var copies := int(circ[oid][d]) * S
 			if copies <= 0 or not by_d.has(d):
 				continue
-			var parts := EconUtil.split_lr(copies, by_d[d].map(func(r): return int(r[1])))
+			var parts := CoreUtil.split_lr(copies, by_d[d].map(func(r): return int(r[1])))
 			for i in by_d[d].size():
 				if int(parts[i]) <= 0:
 					continue
@@ -894,7 +894,7 @@ static func pay_ads(world: WorldState, from_acc: String, amount: int, district_w
 	var paid := 0
 	if to_media > 0:
 		var iw: Array = weights.map(func(x): return int(round(float(x) * 1000000.0)))
-		var parts := EconUtil.split_lr(to_media, iw)
+		var parts := CoreUtil.split_lr(to_media, iw)
 		for i in shares.size():
 			if int(parts[i]) > 0:
 				world.ledger.transfer(from_acc, String(outlet(world, shares[i])["account"]), int(parts[i]), memo, world.month)
@@ -1576,7 +1576,7 @@ static func licensed(world: WorldState, owner: Dictionary) -> bool:
 ## Occupations at or above UNION_FOUND_DENSITY.
 static func _union_strong_occs(world: WorldState) -> int:
 	var n := 0
-	var dens: Dictionary = EconUtil.peek_st(world).get("union", {}).get("density", {})
+	var dens: Dictionary = CoreUtil.peek_st(world).get("union", {}).get("density", {})
 	for occ in dens:
 		if int(dens[occ]) >= MD.UNION_FOUND_DENSITY:
 			n += 1
@@ -1611,11 +1611,11 @@ static func _org_staff(world: WorldState) -> Dictionary:
 	var facs := world.peek("facility")
 	for fid in facs:
 		var f: Dictionary = facs[fid]
-		out[String(f.get("org", ""))] = int(out.get(String(f.get("org", "")), 0)) + EconLabor.staff_total(f.get("staff", {}))
+		out[String(f.get("org", ""))] = int(out.get(String(f.get("org", "")), 0)) + EconFace.labor_staff_total(f.get("staff", {}))
 	var orgs := world.peek("org")
 	for oid in orgs:
 		if bool(orgs[oid].get("is_contractor", false)):
-			out[String(oid)] = int(out.get(String(oid), 0)) + EconLabor.staff_total(orgs[oid].get("crew", {}))
+			out[String(oid)] = int(out.get(String(oid), 0)) + EconFace.labor_staff_total(orgs[oid].get("crew", {}))
 	return out
 
 
@@ -1642,10 +1642,10 @@ static func founding_candidates(world: WorldState) -> Array:
 				"line": p["positions"].duplicate(), "ethics": clampf(integ / 100.0, 0.0, 1.0)}})
 	# the union federation (spec-unions-v1 §4: Bob's U1 row; density ≥ 30% in two occupations and a fund to pay
 	# for it; line pulled toward LABOR and REDISTRIBUTION). Endowed from the federation's account.
-	var fed := Unions.federation(world)
+	var fed := EconFace.unions_federation(world)
 	if not fed.is_empty():
 		var uowner := {"kind": "UNION", "id": String(fed["id"])}
-		var spare := Unions.spare_fund(world, String(fed["id"]))
+		var spare := EconFace.unions_spare_fund(world, String(fed["id"]))
 		if owned_by(world, uowner).is_empty() and _union_strong_occs(world) >= MD.UNION_FOUND_OCCS 				and spare >= int(MD.UNION_FOUND_CASH * wref):
 			var line := colony_mean(world)
 			for ax in MD.UNION_LINE_PULL:
@@ -1663,7 +1663,7 @@ static func founding_candidates(world: WorldState) -> Array:
 			if String(o.get("status", "")) != "ACTIVE" or String(o.get("type", "")).begins_with("PUBLIC"):
 				continue
 			var owner := {"kind": "COMPANY", "id": String(oid)}
-			var acc := EconUtil.acct(String(oid))
+			var acc := CoreUtil.acct(String(oid))
 			if float(world.ledger.balance(acc)) < MD.COMPANY_FOUND_CASH * wref or not owned_by(world, owner).is_empty():
 				continue
 			if not scanned:
@@ -1716,7 +1716,7 @@ static func _found_ai(world: WorldState) -> void:
 	if String(pick["owner"]["kind"]) == "COMPANY" and world.table("org").has(String(pick["owner"]["id"])):
 		world.table("org")[String(pick["owner"]["id"])]["media_out"] = String(r["out_id"])   # Bob reads it (M4: sell as an asset)
 	if int(pick["endow"]) > 0:      # pay_upto reads the live balance at payment time
-		EconUtil.pay_upto(world, String(pick["from"]), "media:" + String(r["out_id"]), int(pick["endow"]), "MEDIA_FOUNDING")
+		CoreUtil.pay_upto(world, String(pick["from"]), "media:" + String(r["out_id"]), int(pick["endow"]), "MEDIA_FOUNDING")
 
 
 ## A paper dies with its owner: a party no longer ACTIVE, a company in liquidation. Unknown owners are kept.
@@ -1735,10 +1735,10 @@ static func _close_orphans(world: WorldState) -> void:
 				if not o.is_empty() and String(o.get("status", "")) in ["LIQUIDATION", "DISSOLVED"]:
 					close_outlet(world, id, "OWNER_GONE")
 			"UNION":
-				var u := Unions.get_union(world, String(ow["id"]))
+				var u := EconFace.unions_get_union(world, String(ow["id"]))
 				if u.is_empty() and String(ow["id"]) == "union:fed":
 					# pre-U1 saves: the abstract federation's paper passes to the real one once it exists
-					var fed := Unions.federation(world)
+					var fed := EconFace.unions_federation(world)
 					if not fed.is_empty():
 						world.table("outlet")[id]["owner"] = {"kind": "UNION", "id": String(fed["id"])}
 				elif not u.is_empty() and String(u.get("status", "")) != "ACTIVE":
@@ -1782,15 +1782,15 @@ static func _press_subsidy(world: WorldState) -> void:
 	if lv <= 0.0:
 		return
 	var wref := maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))
-	var total := mini(int(lv * wref), maxi(0, EconActions.headroom(world, "ECON_BUDGET_SUBSIDIES")))
+	var total := mini(int(lv * wref), maxi(0, EconFace.actions_headroom(world, "ECON_BUDGET_SUBSIDIES")))
 	var ids := outlets(world).filter(func(id): return int(outlet(world, id).get("circulation", 0)) > 0)
 	if total <= 0 or ids.is_empty():
 		return
-	var parts := EconUtil.split_lr(total, ids.map(func(id): return int(outlet(world, id)["circulation"])))
+	var parts := CoreUtil.split_lr(total, ids.map(func(id): return int(outlet(world, id)["circulation"])))
 	for i in ids.size():
-		var paid := EconFinance.gov_pay(world, String(outlet(world, ids[i])["account"]), int(parts[i]), "PRESS_SUBSIDY")
+		var paid := EconFace.finance_gov_pay(world, String(outlet(world, ids[i])["account"]), int(parts[i]), "PRESS_SUBSIDY")
 		if paid > 0:
-			EconFinance._spend_line(world, "ECON_BUDGET_SUBSIDIES", paid)
+			EconFace.finance_spend_line(world, "ECON_BUDGET_SUBSIDIES", paid)
 
 
 ## The owner covers this month's shortfall: the state always (public media), a party up to PARTY_COVER_MAX W_ref
@@ -1802,9 +1802,9 @@ static func _owner_cover(world: WorldState, o: Dictionary, short: int) -> void:
 	var wref := maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))
 	match String(o["owner"]["kind"]):
 		"STATE":
-			var paid := EconFinance.gov_pay(world, String(o["account"]), short, "PUBLIC_MEDIA")
+			var paid := EconFace.finance_gov_pay(world, String(o["account"]), short, "PUBLIC_MEDIA")
 			if paid > 0:
-				EconFinance._spend_line(world, "ECON_BUDGET_SUBSIDIES", paid)
+				EconFace.finance_spend_line(world, "ECON_BUDGET_SUBSIDIES", paid)
 		"PARTY":
 			var acc := "party:" + String(o["owner"]["id"])
 			var spare := world.ledger.balance(acc) - int(MD.PARTY_COVER_RESERVE * wref)
@@ -1814,10 +1814,10 @@ static func _owner_cover(world: WorldState, o: Dictionary, short: int) -> void:
 		"UNION":
 			# the union pays from what it can spare (Unions.spare_fund keeps a strike reserve), keeping a floor
 			var uid := String(o["owner"]["id"])
-			var u := Unions.get_union(world, uid)
+			var u := EconFace.unions_get_union(world, uid)
 			if u.is_empty() or not world.ledger.has_account(String(u.get("acct", ""))):
 				return
-			var spare_u := Unions.spare_fund(world, uid) - int(MD.UNION_COVER_RESERVE * wref)
+			var spare_u := EconFace.unions_spare_fund(world, uid) - int(MD.UNION_COVER_RESERVE * wref)
 			var amt_u := mini(short, mini(int(MD.UNION_COVER_MAX * wref), spare_u))
 			if amt_u > 0:
 				world.ledger.transfer(String(u["acct"]), String(o["account"]), amt_u, "MEDIA_OWNER_COVER", world.month)
@@ -1825,7 +1825,7 @@ static func _owner_cover(world: WorldState, o: Dictionary, short: int) -> void:
 
 ## Monthly (end of Media.run): subsidy, owner cover, wages; deficit months; insolvency after DEFICIT_CLOSE_MONTHS.
 static func _finances(world: WorldState) -> void:
-	if not _has_economy(world) or EconUtil.off(world, "MEDIA_M4"):
+	if not _has_economy(world) or CoreUtil.off(world, "MEDIA_M4"):
 		return
 	_press_subsidy(world)
 	for id in outlets(world):
@@ -1833,9 +1833,9 @@ static func _finances(world: WorldState) -> void:
 		var cost := running_cost(world, o)
 		_owner_cover(world, o, cost - world.ledger.balance(String(o["account"])))
 		var dist := _top_district(world, id)
-		var paid := EconHouseholds.pay_media_wages(world, String(o["account"]), cost, dist)
+		var paid := EconFace.households_pay_media_wages(world, String(o["account"]), cost, dist)
 		if paid < cost and dist != "":
-			paid += EconHouseholds.pay_media_wages(world, String(o["account"]), cost - paid, "")
+			paid += EconFace.households_pay_media_wages(world, String(o["account"]), cost - paid, "")
 		o["fin"] = {"month": world.month, "cost": cost, "paid": paid, "balance": world.ledger.balance(String(o["account"])),
 			"sales": int(state(world).get("sales", {}).get(id, 0))}
 		if paid < cost:
@@ -1923,11 +1923,11 @@ static func _refund(world: WorldState, o: Dictionary, amount: int = -1, memo: St
 		"PARTY":
 			to = "party:" + String(ow["id"])
 		"COMPANY":
-			to = EconUtil.acct(String(ow["id"]))
+			to = CoreUtil.acct(String(ow["id"]))
 		"STATE":
-			to = EconUtil.TREASURY
+			to = CoreUtil.TREASURY
 		"UNION":
-			to = String(Unions.get_union(world, String(ow["id"])).get("acct", ""))
+			to = String(EconFace.unions_get_union(world, String(ow["id"])).get("acct", ""))
 	if to != "" and world.ledger.has_account(to):
 		world.ledger.transfer(acc, to, bal, memo, world.month)
 	else:

@@ -31,7 +31,7 @@ const BAR := 0.7                 # preference beyond which a government wants PR
 
 
 static func on(world: WorldState) -> bool:
-	return world.meta.has("on") and (world.meta["on"] as Array).has("ECO") and not EconUtil.off(world, "ECO")
+	return world.meta.has("on") and (world.meta["on"] as Array).has("ECO") and not CoreUtil.off(world, "ECO")
 
 
 static func monthly(world: WorldState, st: Dictionary) -> void:

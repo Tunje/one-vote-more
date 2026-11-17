@@ -14,7 +14,7 @@ func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var years := int(args[0]) if args.size() > 0 else 20
 	var seed_v := int(args[1]) if args.size() > 1 else 1
-	var sim: Simulation = EconSim.make(seed_v, "BALANCED", {}, true)
+	var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
 	var w := sim.world
 	var seen := 0
 	print("money in million cr (balances at year end; + inflow / - outflow at the border)")

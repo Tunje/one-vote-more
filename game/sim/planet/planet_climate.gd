@@ -236,7 +236,7 @@ static func step_month(world: WorldState) -> void:
 			"global": false, "all_coasts": true})
 	t["phenomena"] = ph
 	# --- air pollution drift and greenhouse stock (stopgap read agreed with Bob until EconGeo.emissions lands)
-	var em: Dictionary = EconUtil.peek_st(world).get("emissions", {})
+	var em: Dictionary = CoreUtil.peek_st(world).get("emissions", {})
 	var total := 0.0
 	for d in em:
 		total += float(em[d]) / 1000.0

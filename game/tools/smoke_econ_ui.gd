@@ -38,18 +38,18 @@ func _initialize() -> void:
 	var h0: String = str(w.state_hash())
 	budget.edit_lever = "ECON_INCOME_TAX_RATE"
 	budget.refresh()
-	var orgs: Array = EconQuery.companies(w)
+	var orgs: Array = EconFace.query_companies(w)
 	companies.selected = orgs[0]["id"]
-	var prof: Dictionary = EconQuery.company_profile(w, orgs[0]["id"])
+	var prof: Dictionary = EconFace.query_company_profile(w, orgs[0]["id"])
 	if not prof["facilities"].is_empty():
 		companies.why_facility = prof["facilities"][0]["id"]
 	if not prof["history"].is_empty():
 		companies.why_fact = prof["history"][0]["fact"]
 	companies.refresh()
-	var sh: Array = EconQuery.shortages(w, 101.0)   # threshold > 100 lists everything with demand
+	var sh: Array = EconFace.query_shortages(w, 101.0)   # threshold > 100 lists everything with demand
 	_ok(not sh.is_empty() and sh[0].has("producers"), "shortages() lists goods with producers and causes")
 	why.open_good = sh[0]["good"] if not sh.is_empty() else ""
-	var facts: Array = EconQuery.recent_econ_facts(w, 12, 0)
+	var facts: Array = EconFace.query_recent_econ_facts(w, 12, 0)
 	_ok(not facts.is_empty(), "recent_econ_facts() finds events")
 	if not facts.is_empty():
 		why.open_fact = facts[0]["fact"]
@@ -65,21 +65,21 @@ func _initialize() -> void:
 	_ok(main.windows.has("Legislate") and main.windows["Legislate"].visible, "Legislate window opened")
 
 	# commission → tender → manual award
-	var bad: Dictionary = EconActions.enqueue(w, "ECON_COMMISSION_PROJECT", {"type": "CASTLE", "district": "d:1"})
+	var bad: Dictionary = EconFace.actions_enqueue(w, "ECON_COMMISSION_PROJECT", {"type": "CASTLE", "district": "d:1"})
 	_ok(not bad["ok"] and String(bad["error"]).begins_with("Cannot commission"), "invalid commission rejected with a reason: " + String(bad["error"]))
-	EconActions.set_manual_award(w, true)
+	EconFace.actions_set_manual_award(w, true)
 	var n0: int = w.peek("project").size()
-	var opts: Array = EconQuery.commission_options(w).filter(func(o): return o["enabled"])
+	var opts: Array = EconFace.query_commission_options(w).filter(func(o): return o["enabled"])
 	_ok(not opts.is_empty(), "some commission option is affordable")
 	if not opts.is_empty():
 		projects._queue("ECON_COMMISSION_PROJECT", {"type": opts[0]["type"], "district": "d:2", "line": opts[0]["line"]}, "test")
-		_ok(EconActions.pending(w).size() >= 1, "commission queued")
+		_ok(EconFace.actions_pending(w).size() >= 1, "commission queued")
 		main._advance(1)
 		var t0: String = opts[0]["type"]
 		var made: Array = w.peek("project").values().filter(func(p): return p["type"] == t0 and p["district"] == "d:2" and p["line"] == opts[0]["line"] and p["tender_month"] >= w.month - 1)
 		_ok(made.size() == 1, "project %s in d:2 created after month end (projects %d -> %d)" % [t0, n0, w.peek("project").size()])
 		main._advance(1)
-		var mine: Array = EconQuery.tenders(w).filter(func(t): return t["owner"] == "gov" and not t["bids"].is_empty())
+		var mine: Array = EconFace.query_tenders(w).filter(func(t): return t["owner"] == "gov" and not t["bids"].is_empty())
 		if mine.is_empty():
 			print("  (no gov tender with bids this month; award path not exercised)")
 		else:

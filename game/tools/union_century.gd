@@ -25,12 +25,12 @@ func _init() -> void:
 	for m in months:
 		sim.step()
 		if w.month >= 60:
-			var act := Unions.active(w).filter(func(u): return not u["federation"])
+			var act := EconFace.unions_active(w).filter(func(u): return not u["federation"])
 			min_active = mini(min_active, act.size())
 			max_active = maxi(max_active, act.size())
-			if Unions.federation(w).is_empty():
+			if EconFace.unions_federation(w).is_empty():
 				fed_missing += 1
-		for d in UnionDisputes.pending_demands(w):
+		for d in EconFace.disputes_pending_demands(w):
 			if d["status"] != "STRIKE":
 				continue
 			var did: String = d["id"]
@@ -62,7 +62,7 @@ func _init() -> void:
 			var uid := str(f["data"]["union"])
 			changes[uid] = int(changes.get(uid, 0)) + 1
 	var leader_rows: Array = []
-	for id in EconUtil.sorted_keys(w.peek("union")):
+	for id in CoreUtil.sorted_keys(w.peek("union")):
 		var u: Dictionary = w.peek("union")[id]
 		var life := maxi(1, (int(u.get("dissolved", w.month)) if u["status"] == "DISSOLVED" else w.month) - int(u["founded"]))
 		leader_rows.append("%s:%s %dy %d changes" % [u["name"].substr(0, 14), u["status"].substr(0, 3), life / 12, int(changes.get(id, 0))])

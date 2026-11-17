@@ -18,7 +18,7 @@ func _initialize() -> void:
 	var min_active := 99
 	var max_active := 0
 	for seed_v in seeds:
-		var sim: Simulation = EconSim.make(seed_v, "BALANCED", {}, true)
+		var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
 		var last_pm := ""
 		print("=== seed %d ===" % seed_v)
 		for _m in months:

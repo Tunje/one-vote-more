@@ -101,7 +101,7 @@ func test_staffing_strike_lawful_only_under_binding_ratios() -> void:
 	LawOps.ensure_work_rules(w)
 	w.table("org")["org:1"] = {"id": "org:1", "type": "PRIVATE"}
 	w.table("facility")["fac:1"] = {"id": "fac:1", "org": "org:1", "type": "CLINIC", "district": "d:1"}
-	var sector := EconLabor.occupation_of(w, "org:1", "CLINIC")
+	var sector := EconFace.labor_occupation_of(w, "org:1", "CLINIC")
 	LawOps.record_greed(w, "org:1", {"kind": "UNDERSTAFFING", "facility": "fac:1", "saving": 1000})
 	check(not WK.strike_lawful_staffing(w, sector), "no binding ratios: the shortfall is lawful, so is the employer")
 	w.levers["LAW_STAFFING_RATIOS"] = 2

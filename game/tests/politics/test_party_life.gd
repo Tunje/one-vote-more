@@ -132,7 +132,7 @@ func test_leadership_contest_after_election_loss() -> void:
 
 func test_donation_booked_to_best_matching_party() -> void:
 	var w := _sim().world
-	var co := EconUtil.acct("TESTCO")
+	var co := CoreUtil.acct("TESTCO")
 	w.ledger.open_account(co)
 	w.ledger.transfer(Ledger.EXTERNAL, co, 1000000, "TEST", w.month)
 	var amount := 3000  # small, lawful and below the disclosure threshold

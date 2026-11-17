@@ -5,7 +5,7 @@ const EconSim := preload("res://sim/economy/econ_sim.gd")
 
 
 func _initialize() -> void:
-	var sim: Simulation = EconSim.make(1, "BALANCED", {})
+	var sim: Simulation = EconFace.sim_make(1, "BALANCED", {})
 	for m in [1, 24, 48]:
 		while sim.world.month < m:
 			sim.step()

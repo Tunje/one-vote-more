@@ -26,7 +26,7 @@ func _init() -> void:
 	_demo(s.world())
 	if args.size() > 9 and args[9] == "camp":   # the landing camp: no housing at Landing yet
 		var fac: Dictionary = s.world().table("facility")
-		for fid in EconUtil.sorted_keys(fac):
+		for fid in CoreUtil.sorted_keys(fac):
 			if String(fac[fid]["type"]) == "HOUSING" and String(fac[fid].get("district", "")) == "d:1":
 				fac.erase(fid)
 	if args.size() > 7 and args[7] == "storm":   # a strong rain front over the colony this month

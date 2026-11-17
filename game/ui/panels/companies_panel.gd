@@ -50,7 +50,7 @@ func refresh() -> void:
 # ---------------------------------------------------------------- directory
 
 func _directory(w: WorldState) -> void:
-	var all: Array = EconQuery.companies(w, show_dissolved)
+	var all: Array = EconFace.query_companies(w, show_dissolved)
 	var official := EK.official_visible(session)
 	Kit.header(body, "Company directory")
 	var types := ["ALL"]
@@ -65,7 +65,7 @@ func _directory(w: WorldState) -> void:
 	var row := Kit.hbox(body)
 	_filter(row, "Type", types, f_type, func(v): f_type = v)
 	_filter(row, "Sector", sectors, f_sector, func(v): f_sector = v)
-	_filter(row, "District", ["ALL"] + EconUtil.sorted_keys(EconData.DISTRICTS), f_district, func(v): f_district = v)
+	_filter(row, "District", ["ALL"] + CoreUtil.sorted_keys(EconData.DISTRICTS), f_district, func(v): f_district = v)
 	var chk := CheckBox.new()
 	chk.text = "Dissolved"
 	chk.button_pressed = show_dissolved
@@ -118,7 +118,7 @@ func _filter(row: HBoxContainer, label: String, values: Array, current: String, 
 # ---------------------------------------------------------------- profile
 
 func _profile(w: WorldState) -> void:
-	var p: Dictionary = EconQuery.company_profile(w, selected)
+	var p: Dictionary = EconFace.query_company_profile(w, selected)
 	var official := EK.official_visible(session)
 	var top := Kit.hbox(body)
 	Kit.header(top, "%s  (%s, %s)" % [p["name"], String(p["type"]).to_lower().replace("_", " "), String(p["status"]).to_lower()])
@@ -145,7 +145,7 @@ func _profile(w: WorldState) -> void:
 		var fid: String = f["id"]
 		Kit.button(r, "Why?" if why_facility != fid else "Hide", func(): why_facility = "" if why_facility == fid else fid; refresh())
 		if why_facility == fid:
-			EK.causes(body, EconQuery.explain_facility(w, fid)["causes"], "      ")
+			EK.causes(body, EconFace.query_explain_facility(w, fid)["causes"], "      ")
 	Kit.label(body, "History", 14, Color(0.85, 0.9, 1.0))
 	var hist: Array = p["history"].duplicate()
 	hist.reverse()
@@ -155,12 +155,12 @@ func _profile(w: WorldState) -> void:
 		var fid2: String = h["fact"]
 		Kit.button(r, "Why?" if why_fact != fid2 else "Hide", func(): why_fact = "" if why_fact == fid2 else fid2; refresh())
 		if why_fact == fid2:
-			for e in EconQuery.explain_fact(w, fid2):
+			for e in EconFace.query_explain_fact(w, fid2):
 				Kit.label(body, "      ← month %d %s %s" % [e["month"], String(e["type"]).replace("_", " ").to_lower(), str(e["data"])], 11, EK.MUTED)
 
 
 func _subsidy(w: WorldState) -> void:
-	var room := float(EconActions.headroom(w, "ECON_BUDGET_SUBSIDIES")) / 1000.0
+	var room := float(EconFace.actions_headroom(w, "ECON_BUDGET_SUBSIDIES")) / 1000.0
 	var r := Kit.hbox(body)
 	Kit.label(r, "Grant a subsidy (Subsidies line, %s left):" % EK.money(room), 12, EK.MUTED)
 	var spin := SpinBox.new()
@@ -173,7 +173,7 @@ func _subsidy(w: WorldState) -> void:
 	var btn := Kit.button(r, "Subsidize", func(): _subsidize(oid, int(spin.value)), true)
 	var why := Kit.label(r, "", 12, EK.BAD)
 	var recheck := func(v: float):
-		var c: Dictionary = EconActions.check(w, "ECON_SUBSIDIZE", {"org": oid, "amount": int(v)})
+		var c: Dictionary = EconFace.actions_check(w, "ECON_SUBSIDIZE", {"org": oid, "amount": int(v)})
 		btn.disabled = not c["ok"]
 		btn.tooltip_text = c["error"]
 		why.text = "" if c["ok"] or v <= 0.0 else "✗ " + String(c["error"])
@@ -185,7 +185,7 @@ func _subsidize(oid: String, amount: int) -> void:
 	if amount <= 0:
 		return
 	var w: WorldState = session.world()
-	var res: Dictionary = EconActions.enqueue(w, "ECON_SUBSIDIZE", {"org": oid, "amount": amount})
+	var res: Dictionary = EconFace.actions_enqueue(w, "ECON_SUBSIDIZE", {"org": oid, "amount": amount})
 	if not res["ok"]:
 		msg = "✗ " + String(res["error"])
 		get_tree().call_group("pcs_refresh", "refresh_all")

@@ -42,7 +42,7 @@ func refresh() -> void:
 		return
 	Kit.clear(body)
 	var w: WorldState = session.world()
-	var b := EconQuery.budget_view(w)
+	var b := EconFace.query_budget_view(w)
 	var official := EK.official_visible(session)
 	if msg != "":
 		Kit.label(body, msg, 13, EK.WARN)

@@ -9,7 +9,7 @@ var sim: Simulation
 
 
 func new_game(seed_value: int, autoplay: bool = true) -> void:
-	sim = EconSim.make(seed_value, "BALANCED", {}, autoplay)
+	sim = GameSim.make(seed_value, "BALANCED", {}, autoplay)
 
 
 func world() -> WorldState:
@@ -25,7 +25,7 @@ func save() -> Error:
 
 
 func load_game() -> Error:
-	var s := EconSim.for_load()
+	var s := GameSim.for_load()
 	var err := SaveIO.load_into(s, SAVE_PATH)
 	if err == OK:
 		sim = s

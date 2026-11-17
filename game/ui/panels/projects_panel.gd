@@ -27,14 +27,14 @@ func setup(s) -> void:
 
 ## A button for an econ action, disabled with the reason (tooltip) when EconActions.check says it would fail.
 func _act_button(parent: Node, label: String, id: String, params: Dictionary, text: String) -> Button:
-	var c: Dictionary = EconActions.check(session.world(), id, params)
+	var c: Dictionary = EconFace.actions_check(session.world(), id, params)
 	var b := Kit.button(parent, label, func(): _queue(id, params, text), not c["ok"])
 	b.tooltip_text = c["error"]
 	return b
 
 
 func _queue(id: String, params: Dictionary, text: String) -> void:
-	var res: Dictionary = EconActions.enqueue(session.world(), id, params)
+	var res: Dictionary = EconFace.actions_enqueue(session.world(), id, params)
 	msg = (text + " (takes effect when the month ends)") if res["ok"] else "✗ " + String(res["error"])
 	get_tree().call_group("pcs_refresh", "refresh_all")
 
@@ -59,14 +59,14 @@ func refresh() -> void:
 
 func _commission(w: WorldState) -> void:
 	Kit.header(body, "Commission a public project")
-	var opts: Array = EconQuery.commission_options(w)
+	var opts: Array = EconFace.query_commission_options(w)
 	var row := Kit.hbox(body)
 	var type_opt := OptionButton.new()
 	for o in opts:
 		type_opt.add_item("%s  ~%s%s" % [String(o["type"]).capitalize(), EK.money(o["estimate"]), "" if o["enabled"] else "  (no budget)"])
 	row.add_child(type_opt)
 	var dist_opt := OptionButton.new()
-	var dists: Array = EconUtil.sorted_keys(EconData.DISTRICTS)
+	var dists: Array = CoreUtil.sorted_keys(EconData.DISTRICTS)
 	for d in dists:
 		dist_opt.add_item(EK.district_name(d))
 	row.add_child(dist_opt)
@@ -74,7 +74,7 @@ func _commission(w: WorldState) -> void:
 	var sync := func(i: int):
 		if i >= 0 and i < opts.size():
 			var o: Dictionary = opts[i]
-			info.text = "Paid from %s (%s uncommitted this year). Lines allowed: %s.%s" % [EconQuery.LINE_LABELS.get(o["line"], o["line"]), EK.money(o["headroom"]),
+			info.text = "Paid from %s (%s uncommitted this year). Lines allowed: %s.%s" % [EconFace.QUERY_LINE_LABELS.get(o["line"], o["line"]), EK.money(o["headroom"]),
 				", ".join(o["lines"].map(func(l): return "%s %s" % [l["label"], EK.money(l["headroom"])])), "" if o["enabled"] else "  ✗ " + String(o["reason"])]
 			info.modulate = EK.MUTED if o["enabled"] else EK.BAD
 	type_opt.item_selected.connect(sync)
@@ -90,7 +90,7 @@ func _commission(w: WorldState) -> void:
 		if opts.is_empty():
 			return
 		var o: Dictionary = opts[type_opt.selected]
-		var c: Dictionary = EconActions.check(w, "ECON_COMMISSION_PROJECT", {"type": o["type"], "district": dists[dist_opt.selected], "line": o["line"]})
+		var c: Dictionary = EconFace.actions_check(w, "ECON_COMMISSION_PROJECT", {"type": o["type"], "district": dists[dist_opt.selected], "line": o["line"]})
 		btn.disabled = not c["ok"]
 		btn.tooltip_text = c["error"]
 		why.text = "" if c["ok"] else "✗ " + String(c["error"])
@@ -100,12 +100,12 @@ func _commission(w: WorldState) -> void:
 	var manual := CheckBox.new()
 	manual.text = "I choose contractors myself (otherwise the procurement official awards the top score)"
 	manual.button_pressed = bool(w.meta.get("manual_award", false))
-	manual.toggled.connect(func(on): EconActions.set_manual_award(session.world(), on); refresh())
+	manual.toggled.connect(func(on): EconFace.actions_set_manual_award(session.world(), on); refresh())
 	body.add_child(manual)
-	for r in EconActions.last_results(w, 5):
+	for r in EconFace.actions_last_results(w, 5):
 		if not r["ok"] and r["m"] >= w.month - 1:
 			Kit.label(body, "  last month: %s failed — %s" % [String(r["id"]).trim_prefix("ECON_").replace("_", " ").to_lower(), r.get("error", "")], 12, EK.BAD)
-	var pend: Array = EconActions.pending(w)
+	var pend: Array = EconFace.actions_pending(w)
 	for a in pend:
 		Kit.label(body, "  queued: %s %s" % [String(a["id"]).trim_prefix("ECON_").replace("_", " ").to_lower(), str(a["params"])], 12, EK.MUTED)
 
@@ -113,7 +113,7 @@ func _commission(w: WorldState) -> void:
 # ---------------------------------------------------------------- tenders + bid comparison
 
 func _tenders(w: WorldState, governing: bool) -> void:
-	var ts: Array = EconQuery.tenders(w)
+	var ts: Array = EconFace.query_tenders(w)
 	Kit.header(body, "Open tenders (%d)" % ts.size())
 	if ts.is_empty():
 		Kit.label(body, "No open tenders.", 12, EK.MUTED)
@@ -169,7 +169,7 @@ func _bids(t: Dictionary, can_award: bool) -> void:
 # ---------------------------------------------------------------- projects + blockers
 
 func _projects(w: WorldState, governing: bool) -> void:
-	var ps: Array = EconQuery.projects(w, "gov")
+	var ps: Array = EconFace.query_projects(w, "gov")
 	var active: Array = ps.filter(func(p): return p["status"] == "ACTIVE")
 	Kit.header(body, "Public projects under construction (%d)" % active.size())
 	var chk := CheckBox.new()

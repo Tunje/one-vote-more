@@ -35,7 +35,7 @@ func refresh() -> void:
 
 
 func _shortages(w: WorldState) -> void:
-	var sh: Array = EconQuery.shortages(w)
+	var sh: Array = EconFace.query_shortages(w)
 	Kit.header(body, "What is short right now?")
 	if sh.is_empty():
 		Kit.label(body, "Nothing: every market and utility met at least 97% of demand last month.", 13, EK.GOOD)
@@ -80,7 +80,7 @@ func _open_company(oid: String) -> void:
 func _markets(w: WorldState) -> void:
 	Kit.header(body, "Markets last month")
 	var g := EK.grid(body, ["Good", "Price", "vs normal", "Supply", "Demand", "Main sellers"])
-	for m in EconQuery.market_overview(w):
+	for m in EconFace.query_market_overview(w):
 		if not m.has("price"):
 			EK.cell(g, String(m["good"]).capitalize())
 			EK.cell(g, "tariff %s" % str(m["tariff"]))
@@ -105,7 +105,7 @@ func _events(w: WorldState) -> void:
 	Kit.header(body, "Recent economic events")
 	var official := EK.official_visible(session)
 	var shown := 0
-	for f in EconQuery.recent_econ_facts(w, 6, 30):
+	for f in EconFace.query_recent_econ_facts(w, 6, 30):
 		if not official and String(w.facts.get_fact(f["fact"]).get("visibility", "PUBLIC")) != "PUBLIC":
 			continue
 		if shown >= 20:
@@ -123,7 +123,7 @@ func _events(w: WorldState) -> void:
 
 
 func _explain(w: WorldState, fid: String) -> void:
-	var chain: Array = EconQuery.explain_fact(w, fid)
+	var chain: Array = EconFace.query_explain_fact(w, fid)
 	for i in chain.size():
 		var e: Dictionary = chain[i]
 		var resp: Array = e["responsible"].map(func(x): return "%s %d%%" % [str(x.get("actor", {}).get("id", "?")), int(round(100.0 * float(x.get("share", 0.0))))]) if e["responsible"] is Array else []
@@ -132,9 +132,9 @@ func _explain(w: WorldState, fid: String) -> void:
 		# facility / project referenced by the fact → their own causes
 		var data: Dictionary = e["data"] if e["data"] is Dictionary else {}
 		if data.has("facility") and w.peek("facility").has(data["facility"]):
-			EK.causes(body, EconQuery.explain_facility(w, data["facility"])["causes"], "        ")
+			EK.causes(body, EconFace.query_explain_facility(w, data["facility"])["causes"], "        ")
 		if data.has("project") and w.peek("project").has(data["project"]) and w.peek("project")[data["project"]]["status"] == "ACTIVE":
-			EK.causes(body, EconQuery.explain_project(w, data["project"]), "        ")
+			EK.causes(body, EconFace.query_explain_project(w, data["project"]), "        ")
 
 
 func _data_text(d) -> String:

@@ -64,16 +64,16 @@ func _initialize() -> void:
 		if m in [1, 20]:
 			commission_tries += 1
 			var before := w.peek("project").size()
-			EconActions.enqueue(w, "ECON_COMMISSION_PROJECT", {"type": "HOUSING", "district": districts[0] if not districts.is_empty() else "d:1"})
+			EconFace.actions_enqueue(w, "ECON_COMMISSION_PROJECT", {"type": "HOUSING", "district": districts[0] if not districts.is_empty() else "d:1"})
 			session.end_month()
 			if w.peek("project").size() > before:
 				commissioned += 1
 				_log(w, "commissioned HOUSING in %s" % (districts[0] if not districts.is_empty() else "d:1"))
 			else:
-				var line: String = EconActions.lines_for("HOUSING")[0]
+				var line: String = EconFace.actions_lines_for("HOUSING")[0]
 				_log(w, "commission HOUSING FAILED silently (no project created): headroom on %s %d vs needed %d" % [line,
-					EconActions.headroom(w, line) / 1000, EconConstruction.estimate("HOUSING") * 11 / 10 / 1000])
-				_find("Commissioning a project can fail silently: EconActions.enqueue returns nothing and the reason (budget headroom, type) is not reported to the player.")
+					EconFace.actions_headroom(w, line) / 1000, EconFace.construction_estimate("HOUSING") * 11 / 10 / 1000])
+				_find("Commissioning a project can fail silently: EconFace.actions_enqueue returns nothing and the reason (budget headroom, type) is not reported to the player.")
 			continue
 		# --- legislate: one ordinance at a time in the founding era
 		var can: Dictionary = PolActions.player_can_legislate(w)

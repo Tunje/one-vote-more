@@ -72,7 +72,7 @@ func _union(w: WorldState, u: Dictionary, endorse: Dictionary) -> void:
 
 
 func _weeks(w: WorldState, u: Dictionary) -> String:
-	var n := int(Unions.strike_weeks(w, String(u["id"])))
+	var n := int(EconFace.unions_strike_weeks(w, String(u["id"])))
 	return "%d week%s" % [n, "" if n == 1 else "s"]
 
 
@@ -88,7 +88,7 @@ static func _temper(m: int) -> String:
 func _endorsements(w: WorldState) -> Dictionary:
 	var e: Dictionary = PartyLife.endorsements(w)
 	var out: Dictionary = (e.get("unions", {}) as Dictionary).duplicate()
-	var fed: Dictionary = Unions.federation(w)
+	var fed: Dictionary = EconFace.unions_federation(w)
 	if not fed.is_empty() and String(e.get("federation", e.get("union", ""))) != "":
 		out[String(fed["id"])] = String(e.get("federation", e.get("union", "")))
 	return out
@@ -129,7 +129,7 @@ func _answer(id: String, answer: String, pm: int) -> void:
 	var params := {"demand": id, "answer": answer}
 	if answer == "COUNTER":
 		params["counter_pm"] = pm
-	var r: Dictionary = EconActions.enqueue(session.world(), "ECON_ANSWER_UNION_DEMAND", params)
+	var r: Dictionary = EconFace.actions_enqueue(session.world(), "ECON_ANSWER_UNION_DEMAND", params)
 	if status != null:
 		status.text = ("Answer sent: " + answer.to_lower()) if r.get("ok", false) else "✗ " + String(r.get("error", "failed"))
 	get_tree().call_group("pcs_refresh", "refresh_all")

@@ -176,7 +176,7 @@ static func land_use(world: WorldState) -> Dictionary:
 	var farmed := {}
 	var fac: Dictionary = world.peek("facility")
 	var ft: Dictionary = ColonyLayout.facility_tiles(world)
-	for fid in EconUtil.sorted_keys(ft):
+	for fid in CoreUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
 		if f.is_empty():
 			continue
@@ -342,7 +342,7 @@ static func sites(world: WorldState) -> Array:
 	for k in world.peek("map").get("uses", {}):
 		busy[ColonyLayout.as_tile(k)] = true
 	var cand: Array = []
-	for fid in EconUtil.sorted_keys(ft):
+	for fid in CoreUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
 		if f.is_empty() or not String(f.get("type", "")) in OUTDOOR_SITES or bool(f.get("mothball", false)):
 			continue
@@ -424,7 +424,7 @@ static func dangerous_district(world: WorldState, d: String) -> bool:
 static func _risks(world: WorldState) -> Dictionary:
 	var sig: Array = []
 	var fac: Dictionary = world.peek("facility")
-	for fid in EconUtil.sorted_keys(fac):
+	for fid in CoreUtil.sorted_keys(fac):
 		var f: Dictionary = fac[fid]
 		if String(f.get("type", "")) in OUTDOOR_SITES:
 			sig.append("%s%s%s%d" % [fid, String(f.get("type", "")), String(f.get("district", "")), 1 if bool(f.get("mothball", false)) else 0])
@@ -440,7 +440,7 @@ static func _risks(world: WorldState) -> Dictionary:
 			var d := String(s.get("district", ""))
 			acc[d] = float(acc.get(d, 0.0)) + per * float(levels(world, int(s["hex"]))["pred"]) / 1000.0 * float(s["exposure"])
 		var out := {}
-		for d2 in EconUtil.sorted_keys(acc):
+		for d2 in CoreUtil.sorted_keys(acc):
 			out[d2] = roundi(float(acc[d2]))
 		_risk_cache[key] = out
 	return _risk_cache[key]

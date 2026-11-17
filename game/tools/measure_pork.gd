@@ -16,7 +16,7 @@ func _initialize() -> void:
 	var tot := {false: {}, true: {}}
 	for on in [false, true]:
 		for seed_v in seeds:
-			var sim: Simulation = EconSim.make(seed_v, "BALANCED", {}, true)
+			var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
 			sim.world.meta["pork"] = on
 			var guarded := 0
 			var breaches := 0

@@ -376,7 +376,7 @@ const EXPORT_RICH := 2000000   # credits of exports over 24 months that catch th
 static func _export_claims(world: WorldState, h: Dictionary, sv: Dictionary, r: RandomNumberGenerator) -> void:
 	if not world.table("econ").has("s") or bool(CO.export_terms(world, "MATERIAL").get("refusal", false)):
 		return
-	var exports := int(EconTrade.balance(world).get("exports_24m", 0)) / 1000
+	var exports := int(EconFace.trade_balance(world).get("exports_24m", 0)) / 1000
 	if exports < EXPORT_RICH or int(h["need"]) < 50:
 		return
 	var levy := int(world.levers.get("LAW_CHARTER_EXPORT_LEVY", 0))
@@ -387,10 +387,10 @@ static func _export_claims(world: WorldState, h: Dictionary, sv: Dictionary, r: 
 		CO.home_world_amend(world, "LAW_CHARTER_EXPORT_LEVY", mini(LEVY_MAX, levy + LEVY_STEP))
 		_note(world, h, "claimed a %d%% levy on colony exports" % mini(LEVY_MAX, levy + LEVY_STEP))
 	elif int(h["need"]) > 80:
-		var last: Dictionary = EconTrade.last_ship(world)
+		var last: Dictionary = EconFace.trade_last_ship(world)
 		var ex: Dictionary = last.get("exports", {})
 		var top := ""
-		for g in EconUtil.sorted_keys(ex):
+		for g in CoreUtil.sorted_keys(ex):
 			if top == "" or int(ex[g]) > int(ex[top]):
 				top = g
 		if top != "":
@@ -425,12 +425,12 @@ const SHIP_PAYOFF_PM := 200       # the higher price while a ship is paid off: p
 
 
 static func shipping_on(world: WorldState) -> bool:
-	return world.meta.has("on") and (world.meta["on"] as Array).has("SHIPPING") and not EconUtil.off(world, "SHIPPING")
+	return world.meta.has("on") and (world.meta["on"] as Array).has("SHIPPING") and not CoreUtil.off(world, "SHIPPING")
 
 
 ## Units waiting at the port (after a ship: what it left behind).
 static func _dock_units(world: WorldState) -> int:
-	return int(EconTrade.export_pressure(world)["left_total"])  # cargo the last ship left behind (Bob's ship records)
+	return int(EconFace.trade_export_pressure(world)["left_total"])  # cargo the last ship left behind (Bob's ship records)
 
 
 ## Monthly: the colony only remembers that its port store was full. Nothing can be said to the home world until a ship
@@ -448,7 +448,7 @@ static func _ask_shipping(world: WorldState, h: Dictionary, left: int, full: boo
 	h["ship_ask"] = {"idx": idx, "m": world.month, "left": left}
 	world.add_fact({"type": "HOME_SHIPPING_REQUESTED", "owner": "pol", "subjects": [{"kind": "HOME_WORLD", "id": "home"}],
 		"responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}], "impact": {}, "magnitude": 40,
-		"visibility": "PUBLIC", "data": {"left_on_dock": left, "port_full": full, "ships": 1 + EconTrade.fleet(world).size()}})
+		"visibility": "PUBLIC", "data": {"left_on_dock": left, "port_full": full, "ships": 1 + EconFace.trade_fleet(world).size()}})
 	_note(world, h, "the colony gave the ship its request for more shipping (%d units left, port full %s)" % [left, str(full)])
 
 
@@ -461,17 +461,17 @@ static func _shipping(world: WorldState, h: Dictionary, sv: Dictionary, r: Rando
 	h["ship_seen"] = world.month
 	# paying it off: what the higher price took from this ship's cargo
 	if int(h.get("ship_debt", 0)) > 0:
-		var t := EconTrade.home_tariff(world)
-		var last: Dictionary = EconTrade.last_ship(world)
+		var t := EconFace.trade_home_tariff(world)
+		var last: Dictionary = EconFace.trade_last_ship(world)
 		if t > 0 and t < 1000 and int(last.get("month", -1)) == world.month:
 			h["ship_debt"] = int(h["ship_debt"]) - int(last.get("export_value", 0)) / 1000 * t / (1000 - t)
 		if int(h["ship_debt"]) <= 0:
 			h.erase("ship_debt")
 			world.values.erase("HOME_TARIFF")
-			_fact(world, "HOME_SHIP_PAID_OFF", {"ships": 1 + EconTrade.fleet(world).size()}, 45, {"COLONIAL_BURDEN": 10})
+			_fact(world, "HOME_SHIP_PAID_OFF", {"ships": 1 + EconFace.trade_fleet(world).size()}, 45, {"COLONIAL_BURDEN": 10})
 			_note(world, h, "the new ship is paid off; the higher price ends")
 		return
-	var idx := int(EconUtil.peek_st(world).get("ship_idx", 0))
+	var idx := int(CoreUtil.peek_st(world).get("ship_idx", 0))
 	var carried: Dictionary = h.get("ship_ask", {})
 	if carried.is_empty():
 		# no request under way: the colony can ask now, because a ship is here to carry it
@@ -491,20 +491,20 @@ static func _shipping(world: WorldState, h: Dictionary, sv: Dictionary, r: Rando
 		_fact(world, "HOME_SHIPPING_REFUSED", {"refused": h["shipping_refused"]}, 55, {"COLONIAL_BURDEN": -15, "JOBS": -5})
 		_note(world, h, "refused more shipping")
 		return
-	var old := EconTrade.hold_of(world, idx)
+	var old := EconFace.trade_hold_of(world, idx)
 	var added := 0
 	var what := "LARGER_SHIP"
 	if r.randf() < 0.5:
 		added = int(ceil(float(old) * SHIP_HOLD_STEP)) - old
-		EconTrade.set_hold(world, idx, old + added)
+		EconFace.trade_set_hold(world, idx, old + added)
 	else:
 		what = "ONE_MORE_SHIP"
 		added = EconData.SHIP_CARGO
-		var gap: Array = EconTrade.ship_interval(world)
+		var gap: Array = EconFace.trade_ship_interval(world)
 		# it takes turns with the ships already sailing: its first call falls about half a round trip after this one
-		EconTrade.add_ship(world, world.month + r.randi_range(int(gap[0]) / 2, int(gap[1]) / 2), added)
+		EconFace.trade_add_ship(world, world.month + r.randi_range(int(gap[0]) / 2, int(gap[1]) / 2), added)
 	h["ship_debt"] = added * SHIP_COST_PER_UNIT
 	world.values["HOME_TARIFF"] = SHIP_PAYOFF_PM
-	_fact(world, "HOME_SHIP_BUILT", {"what": what, "hold_added": added, "ships": 1 + EconTrade.fleet(world).size(),
+	_fact(world, "HOME_SHIP_BUILT", {"what": what, "hold_added": added, "ships": 1 + EconFace.trade_fleet(world).size(),
 		"cost": h["ship_debt"], "higher_price_pm": SHIP_PAYOFF_PM}, 60, {"JOBS": 10, "COLONIAL_BURDEN": -10})
 	_note(world, h, "built %s (+%d units); a higher price until %d credits are paid off" % [what.to_lower(), added, int(h["ship_debt"])])

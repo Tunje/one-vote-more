@@ -256,14 +256,10 @@ static func _police_stations(world: WorldState) -> int:
 
 
 static func _prison_places(world: WorldState) -> int:
-	var eq = load("res://sim/economy/econ_query.gd")
-	for m in eq.get_script_method_list():
-		if String(m["name"]) == "prisons":
-			var n := 0
-			for p in eq.call("prisons", world):
-				n += int(p.get("places", 0))
-			return n
-	return 0
+	var n := 0
+	for p in EconFace.query_prisons(world):
+		n += int(p.get("places", 0))
+	return n
 
 
 static func places(world: WorldState) -> Dictionary:

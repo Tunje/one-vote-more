@@ -763,6 +763,10 @@ is wrong; nothing here is asked again.
     took out in the company's last year.
 53. **In a buy-out the debts go with the plant.** One owner's companies selling to each other is allowed and is taxed
     like any sale.
+53a. **A dead company's unsold stock** goes to the bank against what the company owes it, counted at today's market
+    price less 10%, and only as much as covers the debt. The rest stays the owner's to sell. The bank sells what it
+    took like any seller; the government can buy it for the reserve like any buyer. (The user asked Wilma which of two
+    ways she would take, this or the stock going to the government as surplus; this is the one she chose.)
 54. **A state company that cannot pay** is covered by the government out of the money the government actually has, or
     closed by it. There is no bottomless subsidy: a government can spend itself into the ground. Nobody takes the state
     to court.

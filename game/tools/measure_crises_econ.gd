@@ -4,7 +4,7 @@ const EconSim := preload("res://sim/economy/econ_sim.gd")
 func _initialize() -> void:
 	var tot := {}
 	for seed_v in [1, 2, 3, 4]:
-		var sim: Simulation = EconSim.make(seed_v, "BALANCED", {}, true)
+		var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
 		sim.run(120)
 		var line := "seed %d:" % seed_v
 		for t in ["POL_NO_CONFIDENCE_PASSED", "POL_NO_CONFIDENCE_FAILED", "POL_PARTNER_LEFT", "POL_PM_VOTE_FAILED", "POL_FORMATION_FAILED", "POL_GOVERNMENT_FORMED"]:

@@ -231,7 +231,7 @@ static func _districts(world: WorldState) -> Array:
 	var ds := {}
 	for s in ColonyLayout.settlements(world):
 		ds[String(s["district"])] = true
-	return EconUtil.sorted_keys(ds)
+	return CoreUtil.sorted_keys(ds)
 
 
 static func district_jam_pm(world: WorldState, d: String) -> int:
@@ -256,7 +256,7 @@ static func _held_through(world: WorldState) -> Dictionary:
 	var fp: Dictionary = t.get("fpairs_last", {})
 	var fh: Dictionary = t.get("fheld_last", {})
 	var routes: Dictionary = t.get("froutes_last", t.get("froutes", {}))
-	for k in EconUtil.sorted_keys(fp):
+	for k in CoreUtil.sorted_keys(fp):
 		var held := int(fp[k][1])
 		if held <= 0:
 			continue
@@ -328,7 +328,7 @@ static func pair_traffic(world: WorldState, a: String, b: String) -> int:
 	for k in ["%s>%s" % [a, b], "%s>%s" % [b, a]]:
 		if fp.has(k):
 			n += trucks_pcu(int(fp[k][0]))
-	for row in EconUtil.peek_st(world).get("commute_rows", []):
+	for row in CoreUtil.peek_st(world).get("commute_rows", []):
 		var fa := String(row.get("from_d", ""))
 		var fb := String(row.get("to_d", ""))
 		if (fa == a and fb == b) or (fa == b and fb == a):
@@ -390,11 +390,11 @@ static func step_month(world: WorldState) -> void:
 		return
 	var t := world.table("transport")
 	var ids: Array = []
-	for lid in EconUtil.sorted_keys(t["links"]):
+	for lid in CoreUtil.sorted_keys(t["links"]):
 		if int(t["links"][lid].get("globe", 0)) == 0:
 			ids.append(lid)
 	var jt: Dictionary = t.get("junctions", {})
-	ids += EconUtil.sorted_keys(jt)
+	ids += CoreUtil.sorted_keys(jt)
 	var year_end := posmod(world.month, 12) == 0
 	for id in ids:
 		var x := _item(world, String(id))
@@ -444,7 +444,7 @@ static func step_month(world: WorldState) -> void:
 	t["froutes"] = routes
 	var setl := ColonyLayout.settlements(world)
 	var fjam := {}
-	for id in EconUtil.sorted_keys(on_route):
+	for id in CoreUtil.sorted_keys(on_route):
 		var x := _item(world, String(id))
 		if x.is_empty():
 			continue
@@ -464,7 +464,7 @@ static func step_month(world: WorldState) -> void:
 static func _jam_facts(world: WorldState, t: Dictionary) -> void:
 	var by := {}
 	var fp: Dictionary = t["fpairs_last"]
-	for k in EconUtil.sorted_keys(fp):
+	for k in CoreUtil.sorted_keys(fp):
 		var ab := String(k).split(">")
 		if ab.size() != 2:
 			continue
@@ -478,13 +478,13 @@ static func _jam_facts(world: WorldState, t: Dictionary) -> void:
 	if not t.has("jams"):
 		t["jams"] = {}
 	var jams: Dictionary = t["jams"]
-	for d in EconUtil.sorted_keys(jams):
+	for d in CoreUtil.sorted_keys(jams):
 		var row: Array = by.get(d, [0, 0, []])
 		if int(row[1]) * 1000 / maxi(1, int(row[0]) + int(row[1])) < JAM_CLEAR_PM:
 			jams.erase(d)
 			world.add_fact({"type": "TRANSPORT_FREIGHT_JAM_ENDED", "owner": "transport", "subjects": [], "responsible": [], "impact": {},
 				"magnitude": 20, "visibility": "PUBLIC", "data": {"district": d}})
-	for d in EconUtil.sorted_keys(by):
+	for d in CoreUtil.sorted_keys(by):
 		var held_pm := int(by[d][1]) * 1000 / maxi(1, int(by[d][0]) + int(by[d][1]))
 		if held_pm < JAM_FACT_PM or jams.has(d):
 			continue

@@ -29,12 +29,12 @@ func refresh() -> void:
 	if not w.table("econ").has("s"):
 		Kit.label(body, "No economy yet.", 14)
 		return
-	var nxt := int(EconTrade.next_ship(w))
+	var nxt := int(EconFace.trade_next_ship(w))
 	Kit.header(body, "Next ship from the home world")
 	Kit.label(body, "Expected around %s (%s from now). Ships come every 18–30 months; nobody knows the exact month." % [_month(nxt), NewsText.months(maxi(0, nxt - w.month))], 13)
 	# port
-	var stock: Dictionary = EconTrade.port_stock(w)
-	var cap := int(EconTrade.port_capacity(w))
+	var stock: Dictionary = EconFace.trade_port_stock(w)
+	var cap := int(EconFace.trade_port_capacity(w))
 	var used := 0
 	for g in stock:
 		used += int(stock[g])
@@ -49,7 +49,7 @@ func refresh() -> void:
 	Kit.label(body, "Warehouse space used: %d of %d units (depots add space)." % [used, cap], 12, Color("#aaaaaa"))
 	# prices
 	Kit.header(body, "Prices: home world vs colony (credits per unit)")
-	var pr: Dictionary = EconTrade.prices(w)
+	var pr: Dictionary = EconFace.trade_prices(w)
 	for g in _sorted(pr):
 		var p: Dictionary = pr[g]
 		var net := float(p.get("net", 0)) / 1000.0
@@ -63,7 +63,7 @@ func refresh() -> void:
 		Kit.label(body, "  %s: home %d − freight %d → %d net · colony %d%s%s" % [_good(g), int(p.get("home", 0)) / 1000, int(p.get("freight", 0)) / 1000, int(net), int(local),
 			"  ← worth exporting" if better else "", extra], 12, Color("#8bc34a") if better else Color.WHITE)
 	# last ship
-	var ls: Dictionary = EconTrade.last_ship(w)
+	var ls: Dictionary = EconFace.trade_last_ship(w)
 	Kit.header(body, "Last ship")
 	if ls.is_empty() or int(ls.get("month", -1)) < 0:
 		Kit.label(body, "No ship has called yet.", 12, Color("#aaaaaa"))
@@ -82,7 +82,7 @@ func refresh() -> void:
 			orgs.sort_custom(func(a, b): return int(by[a]) > int(by[b]) or (by[a] == by[b] and String(a) < String(b)))
 			Kit.label(body, "  Top exporters: " + ", ".join(orgs.slice(0, 4).map(func(o): return "%s %d cr" % [NewsText.org(w, o), int(by[o]) / 1000])), 12)
 	# balance
-	var b: Dictionary = EconTrade.balance(w)
+	var b: Dictionary = EconFace.trade_balance(w)
 	var bal := int(b.get("balance_24m", 0)) / 1000
 	Kit.header(body, "Trade balance (last 24 months)")
 	Kit.label(body, "Exports %d cr · imports sold %d cr · balance %s%d cr" % [int(b.get("exports_24m", 0)) / 1000, int(b.get("imports_24m", 0)) / 1000, "+" if bal >= 0 else "", bal], 13,

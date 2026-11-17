@@ -4,12 +4,12 @@ func _init() -> void:
 	var args := OS.get_cmdline_user_args()
 	var years := int(args[0]) if args.size() > 0 else 30
 	var seed := int(args[1]) if args.size() > 1 else 1
-	var sim: Simulation = EconSim.make(seed, "BALANCED", {}, true)
+	var sim: Simulation = EconFace.sim_make(seed, "BALANCED", {}, true)
 	var w: WorldState = sim.world
 	var famine := 0
 	for m in years * 12:
 		sim.step()
-		var s: Dictionary = EconUtil.peek_st(w)
+		var s: Dictionary = CoreUtil.peek_st(w)
 		if int(s.get("food_shortfall", 0)) > 50:
 			famine += 1
 		if (m + 1) % 60 == 0:
@@ -24,12 +24,12 @@ func _init() -> void:
 				else:
 					continue
 				c[t] = int(c.get(t, 0)) + 1
-			var e: Dictionary = EconQuery.essentials(w)
+			var e: Dictionary = EconFace.query_essentials(w)
 			var farms := 0
 			for fid in w.table("facility"):
 				if w.table("facility")[fid]["type"] == "FARM":
 					farms += 1
-			print("Y%d pop=%d unemp=%.1f%% farms=%d food_margin=%d%% famine_months=%d  %s" % [(m + 1) / 12, PopStore.total(w), 100.0 * FirmAI.colony_unemployment(w), farms, int(e["FOOD"]["margin_pct"]), famine, str(c)])
+			print("Y%d pop=%d unemp=%.1f%% farms=%d food_margin=%d%% famine_months=%d  %s" % [(m + 1) / 12, PopStore.total(w), 100.0 * EconFace.firm_colony_unemployment(w), farms, int(e["FOOD"]["margin_pct"]), famine, str(c)])
 			famine = 0
 			var pst: Dictionary = w.table("pol")["state"]
 			var g: Dictionary = pst.get("government", {})
@@ -38,5 +38,5 @@ func _init() -> void:
 				var pr: Dictionary = w.table("project")[pid]
 				if pr["type"] == "FARM" and pr["status"] in ["TENDER", "ACTIVE", "TENDERABLE"]:
 					fp.append("%s:%s:%s:start%d:%d%%:contractor=%s:unpaid=%d" % [pid, pr["status"], pr.get("owner", "?"), int(pr.get("start_month", -1)), int(100.0 * float(pr.get("wu_done", 0)) / maxf(1.0, float(pr.get("wu_total", 1)))), pr.get("contractor", ""), int(pr.get("unpaid_m", 0))])
-			print("    era=%s gov=%s ECON_ROLE=%s actor=%s farm_projects=%s offers=%s" % [pst.get("era", ""), g.get("members", []), g.get("center", {}).get("ECON_ROLE", "?"), not GovBuilder._actor(w, pst).is_empty(), fp, EconEssentials.offers(w).keys()])
+			print("    era=%s gov=%s ECON_ROLE=%s actor=%s farm_projects=%s offers=%s" % [pst.get("era", ""), g.get("members", []), g.get("center", {}).get("ECON_ROLE", "?"), not GovBuilder._actor(w, pst).is_empty(), fp, EconFace.essentials_offers(w).keys()])
 	quit()

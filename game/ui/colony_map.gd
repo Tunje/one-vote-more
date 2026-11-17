@@ -887,12 +887,12 @@ const TILE_BUILD_LIVE := false
 ## nothing, so no project is built in the wrong place. Returns {ok, message}.
 static func submit_build(w: WorldState, type: String, t: Vector2i, anchors: Dictionary = {}) -> Dictionary:
 	var params := build_params(w, type, t, anchors)
-	var chk: Dictionary = EconActions.check(w, "ECON_COMMISSION_PROJECT", params)
+	var chk: Dictionary = EconFace.actions_check(w, "ECON_COMMISSION_PROJECT", params)
 	if not chk["ok"]:
 		return {"ok": false, "message": String(chk["error"])}
 	if not TILE_BUILD_LIVE:
 		return {"ok": false, "message": "Placement is ready, but building on a chosen tile goes live with the economy's tile update (A2). Nothing was commissioned."}
-	var r: Dictionary = EconActions.enqueue(w, "ECON_COMMISSION_PROJECT", params)
+	var r: Dictionary = EconFace.actions_enqueue(w, "ECON_COMMISSION_PROJECT", params)
 	return {"ok": r["ok"], "message": "Commissioned: the tender opens next month." if r["ok"] else String(r["error"])}
 
 
@@ -1184,7 +1184,7 @@ func facility_text(w: WorldState, fid: String) -> String:
 		t += "[color=#ef5350]Stopped (%s) until %s[/color]\n" % [String(f.get("stop_kind", "")).to_lower(), _month_text(int(f["stop_until"]))]
 	if ty == "POLICE_STATION":
 		t += _police_text(fid)
-	var ex: Dictionary = EconQuery.explain_facility(w, fid)
+	var ex: Dictionary = EconFace.query_explain_facility(w, fid)
 	for c in ex.get("causes", []).slice(0, 3):
 		t += "• %s\n" % String(c.get("detail", c.get("cause", "")))
 	return t
@@ -1228,8 +1228,8 @@ func _build_text(w: WorldState) -> String:
 		return _siting_text(w)
 	var name := "public housing" if build_type == "HOUSING" else String(FAC_NAMES.get(build_type, build_type))
 	var t := "[b]Build %s[/b]\nChoose a free tile: green is buildable, red is not.\n" % name
-	var est := EconConstruction.estimate(build_type) / EconUtil.S
-	t += "Estimated cost %s, paid from %s\n" % [_money(est), String(EconActions.lines_for(build_type)[0]).trim_prefix("ECON_BUDGET_").replace("_", " ").to_lower()]
+	var est := EconFace.construction_estimate(build_type) / CoreUtil.S
+	t += "Estimated cost %s, paid from %s\n" % [_money(est), String(EconFace.actions_lines_for(build_type)[0]).trim_prefix("ECON_BUDGET_").replace("_", " ").to_lower()]
 	_act_btn.disabled = true
 	_act_btn.text = "Commission here"
 	if not _in_map(build_tile):
@@ -1241,7 +1241,7 @@ func _build_text(w: WorldState) -> String:
 	var near := AreaStore.adjacent_area(w, build_tile)
 	if build_type == "HOUSING":
 		t += ("Extends [b]%s[/b]\n" % AreaStore.get_area(w, near)["name"]) if near != "" else "Founds a new settlement here\n"
-	var chk: Dictionary = EconActions.check(w, "ECON_COMMISSION_PROJECT", build_params(w, build_type, build_tile, _anchors))
+	var chk: Dictionary = EconFace.actions_check(w, "ECON_COMMISSION_PROJECT", build_params(w, build_type, build_tile, _anchors))
 	if not chk["ok"]:
 		t += "[color=#ef5350]%s[/color]\n" % chk["error"]
 	else:
@@ -1363,7 +1363,7 @@ func _refresh_network(w: WorldState) -> void:
 	_reach.clear()
 	for r in Transport.reachable_sites(w):
 		_reach[String(r["id"])] = r
-	_bus_lines = Transport.bus_lines(w, EconQuery.commuting(w))
+	_bus_lines = Transport.bus_lines(w, EconFace.query_commuting(w))
 	_bus_marks = Commuting.incident_marks(w)
 	_wild_marks = PlanetWildlife.attack_marks(w)
 	_bus_at.clear()
@@ -1632,7 +1632,7 @@ func link_text(w: WorldState, lid: String) -> String:
 	if String(l.get("owner", "")) != "":   # PRIVATE_ROADS: a company's road
 		var oname := String(w.peek("org").get(String(l["owner"]), {}).get("name", l["owner"]))
 		var terms := {"OWNER": "for its own freight only", "OPEN_FREE": "open to all, free",
-			"OPEN_TOLL": "open to all, toll %s a truck" % _money(float(l.get("toll", 0)) / EconUtil.S)}
+			"OPEN_TOLL": "open to all, toll %s a truck" % _money(float(l.get("toll", 0)) / CoreUtil.S)}
 		t += "\n[color=#ffd75e]Private road of %s[/color] · %s" % [oname, String(terms.get(String(l.get("regime", "OWNER")), ""))]
 		if int(l.get("reserved_pm", 0)) > 0:
 			t += " · %d%% kept for the owner" % (int(l["reserved_pm"]) / 10)
@@ -1684,7 +1684,7 @@ func _fixes_text(w: WorldState, key: String) -> String:
 		return "[i]Nothing more to build here.[/i]\n"
 	var t := "[b]Possible works[/b]\n"
 	for o in opts:
-		t += "• %s: %s, %s · capacity ×%.1f, accident risk ×%.2f\n" % [_fix_name(String(o["fix"])), _money(float(o["cost"]) / EconUtil.S),
+		t += "• %s: %s, %s · capacity ×%.1f, accident risk ×%.2f\n" % [_fix_name(String(o["fix"])), _money(float(o["cost"]) / CoreUtil.S),
 			_month_text(int(o["months"])), float(o["cap_pm"]) / 1000.0, float(o["acc_pm"]) / 1000.0]
 	if not ROAD_LINK_LIVE:
 		t += "[i]Ordering goes live when the economy's road projects build links.[/i]\n"
@@ -1718,8 +1718,8 @@ func _road_text(w: WorldState) -> String:
 	var br := int(plan["bridges"])
 	t += "%d km%s · %d work units · about %s\nEstimated cost %s\n" % [int(plan["km"]),
 		(", %d river tile%s bridged" % [br, "" if br == 1 else "s"]) if br > 0 else "",
-		int(plan["wu"]), _month_text(int(plan["months"])), _money(float(plan["cost"]) / EconUtil.S)]
-	var chk: Dictionary = EconActions.check(w, "ECON_COMMISSION_PROJECT", road_params(w, road_spec(), _anchors))
+		int(plan["wu"]), _month_text(int(plan["months"])), _money(float(plan["cost"]) / CoreUtil.S)]
+	var chk: Dictionary = EconFace.actions_check(w, "ECON_COMMISSION_PROJECT", road_params(w, road_spec(), _anchors))
 	if not chk["ok"]:
 		t += "[color=#ef5350]%s[/color]\n" % chk["error"]
 	else:
@@ -1744,12 +1744,12 @@ static func submit_road(w: WorldState, spec: Dictionary, anchors: Dictionary = {
 	if why != "":
 		return {"ok": false, "message": why}
 	var params := road_params(w, spec, anchors)
-	var chk: Dictionary = EconActions.check(w, "ECON_COMMISSION_PROJECT", params)
+	var chk: Dictionary = EconFace.actions_check(w, "ECON_COMMISSION_PROJECT", params)
 	if not chk["ok"]:
 		return {"ok": false, "message": String(chk["error"])}
 	if not ROAD_LINK_LIVE:
 		return {"ok": false, "message": "The plan is ready, but road projects build links only once the economy's hook is in. Nothing was commissioned."}
-	var r: Dictionary = EconActions.enqueue(w, "ECON_COMMISSION_PROJECT", params)
+	var r: Dictionary = EconFace.actions_enqueue(w, "ECON_COMMISSION_PROJECT", params)
 	return {"ok": r["ok"], "message": "Commissioned: the tender opens next month." if r["ok"] else String(r["error"])}
 
 
@@ -1922,7 +1922,7 @@ const CRIME := preload("res://sim/law/crime.gd")
 
 
 func _refresh_crime(w: WorldState) -> void:
-	_stations = EconQuery.police(w).get("stations", [])
+	_stations = EconFace.query_police(w).get("stations", [])
 	_crime.clear()
 	var ids: Array = _anchors.keys()
 	ids.sort()

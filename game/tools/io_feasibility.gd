@@ -40,7 +40,7 @@ func _init() -> void:
 		fac = nf
 	var labour := 0.0
 	var rows: Array = []
-	for t in EconUtil.sorted_keys(fac):
+	for t in CoreUtil.sorted_keys(fac):
 		var l := 0.0
 		for tier in EconData.RECIPES[t]["labor"]:
 			l += float(EconData.RECIPES[t]["labor"][tier])

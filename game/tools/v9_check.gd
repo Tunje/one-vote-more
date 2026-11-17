@@ -3,7 +3,7 @@ extends SceneTree
 ## One line: adults Y-end, means over Y5..end of unemployment, food shortfall, real income; income/sales tax at the end.
 func _init() -> void:
 	var a := OS.get_cmdline_user_args()
-	var sim: Simulation = EconSim.make(int(a[0]), "BALANCED", {}, true)
+	var sim: Simulation = EconFace.sim_make(int(a[0]), "BALANCED", {}, true)
 	var w := sim.world
 	if a[2] != "base":
 		for fl in a[2].split(","):
@@ -17,15 +17,15 @@ func _init() -> void:
 		sim.run(1)
 		if m < 60:
 			continue
-		var s := EconUtil.st(w)
+		var s := CoreUtil.st(w)
 		n += 1
-		su += float(EconQuery.labour(w)["rate_pct"])
+		su += float(EconFace.query_labour(w)["rate_pct"])
 		sf += float(int(s.get("food_shortfall", 0)))
 		var disp := 0
 		var persons := 0
 		for gid in w.table("hh"):
-			disp += EconHouseholds.disposable(w.table("hh")[gid])
-			persons += EconHouseholds.persons(w.table("hh")[gid])
+			disp += EconFace.households_disposable(w.table("hh")[gid])
+			persons += EconFace.households_persons(w.table("hh")[gid])
 		var basket := float(EconData.NEED["FOOD"]) * float(s["prices"]["FOOD"]) + float(EconData.NEED["CONSUMER_MIN"]) * float(s["prices"]["CONSUMER"])
 		sr += float(disp) / maxf(1.0, float(persons) / 1000.0 * basket)
 	var adults := 0

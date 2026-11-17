@@ -8,7 +8,7 @@ func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var years := int(args[0])
 	for i in range(1, args.size()):
-		var sim: Simulation = EconSim.make(int(args[i]), "BALANCED", {}, true)
+		var sim: Simulation = EconFace.sim_make(int(args[i]), "BALANCED", {}, true)
 		var line := "seed %s:" % args[i]
 		var worst := 0.0
 		for _m in years * 12:

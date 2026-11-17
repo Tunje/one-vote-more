@@ -24,7 +24,7 @@ func _initialize() -> void:
 	var seeds_with_oppo := 0
 	var seeds_with_backfire := 0
 	for seed_v in seeds:
-		var sim: Simulation = EconSim.make(seed_v, "BALANCED", {}, true)
+		var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
 		var seen := 0
 		var cf := {}
 		print("=== seed %d ===" % seed_v)

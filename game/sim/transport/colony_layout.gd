@@ -127,7 +127,7 @@ static func _settlements(w: WorldState) -> Array:
 				"district": String(a.get("district", ""))})
 	else:
 		var anchors := econ_anchors(w)
-		for d in EconUtil.sorted_keys(anchors):
+		for d in CoreUtil.sorted_keys(anchors):
 			var t0: Vector2i = anchors[d]
 			var tiles2: Array = []
 			for yy in range(t0.y - TOWN_R, t0.y + TOWN_R + 1):
@@ -153,7 +153,7 @@ static func _facility_tiles(w: WorldState, anchors: Dictionary) -> Dictionary:
 	for k in w.peek("map").get("uses", {}):
 		taken[k] = true
 	var fac: Dictionary = w.peek("facility")
-	var ids: Array = EconUtil.sorted_keys(fac)
+	var ids: Array = CoreUtil.sorted_keys(fac)
 	var pins := Siting.pins(w)   # SITING: chosen and kept sites ({} without the flag)
 	for fid in ids:   # facilities that already stand on a tile
 		var tv = fac[fid].get("tile", null)

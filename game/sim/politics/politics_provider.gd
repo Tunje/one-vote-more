@@ -619,7 +619,7 @@ func _votes_by_district(world: WorldState, parties: Array, per_cell: Dictionary,
 	ds.sort()
 	for pid in votes:
 		var w: Array = ds.map(func(d): return float(raw[d].get(pid, 0.0)))
-		var parts := EconUtil.split_lr(int(votes[pid]), w)
+		var parts := CoreUtil.split_lr(int(votes[pid]), w)
 		for i in ds.size():
 			if not out.has(ds[i]):
 				out[ds[i]] = {}

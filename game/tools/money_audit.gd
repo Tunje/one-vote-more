@@ -11,9 +11,9 @@ const M := 1000000000.0   # milli -> millions
 
 
 func _kind(w: WorldState, acct: String) -> String:
-	if acct == EconUtil.TREASURY:
+	if acct == CoreUtil.TREASURY:
 		return "treasury"
-	if acct == EconUtil.BANK:
+	if acct == CoreUtil.BANK:
 		return "bank"
 	if acct == "EXTERNAL":
 		return "external"
@@ -39,7 +39,7 @@ func _init() -> void:
 	var sd := int(a[0])
 	var years := int(a[1])
 	var every := int(a[2]) if a.size() > 2 else 5
-	var sim: Simulation = EconSim.make(sd, "BALANCED", {}, true)
+	var sim: Simulation = EconFace.sim_make(sd, "BALANCED", {}, true)
 	var w := sim.world
 	print("seed %d, switches: %s" % [sd, str(w.meta.get("on", []))])
 	for y in years:
@@ -62,7 +62,7 @@ func _init() -> void:
 		var loans := {}
 		for lid in w.peek("loan"):
 			var l: Dictionary = w.peek("loan")[lid]
-			var bk := "gov" if String(l["borrower"]) == "gov" else _kind(w, EconUtil.acct(String(l["borrower"])))
+			var bk := "gov" if String(l["borrower"]) == "gov" else _kind(w, CoreUtil.acct(String(l["borrower"])))
 			loans[bk] = int(loans.get(bk, 0)) + maxi(0, int(l["principal"]))
 		var flows := {}
 		var lo := w.month - 12
@@ -88,9 +88,9 @@ func _init() -> void:
 				flows["to_bank"] = int(flows.get("to_bank", 0)) + amt
 			if fk == "bank" and tk != "bank":
 				flows["from_bank"] = int(flows.get("from_bank", 0)) + amt
-		var s: Dictionary = EconUtil.peek_st(w)
+		var s: Dictionary = CoreUtil.peek_st(w)
 		var hh := float(held.get("households", 0))
-		var lab: Dictionary = EconQuery.labour(w)
+		var lab: Dictionary = EconFace.query_labour(w)
 		var lf := float(lab.get("labour_force", 1))
 		var un := float(lab.get("unemployed", 0))
 		print("Y%d money=%.0f | treasury=%.0f (%d%%) households=%.0f firms=%.0f pe=%.0f inst=%.0f civil=%.0f other=%.0f | bank_own=%.0f neg=%s" % [y + 1,

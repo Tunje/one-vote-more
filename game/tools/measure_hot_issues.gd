@@ -9,7 +9,7 @@ func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var months := int(args[0]) if args.size() > 0 else 1200
 	var seed_v := int(args[1]) if args.size() > 1 else 1
-	var sim: Simulation = EconSim.make(seed_v, "BALANCED", {}, true)
+	var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
 	if args.size() > 2:   # extra opt-in systems on top of the full game's defaults (EconSim.DEFAULT_ON)
 		var on: Array = sim.world.meta.get("on", []).duplicate()
 		for k in args[2].split(",", false):

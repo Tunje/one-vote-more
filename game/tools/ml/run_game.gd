@@ -18,7 +18,7 @@ func _initialize() -> void:
 	var seed_v := int(a[1]) if a.size() > 1 else 1
 	var years := int(a[2]) if a.size() > 2 else 40
 	var want := String(a[3]) if a.size() > 3 else "auto"
-	var sim: Simulation = EconSim.make(seed_v, "BALANCED", {}, true)
+	var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
 	sim.run(PolDefs.PARTY_FORMATION_MONTH + 1)
 	var w := sim.world
 	var pid := want
