@@ -552,6 +552,13 @@ Asked: "What is terras opinion based on what her and i talked about the map". Af
 Written into [rebuild-company.md](rebuild-company.md) section 8h the same turn; Terra's full text is in [rebuild-reviews.md](rebuild-reviews.md).
 
 
+### The rebuild: upkeep of owned flats (the user, 2026-11-17, verbatim)
+
+> If you own an appartment there is a fee for uppkep to the landlord that owns the rest of they all own then they are a community and they all pay together
+
+Written into [rebuild-company.md](rebuild-company.md) section 8h the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

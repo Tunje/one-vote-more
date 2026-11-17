@@ -321,8 +321,17 @@ So these stand:
   per block; the town view picks which plots show as owned.
 - The town grid is part of the rebuild and is on (nothing behind an off switch).
 
-Still open: who keeps up the stairs and roof of an apartment building where some flats are owned; a price for land in
-credits (the cell value is an index); villages below 250 homes have no grid, so every home there is ordinary.
+**Upkeep of an apartment building with owned flats (the user, 2026-11-17, verbatim):**
+
+> If you own an appartment there is a fee for uppkep to the landlord that owns the rest of they all own then they are a community and they all pay together
+
+- The owner of a flat pays an upkeep fee to the landlord who owns the rest of the building; the landlord keeps the
+  building up.
+- When every flat in the building is owned, the owners are a community and pay for the upkeep together. The landlord
+  is out of that building.
+
+Still open: a price for land in credits (the cell value is an index); villages below 250 homes have no grid, so every
+home there is ordinary.
 
 ## 9. Every outside connection, and how it gets what it needs
 
