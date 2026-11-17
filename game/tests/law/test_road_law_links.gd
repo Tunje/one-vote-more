@@ -15,7 +15,7 @@ func _game() -> Simulation:
 
 
 func _firm(w: WorldState) -> String:
-	for oid in CoreUtil.sorted_keys(w.peek("org")):
+	for oid in EconUtil.sorted_keys(w.peek("org")):
 		if String(oid) != "gov" and String(w.peek("org")[oid].get("type", "")) == "PRIVATE":
 			return String(oid)
 	return ""

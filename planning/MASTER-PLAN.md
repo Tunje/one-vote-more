@@ -475,6 +475,17 @@ The series (one more fix on at each step, three 30-year games per step, the bott
 Done by Wilma: the full copy of the game as it stood at commit 785c72f is `game_full_copy/` (not in git; the same state is commit 785c72f). The economy (sim/economy, sim/companies, sim/transport, sim/waste and everything that calls them) is removed from `game/`. All peers were told to stop work in `game/`.
 
 
+### The rebuild: one company object (the user, 2026-11-17, verbatim)
+
+> Now you build it from the ground up one object that is the company it's size family to large 4 sizes, the nine rules plugged into that the offices as a bonus building the work they do behind states if needed otherwise it's just a 2d array of wich items a company type makes,  if they pick from first or second output all in one object, then roads and supply networks since the same company can become freight that's done already, polution plugg ins to the same okay? Food output plus into the same no more godawfull single sided junk services have no output but a client take in,  stress for workers reduced output based on workers all of it into the company okay? No more only this sector shit, they start with their own and ship out build a plan with all of it adjust the plan until you see every component in the relationships we have them in anything outside needing something how it gets it,  then you ask all the others to review from their and you rewiering FUCKING STOP
+
+> But you already lost all the conections when you rewierd so
+
+> RUST WAS THE POINT IT DIDN'T WORK I WANTED OPRN CONNECTIONS SO IT WAS EASY TO FIND THEM AND START THE PLANNING
+
+Wilma had patched over the calls into the removed economy (commit 8b39828). That was undone the same turn: `game/` is the game as it was at 785c72f with only `sim/economy`, `sim/companies` and the economy's tests removed, every call into them left open. The open connections are listed in [economy-connections.md](economy-connections.md). The plan for the one company object is built from that list.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

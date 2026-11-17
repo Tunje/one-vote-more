@@ -72,7 +72,7 @@ static func strike_lawful_staffing(world: WorldState, sector: String) -> bool:
 		var org := String(f.get("org", ""))
 		if f.is_empty() or not orgs.has(org):
 			continue
-		if String(f.get("occupation", "")) == sector:
+		if EconLabor.occupation_of(world, org, String(f["type"])) == sector:
 			return true
 	return false
 

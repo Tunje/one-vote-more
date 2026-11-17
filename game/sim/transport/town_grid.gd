@@ -105,9 +105,9 @@ static func _index(world: WorldState) -> Dictionary:
 	var cells := {}
 	var of := {}
 	var towns: Dictionary = tb.get("towns", {})
-	for tid in CoreUtil.sorted_keys(towns):
+	for tid in EconUtil.sorted_keys(towns):
 		var cs: Dictionary = towns[tid]["cells"]
-		for ck in CoreUtil.sorted_keys(cs):
+		for ck in EconUtil.sorted_keys(cs):
 			var row: Array = cs[ck]
 			cells[ck] = [String(row[0]), String(row[1]), int(row[2]), String(tid)]
 			if not of.has(row[0]):
@@ -148,7 +148,7 @@ static func grid_due(world: WorldState, tid: String) -> Dictionary:
 	var kinds := {}
 	var nb := 0
 	var fac: Dictionary = world.peek("facility")
-	for fid in CoreUtil.sorted_keys(fac):
+	for fid in EconUtil.sorted_keys(fac):
 		var f: Dictionary = fac[fid]
 		var ty := String(f.get("type", ""))
 		if ty != "HOUSING" and Siting.kind_of(ty) != "TOWN":
@@ -277,7 +277,7 @@ static func edge_cells(world: WorldState, tid: String) -> Array:
 			var k := _ck(c + d)
 			if not idx.has(k):
 				out[k] = true
-	return CoreUtil.sorted_keys(out)
+	return EconUtil.sorted_keys(out)
 
 
 ## The 3 km tiles a town covers: {"x,y": homes}. Without a grid: its homes on its settlement tile.
@@ -291,7 +291,7 @@ static func footprint(world: WorldState, tid: String) -> Dictionary:
 		out[Terrain.key(t0.x, t0.y)] = int(grid_due(world, tid)["homes"])
 		return out
 	var cs: Dictionary = world.peek("town").get("towns", {}).get(tid, {}).get("cells", {})
-	for ck in CoreUtil.sorted_keys(cs):
+	for ck in EconUtil.sorted_keys(cs):
 		var t := tile_of(ck)
 		var k := Terrain.key(t.x, t.y)
 		out[k] = int(out.get(k, 0)) + int(cs[ck][2])
@@ -323,7 +323,7 @@ static func _context(world: WorldState) -> Dictionary:
 	var ft := ColonyLayout.facility_tiles(world)
 	var idx: Dictionary = _index(world)
 	var pts := {"jobs": [], "school": [], "clinic": [], "shops": [], "industry": [], "clear": []}
-	for fid in CoreUtil.sorted_keys(ft):
+	for fid in EconUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
 		if f.is_empty():
 			continue
@@ -347,7 +347,7 @@ static func _context(world: WorldState) -> Dictionary:
 	pts["jobs"].append(_tile_km(Terrain.landing(world)))   # the port
 	var segs: Array = []   # [a km, b km, kmh]
 	var links := Transport._links(world)
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1:
 			continue
@@ -578,7 +578,7 @@ static func _candidates(world: WorldState, tid: String, ctx: Dictionary) -> Arra
 		for dy in range(-SEED_CELLS, SEED_CELLS + 1, SEED_CELLS):
 			for dx in range(-SEED_CELLS, SEED_CELLS + 1, SEED_CELLS):
 				out[_ck(qc + Vector2i(dx, dy))] = true
-	return CoreUtil.sorted_keys(out)
+	return EconUtil.sorted_keys(out)
 
 
 # ================================================================== writes
@@ -644,7 +644,7 @@ static func _table(world: WorldState) -> Dictionary:
 
 
 static func _homes(f: Dictionary) -> int:
-	return maxi(1, roundi(float(BLOCK_HOMES) * CoreUtil.fscale(f)))
+	return maxi(1, roundi(float(BLOCK_HOMES) * EconUtil.fscale(f)))
 
 
 static func _cells_needed(homes: int, form: String) -> int:
@@ -673,7 +673,7 @@ static func _lay(world: WorldState, tid: String, fid: String, form: String, home
 				var c := _cell(ck)
 				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 					nb[_ck(c + d)] = true
-			cand = CoreUtil.sorted_keys(nb)
+			cand = EconUtil.sorted_keys(nb)
 		for ck in cand:
 			var r := cell_score(world, tid, ck, ftype, ctx)
 			if String(r["blocked"]) == "" and float(r["score"]) > bs:
@@ -724,9 +724,9 @@ static func step_month(world: WorldState) -> void:
 		return
 	var tb := _table(world)
 	var fac: Dictionary = world.peek("facility")
-	for tid in CoreUtil.sorted_keys(tb["towns"]):
+	for tid in EconUtil.sorted_keys(tb["towns"]):
 		var cells: Dictionary = tb["towns"][tid]["cells"]
-		for ck in CoreUtil.sorted_keys(cells):
+		for ck in EconUtil.sorted_keys(cells):
 			if not fac.has(String(cells[ck][0])):
 				cells.erase(ck)
 				_bump(tb)

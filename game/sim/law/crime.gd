@@ -82,34 +82,51 @@ static func _peek_state(world: WorldState) -> Dictionary:
 ## {district: {pop, unemployed_pm, hunger_pm, homeless_pm, ineq_x1000, youth_pm, stock_wref, firms}} — Bob's reader
 ## when it exists, else the household fallback. Integers.
 static func drivers(world: WorldState) -> Dictionary:
+	var eq = load("res://sim/economy/econ_query.gd")
+	for m in eq.get_script_method_list():
+		if String(m["name"]) == "crime_drivers":
+			return eq.call("crime_drivers", world)
 	return _fallback_drivers(world)
 
 
 ## Bob's EconPolice.hours(world, district) (officers on duty × OFFICER_HOURS, sick share removed) while the police
 ## stations run (meta["on"] "POLICE"); null otherwise, and police_hours models strength from the lever.
 static func _station_hours():
-	return null  # no police stations to count while there is no economy
+	if not ResourceLoader.exists("res://sim/economy/econ_police.gd"):
+		return null
+	var ep = load("res://sim/economy/econ_police.gd")
+	var has_on := false
+	var has_hours := false
+	for m in ep.get_script_method_list():
+		has_on = has_on or String(m["name"]) == "active"
+		has_hours = has_hours or String(m["name"]) == "hours"
+	if not has_hours:
+		return null
+	return func(w: WorldState, d: String) -> int:
+		if has_on and not bool(ep.call("active", w)):
+			return police_hours(int(state(w)["d"].get(d, {}).get("pop", 0)), coverage_pm(w))
+		return int(ep.call("hours", w, d))
 
 
 static func _fallback_drivers(world: WorldState) -> Dictionary:
 	var out := {}
 	var hh := world.peek("hh")
 	var inc := {}       # district -> band -> [income, persons]
-	for gid in CoreUtil.sorted_keys(hh):
+	for gid in EconUtil.sorted_keys(hh):
 		var g: Dictionary = hh[gid]
 		var d := String(g["district"])
 		var e: Dictionary = out.get(d, {"pop": 0, "lf": 0, "emp": 0})
-		e["pop"] = int(e["pop"]) + CoreUtil.persons(g) / 1000
+		e["pop"] = int(e["pop"]) + EconHouseholds.persons(g) / 1000
 		e["lf"] = int(e["lf"]) + int(g["lf"])
-		e["emp"] = int(e["emp"]) + CoreUtil.employed(g)
+		e["emp"] = int(e["emp"]) + EconLabor.employed(g)
 		out[d] = e
 		var bd: Dictionary = inc.get(d, {})
 		var b: Array = bd.get(String(g.get("band", "MID")), [0, 0])
-		b[0] = int(b[0]) + CoreUtil.disposable(g)
-		b[1] = int(b[1]) + CoreUtil.persons(g)
+		b[0] = int(b[0]) + EconHouseholds.disposable(g)
+		b[1] = int(b[1]) + EconHouseholds.persons(g)
 		bd[String(g.get("band", "MID"))] = b
 		inc[d] = bd
-	var hunger := int(CoreUtil.econ_state(world).get("food_shortfall", 0))
+	var hunger := int(EconUtil.peek_st(world).get("food_shortfall", 0))
 	var dt := world.peek("district")
 	for d in out:
 		var e: Dictionary = out[d]
@@ -194,7 +211,7 @@ static func monthly(world: WorldState) -> void:
 		cs["ineq_ref"] = INEQ_REF if pop_total <= 0 else maxi(1000, int(round(sw / float(pop_total))))
 	var violent_total := 0
 	var violent_by: Array = []
-	for d in CoreUtil.sorted_keys(drv):
+	for d in EconUtil.sorted_keys(drv):
 		var dr: Dictionary = drv[d]
 		var pop := int(dr.get("pop", 0))
 		if pop <= 0:
@@ -351,7 +368,7 @@ static func _unpatrolled(world: WorldState, cs: Dictionary, cov: int) -> void:
 			cut = true
 	var worst := ""
 	var worst_rate := -1
-	for d in CoreUtil.sorted_keys(cs["d"]):
+	for d in EconUtil.sorted_keys(cs["d"]):
 		var r := rate_10k_y(cs["d"][d], "VIOLENCE") + rate_10k_y(cs["d"][d], "THEFT")
 		if r > worst_rate:
 			worst_rate = r

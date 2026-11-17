@@ -23,8 +23,6 @@ const GRUDGE_PTS := 35.0           # score points per unit of betrayal, fading
 const TIE_PTS := 15.0              # the party is the union's own (kind UNION) or its leader came from the union
 const VIABLE_PTS := 0.3            # per percentage point of support: unions back parties that can win
 const MIN_SCORE := 10.0            # below this a union endorses nobody
-const MODERATE := ["PROFESSIONAL"]   # the moderate unions' sectors
-const DONATION_MIN := 2000 * 1000   # mcr; smaller offers are not made
 const MODERATE_MIN := 25.0         # the moderate unions (Unions.MODERATE sectors) are pickier
 const STICKY := 8.0                # a rival must beat the current pick by this much to take the endorsement
 const LABOR_LEVERS := ["ECON_UNION_RIGHTS", "ECON_MIN_WAGE", "LAW_SAFETY_STANDARD", "ECON_UNEMPLOYMENT_BENEFIT_RATE",
@@ -48,7 +46,7 @@ const MOB_SECTOR := 1.5            # ... plus MOB_UNION x this x the endorsing u
 
 
 static func on(world: WorldState) -> bool:
-	return not CoreUtil.off(world, "UNIONS_U1") and not CoreUtil.off(world, "UNION_POLITICS") and not CoreUtil.unions_active(world).is_empty()
+	return not EconUtil.off(world, "UNIONS_U1") and not EconUtil.off(world, "UNION_POLITICS") and not Unions.active(world).is_empty()
 
 
 static func _s(world: WorldState) -> Dictionary:
@@ -75,7 +73,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	_scan_record(world, st, s)
 	var c := Campaign.current(world)
 	if world.month_of_year() == 1 or (not c.is_empty() and int(c.get("opened", -1)) == world.month):
-		for u in CoreUtil.unions_active(world):
+		for u in Unions.active(world):
 			review(world, st, u)
 	if not c.is_empty() and world.month % 3 == 0:
 		_donate(world, s)
@@ -205,7 +203,7 @@ static func betray(world: WorldState, st: Dictionary, pid: String, vals: Diction
 	var s := _s(world)
 	var p: Dictionary = world.table("party").get(pid, {})
 	var hit := false
-	for u in CoreUtil.unions_active(world):
+	for u in Unions.active(world):
 		var uid := String(u["id"])
 		if String(s["picks"].get(uid, "")) != pid:
 			continue
@@ -262,7 +260,7 @@ static func score(world: WorldState, u: Dictionary, p: Dictionary, s: Dictionary
 
 static func _tied(world: WorldState, u: Dictionary, p: Dictionary) -> bool:
 	var uid := String(u["id"])
-	var fed: Dictionary = CoreUtil.federation(world)
+	var fed: Dictionary = Unions.federation(world)
 	var fid := "" if fed.is_empty() else String(fed["id"])
 	for key in [String(p.get("union", "")), String(p.get("leader", {}).get("union", ""))]:
 		if key != "" and (key == uid or (u.get("federation", false) and key == fid) or (key == fid and String(u.get("affiliated_to", "")) == fid)):
@@ -272,7 +270,7 @@ static func _tied(world: WorldState, u: Dictionary, p: Dictionary) -> bool:
 
 static func _moderate(u: Dictionary) -> bool:
 	for occ in u.get("sectors", []):
-		if occ in MODERATE:
+		if occ in Unions.MODERATE:
 			return true
 	return false
 
@@ -334,19 +332,19 @@ static func _fact(world: WorldState, type: String, u: Dictionary, pid: String, m
 ## (cap, the political levy's opt-out share; never from a striking union's fund or its strike reserve).
 static func _donate(world: WorldState, s: Dictionary) -> void:
 	var levy := UnionLaw.levy_share(world)
-	for u in CoreUtil.unions_active(world):
+	for u in Unions.active(world):
 		var uid := String(u["id"])
 		var pid := String(s["picks"].get(uid, ""))
 		if pid == "" or _striking(world, uid) or not world.ledger.has_account("party:" + pid):
 			continue
-		var amount := int(float(CoreUtil.union_fund(world, uid)) * DONATE_SHARE * levy)
-		if amount < DONATION_MIN:
+		var amount := int(float(Unions.spare_fund(world, uid)) * DONATE_SHARE * levy)
+		if amount < EconUnions.DONATION_MIN:
 			continue
 		var chk: Dictionary = LQ.donation_allowed(world, amount, uid)
 		if not chk.get("ok", true):
 			var cap := int(chk.get("cap", -1))
 			amount = int(chk.get("remaining", 0)) - maxi(0, cap) / 10   # unions stay 10% under the cap
-			if amount < DONATION_MIN:
+			if amount < EconUnions.DONATION_MIN:
 				continue
 			chk = LQ.donation_allowed(world, amount, uid)
 			if not chk.get("ok", true):
@@ -361,7 +359,7 @@ static func _donate(world: WorldState, s: Dictionary) -> void:
 
 
 static func _striking(world: WorldState, uid: String) -> bool:
-	return String(world.peek("union_dispute").get(uid, {}).get("status", "")) == "STRIKE"   # Bob's U2
+	return String(UnionDisputes.dispute_of(world, uid).get("status", "")) == "STRIKE"   # Bob's U2
 
 
 ## Campaign volunteers for party pid, in MOB_UNION units (Campaign._ground adds MOB_UNION x this).
@@ -370,7 +368,7 @@ static func mob_units(world: WorldState, pid: String) -> float:
 	var total := 0.0
 	var mine := 0.0
 	var fed := 0.0
-	for u in CoreUtil.unions_active(world):
+	for u in Unions.active(world):
 		if u["federation"]:
 			if String(pk.get(String(u["id"]), "")) == pid:
 				fed = MOB_FED
@@ -387,15 +385,15 @@ static func mob_units(world: WorldState, pid: String) -> float:
 ## sector union's pick. Read-only.
 static func endorsements(world: WorldState) -> Dictionary:
 	var pk := picks(world)
-	var fed: Dictionary = CoreUtil.federation(world)
+	var fed: Dictionary = Unions.federation(world)
 	var out := {"unions": pk.duplicate(), "federation": "" if fed.is_empty() else String(pk.get(String(fed["id"]), "")), "occ_pick": {}}
 	out["union"] = out["federation"]
-	for u in CoreUtil.unions_active(world):
+	for u in Unions.active(world):
 		if u["federation"]:
 			continue
 		var pid := String(pk.get(String(u["id"]), ""))
 		for occ in u["sectors"]:
-			var own: Dictionary = CoreUtil.union_of_occ(world, occ)
+			var own: Dictionary = Unions.of_occ(world, occ)
 			if not own.is_empty() and String(own["id"]) == String(u["id"]):
 				out["occ_pick"][occ] = pid
 	return out

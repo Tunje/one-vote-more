@@ -113,7 +113,7 @@ static func people(world: WorldState) -> Dictionary:
 	var src := {}   # tile int -> [weight, fid, what]
 	var fac: Dictionary = world.peek("facility")
 	var ft: Dictionary = ColonyLayout.facility_tiles(world)
-	for fid in CoreUtil.sorted_keys(ft):
+	for fid in EconUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
 		if f.is_empty() or bool(f.get("mothball", false)):
 			continue
@@ -128,7 +128,7 @@ static func people(world: WorldState) -> Dictionary:
 			var cur2: Array = src.get(ti2, [0, "", ""])
 			src[ti2] = [int(cur2[0]) + TOWN_W, String(cur2[1]), String(cur2[2]) if String(cur2[2]) != "" else "HOMES"]
 	var out := {}   # spread to tiles within NEAR
-	for ti in CoreUtil.sorted_keys(src):
+	for ti in EconUtil.sorted_keys(src):
 		var t0 := Transport.int_tile(int(ti))
 		for dy in range(-NEAR, NEAR + 1):
 			for dx in range(-NEAR, NEAR + 1):
@@ -201,7 +201,7 @@ static func safety_needs(world: WorldState) -> Array:
 	var setl := ColonyLayout.settlements(world)
 	var offered: Dictionary = world.peek("transport").get("safety_offered", {})
 	var fixes := Transport.traffic_fixes(world)
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1:
 			continue
@@ -324,7 +324,7 @@ static func step_month(world: WorldState) -> void:
 		t["safety_offered"] = {}
 	var offered: Dictionary = t["safety_offered"]
 	var acc: Array = t.get("safety_acc", []).filter(func(m): return int(m) > world.month - 12)
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1:
 			continue
@@ -358,7 +358,7 @@ static func step_month(world: WorldState) -> void:
 			var tl := Transport.int_tile(int(at[0]))
 			var d := Transport._district_near(setl, tl)
 			if killed > 0:
-				killed = 0  # nobody is removed from the population while there is no economy to hold them
+				killed = EconPop.casualties(world, d, killed, "", String(at[2]))
 			acc.append(world.month)
 			var since := int(offered.get(lid, -1))
 			world.add_fact({"type": "TRANSPORT_ROAD_ACCIDENT", "owner": "transport", "subjects": [], "responsible": [], "impact": {},

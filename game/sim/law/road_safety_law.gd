@@ -128,7 +128,7 @@ static func apply_statutory(world: WorldState) -> void:
 	var links := Transport._links(world)
 	var changed := 0
 	var ds: Array = []
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1:
 			continue

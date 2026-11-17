@@ -26,7 +26,7 @@ static func learning_party(world: WorldState) -> String:
 	if lp == "auto":
 		var best := ""
 		var seats := -1
-		for pid in CoreUtil.sorted_keys(world.peek("party")):
+		for pid in EconUtil.sorted_keys(world.peek("party")):
 			var p: Dictionary = world.peek("party")[pid]
 			if p.get("status", "") == "ACTIVE" and p.get("kind", "") == "FOUNDING" and int(p.get("seats", 0)) > seats:
 				seats = int(p.get("seats", 0))

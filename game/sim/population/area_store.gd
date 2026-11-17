@@ -162,7 +162,7 @@ static func split(world: WorldState, id: String, tiles_b: Array, kind_b: String,
 		# proportional by band, largest remainder, so every band keeps its share in both parts
 		var bands: Array = PopStore.INCOME_BANDS
 		var w: Array = bands.map(func(b): return PopStore.count(world, {"hb": id, "inc": b}))
-		var parts := CoreUtil.split_lr(want, w)
+		var parts := EconUtil.split_lr(want, w)
 		for i in bands.size():
 			var k2 := mini(int(parts[i]), int(w[i]))
 			if k2 > 0:

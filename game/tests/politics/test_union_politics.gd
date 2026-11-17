@@ -154,7 +154,7 @@ func test_union_money_goes_to_the_endorsed_party_within_the_ledger() -> void:
 	var u: Dictionary = pair[0]
 	var p: Dictionary = pair[1]
 	# top the fund up past its strike reserve (8 weeks of strike pay, which grows with wages and membership)
-	var reserve := int(8.0 / 4.33 * float(u["members"]) / CoreUtil.S * float(Unions.strike_pay(w)))
+	var reserve := int(8.0 / 4.33 * float(u["members"]) / EconUtil.S * float(Unions.strike_pay(w)))
 	var top := maxi(0, reserve - w.ledger.balance(String(u["acct"]))) + 50_000_000
 	w.ledger.transfer(Ledger.EXTERNAL, String(u["acct"]), top, "TEST", w.month)
 	check(Unions.spare_fund(w, String(u["id"])) >= 40_000_000, "spare money above the reserve")

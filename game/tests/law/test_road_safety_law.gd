@@ -19,7 +19,7 @@ func _game(on: bool = true) -> Simulation:
 func _fast_home_road(w: WorldState) -> String:
 	var best := ""
 	var bw := -1
-	for lid in CoreUtil.sorted_keys(Transport._links(w)):
+	for lid in EconUtil.sorted_keys(Transport._links(w)):
 		if not SL.near_homes(w, String(lid)):
 			continue
 		var s := 0

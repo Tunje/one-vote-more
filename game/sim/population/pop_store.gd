@@ -269,7 +269,7 @@ static func _take(world: WorldState, src: String, k: int, only: Dictionary = {})
 		for x in w:
 			wsum += x
 		assert(wsum >= k, "not enough %s in %s for %s" % [f, src, str(only)])
-		var parts := CoreUtil.split_lr(k, w)
+		var parts := EconUtil.split_lr(k, w)
 		comp[f] = {}
 		for i in buckets.size():
 			if parts[i] > 0:
@@ -279,7 +279,7 @@ static func _take(world: WorldState, src: String, k: int, only: Dictionary = {})
 	# the leaf's mix (the joint distribution within a leaf is not tracked beyond its own key).
 	var rec := 0
 	if int(l["n"]) > 0:
-		rec = CoreUtil.split_lr(k, [int(l["recent"]), int(l["n"]) - int(l["recent"])])[0]
+		rec = EconUtil.split_lr(k, [int(l["recent"]), int(l["n"]) - int(l["recent"])])[0]
 	l["recent"] = int(l["recent"]) - rec
 	var state := {}
 	for f in l:
@@ -315,7 +315,7 @@ static func move_group(world: WorldState, filter: Dictionary, k: int, change: Di
 	k = mini(k, avail)
 	if k <= 0:
 		return 0
-	var parts := CoreUtil.split_lr(k, w)
+	var parts := EconUtil.split_lr(k, w)
 	var only := {}
 	if bucket != "" and bucket != "recent":
 		var b := bucket.split(":")
@@ -328,7 +328,7 @@ static func move_group(world: WorldState, filter: Dictionary, k: int, change: Di
 
 ## Splits n over the given leaf keys by weights (largest remainder). Helper for flows computed per block.
 static func split_over(n: int, keys: Array, weights: Array) -> Dictionary:
-	var parts := CoreUtil.split_lr(n, weights)
+	var parts := EconUtil.split_lr(n, weights)
 	var out := {}
 	for i in keys.size():
 		if parts[i] > 0:

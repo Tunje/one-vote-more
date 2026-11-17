@@ -58,7 +58,7 @@ func test_every_cell_has_its_buildings() -> void:
 func test_the_cell_panel_says_why_a_spot_is_dear() -> void:
 	var w := _game().world
 	var cs: Dictionary = w.peek("town")["towns"]["d:1"]["cells"]
-	var ck := String(CoreUtil.sorted_keys(cs)[0])
+	var ck := String(EconUtil.sorted_keys(cs)[0])
 	var h := w.state_hash()
 	var t := TownView.cell_text(w, "d:1", ColonyLayout.as_tile(ck))
 	check_eq(w.state_hash(), h, "pure")

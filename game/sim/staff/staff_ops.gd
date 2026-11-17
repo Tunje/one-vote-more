@@ -134,14 +134,14 @@ static func charge(world: WorldState, owner: Dictionary, cost_wref: float, memo:
 	var weights: Array = []
 	var hh := world.peek("hh")
 	for gid in Det.ordered(hh):
-		var a := CoreUtil.hh_acct(String(gid))
+		var a := EconUtil.hh_acct(String(gid))
 		if world.ledger.has_account(a):
 			accts.append(a)
-			weights.append(CoreUtil.persons(hh[gid]))
+			weights.append(EconHouseholds.persons(hh[gid]))
 	if accts.is_empty():
 		world.ledger.transfer(acct, Ledger.EXTERNAL, amount, memo, world.month)
 		return
-	var parts := CoreUtil.split_lr(amount, weights)
+	var parts := EconUtil.split_lr(amount, weights)
 	for i in accts.size():
 		if int(parts[i]) > 0:
 			world.ledger.transfer(acct, accts[i], int(parts[i]), memo, world.month)

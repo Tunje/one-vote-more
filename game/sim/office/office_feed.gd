@@ -14,7 +14,7 @@ const Desk := preload("res://sim/office/decision_desk.gd")
 
 ## Whether the player holds the government's office now (the founding commander counts when the player commands).
 static func player_office(world: WorldState) -> bool:
-	return true
+	return not world.table("econ").has("s") or EconEssentials.human_governs(world)
 
 
 ## Every government governs through the office (user, 2026-11-13: "the AI parties in game need to use the cabinet
@@ -95,7 +95,7 @@ static func spend_hours(world: WorldState, h: int) -> bool:
 
 static func _union_demands(world: WorldState) -> void:
 	var open := {}
-	for d in world.peek("union_demand").values().filter(func(x): return String(x.get("employer", "")) == "gov" and String(x.get("status", "")) in ["OPEN", "STRIKE"]):
+	for d in UnionDisputes.pending_demands(world, "gov"):
 		var did := String(d["id"])
 		open[did] = true
 		var u: Dictionary = world.peek("union").get(String(d.get("union", "")), {})
@@ -111,7 +111,7 @@ static func _union_demands(world: WorldState) -> void:
 			(" of %.1f%%" % (float(size) / 10.0)) if String(d.get("kind", "")) == "WAGE" else ""],
 			"Their leader %s is %s; the union's mood is %d/100 and its fund covers %d weeks of strike pay." % [u.get("leader", {}).get("name", "?"),
 				"militant" if int(u.get("leader", {}).get("militancy", 50)) >= 70 else ("moderate" if int(u.get("leader", {}).get("militancy", 50)) < 45 else "pragmatic"),
-				int(u.get("mood", 0)), int(u.get("strike_weeks", 0))]]
+				int(u.get("mood", 0)), int(Unions.strike_weeks(world, String(u.get("id", ""))))]]
 		if striking:
 			lines.append("They are ON STRIKE: public services are cut until this is settled.")
 		Office.post(world, {"kind": "CALL" if striking else "EMAIL", "role": "LABOUR_LIAISON", "category": "UNION_DEMAND",
@@ -152,7 +152,7 @@ static func _calendar(world: WorldState) -> void:
 		Office.post(world, {"kind": "CALENDAR", "subject": "General election", "summary": "Election day.", "deadline": int(st["next_election"]),
 			"priority": 40, "source": {"system": "CALENDAR", "ref": "election"}})
 	if world.table("econ").has("s"):
-		var ship := int(CoreUtil.econ_state(world).get("next_ship", -1))
+		var ship := int(EconTrade.next_ship(world))
 		if ship >= world.month:
 			Office.post(world, {"kind": "CALENDAR", "subject": "Ship from the home world (expected)", "summary": "Ships come every 18–30 months; the date is an estimate.",
 				"deadline": ship, "priority": 30, "source": {"system": "CALENDAR", "ref": "ship"}})

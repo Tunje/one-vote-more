@@ -114,7 +114,7 @@ func test_road_projects_build_upgrade_and_engineer() -> void:
 	check(Transport.link_capacity(w.table("transport")["links"][lid]) > cap0, "capacity grows with kind and lanes")
 	var js := Transport.junctions(w)
 	check(not js.is_empty(), "links meet at junctions")
-	var jid: String = CoreUtil.sorted_keys(js)[0]
+	var jid: String = EconUtil.sorted_keys(js)[0]
 	var jcap := Transport.junction_capacity(w, js[jid])
 	check_eq(Transport.complete_road(w, {"id": "p5", "type": "ROAD", "district": "d:1", "owner": "gov", "link": {"junction": jid, "type": "ROUNDABOUT"}}), jid, "a junction rebuilt")
 	check_eq(Transport.junctions(w)[jid]["type"], "ROUNDABOUT", "now a roundabout")
@@ -136,7 +136,7 @@ func test_road_projects_build_upgrade_and_engineer() -> void:
 			check(int(o["cost"]) > 0 and int(o["months"]) >= 2 and int(o["cap_pm"]) > 0 and int(o["acc_pm"]) > 0, "a priced fix %s" % str(o))
 			check_eq(Transport.validate_link(w, o["spec"]), "", "%s %s can be ordered" % [key, o["fix"]])
 	check(kinds.has("ROAD") and (kinds.has("PRIORITY") or kinds.has("SIGNALS")), "tracks can become roads, junctions be rebuilt (%s)" % str(kinds.keys()))
-	var fkey: String = CoreUtil.sorted_keys(fixes)[0]
+	var fkey: String = EconUtil.sorted_keys(fixes)[0]
 	var fopt: Dictionary = fixes[fkey]["options"][0]
 	check(Transport.complete_road(w, {"id": "p8", "type": "ROAD", "district": "d:1", "owner": "gov", "link": Transport.fix_spec(w, fkey, fopt["fix"])}) != "", "ordering a fix builds it")
 	# district roads without a spec still do something useful
@@ -211,7 +211,7 @@ func test_road_needs_and_congested_worn_links_are_upgraded() -> void:
 	sim.step()
 	var w := sim.world
 	var links: Dictionary = w.table("transport")["links"]
-	var ids: Array = CoreUtil.sorted_keys(links).filter(func(l): return int(links[l].get("globe", 0)) == 0 and links[l]["kind"] == "TRACK")
+	var ids: Array = EconUtil.sorted_keys(links).filter(func(l): return int(links[l].get("globe", 0)) == 0 and links[l]["kind"] == "TRACK")
 	check(ids.size() >= 2, "two founding tracks")
 	for lid in links:
 		links[lid]["cond"] = 1000

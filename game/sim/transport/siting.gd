@@ -99,7 +99,7 @@ static func set_use(world: WorldState, tiles: Array, use: String, by: String = "
 		return "No tiles"
 	var ft := ColonyLayout.facility_tiles(world)   # before the change: what stands there now
 	var at_tile := {}
-	for fid in CoreUtil.sorted_keys(ft):
+	for fid in EconUtil.sorted_keys(ft):
 		at_tile[_tkey(ColonyLayout.as_tile(ft[fid]))] = String(fid)
 	var tb := world.table("siting")
 	if not tb.has("use"):
@@ -170,7 +170,7 @@ static func pins(world: WorldState) -> Dictionary:
 		return out
 	var fac: Dictionary = world.peek("facility")
 	var proj: Dictionary = world.peek("project")
-	for key in CoreUtil.sorted_keys(pl):
+	for key in EconUtil.sorted_keys(pl):
 		var t := ColonyLayout.as_tile(pl[key]["tile"])
 		if fac.has(key):
 			out["fac"][String(key)] = t
@@ -275,7 +275,7 @@ static func step_month(world: WorldState) -> void:
 	var fac: Dictionary = world.peek("facility")
 	var proj: Dictionary = world.peek("project")
 	var changed := false
-	for key in CoreUtil.sorted_keys(pl):
+	for key in EconUtil.sorted_keys(pl):
 		if fac.has(key):
 			continue
 		if proj.has(key):
@@ -372,7 +372,7 @@ static func site_options(world: WorldState, ftype: String, district: String, n: 
 static func _context(world: WorldState) -> Dictionary:
 	var road := {}   # tile int -> [lid, ...]
 	var links := Transport._links(world)
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1:
 			continue
@@ -406,7 +406,7 @@ static func _describe(world: WorldState, ftype: String, t: Vector2i, centres: Ar
 	var depot_d := INF
 	var fac: Dictionary = world.peek("facility")
 	var ft: Dictionary = ctx["ft"]
-	for fid in CoreUtil.sorted_keys(ft):
+	for fid in EconUtil.sorted_keys(ft):
 		var ftile := ColonyLayout.as_tile(ft[fid])
 		var d := Vector2(ftile - t).length()
 		var ty := String(fac.get(fid, {}).get("type", ""))
@@ -440,7 +440,7 @@ static func _road_near(world: WorldState, ftype: String, t: Vector2i, ctx: Dicti
 					hits[lid] = []
 				hits[lid].append(ti)
 	var best := {}
-	for lid in CoreUtil.sorted_keys(hits):
+	for lid in EconUtil.sorted_keys(hits):
 		var l: Dictionary = links[lid]
 		var v := RoadSafety.kmh(world, l)
 		if not best.is_empty() and v <= int(best["kmh"]):

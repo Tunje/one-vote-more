@@ -42,7 +42,7 @@ func test_commutes_read_who_works_where() -> void:
 		for t in o.get("crew", {}):
 			for k in o["crew"][t]:
 				staff += int(o["crew"][t][k])
-	check(absi(total - staff / CoreUtil.S) <= rows.size(), "every worker counted once (%d vs %d)" % [total, staff / CoreUtil.S])
+	check(absi(total - staff / EconUtil.S) <= rows.size(), "every worker counted once (%d vs %d)" % [total, staff / EconUtil.S])
 	check_eq(var_to_str(rows), var_to_str(Transport.commutes(w)), "deterministic")
 	check_eq(w.state_hash(), h, "pure")
 

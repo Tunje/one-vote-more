@@ -10,7 +10,7 @@ func test_donor_ask_tilts_the_party_and_disclosure_weakens_it() -> void:
 	var w := sim.world
 	var p: Dictionary = PartyLife.active(w)[0]
 	var org := ""
-	for oid in CoreUtil.sorted_keys(w.table("org")):
+	for oid in EconUtil.sorted_keys(w.table("org")):
 		if String(w.table("org")[oid].get("type", "")) == "PRIVATE":
 			org = oid
 			break

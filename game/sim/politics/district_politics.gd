@@ -246,18 +246,3 @@ static func vote_and_enact(world: WorldState, st: Dictionary, plan: Dictionary, 
 		"impact": {}, "magnitude": 55, "visibility": "PUBLIC",
 		"data": {"why": why, "passed": passed, "yes": yes, "no": no, "votes": votes, "districts": plan.size(), "enacted": res.get("ok", false)}})
 	return {"passed": passed, "yes": yes, "no": no, "enacted": res.get("ok", false)}
-
-
-## The share of a district's voters who backed these parties at the last election (0..1).
-static func district_share(world: WorldState, d: String, parties: Array) -> float:
-	var v := 0.0
-	var n := 0.0
-	for c in PolVoters.all(world):
-		if String(c.get("district", "")) != d or int(c.get("pop", 0)) <= 0:
-			continue
-		var sh := 0.0
-		for pid in parties:
-			sh += float((c.get("prev_share", {}) as Dictionary).get(pid, 0)) / 100000.0
-		v += sh * float(c["pop"])
-		n += float(c["pop"])
-	return v / n if n > 0.0 else 0.0

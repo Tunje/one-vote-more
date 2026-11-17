@@ -172,7 +172,7 @@ static func _founding(world: WorldState) -> Dictionary:
 	# spur tracks to founding plants that stand outside every town
 	var ft := ColonyLayout.facility_tiles(world)
 	var fac: Dictionary = world.peek("facility")
-	for fid in CoreUtil.sorted_keys(ft):
+	for fid in EconUtil.sorted_keys(ft):
 		if String(fac.get(fid, {}).get("type", "")) in PLANT_FREE_TYPES:
 			continue
 		var t: Vector2i = ft[fid]
@@ -227,7 +227,7 @@ static func _water(world: WorldState, ti: int) -> bool:
 ## that still exist (`old`); new ones start as plain crossings.
 static func _derive_junctions(links: Dictionary, old: Dictionary) -> Dictionary:
 	var nb := {}
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1:
 			continue
@@ -454,7 +454,7 @@ static func closed_reason(world: WorldState, l: Dictionary) -> String:
 static func closures(world: WorldState) -> Dictionary:
 	var out := {}
 	var links := _links(world)
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var r := closed_reason(world, links[lid])
 		if r != "":
 			out[lid] = r
@@ -498,7 +498,7 @@ static func _nodes(world: WorldState) -> Array:
 	out.append({"id": "port", "kind": "PORT", "name": "the landing port", "tile": tile_int(land), "cell": home, "town": _town_of(setl, land)})
 	var ft := ColonyLayout.facility_tiles(world)
 	var fac: Dictionary = world.peek("facility")
-	for fid in CoreUtil.sorted_keys(ft):
+	for fid in EconUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
 		if f.is_empty() or String(f["type"]) in PLANT_FREE_TYPES:
 			continue
@@ -509,7 +509,7 @@ static func _nodes(world: WorldState) -> Array:
 		out.append({"id": st["id"], "kind": "SITE", "name": st["name"], "tile": tile_int(st["tile"]) if colony else -1,
 			"cell": int(st["cell"]), "town": _town_of(setl, st["tile"]) if colony else ""})
 	var bases := _bases(world)
-	for bid in CoreUtil.sorted_keys(bases):
+	for bid in EconUtil.sorted_keys(bases):
 		var b: Dictionary = bases[bid]
 		out.append({"id": bid, "kind": "BASE", "name": "%s %s" % [String(b["kind"]).to_lower().replace("_", " "), bid],
 			"tile": int(b["tile"]), "cell": home, "town": _town_of(setl, int_tile(int(b["tile"])))})
@@ -523,7 +523,7 @@ static func _nodes(world: WorldState) -> Array:
 static func network(world: WorldState) -> Dictionary:
 	var ls: Array = []
 	var links := _links(world)
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		var d := l.duplicate(true)
 		d["effective"] = effective_kind(l, world)
@@ -533,7 +533,7 @@ static func network(world: WorldState) -> Dictionary:
 		ls.append(d)
 	var js: Array = []
 	var jt := junctions(world)
-	for jid in CoreUtil.sorted_keys(jt):
+	for jid in EconUtil.sorted_keys(jt):
 		var j: Dictionary = jt[jid].duplicate()
 		j["capacity"] = junction_capacity(world, jt[jid])
 		j["risk"] = int(JUNCTION_RISK[String(j["type"])])
@@ -589,7 +589,7 @@ static func _road_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_
 	if int(b["tile"]) < 0:   # a globe site: to the port, then the globe road
 		var gl := {}
 		var links := _links(world)
-		for lid in CoreUtil.sorted_keys(links):
+		for lid in EconUtil.sorted_keys(links):
 			var l: Dictionary = links[lid]
 			if int(l.get("globe", 0)) == 1 and String(l.get("site", "")) == String(b["id"]):
 				gl = l
@@ -716,7 +716,7 @@ static func _build_graph(world: WorldState, ignore_weather: bool, view: String =
 	var adj := {}
 	var links := _links(world)
 	var priv := PrivateRoads.on(world)
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1:
 			continue
@@ -799,7 +799,7 @@ static func _air_route(world: WorldState, a: Dictionary, b: Dictionary, ignore_w
 static func _base_for(world: WorldState, a: Dictionary, kind: String, ignore_weather: bool) -> Dictionary:
 	var best := {}
 	var bases := _bases(world)
-	for bid in CoreUtil.sorted_keys(bases):
+	for bid in EconUtil.sorted_keys(bases):
 		if bases[bid]["kind"] != kind:
 			continue
 		var leg := _ok("ROAD", 0, 0, 0, []) if a["id"] == bid else _road_route(world, a, node(world, bid), ignore_weather)
@@ -1023,7 +1023,7 @@ static func plan_link(world: WorldState, spec: Dictionary) -> Dictionary:
 	out["comp"] = int(bill[2])
 	out["months"] = clampi(int(bill[0]) / 100 + 1, 2, 36)
 	out["cost"] = int((float(bill[0]) * EconData.WU_COST_EST + float(bill[1]) * EconData.BASE_PRICE["MATERIAL"]
-		+ float(bill[2]) * EconData.BASE_PRICE["COMPONENT"]) * 1.15) * CoreUtil.S
+		+ float(bill[2]) * EconData.BASE_PRICE["COMPONENT"]) * 1.15) * EconUtil.S
 	return out
 
 
@@ -1205,7 +1205,7 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 			return {"a": tile_int(near), "b": int(n["tile"]), "kind": "TRACK"}
 	var worst := ""
 	var busiest := ""
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1 or not ours.call(l):
 			continue
@@ -1221,12 +1221,12 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 		return {"repair": worst}
 	# T7: the busiest bottleneck first (above 80% of capacity): a junction, a bridge, a second lane
 	var jt := junctions(world)
-	for jid in CoreUtil.sorted_keys(jt):
+	for jid in EconUtil.sorted_keys(jt):
 		var j: Dictionary = jt[jid]
 		var ji: int = JUNCTION_TYPES.find(String(j["type"]))
 		if mine.call(int_tile(int(j["tile"]))) and ji < 2 and traffic_load(j) * 10 > junction_capacity(world, j) * 8:
 			return {"junction": jid, "type": "ROUNDABOUT" if ji == 1 or int(j["branches"]) >= 4 else "PRIORITY"}
-	for lid3 in CoreUtil.sorted_keys(links):
+	for lid3 in EconUtil.sorted_keys(links):
 		var l3: Dictionary = links[lid3]
 		if int(l3.get("globe", 0)) == 1 or not ours.call(l3):
 			continue
@@ -1239,7 +1239,7 @@ static func auto_job(world: WorldState, district: String) -> Dictionary:
 		return {"upgrade": busiest}
 	if worst != "" and int(links[worst]["cond"]) < 950:
 		return {"repair": worst}
-	for lid2 in CoreUtil.sorted_keys(links):   # all good: upgrade the district's first road that can still go up
+	for lid2 in EconUtil.sorted_keys(links):   # all good: upgrade the district's first road that can still go up
 		var l2: Dictionary = links[lid2]
 		if int(l2.get("globe", 0)) == 0 and l2["kind"] != "PAVED" and ours.call(l2):
 			return {"upgrade": lid2}
@@ -1255,7 +1255,7 @@ static func traffic_load(x: Dictionary) -> int:
 static func _nearest_link_tile(world: WorldState, links: Dictionary, t: Vector2i) -> Vector2i:
 	var best := Vector2i(-1, -1)
 	var bd := INF
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1:
 			continue
@@ -1282,7 +1282,7 @@ static func step_month(world: WorldState) -> void:
 	var s_home := _storm(world, home)
 	var closed := 0
 	var reasons := {}
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		var k := String(l["kind"])
 		var s := s_home
@@ -1317,7 +1317,7 @@ static func step_month(world: WorldState) -> void:
 	if closed > 0:
 		world.add_fact({"type": "TRANSPORT_LINKS_CLOSED", "owner": "transport", "subjects": [], "responsible": [], "impact": {},
 			"magnitude": clampi(10 + closed * 5, 0, 60), "visibility": "PUBLIC",
-			"data": {"links": closed, "reasons": CoreUtil.sorted_keys(reasons)}})
+			"data": {"links": closed, "reasons": EconUtil.sorted_keys(reasons)}})
 
 
 ## Freight or passengers used a link or a junction this month (T2/T3/T7: the route's links, and the junctions on
@@ -1485,7 +1485,7 @@ static func route_junctions(world: WorldState, r: Dictionary) -> Array:
 		if links.has(lid) and int(links[lid].get("globe", 0)) == 0:
 			for ti in links[lid]["path"]:
 				on[int(ti)] = true
-	for jid in CoreUtil.sorted_keys(jt):
+	for jid in EconUtil.sorted_keys(jt):
 		if on.has(int(jt[jid]["tile"])):
 			out.append(jid)
 	return out
@@ -1566,7 +1566,7 @@ static func _road_needs(world: WorldState) -> Array:
 			if not det_by.has(id):
 				det_by[id] = []
 			det_by[id].append(dt)
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1 or PrivateRoads.is_private(l):   # PRIVATE_ROADS: the owner's (private_road_needs)
 			continue
@@ -1602,7 +1602,7 @@ static func _road_needs(world: WorldState) -> Array:
 			"load_pm": lpm, "proj_pm": ppm, "trend": FreightRoads.trend(l) if fr else 0, "cond": cond, "fix": String(opt["fix"]), "spec": opt["spec"],
 			"cost": int(opt["cost"]), "months": int(opt["months"]), "severity": maxi(0, lpe - NEED_LOAD_PM) + worn_sev, "options": options})
 	var jt := junctions(world)
-	for jid in CoreUtil.sorted_keys(jt):
+	for jid in EconUtil.sorted_keys(jt):
 		var j: Dictionary = jt[jid]
 		var cap2 := maxi(1, junction_capacity(world, j))
 		var load2 := traffic_load(j)
@@ -1773,7 +1773,7 @@ static func fix_spec(world: WorldState, key: String, fix: String) -> Dictionary:
 static func _traffic_fixes(world: WorldState) -> Dictionary:
 	var out := {}
 	var links := _links(world)
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if PrivateRoads.is_private(l):   # PRIVATE_ROADS: works on a company's road are the owner's
 			continue
@@ -1781,7 +1781,7 @@ static func _traffic_fixes(world: WorldState) -> Dictionary:
 		if not opts.is_empty():
 			out["LINK:" + lid] = {"options": opts}
 	var jt := junctions(world)
-	for jid in CoreUtil.sorted_keys(jt):
+	for jid in EconUtil.sorted_keys(jt):
 		var j: Dictionary = jt[jid]
 		var cur := String(j["type"])
 		var opts2: Array = []
@@ -1841,7 +1841,7 @@ static func _replan_crossings(world: WorldState) -> void:
 	t["planner"] = PLANNER
 	var links: Dictionary = t["links"]
 	var changed := false
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1 or not bad_crossing(world, l["path"]):
 			continue

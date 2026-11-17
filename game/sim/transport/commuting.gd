@@ -27,18 +27,18 @@ const WORK_DAYS := 22
 static func commutes(world: WorldState) -> Array:
 	var acc := {}
 	var fac: Dictionary = world.peek("facility")
-	for fid in CoreUtil.sorted_keys(fac):
+	for fid in EconUtil.sorted_keys(fac):
 		var f: Dictionary = fac[fid]
 		_add_staff(acc, f.get("staff", {}), String(fid), String(f.get("district", "")))
 	var orgs: Dictionary = world.peek("org")
-	for oid in CoreUtil.sorted_keys(orgs):
+	for oid in EconUtil.sorted_keys(orgs):
 		var o: Dictionary = orgs[oid]
 		if o.has("crew"):
 			_add_staff(acc, o["crew"], String(oid), String(o.get("hq", "")))
 	var out: Array = []
-	for k in CoreUtil.sorted_keys(acc):
+	for k in EconUtil.sorted_keys(acc):
 		var p := String(k).split("#")
-		var n := (int(acc[k]) + CoreUtil.S / 2) / CoreUtil.S
+		var n := (int(acc[k]) + EconUtil.S / 2) / EconUtil.S
 		if n > 0:
 			out.append({"from_d": p[1], "to_d": p[2], "n": n, "fid": p[0]})
 	return out
@@ -51,7 +51,7 @@ static func _add_staff(acc: Dictionary, staff: Dictionary, fid: String, to_d: St
 			var hb := String(key).split("|")[0]
 			if not hb.begins_with("hb:"):
 				continue
-			var k := "%s#%s#%s" % [fid, CoreUtil.district_of(hb), to_d]
+			var k := "%s#%s#%s" % [fid, EconPop.district_of(hb), to_d]
 			acc[k] = int(acc.get(k, 0)) + int(row[key])
 
 
@@ -204,11 +204,11 @@ static func bus_lines(world: WorldState, pairs: Array) -> Array:
 	var depots: Array = []
 	var ft := ColonyLayout.facility_tiles(world)
 	var fac: Dictionary = world.peek("facility")
-	for fid in CoreUtil.sorted_keys(ft):
+	for fid in EconUtil.sorted_keys(ft):
 		if String(fac.get(fid, {}).get("type", "")) == "DEPOT":
 			depots.append(ft[fid])
 	var out: Array = []
-	for k2 in CoreUtil.sorted_keys(by):
+	for k2 in EconUtil.sorted_keys(by):
 		var ln2: Dictionary = by[k2]
 		var cd := commute_d(world, ln2["a"], ln2["b"])
 		ln2["links"] = cd["links"]

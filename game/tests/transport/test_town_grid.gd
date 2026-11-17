@@ -16,13 +16,13 @@ func _game(seed_v: int = 1, months: int = 2, on: bool = true, extra: Array = [])
 
 
 func _org(w: WorldState) -> String:
-	return String(CoreUtil.sorted_keys(w.peek("org"))[0])
+	return String(EconUtil.sorted_keys(w.peek("org"))[0])
 
 
 func _housing_of(w: WorldState, tid: String) -> Array:
 	var out: Array = []
 	var fac: Dictionary = w.peek("facility")
-	for fid in CoreUtil.sorted_keys(fac):
+	for fid in EconUtil.sorted_keys(fac):
 		if String(fac[fid]["type"]) == "HOUSING" and TownGrid.town_for(w, fac[fid]) == tid:
 			out.append(String(fid))
 	return out
@@ -100,7 +100,7 @@ func test_growth_is_scored_and_pure() -> void:
 	# a fast road beside a cell keeps homes away
 	var links := Transport._links(w)
 	var lid := ""
-	for k in CoreUtil.sorted_keys(links):
+	for k in EconUtil.sorted_keys(links):
 		if lid == "" and int(links[k].get("globe", 0)) == 0 and (links[k]["path"] as Array).size() >= 3:
 			lid = String(k)
 	var l: Dictionary = w.table("transport")["links"][lid]
@@ -226,7 +226,7 @@ func test_location_value_and_what_building_up_reads() -> void:
 	# a school's catchment, and when it is full
 	var school := ""
 	var fac: Dictionary = w.peek("facility")
-	for fid in CoreUtil.sorted_keys(fac):
+	for fid in EconUtil.sorted_keys(fac):
 		if school == "" and String(fac[fid]["type"]) == "SCHOOL":
 			school = String(fid)
 	check(school != "", "a school")

@@ -111,7 +111,7 @@ static func relief(def: Dictionary, delta: float, sat: Dictionary, sal: Dictiona
 ## Fiscal stress 0..1 = worst badness over indicators that declare `fiscalStress {good, bad}` (pic-core §3 v1.2).
 ## Read from current (official) values: the government sees its own books before voters do.
 static func in_default(world: WorldState) -> bool:
-	return world.table("econ").has("s") and bool(CoreUtil.econ_state(world).get("sovereign_default", false))
+	return world.table("econ").has("s") and bool(EconUtil.peek_st(world).get("sovereign_default", false))
 
 
 ## E151 (money audit 2026-11-14, opt-in): the treasury held 19-68% of all colony money because governments read any
@@ -125,7 +125,7 @@ const E151_ROOM_PULL := 2.0
 
 
 static func e151(world: WorldState) -> bool:
-	return world.meta.has("on") and (world.meta["on"] as Array).has("E151") and not CoreUtil.off(world, "E151")
+	return world.meta.has("on") and (world.meta["on"] as Array).has("E151") and not EconUtil.off(world, "E151")
 
 
 static func _fs(world: WorldState, id: String) -> Dictionary:
@@ -193,7 +193,7 @@ static func lever_available(world: WorldState, def: Dictionary) -> bool:
 		return true
 	var on: Array = world.meta.get("on", [])
 	for f in req:
-		if on.has(f) and not CoreUtil.off(world, String(f)):
+		if on.has(f) and not EconUtil.off(world, String(f)):
 			return true
 	return false
 
@@ -209,7 +209,7 @@ const TRAINING_LEVERS := ["ECON_TRAINING_SUBSIDY", "ECON_BUDGET_TRAINING"]
 static func _skill_gap(world: WorldState) -> float:
 	if not world.table("econ").has("s"):
 		return 0.0
-	var k: Dictionary = CoreUtil.econ_state(world).get("training", {})
+	var k: Dictionary = EconTraining.summary(world)
 	var gap := maxf(0.0, float(k.get("vacancies_S", 0)) - float(k.get("unemployed_S", 0))) / 20.0 		+ maxf(0.0, float(k.get("vacancies_Sp", 0)) - float(k.get("unemployed_Sp", 0))) / 6.0
 	return clampf(gap, 0.0, 2.0)
 
@@ -220,11 +220,11 @@ static func _skill_gap(world: WorldState) -> float:
 static func _labour_need(world: WorldState) -> float:
 	if not world.table("econ").has("s"):
 		return 0.0
-	var k: Dictionary = CoreUtil.econ_state(world).get("training", {})
+	var k: Dictionary = EconTraining.summary(world)
 	var vac := float(k.get("vacancies_G", 0)) + float(k.get("vacancies_S", 0)) + float(k.get("vacancies_Sp", 0))
 	var une := float(k.get("unemployed_G", 0)) + float(k.get("unemployed_S", 0)) + float(k.get("unemployed_Sp", 0))
 	var shortage := maxf(0.0, vac - une) / 60.0
-	var pyr: Array = CoreUtil.econ_state(world).get("pop_by_band", [])
+	var pyr: Array = EconQuery.demography(world).get("pop_by_band", [])
 	var old := 0.0
 	var work := 0.0
 	for i in pyr.size():
@@ -251,7 +251,7 @@ static func unemployment(world: WorldState) -> float:
 	if world.meta.has("test_unemployment"):
 		return float(world.meta["test_unemployment"])   # test seam
 	if world.table("econ").has("s"):
-		return float(CoreUtil.econ_state(world).get("unemployment_pct", 0.0))
+		return float(EconQuery.labour(world).get("rate_pct", 0.0))
 	var id := "ECON_UNEMPLOYMENT_RATE"
 	if not world.indicators.values.has(id):
 		return 0.0
@@ -259,7 +259,7 @@ static func unemployment(world: WorldState) -> float:
 	if v.has("COLONY"):
 		return float(v["COLONY"]) / 1000.0
 	var u := 0.0
-	for k in CoreUtil.sorted_keys(v):
+	for k in EconUtil.sorted_keys(v):
 		u = maxf(u, float(v[k]) / 1000.0)
 	return u
 
@@ -310,7 +310,7 @@ const HUNGER_DEEP := 0.15
 static func hunger(world: WorldState) -> float:
 	if not world.table("econ").has("s"):
 		return 0.0
-	return float(CoreUtil.econ_state(world).get("food_shortfall", 0)) / 1000.0
+	return float(EconUtil.peek_st(world).get("food_shortfall", 0)) / 1000.0
 
 
 ## Per protected lever: [strength 0..2, deep]. Deep = no cuts, past the fiscal guard, judged without fiscal stress.
@@ -355,7 +355,7 @@ const FOOD_SCARCE_FULL := 0.15
 static func food_scarce(world: WorldState) -> float:
 	if not world.table("econ").has("s"):
 		return 0.0
-	var m: Dictionary = (CoreUtil.econ_state(world).get("market_stats", {}) as Dictionary).get("FOOD", {})
+	var m: Dictionary = (EconUtil.peek_st(world).get("market_stats", {}) as Dictionary).get("FOOD", {})
 	var wanted := float(m.get("wanted", 0))
 	return 0.0 if wanted <= 0.0 else clampf((wanted - float(m.get("filled", 0))) / wanted, 0.0, 1.0)
 
@@ -379,13 +379,13 @@ const FOOD_DEP_DEEP := 0.08
 static func food_dependence(world: WorldState) -> float:
 	if not world.table("econ").has("s"):
 		return 0.0
-	return float(CoreUtil.econ_state(world).get("food_assist_pm", 0)) / 1000.0
+	return float(EconUtil.peek_st(world).get("food_assist_pm", 0)) / 1000.0
 
 
 static func food_unaffordable(world: WorldState) -> float:
 	if not world.table("econ").has("s"):
 		return 0.0
-	return float(CoreUtil.econ_state(world).get("food_unaff", 0)) / 1000.0
+	return float(EconUtil.peek_st(world).get("food_unaff", 0)) / 1000.0
 
 
 ## pork (0..1, election year; Ella/Campaign.pork_pressure): crowd-pleasing relief counts more, ideology less.
@@ -394,7 +394,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	var scored: Array = []
 	var guarded := fiscal_guard(world)
 	var room := fiscal_room(world) * (E151_ROOM_PULL / FISCAL_ROOM_PULL if e151(world) else 1.0)   # E151: reserves above target push harder
-	var need_levers: Dictionary = CoreUtil.econ_state(world).get("lever_need", {}) if world.table("econ").has("s") else {}
+	var need_levers: Dictionary = EconUtil.peek_st(world).get("lever_need", {}) if world.table("econ").has("s") else {}
 	var own_need: Dictionary = (world.peek("pol").get("state", {}) as Dictionary).get("lever_need", {})   # needs the government's own departments report (ROAD_WORKS)
 	if not own_need.is_empty():
 		need_levers = need_levers.duplicate()

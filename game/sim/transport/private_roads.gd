@@ -84,7 +84,7 @@ static func upkeep(world: WorldState, l: Dictionary) -> int:
 	var k := String(l["kind"])
 	var bill: Array = Transport._tile_bill(world, k, l["path"])
 	var full := (float(bill[0]) * EconData.WU_COST_EST + float(bill[1]) * EconData.BASE_PRICE["MATERIAL"]
-		+ float(bill[2]) * EconData.BASE_PRICE["COMPONENT"]) * 1.15 * CoreUtil.S
+		+ float(bill[2]) * EconData.BASE_PRICE["COMPONENT"]) * 1.15 * EconUtil.S
 	var cap := maxi(1, Transport.link_capacity(l, world))
 	var wear := int(Transport.WEAR[k]) + maxi(0, int(l.get("traffic_last", 0)) - cap) * 10 / cap
 	return roundi(full * float(wear) / 3000.0)
@@ -94,7 +94,7 @@ static func upkeep(world: WorldState, l: Dictionary) -> int:
 static func links_of(world: WorldState, org: String = "") -> Array:
 	var out: Array = []
 	var links := Transport._links(world)
-	for lid in CoreUtil.sorted_keys(links):
+	for lid in EconUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if is_private(l) and (org == "" or String(l["owner"]) == org):
 			out.append(lid)
@@ -168,7 +168,7 @@ static func owners(world: WorldState) -> Array:
 	for lid in links:
 		if is_private(links[lid]):
 			out[String(links[lid]["owner"])] = true
-	return CoreUtil.sorted_keys(out)
+	return EconUtil.sorted_keys(out)
 
 
 ## A firm's road between two districts (step 4): planned off the public roads, priced, with what it would free and
@@ -214,7 +214,7 @@ static func road_case(world: WorldState, org: String, from_d: String, to_d: Stri
 	for ti in plan["path"]:
 		on_path[int(ti)] = true
 	var over: Array = []
-	for jid in CoreUtil.sorted_keys(jt):
+	for jid in EconUtil.sorted_keys(jt):
 		if not on_path.has(int(jt[jid]["tile"])):
 			continue
 		var cap := maxi(1, Transport.junction_capacity(world, jt[jid]))
@@ -326,11 +326,11 @@ static func toll_bill(world: WorldState) -> Array:
 	var out: Array = []
 	var tolls: Dictionary = world.peek("transport").get("tolls", {})
 	var links := Transport._links(world)
-	for lid in CoreUtil.sorted_keys(tolls):
+	for lid in EconUtil.sorted_keys(tolls):
 		var l: Dictionary = links.get(lid, {})
 		if l.is_empty():
 			continue
-		for k in CoreUtil.sorted_keys(tolls[lid]):
+		for k in EconUtil.sorted_keys(tolls[lid]):
 			var parts := String(k).split("|")
 			var truck: bool = parts[0] == "T"
 			var due := toll_due(world, l, parts[1] if truck else "")

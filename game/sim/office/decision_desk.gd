@@ -113,7 +113,7 @@ const SELF_NOTED := ["road_licence", "road_neglect", "competition", "delegation"
 
 
 static func on(world: WorldState) -> bool:
-	return world.meta.has("on") and (world.meta["on"] as Array).has(FLAG) and not CoreUtil.off(world, FLAG)
+	return world.meta.has("on") and (world.meta["on"] as Array).has(FLAG) and not EconUtil.off(world, FLAG)
 
 
 # ======================================================================= step 1: the counter
@@ -631,9 +631,9 @@ static func pending(world: WorldState, ref: String) -> bool:
 static func execute(world: WorldState, id: String, params: Dictionary) -> Dictionary:
 	match id:
 		"GOV_ORDER":
-			return {"ok": false, "error": "There is no economy to act on."}
+			return GovBuilder.commit_order(world, params)
 		"GOV_COVER":
-			return {"ok": false, "error": "There is no economy to act on."}
+			return GovBuilder.commit_cover(world, params)
 		"SAFE_LIMIT":
 			var err := Transport.set_limit(world, String(params.get("link", "")), int(params.get("kmh", 0)))
 			return {"ok": err == "", "error": err}
@@ -642,15 +642,15 @@ static func execute(world: WorldState, id: String, params: Dictionary) -> Dictio
 		"QUOTE_REFUSE":
 			return commit_quote_refuse(world, params)
 		"GOV_UPGRADE":
-			return {"ok": false, "error": "There is no economy to act on."}
+			return GovBuilder.commit_upgrade(world, params)
 		"WILDLIFE_BILL":
 			return GovWildlife.commit_policy(world, params)
 		"INST_BUDGET":
-			return {"ok": false, "error": "There is no economy to act on."}
+			return GovBuilder.commit_inst_budget(world, params)
 		"INST_CLOSE":
-			return {"ok": false, "error": "There is no economy to act on."}
+			return _inst().close(world, String(params.get("facility", "")))
 		"INST_REOPEN":
-			return {"ok": false, "error": "There is no economy to act on."}
+			return _inst().reopen(world, String(params.get("facility", "")))
 	return {"ok": false, "error": "Unknown case action " + id}
 
 
@@ -679,7 +679,7 @@ static func quote_case(world: WorldState, p: Dictionary, ranked: Array, chosen: 
 		offered[org] = true
 		var oid := "AWARD_" + org
 		var name := String(world.peek("org").get(org, {}).get("name", org))
-		opts.append({"id": oid, "label": "Award it to %s (%d cr, %+d%% on our estimate; starts in %d months)" % [name, int(b["price"]) / CoreUtil.S,
+		opts.append({"id": oid, "label": "Award it to %s (%d cr, %+d%% on our estimate; starts in %d months)" % [name, int(b["price"]) / EconUtil.S,
 			int(round(100.0 * (float(b["price"]) / float(maxi(1, est)) - 1.0))), int(b.get("wait", 0))],
 			"action": {"via": "DESK", "id": "QUOTE_AWARD", "params": {"project": pid, "org": org}}})
 		hid[oid] = {"merit": 30 if org == chosen else 0, "lean": {}}
@@ -687,7 +687,7 @@ static func quote_case(world: WorldState, p: Dictionary, ranked: Array, chosen: 
 		"action": {"via": "DESK", "id": "QUOTE_REFUSE", "params": {"project": pid, "why": why}}})
 	hid["REFUSE"] = {"merit": 30 if chosen == "" else 0, "lean": {}}
 	var lines: Array = ["%d builder(s) quoted for the public %s in %s; our estimate is %d cr." % [ranked.size(), String(p.get("type", "")).to_lower(),
-		String(world.peek("district").get(String(p.get("district", "")), {}).get("name", p.get("district", ""))), est / CoreUtil.S]]
+		String(world.peek("district").get(String(p.get("district", "")), {}).get("name", p.get("district", ""))), est / EconUtil.S]]
 	if chosen == "" and why != "":
 		lines.append("The best quote is %s." % String(QUOTE_WHY.get(why, why)))
 	decide(world, {"type": "PUBLIC_QUOTE", "ref": "QUOTE|" + pid, "subject": "Quotes for the public %s" % String(p.get("type", "")).to_lower(),
@@ -701,6 +701,7 @@ static func commit_quote_award(world: WorldState, p: Dictionary) -> Dictionary:
 	var pr: Dictionary = world.peek("project").get(pid, {})
 	if pr.is_empty() or String(pr["status"]) != "TENDER" or not (pr["bids"] as Array).any(func(b): return String(b["org"]) == String(p.get("org", ""))):
 		return {"ok": true, "error": ""}   # the tender moved on meanwhile: nothing to award
+	EconConstruction.award(world, pid, String(p["org"]))
 	return {"ok": true, "error": ""}
 
 
@@ -709,8 +710,9 @@ static func commit_quote_refuse(world: WorldState, p: Dictionary) -> Dictionary:
 	var pr: Dictionary = world.table("project").get(String(p.get("project", "")), {})
 	if pr.is_empty() or String(pr["status"]) != "TENDER" or (pr["bids"] as Array).is_empty():
 		return {"ok": true, "error": ""}
+	EconBuilders.refuse(world, pr, EconConstruction.ranked_bids(world, pr), String(p.get("why", "")))
 	return {"ok": true, "error": ""}
 
 
 static func _inst() -> GDScript:
-	return null  # the institutions' economy side is cut
+	return load("res://sim/economy/econ_institutions.gd")

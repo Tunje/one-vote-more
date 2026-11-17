@@ -68,7 +68,7 @@ func test_a_request_travels_with_the_ship_and_the_answer_comes_back_with_it() ->
 	check_eq(w.facts.query("HOME_SHIPPING_REQUESTED").size(), 1, "the ship is in port: the request goes with it")
 	check(w.facts.query("HOME_SHIP_BUILT").is_empty() and w.facts.query("HOME_SHIPPING_REFUSED").is_empty(), "no answer on the same call")
 	# another ship calls in between: it left home before the request arrived
-	CoreUtil.econ_state(w)["ship_idx"] = 1
+	EconUtil.st(w)["ship_idx"] = 1
 	w.month += 10
 	_port_full(w)
 	HomeWorld._shipping_pressure(w, h)
@@ -76,7 +76,7 @@ func test_a_request_travels_with_the_ship_and_the_answer_comes_back_with_it() ->
 	check_eq(w.facts.query("HOME_SHIPPING_REQUESTED").size(), 1, "one request under way, no second one")
 	check(w.facts.query("HOME_SHIP_BUILT").is_empty() and w.facts.query("HOME_SHIPPING_REFUSED").is_empty(), "the other ship carries no answer")
 	# the ship that carried it is back
-	CoreUtil.econ_state(w)["ship_idx"] = 0
+	EconUtil.st(w)["ship_idx"] = 0
 	w.month += 10
 	HomeWorld._shipping(w, h, sv, r)
 	check_eq(w.facts.query("HOME_SHIP_BUILT").size() + w.facts.query("HOME_SHIPPING_REFUSED").size(), 1, "the answer comes back with the ship that took the request")
@@ -114,7 +114,7 @@ func test_the_home_world_builds_and_takes_a_higher_price_until_it_is_paid() -> v
 	check_eq(w.facts.query("HOME_SHIP_BUILT").size(), built, "no second ship while the first is being paid off")
 	# paid off: the charge ends, the ship stays
 	h["ship_debt"] = 1
-	(CoreUtil.econ_state(w)["trade"]["ships"] as Array).append({"month": w.month, "exports": {}, "export_value": 900000 * CoreUtil.S, "tax": 0, "levy": 0,
+	(EconUtil.st(w)["trade"]["ships"] as Array).append({"month": w.month, "exports": {}, "export_value": 900000 * EconUtil.S, "tax": 0, "levy": 0,
 		"imports": {}, "import_value": 0, "by_org": {}})
 	HomeWorld._shipping(w, h, sv, r)
 	check(not h.has("ship_debt"), "paid off")
@@ -130,7 +130,7 @@ func test_an_extra_ship_calls_on_its_own_interval() -> void:
 	var sim := EconSim.make_econ_only(3)
 	var w := sim.world
 	sim.run(2)
-	var s := CoreUtil.econ_state(w)
+	var s := EconUtil.st(w)
 	var first_next := int(s["ship_next"])
 	EconTrade.add_ship(w, w.month + 3, 500)
 	var calls: Array = []
