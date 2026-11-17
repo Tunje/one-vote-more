@@ -9,6 +9,7 @@ const TypeTable := preload("res://sim/economy/type_table.gd")
 const HomeBuilders := preload("res://sim/economy/home_builders.gd")
 const Market := preload("res://sim/economy/market.gd")
 const Site := preload("res://sim/transport/site.gd")
+const Rules := preload("res://sim/economy/rules.gd")
 const S := CoreUtil.S
 
 var _people := 0
@@ -146,6 +147,7 @@ func test_crews_go_on_to_the_next_job_when_one_site_has_no_supplies() -> void:
 	var b2 := _plan(w, 40000)
 	var b: String = Building.builders(w)[0]
 	var q := {"builder": b, "bw_price": Company.price(w, b, "BW"), "total": 0, "start": w.month + 2}
+	w.table(Building.OPENED)["first_quote_m"] = w.month   # signed by hand, past the start: the builders' market is open
 	var ca := Building._sign(w, a, q)
 	var cb := Building._sign(w, b2, q)
 	w.table("contract")[ca]["worth"]["MATERIAL"] = 0   # its client will pay nothing for material: no supplies come
@@ -244,3 +246,103 @@ func test_a_site_paid_by_a_company_never_fills_the_companys_stock() -> void:
 	check_eq(int(c["on_site"]["MATERIAL"]), 40 * S, "the supplies are on the site")
 	check_eq(int(Company.stock_of(w, payer, "MATERIAL")["qty"]), held0, "not in the paying company's stock: counted once")
 	check_eq(Building.goods_on_sites(w)["MATERIAL"], 40 * S, "the goods check sees them on the site")
+
+
+func test_the_public_works_department_never_quotes_for_a_private_plan() -> void:
+	var w := _world()
+	var pw := String(HomeBuilders.existing(w)["public_works"])
+	check(pw != "" and HomeBuilders.bw_milli(w, pw) > 0, "the public works department exists with its crew")
+	check(not Building.builders(w).has(pw), "not among the builders a plan can hire")
+	check(Building.builders(w, false).has(pw), "but its month is still run")
+	var pid := _plan(w, 40000)
+	for q in Building.quotes(w, pid):
+		check(String(q["builder"]) != pw, "no quote from the public works department")
+	_month(w)
+	var cid := String(w.peek("plan")[pid]["contract"])
+	check(cid != "", "the plan signed with a builder")
+	check(String(w.peek("contract")[cid]["builder"]) != pw, "and not with the public works department")
+	check_eq(Building.book(w, pw).size(), 0, "its book stays empty")
+
+
+func test_a_site_orders_its_supplies_when_its_job_is_next_in_line_not_at_signing() -> void:
+	var w := _world()
+	var b: String = Building.builders(w)[0]
+	var q := {"builder": b, "bw_price": Company.price(w, b, "BW"), "total": 0, "start": w.month + 2}
+	var cs: Array = []
+	for i in 8:
+		cs.append(Building._sign(w, _plan(w, 40000), q))
+	var line := Building.next_in_line(w)
+	var k := 0
+	while k < cs.size() and line.has(cs[k]):
+		k += 1
+	check(k >= 1 and k < cs.size(), "some jobs are next in line, not all eight")
+	for i in range(k, cs.size()):
+		check(not line.has(cs[i]), "next in line is the front of the book, in signing order")
+	# the crews free next month cover every job in line but the last
+	var c0: Dictionary = w.peek("contract")[cs[0]]
+	var per := Building.planned_bw(c0)
+	check_eq(k, (HomeBuilders.bw_milli(w, b) + per - 1) / per, "as many as next month's crews would reach")
+	_month(w)
+	for i in cs.size():
+		var c: Dictionary = w.peek("contract")[cs[i]]
+		var held := int(c["on_site"]["MATERIAL"]) + int(c["on_site"]["COMPONENT"])
+		if i < k:
+			check(held > 0, "a job next in line has its supplies on site")
+		else:
+			check_eq(held, 0, "a job further back has bought nothing yet")
+			check_eq(int(w.peek("plan")[c["plan"]]["cost"]["supplies"]), 0, "and its plan's money is untouched")
+			check_eq(Logbook.rows(w, {"kind": "SUPPLY", "who": cs[i]}).size(), 0, "no order in the log")
+	check_eq(w.ledger.total(), 0, "the ledger adds up")
+
+
+func test_plans_signed_to_wait_behind_a_full_book_count_once_as_unmet() -> void:
+	var w := _world()
+	var b: String = Building.builders(w)[0]
+	var q := {"builder": b, "bw_price": Company.price(w, b, "BW"), "total": 0, "start": w.month + 2}
+	for i in 8:
+		Building._sign(w, _plan(w, 40000), q)
+	# the cheapest builder, so both new plans take it although they must wait behind its book
+	Company.set_price(w, b, "BW", Company.price(w, b, "BW") / 2, {"test": true}, "test price")
+	var p1 := _plan(w, 40000)
+	var p2 := _plan(w, 40000)
+	check(Building.start_month(w, b) > w.month + 2, "its book is full: a new job would wait")
+	Building.sign_round(w)
+	for pid in [p1, p2]:
+		var cid := String(w.peek("plan")[pid]["contract"])
+		check(cid != "" and String(w.peek("contract")[cid]["builder"]) == b, "signed with the cheap builder")
+	var bw := int(TypeTable.bill("FARM", "FAMILY")["bw"])
+	_month(w)
+	check_eq(int(Building.seller_signal(w, b)["unmet_above"]), 2 * bw, "next month: the two plans' BW, once")
+	_month(w)
+	check(Building.book(w, b).size() >= 8, "the book is still there")
+	check_eq(int(Building.seller_signal(w, b)["unmet_above"]), 0, "the month after: nothing, the waiting book is not counted again")
+	var other: String = Building.builders(w)[1]
+	check_eq(int(Building.seller_signal(w, other)["unmet_above"]), 0, "a builder nobody waited for counts nothing")
+
+
+
+func test_at_the_start_no_rule_cuts_a_builders_price_or_crew_until_the_first_plan_asks() -> void:
+	var w := _world()
+	var b: String = Building.builders(w)[0]
+	var px := Company.price(w, b, "BW")
+	var lv := Company.level_of(w, b, "crew")
+	var crew := Company.staff_count(w, b, "", "crew")
+	for i in 3:
+		w.month += 1
+		Building.work_month(w)
+		check(not w.peek(Building.MONTH).get(b, {}).is_empty(), "its month is recorded")
+		check(Building.seller_signal(w, b).is_empty(), "no signal at the start: no customer could exist yet")
+		Rules.month(w)
+	check_eq(Building.first_quote_month(w), -1, "nobody has asked for a quote")
+	check_eq(Company.price(w, b, "BW"), px, "no cut for the start: the price stays")
+	check_eq(Company.level_of(w, b, "crew"), lv, "nor the crew level")
+	check_eq(Company.staff_count(w, b, "", "crew"), crew, "nor the crew")
+	var pid := _plan(w, 40000)
+	Building.sign_round(w)
+	check_eq(Building.first_quote_month(w), w.month, "the first plan asked: the market is open from this month")
+	var other: String = Building.builders(w)[1]
+	w.month += 1
+	Building.work_month(w)
+	check(not Building.seller_signal(w, b).is_empty(), "after the first quote the signal is there")
+	check(not Building.seller_signal(w, other).is_empty(), "for every builder, quoted or chosen or not")
+	check_eq(Logbook.rows(w, {"kind": "QUOTE", "who": "builders"}).size(), 1, "the opening of the market is in the log once")

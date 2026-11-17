@@ -19,6 +19,7 @@ const QUARTER_MONTH := 1
 ## Who decides, step 1 (flag DELEGATION): each decision taken here is counted by type. No-op without the flag.
 const Desk := preload("res://sim/office/decision_desk.gd")
 const SafetyLaw := preload("res://sim/law/road_safety_law.gd")   # ROAD_SAFETY: Parliament's limit near homes (Anni)
+const Grants := preload("res://sim/economy/grants.gd")
 
 
 static func monthly(world: WorldState, st: Dictionary) -> void:
@@ -548,10 +549,12 @@ static func _grant_cover(world: WorldState, st: Dictionary) -> void:
 				_programme_ended(world, st, String(kind), progs[kind])
 				progs.erase(kind)
 			cover.erase(kind)
+			(st.get("grant_sum", {}) as Dictionary).erase(kind)   # a limit, not money set aside: nothing to return
 			continue
 		# the open programme: who opened it, how long it has run and in how many of those months there was a need
 		if not progs.has(kind):
 			progs[kind] = {"by": String(_who(world, st).get("by", "")), "start": world.month, "months": 0, "need_m": 0}
+			_grant_sum(world, st, String(kind), String(progs[kind]["by"]))
 		progs[kind]["months"] = int(progs[kind]["months"]) + 1
 		for d0 in need_d:
 			if int(need_d[d0]) > 0:
@@ -607,6 +610,26 @@ static func _grant_cover(world: WorldState, st: Dictionary) -> void:
 				"impact": {"FAIRNESS": -4, "GOVERNANCE": -3}, "magnitude": 45, "visibility": "PUBLIC",
 				"data": {"kind": kind, "favoured": chosen.filter(func(d): return not (d in fair)), "passed_over": passed_over, "by": who["by"]}})
 	st["grant_cover"] = cover
+
+
+## The user (2026-11-17, plan 12.9, 61b): "The government should put a max sum into the grant based on how many farms
+## they want maybe a little extra to be sure". When a programme opens the government decides how many plants of the
+## kind it wants (Grants.wanted, the starting count) and the programme gets that many grants and a tenth more
+## (Grants.budget_for). Each grant paid comes out of it (Grants.sum_left). Politics' memory, st["grant_sum"], dropped
+## when the programme ends; a limit on the treasury's spending, so nothing is returned. One Logbook row with the numbers.
+static func _grant_sum(world: WorldState, st: Dictionary, kind: String, by: String) -> void:
+	var b: Dictionary = Grants.budget_for(world, kind)
+	b["start"] = world.month
+	var sums: Dictionary = st.get("grant_sum", {})
+	sums[kind] = b
+	st["grant_sum"] = sums
+	Logbook.note(world, "GRANT", "government", "sum set", b.duplicate(), {"sum": [0, int(b["sum"]) / CoreUtil.S]}, by,
+		String(GRANT_KINDS[kind]))
+
+
+## Each open programme's sum, {kind: {wanted, rule, grant, extra, sum, start, ...}}, credits x S. A copy.
+static func grant_sum(world: WorldState) -> Dictionary:
+	return ((world.peek("pol").get("state", {}) as Dictionary).get("grant_sum", {}) as Dictionary).duplicate(true)
 
 
 ## The districts each open grant programme covers, {kind: [district ids]}, for the economy's grants. A kind that is

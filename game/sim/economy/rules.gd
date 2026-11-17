@@ -25,6 +25,7 @@ const TypeTable := preload("res://sim/economy/type_table.gd")
 const Market := preload("res://sim/economy/market.gd")
 const Making := preload("res://sim/economy/making.gd")
 const Households := preload("res://sim/population/households.gd")
+const HomeBuilders := preload("res://sim/economy/home_builders.gd")
 
 const S := 1000
 ## k: how far a price (or a hiring salary) can move in a month, per mille (12.3, 15: "starts at 0.2").
@@ -60,7 +61,11 @@ static func company_month(world: WorldState, cid: String) -> void:
 		holding = hold_back(world, cid, String(item), making) or holding
 		if String(item) == TypeTable.out_of(String(c["type"]), int(c["line"])):
 			output_rule(world, cid, sig, holding)
-	if String(TypeTable.way(String(c["type"]))["sells"]) == "BW":
+	# The public works department (known by its origin mark, not its name) does not sell on a market: it builds only
+	# when the government commissions it (plan 99), so the price and output rules have nothing to read for it. Its
+	# crew stays and is paid until the government decides otherwise, which is the purse's business at step 8 (Wilma).
+	var public_works := String(c.get("origin", "")) == HomeBuilders.ORIGIN_PUBLIC
+	if String(TypeTable.way(String(c["type"]))["sells"]) == "BW" and not public_works:
 		# a builder runs the same price and output rules on its building work, from its own signal (Otto's
 		# Building.seller_signal, in Market.seller_signal's shape); it does not hold back (12.3, 22)
 		var bsig := building_signal(world, cid)

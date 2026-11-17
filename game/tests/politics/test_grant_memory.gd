@@ -20,6 +20,7 @@ func _fresh(w: WorldState) -> void:
 	var st: Dictionary = w.table("pol")["state"]
 	st.erase("grant_prog")
 	st.erase("grant_cover")
+	st.erase("grant_sum")
 	Logbook.clear(w)
 
 
@@ -85,12 +86,13 @@ func test_every_decision_is_in_the_logbook() -> void:
 	GovBuilder._grant_cover(w, st)
 	w.levers["ECON_FAMILY_FARM_GRANT"] = 0
 	GovBuilder._grant_cover(w, st)
-	# politics' decision is the cover; the programme's opening and end are the grants' deeds (Grants logs them)
+	# politics' decisions are the sum and the cover; the programme's opening and end are the grants' deeds (Grants logs
+	# them)
 	var rows := Logbook.rows(w, {"kind": "GRANT", "ref": "ECON_FAMILY_FARM_GRANT"})
 	var whats: Array = rows.map(func(r): return String(r["what"]))
-	check_eq(whats, ["cover chosen"], "the cover chosen, once")
-	if rows.size() == 1:
-		check(not (rows[0]["change"]["cover"][1] as Array).is_empty(), "the chosen districts are on the row")
+	check_eq(whats, ["sum set", "cover chosen"], "the sum set and the cover chosen, once each")
+	if rows.size() == 2:
+		check(not (rows[1]["change"]["cover"][1] as Array).is_empty(), "the chosen districts are on the row")
 
 
 func test_no_need_published_nothing_happens() -> void:

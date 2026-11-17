@@ -43,11 +43,14 @@ func _district(w: WorldState) -> String:
 	return Grants._district(w, _area(w))
 
 
-func _cover(w: WorldState, kind: String, districts: Array) -> void:
+func _cover(w: WorldState, kind: String, districts: Array, sum: int = 1000 * NEEDS) -> void:
 	var st: Dictionary = w.table("pol")["state"]
 	if not st.has("grant_cover"):
 		st["grant_cover"] = {}
 	st["grant_cover"][kind] = districts
+	if not st.has("grant_sum"):
+		st["grant_sum"] = {}
+	st["grant_sum"][kind] = {"kind": kind, "sum": sum, "start": w.month}   # a sum far above these tests' grants
 
 
 ## A plan as Otto's make_plan leaves it (table "plan", the account is the plan id) and its founder as Maja's
@@ -115,11 +118,67 @@ func test_a_treasury_that_cannot_pay_it_all_pays_nothing() -> void:
 	_cover(w, "FARM", [_district(w)])
 	var tre := w.ledger.balance(CoreUtil.TREASURY)
 	w.ledger.transfer(CoreUtil.TREASURY, Ledger.EXTERNAL, tre - 1000, "TEST_DRAIN", w.month)
+	check_eq(Grants.quote(w, "FARM", _area(w), "pool:a"), 0, "the quote says no grant, so nobody is picked on it")
 	var pid := _plan(w, 1, "pool:a")
 	var r := Grants.apply(w, pid)
 	check(not bool(r["ok"]) and String(r["why"]).contains("treasury"), "refused (%s)" % r["why"])
 	check_eq(w.ledger.balance(pid), 0, "no half grant")
 	check_eq(w.ledger.balance(CoreUtil.TREASURY), 1000, "the treasury keeps what it had")
+	_unhook()
+
+
+## The user (61b): the government puts a sum into a programme, from how many plants it wants and a little extra.
+func test_the_government_sets_the_sum_when_a_programme_opens() -> void:
+	var w := _world()
+	var st: Dictionary = w.table("pol")["state"]
+	st.erase("grant_prog")
+	st.erase("grant_sum")
+	w.table(Grants.STATE)["s"] = {"progs": {}, "need": {"FARM": {_district(w): 1000}}, "seen": {}}
+	GovBuilder._grant_cover(w, st)
+	var b: Dictionary = GovBuilder.grant_sum(w).get("FARM", {})
+	var persons := 0
+	for hb in preload("res://sim/population/households.gd").buyers(w):
+		persons += int(hb["persons"])
+	var out := preload("res://sim/economy/type_table.gd").output_milli("FARM", "FAMILY")
+	var farms := (persons * 1000 + out - 1) / out
+	check(persons > 0 and farms > 0, "a colony to feed (%d persons, %d farms)" % [persons, farms])
+	check_eq(int(b.get("wanted", -1)), farms, "farms wanted: what feeds the colony at full output")
+	var grant := NEEDS * int(w.levers["ECON_FAMILY_FARM_GRANT"]) / 100
+	check_eq(int(b.get("grant", -1)), grant, "the grant it is planned on")
+	check_eq(int(b.get("extra", -1)), farms * grant / 10, "a tenth extra")
+	check_eq(int(b.get("sum", -1)), farms * grant + farms * grant / 10, "the sum")
+	check_eq(int(GovBuilder.grant_sum(w)["TRUCKER"]["wanted"]), AreaStore.areas(w).size(), "truck drivers: one in each area")
+	var rows := Logbook.rows(w, {"kind": "GRANT", "what": "sum set", "ref": "ECON_FAMILY_FARM_GRANT"})
+	check_eq(rows.size(), 1, "the decision is logged once")
+	if rows.size() == 1:
+		check_eq(int(rows[0]["why"]["wanted"]), farms, "with how many it wanted")
+		check_eq(int(rows[0]["why"]["sum"]), int(b["sum"]), "and the sum")
+	var tre := w.ledger.balance(CoreUtil.TREASURY)
+	w.levers["ECON_FAMILY_FARM_GRANT"] = 0
+	GovBuilder._grant_cover(w, st)
+	check(not GovBuilder.grant_sum(w).has("FARM"), "the programme ends: its sum goes with it")
+	check_eq(w.ledger.balance(CoreUtil.TREASURY), tre, "a limit, not money set aside: nothing moves")
+	_unhook()
+
+
+func test_a_spent_sum_pays_no_more_grants() -> void:
+	var w := _world()
+	var grant := NEEDS * int(w.levers["ECON_FAMILY_FARM_GRANT"]) / 100
+	_cover(w, "FARM", [_district(w)], 2 * grant + grant / 2)
+	check(bool(Grants.apply(w, _plan(w, 1, "pool:a"))["ok"]), "the first grant")
+	check(bool(Grants.apply(w, _plan(w, 2, "pool:a"))["ok"]), "the second")
+	check_eq(Grants.sum_left(w, "FARM"), grant / 2, "half a grant left")
+	check_eq(Grants.quote(w, "FARM", _area(w), "pool:a"), 0, "the quote says no grant")
+	var tre := w.ledger.balance(CoreUtil.TREASURY)
+	var p3 := _plan(w, 3, "pool:a")
+	var r := Grants.apply(w, p3)
+	check(not bool(r["ok"]) and String(r["why"]).contains("sum"), "the third is refused (%s)" % r["why"])
+	check_eq(w.ledger.balance(p3), 0, "nothing paid")
+	check_eq(w.ledger.balance(CoreUtil.TREASURY), tre, "the treasury keeps it")
+	var rows := Logbook.rows(w, {"kind": "GRANT", "what": "grant refused"})
+	check(rows.size() == 1 and int(rows[0]["why"]["sum_left"]) == grant / 2 / S, "logged with what was left")
+	(w.table("pol")["state"]["grant_sum"] as Dictionary).erase("FARM")
+	check(String(Grants.apply(w, _plan(w, 4, "pool:a"))["why"]).contains("no sum"), "no sum set, no grant")
 	_unhook()
 
 

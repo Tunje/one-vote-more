@@ -38,6 +38,7 @@ const S := CoreUtil.S
 const PLAN := "plan"
 const CONTRACT := "contract"
 const MONTH := "building_month"   # each builder's last month of work, for its signals
+const OPENED := "building_market"  # {"first_quote_m": the month the first plan in the colony asked for quotes}
 const ITEMS := ["MATERIAL", "COMPONENT"]
 const UP_FRONT_M := 3             # "3 months up front" (the user)
 const OPENING_M := 3              # a founder counts three months of running costs as opening money (Wilma: accepted)
@@ -132,15 +133,20 @@ static func account(plan_id: String) -> String:
 	return plan_id
 
 
-## Every live builder (a BUILDER company with crews), sorted by id.
-## crewed: only builders with a crew (who can quote and take work). A builder whose crew was laid off keeps its book:
+## Every live builder (a BUILDER company), sorted by id.
+## for_hire: only the builders a plan can hire, the ones with a crew (who can quote and take work) and not the public
+## works department, which builds only when the government commissions it (plan 99; rebuild-building 4.1: idle in
+## step 3). The average price per BW is read over these too. A builder whose crew was laid off keeps its book:
 ## work_month still runs it (it does nothing, and its month record shows why), so its jobs wait for it (Bob's review).
-static func builders(world: WorldState, crewed: bool = true) -> Array:
+static func builders(world: WorldState, for_hire: bool = true) -> Array:
 	var out: Array = []
 	for cid in Company.ids(world):
-		if Company.type_of(world, cid) != "BUILDER" or String(Company.record(world, cid).get("status", "")) != "OPEN":
+		var r := Company.record(world, cid)
+		if Company.type_of(world, cid) != "BUILDER" or String(r.get("status", "")) != "OPEN":
 			continue
-		if not crewed or HomeBuilders.bw_milli(world, cid) > 0:
+		if for_hire and String(r.get("origin", "")) == HomeBuilders.ORIGIN_PUBLIC:
+			continue
+		if not for_hire or HomeBuilders.bw_milli(world, cid) > 0:
 			out.append(cid)
 	return out
 
@@ -201,6 +207,10 @@ static func sign_round(world: WorldState) -> void:
 			Logbook.note(world, "PLAN", pid, "waits: the law", {"why": law.get("reasons", [])})
 			continue
 		var qs := quotes(world, pid)
+		if not qs.is_empty() and first_quote_month(world) < 0:
+			world.table(OPENED)["first_quote_m"] = world.month
+			Logbook.note(world, "QUOTE", "builders", "the first plan asked the builders for quotes: their market is open",
+				{"plan": pid, "builders": qs.size()}, {}, pid)
 		qs.sort_custom(func(a, b): return int(a["total"]) < int(b["total"]) or (int(a["total"]) == int(b["total"]) and (int(a["start"]) < int(b["start"]) or (int(a["start"]) == int(b["start"]) and String(a["builder"]) < String(b["builder"])))))
 		var q: Dictionary = qs[0]
 		var land := int(Site.land_terms(world, pid).get("due", 0))   # what the land costs at signing: its price, or a lease's first rent (Terra)
@@ -219,6 +229,14 @@ static func sign_round(world: WorldState) -> void:
 			continue
 		p["cost"]["land"] = int(bought.get("due", land))
 		_sign(world, pid, q)
+		# asked for now and not to be had now: the plan waits behind the builder's book (later than the earliest any
+		# builder could start, month + 2). Counted once, in the month it signs; the waiting book is never counted
+		# again (Wilma's decision; the reading agreed with Bob)
+		if int(q["start"]) > world.month + 2:
+			var bw := int(TypeTable.bill(String(p["type"]), String(p["size"]))["bw"])
+			_month_stat(world, String(q["builder"]), "unmet_pending", bw)
+			Logbook.note(world, "PLAN", pid, "signed to wait behind the builder's book", {"start": int(q["start"]),
+				"earliest": world.month + 2, "bw": bw / S}, {}, String(q["builder"]))
 
 
 static func _sign(world: WorldState, pid: String, q: Dictionary) -> String:
@@ -291,13 +309,17 @@ static func planned_bw(c: Dictionary) -> int:
 
 
 ## The client's orders for its site, placed by the builder on its behalf (rebuild-building 4.5): keep three months of
-## supplies on the site, or the rest of the bill if less. The order carries the client's account and its worth (the
-## price in its estimate at signing). Orders go to the market; a STOPPED job orders nothing.
+## supplies on the site, or the rest of the bill if less. A job being worked orders; a job not started orders only
+## when it is next in line to start (next_in_line), not at signing: "up front" is before the work, and material bought
+## years early is not that (Wilma's decision on the seed-6 probe). The order carries the client's account and its worth
+## (the price in its estimate at signing). Orders go to the market; a STOPPED job orders nothing.
 static func supply_orders(world: WorldState) -> void:
+	var next := next_in_line(world)
 	for cid in CoreUtil.sorted_keys(world.peek(CONTRACT)):
 		var c: Dictionary = world.table(CONTRACT)[cid]
 		c["orders"] = {}
-		if not String(c["status"]) in ["SIGNED", "WORKING"]:
+		var st := String(c["status"])
+		if st != "WORKING" and not (st == "SIGNED" and next.has(cid)):
 			continue
 		for it in ITEMS:
 			var total := int(c["bill"][it])
@@ -316,6 +338,32 @@ static func supply_orders(world: WorldState) -> void:
 			c["orders"][it] = oid
 			Logbook.note(world, "SUPPLY", cid, "ordered for the site", {"item": it, "qty": want, "worth": int(c["worth"][it]),
 				"on_site": int(c["on_site"][it]), "month_need": month_need(c, it)}, {}, String(c["client"]), oid)
+
+
+## The jobs not yet started that are next in line to start, {contract id: true} (pure). For each builder, in its
+## book's order: the first job not started is next in line; so is every further one that next month's crews would
+## also reach, counting the crews the jobs being worked will still need (each its planned BW, or what is left of its
+## bill if less). A builder without crews still has its first waiting job next in line.
+static func next_in_line(world: WorldState) -> Dictionary:
+	var out := {}
+	for b in builders(world, false):
+		var free := HomeBuilders.bw_milli(world, b)
+		var waiting: Array = []
+		for cid in book(world, b):
+			var c: Dictionary = world.peek(CONTRACT)[cid]
+			var left := int(c["bill"]["bw"]) - int(c["done"])
+			match String(c["status"]):
+				"WORKING":
+					free -= mini(planned_bw(c), left)
+				"SIGNED":
+					waiting.append(cid)
+		for i in waiting.size():
+			if i > 0 and free <= 0:
+				break
+			var c2: Dictionary = world.peek(CONTRACT)[waiting[i]]
+			out[waiting[i]] = true
+			free -= mini(planned_bw(c2), int(c2["bill"]["bw"]) - int(c2["done"]))
+	return out
 
 
 ## What the market filled for the sites is booked on them (the sale took it out of the seller as SOLD; joins).
@@ -373,7 +421,7 @@ static func work_month(world: WorldState) -> void:
 				continue
 			var allows := mini(plan, _bw_material_allows(c))
 			var x := mini(allows, left)
-			short_crew += allows - maxi(0, x)   # work its supplies allowed that it had no crews for (rule 1, 3)
+			short_crew += allows - maxi(0, x)   # work its supplies allowed that it had no crews for (the log only)
 			if x <= 0:
 				if allows <= 0:
 					blocked += plan
@@ -533,17 +581,30 @@ static func open_due(world: WorldState) -> void:
 
 # ================================================================ a builder's signals (pure)
 
+## The month the first plan in the colony asked the builders for quotes, or -1 before then. "No they should not cut
+## for the start, and they should not increase prices for claimed jobs" (the user, plan 12.3 15c): the start lasts
+## until then (Wilma's reading), the colony's whole market, not each builder's (Bob's review: a builder not yet quoted
+## must not sit frozen once the market is open). A whole number, so it survives the save file.
+static func first_quote_month(world: WorldState) -> int:
+	return int(world.peek(OPENED).get("first_quote_m", -1))
+
+
 ## A builder's month in the market's seller-signal shape (Market.seller_signal), so the one price rule and the one
 ## output rule read it like any seller's (plan section 6: no type has its own copy). In milli-BW:
 ##   offered: its crews' BW less crews waiting for supplies (12.3, 19: a missing input is not a price signal);
-##   sold: the BW it did; unmet_above: work its jobs' supplies allowed that it had no crews for (sold out, rule 1/3);
-##   refused: the BW of quotes refused for their price (23a). price: its price per BW. {} before its first month.
+##   sold: the BW it did; unmet_above: the BW of plans that signed with it last month but must wait behind its book
+##   (asked for and not to be had now, counted once; work already sold that waits in the book is not counted again;
+##   Wilma's decision, the reading agreed with Bob); short_crew stays in the month record for the log only;
+##   refused: the BW of quotes refused for their price (23a). price: its price per BW. {} before its first month, and
+##   {} at the start, before any plan asked for a quote (no rule cuts its price or its crew then).
 static func seller_signal(world: WorldState, b: String) -> Dictionary:
+	if first_quote_month(world) < 0:
+		return {}   # the start: no customer could exist yet, so no cut in price or crew (the user's ruling, plan 12.3 15c)
 	var m: Dictionary = world.peek(MONTH).get(b, {})
 	if m.is_empty() or int(m.get("m", -1)) != world.month:
 		return {}
 	return {"offered": int(m.get("cap", 0)) - int(m.get("waiting_material", 0)), "sold": int(m.get("done", 0)),
-		"price": Company.price(world, b, "BW"), "unmet_above": int(m.get("short_crew", 0)), "refused": int(m.get("refused_price_bw", 0))}
+		"price": Company.price(world, b, "BW"), "unmet_above": int(m.get("unmet_wait_bw", 0)), "refused": int(m.get("refused_price_bw", 0))}
 
 
 ## What a builder's price and output rules read (rebuild-building 4.6; plan 12.3 19): its crews' BW last month, the work
@@ -580,14 +641,17 @@ static func _num(id: String) -> int:
 	return int(id.get_slice(":", 1))
 
 
-## A builder's month record, written by work_month in PRODUCTION. Quotes refused in the last COMPANY_AI (after the
-## rules had read that month) wait as "refused_pending" and are counted in the month the rules read next.
+## A builder's month record, written by work_month in PRODUCTION. Quotes refused, and plans signed to wait behind the
+## book, in the last COMPANY_AI (after the rules had read that month) wait as "refused_pending" and "unmet_pending"
+## and are counted in the month the rules read next, once.
 static func _month_set(world: WorldState, b: String, v: Dictionary) -> void:
 	var t: Dictionary = world.table(MONTH)
 	var old: Dictionary = t.get(b, {})
 	v["m"] = world.month
 	v["refused_price_bw"] = int(old.get("refused_pending", 0))
 	v["refused_pending"] = 0
+	v["unmet_wait_bw"] = int(old.get("unmet_pending", 0))
+	v["unmet_pending"] = 0
 	t[b] = v
 
 

@@ -26,16 +26,27 @@ extends RefCounted
 ## A plan given up owes its grant back (60b): from the plan's account what it can, the founder the rest, as a debt to the
 ## government that goes to court like any other.
 ##
+## The programme's sum (the user, 2026-11-17, plan 12.9, 61b: "The government should put a max sum into the grant based
+## on how many farms they want maybe a little extra to be sure"). When a programme opens the government decides how
+## many plants of the kind it wants (wanted(): the starting count) and gives the programme a sum: that many grants and a
+## tenth more (budget_for; GovBuilder keeps it in politics' memory, GovBuilder.grant_sum). Each grant paid comes out of
+## it; when what is left is less than a grant, quote says 0 and apply refuses. The sum is a limit on what the treasury
+## pays out for the programme, not money set aside: nothing moves when it is set or when the programme ends. It limits
+## the grant only: a founder who can pay without a grant is not stopped by it.
+##
 ## Every decision and deed writes a Logbook row of kind GRANT.
 
 const Company := preload("res://sim/economy/company.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 const Justice := preload("res://sim/law/justice_ops.gd")
 const LawQuery := preload("res://sim/law/law_query.gd")
+const Households := preload("res://sim/population/households.gd")
+const TypeTable := preload("res://sim/economy/type_table.gd")
 
 const TABLE := "grant"             # one row per grant paid: keyed by plan id
 const STATE := "grant_prog"        # this file's own state: the programmes, the need (one table, one row "s")
 const PROGRAMME_M := 24            # START: months a programme stays open for applications
+const EXTRA_PM := 100              # START (Wilma's): "a little extra to be sure", a tenth on top of the grants wanted
 const S := CoreUtil.S
 
 ## kind -> [lever, company type, size]. Every grant is for a family-size company: one household runs it (plan 5).
@@ -123,7 +134,13 @@ static func quote(world: WorldState, kind: String, area: String, _pool: String) 
 	if _refusal(world, kind, area, "") != "" or not needs_fn.is_valid():
 		return 0
 	var k: Array = KINDS[kind]
-	return amount_for(world, kind, int(needs_fn.call(world, String(k[1]), String(k[2]), area)))
+	var amount := amount_for(world, kind, int(needs_fn.call(world, String(k[1]), String(k[2]), area)))
+	# a grant the treasury cannot pay, or the programme's sum no longer holds, is refused by apply; quoting it would
+	# let a household be picked that can only pay with it, and its plan would start short (Ella's review of the
+	# founding sequence, ruled by Wilma)
+	if world.ledger.balance(CoreUtil.TREASURY) < amount or sum_left(world, kind) < amount:
+		return 0
+	return amount
 
 
 ## A plan as this file reads it: {id, founder (person id), pool (the household the founder came from), type, size,
@@ -159,6 +176,13 @@ static func apply(world: WorldState, plan_id: String) -> Dictionary:
 	why["needs"] = needed / S
 	if no == "" and amount <= 0:
 		no = "nothing to pay"
+	if no == "":
+		var left := sum_left(world, kind)
+		if left < 0:
+			no = "the programme has no sum"
+		elif left < amount:
+			no = "what is left of the programme's sum is less than a grant"
+			why["sum_left"] = left / S
 	if no == "" and world.ledger.balance(CoreUtil.TREASURY) < amount:
 		no = "the treasury cannot pay it"
 		why["treasury"] = world.ledger.balance(CoreUtil.TREASURY) / S
@@ -201,6 +225,63 @@ static func reclaim(world: WorldState, plan_id: String) -> int:
 	Logbook.note(world, "GRANT", founder, "grant owed back", {"kind": String(g["kind"]), "grant": due / S},
 		{"paid back": [0, back / S], "owed": [0, owed / S]}, "gov", plan_id)
 	return back
+
+
+## How many plants of `kind` the government wants a programme to found: its starting count (ours, Wilma's for the
+## farm). -> {wanted, rule, and what the rule read}.
+##   FARM: what feeds the colony at full output: the persons who buy food x one FOOD a month each, over a family farm's
+##         output a month at full use (TypeTable.output_milli), rounded up.
+##   BAKERY: the same with a family bakery's bread (one BREAD is one person's food for a month, baked): enough bread for
+##         everyone. It counts the whole food need, as if all ate bread, though a bakery bakes from the farms' FOOD.
+##   TRUCKER, TRUCKSHOP: one in each area.
+static func wanted(world: WorldState, kind: String) -> Dictionary:
+	var k: Array = KINDS[kind]
+	if kind == "FARM" or kind == "BAKERY":
+		var persons := 0
+		for b in Households.buyers(world):
+			persons += int(b["persons"])
+		var out := TypeTable.output_milli(String(k[1]), String(k[2]))
+		var need := persons * int(Households.NEED_PER_PERSON["FOOD"])
+		return {"wanted": (need + out - 1) / out if out > 0 else 0, "persons": persons, "output_milli": out,
+			"rule": "the persons who buy food over a family %s's output at full use" % String(k[1]).to_lower()}
+	return {"wanted": AreaStore.areas(world).size(), "rule": "one in each area"}
+
+
+## The grant the programme is planned on: the largest of the areas' grants this month (what a founder must bring
+## differs by area), so the sum holds `wanted` grants wherever they are paid.
+static func grant_planned(world: WorldState, kind: String) -> int:
+	if not needs_fn.is_valid():
+		return 0
+	var k: Array = KINDS[kind]
+	var most := 0
+	for ar in AreaStore.areas(world):
+		most = maxi(most, amount_for(world, kind, int(needs_fn.call(world, String(k[1]), String(k[2]), String(ar["id"])))))
+	return most
+
+
+## The sum for a programme of `kind` opened now: {kind, wanted, rule, ..., grant, extra, sum}, credits x S. Read-only;
+## the government decides it (GovBuilder._grant_sum) and logs it.
+static func budget_for(world: WorldState, kind: String) -> Dictionary:
+	var b := wanted(world, kind)
+	var g := grant_planned(world, kind)
+	var grants := int(b["wanted"]) * g
+	var extra := grants * EXTRA_PM / 1000
+	b.merge({"kind": kind, "grant": g, "extra": extra, "sum": grants + extra})
+	return b
+
+
+## What is left of the open programme's sum: the sum less every grant of the kind paid since the government set it.
+## -1 when the government has set no sum (no programme open, or not decided yet).
+static func sum_left(world: WorldState, kind: String) -> int:
+	var b: Dictionary = GovBuilder.grant_sum(world).get(kind, {})
+	if b.is_empty():
+		return -1
+	var spent := 0
+	for pid in world.peek(TABLE):
+		var g: Dictionary = world.peek(TABLE)[pid]
+		if String(g["kind"]) == kind and int(g["month"]) >= int(b["start"]):
+			spent += int(g["amount"])
+	return int(b["sum"]) - spent
 
 
 ## The month (COMPANY_AI, last): open and close programmes, then publish the need the government reads.

@@ -10,6 +10,8 @@ const Market := preload("res://sim/economy/market.gd")
 const Making := preload("res://sim/economy/making.gd")
 const Rules := preload("res://sim/economy/rules.gd")
 const Households := preload("res://sim/population/households.gd")
+const HomeBuilders := preload("res://sim/economy/home_builders.gd")
+const Building := preload("res://sim/economy/building.gd")
 const S := 1000
 const HW := {"kind": "HOME_WORLD", "holders": {"home_world": 1000}}
 
@@ -127,6 +129,22 @@ func test_builders_run_the_same_rules_on_their_crew_and_their_making_price() -> 
 	Rules.output_rule(w, b, {"offered": 20 * S, "sold": 10 * S, "unmet_above": 0, "refused": 0}, false)
 	check(Company.level_of(w, b, "crew") < 1000, "empty crews: its crew level falls (rule 4)")
 	check(Rules.building_signal(w, b).is_empty(), "no signal until the building side is in the tree")
+
+
+func test_the_public_works_department_keeps_its_crew_and_price_while_idle() -> void:
+	var w := _w()
+	var pw := Company.create(w, "BUILDER", "SMALL", {"kind": "STATE", "holders": {"state": 1000}}, "Public works",
+		{"area": "landing", "origin": HomeBuilders.ORIGIN_PUBLIC, "crew_posts": true})
+	Company.set_price(w, pw, "BW", 400 * S)
+	var lv := Company.level_of(w, pw, "crew")
+	w.table(Building.OPENED)["first_quote_m"] = 0   # past the start: the builders' market is open, so a signal exists
+	for m in 4:
+		w.month = m
+		w.table(Building.MONTH)[pw] = {"m": m, "cap": 20 * S, "done": 0, "waiting_material": 0, "short_crew": 0,
+			"refused_price_bw": 0}   # idle: crews ready, no work (what Building records for it)
+		Rules.company_month(w, pw)
+	check_eq(Company.level_of(w, pw, "crew"), lv, "no rule 4 on a crew that waits for the government")
+	check_eq(Company.price(w, pw, "BW"), 400 * S, "no price rule: it does not sell on a market")
 
 
 func test_the_hiring_salary_rises_while_posts_stay_open_and_falls_while_more_apply() -> void:
