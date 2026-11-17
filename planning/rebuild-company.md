@@ -292,8 +292,13 @@ Terra's town grid (section 9.8).
 - **A company with plants in two districts:** "The district the plant hiring is in."
 - **The yearly bonus:** "every year a company can grant a bonus what the minimum of this is is up to the government, 2%
   is a good start". The minimum is a government lever, starting at 2%.
+- **Who applies:** "But emplyees only apply to jobs that meet their needs" (the user, answering Bob's finding that
+  salaries could fall without end). A worker applies only to a job whose salary meets their needs. So a salary below
+  what people there need to live gets no applicants, the lowering rule has nothing to act on, and the raising rule
+  (posts stay open) takes over. That is what stops the fall; no floor of ours is needed. **(proposal: "their needs" is
+  their housing and food where they live, the same two things the starting salary is built from.)**
 - Only pay moves a salary. A post that stays open because there is no housing nearby, or nobody in the colony has the
-  skill, is not a reason to raise it.
+  skill, is not a reason to raise it. **(proposal: Wilma's carrying over of the price ruling to salaries.)**
 
 ### 9.3 The market
 

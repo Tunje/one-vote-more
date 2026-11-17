@@ -596,6 +596,15 @@ The grant types: family farms, family bakeries, truck drivers, truck workshops. 
 Done the same turn: [rebuild-company.md](rebuild-company.md) version 8 is one unified document, and all six sessions were asked to review all of it from their own perspective.
 
 
+### The rebuild: who applies for a job (the user, 2026-11-17, verbatim)
+
+On Bob's finding in the second review that salaries could fall without end (the lowering rule fires whenever more apply than there are posts):
+
+> But emplyees only apply to jobs that meet their needs
+
+Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
