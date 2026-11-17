@@ -340,3 +340,73 @@ h) **Roads as building work:** a road is a link along a path, not a building at 
 - Steps 1 and 5 need the world built and the road month running, which the plan puts at step 11.
 - The plan ships tile to tile; the road code routes district to district.
 - The starting salary needs an average housing cost per area; nothing publishes one until a landlord sets a rent.
+
+## Terra's opinion on homes and the map (asked by the user, 2026-11-17)
+
+The user: "What is terras opinion based on what her and i talked about the map". On the rulings of sections 8e to 8g.
+
+**Where things stand on the map**
+
+- Two levels: the country is 3 km tiles; a town that is big enough gets its own grid of 100 m cells. A house cell holds
+  8 plots. Streets run every 4 cells, so a street block is 400 m.
+- A landlord's block of 50 homes takes cells on the town grid: about 6–7 cells as houses, 1 cell as apartments, a
+  quarter of a cell as a tower. The grid already stores, per cell, which block it belongs to, its form and its homes.
+- A bought home stays where it stands. With pools by block, "bought" is a number of owned homes in a block; the town
+  view can pick which plots those are, the same fixed way it picks house models. A bought flat leaves the building half
+  owned: someone still has to keep up the stairs and the roof, and the plan does not say who.
+- An own larger house goes on a plot of its own, on two or four joined plots (the user: "if you use a similar or lager
+  size for plots then it will still fit"), placed by the same value score as everything else. The rich will choose the
+  shore and the good cells. It needs a model slot of its own (a villa).
+- **"A square" (Terra's opinion):** for plants in the country the 3 km tile is right. In a town it cannot be: one tile
+  holds about 7,000 houses, so a whole town would be one square with room for one large landlord. In a gridded town she
+  would make the square the 400 m street block (16 cells, about 128 houses), so three small landlords fill a block and
+  one has to buy the others out to grow there, street by street. The user decides.
+
+**What already answers it** (built, behind the town grid's switch)
+
+- A value per cell, 1000 for an ordinary cell, from the view, the shore, jobs, school, clinic, shops, roads and
+  utilities, less fast roads and industry. It can shift from road to road. A rent that follows its place can read it.
+- Homes per cell and land per home by form, metres of street and pipe per home, whether a school's reach is full,
+  where a town grows.
+- Cells are keyed by block, so a cell leads to its plant and its company; a buy-out in a square can be checked.
+
+**Missing or not fitting**
+
+- Nothing stores who owns a home (counts per block are enough for the sim).
+- Condition is not on the grid; a run-down block could be shown but is not.
+- There is no price for land: value is an index, not credits.
+- Small places have no grid until 250 homes, so every home in a village is "ordinary".
+- "8 to a cell" is not built (the code has 10); the 50-home block is hard-coded.
+- All of it is behind the TOWN_GRID switch; under "nothing behind off switches" it would have to be on.
+
+**What the user and Terra agreed that these must not break (the user's words)**
+
+- "like the main map, maps should not become the next level until necessary."
+- "schools, utilities and other things should affect where things are made, this to not get perfect circular towns;
+  like coastals building along the water, or staying close to schools and bakeries to get good access, or near jobs,
+  like Rydebäck that began as housing for a power plant."
+- "There needs to be a lucrativity score for buildings made; view, like the ocean or rivers, or nearness to things makes
+  it more expensive, like the houses in Höganäs: the closer to the coast you get the more expensive they get; it can
+  even shift from road to road."
+- "an apartment complex on the beach may be more attractive because you can rent them all out, or a school district has
+  no more space, or, the most common, they are simply cheaper living."
+- Forms: house, apartment, high-rise, "Yes, enough for now". Which forms a town may build: "Up to the commander, I think."
+- "id just put a house 2/3 back from the front too the road and all houses and garages should fit without worry".
+- "make the day long enough that if we do that the cars can drive to work sit there a little bit then drive home".
+- Terra's own rule, not the user's words: a built cell keeps its building until it is gone or rebuilt, so "this street,
+  this house" stays true. A buy-out or sale must not shuffle houses around the map.
+
+**Terra's opinion on cost and rent (hers, not decided)**
+
+- What a home costs to build: the bill per home by form (apartment 0.85 of a house, tower 1.15), plus the street, pipe
+  and cable to reach it, plus the land priced by the cell's value. An edge house is then dear to connect and a centre or
+  shore home dear in land, so building upward near the centre pays and sprawl does not, with no rule forcing it.
+- The old payback of about 11.6 years of rent is on the short side; rented housing in real life pays back in roughly
+  15–20 years. She would aim for 12–15 years on an ordinary cell.
+- Rent of a home = the landlord's own rent (moved by the rules, with empty homes as the signal) × the cell's value ÷
+  1000 × a condition factor. The condition factor is 1 above 55 and falls in step with condition below that. Value and
+  condition stay separate and multiplied, so a run-down block by the sea still rents above a run-down block inland, and
+  a renovation brings the rent back without changing the place.
+- The sale price of a bought-out home: the rent it brings in at that place and condition, times the same payback
+  years, so the landlord is indifferent between selling and letting. After that the owner pays the upkeep.
+- The own larger house: a builder job with its land at the cell's value, so the rich who build on the shore pay for it.
