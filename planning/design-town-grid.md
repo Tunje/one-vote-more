@@ -268,6 +268,13 @@ User: "like the main map, maps should not become the next level until necessary.
   - `homes_in_tile` counts blocks on their own country tile.
 - **Upward the same way:** no high-rise exists in a town until it has apartments. TOWER is left out of the allowed
   forms until then, even when the policy lists it.
+- **Replaced for the rebuild (the user, via Wilma, 2026-11-17, verbatim):** "Below 250 start a gridd anyway and only use
+  what you need, and set a credit prices we are going to have to adjust it anyway i don't have a sheet of what costs
+  what so i can't tell you what it should cost". So every settlement gets its town grid from its first house and stores
+  only the cells it uses. The step-up thresholds above (GRID_HOMES, GRID_SOME_HOMES, GRID_BUILDINGS) and the tile-level
+  answers for a settlement without a grid no longer apply. Land has a price in credits, set and adjusted in testing
+  (Wilma's starting figure: land for one home on an ordinary cell = 10% of that home's building bill × value(cell) /
+  1000). Recorded in rebuild-company.md section 8h.
 
 ## 11. What a home there is worth, and why a town builds up (the user, via Wilma, 2026-11-15)
 
