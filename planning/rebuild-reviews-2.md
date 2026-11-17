@@ -339,3 +339,90 @@ from month one but taxes come at step 9, so the treasury drains or is bottomless
 No fixed cap on a month's price change, the change in proportion to its signal and the same both ways; twelve months
 idle for rule 6; the carrier posts a price per route by the same three rules and the sale is made before carrying; a
 short good is shared pro rata among buyers at the same price; "area" is the town the plant or home stands in.
+
+## Anni: seen from rules and who enforces them
+
+### 1. Does it hold together?
+
+a) **Who can be held to account.** The plan takes "the owner" to court and lets a rich owner settle, and a family
+   company "is run by one household". But households are pools with one account per block and band. A pool cannot be a
+   defendant: a judgment against its account takes money from every household in it. The court, fines, grants per
+   family and convictions all need a person or one household that can be named.
+b) **Staff:** actual people against pools of counts. Both cannot be true unless the pools are changed, and the pools
+   are "taken as it is".
+c) **"Only price moves price" against sales death.** A company whose sales are stopped by freight or the road gets no
+   price signal at all, so its price never turns, and it dies in two years from a cause that is not price. The plan
+   does not say whether a sale lost to freight counts toward sales death.
+d) **Growth by buy-out is a merger.** The law already has merger review and a dominance share, and buy-out is now the
+   main way a company grows in a town. The plan does not say a buy-out passes through them, or whether the bought
+   company may refuse, and at what price.
+e) **A government's rent and price ceilings** sit on top of rules 1 and 9. The plan should say how a legal ceiling and
+   the rules meet (a government's own ceilings are allowed).
+f) **Districts:** salaries, police areas, elections, the permit office, land law and crime all work by district. The
+   law already has the means to draw districts from areas by law; nothing in the plan connects the two.
+
+### 2. What goes wrong first
+
+Food and the starting salary in month one: nobody produces food for the first several months, and the starting salary
+has no food price to read because nobody sells food yet.
+
+### 3. Against a ruling
+
+- Three grant types against four.
+- "No private companies placed" against "5 building companies": the plan does not say whether the five are private.
+- "All company types needs to be able to be created as private": her own law lets a government forbid private
+  transport routes (the default), private roads and the press. For utilities the ruling was that no law may forbid
+  them. Whether that holds for transport, roads and the press is the user's call.
+
+### 4. Cannot be built as written
+
+- The conduct line is written backwards: a company cuts corners when its gain exceeds the law's expected cost.
+- A plan can take a grant and then be given up; nothing says the grant comes back.
+- Households arrive on ships at step 3; ships come at step 12.
+
+### 5. Missing from the whole
+
+- **Liability:** is a company's debt the company's alone or the owner's too? The court ruling implies the owner's,
+  which is unlimited liability.
+- **Non-payment other than a company's loan:** a household's rent or bills in arrears, and eviction; a flat owner not
+  paying the shared upkeep; a company's unpaid tax or fine; a grant to be repaid.
+- **Ways round the rules:** an owner taking profit out while the company slides toward sales death, leaving the bank
+  unpaid; one owner splitting a business into family companies to collect grants; one owner's companies selling to each
+  other at a set price to move money or losses; a buy-out by the owner's own other company to leave the debts behind.
+- **People the state employs who are in no company:** judges, inspectors, the permit office, ministries, parliament.
+- Workplace safety and who is liable for an accident.
+- **Land title:** land is priced but has no seller.
+- A state company that fails: does the end of a company apply to the government's own, and who takes the state to
+  court?
+- The 151 seats and the districting law depend on the district list.
+
+### 6. The build order
+
+- The end of a company straight after the bank; otherwise six steps of test games run with companies that cannot die.
+- The law's hold last "repeats what went wrong in v12": tuned without it, then switched on at the end. Her opinion:
+  permits and licences with building, taxes and price controls with the purse, the court with the end of a company.
+- Ships before the market.
+- Landlords before households pay rent.
+- The district question at step 1.
+
+### Her opinions on open points
+
+A cap of 5% both ways; the grid as power and water's own way of reaching the buyer; the licence gate in its old shape;
+a newspaper is a company whose clients are its readers; districts drawn by law from the areas as they are built.
+
+---
+
+## What all six found, together (Wilma)
+
+**Every one of the six, independently, named the same first failure:** month one cannot start. The government's
+subsidiaries make no food, no material and no components; no private company is placed; a farm needs a builder and a
+builder needs material nobody makes; imports need a ship and the full round trip. Bob: "That is a deadlock."
+
+**Five of the six named the same ground missing:** with no districts, nothing says what an "area" is, and salaries,
+households, police, pollution, the roads and the elections all stand on it.
+
+**Four named the same break inside the plan:** households are pools holding counts, while staff, union members, job
+changers and an owner in court are named people.
+
+**All six want the build order changed the same way:** the first homes, the state's money, ships and freight earlier;
+the end of a company and the law's hold not left to the end.
