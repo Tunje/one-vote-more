@@ -15,6 +15,8 @@ const Households := preload("res://sim/population/households.gd")
 const Landing := preload("res://sim/economy/landing.gd")
 const Ship := preload("res://sim/economy/ship.gd")
 const Market := preload("res://sim/economy/market.gd")
+const Making := preload("res://sim/economy/making.gd")
+const Rules := preload("res://sim/economy/rules.gd")
 
 const OWNER := "econ_month"
 
@@ -51,9 +53,9 @@ static func trade(world: WorldState) -> void:
 	Ship.month(world)
 
 
-## To come: 1. Building.open_due (Otto)  2. Making.month (Bob)  3. Building.work_month (Otto).
-static func production(_world: WorldState) -> void:
-	pass
+## To come: 1. Building.open_due (Otto), first;  3. Building.work_month (Otto), last.  Here now: 2. Making.month (Bob).
+static func production(world: WorldState) -> void:
+	Making.month(world)
 
 
 ## To come: 1. orders posted (Maja, Bob, Otto), before the clear;  3. what was bought taken in (Maja, Otto)
@@ -66,6 +68,7 @@ static func production(_world: WorldState) -> void:
 ## (The joins paper had the purse after the wages. A state company can only pay its wages once the purse has given it
 ## what it lacks, so the purse's bill comes first; nothing else moved.)
 static func settlement(world: WorldState) -> void:
+	Making.post_orders(world)   # 1. companies' inputs
 	Market.clear(world)
 	Landing.purse_month(world)
 	for cid in Company.ids(world):
@@ -75,10 +78,10 @@ static func settlement(world: WorldState) -> void:
 	Landing.sweep(world)
 
 
-## To come: 1. Rules.month (Bob)  2. founding (the sequence in the joins paper)  3. Building.sign_round (Otto)
-## 4. Grants.monthly (Ella).
-static func company_ai(_world: WorldState) -> void:
-	pass
+## Here now: 1. Rules.month (Bob), which also closes each company's books for the month.
+## To come: 2. founding (the sequence in the joins paper)  3. Building.sign_round (Otto)  4. Grants.monthly (Ella).
+static func company_ai(world: WorldState) -> void:
+	Rules.month(world)
 
 
 ## To come: Households.labour_month and yearly_raise_month (Maja). The population's own month runs before this, and
