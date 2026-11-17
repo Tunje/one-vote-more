@@ -19,9 +19,13 @@ extends PicProvider
 ## "gov:fines_revenue", and any other the government keeps apart so it can be seen apart). A payment between two of them
 ## counts neither way; the treasury figure is what they hold together. This provider keeps the last twelve months'
 ## totals in its own table "econ_pub", so a loaded game publishes the same figures.
+## Capital is not income: money the purse is given to start with (the landing treasury, memo LANDING_TREASURY) is in the
+## treasury, so the runway counts it, but not in the balance's income, or the balance would read +100% for a year
+## whatever the purse does. The home world's development grant (12.11, 90) is income and is not in CAPITAL_MEMOS.
 
 const OWNER := "econ_pub"
 const PURSE := "gov:"   # the prefix of every government account
+const CAPITAL_MEMOS := ["LANDING_TREASURY"]   # payments into the purse that are capital, not income
 const KEEP_M := 12
 const RUNWAY_MAX_M := 240   # the indicator's range: a treasury that spends nothing lasts "240 months or more"
 const STEP2_LEVERS := ["ECON_UNEMPLOYMENT_BENEFIT_RATE", "ECON_PENSION_RATE"]
@@ -89,11 +93,12 @@ func run_phase(_phase: int, world: WorldState) -> void:
 ## What went into and out of a group of accounts (every id beginning with `prefix`) in a month, from the ledger's
 ## journal. Every transfer in the game is booked with world.month, so the journal is in month order and the newest
 ## entries are at the end: it reads backwards and stops at the first entry of an earlier month. A transfer inside the
-## group counts neither way.
+## group counts neither way. A payment in under one of CAPITAL_MEMOS is capital, counted apart and not as income.
 static func month_flows(world: WorldState, prefix: String, month: int) -> Dictionary:
 	var j: Array = world.ledger.journal
 	var inn := 0
 	var out := 0
+	var capital := 0
 	var i := j.size() - 1
 	while i >= 0:
 		var e: Dictionary = j[i]
@@ -103,11 +108,14 @@ static func month_flows(world: WorldState, prefix: String, month: int) -> Dictio
 			var to_in := String(e["to"]).begins_with(prefix)
 			var from_in := String(e["from"]).begins_with(prefix)
 			if to_in and not from_in:
-				inn += int(e["amt"])
+				if String(e.get("memo", "")) in CAPITAL_MEMOS:
+					capital += int(e["amt"])
+				else:
+					inn += int(e["amt"])
 			elif from_in and not to_in:
 				out += int(e["amt"])
 		i -= 1
-	return {"in": inn, "out": out}
+	return {"in": inn, "out": out, "capital": capital}
 
 
 ## The purse's figures over the months kept (up to twelve): treasury (mcr), income and spending per month (mcr),

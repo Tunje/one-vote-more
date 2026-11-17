@@ -74,6 +74,32 @@ func test_only_the_last_twelve_months_count() -> void:
 	check_eq(w.indicators.read("ECON_BUDGET_BALANCE"), -50000, "balance: (12000 - 24000) / 24000 = -50%")
 
 
+## The landing treasury is capital: in the treasury (the runway counts it), not income (the balance does not).
+func test_the_landing_treasury_is_capital_not_income() -> void:
+	var s := _sim()
+	var w := s.world
+	w.ledger.open_account("hh:test")
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.TREASURY, 20000, "LANDING_TREASURY", w.month)
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.TREASURY, 500, "TEST_IN", w.month)
+	w.ledger.transfer(CoreUtil.TREASURY, "hh:test", 1000, "TEST_OUT", w.month)
+	var f := EconPublish.month_flows(w, EconPublish.PURSE, w.month)
+	check_eq(int(f["capital"]), 20000, "the landing treasury counted apart")
+	check_eq(int(f["in"]), 500, "income is the rest")
+	s.step()
+	# treasury 19500, spending 1000 -> 19.5 months; balance (500 - 1000) / 1000 = -50%
+	check_eq(w.indicators.read("ECON_TREASURY_RUNWAY"), 19500, "the runway counts the capital")
+	check_eq(w.indicators.read("ECON_BUDGET_BALANCE"), -50000, "the balance does not")
+
+
+## Holds landing.gd and CAPITAL_MEMOS together (Anni's review): in the real game the landing treasury arrives as capital.
+## If its memo is ever renamed, this fails instead of the balance silently reading +100% for a year.
+func test_the_game_lands_its_treasury_as_capital() -> void:
+	var s := GameSim.make(3)
+	var f := EconPublish.month_flows(s.world, EconPublish.PURSE, 0)
+	check_eq(int(f["capital"]), int(preload("res://sim/economy/landing.gd").TREASURY_START) * CoreUtil.S, "the landing treasury is capital")
+	check(int(f["in"]) < int(f["capital"]), "and not counted as income")
+
+
 func test_a_treasury_that_spends_nothing_lasts() -> void:
 	var s := _sim()
 	_month(s, 0, 0)

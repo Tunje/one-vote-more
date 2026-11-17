@@ -373,6 +373,11 @@ The test `world.table("econ").has("s")` (legislature, home world, office feed: "
 month), not on the old table's presence: nothing in the rebuild writes table "econ", so until then the press never pays
 wages or gets its subsidy (Anni's review of step 2).
 
+**Capital is not income** (step 2, `econ_publish.gd` CAPITAL_MEMOS): the landing treasury is in the treasury and the
+runway, not in the balance's income. Step 5 must add the memo of every loan the bank makes to the purse (12.8, 50), or
+the balance counts debt as revenue, and decide whether repayments show apart from spending (Anni's review). Open for
+Wilma: whether selling the landing stock (12.2, 9) is income or the sale of an asset (capital); Anni leans to capital.
+
 **The purse is every `gov:` account** (step 2, `econ_publish.gd`): the treasury, the law's fines account and any other
 the government keeps apart. Its income, spending and balance count them together.
 
