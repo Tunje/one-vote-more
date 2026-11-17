@@ -42,15 +42,10 @@ static func setting(type: String) -> String:
 	return TypeTable.setting(type)
 
 
-## For land law's zones (ZONE_USES): HOUSING, FARM, MINE, INDUSTRY or SERVICE.
+## For land law's zones (ZONE_USES): HOUSING, FARM, MINE, INDUSTRY or SERVICE. Land law's own mapping (Anni: the
+## zones are the law's, so the mapping lives in one place).
 static func zone_use(type: String) -> String:
-	if type == "LANDLORD":
-		return "HOUSING"
-	if type == "FARM":
-		return "FARM"
-	if type == "MINE":
-		return "MINE"
-	return "SERVICE" if setting(type) == "TOWN" else "INDUSTRY"
+	return LandLaw.use_of(type)
 
 
 ## Land law's key for a town cell: "c:fx,fy" (Anni: a cell with no title row of its own takes its tile's).
@@ -356,11 +351,13 @@ static func _lay(world: WorldState, id: String, type: String, sixths: int, site:
 	return ""
 
 
-## Monthly (NATURE): places whose id is neither a plant nor a held plan are freed (a record deleted elsewhere).
+## Monthly (NATURE): a row for each farm with a low yield this month; places whose id is neither a plant nor a held
+## plan are freed (a record deleted elsewhere).
 static func step_month(world: WorldState) -> void:
 	var t: Dictionary = _t(world)
 	if t.is_empty():
 		return
+	note_low_yields(world)
 	for id in ids(world):
 		if what(world, id).is_empty():
 			release(world, id, "no plant or plan of this id")
@@ -407,3 +404,104 @@ static func land_value_milli(world: WorldState, key) -> int:
 		var bill := float(bill_credits("LANDLORD")) / float(HOME_BILL_DIV) * float(homes)
 		return roundi(bill * LAND_SHARE * float(TownGrid.value(world, k.trim_prefix("c:"))["value_pm"]))
 	return roundi(float(bill_credits("FARM")) * LAND_SHARE * float(value_pm(world, {"where": "COUNTRY", "tile": k})))
+
+
+# ================================================================== farm yield (rebuild step 3; joins: PRODUCTION)
+
+## Below this a farm's month is unusual (drought, harmed land) and gets its own log row; ordinary seasons are in the
+## making row's why.
+const YIELD_LOG_BELOW := 700
+
+
+## How much of its type row's output a plant makes this month, ‰ (rebuild step-3 joins: Bob's making multiplies by
+## it). A FARM: the season at its hex (PlanetSeasons.farm_pct: the growing year, averaging 100 over a year, less the
+## drought) × the harm to its land (PlanetEcology.yield_pct) / 100. Food grows month by month with the season; there
+## is no harvest lump. Anything else, a held plan's site or a plant with no place: 1000. Pure (any reader may ask; the
+## low-yield row is written once a month by note_low_yields). Reads the weather of `month` (NATURE has made this
+## month's before PRODUCTION).
+static func yield_pm(world: WorldState, plant_id: String, month: int) -> int:
+	var parts := _yield_parts(world, plant_id, month)
+	return int(parts.get("pm", 1000))
+
+
+static func _yield_parts(world: WorldState, plant_id: String, month: int) -> Dictionary:
+	var wt := what(world, plant_id)
+	if wt.is_empty() or bool(wt["plan"]) or String(wt["type"]) != "FARM":
+		return {}
+	var s := of(world, plant_id)
+	if s.is_empty():
+		return {}
+	var cell := Planet.hex_of_tile(world, ColonyLayout.as_tile(String(s["tile"])))
+	if cell < 0:
+		return {}
+	var season := PlanetSeasons.farm_pct(world, cell, month)
+	var land := PlanetEcology.yield_pct(world, cell)
+	return {"pm": season * land * 10 / 100, "season_pct": season, "land_pct": land,
+		"drought_loss_pct": PlanetSeasons.drought_loss(world, cell, month), "hex": cell}
+
+
+## NATURE, once a month (from step_month): one PLANET "low yield" row for each farm whose yield this month is below
+## YIELD_LOG_BELOW (drought, harmed land), with what it read.
+static func note_low_yields(world: WorldState) -> void:
+	for id in ids(world):
+		var y := _yield_parts(world, String(id), world.month)
+		if not y.is_empty() and int(y["pm"]) < YIELD_LOG_BELOW:
+			Logbook.note(world, "PLANET", String(id), "low yield", {"season_pct": y["season_pct"], "land_pct": y["land_pct"],
+				"drought_loss_pct": y["drought_loss_pct"], "hex": y["hex"], "month": world.month}, {"yield_pm": [1000, int(y["pm"])]})
+
+
+# ================================================================== the land under a plan (rebuild step 3; joins: COMPANY_AI)
+
+const SIZE_OF_SIXTHS := {1: "FAMILY", 2: "SMALL", 4: "AVERAGE", 6: "LARGE"}
+
+
+## Land law's keys for a place: ["x,y"] in the country, ["c:fx,fy", ...] for a town place's cells.
+static func land_keys(site: Dictionary) -> Array:
+	if String(site.get("where", "")) == "TOWN":
+		return (site.get("cells", []) as Array).map(func(ck): return cell_key(ck))
+	return [String(site.get("tile", ""))]
+
+
+## What a plan's land costs and on what terms, before it signs (pure): land law's terms for its held site at the
+## plan's own price (10% of its bill × the value of its place). {} if the plan holds no site.
+static func land_terms(world: WorldState, plan_id: String) -> Dictionary:
+	var h: Dictionary = _t(world).get("hold", {}).get(plan_id, {})
+	var s := of(world, plan_id)
+	if h.is_empty() or s.is_empty():
+		return {}
+	var price := _plan_land_milli(world, h, s)
+	var t: Dictionary = LandLaw.terms(world, land_keys(s), plan_id, String(h["type"]), int(h["sixths"]), price)
+	t["due"] = _due(t)
+	return t
+
+
+## What a plan pays for its land at signing (milli-credits): the price when the land is sold, the first month's rent
+## under a lease (a government's LEASE or KEEP policy). The sum a plan checks against its account ("land + total").
+static func _due(t: Dictionary) -> int:
+	return int(t.get("lease_rent", 0)) if String(t.get("mode", "")) == "LEASE" else int(t.get("price", 0))
+
+
+static func _plan_land_milli(world: WorldState, h: Dictionary, s: Dictionary) -> int:
+	var bill := bill_credits(String(h["type"]), String(SIZE_OF_SIXTHS.get(int(h["sixths"]), "LARGE")))
+	return land_price(world, s, bill) * CoreUtil.S
+
+
+## A plan buys the land it builds on, when it signs its contract (12.1 point 3). This takes no money itself: land
+## law's sell is the one deed (it takes the price from `payer_acct` into the treasury, memo LAND_SALE, and writes the
+## title, or nothing at all). → {ok, mode, price (the land's price, milli-credits), due (what was paid at signing: the
+## price, or the first month's rent under a lease), why}.
+static func buy_land(world: WorldState, plan_id: String, payer_acct: String) -> Dictionary:
+	var h: Dictionary = _t(world).get("hold", {}).get(plan_id, {})
+	var s := of(world, plan_id)
+	if h.is_empty() or s.is_empty():
+		Logbook.note(world, "SITE", plan_id, "land not bought", {"why": "no site held"}, {})
+		return {"ok": false, "mode": "", "price": 0, "due": 0, "why": "no site held"}
+	var price := _plan_land_milli(world, h, s)
+	var keys := land_keys(s)
+	var r: Dictionary = LandLaw.sell(world, keys, plan_id, payer_acct, String(h["type"]), int(h["sixths"]), price)
+	var ok := bool(r.get("ok", false))
+	Logbook.note(world, "SITE", plan_id, "land bought" if ok else "land not bought", {"type": h["type"], "sixths": h["sixths"],
+		"where": s["where"], "keys": keys.size(), "value_pm": value_pm(world, s), "price": price, "mode": r.get("mode", ""),
+		"why": String(r.get("reason", ""))}, {}, String(payer_acct))
+	return {"ok": ok, "mode": String(r.get("mode", "")), "price": int(r.get("price", price)), "due": _due(r) if ok else 0,
+		"why": String(r.get("reason", ""))}

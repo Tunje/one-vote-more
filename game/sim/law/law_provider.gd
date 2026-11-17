@@ -57,6 +57,7 @@ func phases() -> Array:
 
 func init_world(world: WorldState) -> void:
 	Ops.init_world(world)
+	Land.ensure_rules(world)   # the land rules from the start, so a plan in the first month can buy its land (Terra)
 
 
 func run_phase(phase: int, world: WorldState) -> void:
@@ -80,6 +81,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			preload("res://sim/law/road_safety_law.gd").monthly(world)     # default and ministerial speed limits (opt-in ROAD_SAFETY)
 		TickPhase.JUSTICE:
 			Ops.process_permits(world)
+			preload("res://sim/law/law_company.gd").reopen_licensed(world)   # a plant closed for want of a licence (step 3)
 			Ops.discover(world)
 			Ops.decay_greed_evidence(world)
 			Ops.Justice.run(world)

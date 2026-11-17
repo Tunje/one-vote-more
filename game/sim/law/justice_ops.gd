@@ -673,10 +673,10 @@ static func _party_fine(world: WorldState, c: Dictionary) -> int:
 		* float(world.levers.get("LAW_FINE_SCALE", 1000)) / 1000.0))
 	var acct := "party:" + pid
 	var paid := 0
-	if world.ledger.has_account(acct) and world.ledger.has_account("gov:fines_revenue"):
+	if world.ledger.has_account(acct) and world.ledger.has_account(CoreUtil.FINES):
 		paid = mini(amount, maxi(0, world.ledger.balance(acct)))
 		if paid > 0:
-			world.ledger.transfer(acct, "gov:fines_revenue", paid, "FINE", world.month)
+			world.ledger.transfer(acct, CoreUtil.FINES, paid, "FINE", world.month)
 	var pref := {"kind": "PARTY", "id": pid}
 	fact(world, "LAW_FINE_IMPOSED", "PUBLIC", [pref], [{"actor": pref, "share": 1.0}], {"FAIRNESS": 2},
 		mini(40, 10 + amount / maxi(1, w_ref(world))), {"amount": amount, "paid": paid, "class": "PARTY_FINANCE", "party": pid})
@@ -842,8 +842,8 @@ static func _petitions(world: WorldState) -> void:
 		if world.month - int(li["due_month"]) < PETITION_MONTHS:
 			continue
 		var org := String(li["debtor"])
-		if js(world).get("wound_up", {}).has(org):
-			continue
+		if js(world).get("wound_up", {}).has(org) or not LawCompany.exists(world, org):
+			continue   # only a company is wound up; a person's or a plan's debt waits for the court of step 5 (12.8, 52-55)
 		var owed := 0
 		for li2 in liab.values():
 			if String(li2["debtor"]) == org and String(li2["status"]) == "OPEN":
@@ -872,11 +872,11 @@ static func _liquidate(world: WorldState, org_id: String, reason: String) -> boo
 ## Court-ordered government payments the treasury could not make: paid oldest first as the balance allows.
 static func _pay_gov_owed(world: WorldState) -> void:
 	var owed: Array = js(world)["gov_owed"]
-	if owed.is_empty() or not world.ledger.has_account("gov:treasury"):
+	if owed.is_empty() or not world.ledger.has_account(CoreUtil.TREASURY):
 		return
 	var keep: Array = []
 	for o in owed:
-		var bal := maxi(0, world.ledger.balance("gov:treasury"))
+		var bal := maxi(0, world.ledger.balance(CoreUtil.TREASURY))
 		var amt := int(o["amount"])
 		var pay := mini(amt, bal)
 		if pay > 0:
@@ -968,10 +968,10 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 		world.table("violation_track")[violation]["fined_month"] = world.month
 	var acct := company_acct(org_id)
 	var paid := 0
-	if world.ledger.has_account(acct) and world.ledger.has_account("gov:fines_revenue"):
+	if world.ledger.has_account(acct) and world.ledger.has_account(CoreUtil.FINES):
 		paid = mini(amount, maxi(0, world.ledger.balance(acct)))
 		if paid > 0:
-			world.ledger.transfer(acct, "gov:fines_revenue", paid, "FINE", world.month)
+			world.ledger.transfer(acct, CoreUtil.FINES, paid, "FINE", world.month)
 	Logbook.note(world, "LAW", org_id, "fine", {"class": cls, "violation": violation, "annual_rev": int(annual),
 		"repeat": repeat, "capped": capped, "open_fines": open_fines, "amount": amount, "paid": paid, "owed": amount - paid}, {}, "gov")
 	if amount - paid > 0:
@@ -1051,19 +1051,19 @@ static func _offence_kind(v: Dictionary) -> String:
 static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, amount: int, memo: String) -> int:
 	if amount <= 0:
 		return 0
-	var from := "gov:treasury" if from_ref["kind"] in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"] else company_acct(String(from_ref["id"]))
+	var from := CoreUtil.TREASURY if from_ref["kind"] in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"] else company_acct(String(from_ref["id"]))
 	if from_ref["kind"] == "PARTY":
 		from = "party:" + String(from_ref["id"])
 	if from_ref["kind"] == "OUTLET":
 		from = "media:" + String(from_ref["id"])
 	if from_ref["kind"] == "UNION":
 		from = union_acct(world, String(from_ref["id"]))
-	var to := "gov:treasury" if to_ref["kind"] in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"] else company_acct(String(to_ref["id"]))
+	var to := CoreUtil.TREASURY if to_ref["kind"] in ["GOVERNMENT", "AUTHORITY", "INSTITUTION"] else company_acct(String(to_ref["id"]))
 	if to_ref["kind"] == "PARTY":
 		to = "party:" + String(to_ref["id"])
 	if to_ref["kind"] == "VICTIMS":
 		to = VICTIM_FUND
-		if world.ledger.has_account("gov:treasury") and not world.ledger.has_account(VICTIM_FUND):
+		if world.ledger.has_account(CoreUtil.TREASURY) and not world.ledger.has_account(VICTIM_FUND):
 			world.ledger.open_account(VICTIM_FUND)
 	if not world.ledger.has_account(from) or not world.ledger.has_account(to):
 		return 0   # no economy loaded (politics-only configurations)
@@ -1072,7 +1072,7 @@ static func _pay(world: WorldState, from_ref: Dictionary, to_ref: Dictionary, am
 		world.ledger.transfer(from, to, paid, memo, world.month)
 		if to_ref["kind"] == "VICTIMS":
 			_award(world, to_ref, paid)
-	if amount - paid > 0 and from == "gov:treasury":
+	if amount - paid > 0 and from == CoreUtil.TREASURY:
 		# The treasury cannot go negative: what it could not pay stays owed (paid monthly by _pay_gov_owed).
 		(js(world)["gov_owed"] as Array).append({"to": to_ref.duplicate(true), "amount": amount - paid, "memo": memo,
 			"month": world.month})
@@ -1111,3 +1111,11 @@ static func court_duration(world: WorldState) -> float:
 			s += float(int(c["decided_month"]) - _root_filed(world, c))
 			n += 1
 	return s / float(n) if n > 0 else -1.0
+
+
+## A debt owed to a creditor, recorded by the law (rebuild step 3; public for the economy's pieces, e.g. a grant owed
+## back by a founder, 60b): one liability row, or a small debtor's instalments, with a LAW row each. The court acts on
+## it at step 5 (a company's unpaid fine already petitions after 12 months).
+static func owe(world: WorldState, debtor: String, creditor: String, creditor_acct: String, amount: int, kind: String) -> void:
+	if amount > 0:
+		_owe(world, debtor, creditor, creditor_acct, amount, kind)

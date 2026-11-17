@@ -109,6 +109,7 @@ func test_a_town_cell_has_its_tiles_title_until_it_has_its_own() -> void:
 	check_eq(Land.zone_of(w, t), "INDUSTRIAL", "the tile keeps its own")
 	var next := Land.key_of_cell(cell + Vector2i(1, 0))
 	check_eq(Land.zone_of(w, next), "INDUSTRIAL", "a neighbouring cell still has the tile's")
+	w.levers["LAW_LAND_DISPOSAL"] = "LEASE"
 	var off := Land.land_offer(w, ck, {"kind": "COMPANY", "id": "company:1"}, "HOUSING")
 	check(off["allowed"] and off["mode"] == "LEASE", "a cell is leased like a tile (%s)" % [off])
 	check(Land.grant_land(w, ck, {"kind": "COMPANY", "id": "company:1"}, "LEASE", int(off["lease_rent"]), 240)["ok"], "lease granted")

@@ -46,8 +46,10 @@ func test_lease_and_sale_follow_land_policy() -> void:
 	var w := _world()
 	var t := _free(w)
 	var value := Land.land_value(w, t)
+	check_eq(String(w.levers["LAW_LAND_DISPOSAL"]), "SELL", "the default: the colony sells (rebuild 12.1, 3)")
+	w.levers["LAW_LAND_DISPOSAL"] = "LEASE"
 	var off := LQ.land_offer(w, t, CO, "INDUSTRY")
-	check(off["allowed"] and off["mode"] == "LEASE" and off["lease_rent"] == int(round(value * 0.006)), "default: lease (%s)" % [off])
+	check(off["allowed"] and off["mode"] == "LEASE" and off["lease_rent"] == int(round(value * 0.006)), "a LEASE policy: lease (%s)" % [off])
 	check(not Land.grant_land(w, t, CO, "SELL", value)["ok"], "no sale under the LEASE policy")
 	check(Land.grant_land(w, t, CO, "LEASE", off["lease_rent"], 240)["ok"], "lease granted")
 	check_eq(Land.right_of(w, CO, t), "LESSEE", "company leases the tile")

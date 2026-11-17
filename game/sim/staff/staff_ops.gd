@@ -122,7 +122,7 @@ static func w_ref_milli(world: WorldState) -> int:
 ## Closed economy (A34): training, hiring and task costs are paid to colony households (trainers, recruiters,
 ## suppliers), pro rata to population. Only a world without households (staff-only tests) pays EXTERNAL.
 static func charge(world: WorldState, owner: Dictionary, cost_wref: float, memo: String) -> void:
-	var acct: String = "gov:treasury" if owner["kind"] == "GOVERNMENT" else "party:" + String(owner["id"])
+	var acct: String = CoreUtil.TREASURY if owner["kind"] == "GOVERNMENT" else "party:" + String(owner["id"])
 	if cost_wref <= 0.0 or not world.ledger.has_account(acct):
 		return
 	var amount := int(round(cost_wref * float(w_ref_milli(world))))

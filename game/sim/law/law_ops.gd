@@ -963,3 +963,20 @@ static func check_extra_election(world: WorldState, mandatory: bool = false) -> 
 		return out
 	out["ok"] = true
 	return out
+
+
+## A time-limited programme's sunset (rebuild step 3; plan 12.9, 61a): the lever goes to 0 at once by the programme's
+## own terms, the law's enactment "programme ended" with its why. Lawful without a new vote because the window was
+## part of the programme the government opened; a change on its way is overtaken. Public for the economy's grants.
+## -> the enactment id.
+static func end_programme(world: WorldState, lever: String, why: String) -> String:
+	var id := world.new_id("enact")
+	var e := {"id": id, "lever": lever, "value": 0, "legal_level": "LAW", "source_bill": "programme ended: " + why,
+		"decided_month": world.month, "earliest_effective_month": world.month, "status": "LEGAL", "legal_month": world.month,
+		"from": world.levers.get(lever), "sunset": true}
+	world.table("enactment")[id] = e
+	_supersede(world, e)
+	state(world)["legal_values"][lever] = 0
+	_make_effective(world, id, e)
+	Logbook.note(world, "LAW", "government", "programme ended", {"lever": lever, "why": why}, {lever: [e["from"], 0]}, "", id)
+	return id

@@ -142,7 +142,7 @@ static func _scan(world: WorldState) -> void:
 ## LAW_PUBLIC_PARTY_FUNDING: milli-W_ref per seat per month from the treasury to each seated party.
 static func _public_funding(world: WorldState) -> void:
 	var per_seat := int(world.levers.get("LAW_PUBLIC_PARTY_FUNDING", 0))
-	if per_seat <= 0 or not world.ledger.has_account("gov:treasury"):
+	if per_seat <= 0 or not world.ledger.has_account(CoreUtil.TREASURY):
 		return
 	var parties := world.peek("party")
 	for pid in Det.ordered(parties):
@@ -152,8 +152,8 @@ static func _public_funding(world: WorldState) -> void:
 		if seats <= 0 or String(p.get("status", "ACTIVE")) == "DISSOLVED" or not world.ledger.has_account(acct):
 			continue
 		var amt := int(round(float(per_seat * seats) * float(Staff.w_ref_milli(world)) / 1000.0))
-		if world.ledger.allow_negative.get("gov:treasury", false) or world.ledger.balance("gov:treasury") >= amt:
-			world.ledger.transfer("gov:treasury", acct, amt, "PUBLIC_PARTY_FUNDING", world.month)
+		if world.ledger.allow_negative.get(CoreUtil.TREASURY, false) or world.ledger.balance(CoreUtil.TREASURY) >= amt:
+			world.ledger.transfer(CoreUtil.TREASURY, acct, amt, "PUBLIC_PARTY_FUNDING", world.month)
 
 
 static func _leaks_and_tips(world: WorldState) -> void:

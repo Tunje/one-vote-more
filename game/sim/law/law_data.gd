@@ -638,7 +638,7 @@ const LEVERS := [
 		"legalLevel": "LAW", "foundingEra": "LOCKED", "ideology": {"SOVEREIGNTY": 1.0},
 		"fiscal": "est_militia_cost", "implementation": "STAFF_T_IMPL_INSTITUTION", "lag": 6, "scope": "COLONY", "domain": "LAW"},
 	# ---- M13 land (spec-areas-v1 9.4, A37). The government owns all land at founding.
-	{"id": "LAW_LAND_DISPOSAL", "owner": "law", "type": "ENUM", "values": ["KEEP", "LEASE", "SELL"], "default": "LEASE",
+	{"id": "LAW_LAND_DISPOSAL", "owner": "law", "type": "ENUM", "values": ["KEEP", "LEASE", "SELL"], "default": "SELL",   # a plan buys its land (rebuild 12.1, 3)
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": -12},
 		"fiscal": "est_land_revenue", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
 	{"id": "LAW_LAND_PRICE_FLOOR_PCT", "owner": "law", "type": "NUMBER", "range": [0, 100], "default": 90,

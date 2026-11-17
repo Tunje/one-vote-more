@@ -13,6 +13,7 @@ extends RefCounted
 const Det := preload("res://sim/staff/det.gd")
 const L := preload("res://sim/law/law_data.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
+const TypeTable := preload("res://sim/economy/type_table.gd")
 
 const GOV := {"kind": "GOVERNMENT", "id": "government"}
 const ZONES := ["UNZONED", "RESIDENTIAL", "INDUSTRIAL", "FARM", "RESERVE"]
@@ -82,6 +83,10 @@ static func _actor_kind(ref) -> String:
 	var s := String(ref)
 	if s == "gov" or s == "":
 		return "GOVERNMENT"
+	if s.begins_with("plan:"):
+		return "PLAN"        # a plan is not a company (rebuild 8.1)
+	if s.begins_with("founder:"):
+		return "PERSON"      # a founder, counted individually (12.5, 35)
 	return "HOUSEHOLD" if s.begins_with("hh:") else "COMPANY"
 
 
@@ -130,6 +135,9 @@ static func title_of_place(world: WorldState, keys: Array) -> Dictionary:
 static func right_of(world: WorldState, actor, tile) -> String:
 	var t := title(world, tile)
 	var id := _actor_id(actor)
+	var plot: Dictionary = (t.get("plots", {}) as Dictionary).get(id, {})
+	if not plot.is_empty():   # a plot of a country tile (rebuild step 3)
+		return "OWNER" if String(plot.get("mode", "SELL")) == "SELL" else "LESSEE"
 	if t["tenure"] == "LEASED" and String(t["lessee"]) == id:
 		return "LESSEE"
 	if String(t["owner"]) == id and t["tenure"] == "OWNED":
@@ -414,6 +422,7 @@ static func _has_order(world: WorldState, tiles: Array) -> bool:
 
 ## Monthly (JUSTICE): evictions whose notice is over become orders; expired leases end.
 static func tick(world: WorldState) -> void:
+	_collect_rent(world)
 	var ev := world.table("land_eviction")
 	for id in Det.ordered(ev):
 		var e: Dictionary = ev[id]
@@ -438,8 +447,222 @@ static func tick(world: WorldState) -> void:
 static func record_unlawful_clearance(world: WorldState, tiles: Array, residents: int) -> void:
 	var keys: Array = tiles.map(func(t): return _k(t))
 	_fact(world, "LAND_UNLAWFUL_CLEARANCE", {"tiles": keys, "residents": residents}, 60, [{"actor": GOV, "share": 1.0}],
-		{"scope": {"housing": [AreaStore.area_of(world, _v(keys[0]))]}, "share": 1000, "intensity": 900, "kind": "DISPLACEMENT",
+		{"scope": {"housing": [AreaStore.area_of(world, tile_of_key(keys[0]))]}, "share": 1000, "intensity": 900, "kind": "DISPLACEMENT",
 		"decay": 50, "persistent": false} if not keys.is_empty() else {})
-	var area := AreaStore.area_of(world, _v(keys[0])) if not keys.is_empty() else ""
+	var area := AreaStore.area_of(world, tile_of_key(keys[0])) if not keys.is_empty() else ""
 	LawOps.proceed_unlawfully(world, GOV, "CLEAR_HOUSING", {"tiles": keys, "residents": residents}, "",
 		{"kind": "HOUSEHOLD", "id": area}, "SERIOUS")
+
+
+# =====================================================================================  rebuild step 3: a plan buys its land
+# (planning/rebuild-step3-joins.md; Wilma's decisions of 2026-11-17: one price for land, Terra's Site.land_price for
+# the plan's own bill, passed in; the floor and the lease rent on that same figure; a country tile keeps the plots sold
+# off it, in sixths, by holder; land is sold by default.) Money is milli-credits.
+
+## The zone use of a company type (land law keeps the zones; Site.zone_use asks here).
+static func use_of(type: String) -> String:
+	match type:
+		"LANDLORD":
+			return "HOUSING"
+		"FARM":
+			return "FARM"
+		"MINE":
+			return "MINE"
+	if not TypeTable.has_type(type):
+		return ""
+	return "SERVICE" if TypeTable.setting(type) == "TOWN" else "INDUSTRY"
+
+
+## The plots sold or leased off a country tile: {holder: {type, sixths, mode, price, rent, acct, month}}.
+static func plots_of(world: WorldState, tile) -> Dictionary:
+	return (title(world, _k(tile)).get("plots", {}) as Dictionary).duplicate(true)
+
+
+## Does `holder` own or lease all of these keys (a cell, or a plot on a country tile)?
+static func holds(world: WorldState, holder: String, keys: Array) -> bool:
+	if keys.is_empty():
+		return false
+	for k in keys:
+		if right_of(world, holder, _k(k)) == "":
+			return false
+	return true
+
+
+## What a buyer would get for these keys: {allowed, mode SELL|LEASE, price, lease_rent (a month), floor, reason}. Pure.
+## price: Site.land_price for the plan's own bill, × S. Under SELL the price is due at once, under LEASE (and KEEP, at
+## double rent) a rent each month. The floor (LAW_LAND_PRICE_FLOOR_PCT of the price) is on record for a later sale
+## between owners; the colony's own sale is at the price.
+static func terms(world: WorldState, keys: Array, buyer: String, type: String, sixths: int, price: int) -> Dictionary:
+	var policy := String(world.levers.get("LAW_LAND_DISPOSAL", "SELL"))
+	var mode := "SELL" if policy == "SELL" else "LEASE"
+	var rent := 0 if mode == "SELL" else int(round(float(price) * LEASE_YIELD_PER_MONTH * (2.0 if policy == "KEEP" else 1.0)))
+	var out := {"allowed": false, "mode": mode, "price": price, "lease_rent": rent,
+		"floor": int(round(float(price) * float(_floor_pct(world, buyer)) / 100.0)), "reason": ""}
+	if keys.is_empty() or price < 0 or sixths <= 0:
+		out["reason"] = "no land asked for"
+		return out
+	var use := use_of(type)
+	for k in keys:
+		var key := _k(k)
+		var t := title(world, key)
+		if use != "" and not (use in ZONE_USES.get(String(t["zoning"]), [])):
+			out["reason"] = "the %s zone does not allow %s" % [String(t["zoning"]).to_lower(), use.to_lower()]
+			return out
+		if String(t["owner"]) != "gov" or String(t["tenure"]) != "OWNED":
+			out["reason"] = "%s is not the colony's to sell" % key
+			return out
+		if not is_cell(key):
+			var used := 0
+			for h in t.get("plots", {}):
+				var p: Dictionary = t["plots"][h]
+				if h == buyer:
+					out["reason"] = "the buyer already holds a plot on %s" % key
+					return out
+				if String(p.get("type", "")) == type:
+					used += int(p.get("sixths", 0))
+			if used + sixths > 6:
+				out["reason"] = "no room on %s: %d sixths of %s taken" % [key, used, type.to_lower()]
+				return out
+	out["allowed"] = true
+	return out
+
+
+## The one deed of a land sale (step 3 joins): re-checks the terms, takes the whole price (a lease: the first month's
+## rent) from payer_acct into the treasury only if it holds it all, and writes the title: each town cell passes to the
+## buyer; on a country tile a plot {type, sixths} is the buyer's and the rest stays the colony's. One LAND row per key.
+## -> {ok, mode, price, lease_rent, reason}
+static func sell(world: WorldState, keys: Array, buyer: String, payer_acct: String, type: String, sixths: int, price: int) -> Dictionary:
+	var t := terms(world, keys, buyer, type, sixths, price)
+	var res := {"ok": false, "mode": t["mode"], "price": t["price"], "lease_rent": t["lease_rent"], "reason": String(t["reason"])}
+	var lease: bool = t["mode"] == "LEASE"
+	var due: int = int(t["lease_rent"]) if lease else price
+	if t["allowed"]:
+		var v := LawOps.validate(world, GOV, "LEASE_LAND" if lease else "SELL_LAND", {"price_ok": true, "price": price, "value": price})
+		if v["result"] != "AUTHORIZED":
+			res["reason"] = "land policy does not allow this"
+		elif not world.ledger.has_account(CoreUtil.TREASURY):
+			res["reason"] = "the colony has no treasury to pay into"
+		elif not world.ledger.has_account(payer_acct) or world.ledger.balance(payer_acct) < due:
+			res["reason"] = "the payer cannot pay %d" % due
+	if res["reason"] != "":
+		Logbook.note(world, "LAND", buyer, "land sale refused", {"keys": keys.map(func(k): return _k(k)), "type": type,
+			"sixths": sixths, "price": price, "reason": res["reason"]}, {}, "gov")
+		return res
+	if due > 0:
+		world.ledger.transfer(payer_acct, CoreUtil.TREASURY, due, "LAND_LEASE" if lease else "LAND_SALE", world.month)
+	var first := true
+	for k in keys:
+		var key := _k(k)
+		# each key's share; the remainder on the first key, so the titles add up to what was paid (Ella)
+		var share_price: int = price / keys.size() + (price % keys.size() if first else 0)
+		var share_rent: int = int(t["lease_rent"]) / keys.size() + (int(t["lease_rent"]) % keys.size() if first else 0)
+		first = false
+		var r := _row(world, key)
+		if is_cell(key):
+			if lease:
+				r["owner"] = "gov"
+				r["owner_kind"] = "GOVERNMENT"
+				r["tenure"] = "LEASED"
+				r["lessee"] = buyer
+				r["lessee_kind"] = _actor_kind(buyer)
+				r["lessee_acct"] = payer_acct
+				r["lease_rent"] = share_rent
+				r["lease_until"] = world.month + MAX_LEASE_MONTHS
+				r["arrears_months"] = 0
+			else:
+				r["owner"] = buyer
+				r["owner_kind"] = _actor_kind(buyer)
+				r["tenure"] = "OWNED"
+				r["lessee"] = ""
+				r["price_paid"] = share_price
+			r["acquired_month"] = world.month
+		else:
+			var plots: Dictionary = r.get("plots", {})
+			plots[buyer] = {"type": type, "sixths": sixths, "mode": t["mode"], "price": 0 if lease else share_price,
+				"rent": share_rent if lease else 0, "acct": payer_acct, "month": world.month}
+			r["plots"] = plots
+		r["history"].append({"month": world.month, "from": "gov", "to": buyer, "kind": "LEASE" if lease else "SELL",
+			"price": share_rent if lease else share_price, "sixths": 0 if is_cell(key) else sixths})
+		Logbook.note(world, "LAND", buyer, "land leased" if lease else "land bought", {"type": type, "sixths": sixths,
+			"price": price, "floor": int(t["floor"]), "policy": String(world.levers.get("LAW_LAND_DISPOSAL", "SELL")),
+			"keys": keys.size()}, {"holder": ["gov", buyer], "paid": [0, share_rent if lease else share_price]}, "gov", key)
+	res["ok"] = true
+	return res
+
+
+## Moves every title, lease and plot held by from_id to to_id (a plan's land to its company at the opening; a given-up
+## plan's land to its founder, 60b). A lease's rent is paid from to_acct from then on (default: CoreUtil.acct(to_id)).
+## One LAND row per key. -> how many keys moved.
+static func pass_holder(world: WorldState, from_id: String, to_id: String, why: String, to_acct: String = "") -> int:
+	var acct := to_acct if to_acct != "" else acct_of(to_id)
+	var tt := world.table("land_title")
+	var n := 0
+	for k in Det.ordered(tt):
+		var r: Dictionary = tt[k]
+		var moved := false
+		if String(r.get("owner", "")) == from_id:
+			r["owner"] = to_id
+			r["owner_kind"] = _actor_kind(to_id)
+			moved = true
+		if String(r.get("lessee", "")) == from_id:
+			r["lessee"] = to_id
+			r["lessee_kind"] = _actor_kind(to_id)
+			r["lessee_acct"] = acct
+			moved = true
+		var plots: Dictionary = r.get("plots", {})
+		if plots.has(from_id):
+			var p: Dictionary = plots[from_id]
+			plots.erase(from_id)
+			p["acct"] = acct
+			plots[to_id] = p
+			moved = true
+		if moved:
+			r["history"].append({"month": world.month, "from": from_id, "to": to_id, "kind": "PASSED_" + why, "price": 0})
+			Logbook.note(world, "LAND", to_id, "title passed on", {"why": why}, {"holder": [from_id, to_id]}, from_id, String(k))
+			n += 1
+	return n
+
+
+## A land holder's own account: a plan's and a founder's is its id ("plan:N", "founder:N"; Otto, Maja), a company's
+## CoreUtil.acct, the government's the treasury.
+static func acct_of(holder: String) -> String:
+	if holder == "gov" or holder == "":
+		return CoreUtil.TREASURY
+	if holder.begins_with("plan:") or holder.begins_with("founder:"):
+		return holder
+	return CoreUtil.acct(holder)
+
+
+## Monthly (JUSTICE): the rent of every lease made by a sale (cells and plots) from its lessee's account to the treasury;
+## not in the month the lease began (its first rent was paid with it). What an account cannot pay is a debt to the
+## government through Justice.owe (one record of each thing, 12.8, 50b); rent_owed on the title is only its running total.
+## Arrears and eviction come with step 5. Under a lease a plan pays rent while its plant is built: the land is part of
+## what it builds on, so the rent is the land's cost, not an expense beyond building (8.1; under SELL nothing recurs).
+static func _collect_rent(world: WorldState) -> void:
+	if not world.ledger.has_account(CoreUtil.TREASURY):
+		return
+	var tt := world.peek("land_title")
+	for k in Det.ordered(tt):
+		var r: Dictionary = tt[k]
+		if String(r.get("tenure", "")) == "LEASED" and r.has("lessee_acct") and int(r.get("acquired_month", -1)) != world.month:
+			_pay_rent(world, r, String(k), String(r["lessee"]), String(r["lessee_acct"]), int(r.get("lease_rent", 0)))
+		var plots: Dictionary = r.get("plots", {})
+		for h in Det.ordered(plots):
+			var p: Dictionary = plots[h]
+			if String(p.get("mode", "")) == "LEASE" and int(p.get("month", -1)) != world.month:
+				_pay_rent(world, p, String(k), String(h), String(p.get("acct", "")), int(p.get("rent", 0)))
+
+
+static func _pay_rent(world: WorldState, rec: Dictionary, key: String, holder: String, acct: String, rent: int) -> void:
+	if rent <= 0:
+		return
+	var paid := 0
+	if world.ledger.has_account(acct):
+		paid = mini(rent, maxi(0, world.ledger.balance(acct)))
+		if paid > 0:
+			world.ledger.transfer(acct, CoreUtil.TREASURY, paid, "LAND_LEASE", world.month)
+	if paid < rent:
+		rec["rent_owed"] = int(rec.get("rent_owed", 0)) + rent - paid
+		LawOps.Justice.owe(world, holder, "gov", CoreUtil.TREASURY, rent - paid, "LAND_RENT")
+	Logbook.note(world, "LAND", holder, "rent paid" if paid == rent else "rent owed", {"rent": rent, "paid": paid,
+		"owed_total": int(rec.get("rent_owed", 0))}, {}, "gov", key)
