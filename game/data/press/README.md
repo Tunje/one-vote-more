@@ -162,8 +162,10 @@ Each entry has `for` (the kind of event or feature it illustrates), `show` (what
 Every picture:
 
 - PNG, 800 pixels wide and 500 high, landscape.
-- Looks like a black-and-white press photograph printed on newsprint: greyscale, a little grain, plain and
-  documentary. Not a painting, not a cartoon, not a poster.
+- Good-looking graphics that make the paper look like a real newspaper (the user's words: "good looking graphics
+  too make the newspapers acutally look like real ones"). NOT photo-realistic: an earlier version of this brief
+  asked for press photographs, which was wrong and is withdrawn. The style itself is the user's to give; until it
+  is written here, do not make pictures.
 - The setting is a small, plain colonial town of roughly late-twentieth-century technology: low buildings,
   trucks and buses, a small port, wide skies. It may show two moons in the sky. No aliens, no spacecraft
   overhead, no futuristic city.
