@@ -1,6 +1,6 @@
 # The rebuild: one company object
 
-Status: DRAFT 5 by Wilma, 2026-11-17. All of Wilma's questions are answered by the user. Sent to the six sessions for review. Not reviewed. Nothing is built.
+Status: DRAFT 6 by Wilma, 2026-11-17. Reviewed by all six sessions ([rebuild-reviews.md](rebuild-reviews.md)). The places where the reviews caught this plan contradicting a ruling are corrected (rules 2, 4, 7 and 9, ships, the freight queue, "huge company", grants). The parts the reviews found MISSING are listed in section 13 and are not yet designed. Not reviewed. Nothing is built.
 
 Sources: the user's order below; the open connections in [economy-connections.md](economy-connections.md); the rulings of
 2026-11-14 to 2026-11-17 in [MASTER-PLAN.md](MASTER-PLAN.md); the old economy as it stood in commit 785c72f and
@@ -97,7 +97,7 @@ The user, 2026-11-17, verbatim: "Family is the smallest 1/6 then small 1/3 then 
 | 1 | family | 1/6 | one household runs it |
 | 2 | small | 1/3 | |
 | 3 | average | 2/3 | |
-| 4 | large | full size | the type row as written; "a huge company" that fills an office building of its own |
+| 4 | large | full size | the type row as written |
 
 Size is a multiplier on the type row (inputs, labour, output, build bill); it is not a different kind of company. Output
 per unit of size is the same for all four, less a small penalty for the smaller ones. The penalty: family 6% less, small 4% less, average 2% less, large none
@@ -112,14 +112,14 @@ No rule is skipped for a type because it cannot take effect today (ruling).
 | # | Rule | Signal it acts on |
 |---|---|---|
 | 1 | raise the price | it sold what it offered and orders went unfilled FOR PRICE-INDEPENDENT REASONS EXCLUDED ("if something else than price stops sales it should not count on adjusting price") |
-| 2 | lower the price | unsold stock that was actually offered ("the more inventory you have, the more you reduce your price"); stock held back is nobody's signal |
+| 2 | lower the price | stock that was offered and went unsold BECAUSE OF PRICE ("the more inventory you have, the more you reduce your price"). Stock held back is nobody's signal. Stock that did not sell because of freight, the road or the buyer's money counts neither here nor in rule 1 (the same ruling as rule 1) |
 | 3 | raise output | "if you sell out all your producing produce MORE"; also picks first or second output by which pays |
-| 4 | lower output | unsold output |
+| 4 | lower output | output that went unsold because of price, with the same two exclusions as rule 2 ("Ignore the stoch in that other place too") |
 | 5 | add capacity | "if your selling out and all plants at max build a new one ... money is a limitor" |
-| 6 | cut capacity | a plant idle for long |
-| 7 | start a company | a real signal of unmet orders in reach; founding reads the average of all available work, with no cap on how many may form |
+| 6 | cut capacity | a plant that stands idle. **(open: which market fact ends it. "Idle for long" as a month count would be a hard rule, which the user does not want.)** |
+| 7 | start a company | the average of all available work ("instead of reading the leftovers, they read an avrage of all avaliable jobs"), with no cap on how many may form |
 | 8 | do not start one | the same signal says the work is already covered |
-| 9 | priority | below making price, climbing has priority; above it, lowering has priority; only the one with priority acts in a month; the same cap (5%) both ways |
+| 9 | priority | "if below making price climbing allways had priority if above lowering has priority if both signals come in the same month only the one with priority happens, and if your going to cap it at 5% THEN DO THE SAME FOR BOTH". So: priority matters only when BOTH signals come in the same month; one signal alone acts whichever side of the making price the company is on. If there is a cap it is the same both ways; 5% was the old code's figure, not the user's. |
 
 Kept with them:
 
@@ -127,7 +127,7 @@ Kept with them:
   all monthly expences"). No hard floors.
 - **No limit built on last month or last year.** Credit follows orders, contracts and forecasts.
 - **Imports are a backstop:** ordered in only while no plant in the colony makes the good, and only on a ship in port;
-  the answer comes back with that ship.
+  the answer or the goods come back with that same ship on its NEXT call, so the full round trip every time.
 
 ## 7. The parts plugged into the same object
 
@@ -135,9 +135,9 @@ Each is a function over the company record, not a system of its own.
 
 | Part | How it plugs in |
 |---|---|
-| **Office** | a bonus building. A company with a staffed place in an office building works at full output; without one it loses about 15% ("you lose out on some not all lets say something like 15% less"). Office buildings are real buildings, put up by builders, owned by a private landlord (itself a company, type OFFICE BUILDING, clients = tenants); one building holds the office workers of ten plants; only a huge company owns its own. Offices are not essential and never hire first. |
+| **Office** | a bonus building. A company with a staffed place in an office building works at full output; without one it loses about 15% ("you lose out on some not all lets say something like 15% less"). Office buildings are real buildings, put up by builders, owned by a private landlord (itself a company, type OFFICE BUILDING, clients = tenants); one building holds the office workers of ten plants; only a huge company owns its own (huge = its office workers fill a whole building, ten plants' worth or more; that is not the same as size 4). Offices are not essential and never hire first. |
 | **Freight** | any company with trucks can carry ("the same company can become freight that's done already"). Freight is the company's own fleet moving its own or others' goods over Terra's road network; a haulier is a company whose type row has freight room and nothing else. Truck quality is set when built and stays; trucks wear; workshop repair uses components and resets wear, about 5% lost each time; self-repair takes about 4 months. |
-| **Roads and supply networks** | Terra's `Transport` (kept, in `sim/transport`). A company ships from its plant's tile to the buyer's over the network; what cannot be carried stays in its stock. **(proposal: no separate "freight left behind" bookkeeping; it is simply stock that did not move.)** |
+| **Roads and supply networks** | Terra's `Transport` (kept, in `sim/transport`). A company ships from its plant's tile to the buyer's over the network; what cannot be carried waits in a real queue and is carried the following month (the user on the depot rule: "count the work que not passed work"; on the queue: "That works"). A haulier's output rule reads that queue. Goods waiting for freight are not unsold stock (rule 2). |
 | **Pollution** | the type row's pollution × units running, written to `emissions`; the planet reads it. |
 | **Food** | a food company's output is FOOD stock like any stock; households buy it on the same market. |
 | **Services** | client intake (section 4). |
@@ -155,7 +155,7 @@ These stay outside it, and each talks to companies only through the record above
 | People and households | Maja's population (`sim/population`) | work for a company (`staff`), buy from companies (orders), are clients of services, own family companies |
 | The market | one order book per item | companies post offers and orders; cheapest delivered first |
 | The bank and money | the ledger (`sim/core/ledger.gd`) and one bank | lends on orders, contracts and forecasts |
-| The government | politics (`sim/politics`) | owns state companies, sets tax brackets and levers, grants, commissions buildings from builder companies |
+| The government | politics (`sim/politics`) | owns state companies, sets tax brackets and levers, commissions buildings from builder companies. Grants only where the user ruled them: family farms and bakeries, truck drivers and truck workshops ("I DID NOT SAY GIVE EVERYONE ... GRANTS") |
 | The home world | `home_world.gd` | ships: the only way anything enters or leaves; orders go and answers come with a ship in port |
 | Unions | outside the company (ruling, section 8a) | protests and shutdowns act on a company's output; members are staff of any company |
 | The map | Terra's planet, roads, town grid | a plant has a tile; a truck has a route |
@@ -282,3 +282,54 @@ At each step: three 30-year games, and the bottleneck reported before the next s
 After the user has seen this draft: Bob (rules, market, bank, freight, food), Otto (builders, housing, plan stage),
 Maja (population, institutions), Ella (services, unions, truck workshops), Terra (roads, map, tiles), Anni (law,
 utilities) each review it from their side: what of theirs is missing, and which connection of theirs is not answered.
+
+## 13. What the reviews found missing
+
+All six reviews are in [rebuild-reviews.md](rebuild-reviews.md). The same gaps came from several sides. Grouped:
+
+**A. Things that are not a company and that the plan does not have at all**
+
+1. **Households.** The population code holds who lives where and what they believe. Their money, income, what they buy
+   each month, rent, births, deaths, ageing, migration, the benefit and pensions were all in the economy and are gone.
+   Without them nobody buys consumer goods. (Maja, Bob, Terra)
+2. **The labour market:** the link between actual people and the company that employs them, vacancies, layoffs,
+   training, commuting. `staff` must be the actual people, not counts. (Maja, Ella, Terra)
+3. **The bank beyond lending:** deposits, interest, missed payments, the bank failing, the state borrowing. (Bob)
+4. **The state's money:** taxes on companies and sales, royalties, the budget lines with what each has left, the food
+   and material reserve the government releases. (Bob, Anni, Maja)
+5. **Ships and the port:** the schedule, the fleet, the hold, port stock, home-world prices, the charter quota, the
+   merchant who sells landed goods. None of these is a company. (Bob, Anni)
+6. **Utilities:** power and water go through a grid, cannot be stocked or trucked, and their price is approved by the
+   government. (Anni)
+
+**B. Things about a company the plan does not cover**
+
+7. **The death of a company:** distress, administration, liquidation, the sale of its plants, the court winding it up.
+   (Otto, Anni, Bob)
+8. **The construction contract:** its terms, progress payments, the price moving with wages and materials, a half-built
+   building, the client refusing a quote, roads as build jobs, repair and ageing. (Otto, Terra)
+9. **Owners' money:** equity in, dividends out, and what a company holds at the start of a game. (Bob)
+10. **The law's hold:** licences, the permit office, closing an unlicensed plant, land leases, taxes the law sets,
+    price controls, the law's own records about a company. (Anni)
+11. **What a service does to a person:** clinic to health, school to skill, childcare to parents working, police to
+    crime; and how a household becomes a client of a service. (Maja, Ella)
+12. **Company donations to parties,** which the scandal and campaign side lives on. (Ella)
+13. **Where a plant stands:** who picks its tile, its form on the town grid, private roads and tolls, the planet setting
+    farm yield. (Terra)
+
+**C. Rules that cannot act as written**
+
+14. Rules 2 and 4 read unsold stock. A service, a builder, a landlord and a truck repair have none. They need their own
+    signal (empty client places, idle crews, empty homes), or a rule is missing for a type.
+15. A free public service has no price at the door, and a state company's price is a tax bracket the government sets,
+    while the rules set one price per company.
+16. One price per company against a builder whose jobs all differ, and against homes whose rent follows the street
+    ("it can even shift from road to road").
+17. One salary per company against a starting salary "in the area" when a company has plants in two districts.
+18. "Cheapest delivered first" needs a freight price before the sale; trucks differ by quality, which a cheapest-first
+    market cannot see.
+19. Growing "one size at a time" against rule 5's "build a new one": by size, by plants, or both.
+20. A union shutdown reads to the rules as unsold output, an idle plant and open posts.
+21. The build order: salaries need housing and food prices (step 4) at step 2; rules 5 and 7 need builders (step 6) at
+    step 3; builders need credit (step 7) at step 6; the world itself (terrain, districts, the road month) was built by
+    the old economy's start-up and is needed at step 1.
