@@ -109,7 +109,7 @@ empty queue, and the old `law_bridge` gate is not rebuilt before then.
 | Unsafe plant kept running | section 2, point 9 | 6 |
 | Cutting corners: deferred upkeep, running short-staffed (12.11, 84) | the company's own choice, as in section 2 point 6 | 6 |
 | Selling over a legal ceiling | section 6 | 8 |
-| Hours over the legal maximum; understaffing under binding ratios; pay under the minimum wage | section 5 | 8 and 9 |
+| Hours over the legal maximum; understaffing under binding ratios; hiring under the minimum wage; a yearly raise under the minimum | section 5 | 8 and 9 |
 | Dumping waste; breaking the sewage standard | waste law (`LAW_WASTE_STANDARD`, `LAW_SEWAGE_STANDARD`) | 9 (pollution) |
 | A donation over the cap or undisclosed | party finance (`LAW_DONATION_CAP`, `LAW_DONATION_DISCLOSURE`) | 9 |
 | An unlawful strike or lockout | section 7 | 9 |
@@ -183,7 +183,7 @@ amount or demand payment over time, if he is rich or owns other companies a sett
 **Until step 5:** no company can end, so the court hears none of these cases. The court's other work goes on as now:
 crime, defamation, the government's unlawful acts, appeals.
 
-## 5. Work law (stress, hours and staffing ratios at step 9; accidents at step 5; minimum wage and bonus at step 8)
+## 5. Work law (stress, hours and staffing ratios at step 9; accidents at step 5; minimum wage and yearly raise at step 8)
 
 **What it reads:**
 - the company's `staff`: people by tier and plant, their hours and their stress;
@@ -212,19 +212,21 @@ crime, defamation, the government's unlawful acts, appeals.
    - A death or injury is a claim the victim's household holds against the company, in reference wages.
    - Unpaid, it goes to court (section 4).
    - A stress accident (workload over the line) is the company's fault outright.
-4. **Minimum wage (`ECON_MIN_WAGE`, a share of the reference wage)** is a legal floor (12.10, 64): the salary rules
-   stop at it. A post offered below it is a violation.
-5. **Yearly bonus minimum** (the user: "every year a company can grant a bonus what the minimum of this is is up to the
-   government, 2% is a good start"). The lever starts at 2%. A company chooses whether to grant a bonus; when it does,
-   it grants at least the minimum. A bonus below it is a violation.
-   **(Anni's reading:** "can grant" leaves the grant itself to the company. If the user meant every company must pay
-   it, the same lever becomes a yearly duty.)
+4. **Minimum wage (`ECON_MIN_WAGE`, a share of the reference wage)**, where a government sets one, is a legal floor on
+   the HIRING salary (12.10, 64): the price rules that move the hiring salary stop at it. A post offered below it is a
+   violation.
+5. **The yearly raise** (the user, 2026-11-17: "No no, the sallery is not fluent, they have a sallery set on hire then
+   it climbs based on yearly upps set by goverment"; plan 9.2). A worker's salary is set on hire and climbs once a year.
+   The government sets the raise's minimum (the lever starts at 2%). Giving it is a yearly duty, not the company's
+   choice; a company may give more. Work law reads each company's staff once a year: a worker whose salary did not
+   climb by at least the minimum is a violation, found by the work inspectors like any other (section 3).
 
 **Until then:**
 - **Accidents** may happen from production at step 3. They are published and counted, but nobody pays for them until
   the court exists at step 5.
 - **Hours, ratios and stress** have no effect until step 9.
-- **The minimum wage and the bonus minimum** have no effect until step 8. Salaries move by the three price rules alone.
+- **The minimum wage and the yearly raise's minimum** have no effect until step 8. Until then the hiring salary moves
+  by the three price rules alone, and a worker's salary stays where it was set on hire.
 
 ## 6. Competition and buy-outs (step 6; 12.10, 67)
 
@@ -453,6 +455,7 @@ its plain answer.
 ## 14. For Wilma
 
 - **Section 8:** title and land price are needed at step 3, not step 6.
-- **Section 5, point 5:** my reading of the yearly bonus ("can grant") is marked as a reading, not a ruling.
+- **Section 5, point 5:** the yearly raise follows the user's correction of 2026-11-17 (a duty at the minimum, not the
+  company's choice). Settled.
 - **Section 1, point 4 and sections 8 and 12:** three of my levers changed under 12.10, 65: `LAW_LAND_DISPOSAL` `KEEP`,
   `LAW_TRANSPORT_OPERATION` `PUBLIC` and `LAW_PRESS_LICENSING` `LICENCE`.

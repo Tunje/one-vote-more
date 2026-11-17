@@ -23,6 +23,7 @@ any that is wrong.
 
 ## 1. The ground rules for all of it
 
+0. **Salaries** (the user, 9.2, commit 207cec3): a worker's salary is set when hired and climbs once a year by the yearly raise, whose minimum the government sets. The three price rules move only the HIRING salary. The levers below follow that.
 1. **The old names stay.** "The rebuild publishes the same names where the thing still exists" (9.11). A thing that
    comes back comes back under its old id, with its effect built new. A new thing gets a new id in the same style.
 2. **The stand-in stays whole until step 11.** **(E)** Today politics plays with the stand-in world's 7 levers
@@ -63,9 +64,9 @@ Old table: `econ_pic.gd` `levers()`, 50 levers and 1 choice. "Where the thing st
 | `ECON_SALES_TAX` | sales tax (62) | 8 | budget panel |
 | `ECON_TAX_ALLOWANCE` | tax allowance (88) | 8 | budget panel |
 | `ECON_IMPORT_TARIFF` | tariff on what comes in by ship (63) | 8 | budget panel |
-| `ECON_MIN_WAGE` | the minimum wage (63). **(E)** In per cent of the area's starting salary (9.2). Like a legal price ceiling (64), it stops the salary-lowering rule at the floor. That is the government's doing, and allowed | 8 | union politics, law data, budget panel |
+| `ECON_MIN_WAGE` | the minimum wage (63): the least a company may HIRE at. **(E)** In per cent of the area's starting salary (9.2). Like a legal price ceiling (64), it stops the hiring-salary lowering rule at that floor. That is the government's doing, and allowed. A salary already paid never falls (9.2, 207cec3) | 8 | union politics, law data, budget panel |
 | `ECON_UNION_RIGHTS` | union rights (63). Its effect is built with the union law (Anni) | 9 | union politics |
-| `ECON_PUBLIC_PAY_INDEX` | public pay (63). **(E)** The state's employers (state companies and 12.10, 70) hire at this per cent of the starting-salary line; rules 1 and 2 still move it from there | 8 | union politics |
+| `ECON_PUBLIC_PAY_INDEX` | public pay (63). **(E)** The state's employers (state companies and 12.10, 70) hire at this per cent of the starting-salary line, and the rules move that hiring salary from there. Above 100 it can also add to their staff's yearly raise, on top of `ECON_BONUS_MIN` | 8 | union politics |
 | `ECON_UNEMPLOYMENT_BENEFIT_RATE` | the benefit, a share of the area's starting salary (12.5, 41) | 2 (in the lever table, so votable, from 2: 1.2) | union politics, budget panel |
 | `ECON_PENSION_RATE` | pensions, the same way (41) | 2 | budget panel |
 | `ECON_BENEFIT_FLOOR`, `ECON_BENEFIT_DURATION` | the floor and the time limit on the benefit (88) | 8 | legislature, budget panel |
@@ -88,7 +89,7 @@ Old table: `econ_pic.gd` `levers()`, 50 levers and 1 choice. "Where the thing st
 
 | Lever **(E: the names)** | What | Step |
 |---|---|---|
-| `ECON_BONUS_MIN` | the minimum yearly bonus, starting at 2% (9.2) | 3 (paid at 2%), voted from 8 |
+| `ECON_BONUS_MIN` | the yearly raise (the user, 9.2, 207cec3: "they have a sallery set on hire then it climbs based on yearly upps set by goverment"). Every employed person's salary climbs by at least this much once a year; a company may give more. Starts at 2%. Voters feel it every year, so it carries concern hints like the minimum wage. The id stays for continuity with the plan; it is a raise, not an optional bonus | 3 (in the lever table, so votable, from 3: 1.2) |
 | `ECON_PRICE_CEILING` | a legal ceiling on the price of a named item (64); one value per item, 0 = none | 8 |
 | `LAW_RETIREMENT_AGE` | already the law's (law_data.gd:668); the plan keeps it (41). Nothing to build; households read it from step 3 | 3 |
 
@@ -349,6 +350,13 @@ so under its fifth line ("there because the next step is not built yet").
 
 The test `world.table("econ").has("s")` (legislature, home world, office feed: "is there an economy?") becomes
 `EconFace.running()` **(E)**, true from step 3.
+
+**Step 3 must define `EconFace.running()` on something real** (companies trading, or households paid wages this
+month), not on the old table's presence: nothing in the rebuild writes table "econ", so until then the press never pays
+wages or gets its subsidy (Anni's review of step 2).
+
+**The purse is every `gov:` account** (step 2, `econ_publish.gd`): the treasury, the law's fines account and any other
+the government keeps apart. Its income, spending and balance count them together.
 
 ---
 

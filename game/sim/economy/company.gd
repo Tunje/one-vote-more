@@ -46,8 +46,8 @@ static func create(world: WorldState, type: String, size: String, owner: Diction
 		"owner": {"kind": String(owner["kind"]), "holders": (owner["holders"] as Dictionary).duplicate()},
 		"plants": [],              # plant ids; the plants are in table "plant"
 		"line": 0,                 # which output line it runs (first = 0, second = 1)
-		"staff": {},               # {plant id or "crew": {post tier: {"area|band|skill": persons × S}}}
-		"salary": {},              # {tier: {area: milli-credits a month}}: set when it first hires (step 3)
+		"staff": {},               # {plant id or "crew": {post tier: {"area|band|skill": {"n": persons × S, "pay": milli-credits a month each}}}}
+		"salary": {},              # the HIRING salary: {tier: {area: milli-credits a month}}, moved only by the price rules
 		"stock": {},               # {item: {"qty": milli-units, "value": milli-credits in all, "waiting": milli-units}}
 		"books": {"month": {}, "year": {}},
 		"price": price,            # ONE price per company for each thing it sells: {item or "BW"/"FREIGHT"/"@client": milli-credits}
@@ -184,13 +184,26 @@ static func stock_of(world: WorldState, cid: String, item: String) -> Dictionary
 
 # ---------------------------------------------------------------- staff (written only by the household side)
 
+## A worker's salary (plan 9.2, the user: "they have a sallery set on hire then it climbs based on yearly upps set by
+## goverment"): it is set when they are hired and is theirs from then on. The company never moves it; it rises once a
+## year by the yearly raise (yearly_raise). The three price rules move only the HIRING salary, record["salary"], what
+## the company offers a new hire this month. People are counts in pools, so the pay is kept per staff entry (plant,
+## post tier, labour key): {"n": persons × S, "pay": milli-credits a month per person}. When people join an entry their
+## pay at hire is blended in by head count; people leaving do not change the entry's pay.
+## A consequence of the ruling, not a fault to fix: after a few raises the people already employed earn more than the
+## hiring salary, so a new hire can cost less than the person beside them. The rules move only the hiring line.
+
 ## Adds delta (persons × S, may be negative) to one staff entry: company["staff"][plant_key][post_tier][labour_key].
 ## plant_key is a plant id of the company, or "crew": a builder's crews (they work at the clients' sites, not at its
 ## yard, rebuild-building 1, 4.6), whether or not it has a yard; and the staff of a company that has no plant yet
 ## (a home-world builder, a government subsidiary before its building). labour_key is the household side's
-## "area|band|skill". Writes no Logbook row: the household side's hire or layoff row is the one for the deed.
+## "area|band|skill" (the area the workers LIVE in, which need not be where the plant hires: reach, 12.5 rule 40).
+## pay: for a hire (delta > 0), the salary the joiners are hired at, milli-credits a month each, and required: the
+## hirer reads it from hiring_salary(world, cid, tier, the AREA THE PLANT STANDS IN) (plan 9.2: "The district the plant
+## hiring is in"), or passes a person's own pay when moving them between entries. Ignored when people leave.
+## Writes no Logbook row: the household side's hire or layoff row is the one for the deed.
 ## Refuses (false, nothing changed) if the company or plant is unknown, the tier is not a tier, or it would go below 0.
-static func staff_change(world: WorldState, cid: String, plant_key: String, post_tier: String, labour_key: String, delta: int) -> bool:
+static func staff_change(world: WorldState, cid: String, plant_key: String, post_tier: String, labour_key: String, delta: int, pay: int = -1) -> bool:
 	var c: Dictionary = world.table(TABLE).get(cid, {})
 	if c.is_empty() or not TypeTable.TIER_PM.has(post_tier):
 		return false
@@ -200,8 +213,9 @@ static func staff_change(world: WorldState, cid: String, plant_key: String, post
 	elif not (c["plants"] as Array).has(plant_key):
 		return false
 	var st: Dictionary = c["staff"]
-	var now := int(st.get(plant_key, {}).get(post_tier, {}).get(labour_key, 0))
-	if now + delta < 0:
+	var e: Dictionary = st.get(plant_key, {}).get(post_tier, {}).get(labour_key, {})
+	var now := int(e.get("n", 0))
+	if now + delta < 0 or (delta > 0 and pay < 0):
 		return false
 	if delta == 0:
 		return true
@@ -215,9 +229,77 @@ static func staff_change(world: WorldState, cid: String, plant_key: String, post
 			st[plant_key].erase(post_tier)
 		if (st[plant_key] as Dictionary).is_empty():
 			st.erase(plant_key)
-	else:
-		st[plant_key][post_tier][labour_key] = now + delta
+		return true
+	var old_pay := int(e.get("pay", 0))
+	var new_pay := old_pay
+	if delta > 0:
+		new_pay = (now * old_pay + delta * pay) / (now + delta)
+	st[plant_key][post_tier][labour_key] = {"n": now + delta, "pay": new_pay}
 	return true
+
+
+## The salary the company offers a new hire of this tier this month at a plant standing in `area` (the plant's area,
+## Terra's Site.of; for "crew", the company's own "area"), milli-credits a month: its own hiring salary there if it has
+## set one, else the type table's starting salary. Only the price rules move it.
+static func hiring_salary(world: WorldState, cid: String, post_tier: String, area: String) -> int:
+	var sal: Dictionary = world.peek(TABLE).get(cid, {}).get("salary", {})
+	if sal.has(post_tier) and (sal[post_tier] as Dictionary).has(area):
+		return int(sal[post_tier][area])
+	return TypeTable.salary(post_tier)
+
+
+## Sets the hiring salary for a tier in an area (the price rules 1, 2 and 9 for a salary, plan 9.2). It changes what
+## new hires are offered, never what anyone already employed is paid. Writes a SALARY row.
+static func set_hiring_salary(world: WorldState, cid: String, post_tier: String, area: String, value: int, why: Dictionary = {}) -> bool:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty() or not TypeTable.TIER_PM.has(post_tier) or value < 0:
+		return false
+	var old := hiring_salary(world, cid, post_tier, area)
+	if not (c["salary"] as Dictionary).has(post_tier):
+		c["salary"][post_tier] = {}
+	c["salary"][post_tier][area] = value
+	Logbook.note(world, "SALARY", cid, "hiring salary set", why.merged({"tier": post_tier, "area": area}), {"hiring_salary": [old, value]})
+	return true
+
+
+## The yearly raise (plan 9.2): every staff entry's pay × (1 + raise), the raise being at least the government's minimum
+## (a lever, 2% to start). Both in per mille. Writes a RAISE row with what the wage bill was and became, also when it
+## has nobody on staff (0 to 0): the decision was made.
+static func yearly_raise(world: WorldState, cid: String, raise_pm: int, minimum_pm: int) -> bool:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty():
+		return false
+	var r := maxi(raise_pm, minimum_pm)
+	var before := wage_bill(world, cid)
+	for pk in c["staff"]:
+		for t in c["staff"][pk]:
+			for lk in c["staff"][pk][t]:
+				var e: Dictionary = c["staff"][pk][t][lk]
+				e["pay"] = int(e["pay"]) * (1000 + r) / 1000
+	Logbook.note(world, "RAISE", cid, "yearly raise", {"raise_pm": raise_pm, "minimum_pm": minimum_pm, "given_pm": r},
+		{"wage_bill": [before, wage_bill(world, cid)]})
+	return true
+
+
+## Every staff entry with its pay, in a fixed order (plant key, tier, labour key): [{plant_key, post_tier, labour_key,
+## n (persons × S), pay (milli-credits a month per person)}]. What the household side's pay_wages pays from.
+static func payroll(world: WorldState, cid: String) -> Array:
+	var out: Array = []
+	var st: Dictionary = world.peek(TABLE).get(cid, {}).get("staff", {})
+	for pk in CoreUtil.sorted_keys(st):
+		for t in CoreUtil.sorted_keys(st[pk]):
+			for lk in CoreUtil.sorted_keys(st[pk][t]):
+				var e: Dictionary = st[pk][t][lk]
+				out.append({"plant_key": pk, "post_tier": t, "labour_key": lk, "n": int(e["n"]), "pay": int(e["pay"])})
+	return out
+
+
+## What a month's wages come to, milli-credits: Σ n × pay / S over the staff entries.
+static func wage_bill(world: WorldState, cid: String) -> int:
+	var total := 0
+	for e in payroll(world, cid):
+		total += int(e["n"]) * int(e["pay"]) / CoreUtil.S
+	return total
 
 
 ## Persons × S employed, optionally in one post tier and/or at one plant key.
@@ -233,11 +315,11 @@ static func staff_count(world: WorldState, cid: String, post_tier: String = "", 
 			if post_tier != "" and t != post_tier:
 				continue
 			for lk in c["staff"][pk][t]:
-				n += int(c["staff"][pk][t][lk])
+				n += int(c["staff"][pk][t][lk]["n"])
 	return n
 
 
-## A copy of a company's whole staff dictionary (for the household side's check).
+## A copy of a company's whole staff dictionary (for the household side's check): each entry {"n", "pay"}.
 static func staff_entries(world: WorldState, cid: String) -> Dictionary:
 	return (world.peek(TABLE).get(cid, {}).get("staff", {}) as Dictionary).duplicate(true)
 
@@ -254,7 +336,7 @@ static func staff_of_pool(world: WorldState, area: String, band: String) -> Dict
 			for t in st[pk]:
 				for lk in st[pk][t]:
 					if String(lk).begins_with(prefix):
-						n += int(st[pk][t][lk])
+						n += int(st[pk][t][lk]["n"])
 		if n > 0:
 			out[cid] = n
 	return out
