@@ -1,6 +1,6 @@
 # The rebuild: one company object
 
-Status: DRAFT 4 by Wilma, 2026-11-17 (sizes, unions, salaries, households and types from the user's answers). Not reviewed. Nothing is built.
+Status: DRAFT 5 by Wilma, 2026-11-17. All of Wilma's questions are answered by the user. Sent to the six sessions for review. Not reviewed. Nothing is built.
 
 Sources: the user's order below; the open connections in [economy-connections.md](economy-connections.md); the rulings of
 2026-11-14 to 2026-11-17 in [MASTER-PLAN.md](MASTER-PLAN.md); the old economy as it stood in commit 785c72f and
@@ -100,8 +100,8 @@ The user, 2026-11-17, verbatim: "Family is the smallest 1/6 then small 1/3 then 
 | 4 | large | full size | the type row as written; "a huge company" that fills an office building of its own |
 
 Size is a multiplier on the type row (inputs, labour, output, build bill); it is not a different kind of company. Output
-per unit of size is the same for all four, less a small penalty for the smaller ones. **(proposal, the penalty is not
-given as a number: family 6% less, small 4% less, average 2% less, large none.)** A company grows or shrinks one size at
+per unit of size is the same for all four, less a small penalty for the smaller ones. The penalty: family 6% less, small 4% less, average 2% less, large none
+(Wilma's figures, accepted by the user: "You penalty is fine"). A company grows or shrinks one size at
 a time by the capacity rules (5 and 6).
 
 ## 6. The nine rules, plugged into the object
@@ -193,7 +193,7 @@ As rules:
 |---|---|---|
 | 1 raise | it sold what it offered and orders went unfilled | its posts stay open, or its workers leave for better pay |
 | 2 lower | offered stock stays unsold | more people apply at its salary than it has posts |
-| 9 priority | below making price, raising has priority; above, lowering | **(open)** what plays the part of the making price for a salary: the cost of living, or what the worker's output earns the company |
+| 9 priority | below making price, raising has priority; above, lowering | the line is the starting salary of section 8c (settled in section 8d) |
 
 Only the pay signal moves the salary: a post that stays open for another reason (no housing nearby, no one with the
 skill in the colony) is not a reason to raise it, as with prices ("if something else than price stops sales it should
@@ -213,6 +213,17 @@ As rules:
 - **The starting salary** = the average cost of living in the area plus food, plus half of both again:
   1.5 x (average housing cost in the area + food). That is where a salary starts; from there it regulates itself by the
   three rules of section 8b.
+
+### 8d. Hiring salary and the yearly bonus (the user, 2026-11-17, verbatim)
+
+> You penalty is fine,  that's fine for hiring, then every year a company can grant a bonus what the minimum of this is is up to the government, 2% is a good start
+
+As rules:
+
+- **Rule nine for salaries** turns on the starting salary of section 8c (1.5 x housing plus food at today's prices in
+  the area): below it raising has priority, above it lowering has priority. That is the salary a company HIRES at.
+- **Every year a company can grant a bonus** to the people it already employs. The government sets the minimum; the
+  minimum starts at 2%. It is a lever of the government's.
 
 ## 9. Every outside connection, and how it gets what it needs
 
@@ -263,8 +274,8 @@ At each step: three 30-year games, and the bottleneck reported before the next s
 2. ANSWERED (section 8a): unions are outside.
 3. ANSWERED (section 8c): households follow Terra's latest plan.
 4. ANSWERED (section 8c): the same types, none of their code or balancing.
-5. How large is the "small penalty" for the smaller sizes? (Wilma's proposal is in section 5.)
-6. For salaries, what is the line that rule nine turns on (the "making price" of a worker)? (Section 8b.)
+5. ANSWERED (section 5): Wilma's penalty figures are accepted.
+6. ANSWERED (section 8d): the starting salary, for hiring; plus a yearly bonus with a government minimum, 2% to start.
 
 ## 12. Review
 

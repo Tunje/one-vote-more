@@ -509,6 +509,15 @@ Written into [rebuild-company.md](rebuild-company.md) section 8b the same turn.
 Written into [rebuild-company.md](rebuild-company.md) section 8c the same turn.
 
 
+### The rebuild: size penalty, hiring salary, yearly bonus (the user, 2026-11-17, verbatim)
+
+Answering: Wilma's size penalty (6%, 4%, 2%, none) and her reading that rule nine for salaries turns on the starting salary:
+
+> You penalty is fine,  that's fine for hiring, then every year a company can grant a bonus what the minimum of this is is up to the government, 2% is a good start
+
+Written into [rebuild-company.md](rebuild-company.md) sections 5 and 8d the same turn. The plan then went to the six sessions for review, as the user's order of the rebuild says ("then you ask all the others to review from their").
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
