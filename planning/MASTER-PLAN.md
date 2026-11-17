@@ -635,6 +635,15 @@ Done the same turn: [rebuild-company.md](rebuild-company.md) version 9, section 
 Written into [rebuild-company.md](rebuild-company.md) section 12.5, point 35, the same turn.
 
 
+### The rebuild: imports cover the shortfall (the user, 2026-11-17, verbatim)
+
+Correcting the wording "ordered in only while no plant in the colony makes the good", which had stood in the plans since 2026-11-16 and was Wilma's and Bob's, not the user's:
+
+> What? Import stops when a plant makes it? Not what i fucking meant,  got fucking damned it WHAT IF THAT PLANT CAN'T MANY ENOUGH HUH????
+
+Imports are a backstop for whatever the colony's own plants cannot make enough of. They do not stop because one plant exists. Corrected in [rebuild-company.md](rebuild-company.md) sections 9.6 and 12.3.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

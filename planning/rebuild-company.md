@@ -335,7 +335,10 @@ which means they have the full period of waiting every time."
 
 - Nothing enters or leaves the colony except on a ship in port. No order, request, payment or answer travels otherwise.
 - An order placed with a ship in port comes back with that same ship on its next call: the full round trip, every time.
-- **Imports are a backstop:** a good is ordered in only while no plant in the colony makes it.
+- **Imports are a backstop:** a good is ordered in for the part of the colony's need that its own plants cannot make.
+  If a plant makes the good but not enough of it, the rest is still ordered in. (The user, correcting the earlier
+  wording "only while no plant makes it": "Not what i fucking meant ... WHAT IF THAT PLANT CAN'T MANY ENOUGH".) Imports
+  are never the first source: the colony's own plants sell first, and their prices are not undercut by the ship.
 - A company's exports are stock it puts on a ship in port.
 - The ship schedule, the fleet, the hold, the port's stock and the home world's prices and quota belong to the port and
   the home world, not to any company. **(open: their design)**
@@ -575,7 +578,8 @@ is wrong; nothing here is asked again.
 24. **The second output** is switched from one month to the next, at no cost.
 25. **An export** counts as sold, at the home world's price, when it goes aboard. Stock at the port waiting for a ship
     is waiting for freight, not unsold.
-26. **Imports** stop for a good as soon as a plant in the colony makes it, as the user ruled it.
+26. **Imports** cover what the colony's own plants cannot make: the shortfall is ordered in, on a ship in port, with
+    the full round trip. They do not stop because one plant exists (the user's correction, section 9.6).
 27. **A short good** is shared in proportion among the buyers offering the same price. No buyer goes first by class.
 28. **Hiring:** nobody hires first. Pay decides. No speed limits on hiring or laying off.
 29. **Saving for replacement:** upkeep is part of the making price, so a company that sells at or above it can keep its
@@ -726,12 +730,10 @@ report also says which companies would have ended, even before endings are built
 
 ## 14. What I am least sure of
 
-Three of the decisions above change what a ruling does in practice. They are decided, and flagged so the user can find
+Two of the decisions above change what a ruling does in practice. They are decided, and flagged so the user can find
 them:
 
 - **11, the landing shelters.** The ruling is "not finished buildings"; I gave the settlers plain shelters anyway.
-- **26, imports stop the moment one plant makes the good.** That is the ruling as given. One family farm covering a
-  fiftieth of the need stops all food imports. The landing stock is what carries the colony through.
 - **15, no cap on a price change.** The ruling said the cap must be the same both ways, if there is one.
 
 ## 15. This review
