@@ -8,7 +8,9 @@ Landing), the town grid and road systems are on, the log exists, 387 tests pass.
 - **Land** (Anni): its price and who holds it are needed in the first loop, so plain land (the colony owns it, a plan
   buys it at the price of its cells) is in step 3; sales between owners stay at step 6.
 - **Three levers changed by "no law may forbid a private company type"** (Anni): accepted as she wrote them.
-- **The yearly bonus** (Anni): the company's choice; when it gives one it is at least the government's minimum.
+- **The yearly raise** (corrected by the user after this brief was written): a salary is set on hire and climbs once
+  a year by the raise; the government sets its minimum; it is not the company's choice whether to give it. The three
+  price rules move only the hiring salary.
 - **Trucks in the landing stock** (Otto): yes, trucks are equipment. Enough for the first truck drivers.
 - **Three months of running costs as a founder's own opening money** (Otto): accepted as the founder's own reckoning,
   not a gate.

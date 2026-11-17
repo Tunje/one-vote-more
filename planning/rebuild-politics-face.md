@@ -66,12 +66,12 @@ Old table: `econ_pic.gd` `levers()`, 50 levers and 1 choice. "Where the thing st
 | `ECON_MIN_WAGE` | the minimum wage (63). **(E)** In per cent of the area's starting salary (9.2). Like a legal price ceiling (64), it stops the salary-lowering rule at the floor. That is the government's doing, and allowed | 8 | union politics, law data, budget panel |
 | `ECON_UNION_RIGHTS` | union rights (63). Its effect is built with the union law (Anni) | 9 | union politics |
 | `ECON_PUBLIC_PAY_INDEX` | public pay (63). **(E)** The state's employers (state companies and 12.10, 70) hire at this per cent of the starting-salary line; rules 1 and 2 still move it from there | 8 | union politics |
-| `ECON_UNEMPLOYMENT_BENEFIT_RATE` | the benefit, a share of the area's starting salary (12.5, 41) | 2 (paid at its starting value), voted from 8 | union politics, budget panel |
-| `ECON_PENSION_RATE` | pensions, the same way (41) | 2, voted from 8 | budget panel |
+| `ECON_UNEMPLOYMENT_BENEFIT_RATE` | the benefit, a share of the area's starting salary (12.5, 41) | 2 (in the lever table, so votable, from 2: 1.2) | union politics, budget panel |
+| `ECON_PENSION_RATE` | pensions, the same way (41) | 2 | budget panel |
 | `ECON_BENEFIT_FLOOR`, `ECON_BENEFIT_DURATION` | the floor and the time limit on the benefit (88) | 8 | legislature, budget panel |
 | `ECON_FOOD_ASSISTANCE` | food assistance (88) | 8 | legislature (8 reads), budget panel |
 | `ECON_UTILITY_TARIFF_ENERGY`, `ECON_UTILITY_TARIFF_WATER` | the approved tariff of a state utility (46, 49). The utility proposes; `ECON_APPROVE_TARIFF` sets the lever | 4 | budget panel |
-| `ECON_PUBLIC_RENT` | the housing office's rent (a state landlord: proposed and approved like a tariff, 46) | 2 (the landing shelters' rent), voted from 7 | budget panel |
+| `ECON_PUBLIC_RENT` | the housing office's rent (a state landlord: proposed and approved like a tariff, 46). The landing shelters' rent comes from the salary formula (step-2 brief), not from this lever | 7 | budget panel |
 | `ECON_RENT_INCREASE_CAP` | rent control (63, 64) | 8 | |
 | `ECON_HEALTH_FEE`, `ECON_SCHOOL_FEE` | the fee at the door (100). Starts at 0 | 4 | |
 | `ECON_SCHOOL_TAX`, `ECON_HEALTH_TAX`, `ECON_ADMIN_TAX`, `ECON_ELDER_CARE_TAX`, `ECON_CHILDCARE_TAX` | the tax brackets: the price of each public service (9.5, 46). The service's rules propose; the government decides. Their old switch `requires: R8_INSTITUTIONS` goes | 4 | |
@@ -373,7 +373,8 @@ Three must change shape before the step that wakes them:
 | `staple_active`, `staple_raw_pct` | 4 |
 | `inst_*`, `publicco_pending`, `query_police`, `query_prisons`, `police_org` | 4 |
 | `query_commuting` | 4 |
-| `annual_months`, `annual_sum12`, `insolvency_court_liquidation` | 5 |
+| `annual_months`, `annual_sum12` | 3: they call Bob's `Company.months_on_books(world, cid)` and `Company.revenue_12(world, cid)`, never his books dictionary. They then take (world, company id), not a record, so justice_ops `annual_rev` passes the id. The law's fines read a firm's revenue through them from the first sale |
+| `insolvency_court_liquidation` | 5 |
 | `query_upgrade_options`, `query_commission_options`, `query_tenders` | 8 |
 | `actions_headroom`, `query_budget_view`, `finance_gov_pay`, `finance_spend_line` | 8 |
 | `essentials_offers` | 8 (securing the essentials, 102) |

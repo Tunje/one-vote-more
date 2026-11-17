@@ -67,6 +67,71 @@ The area code (`game/sim/population/area_store.gd`) was a separate design. Areas
   - Terra: the block functions, the cut lines, the screens.
   - Each reviews the other's code.
 
+## 2a. Step 2 as built (Maja, 2026-11-17)
+
+**Where things are kept.** Each thing has one record:
+
+- **People** are in PopStore leaves, keyed by area and band.
+- **Pools** are in their own table, `"pool"`: id "area|band", record {id, area, band, income}, account "pool:<id>". They are NOT in the old "hh" table. Wilma's ruling: the old readers of "hh" (press costs, party dues and campaign money, staff charges, the crime fallback, press demand) stay asleep until each is connected on purpose through the doorway, at its own step.
+- **A pool's head counts** are read from the people, never stored.
+- **Jobs** are in the company record: company["staff"][plant id or "crew"][post tier]["area|band|skill"] = persons × S. They are written only through Bob's Company.staff_change, by Households.hire and Households.layoff. Those two move the people and write the entry in one call.
+- **A pool's count per company** is read through Company.staff_of_pool.
+
+**Who fills a post (decided):** people of the post's own skill first, then a higher skill, never a lower one. Within a skill, the lowest income band first, so a run repeats. The occupation is the company's (Company.occupation: PUBLIC_SECTOR for a state company, PROFESSIONAL for a specialist post, otherwise the type's).
+
+**The starting numbers (accepted by Wilma):**
+
+- 1,000 settlers in 400 households of 2.5, in the Landing.
+- Each income band holds 80 households (200 people): 150 working-age (90% in the labour force), 44 children, 6 retired.
+- Adults' skills by band, ‰ G / S / Sp: I1 1000/0/0, I2 900/100/0, I3 600/350/50, I4 300/500/200, I5 200/550/250. Over all bands that is 60 / 30 / 10.
+- Working-age adults by age, ‰ Y / A / M: 350 / 450 / 200.
+- Savings per household by band, from Bob's table: 1,800 / 3,600 / 7,200 / 14,400 / 36,000. They arrive from outside with the settlers ("LANDING_SAVINGS").
+- Everyone of working age in the labour force lands looking for work. Month one's companies hire their crews from them: 180 for the builders and 40 for the public works department.
+- Earners per household, for the salary formula, are adults in the labour force: 675 ÷ 400, about 1.7.
+
+**Money in:**
+
+- Households.pay_wages: once per company per month, its staff × the salary of their tier in the area they live in.
+- Households.pay_support: the benefit to the UNEMPLOYED and the pension to the RETIRED, per person by area, at the government's levers.
+- A payer short of money pays everyone the same share of what it holds. Nobody is laid off by a payment; that is the company's decision.
+- Each pool books its income by kind for the month.
+
+**A founder (Otto's 4.2; decided, used from step 3):**
+
+- The founder is one adult of the pool: a skilled or specialist one first, otherwise the oldest working-age one.
+- The unemployed and those outside the labour force are picked before the employed.
+- If the founder holds a post, they leave it through Households.layoff first, so jobs = people holds. (Otto's review.)
+- What goes with them is one household's share of the pool's savings: the pool's balance × 2.5 ÷ the pool's persons.
+
+**Tenancy (shape agreed with Otto, built at step 7):**
+
+- Who lives in whose homes is held once, in the landlord's company record: slots {plant: {pool id: households}}.
+- It is written only by the household side, when a household takes or leaves a home.
+- Taken homes can never exceed that plant's homes in Terra's cells.
+- Rent goes from the pool to that landlord; a landlord's empty homes = its homes in the cells − taken.
+- An area split changes the movers' pool ids, so it moves their tenancies in the same step.
+- Until step 7 the housing office is the only landlord, and none of this is needed.
+
+**The shelter plants (Otto's review):** a LANDLORD plant is at most one full unit, a block of 50 homes. So the 400 shelters are 8 plants of the housing office, one per 50-home block. That is Wilma's start-up and Bob's record. Otto has told them.
+
+**The landing shelters:**
+
+- They are one LANDLORD plant of the housing office, laid by Wilma's start-up on Terra's grid in HOUSE form: 400 homes, one per landing household.
+- They are recorded only in Terra's cells. Terra claims the blocks for the Landing.
+- Rent is the housing office's (Wilma: set low, half a new house's rent to start). The starting salary comes out of the formula from that rent.
+
+**Areas split by reach:**
+
+- The headcount rule is gone.
+- In January, an area whose homes reach farther than a school's catchment (TownGrid.CATCH_KM["SCHOOL"]) from their homes-weighted centre is split.
+- The cut is chosen from Terra's TownGrid.boundaries:
+  - the strongest kind of boundary first;
+  - then the cut that leaves both parts most compact;
+  - only cuts that leave homes on both sides.
+- The side with fewer homes leaves, and people follow the homes, band by band.
+- An area's homes are the homes in its blocks (TownGrid.block_homes).
+- Homes recorded on country tiles (place_housing) remain only as tests' and tools' way to make an area outside a town. No game code writes them.
+
 ## 3. The check, mechanism by mechanism
 
 ### 3.1 econ_pop: pools, jobs and income bands

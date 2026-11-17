@@ -324,12 +324,21 @@ Terra's town grid (section 9.8).
 - Workers have skills. A post asks for a skill tier.
 - A job is recorded once: the people in a company's `staff` are the same people the household pools hold.
 - Workers change jobs to better-paid ones.
-- **A salary is a price.** Price rules 1, 2 and 9 set it.
+- **A salary is not fluid** (the user, correcting Wilma: "No no,  the sallery is not fluent, they have a sallery set on hire then it climbs based on yearly upps set by goverment your fluid sallery is not what i said").
+  - **A worker's salary is set when they are hired.** It is theirs from then on. The company does not move it up or
+    down afterwards, whatever the labour market does.
+  - **It climbs once a year** by the yearly raise. The government sets the raise's minimum (a lever, 2% to start); a
+    company may give more. That is the "bonus" of the user's earlier sentence.
+  - **What the three price rules move is the HIRING salary:** what a company offers a new hire this month ("that's
+    fine for hiring"). People hired in different years at the same company are paid differently.
+  - A worker who can get more elsewhere leaves for it; that is how an employed worker's pay changes otherwise.
+  - So a company's record holds two things: its hiring salary per tier and area, and what each group of its staff is
+    actually paid.
 
 | Rule | For a salary **(proposal: these two signal lines)** |
 |---|---|
-| 1 raise | its posts stay open, or its workers leave for better pay |
-| 2 lower | more people apply at its salary than it has posts |
+| 1 raise the hiring salary | its posts stay open, or its workers leave for better pay |
+| 2 lower the hiring salary | more people apply at its hiring salary than it has posts |
 | 9 which goes first | the line is the starting salary below |
 
 - **The starting salary:** "Sallery should be calculated as avrage living in the area and food plus half of both again,
