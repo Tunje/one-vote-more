@@ -30,6 +30,11 @@ static func trade(world: WorldState) -> void:
 	s["freight_used"] = 0
 	s["freight_deferred"] = {}
 	s["unsold_px_by"] = {}
+	if _queue_on(world):
+		# R8FR_QUEUE: the freight left waiting last month is this month's queue, ahead of the new orders
+		s["fr_queue"] = s.get("fr_queue_new", {})
+		s["fr_queue_new"] = {}
+		s["fr_wait_mu"] = 0
 	if EconHaulier.on(world):
 		EconHaulier.start_month(world)  # R8FR_PRIVATE: this month's carriers, cheapest first
 	# fill ratio of last month per good (permille), read by the origin backstop (E75)
@@ -141,6 +146,21 @@ static func _clear(world: WorldState, good: String, tariff: int) -> void:
 	# it (the user, 2026-11-16: the hold-back works only "if you have not made everyone know all stocks").
 	s["market_stats"][good] = {"S": supply + imp, "D": demand, "filled": 0, "wanted": 0, "nogoods": 0, "stopped": 0, "overlimit": 0,
 		"unsold_px": 0}
+	if _queue_on(world):
+		# R8FR_QUEUE: freight that waited since last month goes first, as far as its buyer still orders it; the buyer's new
+		# order of the good includes the reorder, so the waiting part is taken out of it (no double order). A buyer who no
+		# longer orders the good has withdrawn what waited.
+		var qd: Dictionary = s.get("fr_queue", {})
+		var qb: Array = bids.filter(func(b): return qd.has(_qkey(b)))
+		qb.sort_custom(func(a, b): return _qkey(a) < _qkey(b))
+		for b in qb:
+			var q := mini(int(b["qty"]), int(qd[_qkey(b)]))
+			if q <= 0:
+				continue
+			var part: Dictionary = b.duplicate()
+			part["qty"] = q
+			b["qty"] = int(b["qty"]) - q
+			_fill(world, part, q, offers, tariff)
 	for cls in [C_CONTRACT, C_HH_ESS, C_INSTITUTION, C_GOV, C_FIRM, C_CONSTRUCTION, C_HH_DISC]:
 		var cb: Array = bids.filter(func(b): return b["class"] == cls)
 		if cb.is_empty():
@@ -257,6 +277,11 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 			if take <= 0:
 				var dd: Dictionary = s["freight_deferred"]
 				dd[bid["district"]] = dd.get(bid["district"], 0) + left
+				if _queue_on(world):
+					var qn: Dictionary = s.get("fr_queue_new", {})
+					qn[_qkey(bid)] = int(qn.get(_qkey(bid), 0)) + left
+					s["fr_queue_new"] = qn
+					s["fr_wait_mu"] = int(s.get("fr_wait_mu", 0)) + left * h  # the waiting freight in mu (goods × hops)
 				stopped_all = true
 				break
 			if roads:
@@ -386,7 +411,20 @@ static func _fill(world: WorldState, bid: Dictionary, want: int, offers: Array, 
 			var sh: Dictionary = world.table("hh")[bid.get("group", bid["buyer"])]["short"]
 			sh[good] = sh.get(good, 0) + short
 		else:
-			s["input_short"][bid["buyer"] + "|" + good] = short
+			var ik: String = bid["buyer"] + "|" + good
+			if _queue_on(world):
+				s["input_short"][ik] = int(s["input_short"].get(ik, 0)) + short  # R8FR_QUEUE: the order filled in two parts
+			else:
+				s["input_short"][ik] = short
+
+
+## R8FR_QUEUE (opt-in, with R8FR_PRIVATE): freight that could not be moved waits in a queue and goes first next month.
+static func _queue_on(world: WorldState) -> bool:
+	return EconHaulier.on(world) and (world.meta.get("on", []) as Array).has("R8FR_QUEUE")
+
+
+static func _qkey(b: Dictionary) -> String:
+	return String(b["buyer"]) + "|" + String(b["good"]) + "|" + String(b["district"])
 
 
 static func _spoilage(world: WorldState) -> void:

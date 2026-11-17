@@ -231,6 +231,7 @@ static func match(world: WorldState, no_limits: bool = false) -> void:
 	var hired_by_emp := {}
 	var unfilled := {"G": 0, "S": 0, "Sp": 0}
 	var vacs: Array = s.get("vacancies", [])
+	var ess_org := _essential_offices(world)  # OFFICE_E99 (opt-in)
 	for t in EconData.TIERS:  # Sp, S, G
 		var tv: Array = vacs.filter(func(v): return v["tier"] == t)
 		# E99: essential workers first — vacancies at strategic plants (power, water, food, materials, components,
@@ -238,8 +239,8 @@ static func match(world: WorldState, no_limits: bool = false) -> void:
 		# grows only by births, and the materials chain lost every hiring contest and decayed.
 		var e99 := not EconUtil.off(world, "E99")
 		tv.sort_custom(func(a, b):
-			var sa: int = 1 if e99 and _strategic_vac(world, a) else 0
-			var sb: int = 1 if e99 and _strategic_vac(world, b) else 0
+			var sa: int = 1 if e99 and _strategic_vac(world, a, ess_org) else 0
+			var sb: int = 1 if e99 and _strategic_vac(world, b, ess_org) else 0
 			return sa > sb or (sa == sb and (a["wage"] > b["wage"] or (a["wage"] == b["wage"] and a["emp"] < b["emp"]))))
 		for v in tv:
 			var cap: int = (int(v["qty"]) + S / 2) / S  # whole persons, rounded (M10)
@@ -284,10 +285,26 @@ static func match(world: WorldState, no_limits: bool = false) -> void:
 	EconPop.sync(world)
 
 
-static func _strategic_vac(world: WorldState, v: Dictionary) -> bool:
+## OFFICE_E99 (opt-in): the organisations whose office holds posts moved from an open essential plant (support economy
+## A). Without it the split took those posts out of E99: CTA's office lost every hiring contest while unemployed workers
+## were scarce, and its empty office throttled the depots (Bob, 2026-11-17; the user: yes).
+static func _essential_offices(world: WorldState) -> Dictionary:
+	var out := {}
+	if not (world.meta.get("on", []) as Array).has("OFFICE_E99"):
+		return out
+	for fid in world.table("facility"):
+		var f: Dictionary = world.table("facility")[fid]
+		if int(f.get("off_share_pm", 0)) > 0 and not f["mothball"] and f["type"] in EconData.STRATEGIC:
+			out[f["org"]] = true
+	return out
+
+
+static func _strategic_vac(world: WorldState, v: Dictionary, ess_org: Dictionary = {}) -> bool:
 	if v["kind"] != "fac":
 		return false
 	var ft: String = world.table("facility")[v["emp"]]["type"]
+	if ft == "OFFICE" and ess_org.has(v["org"]):
+		return true  # OFFICE_E99: the office of an essential plant
 	return ft in EconData.STRATEGIC or (ft == "BAKERY" and EconStaple.active(world))  # E146: bakeries feed people
 
 

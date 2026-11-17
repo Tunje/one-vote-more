@@ -114,6 +114,19 @@ static func depot_target(world: WorldState, f: Dictionary) -> float:
 		return 1.0
 	var last: Dictionary = s["fr_last"]
 	var want := float(int(last.get("carried", {}).get(oid, 0)) + int(last.get("deferred", 0)))
+	if (world.meta.get("on", []) as Array).has("R8FR_QUEUE"):
+		# the user's rule (2026-11-17): the depot counts the work queue, not past work: the month's whole queue (the
+		# freight that waited and the new orders, moved by any carrier or still waiting, in mu) less what the other
+		# carriers can take
+		var qmu := int(s.get("fr_wait_mu", 0))
+		for c_oid in last.get("carried", {}):
+			qmu += int(last["carried"][c_oid])
+		var others2 := 0
+		var rb2: Dictionary = s.get("fr_room_by", {})
+		for o3 in rb2:
+			if String(o3) != oid:
+				others2 += int(rb2[o3])
+		want = maxf(0.0, float(qmu - others2))
 	return clampf(want / full, 0.2, 1.0)
 
 
