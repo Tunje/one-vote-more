@@ -442,6 +442,12 @@ Asked what offices do now, and told (an office holds a share of each plant's cre
 
 > I think the offices should not be esencial, if you done have one you lose out on some not all lets say something like 15% less, but also offices should not be owned by the company unless they have a huge company one office building should be able to hold 10 plants extra workers, does that answer the questions?
 
+Asked "1. Who owns an office building? For example a private landlord who rents out the space, or the state. 2. Is it a real building that builders have to put up? 3. Shall I give this to Bob to build now?", the user answered, verbatim:
+
+> Private landlord, and yes, what was the first question again?
+
+Read as: 1 = a private landlord; the "yes" answers 2 (a real building that builders put up). Whether it also answers 3 was asked again.
+
 Not built yet. Follows directly: OFFICE_E99 stays off and gets no narrower version. Open, asked of the user: who owns and builds the office buildings; whether Bob builds this now; the full test of the freight queue on its own.
 
 
