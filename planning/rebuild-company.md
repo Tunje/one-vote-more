@@ -279,6 +279,36 @@ econ_pop, econ_cohorts, econ_informal). What it holds:
 "Fits in" means a household meets a company only as section 2 says. Where the old code reached into a sector's rules,
 that reach is cut and replaced by the company record.
 
+**Wholesale is not unchecked** (the user, 2026-11-17: "Oh no wholesale does  not mean unchecked"). Nothing of the old household code comes in
+unlooked at. Before it is fitted in at build step 3, every mechanism in it is gone through and given one of three
+verdicts: keep, change, or remove. The first pass, from the function lists of the four files and Maja's check:
+
+| Mechanism in the old household code | Verdict | Why |
+|---|---|---|
+| Pools by housing block and income band, with an account | keep | the user accepted pools ("That's fine") |
+| Company owners inside the pool | change | owners are counted individually from the company's start (12.5, 35) |
+| Head counts by work status, occupation and skill | change | each pool also keeps a count per company its members work for |
+| Wages, dividends, the benefit, pensions as money in | keep | the payers are the company, the owner's company and the purse |
+| The self-employed selling services from the pool | remove | "ONE kind of thing that produces"; they become family-size service companies |
+| What a household needs each month, per person | change | the amounts are in the old units and are set new |
+| The order of paying when short (food, then water and power, then rent) | keep | it is what the old game did; unpaid rent becomes a debt to the landlord |
+| Buying: essentials first, the rest split over goods, services, comfort, papers, saving | keep | every line now has a seller (12.6, 48) |
+| Price floors and ceilings inside the household code | remove | "No hard floors or ceilings of our own" |
+| A household budgeting food at price plus freight, tax and the shop's margin | change | the shop is a company now; the household pays the shop's price |
+| The home world's emergency rations after two months of hunger | remove | nothing comes from the home world except on a ship in port, ordered with a ship |
+| Ages 0 to 99, births, deaths, growing up, retirement, returning to work | keep | with the numbers set new |
+| Deaths and births worsened by hunger, poor clinic access, shacks and homelessness | keep | they are what makes a failure cost something |
+| The 130% crowding limit, shacks, homelessness, shack fires | keep | it is how many fit in a home, not a rule of ours on prices |
+| Settlers arriving and people leaving, by ship | keep | only with a ship in port |
+| Migrants "only while the colony has jobs" (a fixed 10% unemployment gate) | remove | a hard gate; how attractive the colony looks already decides it |
+| Everything keyed by the six districts | change | keyed by area |
+| Reaches into the old sector rules (food rules, service rules, shops, trade, commuting) | remove | each is replaced by the company record and the market |
+| Deaths from wildlife, storms and road accidents taken from outdoor workers first | keep | needs the occupation column of the type table |
+| Household pollution | keep | |
+
+This table is the first pass. Maja owns the full check, line by line, before step 3, and anything not in this table is
+looked at then, not assumed.
+
 "Housholds follow terras latest plan": where a household lives, what its home is worth and what it wants near it follow
 Terra's town grid (section 9.8).
 

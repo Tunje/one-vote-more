@@ -667,6 +667,15 @@ Worked into [rebuild-company.md](rebuild-company.md) version 10: the first build
 The user pasted the outside reviewer's second text, written after being told that the simulation does not have to protect companies. Worked into [rebuild-company.md](rebuild-company.md) version 11: what the rebuild is judged by (a failure is a result; only a result the rules do not contain is a fault); a formula for how far a price moves; rule 7's signal stated exactly; a bank that ends short costs its depositors; no bottomless subsidy for a state company; liability by share; what each step's report says; examples of valid results against faults.
 
 
+### The rebuild: wholesale is not unchecked (the user, 2026-11-17, verbatim)
+
+About the old household code, which is taken wholesale, after Wilma noted that the home world's food aid could come in with it unnoticed:
+
+> Oh no wholesale does  not mean unchecked
+
+Every mechanism in the old household code is checked and given a verdict (keep, change, remove) before it is fitted in. The first pass is the table in [rebuild-company.md](rebuild-company.md) section 9.1.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
