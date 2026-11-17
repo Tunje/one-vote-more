@@ -1,6 +1,6 @@
 # The rebuild of the economy: one company object
 
-**Version 9, 2026-11-17. Wilma.** Unified, reviewed twice by all six sessions, and with every open point decided (section 12). This replaces all earlier versions. It is one document: every ruling the user gave
+**Version 10, 2026-11-17. Wilma.** Unified, reviewed twice by all six sessions, and with every open point decided (section 12). This replaces all earlier versions. It is one document: every ruling the user gave
 for the rebuild is in it, in its place. Nothing is built.
 
 How to read it:
@@ -70,7 +70,7 @@ One record per company. Everything below is a field of that record or a function
 | `staff` | the actual people it employs, by skill tier and by the plant they work at, with their stress. Not head counts: the same people the households know (section 9.2) |
 | `salary` | what it pays, per skill tier and per district of the hiring plant (section 9.2) |
 | `stock` | what it holds of each item, at what cost, and what of it is waiting for freight |
-| `money` | its account, its loans, its books by month and by year |
+| `money` | its account and its books by month and by year. Its loans are the bank's records; the company only points to them |
 | `price` | ONE price per company for each thing it sells: "No i said each COMPANY". A type may have its own way of pricing (section 4) |
 | `orders` | the orders it received, filled and unfilled, and for each unfilled one WHY (price, freight, road, the buyer's money) |
 | `work slots` | for a type with nothing to stock: its client places, crews, homes or bays, taken and empty |
@@ -83,7 +83,9 @@ A company's own state lives here and nowhere else. Other things keep their OWN r
 id: the law keeps licences, violations and court cases; the bank keeps the loan; a union keeps its members. They do not
 keep copies of the company's fields.
 
-A company does not exist before its plant opens. Before that it is a plan (section 8.1), which is not a company.
+A company founded in the colony does not exist before its plant opens. Before that it is a plan (section 8.1), which is
+not a company. The five builders of month one are different: they arrive from the home world already operating, with
+their crews and equipment, and need no building in order to exist (section 9.12).
 
 ## 4. The type table: one 2D array
 
@@ -140,7 +142,8 @@ Rulings the table carries:
 
 The penalty figures are Wilma's, accepted: "You penalty is fine". A family company is run by one household.
 
-**Squares.** A square holds one full size of company: one large, or three small, or six family.
+**Squares.** A square holds one full size of company PER TYPE: one large, or three small, or six family companies of
+the same type. A shop does not take a landlord's room in the same square; another landlord does.
 
 - For plants in the country a square is the 3 km map tile.
 - In a town it is the 400 m street block of the town grid (16 cells, about 128 houses). (Terra's proposal, accepted:
@@ -539,7 +542,7 @@ is wrong; nothing here is asked again.
    The Assembly's seats follow them. With one district all seats are colony-wide.
 3. **Land** belongs to the colony at landing. A plan buys the land it builds on from whoever owns it, at the land price
    (the value of its cells). A buy-out buys the land and the building together.
-4. **A square** holds one full size of company per type.
+4. **A square** holds one full size of company per type (now also said in section 5).
 5. **Where a plant stands** is a set of cells or tiles, chosen by its plan with the siting code: the best-scoring free
    place for its type. A plant pays for its road, power and water connection as a home does.
 6. **A building** is kept by a buyer of the same type. Another type rebuilds it. An empty building after an ending
@@ -561,13 +564,18 @@ is wrong; nothing here is asked again.
 
 ### 12.3 The rules
 
-14. **The making price** of a thing is a month's costs (inputs, wages, upkeep, rent, loan payments, freight it pays)
-    divided by what the plant makes at its normal full output. Not by what it happened to sell, so a bad month does not
-    inflate it.
+14. **The making price** of a thing is a month's cost of making it (inputs, wages, upkeep, rent, freight it pays, and
+    the interest on its loans) divided by what the plant makes at its normal full output. Not by what it happened to
+    sell, so a bad month does not inflate it. Paying a loan BACK is not a cost of making: a company that borrows to
+    build a second plant does not raise its prices for that. The hold-back is separate and still covers every monthly
+    expense, repayments included ("It sells too cover all monthly expences").
 15. **No fixed cap** on a month's price change. The change is in proportion to the signal, the same up and down.
 16. **Rule 6:** twelve months idle.
 17. **Rule 5 runs section 5's order:** a size up in its own square; else a buy-out; else a new plant.
 18. **Rule 3 does not act while a company is holding stock back.** It has more to sell already.
+19a. **A company that cannot pay its staff lays them off, and a plant with no staff is shut.** A shut plant the
+    company cannot afford to reopen or replace is the second way a company ends (section 8.3). So a company that is
+    stopped by something other than price, for good, ends through its money, not through the price rules.
 19. **Missing inputs are not a price signal.** A builder whose crews wait for material, or a plant without power, has
     empty slots or unsold output from a cause that is not price; rules 2, 4 and 6 do not read it.
 20. **Sales death counts only months when price was the cause.** Months lost to freight, the road, missing inputs or a
@@ -640,8 +648,13 @@ is wrong; nothing here is asked again.
 ### 12.8 Money, owners and endings
 
 50. **The bank is a company.** Its clients are its borrowers and its price is the interest rate, set by the same three
-    price rules. Every household and company has an account from month one. It can end like any company. The
-    government borrows from it like anyone.
+    price rules. The government borrows from it like anyone.
+50a. **Accounts are not the bank's to lose.** Every household's and company's account is kept in the game's ledger
+    from month one, not inside the bank company. If the bank ends, the accounts and every payment go on as before. The
+    loans it held pass to whoever buys it out, or to a new bank; a borrower's debt does not vanish.
+50b. **One record of each thing.** Money: the ledger. A loan: the bank's record. A sale: one record made by the market
+    when the sale is agreed, which says who owns the goods, what is paid and whether they have been carried. The
+    company, the bank and the carrier point to that record and keep no version of their own.
 51. **Owners** put in what a plan needs beyond its loan and grant, and take profit out once a year from what the
     company holds above six months of its costs.
 52. **The owner is liable** for the company's debts, as the court ruling says. The court can take back what the owner
@@ -703,31 +716,46 @@ roads and tolls; a union federation. Each can come back once the base runs.
 
 ## 13. Build order
 
-Reworked from the second review. Each step is built on the steps before it, with them on, and tested there. Things that
-depend on each other are in the same step, so nothing is tuned without the thing that will later break it.
+Reworked from the second review and from an outside review the user passed on. Each step is built on the steps before
+it, with them on, and tested there. Things that depend on each other are in the same step.
+
+No plant stands at the start, so nothing can be made or sold until something has been built. The first economic step is
+therefore the whole loop once, end to end, through the real company object:
+
+> a need that is not met → someone makes a plan and signs with a builder → material and work become a building → the
+> company opens and hires → it makes, sells, pays what it owes and is paid → the nine rules decide its next month.
 
 1. **The ground.** Helpers in the core; the world, areas and the landfall place; the order of the month; the planet's
    and the roads' month; a plain answer for every open connection so politics, law and the screens run ("no unions",
    "no budget yet"); a plain map. The game compiles and runs with no economy in it.
 2. **Month one.** The company record, the type table with starting prices, sizes, squares, land and siting; the
-   landing stock; the five home-world builders; the government's subsidiaries; the settlers and the landing shelters;
-   accounts at the bank; the purse paying its own staff, the benefit and pensions.
-3. **People, work and the first market, together.** The households fitted in; hiring and salaries; the market with the
-   price rules (1, 2, 9, hold-back) and output rules (3, 4) for food and the essentials; the ship schedule with
-   arrivals, departures and the import backstop; seasons and farm yield.
+   landing stock; the five home-world builders, operating; the government's subsidiaries; the settlers and the landing
+   shelters; the ledger with everyone's account; the purse paying its own staff, the benefit and pensions.
+3. **The first loop, whole.** The households fitted in; hiring and salaries; the market with the price rules (1, 2, 9,
+   hold-back) and output rules (3, 4); the plan, the building contract and the opening of a plant in their plainest
+   form, with rules 7 and 8; the ship schedule with arrivals, departures and orders to the home world; seasons and farm
+   yield. Tested first on food alone.
 4. **Everything that is sold, and how it moves, together.** All items; the types with work slots (public services,
    shops, utilities on the grid); freight on the roads with the queue, carriers' prices, trucks and truck workshops.
 5. **Money and endings.** The bank lending; owners' money; the three ways a company ends; the court.
-6. **Building.** The building contract, the plan stage, rules 5 to 8; wear and repair; grants; permits and licences;
-   land sales and buy-outs.
+6. **Building in full.** Rules 5 and 6 and growing by size, buy-out or a new plant; wear and repair; grants; permits
+   and licences; land sales.
 7. **Homes.** Landlords, the town grid, rent, owning, own houses; noise.
 8. **The government's purse in full.** Taxes, brackets, budget lines, levers, the reserve, price controls.
 9. **Offices, pollution, stress, unions, donations.**
 10. **Exports and the home world's demands.**
 11. **Everything the economy publishes, every remaining connection, the screens.**
 
-At each step: three 30-year games, and where the bottleneck is, before the next step starts. From step 3 on, each
-report also says which companies would have ended, even before endings are built at step 5.
+**How each step is tested**
+
+- **Short, exact tests first:** one sale, one hire, one plan signed and built, one loan, one ending, each checked to
+  the last credit and unit. A 30-year game says little until the loop of step 3 runs.
+- **Nothing appears or vanishes.** Every test and every game checks that money, goods, people in work and unfinished
+  buildings add up from month to month: no payment made twice, no goods from nowhere, no worker in two jobs.
+- **Then three 30-year games,** and where the bottleneck is, before the next step starts. From step 3 on each report
+  also says which companies would have ended, even before endings are built at step 5.
+- **No tuning around a missing part.** If a 30-year game is bad because a later step is not built yet, that is written
+  down and left; numbers are not bent to hide it.
 
 ## 14. What I am least sure of
 

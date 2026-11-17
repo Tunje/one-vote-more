@@ -653,6 +653,15 @@ After Wilma turned the user's 2026-11-16 remarks on imports into a general rule 
 The remarks were about the old code ordering in every month, and about limiting that. The only limit on imports is the ship: an order goes with a ship in port and comes back on its next call. No rule of ours restricts what may be imported. A statement of the user's is recorded with what it was about and is not applied to other things.
 
 
+### The rebuild: an outside review (the user, 2026-11-17, verbatim)
+
+The user pasted a review of the plan written outside the team, with this instruction:
+
+> Read this and skip all it's mumbo jumbo about garaneeing company survival it's the dumbest thing if heard;
+
+Worked into [rebuild-company.md](rebuild-company.md) version 10: the first builders arrive operating; accounts live in the ledger and outlast the bank; one record of each sale and each loan; a company that cannot pay lays off and its shut plant ends it; the making price leaves out paying a loan back; a square is per type everywhere; the first economic step is the whole loop from need to opened plant, with exact short tests and a check that nothing appears or vanishes. Left out, as ordered: counting plans as capacity so that investors do not over-build. Companies that enter a market that cannot carry them fail; that is the market, and nothing protects them from it.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
