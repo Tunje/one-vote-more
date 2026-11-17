@@ -170,6 +170,13 @@ Every picture:
   - a wide view of a whole scene (a square full of people, buildings behind, a row of cars in front), nobody close
     up, no face you could recognise;
   - a thin ruled border round the picture.
+- A second look the user also accepts ("this could work too") is `reference/style_reference_2.png`: an engraved
+  illustration as old illustrated papers printed them. What it shows:
+  - drawn in black lines on white, with the shading made of fine hatched lines, no greys and no colour;
+  - a street scene with a few people at middle distance (a newspaper kiosk, customers, a man reading a paper);
+  - the picture fades out at its edges instead of ending in a hard frame.
+  The signs in that reference carry words; pictures made for the game still carry none (see below).
+- Either look may be used. Keep one look per picture; do not mix them.
 - NOT photo-realistic, not a clean modern photograph, not sharp. An earlier version of this brief said "press
   photograph" and prompts were written as "photorealistic"; that was wrong (Wilma's wording, not the user's) and is
   withdrawn. Every prompt that says "photorealistic", "photograph" or "documentary photograph" must be rewritten to
