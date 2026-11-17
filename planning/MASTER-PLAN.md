@@ -808,6 +808,25 @@ Asked whether a settler deciding to start a farm should also count the farms alr
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15a.
 
 
+### The rebuild: three answers to the open list (the user, 2026-11-17, verbatim)
+
+The user answered a numbered list of open questions.
+
+Question 2, does a settler starting a company sign whatever the builder's start date:
+
+> He should look for the shortest time
+
+Question 3, how much more must another post pay before a worker moves:
+
+> 10% if it's a good job less if stressfull, and plus 1% per year in the same workplace up to 15%
+
+Question 5, may the engraved-style newspaper pictures show people closer up, and on the list of 28 decisions Wilma had made herself (treasury, landing stock, purse, grants, builders, work and pay, founders, farms, the ship):
+
+> Yes,  and  you're decisions are fine at can always go back later
+
+Written into [rebuild-company.md](rebuild-company.md) 12.3, 15d and 9.2. Question 4 (when a company lays off) was put by the user as ideas with "What do you think?"; it is a discussion, not a ruling, and is not in the plan.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

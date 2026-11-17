@@ -332,6 +332,16 @@ Terra's town grid (section 9.8).
   - **What the three price rules move is the HIRING salary:** what a company offers a new hire this month ("that's
     fine for hiring"). People hired in different years at the same company are paid differently.
   - A worker who can get more elsewhere leaves for it; that is how an employed worker's pay changes otherwise.
+  - **How much more another post must pay before a worker moves** (the user, 2026-11-17, verbatim, after the
+    job-length test showed jobs lasting two to four months, about half of them ended by a move for any gain at all):
+    "10% if it's a good job less if stressfull, and plus 1% per year in the same workplace up to 15%".
+    So a worker in a good job moves only for a post that pays at least 10% more than their own pay; in a stressful job
+    for less than that; and the bar rises by 1% for every year they have worked at the same workplace.
+    - **(Wilma's reading, marked as mine)** "up to 15%" is the top of the whole bar: 10% rising to 15% after five
+      years. (The other reading: the yearly part alone may reach 15%.)
+    - **(Wilma's, starting numbers)** "less if stressful" waits for stress (step 9); until then the bar starts at
+      10%. With stress, the 10% falls toward 5% at the highest stress.
+    - The company's record keeps, for each group of staff, how long they have been there.
   - So a company's record holds two things: its hiring salary per tier and area, and what each group of its staff is
     actually paid.
 - **Why it is built this way** (the user, 2026-11-17, verbatim): "It's too create political drama, underpayed workers go to the union, they can quit if they think they can get better prices if not they may unionise"
@@ -694,6 +704,10 @@ is wrong; nothing here is asked again.
       So in rule 7's shares, next to every plant that stands, a settler also counts each plan that is booked with a
       builder (it has signed its contract and is in a builder's book) and each plan that has accepted a grant, by its
       size. A plan that is only made, with neither, is not seen.
+15d. **Which builder a settler signs with** (the user, 2026-11-17, verbatim, asked whether a settler signs whatever the
+    builder's start date; in the first loop settlers signed for starts 40 months away): "He should look for the shortest time".
+    So a plan takes the quote with the earliest start; between equal starts, the lowest price.
+    (Before this ruling the plan took the lowest price and looked at the start only between equal prices.)
 15c. **Builders' prices at the start and for claimed jobs** (the user, 2026-11-17, verbatim, answering two results of
     the first loop's run: in month 0, before any plan could exist, every builder read its empty book as no customers
     and cut its price by a fifth, and 158 contracts then locked that price below cost; and the builders' price then
