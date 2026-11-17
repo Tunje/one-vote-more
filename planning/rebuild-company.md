@@ -782,6 +782,26 @@ is wrong; nothing here is asked again.
       - It holds for every family-size company, not only farms. The user spoke of the family farm.
       - Ship food is the landed stock and anything imported. A buyer choosing between offers counts ship food as a
         quarter dearer than its price, so colony food up to a quarter dearer is bought first. A starting number.
+15f. **Households stockpile food** (the user, 2026-11-17, verbatim; recorded on the user's "Go" after a discussion).
+    The first loop with every ruling in showed feast in summer and famine in winter: the growing year runs from
+    about 19% of normal in midwinter to 187% at the summer peak; only five months grow more than is eaten; in the
+    summer glut the farms held unsold food and cut their output; nobody kept summer food for winter.
+    - "I think citizens is the solution, they buy 2 units if food instead of one,  store it and use it in emergencies"
+    - "They stockplie to have have six months of food in storage, i think as often as they can"
+    - Asked whether a household that has eaten into its store refills as soon as it can afford to even if food is
+      dear, or waits for the price to come down: "The first, if your running low and don't know how long the ossue will last i don't think you wait"
+    So:
+    - A household aims to hold six months of food in store.
+    - It buys extra toward that as often as it can afford to (the user's picture: two units instead of one).
+    - It eats from the store in emergencies: when food cannot be had or paid for.
+    - Once the store has been drawn down it refills as soon as it can afford to, without waiting for a better
+      price.
+    - **(Wilma's details, marked as mine)** The store comes after the month's own needs: this month's food first,
+      then the rent, then the store, from what is left. Stored food spoils like any food. A household short of
+      money holds a small store or none; that is a result. This replaces the earlier cap of two months on what a
+      household stocks up.
+    - (An idea discussed first and NOT chosen: telling farmers winter is coming, with 10% extra into a hidden
+      stock. Nothing of it is built.)
 15c. **Builders' prices at the start and for claimed jobs** (the user, 2026-11-17, verbatim, answering two results of
     the first loop's run: in month 0, before any plan could exist, every builder read its empty book as no customers
     and cut its price by a fifth, and 158 contracts then locked that price below cost; and the builders' price then

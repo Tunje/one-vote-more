@@ -898,6 +898,21 @@ Wilma had put two ways for a family's winnings: (one) each month stands alone; (
 Two is the rule. The second half was said as a maybe and is noted, not built. Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e.
 
 
+### The rebuild: households stockpile six months of food (the user, 2026-11-17, verbatim; recorded on the user's "Go")
+
+After the first loop showed feast in summer and famine in winter, and after a discussion in which telling the farmers was considered and not chosen:
+
+> I think citizens is the solution, they buy 2 units if food instead of one,  store it and use it in emergencies
+
+> They stockplie to have have six months of food in storage, i think as often as they can
+
+Asked whether a household that has eaten into its store refills at once even if food is dear, or waits:
+
+> The first, if your running low and don't know how long the ossue will last i don't think you wait
+
+Written into [rebuild-company.md](rebuild-company.md) 12.3, 15f.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
