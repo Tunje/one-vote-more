@@ -292,23 +292,41 @@ static func _move_share(world: WorldState, id: String, new_id: String, cap_all: 
 	var moves: Array = []
 	if not bands_first.is_empty():
 		for b in bands_first:
-			var have := PopStore.count(world, {"hb": id, "inc": b})
+			var have := _movable(world, id, b)
 			var k := mini(have, cap_b - _moved(moves))
 			if k > 0:
-				PopStore.move_group(world, {"hb": id, "inc": b}, k, {"hb": new_id}, "AREA_SPLIT")
+				k = _move_movable(world, id, b, k, new_id)
 				moves.append({"from": id, "to": new_id, "band": b, "persons": k})
 	else:
 		# proportional by band, largest remainder, so every band keeps its share in both parts
 		var bands: Array = PopStore.INCOME_BANDS
-		var w: Array = bands.map(func(b): return PopStore.count(world, {"hb": id, "inc": b}))
+		var w: Array = bands.map(func(b): return _movable(world, id, b))
 		var parts := CoreUtil.split_lr(want, w)
 		for i in bands.size():
 			var k2 := mini(int(parts[i]), int(w[i]))
 			if k2 > 0:
-				PopStore.move_group(world, {"hb": id, "inc": bands[i]}, k2, {"hb": new_id}, "AREA_SPLIT")
+				k2 = _move_movable(world, id, bands[i], k2, new_id)
 				moves.append({"from": id, "to": new_id, "band": bands[i], "persons": k2})
 	_notify(world, moves)
 	return moves
+
+
+## People of a band in an area who move with a split: everyone but owners' households (occupation BUSINESS_OWNER: a
+## founder and their family stay where their record keeps them; Terra's review).
+static func _movable(world: WorldState, id: String, band: String) -> int:
+	return PopStore.count(world, {"hb": id, "inc": band}) - PopStore.count(world, {"hb": id, "inc": band, "occ": "BUSINESS_OWNER"})
+
+
+## Moves k of them, shared over the occupations in proportion (largest remainder). Returns persons moved.
+static func _move_movable(world: WorldState, id: String, band: String, k: int, new_id: String) -> int:
+	var occs: Array = PopStore.OCCUPATIONS.filter(func(o): return o != "BUSINESS_OWNER")
+	var w: Array = occs.map(func(o): return PopStore.count(world, {"hb": id, "inc": band, "occ": o}))
+	var parts := CoreUtil.split_lr(k, w)
+	var moved := 0
+	for i in occs.size():
+		if int(parts[i]) > 0:
+			moved += PopStore.move_group(world, {"hb": id, "inc": band, "occ": occs[i]}, int(parts[i]), {"hb": new_id}, "AREA_SPLIT")
+	return moved
 
 
 ## Split the town-grid blocks `blocks_b` out of area `id` into a new area (a neighbourhood of the same town). Its

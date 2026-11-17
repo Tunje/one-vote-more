@@ -14,6 +14,8 @@ extends RefCounted
 ## What is NOT here: their money (Wilma's starting numbers move it into their accounts), their price (Company.create
 ## sets the type table's starting price per BW), their book and their work (step 3).
 ##
+## Their crews start trained (Wilma, on 9.2's training: they arrived operating); a crew hired later trains.
+##
 ## Every company made and every crew hired is in the log: Company.create writes OPEN and Households.hire writes HIRE.
 ## This file adds one LAND row per builder saying why it exists, and one CREW row when a crew comes up short.
 
@@ -74,13 +76,15 @@ static func existing(world: WorldState) -> Dictionary:
 	return {"home_world": ids, "public_works": pw}
 
 
-## A builder's building work in a month at its present crew, in milli-BW: one BW per crew member, less its size's
-## penalty (rebuild-building 2). Pure; step 3's book reads it.
+## A builder's building work in a month at its present crew, in milli-BW: one BW per trained crew member, less its
+## size's penalty (rebuild-building 2). A crew member hired after the landing is in training and builds half in the
+## month hired, rising evenly to full after six (9.2, Bob's Company.trained_count; Wilma: it applies to builders).
+## Pure; the book reads it.
 static func bw_milli(world: WorldState, cid: String) -> int:
 	var c := Company.record(world, cid)
 	if c.is_empty():
 		return 0
-	var persons := Company.staff_count(world, cid, "", CREW_KEY)  # persons x S
+	var persons := Company.trained_count(world, cid, "", CREW_KEY)  # trained persons x S
 	return persons * (1000 - TypeTable.penalty_pm(String(c["size"]))) / 1000
 
 
@@ -98,7 +102,9 @@ static func _make(world: WorldState, area: String, name: String, size: String, o
 		var want := int(posts.get(t, 0))
 		if want <= 0:
 			continue
-		var got := Households.hire(world, cid, CREW_KEY, t, area, want, {"why": "month one crew", "builder": name})
+		# trained from the start: they "arrived from the home world, operating" (Wilma's decision: the landing's crews
+		# start trained; every hire after the landing trains)
+		var got := Households.hire(world, cid, CREW_KEY, t, area, want, {"why": "month one crew", "builder": name}, -1, true)
 		if got < want:
 			short[t] = [want, got]
 	if not short.is_empty():

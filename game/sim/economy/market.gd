@@ -24,6 +24,10 @@ const TypeTable := preload("res://sim/economy/type_table.gd")
 const TABLE := "market"
 const SALES := "sale"
 const KEEP_MONTHS := 12
+## Ship goods are less wanted (the user, plan 12.3 15e: "ship food should be considered less desierable"): a buyer
+## ranking offers of one item counts ship goods this much dearer than their price, per mille (a starting number,
+## Wilma's), so colony goods up to that much dearer are bought first. The buyer pays the seller's real price.
+const SHIP_LESS_WANTED_PM := 250
 ## SITE: a building site's supplies (Otto's contracts), paid from the client's account whoever the client is; the goods
 ## leave the seller as SOLD and only the site books them, never a company's stock.
 const BUYER_KINDS: Array[String] = ["COMPANY", "POOL", "PLAN", "GOV", "SITE"]
@@ -42,19 +46,21 @@ const S := 1000
 ## and power) gives each order its line's money as budget, so no order spends another's money; when the budget runs
 ## out at the seller's price the order buys less, and its rest is a refusal of the price (23a), as when an account
 ## runs out. Returns the order id, or "" if refused (bad buyer, item or numbers).
-static func order(world: WorldState, buyer: Dictionary, item: String, qty_milli: int, max_price: int, kind: String = "NEED", budget: int = -1) -> String:
+## by: RANK (the default: ship goods counted dearer, 15e) or PRICE (a buyer whose money does not cover its whole need
+## takes the cheapest real price first: "less desirable" is a preference, not a reason to go hungry; Wilma, 15e).
+static func order(world: WorldState, buyer: Dictionary, item: String, qty_milli: int, max_price: int, kind: String = "NEED", budget: int = -1, by: String = "RANK") -> String:
 	if not BUYER_KINDS.has(String(buyer.get("kind", ""))) or String(buyer.get("acct", "")) == "" or not TypeTable.is_item(item):
 		return ""
-	if bool(TypeTable.ITEMS[item]["grid"]) or qty_milli <= 0 or max_price < 0 or not KINDS.has(kind) or budget < -1:
+	if bool(TypeTable.ITEMS[item]["grid"]) or qty_milli <= 0 or max_price < 0 or not KINDS.has(kind) or budget < -1 or not by in ["RANK", "PRICE"]:
 		return ""
 	var st := _state(world)
 	var oid := world.new_id("order")
 	st["orders"][oid] = {"id": oid, "m": world.month, "buyer": {"kind": String(buyer["kind"]), "id": String(buyer.get("id", "")),
 		"acct": String(buyer["acct"]), "area": String(buyer.get("area", ""))}, "item": item, "qty": qty_milli, "max": max_price,
 		"kind": kind, "got": 0, "paid": 0, "why": "", "cleared": false, "broke": false, "broke_price": 0, "cash0": 0,
-		"budget": budget}
+		"budget": budget, "by": by}
 	Logbook.note(world, "ORDER", String(buyer.get("id", "")), "order posted", {"item": item, "qty": qty_milli, "max": max_price, "kind": kind,
-		"budget": budget}, {}, "", oid)
+		"budget": budget, "by": by}, {}, "", oid)
 	return oid
 
 
@@ -78,13 +84,17 @@ static func offers(world: WorldState, item: String, area: String) -> Array:
 		var s := Company.stock_of(world, cid, item)
 		var q := int(s["qty"]) - int(s["waiting"]) - Company.hold_of(world, cid, item)
 		if q > 0:
-			out.append({"seller": cid, "price": int(c["price"][item]), "qty": q})
-	out.sort_custom(func(a, b): return int(a["price"]) < int(b["price"]) or (int(a["price"]) == int(b["price"]) and String(a["seller"]) < String(b["seller"])))
+			var price := int(c["price"][item])
+			# a stock part ship goods ranks in proportion: all ship goods a quarter dearer, a mixed stock by its share
+			var ship_pm := int(s["ship"]) * 1000 / maxi(1, int(s["qty"]))
+			out.append({"seller": cid, "price": price, "qty": q, "rank": price * (1000 + SHIP_LESS_WANTED_PM * ship_pm / 1000) / 1000})
+	out.sort_custom(func(a, b): return int(a["rank"]) < int(b["rank"]) or (int(a["rank"]) == int(b["rank"]) and String(a["seller"]) < String(b["seller"])))
 	return out
 
 
 # ---------------------------------------------------------------- the clear
 
+## Offers are filled in order of their rank: the price, ship goods counted dearer (SHIP_LESS_WANTED_PM).
 ## Clears every order posted this month, item by item and area by area. Once a month, in SETTLEMENT, after all orders
 ## are posted (the conductor). Orders and sales older than KEEP_MONTHS are dropped first. Returns the number of sales.
 static func clear(world: WorldState) -> int:
@@ -136,42 +146,54 @@ static func _clear_book(world: WorldState, st: Dictionary, item: String, area: S
 			sig[cid] = {"offered": 0, "sold": 0, "price": int(c["price"][item]), "unmet_above": 0, "refused": 0}
 	for off in offs:
 		sig[off["seller"]]["offered"] = int(off["qty"])
-	for off in offs:
-		var seller := String(off["seller"])
-		var price := int(off["price"])
-		var left := int(off["qty"])
-		# share among the orders still wanting at this price; repeat while money shortfalls free some of the offer
-		while left > 0:
-			var takers: Array = []
-			var weights: Array = []
-			for oid in oids:
-				var o: Dictionary = st["orders"][oid]
-				var want := int(o["qty"]) - int(o["got"])
-				if want > 0 and int(o["max"]) >= price and not bool(o["broke"]) and String(o["buyer"]["id"]) != seller:
-					takers.append(oid)
-					weights.append(float(want))
-			if takers.is_empty():
-				break
-			var total := 0
-			for wv in weights:
-				total += int(wv)
-			var shares: Array = CoreUtil.split_lr(mini(left, total), weights)
-			var moved := 0
-			for i in takers.size():
-				var q := int(shares[i])
-				if q <= 0:
-					continue
-				var got := _sell(world, st, seller, String(takers[i]), item, q, price)
-				moved += got
-				if got > 0:
-					sales += 1
-					if not st.has("last"):
-						st["last"] = {}
-					st["last"][item + "|" + area] = {"price": price, "m": world.month}
-			left -= moved
-			sig[seller]["sold"] = int(sig[seller]["sold"]) + moved
-			if moved == 0:
-				break
+	# Each order takes from the first offer in its own sequence that still has stock at or under its most-it-pays: a
+	# RANK order in the offers' rank order (ship goods counted dearer), a PRICE order (a buyer whose money does not
+	# cover its whole need: Wilma, 15e) in real price order. Offers are visited in rank order; each shares what it has
+	# left among the orders it is the next offer for, pro rata by what they still want; passes repeat while anything
+	# moves (an order whose cheaper offer ran out turns to its next one). With every order RANK this is one sale per
+	# offer in rank order, shared among all who would pay it, as before.
+	var left: Array = offs.map(func(off): return int(off["qty"]))
+	var by_price: Array = range(offs.size())
+	by_price.sort_custom(func(a, b): return int(offs[a]["price"]) < int(offs[b]["price"]) or (int(offs[a]["price"]) == int(offs[b]["price"]) and int(a) < int(b)))
+	var progress := true
+	while progress:
+		progress = false
+		for i in offs.size():
+			var seller := String(offs[i]["seller"])
+			var price := int(offs[i]["price"])
+			# share among the orders this offer is next for; repeat while money shortfalls free some of the offer
+			while int(left[i]) > 0:
+				var takers: Array = []
+				var weights: Array = []
+				for oid in oids:
+					var o: Dictionary = st["orders"][oid]
+					var want := int(o["qty"]) - int(o["got"])
+					if want > 0 and not bool(o["broke"]) and _next_offer(offs, left, by_price, o) == i:
+						takers.append(oid)
+						weights.append(float(want))
+				if takers.is_empty():
+					break
+				var total := 0
+				for wv in weights:
+					total += int(wv)
+				var shares: Array = CoreUtil.split_lr(mini(int(left[i]), total), weights)
+				var moved := 0
+				for k in takers.size():
+					var q := int(shares[k])
+					if q <= 0:
+						continue
+					var got := _sell(world, st, seller, String(takers[k]), item, q, price)
+					moved += got
+					if got > 0:
+						sales += 1
+						if not st.has("last"):
+							st["last"] = {}
+						st["last"][item + "|" + area] = {"price": price, "m": world.month}
+				left[i] = int(left[i]) - moved
+				sig[seller]["sold"] = int(sig[seller]["sold"]) + moved
+				if moved == 0:
+					break
+				progress = true
 	# why each order is short
 	var cheapest_left := -1   # the cheapest offer left unsold, to tell a refusal of the price from sold out
 	for off in offs:
@@ -200,6 +222,16 @@ static func _clear_book(world: WorldState, st: Dictionary, item: String, area: S
 	for s in sig:
 		world.table(Company.TABLE)[s]["market"][item] = sig[s]
 	return sales
+
+
+## The index in offs of the next offer an order takes from: the first in its own sequence (rank order, or real price
+## order for a PRICE order) with stock left, at or under its most-it-pays, and not its own. -1 if none.
+static func _next_offer(offs: Array, left: Array, by_price: Array, o: Dictionary) -> int:
+	var seq: Array = by_price if String(o.get("by", "RANK")) == "PRICE" else range(offs.size())
+	for i in seq:
+		if int(left[i]) > 0 and int(offs[i]["price"]) <= int(o["max"]) and String(offs[i]["seller"]) != String(o["buyer"]["id"]):
+			return int(i)
+	return -1
 
 
 ## Shares one order's shortfall among the sellers who turned it away, so the sum over sellers is the real shortfall

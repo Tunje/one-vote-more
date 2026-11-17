@@ -27,6 +27,14 @@ const Making := preload("res://sim/economy/making.gd")
 const Households := preload("res://sim/population/households.gd")
 const HomeBuilders := preload("res://sim/economy/home_builders.gd")
 const Grants := preload("res://sim/economy/grants.gd")
+const WorkLaw := preload("res://sim/law/work_law.gd")
+## Ella's job adverts (media) and the month's layoffs fact; loaded when needed.
+const MEDIA_PATH := "res://sim/media/media_ops.gd"
+const PUBLISH_PATH := "res://sim/economy/econ_publish.gd"
+## What a new hire makes less than a trained worker over their training, in months of a worker's output, per mille:
+## the sum of (1000 - Company.trained_pm(a)) for a = 0 .. TRAIN_MONTHS - 1 (1.75 months with half rising to full).
+## Anni's law (what a company paid on its debts this month); loaded when needed.
+const JUSTICE_PATH := "res://sim/law/justice_ops.gd"
 ## Otto's building side; it preloads this file, so this file loads it when it is needed.
 const BUILDING_PATH := "res://sim/economy/building.gd"
 
@@ -270,6 +278,8 @@ static func needs_food(world: WorldState, area: String) -> Dictionary:
 ## First 19a: wages it could not pay are laid off in proportion; a plant left with nobody is shut. Then each plant key
 ## hires or lays off toward the posts its output level wants, at the hiring salary of the plant's area.
 static func staff_to_posts(world: WorldState, cid: String) -> void:
+	family_to_posts(world, cid)   # the family first: its posts are never hired for, and it is never laid off (15e)
+	var staff0 := Company.staff_count(world, cid)
 	var c: Dictionary = world.peek(Company.TABLE)[cid]
 	var b := Company.books_month(world, cid)
 	var due := int(b.get("wages_due", 0))
@@ -286,16 +296,196 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 			if String(pk) != "crew" and Company.staff_count(world, cid, "", String(pk)) == 0:
 				Company.close_plant(world, String(pk), "NO_STAFF", {"due": due, "paid": paid})
 		Logbook.note(world, "RULE", cid, "19a could not pay its staff", {"due": due, "paid": paid})
+		_publish_layoffs(world, cid, staff0)
 		return
 	for pk in keys:
 		var want := Company.posts_wanted(world, cid, String(pk))
 		for tier in ["Sp", "S", "G"]:
 			var have := Company.staff_count(world, cid, tier, String(pk)) / S
-			var w := int(want[tier])
+			# the family's posts are not hired for and the family is never laid off (15e): hire for what it leaves
+			var w := maxi(0, int(want[tier]) - Company.family_count(world, cid, tier, String(pk)) / S)
+			var key := "%s|%s" % [pk, tier]
+			var slack: Dictionary = _slack(world, cid)
 			if w > have:
-				Households.hire(world, cid, String(pk), tier, String(c["area"]), w - have, {"rule": "posts"})
+				slack.erase(key)
+				_hire(world, cid, String(pk), tier, String(c["area"]), w - have)
 			elif w < have:
-				Households.layoff(world, cid, String(pk), tier, have - w, {"reason": "LEVEL"})
+				if not slack.has(key):
+					slack[key] = world.month
+				var idle := world.month - int(slack[key]) + 1
+				var wg := layoff_weighing(world, cid, String(pk), tier, idle)
+				if bool(wg["lay_off"]):
+					Households.layoff(world, cid, String(pk), tier, have - w, wg.merged({"reason": "LEVEL"}))
+					slack.erase(key)
+				else:
+					Logbook.note(world, "RULE", cid, "keeps its slack staff: a layoff costs more than their wages while idle",
+						wg.merged({"plant": pk, "tier": tier, "slack": have - w}))
+			else:
+				slack.erase(key)
+	_publish_layoffs(world, cid, staff0)
+
+
+## Months in a row each post tier at each plant has wanted fewer people than it has: {plant|tier: the month it began}.
+static func _slack(world: WorldState, cid: String) -> Dictionary:
+	var c: Dictionary = world.table(Company.TABLE)[cid]
+	if not c.has("slack"):
+		c["slack"] = {}
+	return c["slack"]
+
+
+## Hires up to n for a post tier, as many as the company can pay the job adverts for (9.2: hiring costs an advert in
+## the papers, a tenth of a month's pay of the post, per person hired, Ella's Media.job_advert_cost; "a company that
+## cannot pay the advert cannot hire"): each advert is one person's, so it hires those it can advertise for (Otto's
+## review: all or none would trap a company that could restart with a few). It pays for those actually hired.
+static func _hire(world: WorldState, cid: String, pk: String, tier: String, area: String, n: int) -> int:
+	var media: GDScript = load(MEDIA_PATH)
+	var pay := Company.hiring_salary(world, cid, tier, area)
+	var acct := CoreUtil.acct(cid)
+	var one := int(media.call("job_advert_cost", world, area, pay, 1))
+	var can := n if one <= 0 else mini(n, maxi(0, world.ledger.balance(acct)) / one)
+	if can < n:
+		Logbook.note(world, "HIRE", cid, "fewer hired: it cannot pay all the job adverts", {"plant": pk, "tier": tier, "wanted": n,
+			"can": can, "advert_each": one / S, "balance": world.ledger.balance(acct) / S})
+	if can <= 0:
+		return 0
+	var k := Households.hire(world, cid, pk, tier, area, can, {"rule": "posts", "advert_each": one / S})
+	if k > 0:
+		var paid := int(media.call("job_advert", world, cid, acct, area, pay, k))
+		Company.book(world, cid, "adverts", paid)
+	return k
+
+
+## How a company weighs laying off slack staff at one post tier and plant (9.2, the user: "they would have to weigh say
+## three months of vages without a worker against the profits"; Bob's reading in rebuild-company.md): per person,
+## the wages it saves while the post stands idle against the layoff pay owed, the advert and the training's lower
+## output when it hires again. idle: the months the slack has lasted (the expected months it lasts on). Returns the
+## numbers it weighed and "lay_off".
+static func layoff_weighing(world: WorldState, cid: String, pk: String, tier: String, idle: int) -> Dictionary:
+	var c: Dictionary = world.peek(Company.TABLE)[cid]
+	var n := 0
+	var sum := 0
+	for e in Company.payroll(world, cid):
+		if String(e["plant_key"]) == pk and String(e["post_tier"]) == tier:
+			n += int(e["n"])
+			sum += int(e["n"]) * int(e["pay"]) / S
+	var pay := sum * S / n if n > 0 else Company.hiring_salary(world, cid, tier, String(c["area"]))
+	var months := WorkLaw.layoff_pay_months(world)
+	var media: GDScript = load(MEDIA_PATH)
+	var advert := int(media.call("job_advert_cost", world, String(c["area"]), Company.hiring_salary(world, cid, tier, String(c["area"])), 1))
+	var size := String(c["size"]) if pk == "crew" else String(Company.plant(world, pk)["size"])
+	var posts := TypeTable.posts(String(c["type"]), size, int(c["line"]))
+	var n_posts := maxi(1, int(posts["G"]) + int(posts["S"]) + int(posts["Sp"]))
+	var per_worker := TypeTable.output_milli(String(c["type"]), size, int(c["line"])) / n_posts
+	var item := TypeTable.out_of(String(c["type"]), int(c["line"]))
+	var price := maxi(0, Company.price(world, cid, item))
+	var loss_pm := 0
+	for a in Company.TRAIN_MONTHS:
+		loss_pm += 1000 - Company.trained_pm(a)
+	var training := per_worker * loss_pm / 1000 * price / S
+	var saved := idle * pay
+	var costs := months * pay + advert + training
+	return {"lay_off": saved > costs, "idle": idle, "pay": pay / S, "layoff_months": months, "advert": advert / S,
+		"training": training / S, "price": price / S, "saved": saved / S, "costs": costs / S}
+
+
+## The month's layoffs at one company, once (Ella's EconPublish.layoffs decides whether they are news): how many, its
+## staff before, and the layoff pay owed and paid (Maja's layoff books them).
+static func _publish_layoffs(world: WorldState, cid: String, staff0: int) -> void:
+	var n := (staff0 - Company.staff_count(world, cid)) / S
+	if n <= 0:
+		return
+	var b := Company.books_month(world, cid)
+	var pub: GDScript = load(PUBLISH_PATH)
+	pub.call("layoffs", world, {"company": cid, "area": String(world.peek(Company.TABLE)[cid]["area"]), "n": n,
+		"staff": staff0 / S, "owed": int(b.get("layoff_owed", 0)), "paid": int(b.get("layoff_paid", 0)),
+		"months_pay": WorkLaw.layoff_pay_months(world)})
+
+
+## A family company's family in its posts, every month before hiring (15e): the founder's household's adults by skill
+## (Maja's Households.family_adults, kept in step with deaths by her reconcile_families) fill the full posts of its
+## first open plant (or its crew), each tier from adults of that skill or above (Company.family_fill). They work every
+## post they can, whatever the output level: they are never laid off. Maja's family_work marks them employed; the
+## record follows. A company with no family does nothing here.
+static func family_to_posts(world: WorldState, cid: String) -> void:
+	var fam := Company.family_of(world, cid)
+	if fam == "":
+		return
+	var c: Dictionary = world.peek(Company.TABLE)[cid]
+	var pk := "crew"
+	var size := String(c["size"])
+	for p in Company.plant_ids_of(world, cid):
+		if not bool(Company.plant(world, String(p))["closed"]):
+			pk = String(p)
+			size = String(Company.plant(world, pk)["size"])
+			break
+	if pk == "crew" and not bool(c["crew_posts"]):
+		return
+	var fill := Company.family_fill(TypeTable.posts(String(c["type"]), size, int(c["line"])), Households.family_adults(world, fam))
+	var now := {}
+	for t in ["G", "S", "Sp"]:
+		now[t] = Company.family_count(world, cid, t) / S
+	if now == fill:
+		return
+	Households.family_work(world, fam, fill)
+	for other in Company.plant_ids_of(world, cid):
+		if String(other) != pk:
+			Company.family_set(world, cid, String(other), fam, {})
+	Company.family_set(world, cid, pk, fam, fill)
+
+
+# ---------------------------------------------------------------- the family's winnings (15e)
+
+## What a family company's family takes this month (the user, plan 12.3 15e: "The owners of a family farm should take
+## winnings no sallery, wich comes after and saves the issue"): what the month earned after everything else it owed
+## that month was paid (Bob's reading, on Wilma's brief; Otto's review: the founder's opening money and a grant are the
+## company's capital, not winnings). Taken in JUSTICE after the debts are collected, so the month's takings less its
+## inputs, the wages it paid, upkeep, adverts, layoff pay and the debts it paid. Never more than the account holds above
+## what it keeps back: one month of what the family does not do (the hired staff's wages, inputs and upkeep, the same
+## expenses the hold-back covers). A loss is carried forward (the user, 15e: "I think two is better"): a month that
+## earned less than nothing adds to the company's carried loss; a month that earned something first pays it down, and
+## the family takes only what is beyond it. Pure: pay_winnings applies it once a month.
+## {"amount", "earned", "carried" (before this month), "pays_down", "carried_after", "balance", "keep", ...}.
+static func winnings(world: WorldState, cid: String) -> Dictionary:
+	var b := Company.books_month(world, cid)
+	var wages := Company.wage_bill(world, cid)
+	var inputs := int(b.get("inputs", 0))
+	var upkeep := int(b.get("upkeep", 0))
+	var debts := int((load(JUSTICE_PATH) as GDScript).call("paid_this_month", world, cid))
+	var earned := int(b.get("rev", 0)) - inputs - int(b.get("wages", 0)) - upkeep - int(b.get("adverts", 0)) \
+		- int(b.get("layoff_paid", 0)) - debts - int(b.get("winnings", 0))   # less what it already took this month
+	var keep := wages + inputs + upkeep
+	var bal := world.ledger.balance(CoreUtil.acct(cid))
+	var carried := int(world.peek(Company.TABLE)[cid].get("loss_carried", 0))
+	var pays_down := clampi(earned, 0, carried)
+	var after := carried - pays_down + maxi(0, -earned)
+	return {"amount": maxi(0, mini(earned - pays_down, bal - keep)), "earned": earned, "carried": carried,
+		"pays_down": pays_down, "carried_after": after, "balance": bal, "keep": keep, "wages": wages, "inputs": inputs,
+		"upkeep": upkeep, "debts": debts}
+
+
+## Pays every family company's winnings to its family (the conductor, JUSTICE, after Justice.collect_debts): Maja's
+## Households.pay_winnings moves the money and books it as the household's income; the company books "winnings". A
+## month with none is logged too: the family lives on what it has.
+static func pay_winnings(world: WorldState) -> void:
+	for cid in Company.ids(world):
+		var fam := Company.family_of(world, String(cid))
+		if fam == "" or String(world.peek(Company.TABLE)[cid]["status"]) != "OPEN":
+			continue
+		var rec: Dictionary = world.table(Company.TABLE)[cid]
+		if int(rec.get("winnings_m", -1)) == world.month:
+			continue   # once a month: the carried loss moves once
+		var wn := winnings(world, String(cid))
+		rec["winnings_m"] = world.month
+		rec["loss_carried"] = int(wn["carried_after"])
+		var amount := int(wn["amount"])
+		if amount > 0:
+			amount = int(Households.pay_winnings(world, fam, CoreUtil.acct(String(cid)), amount))
+			Company.book(world, String(cid), "winnings", amount)
+		Logbook.note(world, "WINNINGS", String(cid), "the family took its winnings" if amount > 0 else "no winnings this month",
+			{"earned": int(wn["earned"]) / S, "debts": int(wn["debts"]) / S, "loss_carried": int(wn["carried"]) / S,
+			"pays_down": int(wn["pays_down"]) / S, "loss_carried_after": int(wn["carried_after"]) / S,
+			"balance": int(wn["balance"]) / S, "keep": int(wn["keep"]) / S, "wages": int(wn["wages"]) / S,
+			"inputs": int(wn["inputs"]) / S, "upkeep": int(wn["upkeep"]) / S}, {"winnings": [0, amount / S]}, fam)
 
 
 # ---------------------------------------------------------------- rules 7 and 8: the founding signal

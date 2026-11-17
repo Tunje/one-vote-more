@@ -59,7 +59,9 @@ static func make_plant(world: WorldState, cid: String, pid: String) -> int:
 	var level := Company.level_of(world, cid, pid)
 	var want := Company.posts_wanted(world, cid, pid)
 	var want_n := (int(want["G"]) + int(want["S"]) + int(want["Sp"])) * S
-	var staffed := 0 if want_n <= 0 else mini(1000, Company.staff_count(world, cid, "", pid) * 1000 / want_n)
+	# trained workers (new hires count less while they learn, 9.2) and the family (15e)
+	var working := Company.trained_count(world, cid, "", pid) + Company.family_count(world, cid, "", pid)
+	var staffed := 0 if want_n <= 0 else mini(1000, working * 1000 / want_n)
 	var cond := int(p["condition"])
 	var cond_pm := 1000 if cond >= CONDITION_FULL_FROM else cond * 1000 / CONDITION_FULL_FROM
 	var yield_pm := yield_of(world, type, pid)

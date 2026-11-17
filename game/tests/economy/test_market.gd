@@ -234,6 +234,39 @@ func test_the_last_price_sold_is_kept_per_item_and_area() -> void:
 	check(Market.last_sold(w, "FOOD", "elsewhere").is_empty(), "per area")
 
 
+func test_ship_food_is_bought_after_colony_food_up_to_a_quarter_dearer() -> void:
+	var w := _w()
+	var stores := Company.create(w, "SHOP", "LARGE", HW, "Stores", {"area": "landing"})
+	Company.stock_add(w, stores, "FOOD", 30 * S, 10 * S, "LANDING", "landed")
+	Company.offer(w, stores, "FOOD", 60 * S)
+	check_eq(int(Company.stock_of(w, stores, "FOOD")["ship"]), 30 * S, "landed stock is ship food")
+	var near := _farm(w, 20, 74 * S)    # under a quarter dearer than the ship food (75)
+	var far := _farm(w, 20, 76 * S)     # over it
+	var b := _buyer(w, "a", 100000 * S)
+	var oid := Market.order(w, b, "FOOD", 30 * S, 100 * S)
+	Market.clear(w)
+	check_eq(int(Company.stock_of(w, near, "FOOD")["qty"]), 0, "colony food up to a quarter dearer goes first")
+	check_eq(int(Company.stock_of(w, stores, "FOOD")["qty"]), 20 * S, "then the ship food, before dearer colony food")
+	check_eq(int(Company.stock_of(w, far, "FOOD")["qty"]), 20 * S, "the farm over a quarter dearer sells nothing")
+	check_eq(int(Market.filled(w, oid)["paid"]), 20 * 74 * S + 10 * 60 * S, "each at its real price")
+	check_eq(int(Company.stock_of(w, stores, "FOOD")["ship"]), 20 * S, "the ship share goes down with what was sold")
+
+
+func test_a_buyer_short_of_money_takes_the_cheapest_real_price_first() -> void:
+	var w := _w()
+	var stores := Company.create(w, "SHOP", "LARGE", HW, "Stores", {"area": "landing"})
+	Company.stock_add(w, stores, "FOOD", 30 * S, 10 * S, "LANDING", "landed")
+	Company.offer(w, stores, "FOOD", 60 * S)
+	var farm := _farm(w, 30, 70 * S)
+	var rich := Market.order(w, _buyer(w, "rich", 100000 * S), "FOOD", 10 * S, 100 * S)
+	var poor := Market.order(w, _buyer(w, "poor", 600 * S), "FOOD", 20 * S, 100 * S, "NEED", -1, "PRICE")
+	Market.clear(w)
+	check_eq(int(Market.filled(w, rich)["paid"]), 10 * 70 * S, "money for all: colony food at 70 before ship food at 60")
+	check_eq(Market.filled(w, poor)["qty"], 10 * S, "money for half: the ship food at 60 first, 10 for its 600, not 8 at 70")
+	check_eq(int(Company.stock_of(w, farm, "FOOD")["qty"]), 20 * S, "the farm sold only to the buyer who prefers it")
+	check_eq(Market.order(w, _buyer(w, "x", S), "FOOD", S, S, "NEED", -1, "CHEAP"), "", "an unknown 'by' is refused")
+
+
 func test_bad_orders_are_refused() -> void:
 	var w := _w()
 	var b := _buyer(w, "a", 100 * S)

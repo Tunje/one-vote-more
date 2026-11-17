@@ -168,7 +168,7 @@ static func _crew(world: WorldState, cid: String, plant_key: String, type: Strin
 		var want := int(posts.get(tier, 0))
 		if want <= 0:
 			continue
-		var got := Households.hire(world, cid, plant_key, tier, area, want, {"why": "month one, the government's staff"})
+		var got := Households.hire(world, cid, plant_key, tier, area, want, {"why": "month one, the government's staff"}, -1, true)   # trained: they landed knowing their work
 		if got < want:
 			short[tier] = [want, got]
 	if not short.is_empty():

@@ -120,6 +120,12 @@ static func offer(world: WorldState, cid: String, item: String, value: int, why:
 ## which takes them out of the one in the same step.
 const SOURCES: Array[String] = ["LANDING", "OUTPUT", "IMPORT"]
 const OUT_REASONS: Array[String] = ["USED", "SPOILED", "SOLD", "EXPORTED", "LOST"]
+## Ship goods: what came in by ship (the landed stock, imports). A stock entry counts how much of it is ship goods
+## ("ship", milli-units); goods leaving take ship goods in proportion, so a mixed stock stays mixed in the same share.
+const SHIP_SOURCES: Array[String] = ["LANDING", "IMPORT"]
+## Training (9.2): a new hire makes half in the month hired, rising evenly to full after TRAIN_MONTHS.
+const TRAIN_MONTHS := 6
+const TRAIN_START_PM := 500
 
 
 ## Puts goods into a company's stock from a source outside every company (SOURCES): qty_milli units at cost_milli
@@ -151,19 +157,23 @@ static func stock_move(world: WorldState, from_cid: String, to_cid: String, item
 		return false
 	if not TypeTable.is_item(item) or bool(TypeTable.ITEMS[item]["grid"]) or int(stock_of(world, from_cid, item)["qty"]) < qty_milli:
 		return false
+	var e: Dictionary = world.peek(TABLE)[from_cid]["stock"][item]
+	var ship := int(e.get("ship", 0)) * qty_milli / maxi(1, int(e["qty"]))   # ship goods go with the goods moved
 	_stock_out(world, from_cid, item, qty_milli, "MOVED", why, to_cid)
-	return _stock_in(world, to_cid, item, qty_milli, unit_price, from_cid, why)
+	return _stock_in(world, to_cid, item, qty_milli, unit_price, from_cid, why, ship)
 
 
-static func _stock_in(world: WorldState, cid: String, item: String, qty_milli: int, cost_milli: int, source: String, why: String) -> bool:
+static func _stock_in(world: WorldState, cid: String, item: String, qty_milli: int, cost_milli: int, source: String, why: String, ship_milli: int = -1) -> bool:
 	var c: Dictionary = world.table(TABLE).get(cid, {})
 	if c.is_empty() or not TypeTable.is_item(item) or bool(TypeTable.ITEMS[item]["grid"]) or qty_milli <= 0 or cost_milli < 0:
 		return false
 	var st: Dictionary = c["stock"]
 	if not st.has(item):
-		st[item] = {"qty": 0, "value": 0, "waiting": 0}
+		st[item] = {"qty": 0, "value": 0, "waiting": 0, "ship": 0}
 	var old := int(st[item]["qty"])
 	st[item]["qty"] = old + qty_milli
+	var ship := ship_milli if ship_milli >= 0 else (qty_milli if SHIP_SOURCES.has(source) else 0)
+	st[item]["ship"] = int(st[item].get("ship", 0)) + mini(ship, qty_milli)
 	st[item]["value"] = int(st[item]["value"]) + qty_milli * cost_milli / CoreUtil.S
 	Logbook.note(world, "STOCK", cid, why, {"item": item, "qty": qty_milli, "cost": cost_milli, "in": source}, {item: [old, old + qty_milli]}, source)
 	return true
@@ -178,6 +188,8 @@ static func _stock_out(world: WorldState, cid: String, item: String, qty_milli: 
 	if old < qty_milli:
 		return -1
 	var value := 0 if old == 0 else int(e["value"]) * qty_milli / old
+	if old > 0:
+		e["ship"] = int(e.get("ship", 0)) - int(e.get("ship", 0)) * qty_milli / old
 	e["qty"] = old - qty_milli
 	e["value"] = int(e["value"]) - value
 	Logbook.note(world, "STOCK", cid, why, {"item": item, "qty": -qty_milli, "out": reason}, {item: [old, old - qty_milli]}, to)
@@ -185,10 +197,11 @@ static func _stock_out(world: WorldState, cid: String, item: String, qty_milli: 
 
 
 ## A company's stock of one item: {"qty": milli-units, "value": milli-credits, "waiting": milli-units waiting for
-## freight}, all 0 when it holds none.
+## freight, "ship": milli-units of it that came by ship}, all 0 when it holds none.
 static func stock_of(world: WorldState, cid: String, item: String) -> Dictionary:
 	var e: Dictionary = world.peek(TABLE).get(cid, {}).get("stock", {}).get(item, {})
-	return {"qty": int(e.get("qty", 0)), "value": int(e.get("value", 0)), "waiting": int(e.get("waiting", 0))}
+	return {"qty": int(e.get("qty", 0)), "value": int(e.get("value", 0)), "waiting": int(e.get("waiting", 0)),
+		"ship": int(e.get("ship", 0))}
 
 
 # ---------------------------------------------------------------- staff (written only by the household side)
@@ -246,12 +259,58 @@ static func staff_change(world: WorldState, cid: String, plant_key: String, post
 	var old_pay := int(e.get("pay", 0))
 	var new_pay := old_pay
 	var new_since := int(e.get("since", world.month))
+	var cohorts := _cohorts_now(world, e.get("new", {}))
 	if delta > 0:
 		new_pay = (now * old_pay + delta * pay) / (now + delta)
 		var joined := world.month if since < 0 else since
 		new_since = (now * new_since + delta * joined) / (now + delta)
-	st[plant_key][post_tier][labour_key] = {"n": now + delta, "pay": new_pay, "since": new_since}
+		if since < 0:   # hired from outside the workplace: in training (9.2)
+			cohorts[str(world.month)] = int(cohorts.get(str(world.month), 0)) + delta
+	elif now > 0:
+		for m in cohorts.keys():   # leavers take the trainees in proportion
+			cohorts[m] = int(cohorts[m]) - int(cohorts[m]) * (-delta) / now
+			if int(cohorts[m]) <= 0:
+				cohorts.erase(m)
+	st[plant_key][post_tier][labour_key] = {"n": now + delta, "pay": new_pay, "since": new_since, "new": cohorts}
 	return true
+
+
+## A staff entry's hire groups still in training, {month hired: persons × S}, without those trained by now.
+static func _cohorts_now(world: WorldState, cohorts: Dictionary) -> Dictionary:
+	var out := {}
+	for m in cohorts:
+		if world.month - int(m) < TRAIN_MONTHS:
+			out[m] = int(cohorts[m])
+	return out
+
+
+## What a new hire makes, per mille of a trained worker's output, in their month `a` at the workplace (0: the month
+## hired): half in the first month, rising evenly to full after six (9.2, Wilma's starting numbers).
+static func trained_pm(a: int) -> int:
+	return 1000 if a >= TRAIN_MONTHS else TRAIN_START_PM + (1000 - TRAIN_START_PM) * maxi(0, a) / TRAIN_MONTHS
+
+
+## Staff as trained workers, persons × S, optionally in one post tier and/or at one plant key: each hire group still in
+## training counts at trained_pm of its months. Making reads this, not the head count.
+static func trained_count(world: WorldState, cid: String, post_tier: String = "", plant_key: String = "") -> int:
+	var st: Dictionary = world.peek(TABLE).get(cid, {}).get("staff", {})
+	var n := 0
+	for pk in st:
+		if plant_key != "" and String(pk) != plant_key:
+			continue
+		for t in st[pk]:
+			if post_tier != "" and String(t) != post_tier:
+				continue
+			for lk in st[pk][t]:
+				var e: Dictionary = st[pk][t][lk]
+				var learning := 0
+				var cohorts := _cohorts_now(world, e.get("new", {}))
+				for m in cohorts:
+					var k := mini(int(cohorts[m]), int(e["n"]) - learning)
+					learning += k
+					n += k * trained_pm(world.month - int(m)) / 1000
+				n += int(e["n"]) - learning
+	return n
 
 
 ## The salary the company offers a new hire of this tier this month at a plant standing in `area` (the plant's area,
@@ -403,6 +462,67 @@ static func posts_wanted(world: WorldState, cid: String, plant_key: String) -> D
 	return {"G": int(parts[0]), "S": int(parts[1]), "Sp": int(parts[2])}
 
 
+# ---------------------------------------------------------------- the family that works its own company (15e)
+
+## "The owners of a family farm should take winnings no sallery" (the user, plan 12.3 15e; Wilma: every FAMILY-size
+## company). The founder's household fills the posts it can, is on no payroll, and lives on the winnings (Rules). The
+## record keeps who the family is (the founder, Maja's) and how many of them work each post tier at each plant key:
+## record["family"] = {"founder": id, "work": {plant_key: {tier: persons × S}}}. Wages, 19a, layoffs, raises and
+## negotiation never touch them; making counts them with the staff; hiring fills only the posts they leave.
+
+## Puts the family in its posts at `plant_key`: work = {tier: whole persons}. Replaces what was there. No row: the
+## household side's row (family_work) is the deed.
+static func family_set(world: WorldState, cid: String, plant_key: String, founder: String, work: Dictionary) -> bool:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty() or (plant_key != "crew" and not (c["plants"] as Array).has(plant_key)):
+		return false
+	if not c.has("family") or (c["family"] as Dictionary).is_empty():
+		c["family"] = {"founder": founder, "work": {}}
+	var tiers := {}
+	for t in ["G", "S", "Sp"]:
+		if int(work.get(t, 0)) > 0:
+			tiers[t] = int(work[t]) * CoreUtil.S
+	if tiers.is_empty():
+		c["family"]["work"].erase(plant_key)
+	else:
+		c["family"]["work"][plant_key] = tiers
+	return true
+
+
+## The founder whose family works this company, or "".
+static func family_of(world: WorldState, cid: String) -> String:
+	return String(world.peek(TABLE).get(cid, {}).get("family", {}).get("founder", ""))
+
+
+## Family members working, persons × S, optionally in one post tier and/or at one plant key.
+static func family_count(world: WorldState, cid: String, post_tier: String = "", plant_key: String = "") -> int:
+	var work: Dictionary = world.peek(TABLE).get(cid, {}).get("family", {}).get("work", {})
+	var n := 0
+	for pk in work:
+		if plant_key != "" and String(pk) != plant_key:
+			continue
+		for t in work[pk]:
+			if post_tier == "" or String(t) == post_tier:
+				n += int(work[pk][t])
+	return n
+
+
+## How a family's adults by skill ({"G", "S", "Sp"}: whole persons, Maja's Households.family_adults) fill a plant's
+## posts ({"G", "S", "Sp"}): each tier from the adults of that skill or above, the most skilled posts first. Pure.
+static func family_fill(posts: Dictionary, adults: Dictionary) -> Dictionary:
+	var free := {"G": int(adults.get("G", 0)), "S": int(adults.get("S", 0)), "Sp": int(adults.get("Sp", 0))}
+	var out := {"G": 0, "S": 0, "Sp": 0}
+	var order := {"Sp": ["Sp"], "S": ["S", "Sp"], "G": ["G", "S", "Sp"]}
+	for t in ["Sp", "S", "G"]:
+		var need := int(posts.get(t, 0))
+		for k in order[t]:
+			var take := mini(need, int(free[k]))
+			free[k] = int(free[k]) - take
+			out[t] = int(out[t]) + take
+			need -= take
+	return out
+
+
 ## Every open post in an area, for the households' applying (plan 9.2: a worker applies only to a job whose salary
 ## meets their needs): [{"cid", "plant_key", "tier", "open" (whole persons), "pay" (the hiring salary)}], in a fixed
 ## order. Until plants carry Terra's area here, a company's posts are in its own area.
@@ -417,7 +537,7 @@ static func vacancies(world: WorldState, area: String) -> Array:
 		for pk in keys:
 			var want := posts_wanted(world, cid, String(pk))
 			for t in ["Sp", "S", "G"]:
-				var have := staff_count(world, cid, t, String(pk)) / CoreUtil.S
+				var have := (staff_count(world, cid, t, String(pk)) + family_count(world, cid, t, String(pk))) / CoreUtil.S
 				if int(want[t]) > have:
 					out.append({"cid": cid, "plant_key": String(pk), "tier": t, "open": int(want[t]) - have,
 						"pay": hiring_salary(world, cid, t, area)})

@@ -40,7 +40,7 @@ func owner_id() -> String:
 
 
 func phases() -> Array:
-	return [TickPhase.TRADE, TickPhase.PRODUCTION, TickPhase.SETTLEMENT, TickPhase.COMPANY_AI, TickPhase.SOCIAL]
+	return [TickPhase.TRADE, TickPhase.PRODUCTION, TickPhase.SETTLEMENT, TickPhase.COMPANY_AI, TickPhase.JUSTICE, TickPhase.SOCIAL]
 
 
 ## Registered after Landing (month one's government side): the ship that brought the colony lies in port.
@@ -58,6 +58,8 @@ func run_phase(phase: int, world: WorldState) -> void:
 			settlement(world)
 		TickPhase.COMPANY_AI:
 			company_ai(world)
+		TickPhase.JUSTICE:
+			justice(world)
 		TickPhase.SOCIAL:
 			social(world)
 
@@ -144,7 +146,8 @@ static func _found_one(world: WorldState, type: String, area: String) -> bool:
 		if sites.is_empty():
 			Logbook.note(world, "PLAN", area, "no plan: no free site", {"type": type, "size": size})
 			return false
-		var founder := Households.make_founder(world, pool, "")
+		# a family-size company is the family's own: the whole household goes with the founder and works it (15e)
+		var founder := Households.make_founder(world, pool, "", String(size) == "FAMILY")
 		if founder == "":
 			return false
 		var plan := Building.make_plan(world, founder, type, String(size), area, sites[0], {"needs": needs / CoreUtil.S})
@@ -155,6 +158,12 @@ static func _found_one(world: WorldState, type: String, area: String) -> bool:
 		Grants.apply(world, plan)
 		return true
 	return false
+
+
+## After the law's own JUSTICE (it is registered first, so its debt collector has run): the owners of family
+## companies take their winnings, last of everything the company owes that month (15e; Bob).
+static func justice(world: WorldState) -> void:
+	Rules.pay_winnings(world)
 
 
 ## Nothing of the conductor's: the population provider runs life, the labour month and the yearly raise before this,

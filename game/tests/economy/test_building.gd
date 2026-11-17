@@ -126,6 +126,7 @@ func test_one_family_farm_from_plan_to_opening() -> void:
 	check_eq(Company.type_of(w, co), "FARM", "a farm")
 	check_eq(Company.size_of(w, co), "FAMILY", "family size")
 	check_eq(Company.owner_kind(w, co), "FAMILY", "owned by the founding family")
+	check_eq(Company.family_of(w, co), String(p["founder"]), "its founder's family works it, for winnings (15e)")
 	var plants := Company.plant_ids_of(w, co)
 	check_eq(plants.size(), 1, "one plant")
 	check(not Site.of(w, plants[0]).is_empty() and Site.of(w, pid).is_empty(), "the site moved from the plan to the plant")

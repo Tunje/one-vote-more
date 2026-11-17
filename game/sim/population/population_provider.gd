@@ -34,6 +34,7 @@ func run_phase(_phase: int, world: WorldState) -> void:
 	# band moves), then the labour month (negotiation, quitting for better pay), then January's yearly raise
 	Demography.monthly(world)
 	Households.labour_month(world)
+	Households.release_idle_founders(world)
 	Households.yearly_raise_month(world)
 	if world.month != 0:
 		return

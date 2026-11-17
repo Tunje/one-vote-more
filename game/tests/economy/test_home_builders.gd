@@ -127,3 +127,16 @@ func test_landing_twice_makes_nothing_new() -> void:
 	w.table("company")[a["home_world"][0]]["name"] = "Renamed Ltd"  # a test may write the record; game code may not
 	check_eq(HomeBuilders.land(w, "area:L"), a, "found by what they are, not by name")
 	check_eq(Company.ids(w).size(), n, "still no second set after a rename")
+
+
+func test_the_landing_crews_start_trained_and_a_later_hire_trains() -> void:
+	var w := _world(400, 200, 70)
+	var r := HomeBuilders.land(w, "area:L")
+	var b: String = r["home_world"][1]   # average: 40 crew, 2% penalty
+	check_eq(HomeBuilders.bw_milli(w, b), 40 * 980, "the landing crew builds at full rate in month one")
+	check_eq(Company.trained_count(w, b, "", "crew"), Company.staff_count(w, b, "", "crew"), "every one of them trained")
+	w.month += 1
+	check_eq(Households.hire(w, b, "crew", "G", "area:L", 10, {"test": true}), 10, "ten more hired later")
+	check_eq(HomeBuilders.bw_milli(w, b), (40 * 1000 + 10 * Company.trained_pm(0)) * 980 / 1000, "the new ten build half in their first month")
+	w.month += Company.TRAIN_MONTHS
+	check_eq(HomeBuilders.bw_milli(w, b), 50 * 980, "and in full once trained")

@@ -272,12 +272,16 @@ static func run(world: WorldState) -> void:
 ## after SETTLEMENT's wages (this month's staff before old debts), every OPEN liability that is due and whose debtor has
 ## an account is paid, oldest first, from the debtor's account to the creditor's as the balance allows. A part payment
 ## lowers the amount (and adds to "paid"); paid in full is PAID. Each payment is a LAW row and a ledger memo naming the
-## kind ("DEBT:<kind>"). A debt whose debtor or creditor has no account waits.
+## kind ("DEBT:<kind>"). A debt whose debtor or creditor has no account waits. A carried debt (carry_debts) is not
+## collected: it waits, OPEN, for step 5's court. After each payment the households are told (Maja's
+## Households.debt_received: layoff pay collected later is booked as layoff pay; Wilma, 2026-11-17).
 static func collect_debts(world: WorldState) -> void:
 	var t := world.table("liability")
 	var due: Array = []
 	for lid in Det.ordered(t):
 		var li: Dictionary = t[lid]
+		if bool(li.get("carried", false)):
+			continue
 		if String(li["status"]) == "OPEN" and int(li["due_month"]) <= world.month and int(li["amount"]) > 0:
 			due.append(lid)
 	var order := {}
@@ -310,6 +314,29 @@ static func collect_debts(world: WorldState) -> void:
 		Logbook.note(world, "LAW", String(li["debtor"]), "debt paid", {"kind": String(li["kind"]), "to": to},
 			{"amount": [before, int(li["amount"])], "status": ["OPEN", String(li["status"])]},
 			String(li.get("creditor", "")), String(lid))
+		load("res://sim/population/households.gd").debt_received(world, String(li.get("creditor", "")), String(li["kind"]), paid)
+
+
+## A founder going back into the pool with debts still OPEN carries them (the user's 60c; Wilma, 2026-11-17): each
+## OPEN liability of `debtor` is marked "carried" (and "carried_to" the pool), stays OPEN for step 5's court, and is
+## not collected (collect_debts skips it). Nothing is taken from the pool. One LAW row with the total. Returns the
+## total still owed (credits x S); 0 when nothing is open. Maja's Households.release_founder calls it.
+static func carry_debts(world: WorldState, debtor: String, pool: String) -> int:
+	var t := world.table("liability")
+	var owed := 0
+	var n := 0
+	for lid in Det.ordered(t):
+		var li: Dictionary = t[lid]
+		if String(li["debtor"]) != debtor or String(li["status"]) != "OPEN":
+			continue
+		owed += int(li["amount"])
+		if not bool(li.get("carried", false)):
+			li["carried"] = true
+			li["carried_to"] = pool
+			n += 1
+	if n > 0:
+		Logbook.note(world, "LAW", debtor, "debts carried", {"pool": pool, "debts": n}, {"carried": [0, owed]}, pool)
+	return owed
 
 
 ## What `debtor` paid on its debts this month (credits x S), for its books (Bob's "debts_paid"). Pure; 0 before

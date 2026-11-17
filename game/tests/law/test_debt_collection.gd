@@ -6,6 +6,7 @@ const F := preload("res://tests/support/staff_fixture.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 const J := preload("res://sim/law/justice_ops.gd")
 const WK := preload("res://sim/law/work_law.gd")
+const Households := preload("res://sim/population/households.gd")
 
 const S := 1000
 const CO := "company:1"
@@ -111,3 +112,42 @@ func test_a_debt_without_an_account_waits() -> void:
 	w.table("liability")[lid]["creditor_acct"] = CoreUtil.TREASURY
 	J.collect_debts(w)
 	check_eq(String(w.peek("liability")[lid]["status"]), "OPEN", "no debtor account: it waits")
+
+
+func test_collected_layoff_pay_is_booked_in_the_pool() -> void:
+	var w := _world()
+	w.table("pool")[POOL] = {}
+	var lid := _debt(w, "LAYOFF_PAY", 80 * S, 9, POOL, POOL)
+	_debt(w, "FINE", 10 * S, 3)
+	_fund(w, ACCT, 50 * S)
+	J.collect_debts(w)
+	check_eq(int(w.peek("liability")[lid]["paid"]), 40 * S, "the fine first, then what is left")
+	check_eq(int(Households.income(w, POOL).get("layoff_pay", 0)), 40 * S, "booked as layoff pay in the month it arrives (Maja)")
+
+
+func test_carried_debts_stay_open_and_are_not_collected() -> void:
+	var w := _world()
+	var who := "founder:7"
+	w.ledger.open_account(who)
+	var a := _debt(w, "GRANT", 60 * S, 5)
+	var b := _debt(w, "FINE", 15 * S, 6)
+	var other := _debt(w, "FINE", 5 * S, 6)
+	for lid in [a, b]:
+		w.table("liability")[lid]["debtor"] = who
+	var gone := _debt(w, "FINE", 9 * S, 2)
+	w.table("liability")[gone]["debtor"] = who
+	w.table("liability")[gone]["status"] = "PAID"
+	check_eq(J.carry_debts(w, who, POOL), 75 * S, "the total still owed")
+	var t := w.peek("liability")
+	for lid in [a, b]:
+		check(bool(t[lid]["carried"]) and String(t[lid]["carried_to"]) == POOL, "marked carried, to the pool")
+		check_eq(String(t[lid]["status"]), "OPEN", "still owed, for step 5's court")
+	check(not t[other].has("carried") and not t[gone].has("carried"), "another's debt and a paid one are left alone")
+	check_eq(Logbook.rows(w, {"kind": "LAW", "what": "debts carried", "who": who}).size(), 1, "one row with the total")
+	_fund(w, who, 100 * S)
+	J.collect_debts(w)
+	check_eq(int(t[a]["amount"]), 60 * S, "a carried debt is not collected")
+	check_eq(w.ledger.balance(who), 100 * S, "even when there is money")
+	check_eq(J.carry_debts(w, who, POOL), 75 * S, "asked again: the same total")
+	check_eq(Logbook.rows(w, {"kind": "LAW", "what": "debts carried", "who": who}).size(), 1, "and no new row")
+	check_eq(J.carry_debts(w, "founder:8", POOL), 0, "nothing open: 0")

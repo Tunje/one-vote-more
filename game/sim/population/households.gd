@@ -82,6 +82,9 @@ static func counts(world: WorldState, pid: String) -> Dictionary:
 		var l: Dictionary = world.peek("pop")[k]
 		var n: int = int(l["n"]) * S
 		out["persons"] += n
+		if String(l["occ"]) == "BUSINESS_OWNER":   # a founder or a founder's family: households of their own (60c, 15e)
+			out["owners"] += n
+			continue
 		match String(l["status"]):
 			"EMPLOYED":
 				out["lf"] += n
@@ -94,10 +97,7 @@ static func counts(world: WorldState, pid: String) -> Dictionary:
 			"CHILD":
 				out["children"] += n
 			_:
-				if String(l["occ"]) == "BUSINESS_OWNER":
-					out["owners"] += n
-				else:
-					out["nonpart"] += n
+				out["nonpart"] += n
 	out["households"] = int(float(out["persons"] - out["owners"]) / HOUSEHOLD_SIZE)   # owners are households of their own (60c)
 	return out
 
@@ -170,7 +170,10 @@ static func unemployed(world: WorldState, area: String, skill: String) -> Dictio
 ## in the area the PLANT stands in ("The district the plant hiring is in"; plant_area), not where the workers live.
 ## The staff entry is written first and the people are moved only once the company record has taken it, so a refusal
 ## is no hire, never people employed without a post. Returns persons hired.
-static func hire(world: WorldState, cid: String, plant_key: String, post_tier: String, area: String, n: int, why: Dictionary = {}, pay: int = -1) -> int:
+## trained = true: the landing's own hires, "arrived from the home world, operating" (Wilma's decision): they start
+## trained, so no training group is opened for them (Bob's staff_change: since >= 0 is not a new hire). Every other
+## hire trains (9.2: half output the first month, full after six).
+static func hire(world: WorldState, cid: String, plant_key: String, post_tier: String, area: String, n: int, why: Dictionary = {}, pay: int = -1, trained: bool = false) -> int:
 	if n <= 0:
 		return 0
 	var occ := String(Company.occupation(world, cid, post_tier))
@@ -202,7 +205,7 @@ static func hire(world: WorldState, cid: String, plant_key: String, post_tier: S
 			var k := int(parts[i])
 			if k <= 0:
 				continue
-			if not Company.staff_change(world, cid, plant_key, post_tier, labour_key(area, band, skill), k * S, pay):
+			if not Company.staff_change(world, cid, plant_key, post_tier, labour_key(area, band, skill), k * S, pay, world.month if trained else -1):
 				Logbook.note(world, "HIRE", cid, "no hire: the company record refused the post", {"plant": plant_key, "tier": post_tier, "pay": pay})
 				refused = true
 				break
@@ -216,6 +219,7 @@ static func hire(world: WorldState, cid: String, plant_key: String, post_tier: S
 		w["wanted"] = n
 		w["occupation"] = occ
 		w["pay"] = pay
+		w["trained"] = trained
 		w["plant_area"] = at
 		Logbook.note(world, "HIRE", cid, "hired %s %s" % [post_tier, plant_key], w, {"staff": [0, hired], "from": [{}, taken]}, area)
 	return hired
@@ -232,6 +236,12 @@ static func plant_area(world: WorldState, cid: String, plant_key: String) -> Str
 
 ## Company `cid` lays off up to n people from posts of `post_tier` at `plant_key`: the largest holders first, then by
 ## key, so the outcome repeats. They keep their occupation and skill (P7). Returns persons laid off.
+## Pay owed after a layoff (rebuild-company.md 9.2, the user's ruling on keeping workers): each person laid off is owed
+## WorkLaw.layoff_pay_months (Anni's law lever LAW_LAYOFF_PAY_MONTHS, 3) months of their own pay (their entry's pay). It is paid into the pool they
+## go back to, booked as income "layoff_pay", from the company's account as far as it reaches; the rest is owed to that
+## pool through the law (Justice.owe, kind LAYOFF_PAY). Every layoff owes it, the 19a layoffs too; quitting, a move for
+## better pay, death, retiring and leaving the colony owe nothing (they do not come here). The people are unemployed
+## from the day they are laid off, so they draw the benefit too (Wilma's decision).
 static func layoff(world: WorldState, cid: String, plant_key: String, post_tier: String, n: int, why: Dictionary = {}) -> int:
 	if n <= 0:
 		return 0
@@ -242,6 +252,8 @@ static func layoff(world: WorldState, cid: String, plant_key: String, post_tier:
 	keys.sort_custom(func(a, b): return nn.call(a) > nn.call(b) or (nn.call(a) == nn.call(b) and String(a) < String(b)))
 	var done := 0
 	var given := {}
+	var owed_by_pool := {}
+	var months := int(load("res://sim/law/work_law.gd").layoff_pay_months(world))   # Anni's one reader, the law on the day
 	for lk in keys:
 		if done >= n:
 			break
@@ -251,15 +263,52 @@ static func layoff(world: WorldState, cid: String, plant_key: String, post_tier:
 			{"status": "UNEMPLOYED"}, String(why.get("reason", "LAYOFF")), "skill:" + p[2])
 		if k <= 0:
 			continue
+		var pay_k := int(entries[lk]["pay"])   # read before the entry may go
 		var ok: bool = Company.staff_change(world, cid, plant_key, post_tier, String(lk), -k * S)
 		assert(ok, "staff_change refused a layoff")
 		given[lk] = k
+		var pid := pool_id(p[0], p[1])
+		owed_by_pool[pid] = int(owed_by_pool.get(pid, 0)) + k * pay_k * months
 		done += k
 	if done > 0:
+		var lp := _layoff_pay(world, cid, owed_by_pool)
+		Company.book(world, cid, "layoff_owed", int(lp["owed"]))   # the company's month (Bob: he publishes the month's layoffs)
+		Company.book(world, cid, "layoff_paid", int(lp["paid"]))
 		var w := why.duplicate()
 		w["wanted"] = n
-		Logbook.note(world, "LAYOFF", cid, "laid off %s %s" % [post_tier, plant_key], w, {"staff": [done, 0], "to": [{}, given]})
+		w["layoff_pay_months"] = months
+		Logbook.note(world, "LAYOFF", cid, "laid off %s %s" % [post_tier, plant_key], w, {"staff": [done, 0], "to": [{}, given],
+			"layoff_pay_owed": [0, int(lp["owed"])], "layoff_pay_paid": [0, int(lp["paid"])], "layoff_pay_debt": [0, int(lp["debt"])]})
 	return done
+
+
+## The law's debt collector paid `amount` of a debt of `kind` to `creditor` (Anni's collect_debts calls it after each
+## payment, loaded at call time): layoff pay collected later is booked in the pool's month as "layoff_pay", as if paid
+## on the day (Wilma). Any other creditor or kind: nothing to book.
+static func debt_received(world: WorldState, creditor: String, kind: String, amount: int) -> void:
+	if kind == "LAYOFF_PAY" and amount > 0 and world.peek("pool").has(creditor):
+		_book(world, creditor, "layoff_pay", amount)
+
+
+## The layoff pay of one layoff: {pool id: credits x S owed}. Paid from the company's account as far as it reaches
+## (shared over the pools in proportion, as wages are), the rest owed to each pool through the law. Returns
+## {owed, paid, debt}.
+static func _layoff_pay(world: WorldState, cid: String, owed_by_pool: Dictionary) -> Dictionary:
+	var owed := 0
+	for pid in owed_by_pool:
+		owed += int(owed_by_pool[pid])
+	if owed <= 0:
+		return {"owed": 0, "paid": 0, "debt": 0}
+	var paid_by: Dictionary = _pay(world, CoreUtil.acct(cid), owed_by_pool, "layoff_pay", "LAYOFF_PAY")
+	var paid := 0
+	var debt := 0
+	for pid in CoreUtil.sorted_keys(owed_by_pool):
+		paid += int(paid_by.get(pid, 0))
+		var rest := int(owed_by_pool[pid]) - int(paid_by.get(pid, 0))
+		if rest > 0:
+			load("res://sim/law/justice_ops.gd").owe(world, cid, String(pid), account(String(pid)), rest, "LAYOFF_PAY")
+			debt += rest
+	return {"owed": owed, "paid": paid, "debt": debt}
 
 
 ## Jobs = people (P14, plan 13 "no worker in two jobs"): every company's staff, summed by (area, band, skill,
@@ -454,9 +503,10 @@ static func homes(world: WorldState, area: String) -> Dictionary:
 	for pid in pools(world):
 		if String(world.peek("pool")[pid]["area"]) == area:
 			hh += int(counts(world, pid)["households"]) / S
+	var landing = load("res://sim/economy/landing.gd")
 	for id in world.peek(PERSON_TABLE):
-		if String(world.peek(PERSON_TABLE)[id]["area"]) == area:
-			hh += 1
+		if String(world.peek(PERSON_TABLE)[id]["area"]) == area and not bool(landing.lives_on_own_farm(world, String(id))):
+			hh += 1   # "the farm would be their home" (15e): a family on its own farm is no household in town
 	var h := AreaStore.capacity(world, area)
 	var fit := h * 1300 / 1000   # beyond 130% nobody else squeezes in (I1)
 	return {"homes": h, "households": hh, "occupancy_pm": hh * 1000 / maxi(1, h) if h > 0 else (0 if hh == 0 else 9999),
@@ -475,7 +525,7 @@ static func buyers(world: WorldState) -> Array:
 			out.append({"id": pid, "acct": account(pid), "area": String(world.peek("pool")[pid]["area"]), "persons": n})
 	for id in CoreUtil.sorted_keys(world.peek(PERSON_TABLE)):
 		var r: Dictionary = world.peek(PERSON_TABLE)[id]
-		out.append({"id": id, "acct": String(r["account"]), "area": String(r["area"]), "persons": 1})
+		out.append({"id": id, "acct": String(r["account"]), "area": String(r["area"]), "persons": family_size(world, String(id))})
 	return out
 
 
@@ -509,14 +559,34 @@ static func post_orders(world: WorldState) -> int:
 			continue
 		var food_budget := money   # food first: everything; rent and the rest are paid from what it leaves
 		var worth := food_budget
+		var by := food_by(world, String(b["area"]), qty, food_budget)
 		var oid := Market.order(world, {"kind": "POOL", "id": id, "acct": String(b["acct"]), "area": String(b["area"])}, "FOOD", qty,
-			worth, "NEED", food_budget)
+			worth, "NEED", food_budget, by)
 		if oid != "":
 			rec["orders"]["FOOD"] = oid
 			posted += 1
 		Logbook.note(world, "BUDGET", id, "food set aside first", {"need": need, "held": held, "money": money, "worth": worth,
-			"lines": {"FOOD": food_budget}}, {"ordered": [0, qty]}, "", oid)
+			"lines": {"FOOD": food_budget}, "by": by}, {"ordered": [0, qty]}, "", oid)
 	return posted
+
+
+## How a household's food order is filled (15e, Wilma's decision): "less desirable" is a preference, not a reason to go
+## hungry. A household whose food budget covers its whole need, bought in the order buyers rank the offers (ship food a
+## quarter dearer), ranks them so ("RANK"); one whose budget does not, takes the cheapest real price first ("PRICE"),
+## so nobody goes hungry beside unsold ship food. Costed on this month's offers (Bob's Market.offers, in rank order).
+static func food_by(world: WorldState, area: String, qty: int, budget: int) -> String:
+	var cost := 0
+	var left := qty
+	var dearest := 0
+	for off in Market.offers(world, "FOOD", area):
+		if left <= 0:
+			break
+		var q := mini(left, int(off["qty"]))
+		cost += q * int(off["price"]) / S
+		dearest = maxi(dearest, int(off["price"]))
+		left -= q
+	cost += left * dearest / S   # what is not on offer, costed at the dearest offer walked (Bob's review)
+	return "RANK" if cost <= budget else "PRICE"
 
 
 ## A buyer's month record (a pool's or an owner's).
@@ -695,14 +765,14 @@ static func applicants(world: WorldState, area: String, post_tier: String, pay: 
 ## n employed people of pool (area, band) leave their posts for `reason`: DEATH (they die), RETIRE (they retire), DEPART
 ## (they leave the colony), QUIT (they become unemployed). Posts are given up largest entries first across companies,
 ## so jobs = people holds. Returns persons. One LEAVE row per company.
-static func end_jobs(world: WorldState, area: String, band: String, n: int, reason: String) -> int:
+static func end_jobs(world: WorldState, area: String, band: String, n: int, reason: String, skill_only: String = "") -> int:
 	if n <= 0:
 		return 0
 	var cand: Array = []   # [cid, plant_key, tier, labour_key, persons]
 	for cid in Company.ids(world):
 		for e in Company.payroll(world, cid):
 			var lp := labour_parts(String(e["labour_key"]))
-			if lp[0] == area and lp[1] == band and int(e["n"]) >= S:
+			if lp[0] == area and lp[1] == band and int(e["n"]) >= S and (skill_only == "" or lp[2] == skill_only):
 				cand.append([cid, String(e["plant_key"]), String(e["post_tier"]), String(e["labour_key"]), int(e["n"]) / S])
 	cand.sort_custom(func(a, b): return int(a[4]) > int(b[4]) or (int(a[4]) == int(b[4]) and (String(a[0]) + String(a[1]) + String(a[3])) < (String(b[0]) + String(b[1]) + String(b[3]))))
 	var done := 0
@@ -755,13 +825,14 @@ static func move_jobs_band(world: WorldState, area: String, from_band: String, t
 				continue
 			var n := int(e["n"])
 			Company.staff_change(world, cid, String(e["plant_key"]), String(e["post_tier"]), lk_from, -n)
-			Company.staff_change(world, cid, String(e["plant_key"]), String(e["post_tier"]), lk_to, n, int(e["pay"]))
+			Company.staff_change(world, cid, String(e["plant_key"]), String(e["post_tier"]), lk_to, n, int(e["pay"]), int(e["since"]))
 
 
 ## One group of staff moves to another post at its pay (quitting for better pay, 12.5, 39): k persons of entry e
 ## ({cid, plant_key, post_tier, labour_key}) to vacancy v ({cid, plant_key, tier, pay}). Occupation follows the new
-## company. Returns persons moved.
-static func move_job(world: WorldState, e: Dictionary, v: Dictionary, k: int, reason: String) -> int:
+## company; the years at the workplace start again there. `bar_pm` is the bar the new pay had to reach (for the row).
+## Returns persons moved.
+static func move_job(world: WorldState, e: Dictionary, v: Dictionary, k: int, reason: String, bar_pm: int = 0) -> int:
 	var lp := labour_parts(String(e["labour_key"]))
 	var occ_old := String(Company.occupation(world, e["cid"], e["post_tier"]))
 	var occ_new := String(Company.occupation(world, v["cid"], v["tier"]))
@@ -774,18 +845,52 @@ static func move_job(world: WorldState, e: Dictionary, v: Dictionary, k: int, re
 	Company.staff_change(world, e["cid"], e["plant_key"], e["post_tier"], String(e["labour_key"]), -k * S)
 	if occ_new != occ_old:
 		PopStore.move_group(world, f, k, {"occ": occ_new}, reason, "skill:" + lp[2])
-	Logbook.note(world, "JOB", String(v["cid"]), reason, {"from": e["cid"], "old_pay": int(e.get("pay", 0)), "new_pay": int(v["pay"])},
+	Logbook.note(world, "JOB", String(v["cid"]), reason, {"from": e["cid"], "old_pay": int(e.get("pay", 0)), "new_pay": int(v["pay"]),
+		"bar_pm": bar_pm, "years": int(e.get("years", 0))},
 		{"staff": [0, k]}, String(e["cid"]))
 	return k
 
 
 # ---------------------------------------------------------------- SOCIAL: the labour month
 
-## SOCIAL: the negotiation (in NEGOTIATE_MONTH), then quitting for better pay. Returns persons who changed post.
+## The bar for quitting (9.2, the user's ruling, verbatim: "10% if it's a good job less if stressfull, and plus 1% per
+## year in the same workplace up to 15%"): a worker moves only to a post paying at least their own pay x (1 + bar).
+## Wilma's readings: "up to 15%" caps the whole bar (10% rising to 15% after five full years); per mille here.
+const QUIT_BAR_GOOD_PM := 100       # 10% in a good job
+const QUIT_BAR_STRESSED_PM := 50    # Wilma's reading: toward 5% at the highest stress (step 9)
+const QUIT_BAR_PER_YEAR_PM := 10    # + 1% per full year at the same workplace
+const QUIT_BAR_MAX_PM := 150        # up to 15%
+
+
+## The bar before the years: 10% in a good job, less in a stressful one. Stress comes at step 9; it will lower the bar
+## here, toward QUIT_BAR_STRESSED_PM at the highest stress. Until then every job is a good job: 10%.
+static func quit_bar_base_pm(_world: WorldState, _cid: String, _post_tier: String) -> int:
+	return QUIT_BAR_GOOD_PM
+
+
+## Full years a staff entry has been at its workplace (its head-count average "since" month).
+static func years_at(world: WorldState, e: Dictionary) -> int:
+	return maxi(0, world.month - int(e["since"])) / 12
+
+
+## The whole bar for one staff entry, per mille: the base + 1% per full year, at most 15%.
+static func quit_bar_pm(world: WorldState, cid: String, e: Dictionary) -> int:
+	return mini(QUIT_BAR_MAX_PM, quit_bar_base_pm(world, cid, String(e["post_tier"])) + QUIT_BAR_PER_YEAR_PM * years_at(world, e))
+
+
+## Does `new_pay` reach the bar over `old_pay`? new >= old x (1 + bar), in whole milli-credits without rounding.
+static func clears_bar(old_pay: int, new_pay: int, bar_pm: int) -> bool:
+	return new_pay * 1000 >= old_pay * (1000 + bar_pm)
+
+
+## SOCIAL: the negotiation (in NEGOTIATE_MONTH), then quitting for better pay, over the bar (quit_bar_pm). Staff a
+## better-paid vacancy did not move because its pay did not reach their bar get one STAY row per company a month, with
+## each entry's bar, old pay and the best pay it was offered. Returns persons who changed post.
 static func labour_month(world: WorldState) -> int:
 	if world.month_of_year() == NEGOTIATE_MONTH:
 		_negotiate(world)
 	var moved := 0
+	var stay := {}   # cid -> {entry key: [bar_pm, old pay, best pay offered, persons, years]}
 	for a in AreaStore.areas(world):
 		var area := String(a["id"])
 		var vac: Array = Company.vacancies(world, area)
@@ -805,10 +910,28 @@ static func labour_month(world: WorldState) -> int:
 					var lp := labour_parts(String(e["labour_key"]))
 					if lp[0] != area or int(e["pay"]) >= int(v["pay"]) or TIERS.find(lp[2]) < TIERS.find(String(v["tier"])):
 						continue
-					var ent := {"cid": cid, "plant_key": e["plant_key"], "post_tier": e["post_tier"], "labour_key": e["labour_key"], "pay": e["pay"]}
-					var k := move_job(world, ent, v, mini(open, int(e["n"]) / S), "QUIT_FOR_PAY")
+					var ek := "%s|%s|%s" % [e["plant_key"], e["post_tier"], e["labour_key"]]
+					var bar := quit_bar_pm(world, cid, e)
+					if not clears_bar(int(e["pay"]), int(v["pay"]), bar):
+						if not stay.has(cid):
+							stay[cid] = {}
+						var best: int = maxi(int(v["pay"]), int(stay[cid][ek][2])) if stay[cid].has(ek) else int(v["pay"])
+						stay[cid][ek] = [bar, int(e["pay"]), best, int(e["n"]) / S, years_at(world, e)]
+						continue
+					var ent := {"cid": cid, "plant_key": e["plant_key"], "post_tier": e["post_tier"], "labour_key": e["labour_key"],
+						"pay": e["pay"], "years": years_at(world, e)}
+					var k := move_job(world, ent, v, mini(open, int(e["n"]) / S), "QUIT_FOR_PAY", bar)
 					open -= k
 					moved += k
+	for cid in CoreUtil.sorted_keys(stay):
+		var rows: Dictionary = stay[cid]
+		var persons := 0
+		var entries := {}
+		for ek in CoreUtil.sorted_keys(rows):
+			var r: Array = rows[ek]
+			persons += int(r[3])
+			entries[ek] = {"bar_pm": int(r[0]), "old_pay": int(r[1]), "new_pay": int(r[2]), "persons": int(r[3]), "years": int(r[4])}
+		Logbook.note(world, "STAY", String(cid), "better pay below the bar", {"entries": entries}, {"stayed": [0, persons]})
 	return moved
 
 
@@ -906,7 +1029,14 @@ static func _free_adult(world: WorldState, pid: String) -> Dictionary:
 			var f := {"hb": String(p["area"]), "inc": String(p["band"]), "status": st}
 			if st == "NOT_IN_LF":
 				f["occ"] = "NONE"
-			if PopStore.count(world, f, "skill:" + sk) > 0:
+			# an owner's household is never free (a family working its own company is EMPLOYED; Terra's review); an
+			# employed adult must hold a post of that skill to give up
+			var n := PopStore.count(world, f, "skill:" + sk)
+			if not f.has("occ"):   # outside the labour force the filter is occ NONE already (Terra's re-check)
+				n -= PopStore.count(world, f.merged({"occ": "BUSINESS_OWNER"}), "skill:" + sk)
+			if st == "EMPLOYED" and _posts_of(world, String(p["area"]), String(p["band"]), sk) <= 0:
+				n = 0
+			if n > 0:
 				return {"status": st, "skill": sk}
 	return {}
 
@@ -915,7 +1045,12 @@ static func _free_adult(world: WorldState, pid: String) -> Dictionary:
 ## (NOT_IN_LF, BUSINESS_OWNER in PopStore, so they age, vote and are counted), with their own account holding one
 ## household's share of the pool's savings. An employed founder gives up their post first. `ref`: the plan (or company)
 ## they found. Returns "founder:N" ("" if the pool has nobody free). Fact COMP_COMPANY_PLANNED.
-static func make_founder(world: WorldState, pid: String, ref: String) -> String:
+## family = true (a FAMILY-size company, 15e: "the family that owns a family farm works it themselves"): the founder's
+## whole household leaves with them (the founder's household is the family, Wilma's detail): one more adult for each
+## adult a household of the pool has beyond one, and its children, both as whole persons with a carried remainder. They
+## all become BUSINESS_OWNER in PopStore (so no pool, hire or jobs = people check counts them); adults stay outside
+## the labour force until family_work puts them on the farm's posts. They eat from the founder's account.
+static func make_founder(world: WorldState, pid: String, ref: String, family: bool = false) -> String:
 	var who := _free_adult(world, pid)
 	if who.is_empty():
 		return ""
@@ -929,37 +1064,58 @@ static func make_founder(world: WorldState, pid: String, ref: String) -> String:
 	if had:   # a household that had a grant leaves the pool: one fewer granted household there
 		world.table("pool")[pid]["granted"] = maxi(0, int(p.get("granted", 0)) - 1)
 	if String(who["status"]) == "EMPLOYED":
-		end_jobs(world, area, band, 1, "QUIT")
+		end_jobs(world, area, band, 1, "QUIT", String(who["skill"]))
 		who["status"] = "UNEMPLOYED"
 	var f := {"hb": area, "inc": band, "status": String(who["status"])}
 	if String(who["status"]) == "NOT_IN_LF":
 		f["occ"] = "NONE"
-	PopStore.move_group(world, f, 1, {"status": "NOT_IN_LF", "occ": "BUSINESS_OWNER"}, "FOUNDER", "skill:" + String(who["skill"]))
+	if PopStore.move_group(world, f, 1, {"status": "NOT_IN_LF", "occ": "BUSINESS_OWNER"}, "FOUNDER", "skill:" + String(who["skill"])) <= 0:
+		return ""   # nobody was taken: no record without a person behind it
+	var adults: Array = [{"skill": String(who["skill"]), "was": "NOT_IN_LF" if String(who["status"]) == "NOT_IN_LF" else "UNEMPLOYED"}]
+	var children := 0
+	if family:
+		var fam := _family_take(world, pid)
+		adults.append_array(fam["adults"])
+		children = int(fam["children"])
 	var id := world.new_id("founder")
 	world.ledger.open_account(id)
 	world.table(PERSON_TABLE)[id] = {"id": id, "area": area, "band": band, "pool": pid, "account": id, "skill": String(who["skill"]),
 		"owns": [ref] if ref != "" else [], "founded": world.month, "had_grant": had,
-		"was": "NOT_IN_LF" if String(who["status"]) == "NOT_IN_LF" else "UNEMPLOYED"}
+		"was": "NOT_IN_LF" if String(who["status"]) == "NOT_IN_LF" else "UNEMPLOYED",
+		"family": {"adults": adults, "children": children, "working": {}}}
 	var amt := mini(share, maxi(0, savings(world, pid)))
 	if amt > 0:
 		world.ledger.transfer(account(pid), id, amt, "FOUNDER_SAVINGS", world.month)
-	Logbook.note(world, "FOUNDER", id, "a founder counted one by one", {"pool": pid, "skill": who["skill"], "was": who["status"]},
-		{"money": [0, amt]}, pid, ref)
+	Logbook.note(world, "FOUNDER", id, "a founder counted one by one", {"pool": pid, "skill": who["skill"], "was": who["status"],
+		"family": family}, {"money": [0, amt], "household": [0, adults.size() + children]}, pid, ref)
 	world.add_fact({"type": "COMP_COMPANY_PLANNED", "owner": "econ", "subjects": [{"kind": "FOUNDER", "id": id}], "responsible": [],
 		"impact": {}, "magnitude": 10, "visibility": "PUBLIC", "data": {"founder": id, "plan": ref, "area": area}})
 	return id
 
 
 ## A founder who owns nothing any more and owes nothing carried goes back into the pool of their area and band (60c),
-## with their money. Returns true if they went back.
+## with their money. Returns true if they went back. "When they no longer own a company or a plan and their debts are
+## settled or carried" (60c): a debt still OPEN (a grant owed back after a given-up plan) is CARRIED (Wilma): the
+## household goes back like any other, to be hired and draw the benefit as pool people do; the debt stays OPEN against
+## the founder's id, its liability rows marked "carried", and a stub record (table "founder_carried": id, pool, owed)
+## keeps the debt's name. Nothing is collected from a pool for it: what the founder cannot pay goes to court like any
+## debt (60b), which is step 5's court.
 static func release_founder(world: WorldState, id: String) -> bool:
 	var r: Dictionary = world.peek(PERSON_TABLE).get(id, {})
 	if r.is_empty() or not (r["owns"] as Array).is_empty():
 		return false
+	_carry_debts(world, id, String(r["pool"]))
 	var pid := ensure_pool(world, String(r["area"]), String(r["band"]))
+	family_work(world, id, {})   # off the farm's posts first
 	var f := {"hb": String(r["area"]), "inc": String(r["band"]), "status": "NOT_IN_LF", "occ": "BUSINESS_OWNER"}
-	# back to where they came from: outside the labour force stays outside it; anyone else looks for work (Bob's review)
-	PopStore.move_group(world, f, 1, {"status": String(r.get("was", "UNEMPLOYED")), "occ": "NONE"}, "FOUNDER_BACK", "skill:" + String(r["skill"]))
+	# back to where they came from: outside the labour force stays outside it; anyone else looks for work (Bob's review).
+	# The whole household goes back together (60c), the founder first.
+	var fam: Dictionary = r.get("family", {"adults": [{"skill": r["skill"], "was": r.get("was", "UNEMPLOYED")}], "children": 0})
+	for ad in fam["adults"]:
+		PopStore.move_group(world, f, 1, {"status": String(ad["was"]), "occ": "NONE"}, "FOUNDER_BACK", "skill:" + String(ad["skill"]))
+	if int(fam["children"]) > 0:
+		PopStore.move_group(world, {"hb": String(r["area"]), "inc": String(r["band"]), "status": "CHILD", "occ": "BUSINESS_OWNER"},
+			int(fam["children"]), {"occ": "NONE"}, "FOUNDER_BACK")
 	var amt := maxi(0, world.ledger.balance(id))
 	if amt > 0:
 		world.ledger.transfer(id, account(pid), amt, "FOUNDER_BACK", world.month)
@@ -970,6 +1126,237 @@ static func release_founder(world: WorldState, id: String) -> bool:
 	world.table(PERSON_TABLE).erase(id)
 	Logbook.note(world, "FOUNDER", id, "back into the pool", {"pool": pid}, {"money": [amt, 0]}, pid)
 	return true
+
+
+## SOCIAL, every month: every founder who owns nothing goes back into the pool (60c; Ella: the grant's reclaim does
+## not retry, this does). Returns how many went back.
+static func release_idle_founders(world: WorldState) -> int:
+	var n := 0
+	for id in CoreUtil.sorted_keys(world.peek(PERSON_TABLE)):
+		if (world.peek(PERSON_TABLE)[id]["owns"] as Array).is_empty() and release_founder(world, String(id)):
+			n += 1
+	return n
+
+
+## A founder going back with debts still OPEN carries them (60c): the law marks its own rows carried (Anni's
+## Justice.carry_debts: they stay OPEN, for step 5's court, and the collector skips them), and a stub keeps the
+## debtor's name: founder_carried[id] = {id, pool, owed}. Returns what is owed.
+static func _carry_debts(world: WorldState, id: String, pool: String) -> int:
+	var owed := int(load("res://sim/law/justice_ops.gd").carry_debts(world, id, pool))
+	if owed > 0:
+		world.table("founder_carried")[id] = {"id": id, "pool": pool, "owed": owed}
+		Logbook.note(world, "FOUNDER", id, "goes back carrying a debt", {"pool": pool}, {"owed": [0, owed]}, pool)
+	return owed
+
+
+## Persons holding posts of `skill` in an area's band, over every company.
+static func _posts_of(world: WorldState, area: String, band: String, skill: String) -> int:
+	var lk := labour_key(area, band, skill)
+	var n := 0
+	for cid in Company.ids(world):
+		for e in Company.payroll(world, cid):
+			if String(e["labour_key"]) == lk:
+				n += int(e["n"]) / S
+	return n
+
+
+## AreaStore's moves (through Demography.on_area_moves): a split leaves owners' households where they are; a merge
+## moves everyone, so the founders of a merged-away area, and the stubs of carried debts, now live in the area it
+## merged into, in the same band (Terra's review).
+static func on_area_moves(world: WorldState, moves: Array) -> void:
+	var into := {}
+	for m in moves:
+		if String(AreaStore.get_area(world, String(m["from"])).get("status", "")) == "MERGED":
+			into[String(m["from"])] = String(m["to"])
+	if into.is_empty():
+		return
+	for id in CoreUtil.sorted_keys(world.peek(PERSON_TABLE)):
+		var r: Dictionary = world.table(PERSON_TABLE)[id]
+		if into.has(String(r["area"])):
+			r["area"] = String(into[String(r["area"])])
+			r["pool"] = ensure_pool(world, String(r["area"]), String(r["band"]))
+			Logbook.note(world, "FOUNDER", id, "moved with a merge", {}, {"area": ["", r["area"]]})
+	for id in CoreUtil.sorted_keys(world.peek("founder_carried")):
+		var c: Dictionary = world.table("founder_carried")[id]
+		var a := String(c["pool"]).get_slice("|", 0)
+		if into.has(a):
+			c["pool"] = pool_id(String(into[a]), String(c["pool"]).get_slice("|", 1))
+
+
+## The rest of a founder's household for a family company: for each adult a household of the pool has beyond one, one
+## more adult (unemployed, then outside the labour force, then employed, who gives up their post), and the pool's
+## children per household; whole persons, the fractions carried per pool. Returns {adults: [{skill, was}], children}.
+static func _family_take(world: WorldState, pid: String) -> Dictionary:
+	var p: Dictionary = world.peek("pool")[pid]
+	var area := String(p["area"])
+	var band := String(p["band"])
+	var c := counts(world, pid)
+	var hh := float(c["persons"] - c["owners"]) / float(S) / HOUSEHOLD_SIZE
+	var out := {"adults": [], "children": 0}
+	if hh <= 0.0:
+		return out
+	var D = load("res://sim/population/demography.gd")
+	var adults_hh := float(c["persons"] - c["owners"] - c["children"]) / float(S) / hh
+	var more := int(D._whole(world, "fam_ad|" + pid, maxf(0.0, adults_hh - 1.0)))
+	for i in more:
+		var who := _free_adult(world, pid)
+		if who.is_empty():
+			break
+		if String(who["status"]) == "EMPLOYED":
+			end_jobs(world, area, band, 1, "QUIT", String(who["skill"]))
+			who["status"] = "UNEMPLOYED"
+		var f := {"hb": area, "inc": band, "status": String(who["status"])}
+		if String(who["status"]) == "NOT_IN_LF":
+			f["occ"] = "NONE"
+		if PopStore.move_group(world, f, 1, {"status": "NOT_IN_LF", "occ": "BUSINESS_OWNER"}, "FOUNDER_FAMILY", "skill:" + String(who["skill"])) > 0:
+			out["adults"].append({"skill": String(who["skill"]), "was": "NOT_IN_LF" if String(who["status"]) == "NOT_IN_LF" else "UNEMPLOYED"})
+	var kids := int(D._whole(world, "fam_ch|" + pid, float(c["children"]) / float(S) / hh))
+	if kids > 0:
+		out["children"] = PopStore.move_group(world, {"hb": area, "inc": band, "status": "CHILD", "occ": "NONE"}, kids,
+			{"occ": "BUSINESS_OWNER"}, "FOUNDER_FAMILY")
+	return out
+
+
+## How many persons a founder's household holds (the founder, their family's adults and children).
+static func family_size(world: WorldState, id: String) -> int:
+	var fam: Dictionary = world.peek(PERSON_TABLE).get(id, {}).get("family", {})
+	return maxi(1, (fam.get("adults", []) as Array).size() + int(fam.get("children", 0)))
+
+
+## The founder's household's adults who can work, by skill (the founder among them): {"G", "S", "Sp"}. Bob fills a
+## family company's posts from them first, each post tier from adults of that tier or higher.
+static func family_adults(world: WorldState, id: String) -> Dictionary:
+	var out := {"G": 0, "S": 0, "Sp": 0}
+	for ad in world.peek(PERSON_TABLE).get(id, {}).get("family", {}).get("adults", []):
+		out[String(ad["skill"])] = int(out[String(ad["skill"])]) + 1
+	return out
+
+
+## The family adults now working its own company's posts, by skill.
+static func family_working(world: WorldState, id: String) -> Dictionary:
+	var out := {"G": 0, "S": 0, "Sp": 0}
+	var w: Dictionary = world.peek(PERSON_TABLE).get(id, {}).get("family", {}).get("working", {})
+	for sk in w:
+		out[sk] = int(w[sk])
+	return out
+
+
+## The family works its own company's posts (15e): `by_skill` {skill: persons} of its adults are EMPLOYED (still of
+## occupation BUSINESS_OWNER: on no payroll, employed in the counts); the rest outside the labour force. Never more
+## than the family has. Bob's opening (and his month, when it changes) calls it; {} takes them all off.
+static func family_work(world: WorldState, id: String, by_skill: Dictionary) -> void:
+	var r: Dictionary = world.table(PERSON_TABLE).get(id, {})
+	if r.is_empty() or not r.has("family"):
+		return
+	var have := family_adults(world, id)
+	var now := family_working(world, id)
+	var base := {"hb": String(r["area"]), "inc": String(r["band"]), "occ": "BUSINESS_OWNER"}
+	var w := {}
+	for sk in TIERS:
+		var want := clampi(int(by_skill.get(sk, 0)), 0, int(have[sk]))
+		var d := want - int(now[sk])
+		if d > 0:
+			PopStore.move_group(world, base.merged({"status": "NOT_IN_LF"}), d, {"status": "EMPLOYED"}, "FAMILY_WORK", "skill:" + sk)
+		elif d < 0:
+			PopStore.move_group(world, base.merged({"status": "EMPLOYED"}), -d, {"status": "NOT_IN_LF"}, "FAMILY_WORK", "skill:" + sk)
+		if want > 0:
+			w[sk] = want
+	r["family"]["working"] = w
+	Logbook.note(world, "FAMILY", id, "works its own company", {"adults": have}, {"working": [now, family_working(world, id)]})
+
+
+## The owners of a family company take its winnings, no salary (the user, 15e: "The owners of a family farm should take
+## winnings no sallery, wich comes after and saves the issue"). Bob decides when and how much; this moves it into the
+## founder's account, never more than `from_acct` holds, booked as the household's income "winnings". Returns paid.
+static func pay_winnings(world: WorldState, id: String, from_acct: String, amount: int) -> int:
+	var r: Dictionary = world.table(PERSON_TABLE).get(id, {})
+	var amt := mini(amount, maxi(0, world.ledger.balance(from_acct)))
+	if r.is_empty() or amt <= 0:
+		return 0
+	world.ledger.transfer(from_acct, String(r["account"]), amt, "WINNINGS", world.month)
+	if int(r.get("income", {}).get("month", -1)) != world.month:
+		r["income"] = {"month": world.month}
+	r["income"]["winnings"] = int(r["income"].get("winnings", 0)) + amt
+	Logbook.note(world, "PAY", from_acct, "winnings", {"founder": id, "asked": amount}, {"paid": [0, amt]}, id)
+	return amt
+
+
+## This month's income of a founder's household by kind (winnings), credits x S.
+static func founder_income(world: WorldState, id: String) -> Dictionary:
+	var inc: Dictionary = world.peek(PERSON_TABLE).get(id, {}).get("income", {})
+	return inc.duplicate() if int(inc.get("month", -1)) == world.month else {}
+
+
+## Keeps the founders' households in step with PopStore after deaths and children growing up (which fall on people,
+## not on records): per area and band, where fewer owners' adults or children stand in PopStore than the records hold,
+## the records give them up, the largest households first (a founder themself last). The working count follows.
+## Demography.monthly calls it at its end.
+static func reconcile_families(world: WorldState) -> void:
+	var by_ab := {}
+	for id in CoreUtil.sorted_keys(world.peek(PERSON_TABLE)):
+		var r: Dictionary = world.peek(PERSON_TABLE)[id]
+		var k := "%s|%s" % [r["area"], r["band"]]
+		if not by_ab.has(k):
+			by_ab[k] = []
+		by_ab[k].append(String(id))
+	for k in CoreUtil.sorted_keys(by_ab):
+		var area := String(k).get_slice("|", 0)
+		var band := String(k).get_slice("|", 1)
+		var ids: Array = by_ab[k]
+		ids.sort_custom(func(a, b): return family_size(world, a) > family_size(world, b) or (family_size(world, a) == family_size(world, b) and a < b))
+		var f := {"hb": area, "inc": band, "occ": "BUSINESS_OWNER"}
+		var kids_real := PopStore.count(world, f.merged({"status": "CHILD"}))
+		var kids_rec := 0
+		for id in ids:
+			kids_rec += int(world.peek(PERSON_TABLE)[id].get("family", {}).get("children", 0))
+		var short := kids_rec - kids_real
+		for id in ids:
+			if short <= 0:
+				break
+			var fam: Dictionary = world.table(PERSON_TABLE)[id].get("family", {})
+			var k2 := mini(short, int(fam.get("children", 0)))
+			if k2 > 0:
+				fam["children"] = int(fam["children"]) - k2
+				short -= k2
+				Logbook.note(world, "FAMILY", id, "a child is gone (grown up or died)", {}, {"children": [int(fam["children"]) + k2, int(fam["children"])]})
+		for sk in TIERS:
+			var real := PopStore.count(world, f.merged({"status": "NOT_IN_LF"}), "skill:" + sk) + PopStore.count(world, f.merged({"status": "EMPLOYED"}), "skill:" + sk)
+			var rec := 0
+			for id in ids:
+				rec += int(family_adults(world, id)[sk])
+			var gone := rec - real
+			for pass_founder in [false, true]:
+				for id in ids:
+					if gone <= 0:
+						break
+					var fam: Dictionary = world.table(PERSON_TABLE)[id].get("family", {})
+					var ads: Array = fam.get("adults", [])
+					for i in range(ads.size() - 1, -1, -1):
+						if gone <= 0:
+							break
+						if String(ads[i]["skill"]) != sk or (i == 0 and not pass_founder):
+							continue
+						ads.remove_at(i)
+						gone -= 1
+						var wk: Dictionary = fam.get("working", {})
+						if int(wk.get(sk, 0)) > int(family_adults(world, id)[sk]):
+							wk[sk] = int(family_adults(world, id)[sk])
+						Logbook.note(world, "FAMILY", id, "an adult of the household died", {"skill": sk}, {"adults": [ads.size() + 1, ads.size()]})
+			# and those working the posts: the EMPLOYED owners' people of this skill (a death may fall on one at work)
+			var emp := PopStore.count(world, f.merged({"status": "EMPLOYED"}), "skill:" + sk)
+			var wrec := 0
+			for id in ids:
+				wrec += int(family_working(world, id)[sk])
+			var off := wrec - emp
+			for id in ids:
+				if off <= 0:
+					break
+				var wk: Dictionary = world.table(PERSON_TABLE)[id].get("family", {}).get("working", {})
+				var d := mini(off, int(wk.get(sk, 0)))
+				if d > 0:
+					wk[sk] = int(wk[sk]) - d
+					off -= d
+					Logbook.note(world, "FAMILY", id, "one fewer at work on its own company", {"skill": sk}, {"working": [int(wk[sk]) + d, int(wk[sk])]})
 
 
 ## The grant was paid to this founder's plan (Ella's Grants.apply calls it): their household has had its one grant (61).

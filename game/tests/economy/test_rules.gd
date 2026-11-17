@@ -24,9 +24,9 @@ func _farm(w: WorldState, staff_g: int, staff_s: int) -> Array:
 	var id := Company.create(w, "FARM", "SMALL", HW, "F", {"area": "landing"})
 	var pid := Company.add_plant(w, id, "SMALL")
 	if staff_g > 0:
-		Company.staff_change(w, id, pid, "G", "landing|I2|G", staff_g * S, 300 * S)
+		Company.staff_change(w, id, pid, "G", "landing|I2|G", staff_g * S, 300 * S, 0)   # trained staff, in place from the start (no training, 9.2)
 	if staff_s > 0:
-		Company.staff_change(w, id, pid, "S", "landing|I3|S", staff_s * S, 450 * S)
+		Company.staff_change(w, id, pid, "S", "landing|I3|S", staff_s * S, 450 * S, 0)
 	return [id, pid]
 
 
@@ -49,8 +49,8 @@ func test_inputs_limit_what_is_made_and_are_used_up() -> void:
 	var w := _w()
 	var b := Company.create(w, "BAKERY", "SMALL", HW, "B", {"area": "landing"})
 	var pid := Company.add_plant(w, b, "SMALL")
-	Company.staff_change(w, b, pid, "G", "landing|I2|G", 4 * S, 300 * S)
-	Company.staff_change(w, b, pid, "S", "landing|I3|S", 2 * S, 450 * S)
+	Company.staff_change(w, b, pid, "G", "landing|I2|G", 4 * S, 300 * S, 0)
+	Company.staff_change(w, b, pid, "S", "landing|I3|S", 2 * S, 450 * S, 0)
 	var need := int(TypeTable.inputs_milli("BAKERY", "SMALL")["FOOD"])
 	Company.stock_add(w, b, "FOOD", need / 4, 60 * S, "LANDING", "test")
 	var made := Making.make_plant(w, b, pid)
@@ -123,7 +123,7 @@ func test_a_level_walked_down_to_nothing_climbs_back_when_asked() -> void:
 func test_builders_run_the_same_rules_on_their_crew_and_their_making_price() -> void:
 	var w := _w()
 	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
-	Company.staff_change(w, b, "crew", "G", "landing|I2|G", 12 * S, 300 * S)
+	Company.staff_change(w, b, "crew", "G", "landing|I2|G", 12 * S, 300 * S, 0)
 	Company.book(w, b, "wages_due", 3600 * S)
 	check_eq(Making.making_price(w, b), 3600 * S * S / TypeTable.output_milli("BUILDER", "SMALL"), "a builder's making price over its crew's full output")
 	Rules.output_rule(w, b, {"offered": 20 * S, "sold": 10 * S, "unmet_above": 0, "refused": 0}, false)
@@ -173,6 +173,9 @@ func test_staff_follow_the_posts_and_unpaid_staff_are_laid_off() -> void:
 	Rules.staff_to_posts(w, id)
 	check_eq(Company.staff_count(w, id) / S, 17, "a small builder's 12 + 6 + 2 posts: 12 general, the 5 skilled there are, no specialist (never a lower skill)")
 	Company.set_level(w, id, "crew", 500)
+	Rules.staff_to_posts(w, id)
+	check_eq(Company.staff_count(w, id) / S, 17, "slack for a month: kept, a layoff costs more (9.2)")
+	w.month = 24   # the slack has lasted two years: idle wages now outweigh the layoff pay, the advert and training
 	Rules.staff_to_posts(w, id)
 	check_eq(Company.staff_count(w, id) / S, 9, "at half level its posts are 6 + 3 + 1: it lays off to 6 + 3")
 	Company.book(w, id, "wages_due", 1000 * S)
@@ -250,6 +253,147 @@ func test_the_needs_line_reads_the_last_food_price_when_food_is_sold_out() -> vo
 	Market.clear(w)
 	check_eq(Rules.needs_food(w, "landing"), {"price": 200 * S, "from": "LAST_SOLD"}, "sold out: the last price it sold at, not the starting price")
 	check_eq(Rules.needs_line(w, "landing"), TypeTable.start_price_of("LANDLORD") + 200 * S * 2500 / 1000, "and the line uses it")
+
+
+func test_a_family_works_its_own_posts_unpaid_and_hiring_fills_the_rest() -> void:
+	var w := _w()
+	check_eq(Company.family_fill({"G": 6, "S": 2, "Sp": 0}, {"G": 1, "S": 0, "Sp": 1}), {"G": 1, "S": 1, "Sp": 0},
+		"each tier from the adults of that skill or above: the specialist takes a skilled post")
+	var f := _farm(w, 0, 0)   # a small farm, nobody hired
+	var alone := Making.make_plant(w, f[0], f[1])
+	check(Company.family_set(w, f[0], f[1], "founder:x", {"G": 1, "S": 1}), "the family in its posts")
+	check_eq(Company.family_of(w, f[0]), "founder:x", "whose family it is")
+	check_eq(Company.family_count(w, f[0]), 2 * S, "two of the family work")
+	check(alone == 0 and Making.make_plant(w, f[0], f[1]) > 0, "the family's work counts in making")
+	# a real household (Maja's founder with family), on a builder's crew (its posts stand where it does)
+	var pool := Households.seed_test(w, "landing", "I2", "G", 40)
+	Households.seed_test(w, "landing", "I3", "S", 5)
+	var fam := Households.make_founder(w, pool, "", true)
+	var adults: Dictionary = Households.family_adults(w, fam)
+	var n_ad := int(adults["G"]) + int(adults["S"]) + int(adults["Sp"])
+	check(n_ad >= 1, "the household has %d adults" % n_ad)
+	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	Company.family_set(w, b, "crew", fam, {})
+	Rules.staff_to_posts(w, b)
+	check_eq(Company.family_count(w, b) / S, n_ad, "every adult of the family works a post")
+	var fw: Dictionary = Households.family_working(w, fam)
+	check_eq(int(fw["G"]) + int(fw["S"]) + int(fw["Sp"]), n_ad, "and the households' side has them employed")
+	check_eq((Company.staff_count(w, b) + Company.family_count(w, b)) / S, 17, "hired only for the posts the family leaves (12 + 5 of 6 skilled there are)")
+	check_eq(Company.wage_bill(w, b), Company.staff_count(w, b, "G") / S * 300 * S + Company.staff_count(w, b, "S") / S * TypeTable.salary("S"), "the family is on no payroll")
+	check(Households.check(w).is_empty(), "jobs = people still holds: %s" % str(Households.check(w)))
+	Company.book(w, b, "wages_due", 1000 * S)
+	Company.book(w, b, "wages", 0)
+	Rules.staff_to_posts(w, b)   # 19a: it could pay none of its hired staff
+	check_eq(Company.staff_count(w, b), 0, "19a lays off every hired worker it could not pay")
+	check_eq(Company.family_count(w, b) / S, n_ad, "but never the family")
+
+
+func test_the_family_takes_the_winnings_above_a_month_of_what_it_does_not_do() -> void:
+	var w := _w()
+	var f := _farm(w, 2, 0)
+	var fam := Households.make_founder(w, Households.seed_test(w, "landing", "I2", "G", 10), "", true)
+	Company.family_set(w, f[0], f[1], fam, {"G": 1})
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(f[0]), 5000 * S, "TEST", 0)   # the founder's opening money
+	check_eq(int(Rules.winnings(w, f[0])["amount"]), 0, "opening money is capital, not winnings: nothing earned yet")
+	Company.book(w, f[0], "rev", 2000 * S)
+	Company.book(w, f[0], "inputs", 400 * S)
+	Company.book(w, f[0], "wages", 600 * S)
+	Company.book(w, f[0], "upkeep", 100 * S)
+	var wn := Rules.winnings(w, f[0])
+	check_eq(int(wn["earned"]), 2000 * S - 400 * S - 600 * S - 100 * S, "the month's takings less what it paid")
+	check_eq(int(wn["keep"]), 2 * 300 * S + 400 * S + 100 * S, "it keeps back the hired wages, inputs and upkeep")
+	check_eq(int(wn["amount"]), int(wn["earned"]), "the family takes what the month earned")
+	Rules.pay_winnings(w)
+	check_eq(w.ledger.balance(CoreUtil.acct(f[0])), 5000 * S - int(wn["amount"]), "paid out; the capital stays")
+	check_eq(int(Company.books_month(w, f[0])["winnings"]), int(wn["amount"]), "booked")
+	var rows := Logbook.rows(w, {"kind": "WINNINGS"}).size()
+	Rules.pay_winnings(w)
+	check_eq(Logbook.rows(w, {"kind": "WINNINGS"}).size(), rows, "once a month")
+	check_eq(int(Households.founder_income(w, fam)["winnings"]), int(wn["amount"]), "the household's income")
+
+
+func test_a_loss_is_made_good_before_the_family_takes_winnings() -> void:
+	var w := _w()
+	var f := _farm(w, 0, 0)
+	var fam := Households.make_founder(w, Households.seed_test(w, "landing", "I2", "G", 10), "", true)
+	Company.family_set(w, f[0], f[1], fam, {"G": 1})
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(f[0]), 5000 * S, "TEST", 0)
+	Company.book(w, f[0], "upkeep", 300 * S)   # a bad month: nothing sold
+	Rules.pay_winnings(w)
+	var r: Dictionary = Logbook.rows(w, {"kind": "WINNINGS"})[-1]
+	check_eq([r["what"], int(r["why"]["loss_carried_after"])], ["no winnings this month", 300], "it lost 300: carried")
+	Company.close_month(w, f[0])
+	w.month = 1
+	Company.book(w, f[0], "rev", 200 * S)   # earns 200: pays the loss down to 100, nothing for the family
+	Rules.pay_winnings(w)
+	r = Logbook.rows(w, {"kind": "WINNINGS"})[-1]
+	check_eq([int(r["change"]["winnings"][1]), int(r["why"]["pays_down"]), int(r["why"]["loss_carried_after"])], [0, 200, 100], "first the loss")
+	Company.close_month(w, f[0])
+	w.month = 2
+	Company.book(w, f[0], "rev", 500 * S)   # earns 500: 100 makes the loss good, 400 is the family's
+	Rules.pay_winnings(w)
+	r = Logbook.rows(w, {"kind": "WINNINGS"})[-1]
+	check_eq([int(r["change"]["winnings"][1]), int(r["why"]["loss_carried"]), int(r["why"]["loss_carried_after"])], [400, 100, 0], "then the family")
+
+
+func test_a_new_hire_makes_half_rising_evenly_to_full_after_six_months() -> void:
+	var w := _w()
+	check_eq([Company.trained_pm(0), Company.trained_pm(3), Company.trained_pm(5), Company.trained_pm(6)], [500, 750, 916, 1000], "half, rising evenly, full after six")
+	var id := Company.create(w, "FARM", "SMALL", HW, "F", {"area": "landing"})
+	var pid := Company.add_plant(w, id, "SMALL")
+	Company.staff_change(w, id, pid, "G", "landing|I2|G", 4 * S, 300 * S, 0)   # four trained
+	Company.staff_change(w, id, pid, "G", "landing|I2|G", 2 * S, 300 * S)      # two hired now
+	check_eq(Company.trained_count(w, id), 4 * S + 2 * S / 2, "the two new count as one")
+	w.month = 3
+	check_eq(Company.trained_count(w, id), 4 * S + 2 * S * 750 / 1000, "three months on")
+	Company.staff_change(w, id, pid, "G", "landing|I2|G", -3 * S)   # half leave, trainees in proportion
+	check_eq(Company.trained_count(w, id), 2 * S + S * 750 / 1000, "leavers take trainees in proportion")
+	w.month = 6
+	check_eq(Company.trained_count(w, id), 3 * S, "all trained after six months")
+
+
+func test_a_company_keeps_slack_staff_until_idle_wages_outweigh_what_a_layoff_costs() -> void:
+	var w := _w()
+	Households.seed_test(w, "landing", "I2", "G", 40)
+	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(b), 1000000 * S, "TEST", 0)
+	Rules.staff_to_posts(w, b)
+	var g0 := Company.staff_count(w, b, "G")
+	check_eq(g0, 12 * S, "twelve general posts filled")
+	Company.set_level(w, b, "crew", 500)   # half the posts
+	var months := 0
+	while Company.staff_count(w, b, "G") == g0 and months < 24:
+		Rules.staff_to_posts(w, b)
+		months += 1
+		w.month += 1
+	var wg := Rules.layoff_weighing(w, b, "crew", "G", 1)
+	check(months > int(wg["layoff_months"]), "it kept them %d months: longer than the %d months of layoff pay" % [months, int(wg["layoff_months"])])
+	check(Company.staff_count(w, b, "G") < g0, "then laid them off")
+	check(not bool(wg["lay_off"]), "one month idle does not outweigh the cost")
+	check_eq(Logbook.rows(w, {"kind": "RULE", "what": "keeps its slack staff: a layoff costs more than their wages while idle"}).size() >= 3, true, "each month it kept them is logged with what it weighed")
+
+
+func test_hiring_pays_its_job_adverts_and_waits_if_it_cannot() -> void:
+	var w := _w()
+	var Media: GDScript = load("res://sim/media/media_ops.gd")
+	var a: String = Media.call("found_outlet", w, {"kind": "COMPANY", "id": "org:1"}, {"quality": 100})["out_id"]
+	Media.call("state", w)["circ"] = {a: {"landing": 300}}
+	Households.seed_test(w, "landing", "I2", "G", 40)
+	var poor := Company.create(w, "BUILDER", "SMALL", HW, "Poor", {"area": "landing"})
+	Rules.staff_to_posts(w, poor)
+	check_eq(Company.staff_count(w, poor, "G"), 0, "it cannot pay a single advert: nobody hired this month")
+	var one := int(Media.call("job_advert_cost", w, "landing", Company.hiring_salary(w, poor, "G", "landing"), 1))
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(poor), 3 * one, "TEST", 0)
+	Rules.staff_to_posts(w, poor)
+	check_eq(Company.staff_count(w, poor) / S, 3, "money for three adverts: it hires three, not none")
+	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(b), 100000 * S, "TEST", 0)
+	var before := w.ledger.balance(CoreUtil.acct(b))
+	Rules.staff_to_posts(w, b)
+	var hired := Company.staff_count(w, b) / S
+	check(hired > 0, "it can: it hires")
+	check(int(Company.books_month(w, b).get("adverts", 0)) > 0, "and pays the papers for them, booked as adverts")
+	check_eq(before - w.ledger.balance(CoreUtil.acct(b)), int(Company.books_month(w, b)["adverts"]), "only the adverts left its account")
 
 
 func test_stocking_up_tops_up_to_two_months_and_no_more() -> void:

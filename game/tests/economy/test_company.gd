@@ -179,7 +179,7 @@ func test_stock_goes_in_with_its_cost_and_a_row() -> void:
 	var f := Company.stock_of(w, id, "FOOD")
 	check_eq(int(f["qty"]), 13000 * S, "13,000 FOOD")
 	check_eq(int(f["value"]), 12000 * 60663 + 1000 * 50000, "its book value")
-	check_eq(Company.stock_of(w, id, "MINERAL"), {"qty": 0, "value": 0, "waiting": 0}, "none of what it does not hold")
+	check_eq(Company.stock_of(w, id, "MINERAL"), {"qty": 0, "value": 0, "waiting": 0, "ship": 0}, "none of what it does not hold")
 	check(not Company.stock_add(w, id, "ENERGY", S, 1, "LANDING", "x"), "power cannot be stocked")
 	check(not Company.stock_add(w, id, "BW", S, 1, "LANDING", "x"), "building work is not an item")
 	check(not Company.stock_add(w, id, "FOOD", -S, 1, "LANDING", "x"), "no negative quantity")
@@ -193,6 +193,21 @@ func test_stock_goes_in_with_its_cost_and_a_row() -> void:
 	check(not Company.offer(w, id, "FOOD", 1), "not twice: set_price moves it")
 	var farm := Company.create(w, "FARM", "SMALL", HW, "F")
 	check(not Company.offer(w, farm, "MATERIAL", 1), "only a shop sells what it buys in")
+
+
+func test_ship_goods_are_counted_in_a_stock_and_leave_in_proportion() -> void:
+	var w := _w()
+	var a := Company.create(w, "SHOP", "LARGE", HW, "A", {"area": "landing"})
+	var b := Company.create(w, "BAKERY", "SMALL", HW, "B", {"area": "landing"})
+	Company.stock_add(w, a, "FOOD", 30 * S, 10 * S, "LANDING", "landed")
+	Company.stock_add(w, a, "FOOD", 10 * S, 10 * S, "OUTPUT", "made")
+	check_eq(int(Company.stock_of(w, a, "FOOD")["ship"]), 30 * S, "landing is ship, output is not")
+	Company.stock_take(w, a, "FOOD", 20 * S, "SOLD", "x")
+	check_eq(int(Company.stock_of(w, a, "FOOD")["ship"]), 15 * S, "half sold, half the ship goods gone: the share stays 3 in 4")
+	Company.stock_move(w, a, b, "FOOD", 8 * S, 10 * S, "x")
+	check_eq([int(Company.stock_of(w, a, "FOOD")["ship"]), int(Company.stock_of(w, b, "FOOD")["ship"])], [9 * S, 6 * S], "moved goods carry their share")
+	Company.stock_add(w, b, "FOOD", 2 * S, 10 * S, "IMPORT", "x")
+	check_eq(int(Company.stock_of(w, b, "FOOD")["ship"]), 8 * S, "imports are ship goods")
 
 
 func test_goods_move_between_companies_never_appear() -> void:

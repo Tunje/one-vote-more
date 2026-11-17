@@ -152,6 +152,7 @@ static func monthly(world: WorldState) -> void:
 	_track_income(world)
 	if new_year(world):
 		band_moves(world)
+	Households.reconcile_families(world)
 
 
 ## Status groups: who a death in each age group falls on.
@@ -232,7 +233,13 @@ static func _kill(world: WorldState, area: String, band: String, g: String, n: i
 		if k <= 0:
 			continue
 		if String(sts[i]) == "EMPLOYED":
-			done += Households.end_jobs(world, area, band, k, "DEATH")
+			# a family working its own company is employed on no payroll (15e): its share dies from its own people
+			var all_e := PopStore.count(world, {"hb": area, "inc": band, "status": "EMPLOYED"})
+			var fam_e := PopStore.count(world, {"hb": area, "inc": band, "status": "EMPLOYED", "occ": "BUSINESS_OWNER"})
+			var kf: int = CoreUtil.split_lr(k, [all_e - fam_e, fam_e])[1] if all_e > 0 else 0
+			done += Households.end_jobs(world, area, band, k - kf, "DEATH")
+			if kf > 0:
+				done += _die_from(world, {"hb": area, "inc": band, "status": "EMPLOYED", "occ": "BUSINESS_OWNER"}, kf)
 		else:
 			done += _die_from(world, {"hb": area, "inc": band, "status": sts[i]}, k)
 	return done
@@ -510,12 +517,17 @@ static func _move_group(world: WorldState, area: String, from_band: String, to_b
 		earners0 += Households.persons(world, src, st)
 	var bal0 := world.ledger.balance(Households.account(src))
 	var f := {"hb": area, "inc": from_band, "status": status}
-	var n := PopStore.count(world, f, "skill:" + skill)
+	# owners' households (BUSINESS_OWNER) keep the band their founder's record holds: they do not move here
+	var n := PopStore.count(world, f, "skill:" + skill) - PopStore.count(world, f.merged({"occ": "BUSINESS_OWNER"}), "skill:" + skill)
 	if n <= 0:
 		return 0
 	if status == "EMPLOYED":
 		Households.move_jobs_band(world, area, from_band, to_band, skill)
-	var k := PopStore.move_group(world, f, n, {"inc": to_band}, "INCOME_BAND", "skill:" + skill)
+	var k := 0
+	for occ in PopStore.OCCUPATIONS:
+		if occ != "BUSINESS_OWNER":
+			var fo := f.merged({"occ": occ})
+			k += PopStore.move_group(world, fo, PopStore.count(world, fo, "skill:" + skill), {"inc": to_band}, "INCOME_BAND", "skill:" + skill)
 	# dependants follow in proportion to the earners who moved
 	var dep := 0
 	for st in ["CHILD", "NOT_IN_LF"]:
@@ -607,6 +619,7 @@ static func on_area_moves(world: WorldState, moves: Array) -> void:
 			ht[a] = int(ht[a]) + n
 		if String(AreaStore.get_area(world, from_a).get("status", "")) == "MERGED":
 			_fold(world, from_a, to_a)
+	Households.on_area_moves(world, moves)
 
 
 static func _fold(world: WorldState, from_a: String, to_a: String) -> void:
@@ -621,10 +634,16 @@ static func _fold(world: WorldState, from_a: String, to_a: String) -> void:
 	t["hist"].erase(from_a)
 	var rem: Dictionary = t["rem"]
 	for k in CoreUtil.sorted_keys(rem):
-		if String(k).contains("|" + from_a):
-			var nk := String(k).replace("|" + from_a, "|" + to_a)
-			rem[nk] = int(rem.get(nk, 0)) + int(rem[k])
-			rem.erase(k)
+		# the area is one whole part of the key: "hb:1" must not match inside "hb:12" (Terra's review)
+		var parts := String(k).split("|")
+		if not parts.has(from_a):
+			continue
+		for i in parts.size():
+			if parts[i] == from_a:
+				parts[i] = to_a
+		var nk := "|".join(parts)
+		rem[nk] = int(rem.get(nk, 0)) + int(rem[k])
+		rem.erase(k)
 
 
 ## The colony's age pyramid in 5-year bands (persons).

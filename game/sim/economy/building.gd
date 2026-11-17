@@ -617,6 +617,10 @@ static func open_due(world: WorldState) -> void:
 			Logbook.note(world, "OPEN", pid, "NOT opened: the company record refused it", {"type": p["type"], "size": size})
 			continue
 		var plant := Company.add_plant(world, co, size, pid)
+		if size == "FAMILY":
+			# "The owners of a family farm should take winnings no sallery" (the user, plan 12.3 15e; Wilma: every
+			# FAMILY-size company): the founder's family works its own posts, which the rules fill the same month (Bob)
+			Company.family_set(world, co, plant, String(p["founder"]), {})
 		Site.open(world, pid, plant)
 		LandLaw.pass_holder(world, pid, co, "OPENED")
 		LawCompany.register(world, co, pid)
