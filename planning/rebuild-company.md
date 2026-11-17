@@ -1,6 +1,6 @@
 # The rebuild: one company object
 
-Status: DRAFT 1 by Wilma, 2026-11-17. Not reviewed. Nothing is built.
+Status: DRAFT 2 by Wilma, 2026-11-17 (sizes and unions from the user's answers). Not reviewed. Nothing is built.
 
 Sources: the user's order below; the open connections in [economy-connections.md](economy-connections.md); the rulings of
 2026-11-14 to 2026-11-17 in [MASTER-PLAN.md](MASTER-PLAN.md); the old economy as it stood in commit 785c72f and
@@ -90,16 +90,19 @@ Rulings this table carries:
 
 ## 5. Four sizes
 
-| Size | Name | What it is |
-|---|---|---|
-| 1 | family | one household runs it (the old family farm, family bakery, truck driver, truck workshop) |
-| 2 | small | **(proposal)** a handful of employees, one plant |
-| 3 | medium | **(proposal)** the old standard plant |
-| 4 | large | **(proposal)** several plants; "a huge company" that fills an office building of its own |
+The user, 2026-11-17, verbatim: "Family is the smallest 1/6 then small 1/3 then avrage 2/3 and large full size the output for each is the same but with a small penalty for their smaller size"
 
-Size is a multiplier on the type row and the build bill; it is not a different kind of company. A company grows or
-shrinks one size at a time by the capacity rules (5 and 6). **(proposal: the multipliers. The old game had family = one
-sixth of a standard plant.)**
+| Size | Name | Share of the full-size row | What it is |
+|---|---|---|---|
+| 1 | family | 1/6 | one household runs it |
+| 2 | small | 1/3 | |
+| 3 | average | 2/3 | |
+| 4 | large | full size | the type row as written; "a huge company" that fills an office building of its own |
+
+Size is a multiplier on the type row (inputs, labour, output, build bill); it is not a different kind of company. Output
+per unit of size is the same for all four, less a small penalty for the smaller ones. **(proposal, the penalty is not
+given as a number: family 6% less, small 4% less, average 2% less, large none.)** A company grows or shrinks one size at
+a time by the capacity rules (5 and 6).
 
 ## 6. The nine rules, plugged into the object
 
@@ -154,8 +157,24 @@ These stay outside it, and each talks to companies only through the record above
 | The bank and money | the ledger (`sim/core/ledger.gd`) and one bank | lends on orders, contracts and forecasts |
 | The government | politics (`sim/politics`) | owns state companies, sets tax brackets and levers, grants, commissions buildings from builder companies |
 | The home world | `home_world.gd` | ships: the only way anything enters or leaves; orders go and answers come with a ship in port |
-| Unions | **(proposal)** an organisation of a company's `staff`, not a company | demands and strikes act on a company's wages and output |
+| Unions | outside the company (ruling, section 8a) | protests and shutdowns act on a company's output; members are staff of any company |
 | The map | Terra's planet, roads, town grid | a plant has a tile; a truck has a route |
+
+### 8a. Unions (the user, 2026-11-17, verbatim)
+
+> Unions belong outside, a union is started from one company with bad working conditions but any other company staff from others can join, unions protest bad conditions,  and get a small fee from every person in it,  the union orders protests and shutdowns they last depending on hour long the union can pay the workers, the workers get 2/3 normal sallery during this time,  the goverment can lean on companies if they don't comply or on the union,
+
+As rules:
+
+- A union is not a company and is not inside one.
+- It starts at ONE company with bad working conditions. Staff of any other company can join it.
+- It takes a small fee from every member. That is its fund.
+- It protests bad conditions. It orders protests and shutdowns.
+- A shutdown lasts as long as the union can pay the workers. The workers get 2/3 of their normal salary during it, paid
+  by the union.
+- The government can lean on a company that does not comply, or on the union.
+- What it reads from a company: its working conditions (the stress part of section 7). What it does to a company: its
+  staff stop work, so its output stops.
 
 ## 9. Every outside connection, and how it gets what it needs
 
@@ -202,10 +221,11 @@ At each step: three 30-year games, and the bottleneck reported before the next s
 
 ## 11. Open questions for the user
 
-1. The three sizes between family and large: what separates them (workers, plants, turnover)?
-2. Are unions outside the company (section 8) or part of it?
+1. ANSWERED (section 5): 1/6, 1/3, 2/3, full size.
+2. ANSWERED (section 8a): unions are outside.
 3. Do households stay as Maja's population built them, or are they rebuilt too?
 4. Does the old type table (34 types) carry over as the starting point, or do you want to go through the types?
+5. How large is the "small penalty" for the smaller sizes? (Wilma's proposal is in section 5.)
 
 ## 12. Review
 

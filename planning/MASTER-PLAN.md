@@ -486,6 +486,15 @@ Done by Wilma: the full copy of the game as it stood at commit 785c72f is `game_
 Wilma had patched over the calls into the removed economy (commit 8b39828). That was undone the same turn: `game/` is the game as it was at 785c72f with only `sim/economy`, `sim/companies` and the economy's tests removed, every call into them left open. The open connections are listed in [economy-connections.md](economy-connections.md). The plan for the one company object is built from that list.
 
 
+### The rebuild: sizes and unions (the user, 2026-11-17, verbatim)
+
+Answering the plan's questions 1 (what separates the sizes) and 2 (are unions outside the company):
+
+> 1. Family is the smallest 1/6 then small 1/3 then avrage 2/3 and large full size the output for each is the same but with a small penalty for their smaller size 2. Unions belong outside, a union is started from one company with bad working conditions but any other company staff from others can join, unions protest bad conditions,  and get a small fee from every person in it,  the union orders protests and shutdowns they last depending on hour long the union can pay the workers, the workers get 2/3 normal sallery during this time,  the goverment can lean on companies if they don't comply or on the union,
+
+Written into [rebuild-company.md](rebuild-company.md) sections 5 and 8a the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
