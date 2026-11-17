@@ -283,6 +283,59 @@ After the user has seen this draft: Bob (rules, market, bank, freight, food), Ot
 Maja (population, institutions), Ella (services, unions, truck workshops), Terra (roads, map, tiles), Anni (law,
 utilities) each review it from their side: what of theirs is missing, and which connection of theirs is not answered.
 
+## 12a. Every component of the old economy, placed
+
+The user's order was to "adjust the plan until you see every component in the relationships we have them in". Draft 1
+did not do that: it described the company object and stopped. This table goes through all 72 files of the old economy
+and puts each where it belongs in the rebuild. "In the company" means a field, rule or plug-in of the one object.
+"Outside" means its own thing, with how it meets companies. Placements are Wilma's reading of the order unless a
+ruling is quoted; none of the old code or numbers carries over.
+
+**In the company object**
+
+| Old component | What it was | Where it is now |
+|---|---|---|
+| firm_ai | each firm's monthly decisions: targets, orders, asks, investment, founding | the nine rules (section 6) |
+| econ_rules, _food, _mat, _svc, _housing, _utilities, econ_builders, econ_haulier, econ_institutions | one copy of the eight rules per sector | the nine rules, once, for every type |
+| econ_production | output from staff, inputs and condition; accidents; emissions | the company's monthly output; `emissions`; accidents as a plug-in |
+| econ_family | family farms and bakeries started by grant | size 1 of any type; the grant is the government's (section 8) |
+| econ_trucks, econ_haulier | truck drivers, hauliers | `fleet`; any company with trucks carries |
+| econ_truck_shop | truck workshops | a type whose clients are trucks (client intake) |
+| econ_office | office staff split from the plant | the office bonus (section 7) |
+| econ_workload | workload and stress | stress lowers output (section 7) |
+| econ_annual | yearly books | `money` |
+| econ_forecast | a founder's forecast | the signal of rules 7 and 8 |
+| econ_warehouse | stock needs space | `stock`; **(open: whether storage space stays)** |
+| econ_consumer | durables, quality, reputation | type rows for the consumer industries; **(open: quality and reputation)** |
+| econ_staple | bakery goods preferred over raw food | the bakery row's first output; households' preference is the households' (outside) |
+| econ_housing, econ_rules_housing | housing ageing; landlords' rules | a landlord company (type HOUSING, clients = tenant households); ageing is plant `condition` |
+| econ_police, econ_care, econ_sanitation, econ_public_jobs, econ_hq, econ_bizsvc, econ_retail, econ_comfort (the supplier side), econ_fleet (buses), econ_commute (the operator side) | organisations that only held staff or took a fee | each becomes a service company with a client intake, or goes: decided type by type (section 4) |
+| econ_public_co | self-funding public companies, tariffs the government approves | a state-owned company; its price where the government sets it is a bracket or tariff (see section 13, C15) |
+| conduct | firms cutting corners for money and risk | a plug-in on the company: what it does when the law's cost exceeds its gain |
+| econ_shares, econ_plan_rescue | the share register; rescues of plans | `owner` as a register of holders; rescue is a change of holders |
+| econ_ownership | who expands, public or private, by the government's ideology | rules 7 and 8 for every owner kind ("All company types needs to be able to be created as private") |
+| econ_unfinished | a half-built building passed to a new company | a plant with no company; a plan can take it over |
+
+**Outside the company, each its own thing**
+
+| Old component | What it was | What it is now and how it meets companies |
+|---|---|---|
+| econ_households, econ_pop, econ_cohorts, econ_informal | household money, income, buying, births, deaths, ageing, migration, homelessness | HOUSEHOLDS. They are a company's staff, its customers, its clients, its tenants and the owners of family companies. Not designed yet; "Housholds follow terras latest plan" |
+| econ_labor, econ_training | vacancies, matching, layoffs, training | THE LABOUR MARKET. A salary is a price under rules 1, 2 and 9 (section 8b); workers move to better pay |
+| econ_market, econ_credit | the order books; buying on account | THE MARKET. Companies post offers and orders |
+| econ_bank, econ_bank_risk, econ_money, econ_finance (loans, interest) | the bank | THE BANK. Lends on orders, contracts and forecasts; holds deposits |
+| econ_finance (taxes, the grant, budget lines), econ_actions, econ_autopilot, econ_essentials | the state's money and its actions on the economy | THE GOVERNMENT'S PURSE. Taxes companies and sales, owns state companies, pays brackets, commissions buildings, holds the reserve |
+| econ_trade, econ_imports | ships, the port, exports, imports | SHIPS AND THE PORT. The only way in or out; a company's exports are stock put on a ship in port |
+| econ_construction, econ_unfinished | projects, tenders, bids, progress | THE BUILDING CONTRACT between a client (a plan, a company, the state) and a builder company |
+| insolvency | distress to liquidation | THE END OF A COMPANY. Not designed yet |
+| unions, union_disputes, econ_unions | unions | UNIONS (section 8a) |
+| law_bridge | licences and the law's gate | THE LAW'S HOLD on a company (Anni's review, 1a) |
+| econ_victims | the victim fund paid to households | the law's, paid to households |
+| econ_indicators, econ_pic, econ_facts, econ_query, econ_report | what the economy publishes: indicators, levers, facts, read-only views | THE PUBLISHED FACE: every indicator, lever and fact the rest of the game reads by name (105 names) |
+| econ_setup, econ_sim, econ_provider | builds the month-1 colony; registers the monthly steps | THE START-UP: who exists in month 1 and with what |
+| econ_util | helpers | the core |
+| econ_foodsec | the food trap fix | gone: a fix for a fault of the old design |
+
 ## 13. What the reviews found missing
 
 All six reviews are in [rebuild-reviews.md](rebuild-reviews.md). The same gaps came from several sides. Grouped:
