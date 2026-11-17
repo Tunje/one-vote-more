@@ -109,6 +109,26 @@ func test_a_salary_is_set_at_hire_and_rises_only_by_the_yearly_raise() -> void:
 	check_eq(Company.hiring_salary(w, id, "G", "landing"), 400 * S, "the yearly raise does not move the hiring salary")
 
 
+func test_each_staff_entry_knows_since_when_its_people_have_been_at_the_workplace() -> void:
+	var w := _w()
+	var id := Company.create(w, "BUILDER", "SMALL", HW, "B")
+	w.month = 12
+	Company.staff_change(w, id, "crew", "G", "landing|I2|G", 10 * S, 300 * S)
+	check_eq(Company.payroll(w, id)[0]["since"], 12, "a new hire is here since this month")
+	w.month = 36
+	Company.staff_change(w, id, "crew", "G", "landing|I2|G", 30 * S, 300 * S)
+	check_eq(Company.payroll(w, id)[0]["since"], (10 * 12 + 30 * 36) / 40, "joiners blend in by head count, as pay does")
+	Company.staff_change(w, id, "crew", "G", "landing|I2|G", -20 * S)
+	check_eq(Company.payroll(w, id)[0]["since"], 30, "leavers change nothing")
+	Company.staff_change(w, id, "crew", "G", "landing|I3|G", 5 * S, 320 * S, 6)
+	check_eq(Company.payroll(w, id)[1]["since"], 6, "a move within the workplace keeps its own month")
+	Company.yearly_raise(w, id, 0, 20)
+	check_eq([Company.payroll(w, id)[0]["since"], Company.payroll(w, id)[1]["since"]], [30, 6], "a raise changes pay only")
+	Company.staff_change(w, id, "crew", "G", "landing|I3|G", -5 * S)
+	Company.staff_change(w, id, "crew", "G", "landing|I3|G", 2 * S, 300 * S)
+	check_eq(Company.payroll(w, id)[1]["since"], 36, "an emptied entry starts again at the newcomers' month")
+
+
 func test_the_hiring_area_is_the_plants_and_a_hire_must_name_its_pay() -> void:
 	var w := _w()
 	var id := Company.create(w, "FARM", "SMALL", HW, "F", {"area": "area:A"})
