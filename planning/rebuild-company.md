@@ -1,6 +1,6 @@
 # The rebuild of the economy: one company object
 
-**Version 11, 2026-11-17. Wilma.** Unified, reviewed twice by all six sessions, and with every open point decided (section 12). This replaces all earlier versions. It is one document: every ruling the user gave
+**Version 11, 2026-11-17. Wilma.** What the old economy had that this plan does not include is listed in [rebuild-not-included.md](rebuild-not-included.md). Unified, reviewed twice by all six sessions, and with every open point decided (section 12). This replaces all earlier versions. It is one document: every ruling the user gave
 for the rebuild is in it, in its place. Nothing is built.
 
 How to read it:
@@ -449,12 +449,12 @@ and the read-only views the screens show. The rebuild publishes the same names w
 
   - **No plants are placed at the start.** No farm, mine or factory stands in month one; as in any colony builder,
     everything is built by the colony. This was always the design ("that never changed").
-  - **The colony lands with materials, not finished buildings: five years' worth of equipment.** That stock is what the
-    five builders build from until the colony's own makers are open. It breaks the deadlock all six reviews named.
-  - **The five builders are companies from the home world.**
-  - **(proposal)** "Five years' worth" covers what the colony needs and cannot yet make: material and components for
-    building, and food until the first farms open. The stock belongs to the colony (the government), which sells from it;
-    it is not replaced when it runs out.
+  - **The colony lands with materials, not finished buildings.** Those materials are what is built from until the
+    colony's own makers are open. That breaks the deadlock all six reviews named.
+  - **The five builders are companies from the home world, and each arrives with five years' worth of what it needs.**
+    "that never changed": the user's earlier words, built into the old game, were "a company going to a colony would
+    have 5 years of costs calculated and saved before going".
+  - **(proposal)** The colony's own landing stock also holds food until the first farms open. The user has not said so.
 
 ## 10. The connections: anything outside needing something, and how it gets it
 
@@ -562,8 +562,9 @@ is wrong; nothing here is asked again.
 
 ### 12.2 Month one
 
-9. **The landing stock** (the user: materials, "5 years worth of equipment") is the colony's. The government sells from
-   it at the starting prices. It covers material, components and food.
+9. **The landing stock** of materials is the colony's; the government sells from it at the starting prices. Each of
+   the five home-world builders also arrives with five years' worth of its own costs and equipment (section 9.12).
+   Food in the landing stock is Wilma's addition.
 10. **The settlers** arrive as in the old game: a founding population with ages, skills and savings, numbers set new.
 11. **The first homes** are the landing shelters: plain homes at the landfall place, the housing office's, with a low
     rent. Real homes are built. (The colony lands with no finished buildings; people still have to sleep somewhere.)
