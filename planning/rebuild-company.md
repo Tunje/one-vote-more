@@ -288,9 +288,14 @@ As rules:
 - **Building your own, larger house.** A household that has become richer than its neighbourhood can have its own
   larger house built. The size of that build is the family size, 1/6 of a full unit (the user: "we could use the 1/6 of
   a farm for that"). It is a building job for a builder company like any other.
-- **(open, for fitting in):** the household side taken from the old game counts people in pools by housing block and
-  income band, not as single families. "An individual richer than the neighbourhood" is then the top band of a block
-  moving out to houses of their own, a few households at a time. The price a landlord sells a home for is not given.
+- **Fitting in (accepted by the user: "That's fine"):** the household side taken from the old game counts people in
+  pools by housing block and income band, not as single families. "An individual richer than the neighbourhood" is the
+  top band of a block moving out to houses of their own, a few households at a time.
+- **(open):** the price a landlord sells a home for.
+- **For reference, the OLD game's numbers (they do not carry over):** a housing block of 50 homes took 1,200 units of
+  building work, 700 material, 20 components and 6 months, estimated at about 1,812,000 credits, or about 36,200 a
+  home. Private rent started at 260 a home a month, so a full block took about 11.6 years of rent to pay for itself
+  before upkeep. A 1/6 farm took 42 work, 42 material, 2 components and 2 months: about 74,200 credits.
 
 ## 9. Every outside connection, and how it gets what it needs
 
