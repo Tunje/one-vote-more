@@ -1086,6 +1086,18 @@ therefore the whole loop once, end to end, through the real company object:
    yield. Tested first on food alone.
 4. **Everything that is sold, and how it moves, together.** All items; the types with work slots (public services,
    shops, utilities on the grid); freight on the roads with the queue, carriers' prices, trucks and truck workshops.
+   - **MARKED FOR THIS STEP by the user (2026-11-17): farms away from towns, and a grant's spot that grows into a
+     town.** The user's idea, verbatim: "Can we add a prefernce for farms not being close to towns? This might be the best way to start districts when the grant is made the government picks a spot away from towns where they will be built, then that center soot can start getting buisness and then their own housing sectors, and a town grows what do you think before we add it"
+     Then, verbatim: "Save it for when trucks and roads come Mark it for then"
+     So it is NOT built before trucks and roads. When step 4 is planned, bring it back to the user with these
+     questions, which are theirs: how far "away from towns" is; one spot per programme or several; who pays for the
+     road to the spot; whether settlers paying from their own savings also go to the government's spot.
+     Wilma's view, given when asked ("what do you think"): it fits (the farm is the family's home, so a cluster of
+     family farms is already a settlement; areas already grow from where things are built; the grant already has a
+     "where"; farms are already scored away from homes; the road is work for the public works department). The
+     risks: distance costs nothing until freight exists, the first year's food is tight if the first farms wait for
+     a road, and hired farm workers need homes at the spot early. Staging proposed: the preference and the spot with
+     freight at this step; shops, services and housing sectors around the spot with homes at step 7.
 5. **Money and endings.** The bank lending; owners' money; the three ways a company ends; the court.
 6. **Building in full.** Rules 5 and 6 and growing by size, buy-out or a new plant; wear and repair; permits and
    licences; land sales.

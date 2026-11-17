@@ -867,6 +867,19 @@ Correcting Wilma, who had the family that owns a family farm paying rent for a h
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e.
 
 
+### The rebuild: farms away from towns and a grant's spot that grows into a town: MARKED FOR STEP 4 (the user, 2026-11-17, verbatim)
+
+The user's idea, asking Wilma's view before adding it:
+
+> Can we add a prefernce for farms not being close to towns? This might be the best way to start districts when the grant is made the government picks a spot away from towns where they will be built, then that center soot can start getting buisness and then their own housing sectors, and a town grows what do you think before we add it
+
+After Wilma's view (it fits; the risks are that distance costs nothing until freight exists, the first year's food is tight, and hired farm workers need homes at the spot):
+
+> Save it for when trucks and roads come Mark it for then
+
+Not to be built before trucks and roads (rebuild step 4). Marked in [rebuild-company.md](rebuild-company.md) section 13 under step 4, with the questions that are the user's to answer then.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
