@@ -162,21 +162,19 @@ Each entry has `for` (the kind of event or feature it illustrates), `show` (what
 Every picture:
 
 - PNG, 800 pixels wide and 500 high, landscape.
-- ILLUSTRATIVE (the user's word), and the user's own example of it is `reference/style_reference_1.png`: a
-  picture as it was PRINTED in an old newspaper. Look at that file before making anything. What it shows:
-  - coarse print: the picture is made of the press's dots and ink, soft and grainy, with little fine detail;
-  - one ink on aged newsprint: a brownish-black ink on yellowed paper, no other colour;
-  - low contrast, with the ink a little uneven and blotchy;
-  - a wide view of a whole scene (a square full of people, buildings behind, a row of cars in front), nobody close
-    up, no face you could recognise;
-  - a thin ruled border round the picture.
-- A second look the user also accepts ("this could work too") is `reference/style_reference_2.png`: an engraved
-  illustration as old illustrated papers printed them. What it shows:
-  - drawn in black lines on white, with the shading made of fine hatched lines, no greys and no colour;
-  - a street scene with a few people at middle distance (a newspaper kiosk, customers, a man reading a paper);
-  - the picture fades out at its edges instead of ending in a hard frame.
-  The signs in that reference carry words; pictures made for the game still carry none (see below).
-- Either look may be used. Keep one look per picture; do not mix them.
+- ILLUSTRATIVE (the user's word). Two examples of the LOOK are in `reference/`. **They are examples of how a
+  picture is printed, NOT of what it shows.** Do not copy their subjects, their framing or their arrangement: a
+  crowd in a square and people at a kiosk are just what those two old pictures happened to be of. WHAT each
+  picture shows comes only from its own entry's `show` in `images_wanted.json`, and the 88 entries are all
+  different: a ship in port, a field, a factory floor, a courtroom, a storm, an empty shelf, one person at a desk.
+  Vary the view as freely as a real paper does: close or far, indoors or outdoors, one person or many or none,
+  a thing, a place, a landscape.
+  - `reference/style_reference_1.png`, the look of a picture printed in an old newspaper: coarse and grainy, made
+    of the press's dots and ink with little fine detail; one brownish-black ink on aged, yellowed paper, no other
+    colour; low contrast, the ink a little uneven.
+  - `reference/style_reference_2.png` ("this could work too"), the look of an engraved illustration: black lines
+    on white, the shading made of fine hatched lines, no greys and no colour.
+  Either look may be used; one look per picture.
 - NOT photo-realistic, not a clean modern photograph, not sharp. An earlier version of this brief said "press
   photograph" and prompts were written as "photorealistic"; that was wrong (Wilma's wording, not the user's) and is
   withdrawn. Every prompt that says "photorealistic", "photograph" or "documentary photograph" must be rewritten to
@@ -186,8 +184,7 @@ Every picture:
   overhead, no futuristic city.
 - No words, letters or numbers anywhere in the picture: placards, signs and documents are blank or
   illegible. No logos or flags of any real country, company or party.
-- No real, recognisable person. People are ordinary and unposed, mostly seen from a distance, from behind or in
-  groups.
+- No real, recognisable person.
 - Nothing gory. An accident or a storm shows the aftermath, not the injured.
 
 ## Checking your work
