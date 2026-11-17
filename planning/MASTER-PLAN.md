@@ -697,6 +697,13 @@ Wilma had written "taken wholesale" down as taking the old household code, and c
 The user pasted the outside reviewer's review of version 12. Its corrections are worked into [rebuild-company.md](rebuild-company.md) version 13: rule 7 in money per month with shares by size; each output with its own inputs; the founder counted from the plan, and a given-up plan settled; public fees no longer contradicting each other; the price formula's units and the case of no sales; a salary's place is the area, not the election district; what step 3 is and is not.
 
 
+### The rebuild: stocking up (the user, 2026-11-17, verbatim)
+
+> Company and people should be able to stock up if the price is low
+
+Written into [rebuild-company.md](rebuild-company.md) section 9.3 the same turn. Asked in the same message and not yet decided by the user: what becomes of a dead company's unsold stock (to the government as surplus with the sales going to the bank until the loans are paid, or to the bank as compensation at 10% under its value). Wilma's opinion, given when asked: the bank.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

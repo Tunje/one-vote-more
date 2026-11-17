@@ -354,6 +354,14 @@ Terra's town grid (section 9.8).
 One order book per item. Companies and households post orders; companies post offers. The cheapest delivered offer
 fills first. What a service sells is not on the market; its clients come to it (section 4).
 
+**Stocking up** (the user, 2026-11-17, verbatim): "Company and people should be able to stock up if the price is low".
+
+- A company may buy more of an input than it needs this month when the price is low, and a household more of what it
+  uses. What they bought ahead they do not buy later.
+- **(proposal, how it works:)** "low" is below what that buyer has paid on average over the last twelve months. How
+  much: as far as its money reaches and the goods keep; food spoils, so nobody stocks far ahead on it. A stock-up order
+  is a real order with money behind it, so it counts as demand for the seller's price rules like any other.
+
 ### 9.4 The bank and owners' money
 
 - One bank. It lends on orders, contracts and forecasts, never on a limit from last month or last year.
