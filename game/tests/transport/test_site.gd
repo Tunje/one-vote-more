@@ -64,13 +64,12 @@ func test_one_full_size_per_type_in_a_square() -> void:
 
 ## The landing shelters: 8 plants of the housing office, a block of 50 homes each (Bob's LANDLORD row, Otto's count).
 func _shelters(w: WorldState) -> Array:
-	var town := _landing(w)
-	var cid := Company.create(w, "LANDLORD", "LARGE", OWNER, "housing office")
+	# month one's government side lays them (sim/economy/landing.gd), through choose_town and place
 	var out: Array = []
-	for i in 8:
-		var pid := Company.add_plant(w, cid, "LARGE")
-		check_eq(Site.place(w, pid, Site.choose_town(w, town, "LANDLORD", 6, 1)[0], 50), "", "shelter block %d laid" % (i + 1))
-		out.append(pid)
+	for cid in Company.ids(w):
+		if String(Company.record(w, cid)["origin"]) == "HOUSING_OFFICE":
+			out = Company.plant_ids_of(w, cid)
+	check_eq(out.size(), 8, "eight shelter blocks laid in month one")
 	return out
 
 

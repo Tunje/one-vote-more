@@ -339,7 +339,7 @@ static func pay_wages(world: WorldState, cid: String, from_acct: String, why: Di
 	var bill := {}
 	for e in Company.payroll(world, cid):
 		var lp := labour_parts(String(e["labour_key"]))
-		var amt := int(e["n"]) / S * int(e["pay"])
+		var amt := int(e["n"]) * int(e["pay"]) / S   # the same sum as Company.wage_bill, so paid and billed never differ
 		if amt > 0:
 			var pid := pool_id(lp[0], lp[1])
 			bill[pid] = int(bill.get(pid, 0)) + amt

@@ -126,3 +126,19 @@ print("family farm: food/month",q,"revenue",round(rev),"costs",round(cost))
 # landing stock
 bwm=180*60; mat=sum(b[1] for b in B.values())/sum(b[0] for b in B.values()); comp=sum(b[2] for b in B.values())/sum(b[0] for b in B.values())
 print("MAT/BW",round(mat,2),"COMP/BW",round(comp,3),"landing MAT",round(bwm*mat),"COMP",round(bwm*comp), "value", round(bwm*mat*P["MATERIAL"]+bwm*comp*P["COMPONENT"]))
+
+# ---- can the chain feed itself? (outside review, 2026-11-17): A[j][i] = units of item j used to make one unit of item i
+# (the first row that makes i). The goods economy can produce a surplus of every item only if A's spectral radius < 1.
+ITEMS_IO=["FOOD","BREAD","FINE_FOOD","MINERAL","MATERIAL","COMPONENT","TRUCK","CONSUMER","CLOTHING","FURNISHINGS","MEDICAL","ENERGY","WATER"]
+maker={}
+for t,lines in R.items():
+    for (o,q,inp,lab) in lines:
+        if o in ITEMS_IO and o not in maker: maker[o]=(q,inp)
+ix={k:i for i,k in enumerate(ITEMS_IO)}; n=len(ITEMS_IO); A=[[0.0]*n for _ in range(n)]
+for o,(q,inp) in maker.items():
+    for j,x in inp.items(): A[ix[j]][ix[o]]=x/q
+v=[1.0]*n; rho=0.0
+for _ in range(2000):
+    w=[sum(A[i][j]*v[j] for j in range(n)) for i in range(n)]
+    rho=max(w); v=[x/rho for x in w]
+print("spectral radius of the input-output matrix:", round(rho,4), "(must be below 1)")

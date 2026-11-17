@@ -141,7 +141,7 @@ func test_a_new_game_has_one_area_the_landing() -> void:
 	var a: Dictionary = all[0]
 	check_eq(String(a["name"]), "Landing", "it is the Landing")
 	check_eq(a["tiles"], [Terrain.key(Terrain.landing(w).x, Terrain.landing(w).y)], "on the landfall tile")
-	check_eq(AreaStore.capacity(w, String(a["id"])), 0, "nothing is built on it yet")
+	check_eq(AreaStore.capacity(w, String(a["id"])), 400, "only the landing shelters stand on it: a home per founding household")
 	sim.run(1)
 	var ds := preload("res://sim/law/law_query.gd").districts(w)
 	check_eq(ds.size(), 1, "law's charter gives one district")

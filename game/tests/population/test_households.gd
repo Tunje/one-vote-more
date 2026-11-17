@@ -38,7 +38,7 @@ func test_a_new_game_lands_the_founding_settlers_in_the_landing() -> void:
 	check_eq(int(all["lf"]) / S, 675, "675 in the labour force (90% of 750)")
 	check_eq(int(all["children"]) / S, 220, "220 children")
 	check_eq(int(all["retired"]) / S, 30, "30 retired")
-	check_eq(int(all["employed"]) / S, 0, "nobody has a job before a company hires")
+	check_eq(int(all["employed"]) / S, 261, "month one's companies have hired: 220 builder and public works crew, 41 for the state")
 	var g := 0
 	var sk := 0
 	var sp := 0
@@ -46,8 +46,9 @@ func test_a_new_game_lands_the_founding_settlers_in_the_landing() -> void:
 		g += PopStore.count(w, {"hb": land, "inc": band, "status": "UNEMPLOYED"}, "skill:G")
 		sk += PopStore.count(w, {"hb": land, "inc": band, "status": "UNEMPLOYED"}, "skill:S")
 		sp += PopStore.count(w, {"hb": land, "inc": band, "status": "UNEMPLOYED"}, "skill:Sp")
-	check_eq([g, sk, sp], [406, 201, 68], "the labour force is 60 / 30 / 10 by skill (whole people per band)")
-	check(sp >= 22 and sk >= 66 and g >= 132, "enough of each skill for the 220 builder and public works crew")
+	check_eq([g, sk, sp], [246, 125, 43], "who is still looking for work after month one's hires, by skill")
+	check_eq(g + sk + sp + int(all["employed"]) / S, 675, "employed and jobless together are the labour force")
+	check_eq(Logbook.rows(w, {"kind": "CREW"}).size(), 0, "there was enough of each skill: no crew came up short")
 	check(PopStore.reconcile(w).is_empty(), "the population reconciles")
 	check(not w.peek("hh").size(), "the old household table is not created")
 
@@ -161,11 +162,11 @@ func test_benefit_and_pension_by_status() -> void:
 	w.ledger.open_account("test:treasury")
 	w.ledger.transfer(Ledger.EXTERNAL, "test:treasury", 1000000 * S, "TEST", w.month)
 	var ben := Households.pay_support(w, "benefit", "test:treasury", {land: 120 * S})
-	check_eq(ben, 675 * 120 * S, "the 675 jobless settlers get the benefit")
+	check_eq(ben, 414 * 120 * S, "the 414 settlers still jobless after month one's hires get the benefit")
 	var pen := Households.pay_support(w, "pension", "test:treasury", {land: 100 * S})
 	check_eq(pen, 30 * 100 * S, "the 30 retired get the pension")
 	var pid := Households.pool_id(land, "I1")
-	check_eq(int(Households.income(w, pid)["benefit"]), Households.persons(w, pid, "UNEMPLOYED") * 120 * S, "booked per pool")
+	check_eq(int(Households.income(w, pid).get("benefit", 0)), Households.persons(w, pid, "UNEMPLOYED") * 120 * S, "booked per pool")
 	check_eq(Logbook.rows(w, {"kind": "PAY", "what": "pension"}).size(), 1, "one log row for the pensions")
 
 

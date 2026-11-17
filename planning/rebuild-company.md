@@ -671,6 +671,13 @@ is wrong; nothing here is asked again.
       testing. A small signal moves the price a little, a large one more,
       and never by more than k in a month. So there is a bound, the same both ways, as the user's rule nine asks.
     (This is the shape of the stock cut the user ordered into the price table on 2026-11-16.)
+15b. **(proposal, Bob, for step 3) How far OUTPUT moves in a month** under rules 3 and 4: by g x s / (1 + s) of the
+    present output, the same shape as the price rule. s for rule 3 is the orders it could not fill because it had sold
+    out, divided by what it sold; for rule 4, what it offered and did not sell, divided by what it sold. g starts at
+    0.25. Output never goes above the plants' full output; more than that is rule 5. Why a number is needed: price and
+    output moving together settle only while k x e + g < 2, e being how sharply buyers react to price (an outside
+    mathematical review the user passed on, 2026-11-17). With k = 0.2 and g = 0.25 that holds for e below 8.75.
+    A market that swings beyond that is a result to report, not to prevent.
 15a. **Rule 7's signal, exactly.** Everything is in money per month.
     - The work: what buyers and clients in the area spent, or tried to spend, on what this type sells, averaged per
       month over the last twelve months, at today's prices.

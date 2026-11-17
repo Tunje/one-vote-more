@@ -248,6 +248,7 @@ New:
 | `ECON_PLAN_BAILOUT`, `ECON_PE_FUNDING_REQUEST` | 5 | a plan or a state company asking for help (54, 82) |
 | `ECON_SUBSIDY_GRANTED`, `ECON_INCENTIVE_OFFERED`, `ECON_INCENTIVE_CLAIMED` | 8 | the government (94) |
 | `ECON_PUBLIC_JOBS_HIRED`, `ECON_PUBLIC_JOBS_CUT` | 8 | public work for the jobless (87) |
+| `ECON_PURSE_SHORT` | 2 | the government | the month's bill (state wages, benefit, pensions) not paid in full; shared in proportion (Wilma's purse). Data: due and paid per line. **(E)** Its impact stays {} until step 8: before taxes exist every purse runs short by construction, and voters must not punish a government for a part not yet built. From step 8 it weighs on GOVERNANCE and COST_OF_LIVING |
 | `ECON_SOVEREIGN_DEFAULT`, `ECON_DEBT_RESTRUCTURED` | 8 | the government (92); the legislature reads the default |
 | `ECON_ACTION_FAILED` | from the step that connects each act | the staff read it (1.6) |
 | `ECON_POLLUTION_THRESHOLD` | 9 | the polluters |
@@ -270,8 +271,13 @@ quit if they think they can get better prices if not they may unionise"; and "I 
 in the company and underpayed is based on that line, that way both old and new can become underpayed"):
 - A worker is underpaid when paid less than the average salary in their company. The average is taken among the same
   kind of post (Wilma's detail, marked in 9.2), from `Company.payroll`. Old staff and new hires alike can be underpaid.
-- An underpaid worker who can get better pay within reach quits for it (job changing, Maja). One who cannot may join or
-  start a union. Underpayment is the second way a union starts or grows, beside bad working conditions.
+- An underpaid worker first negotiates with the manager (the user, 9.2: "Lets as one more thing to the sallery, the
+  manager, negotiation can bring it closer to avrage"). A negotiation can bring the salary closer to the average.
+- If the negotiation fails, a worker who can get better pay within reach quits for it (job changing, Maja). One who
+  cannot may join or start a union. So a union's recruits over pay are those whose negotiation failed and who cannot get
+  better pay elsewhere. Underpayment is the second way a union starts or grows, beside bad working conditions.
+- For politics: a negotiation that succeeds is quiet (a Logbook row only). One that fails is what may become a union.
+  **(E)** No fact per failed negotiation; the drama is the union's facts below.
 - For politics: `UNION_FOUNDED` and `UNION_DEMAND` carry `data.cause` = `CONDITIONS` or `PAY` **(E)**, and a demand over
   pay names the gap. A pay dispute is the drama the ruling asks for, so its facts are PUBLIC. The share of underpaid
   workers is published with the unions (`ECON_UNDERPAID`, **(E)** the name, per district, step 9). It enters the
