@@ -252,7 +252,7 @@ static func land_rules() -> Array:
 	var caretaker := [{"field": "world.caretaker", "op": "EQ", "value": true}]
 	out.append(_r("AUTHORIZE", "SELL_LAND", exec, [{"field": "lever.LAW_LAND_DISPOSAL", "op": "EQ", "value": "SELL"},
 		{"field": "p.price_ok", "op": "EQ", "value": true}], src))
-	out.append(_r("AUTHORIZE", "LEASE_LAND", exec, [{"field": "lever.LAW_LAND_DISPOSAL", "op": "IN", "value": ["LEASE", "SELL"]}], src))
+	out.append(_r("AUTHORIZE", "LEASE_LAND", exec, [{"field": "lever.LAW_LAND_DISPOSAL", "op": "IN", "value": ["KEEP", "LEASE", "SELL"]}], src))   # KEEP leases at double rent (rebuild 12.10, 65)
 	out.append(_r("AUTHORIZE", "ZONE_LAND", exec, [], src))
 	out.append(_r("AUTHORIZE", "EXPROPRIATE", exec, [{"field": "p.public_purpose", "op": "EQ", "value": true}], src))
 	for a in ["SELL_LAND", "ZONE_LAND", "EXPROPRIATE"]:

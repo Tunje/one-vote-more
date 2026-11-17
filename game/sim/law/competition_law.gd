@@ -17,6 +17,7 @@ const GOV := {"kind": "GOVERNMENT", "id": "government"}
 const Desk := preload("res://sim/office/decision_desk.gd")   # who decides (flag DELEGATION): counts decisions
 const PF := preload("res://sim/law/party_finance.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
+const LawCompany := preload("res://sim/law/law_company.gd")
 const EXCLUSIVE_MODES := ["ALLOWED", "DOMINANT_BANNED", "BANNED"]
 const LOBBY_MODES := ["NONE", "REGISTER", "DISCLOSE"]
 
@@ -90,6 +91,8 @@ static func request_takeover(world: WorldState, t: Dictionary) -> Dictionary:
 		"invest": int(t.get("invest", 0)), "opened": world.month, "status": "REVIEW", "due": -1, "recommendation": "",
 		"decision": "", "conditions": {}, "item": ""}
 	world.table("takeover")[id] = row
+	Logbook.note(world, "LAW", row["buyer"], "takeover filed", {"share_before_pm": row["share_before_pm"], "share_after_pm": share,
+		"market": row["market"], "review": needs_review(world, share)}, {}, row["target"], id)
 	if not needs_review(world, share):
 		_decide(world, row, "APPROVE", "LAW")
 		return {"id": id, "status": "CLEARED", "due": world.month}
@@ -155,7 +158,7 @@ static func _post(world: WorldState, row: Dictionary) -> String:
 		{"id": "BLOCK", "label": "Block it", "action": {}}]
 	var merit := {"APPROVE": 0, "CONDITIONS": 0, "BLOCK": 0}
 	merit[rec] = 40
-	var name := func(o): return String(world.peek("org").get(o, {}).get("name", o))
+	var name := func(o): return LawCompany.name_of(world, String(o))
 	return Office.post(world, {"kind": "CALL" if int(row["share_after_pm"]) >= CALL_FROM_PM else "EMAIL", "role": "ECON_ADVISER",
 		"category": "COMPETITION", "priority": 70 if int(row["share_after_pm"]) >= CALL_FROM_PM else 55,
 		"subject": "Takeover: %s buys %s" % [name.call(row["buyer"]), name.call(row["target"])],
@@ -172,6 +175,8 @@ static func _decide(world: WorldState, row: Dictionary, decision: String, by: St
 	if by != "LAW":
 		Desk.note(world, "COMPETITION_REVIEW")   # cleared by law below the threshold is no government decision
 	row["decision"] = decision
+	Logbook.note(world, "LAW", String(row["buyer"]), "takeover decided", {"recommendation": String(row["recommendation"]),
+		"by": by, "share_after_pm": int(row["share_after_pm"])}, {"decision": ["", decision]}, String(row["target"]), String(row["id"]))
 	row["status"] = {"APPROVE": "CLEARED", "CONDITIONS": "CONDITIONS", "BLOCK": "BLOCKED"}[decision]
 	row["conditions"] = CONDITIONS.duplicate() if decision == "CONDITIONS" else {}
 	row["decided"] = world.month

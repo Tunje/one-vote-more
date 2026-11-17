@@ -14,6 +14,7 @@ const RE := preload("res://sim/law/rules_engine.gd")
 const Staff := preload("res://sim/staff/staff_ops.gd")
 const SD := preload("res://sim/staff/staff_data.gd")
 const Justice := preload("res://sim/law/justice_ops.gd")
+const LawCompany := preload("res://sim/law/law_company.gd")
 
 const GOVERNMENT := {"kind": "GOVERNMENT", "id": "government"}
 const COMMANDER := {"kind": "COMMANDER", "id": "commander"}
@@ -315,6 +316,8 @@ static func grant_licence(world: WorldState, holder_id: String, kind: String, ty
 	var id := world.new_id("licence")
 	world.table("licence")[id] = {"id": id, "holder_id": holder_id, "kind": kind, "type": type, "status": "ACTIVE",
 		"issued_month": world.month, "expiry_month": (world.month + months) if months > 0 else -1}
+	Logbook.note(world, "LAW", holder_id, "licence granted", {"kind": kind, "type": type, "months": months},
+		{"status": ["", "ACTIVE"]}, "permit_office", id)
 	return id
 
 
@@ -331,6 +334,8 @@ static func record_violation(world: WorldState, actor: Dictionary, action: Strin
 		"trace": res["trace"], "class": cls})
 	world.table("violation_track")[fid] = {"fact": fid, "company": String(actor.get("id", "")), "month": world.month,
 		"class": cls, "revealed": false, "revealed_month": -1}
+	Logbook.note(world, "LAW", String(actor.get("id", "")), "violation", {"action": action, "class": cls,
+		"result": String(res["result"])}, {}, "", fid)
 	return fid
 
 
@@ -644,6 +649,8 @@ static func apply_licence(world: WorldState, holder_id: String, kind: String, ty
 	world.table("permit_application")[id] = {"id": id, "holder_id": holder_id, "kind": kind, "type": type,
 		"district": district, "criteria_ok": criteria_ok, "months": months, "submitted_month": world.month,
 		"status": "QUEUED", "decided_month": -1, "wrong": false, "licence_id": ""}
+	Logbook.note(world, "LAW", holder_id, "licence applied", {"kind": kind, "type": type, "district": district,
+		"criteria_ok": criteria_ok}, {"status": ["", "QUEUED"]}, "permit_office", id)
 	return id
 
 
@@ -661,15 +668,13 @@ const RENEW_LEAD_MONTHS := 3   # renewal is filed this long before expiry; the l
 ## expires (criteria as at the original grant). Without this, starting licences (60/120 months) lapse silently.
 static func _queue_renewals(world: WorldState) -> void:
 	var lic := world.table("licence")
-	var orgs := world.peek("org")
 	for id in Det.ordered(lic):
 		var l: Dictionary = lic[id]
 		var exp := int(l.get("expiry_month", -1))
 		if l["status"] != "ACTIVE" or exp < 0 or exp - world.month > RENEW_LEAD_MONTHS or String(l.get("renewal_app", "")) != "":
 			continue
-		var o: Dictionary = orgs.get(l["holder_id"], {})
-		if not orgs.is_empty() and String(o.get("status", "DISSOLVED")) in ["DISSOLVED", "LIQUIDATION"]:
-			continue
+		if not LawCompany.trading(world, String(l["holder_id"])):
+			continue   # an ended company's licence lapses; one held by no company (a test, a party) is not renewed either
 		var months := exp - int(l.get("issued_month", 0))
 		var aid := apply_licence(world, l["holder_id"], l["kind"], l["type"], String(l.get("district", "")), true, months)
 		world.table("permit_application")[aid]["renews"] = id
@@ -695,6 +700,9 @@ static func process_permits(world: WorldState) -> void:
 			grant = not grant
 			a["wrong"] = true
 		a["decided_month"] = world.month
+		Logbook.note(world, "LAW", String(a["holder_id"]), "permit decided", {"criteria_ok": bool(a["criteria_ok"]),
+			"wrong": bool(a["wrong"]), "quality": q, "renews": String(a.get("renews", ""))},
+			{"status": ["QUEUED", "GRANTED" if grant else "DENIED"]}, "permit_office", String(id))
 		var holder := {"kind": "COMPANY", "id": a["holder_id"]}
 		var resp := [{"actor": PERMIT_OFFICE, "share": 0.5}, {"actor": GOVERNMENT, "share": 0.5}]
 		var old: Dictionary = world.table("licence").get(String(a.get("renews", "")), {})

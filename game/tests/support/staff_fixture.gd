@@ -52,3 +52,12 @@ static func set_pol(w: WorldState, st: Dictionary) -> void:
 ## so a fixed path lets one run overwrite another's save mid-test (cross-process flake).
 static func save_path(file_name: String) -> String:
 	return "user://test_saves/%d/%s" % [OS.get_process_id(), file_name]
+
+
+## A company record in Bob's shape (rebuild step 2), for law tests: owner kind PRIVATE or STATE; extra fields merged
+## (e.g. "chief", "pl_last" for the books the doorway reads until step 3).
+static func company(w: WorldState, id: String, kind: String = "PRIVATE", extra: Dictionary = {}) -> void:
+	var holders := {"gov": 1000} if kind == "STATE" else {"person:1": 1000}
+	var r := {"id": id, "name": id, "type": "MINE", "size": "SMALL", "status": "OPEN", "owner": {"kind": kind, "holders": holders}}
+	r.merge(extra, true)
+	w.table("company")[id] = r

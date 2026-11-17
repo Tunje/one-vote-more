@@ -31,9 +31,9 @@ func test_one_place_at_the_landfall_and_no_roads() -> void:
 
 func test_the_road_and_planet_systems_are_on() -> void:
 	var w := _game(1).world
-	check(TownGrid.on(w) and Siting.on(w) and PlanetSeasons.on(w) and PlanetEcology.on(w) and FreightRoads.on(w)
+	check(TownGrid.on(w) and PlanetSeasons.on(w) and PlanetEcology.on(w) and FreightRoads.on(w)
 		and RoadSafety.on(w) and GovBuilder.road_works_on(w) and RoadSafetyLaw.on(w) and GovWildlife.on(w),
-		"town grid, siting, seasons, ecology, freight on roads, road works and road safety are part of the game")
+		"town grid, seasons, ecology, freight on roads, road works and road safety are part of the game")
 	check(not PrivateRoads.on(w), "private roads and tolls are left out for now (12.12)")
 	check(w.lever_defs.has("LAW_SPEED_NEAR_HOMES") and Legislature.lever_available(w, w.lever_defs["LAW_SPEED_NEAR_HOMES"]),
 		"the road safety law is on the table")
@@ -51,24 +51,7 @@ func test_street_blocks_are_fixed_by_geography() -> void:
 	check_eq(int(TownGrid.FORMS["HOUSE"]["homes"]), 8, "8 house plots to a cell")
 
 
-func test_a_grid_from_the_first_home() -> void:
-	var w := _game(1).world
-	var tid := String(ColonyLayout.settlements(w)[0]["id"])
-	check(not bool(TownGrid.grid_due(w, tid)["due"]), "nothing built, nothing due")
-	# one small housing block (a stand-in record until the plant record of step 2 exists)
-	w.table("facility")["fac:1"] = {"id": "fac:1", "type": "HOUSING", "district": "", "area": tid, "scale": 160}
-	var due := TownGrid.grid_due(w, tid)
-	check(bool(due["due"]) and int(due["homes"]) < 250, "due from the first homes, below 250 (%s)" % str(due))
-	w.month += 1
-	TownGrid.step_month(w)
-	check(TownGrid.has_grid(w, tid), "the landfall place has its grid")
-	var cells := TownGrid.cells_of(w, "fac:1")
-	check(not cells.is_empty(), "the homes stand on cells")
-	var homes := 0
-	for b in TownGrid.blocks(w, tid):
-		homes += TownGrid.block_homes(w, b)
-	check_eq(homes, TownGrid._homes(w.peek("facility")["fac:1"]), "every home is in a block")
-	check(not w.facts.query("TOWN_GRID_LAID", 0, 1 << 30).is_empty(), "news")
+## A grid from the first home: tests/transport/test_site.gd (the landing shelters get the Landing its grid).
 
 
 func test_where_an_area_could_be_cut() -> void:

@@ -6,6 +6,14 @@ extends PicProvider
 ## It never applies damage: Bob's hazard engine reads PlanetClimate's queries.
 
 const OWNER := "planet"
+const Site := preload("res://sim/transport/site.gd")
+const LandLaw := preload("res://sim/law/land_law.gd")
+
+
+## The land price is the map's (Wilma's step-2 brief; agreed with Anni): land law reads it through its hook. Set when the
+## provider is made, so new and loaded games both have it.
+func _init() -> void:
+	LandLaw.land_value_fn = func(world: WorldState, tile) -> int: return Site.land_value_milli(world, tile)
 
 
 func owner_id() -> String:
@@ -143,11 +151,10 @@ func _report_eco(world: WorldState, crossed: Array) -> void:
 ## responsible (nature); the place and what stood there go in data so politics can attach blame and worry.
 func _report_wild(world: WorldState, wild: Dictionary) -> void:
 	var ch := PlanetWildlife.character(world)
-	var orgs: Dictionary = world.peek("org")
+	var plants := ColonyLayout.plants(world)
 	for a in wild.get("attacks", []):
 		var s: Dictionary = a["site"]
-		var org: Dictionary = orgs.get(String(s.get("org", "")), {})
-		var fac: Dictionary = world.peek("facility").get(String(s.get("fid", "")), {})
+		var fac: Dictionary = plants.get(String(s.get("fid", "")), {})
 		var tl: Vector2i = s["tile"]
 		var killed := int(a["killed"])
 		if killed > 0 and String(s.get("district", "")) != "":   # Bob's hook: the dead leave the population (plant's workers first)
@@ -157,8 +164,7 @@ func _report_wild(world: WorldState, wild: Dictionary) -> void:
 			"data": {"hex": int(s["hex"]), "tile": [tl.x, tl.y], "creature": PlanetWildlife.creature(world, "pred"), "danger": int(ch["danger"]),
 				"killed": killed, "injured": int(a["injured"]), "site": String(s["kind"]), "fid": String(s.get("fid", "")),
 				"org": String(s.get("org", "")), "district": String(s.get("district", "")), "place": String(s.get("name", "")),
-				"opened": int(fac.get("opened", -1)), "family_farm": bool(org.get("family", false)),
-				"grant_funded": int(org.get("grant_paid", 0)) > 0, "grant_month": int(org.get("grant_month", -1)),
+				"family_farm": String(fac.get("type", "")) == "FARM" and int(fac.get("sixths", 6)) == 1,
 				"policy": PlanetWildlife.policy(world)}})
 	for x in wild.get("crossed", []):
 		var lv := String(x["level"])

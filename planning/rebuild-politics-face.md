@@ -265,6 +265,18 @@ New:
 Under the user's ruling (9.9) and 12.10, 71: a union starts at one company, members across companies, a fee, protests
 and shutdowns paid at 2/3, no federation.
 
+**Underpayment** (the user, 9.2 and 9.9: "It's too create political drama, underpayed workers go to the union, they can
+quit if they think they can get better prices if not they may unionise"; and "I think you should avrage ask salleries
+in the company and underpayed is based on that line, that way both old and new can become underpayed"):
+- A worker is underpaid when paid less than the average salary in their company. The average is taken among the same
+  kind of post (Wilma's detail, marked in 9.2), from `Company.payroll`. Old staff and new hires alike can be underpaid.
+- An underpaid worker who can get better pay within reach quits for it (job changing, Maja). One who cannot may join or
+  start a union. Underpayment is the second way a union starts or grows, beside bad working conditions.
+- For politics: `UNION_FOUNDED` and `UNION_DEMAND` carry `data.cause` = `CONDITIONS` or `PAY` **(E)**, and a demand over
+  pay names the gap. A pay dispute is the drama the ruling asks for, so its facts are PUBLIC. The share of underpaid
+  workers is published with the unions (`ECON_UNDERPAID`, **(E)** the name, per district, step 9). It enters the
+  voters' JOBS and FAIRNESS concerns at step 11, like every other indicator.
+
 | Fact | Step | Note |
 |---|---|---|
 | `UNION_FOUNDED` | 9 | at the company with bad conditions |

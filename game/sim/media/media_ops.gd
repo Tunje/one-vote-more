@@ -1747,8 +1747,10 @@ static func _close_orphans(world: WorldState) -> void:
 
 # =================================================================================== M4: money (spec §9, §16)
 
+## The press's money runs only with an economy that pays its wages (EconFace.households_pay_media_wages, step 3). It
+## used to test for the household table, which step 2's household pools bring before the wages can be paid.
 static func _has_economy(world: WorldState) -> bool:
-	return not world.peek("hh").is_empty()
+	return EconFace.running(world)
 
 
 ## Monthly running cost of an outlet in mcr (spec §9): staff quality × 0.02 W_ref, investigation `invest`,

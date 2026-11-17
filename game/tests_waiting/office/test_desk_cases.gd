@@ -90,12 +90,12 @@ func test_grant_coverage_commits() -> void:
 	var ds: Array = CoreUtil.sorted_keys(w.table("district")).slice(0, 2)
 	var r := GovBuilder.commit_cover(w, {"kind": "FARM", "districts": [ds[1]], "fair": [ds[0]], "by": "commander"})
 	check(r.get("ok", false), "committed")
-	check_eq(CoreUtil.st(w)["grant_cover"]["FARM"], [ds[1]], "the programme covers the chosen district")
+	check_eq(GovBuilder.grant_cover(w)["FARM"], [ds[1]], "the programme covers the chosen district")
 	check_eq(w.facts.query("POL_GRANT_FAVOURITISM", w.month, w.month).size(), 1, "passing over the neediest is seen")
 	w.levers["ECON_FAMILY_FARM_GRANT"] = 0
-	CoreUtil.st(w)["grant_cover"].erase("FARM")
+	(w.table("pol")["state"]["grant_cover"] as Dictionary).erase("FARM")
 	GovBuilder.commit_cover(w, {"kind": "FARM", "districts": [ds[0]], "fair": [ds[0]], "by": "commander"})
-	check(not CoreUtil.st(w)["grant_cover"].has("FARM"), "a closed programme is not covered")
+	check(not GovBuilder.grant_cover(w).has("FARM"), "a closed programme is not covered")
 
 
 func test_a_human_government_is_proposed_to() -> void:

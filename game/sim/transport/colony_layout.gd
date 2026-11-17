@@ -3,24 +3,24 @@ extends RefCounted
 ## Terra: where things stand on the colony map (Terrain.W × Terrain.H), a pure read of the world.
 ## - Settlements: the areas (AreaStore). Before the first area is founded, the landfall place alone (LANDING): the
 ##   colony starts as one place, and districts are drawn from areas as it spreads (rebuild-company.md 9.12, 12.1).
-## - Facilities: their own tile (f["tile"]) or the site siting chose; else a free tile of suitable terrain nearest
-##   their area, their district's anchor, or the landing.
-## Used by the transport network (sim) and the colony map (UI). Deterministic in the terrain and the facility ids.
+## - Plants: where they stand is recorded once, on the map (Site: a town plant's cells, a country plant's tile); a plan
+##   holding its site counts too. There is no guessed placement any more.
+## Used by the transport network (sim) and the colony map (UI). Deterministic in the terrain and the recorded places.
 
-## Where facilities may stand (placement before A2, and build validity).
-const FAC_TERRAIN := {"MINE": ["o", "x", "k", "h"], "FARM": ["f", "n", "."], "HOUSING": [".", "f", "L", "n"]}
+const Site := preload("res://sim/transport/site.gd")
+## Where a building may stand (build validity on the map).
+const FAC_TERRAIN := {"MINE": ["o", "x", "k", "h"], "FARM": ["f", "n", "."], "LANDLORD": [".", "f", "L", "n"]}
 const BUILD_TERRAIN := [".", "f", "L", "n", "h"]
 ## The landfall place before its first area is founded (the colony starts as one place where it landed).
 const LANDING := "landing"
 static var _cache := {}
 
 
-## Changes whenever the layout may change: the terrain, the facilities (which ones), the areas (status, district,
-## name, size) and the map uses. Not the month (Bob/Wilma 2026-11-13: the commuting step asks every month, and
-## rebuilding the layout cost seconds a month).
+## Changes whenever the layout may change: the terrain, the areas (status, district, name, size), the map uses and the
+## recorded places (Site.sig and the town table's revision). Not the month (Bob/Wilma 2026-11-13: the commuting step
+## asks every month, and rebuilding the layout cost seconds a month).
 static func key(w: WorldState) -> String:
-	var fac: Dictionary = w.peek("facility")
-	return "%s|%d|%d%s" % [_land_key(w), fac.size(), hash(fac.keys()), Siting.sig(w)]
+	return "%s%s|t%d" % [_land_key(w), Site.sig(w), int(w.peek("town").get("rev", 0))]
 
 
 ## The part without the facilities: what the settlements depend on (terrain, areas, map uses).
@@ -104,55 +104,42 @@ static func _settlements(w: WorldState) -> Array:
 	return out
 
 
-## Where each facility stands: fid -> Vector2i (see the header).
-static func facility_tiles(w: WorldState, given_anchors: Dictionary = {}) -> Dictionary:
-	if given_anchors.is_empty():
-		return _cached(w, "fac", func(): return _facility_tiles(w, anchors(w)))
-	return _facility_tiles(w, given_anchors)
+## Where each plant (and each plan holding a site) stands: id -> Vector2i, its 3 km tile (a town plant: the tile of its
+## first cell). `_given_anchors` is ignored (kept for old callers).
+static func facility_tiles(w: WorldState, _given_anchors: Dictionary = {}) -> Dictionary:
+	return _cached(w, "fac", func(): return _facility_tiles(w))
 
 
-static func _facility_tiles(w: WorldState, anchors: Dictionary) -> Dictionary:
+static func _facility_tiles(w: WorldState, _anchors: Dictionary = {}) -> Dictionary:
 	var out := {}
-	var taken := {}
-	for k in w.peek("map").get("uses", {}):
-		taken[k] = true
-	var fac: Dictionary = w.peek("facility")
-	var ids: Array = CoreUtil.sorted_keys(fac)
-	var pins := Siting.pins(w)   # SITING: chosen and kept sites ({} without the flag)
-	for fid in ids:   # facilities that already stand on a tile
-		var tv = fac[fid].get("tile", null)
-		if tv == null and pins["fac"].has(fid):
-			tv = pins["fac"][fid]
-		if tv != null:
-			var t := as_tile(tv)
-			out[fid] = t
-			taken[Terrain.key(t.x, t.y)] = true
-	for k in pins["pending"]:   # SITING: a site chosen for a building still to be built
-		taken[k] = true
-	var blocked := {}   # SITING: kind -> tiles reserved for another use
-	for k in anchors:
-		taken[Terrain.key(anchors[k].x, anchors[k].y)] = true
-	for fid in ids:
-		if out.has(fid):
+	for id in Site.ids(w):
+		var s := Site.of(w, String(id))
+		if not s.is_empty():
+			out[String(id)] = as_tile(String(s["tile"]))
+	return out
+
+
+## Every plant and held plan site with what it is: id -> {type, sixths, plan, closed, company, tile (Vector2i), area,
+## district}. The area is the one it stands in (a town plant: the neighbourhood owning the block of its first cell; a
+## country plant: the area of its tile, else the nearest), the district that area's. Read fresh (not cached): a plant closing changes it.
+static func plants(w: WorldState) -> Dictionary:
+	var out := {}
+	var ft := facility_tiles(w)
+	for id in CoreUtil.sorted_keys(ft):
+		var wt := Site.what(w, String(id))
+		if wt.is_empty():
 			continue
-		var f: Dictionary = fac[fid]
-		var a: Vector2i = anchors.get(String(f.get("district", "")), Terrain.landing(w))
-		if f.has("area") and not AreaStore.get_area(w, String(f["area"])).is_empty():
-			var c := AreaStore.centroid(w, String(f["area"]))
-			a = Vector2i(roundi(c.x), roundi(c.y))
-		var codes: Array = FAC_TERRAIN.get(String(f["type"]), BUILD_TERRAIN)
-		var bl := {}
-		if Siting.on(w):
-			var kd := Siting.kind_of(String(f["type"]))
-			if not blocked.has(kd):
-				blocked[kd] = Siting.blocked(w, String(f["type"]))
-			bl = blocked[kd]
-		var t := nearest_untaken(w, a, codes, taken, 40, bl)
-		if t.x < 0:
-			t = nearest_untaken(w, a, BUILD_TERRAIN + ["k", "o", "x"], taken, 40, bl)
-		if t.x >= 0:
-			out[fid] = t
-			taken[Terrain.key(t.x, t.y)] = true
+		var t: Vector2i = ft[id]
+		wt["tile"] = t
+		var cs := TownGrid.cells_of(w, String(id))
+		var area := AreaStore.area_of_block(w, TownGrid.block_of(cs[0])) if not cs.is_empty() else ""
+		if area == "":
+			area = AreaStore.area_of(w, t)
+		if area == "":
+			area = AreaStore.nearest_area(w, t)
+		wt["area"] = area
+		wt["district"] = String(AreaStore.get_area(w, area).get("district", ""))
+		out[String(id)] = wt
 	return out
 
 
@@ -192,25 +179,3 @@ static func nearest_untaken(w: WorldState, a: Vector2i, codes: Array, taken: Dic
 						best = Vector2i(xx, yy)
 				xx += maxi(1, step)
 	return best
-
-
-# ================================================================== site choice (Siting, flag SITING)
-
-## Candidate tiles for a building of this type in a district, with what stands near each (Siting.site_options). Pure.
-static func site_options(w: WorldState, ftype: String, district: String, n: int = 5) -> Array:
-	return Siting.site_options(w, ftype, district, n)
-
-
-## Use this tile for a facility opened this month or a building project still to be built. → "" or why not.
-static func place_at(w: WorldState, fid_or_project: String, tile) -> String:
-	return Siting.place_at(w, fid_or_project, tile)
-
-
-## Reserve tiles for a use (FARMLAND / HOUSING / INDUSTRY / NATURE / OPEN; "" lifts it). → "" or why not.
-static func set_use(w: WorldState, tiles: Array, use: String, by: String = "gov") -> String:
-	return Siting.set_use(w, tiles, use, by)
-
-
-## The use a tile is reserved for ("" = none).
-static func use_at(w: WorldState, tile) -> String:
-	return Siting.use_at(w, tile)

@@ -132,7 +132,7 @@ func refresh() -> void:
 	if "%d|%s" % [w.month, sig] != _weather_for:
 		_weather_for = "%d|%s" % [w.month, sig]
 		_build_weather(w)
-	var csig := "%d|%s|%d|%d" % [w.month, sig, w.peek("area").size(), w.peek("facility").size()]
+	var csig := "%d|%s|%d|%d" % [w.month, sig, w.peek("area").size(), hash(ColonyLayout.key(w))]
 	if csig != _colony_for:
 		_colony_for = csig
 		_build_colony(w)
@@ -549,7 +549,7 @@ static func colony_image(w: WorldState) -> Image:
 	var px := COLONY_PX
 	var img := Image.create(Terrain.W * px, Terrain.H * px, false, Image.FORMAT_RGBA8)
 	var rows: Array = w.peek("map")["grid"]["rows"]
-	var fac: Dictionary = w.peek("facility")
+	var fac: Dictionary = ColonyLayout.plants(w)
 	var fac_col := {}
 	var tiles := ColonyMap.facility_tiles(w)
 	for fid in tiles:

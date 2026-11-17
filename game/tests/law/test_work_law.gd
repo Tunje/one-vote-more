@@ -67,8 +67,8 @@ func test_stress_accidents_go_to_court() -> void:
 	w.values["ECON_W_REF"] = 1000000
 	LawOps.ensure_m11_rules(w)
 	LawOps.ensure_work_rules(w)
-	w.table("org")["org:1"] = {"id": "org:1", "type": "PRIVATE"}
-	w.table("org")["org:2"] = {"id": "org:2", "type": EconData.PUBLIC_TYPES[0]}
+	F.company(w, "org:1")
+	F.company(w, "org:2", "STATE")
 	JO.init_courts(w)
 	LawOps.record_greed(w, "org:1", {"kind": "OVERWORK", "facility": "fac:org:1", "saving": 1000})
 	var calm := []
@@ -99,8 +99,8 @@ func test_staffing_strike_lawful_only_under_binding_ratios() -> void:
 	var w := _world()
 	LawOps.ensure_m11_rules(w)
 	LawOps.ensure_work_rules(w)
-	w.table("org")["org:1"] = {"id": "org:1", "type": "PRIVATE"}
-	w.table("facility")["fac:1"] = {"id": "fac:1", "org": "org:1", "type": "CLINIC", "district": "d:1"}
+	F.company(w, "org:1", "PRIVATE", {"type": "CLINIC"})
+	w.table("plant")["fac:1"] = {"id": "fac:1", "company": "org:1", "type": "CLINIC", "size": "SMALL", "condition": 100000, "closed": false}
 	var sector := EconFace.labor_occupation_of(w, "org:1", "CLINIC")
 	LawOps.record_greed(w, "org:1", {"kind": "UNDERSTAFFING", "facility": "fac:1", "saving": 1000})
 	check(not WK.strike_lawful_staffing(w, sector), "no binding ratios: the shortfall is lawful, so is the employer")

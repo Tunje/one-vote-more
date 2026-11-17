@@ -524,25 +524,29 @@ static func _order(world: WorldState, st: Dictionary, busy: Dictionary, who: Dic
 
 ## Family grant programmes (user 2026-11-15: a grant is a time-limited programme; when it ends the government starts
 ## over on its level "and where it covers too"). When a programme opens (grant lever above 0 and no coverage set yet),
-## the government names the districts it covers: those with the greatest need (Bob's st["family_need_d"][kind] = {d:
-## need}), two by default, more for egalitarian and spending-minded governments. EconFamily reads st["grant_cover"][kind]
-## (absent = not decided yet, no grants that month) and the entry is dropped when the lever is back at 0, so the next programme chooses again.
+## the government names the districts it covers: those with the greatest need (EconFace.grant_need: {kind: {d: need}}),
+## two by default, more for egalitarian and spending-minded governments. The economy reads the choice through
+## GovBuilder.grant_cover() (absent kind = not decided yet, no grants that month), and the entry is dropped when the lever
+## is back at 0, so the next programme chooses again. The open programmes and their cover are politics' own memory,
+## kept in the politics state (st["grant_prog"], st["grant_cover"]), not in the economy's (rebuild step 2, Ella).
 ## The truck drivers' and truck workshops' grants (the user, 2026-11-16: "Don't forget the political side") are decided
 ## the same way: the government names the districts a programme covers, by need and by its politics.
 const GRANT_KINDS := {"FARM": "ECON_FAMILY_FARM_GRANT", "BAKERY": "ECON_FAMILY_BAKERY_GRANT",
 	"TRUCKER": "ECON_TRUCK_DRIVER_GRANT", "TRUCKSHOP": "ECON_TRUCK_WORKSHOP_GRANT"}
 const GRANT_FAVOUR := 0.5   # weight of the governing parties' vote share in a district against its (normalised) need
 static func _grant_cover(world: WorldState, st: Dictionary) -> void:
-	var s := CoreUtil.st(world)
-	if not s.has("family_need_d"):
-		return
-	var cover: Dictionary = s.get("grant_cover", {})
-	var progs: Dictionary = s.get("grant_prog", {})
-	s["grant_prog"] = progs
+	var need_all: Dictionary = EconFace.grant_need(world)
+	if need_all.is_empty():
+		return   # the economy publishes no grant need yet
+	var cover: Dictionary = st.get("grant_cover", {})
+	var progs: Dictionary = st.get("grant_prog", {})
+	st["grant_prog"] = progs
 	for kind in CoreUtil.sorted_keys(GRANT_KINDS):
-		var need_d: Dictionary = (s["family_need_d"] as Dictionary).get(kind, {})
+		var need_d: Dictionary = need_all.get(kind, {})
 		if int(world.levers.get(GRANT_KINDS[kind], 0)) <= 0:
 			if progs.has(kind):
+				Logbook.note(world, "GRANT", "government", "programme ended", {"kind": kind, "months": int(progs[kind]["months"]),
+					"need_months": int(progs[kind]["need_m"])}, {"cover": [cover.get(kind, []), []]}, String(progs[kind]["by"]), String(GRANT_KINDS[kind]))
 				_programme_ended(world, st, String(kind), progs[kind])
 				progs.erase(kind)
 			cover.erase(kind)
@@ -550,6 +554,8 @@ static func _grant_cover(world: WorldState, st: Dictionary) -> void:
 		# the open programme: who opened it, how long it has run and in how many of those months there was a need
 		if not progs.has(kind):
 			progs[kind] = {"by": String(_who(world, st).get("by", "")), "start": world.month, "months": 0, "need_m": 0}
+			Logbook.note(world, "GRANT", "government", "programme opened", {"kind": kind, "level": int(world.levers.get(GRANT_KINDS[kind], 0))},
+				{}, String(progs[kind]["by"]), String(GRANT_KINDS[kind]))
 		progs[kind]["months"] = int(progs[kind]["months"]) + 1
 		for d0 in need_d:
 			if int(need_d[d0]) > 0:
@@ -592,6 +598,8 @@ static func _grant_cover(world: WorldState, st: Dictionary) -> void:
 			_cover_case(world, who, String(kind), fair, chosen, need_d)
 			continue
 		cover[kind] = chosen
+		Logbook.note(world, "GRANT", "government", "cover chosen", {"kind": kind, "need": need_d.duplicate(), "fair": fair},
+			{"cover": [[], chosen]}, String(who["by"]), String(GRANT_KINDS[kind]))
 		Desk.note(world, "GRANT_COVERAGE")
 		var resp := [{"actor": {"kind": "GOVERNMENT" if who["by"] != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}]
 		world.add_fact({"type": "POL_GRANT_COVERAGE", "owner": "pol", "subjects": [], "responsible": resp,
@@ -602,7 +610,13 @@ static func _grant_cover(world: WorldState, st: Dictionary) -> void:
 			world.add_fact({"type": "POL_GRANT_FAVOURITISM", "owner": "pol", "subjects": [], "responsible": resp,
 				"impact": {"FAIRNESS": -4, "GOVERNANCE": -3}, "magnitude": 45, "visibility": "PUBLIC",
 				"data": {"kind": kind, "favoured": chosen.filter(func(d): return not (d in fair)), "passed_over": passed_over, "by": who["by"]}})
-	s["grant_cover"] = cover
+	st["grant_cover"] = cover
+
+
+## The districts each open grant programme covers, {kind: [district ids]}, for the economy's grants. A kind that is
+## absent is not decided yet: no grant of that kind is given that month. A copy: the economy cannot change the choice.
+static func grant_cover(world: WorldState) -> Dictionary:
+	return ((world.peek("pol").get("state", {}) as Dictionary).get("grant_cover", {}) as Dictionary).duplicate(true)
 
 
 ## User (2026-11-15): a government loses face when it opens a grant nobody takes up, "it feeds the politics", and
@@ -1048,13 +1062,15 @@ static func commit_cover(world: WorldState, p: Dictionary) -> Dictionary:
 	var kind := String(p.get("kind", ""))
 	if not GRANT_KINDS.has(kind) or int(world.levers.get(GRANT_KINDS[kind], 0)) <= 0:
 		return {"ok": true, "error": ""}
-	var s := CoreUtil.st(world)
+	var s: Dictionary = world.table("pol")["state"]
 	var cover: Dictionary = s.get("grant_cover", {})
 	var chosen: Array = (p.get("districts", []) as Array).duplicate()
 	var fair: Array = p.get("fair", [])
 	var by := String(p.get("by", ""))
 	cover[kind] = chosen
 	s["grant_cover"] = cover
+	Logbook.note(world, "GRANT", "government", "cover chosen", {"kind": kind, "fair": fair, "on": "the decision desk"},
+		{"cover": [[], chosen]}, by, String(GRANT_KINDS[kind]))
 	var resp := [{"actor": {"kind": "GOVERNMENT" if by != "commander" else "COMMANDER", "id": "government"}, "share": 1.0}]
 	world.add_fact({"type": "POL_GRANT_COVERAGE", "owner": "pol", "subjects": [], "responsible": resp,
 		"impact": {}, "magnitude": 25, "visibility": "PUBLIC", "data": {"kind": kind, "districts": chosen, "by": by}})

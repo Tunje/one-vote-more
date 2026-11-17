@@ -161,7 +161,7 @@ func test_severe_conviction_names_manager() -> void:
 	var s := F.sim(25, true)
 	s.step()   # courts exist after the first JUSTICE phase
 	var w := s.world
-	w.table("org")["org:7"] = {"id": "org:7", "ceo": {"name": "R. Greed"}, "pl_last": {}}
+	F.company(w, "org:7", "PRIVATE", {"chief": {"name": "R. Greed"}, "pl_last": {}})
 	var fid := LawOps.record_greed(w, "org:7", {"kind": "DUMPING", "facility": "fac:7"})
 	w.table("violation_track")[fid]["class"] = "SEVERE"
 	var cid := J.file_case(w, "ENFORCEMENT", J.STATE, {"kind": "COMPANY", "id": "org:7"}, true, {"violation": fid, "class": "SEVERE"})

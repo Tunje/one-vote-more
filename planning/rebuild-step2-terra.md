@@ -101,6 +101,44 @@ parts, square); TOWN grid laid; TOWN forms set.
 - the systems-on check no longer names siting (its file is gone);
 - the "grid from the first home" test moved into test_site, where the shelters do it.
 
+## Maja's review (2026-11-17) and my answers
+
+1. The shelters as ONE plant of 400 homes was wrong: a LANDLORD's full unit is a block of 50 homes (Bob's row; Otto's
+   count). **Fixed:**
+   - place / hold refuse more homes than the plant's size holds (`Site.homes_cap`: the type row's client places for
+     its size), and any homes for a type that has none;
+   - the test lays 8 plants of 50: 7 cells each, one per street block, 400 homes in the Landing's blocks.
+2. Towns and neighbourhoods (from my review of Maja's piece; she added `AreaStore.town_of`, `areas_of_town` and
+   `area_for_new_block`). **Fixed:**
+   - blocked() refuses a block of another TOWN, not another area;
+   - lay() lets a block nobody owns join the neighbourhood `area_for_new_block` picks;
+   - a plant's area is the owner of its first cell's block.
+   - New test: a neighbourhood split off the Landing stays in its town, the town still builds there, and a shop there
+     is the neighbourhood's.
+   - `boundaries()` now orders cuts by kind, then the more compact parts (`TownGrid.spread_km`, Maja's measure, now
+     one rule), then the even split, then position.
+3. Nothing in the plan said differently.
+4. A block claimed only by a plan that was given up should go back to free. Agreed. Maja adds
+   `AreaStore.release_block`, and `TownGrid.free_cells` calls it for each block left with no cells.
+5. Noted for Bob's endings (step 5): `Site.step_month` runs in NATURE, so a plant deleted later in a month keeps its
+   cells until the next month.
+6. Noted for step 3: `choose_country` loops tiles × settlements. Watch its cost once rule 7 makes plans every month.
+
+## Anni's review of the land side (2026-11-17) and my answers
+
+1. A town placement checked the tile's zone, not the cell's own (Anni zones cells, "c:fx,fy"). **Fixed:**
+   `Site.zone_allows` takes a cell key or a tile, and `TownGrid.blocked` asks the cell. Tested: a cell zoned FARM is not
+   offered to a shop.
+2. **Added** `TownGrid.homes_on_cell(world, cell)`, which land law reads for evictions. Tested.
+3. Two prices for one piece of land (a plan's land_price on its own bill against land law's land_value per key).
+   **Agreed with Anni; for Wilma at step 3:** the sale price is `Site.land_price` for the plan's bill; land law's floor
+   and lease rent are taken on that figure, passed in by the plan; land_value per key stays for leases with no plan,
+   expropriation and screens.
+4. Who owns a country tile shared by six family farms. **Agreed with Anni; she builds it at step 3:** the tile's title
+   keeps the plots sold off it in sixths ({holder: {type, sixths}}), and the rest stays the colony's.
+- The zoning in test_site now goes through land law (`LawOps.init_world`, `ensure_rules`, `LandLaw.zone`), not its
+  private `_row`.
+
 ## Owed
 
 - `commuting.gd` still reads the old facility and org tables. It comes back with staff and commuting at step 3.

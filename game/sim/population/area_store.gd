@@ -6,7 +6,9 @@ extends RefCounted
 ## People live in PopStore leaves keyed by the area id (key part "hb"); splits move them with PopStore transfers,
 ## so population is conserved and beliefs travel.
 ##
-## Table "area": id -> {id, name, kind, tiles: ["x,y"], district, founded, parents, children, status}
+## Table "area": id -> {id, name, kind, tiles: ["x,y"], town, district, founded, parents, children, status}
+## town: the id of the town (TownGrid's town id = the area that founded it) the area is a neighbourhood of. An area
+## founded on its own is its own town; an area split off by blocks stays in its parent's town (Terra's review).
 ## Table "area_block": block -> area id. The one record of which town-grid street blocks (400 m, "b:bx,by", Terra's
 ## TownGrid.block_of) an area is made of, besides its country tiles (3 km). A block belongs to exactly one area: the
 ## first area to build in it owns it (Maja and Terra, 2026-11-17). Written by claim_block, split and merge.
@@ -18,7 +20,8 @@ extends RefCounted
 ##   district_resolver: Callable (world, area_id) -> district id for a newly founded area (Anni: law decides)
 
 const KINDS := ["SETTLEMENT", "CAMP", "VILLAGE", "ENCLAVE", "SHELTER"]
-const SPLIT_SIZE := 800           # residents above which an area splits in two
+## An area splits where its homes reach farther than a school's catchment (TownGrid.CATCH_KM["SCHOOL"], Terra's one
+## number): "a neighbourhood is what's within walking distance of its school" (Maja and Terra, 2026-11-17). No headcount.
 const ENCLAVE_MIN_TILES := 2      # contiguous private tiles that can break away as an enclave
 const NAME_PARTS := ["Heights", "Bend", "Rise", "Flats", "Hollow", "Gate", "Field", "Row", "Park", "Crossing", "Ridge", "Green"]
 
@@ -47,7 +50,11 @@ static func tiles_of(world: WorldState, id: String) -> Array:
 	return get_area(world, id).get("tiles", []).map(func(k): return _vec(k))
 
 
+## In tile units. An area with homes on the town grid: the homes-weighted middle of its blocks; else its tiles' middle.
 static func centroid(world: WorldState, id: String) -> Vector2:
+	var hc := _homes_centre_km(world, id)
+	if hc.x >= 0.0:
+		return hc / (TownGrid.CELL_KM * float(TownGrid.PER_TILE))
 	var ts := tiles_of(world, id)
 	var c := Vector2.ZERO
 	for t in ts:
@@ -59,11 +66,35 @@ static func area_of(world: WorldState, tile: Vector2i) -> String:
 	return String(Terrain.use_at(world, tile.x, tile.y).get("area", ""))
 
 
+## Homes in the area: those in its town-grid blocks (Terra's cells, the one record of a home), plus homes recorded on
+## its country tiles. Tile "units" are ONLY homes that stand on no town grid (place_housing; no game code writes them
+## since the town grid is on, tests and tools still do). A home laid in a cell is never also written as tile units.
 static func capacity(world: WorldState, id: String) -> int:
 	var c := 0
+	for b in blocks_of(world, id):
+		c += TownGrid.block_homes(world, b)
 	for t in tiles_of(world, id):
 		c += int(Terrain.use_at(world, t.x, t.y).get("units", 0))
 	return c
+
+
+## The middle of a street block in km (global fine coordinates x CELL_KM).
+static func _block_mid_km(block: String) -> Vector2:
+	var p := block.trim_prefix("b:").split(",")
+	var m := float(TownGrid.BLOCK_CELLS) * 0.5
+	return Vector2((float(p[0]) * TownGrid.BLOCK_CELLS + m) * TownGrid.CELL_KM, (float(p[1]) * TownGrid.BLOCK_CELLS + m) * TownGrid.CELL_KM)
+
+
+## Homes-weighted middle (km) of an area's blocks with homes; (-1, -1) when it has none.
+static func _homes_centre_km(world: WorldState, id: String) -> Vector2:
+	var c := Vector2.ZERO
+	var n := 0
+	for b in blocks_of(world, id):
+		var h := TownGrid.block_homes(world, b)
+		if h > 0:
+			c += _block_mid_km(b) * float(h)
+			n += h
+	return c / float(n) if n > 0 else Vector2(-1.0, -1.0)
 
 
 static func residents(world: WorldState, id: String) -> int:
@@ -119,7 +150,7 @@ static func place_housing(world: WorldState, tile: Vector2i, units: int, built_b
 static func found(world: WorldState, tiles: Array, kind: String, name: String = "", parents: Array = []) -> String:
 	var id := world.new_id("hb")
 	var keys: Array = tiles.map(func(t): return Terrain.key(t.x, t.y))
-	var a := {"id": id, "name": name if name != "" else _name(world, tiles[0], kind), "kind": kind, "tiles": keys,
+	var a := {"id": id, "name": name if name != "" else _name(world, tiles[0], kind), "kind": kind, "tiles": keys, "town": id,
 		"district": "", "founded": world.month, "parents": parents.duplicate(), "children": [], "status": "ACTIVE"}
 	world.table("area")[id] = a
 	for t in tiles:
@@ -145,6 +176,41 @@ static func found_landing(world: WorldState) -> String:
 	if not world.peek("area").is_empty():
 		return area_of(world, Terrain.landing(world))
 	return found(world, [Terrain.landing(world)], "SETTLEMENT", "Landing")
+
+
+## The town an area belongs to (its own id for an area that is its own town).
+static func town_of(world: WorldState, id: String) -> String:
+	return String(get_area(world, id).get("town", id)) if not get_area(world, id).is_empty() else ""
+
+
+## The active areas (neighbourhoods) of a town, sorted.
+static func areas_of_town(world: WorldState, town: String) -> Array:
+	var out: Array = []
+	for a in areas(world):
+		if town_of(world, String(a["id"])) == town:
+			out.append(String(a["id"]))
+	return out
+
+
+## Which neighbourhood a new block of `town` joins: the area owning the nearest block of that town already claimed
+## (by block middle; ties by area id), else the town's founding area if active, else its first active area, else "".
+## Terra's TownGrid.lay calls it before claim_block.
+static func area_for_new_block(world: WorldState, town: String, block: String) -> String:
+	var mine := areas_of_town(world, town)
+	if mine.is_empty():
+		return ""
+	var at := _block_mid_km(block)
+	var best := ""
+	var bd := INF
+	for a in mine:
+		for b in blocks_of(world, a):
+			var d := _block_mid_km(String(b)).distance_to(at)
+			if d < bd - 0.0001 or (absf(d - bd) <= 0.0001 and a < best):
+				bd = d
+				best = a
+	if best != "":
+		return best
+	return town if town in mine else String(mine[0])
 
 
 ## The area owning town-grid block `block` ("b:bx,by"), or "".
@@ -175,6 +241,16 @@ static func claim_block(world: WorldState, id: String, block: String) -> String:
 	return id
 
 
+## A block with nothing left in it goes back to free (Terra's TownGrid.free_cells calls it when the last cell of a
+## block is freed, e.g. a plan given up before anything was built). Returns the area that owned it ("" if none).
+static func release_block(world: WorldState, block: String) -> String:
+	var owner := area_of_block(world, block)
+	if owner != "":
+		world.table("area_block").erase(block)
+		Logbook.note(world, "AREA", owner, "block released", {"block": block}, {"blocks": [1, 0]})
+	return owner
+
+
 ## Law is the single writer of district membership (Anni: districting acts).
 static func set_district(world: WorldState, id: String, district: String) -> void:
 	if world.peek("area").has(id):
@@ -196,6 +272,20 @@ static func split(world: WorldState, id: String, tiles_b: Array, kind_b: String,
 		if Terrain.key(t.x, t.y) in keys_b:
 			world.table("area_block")[bk] = new_id
 	a["children"].append(new_id)
+	var moves := _move_share(world, id, new_id, cap_all, bands_first)
+	world.add_fact({"type": "POP_AREA_SPLIT", "owner": "pop", "subjects": [], "responsible": [], "impact": {}, "magnitude": 40,
+		"visibility": "PUBLIC", "data": {"area": id, "new": new_id, "reason": reason, "moved": _moved(moves)}})
+	Logbook.note(world, "AREA", new_id, "split from %s (%s)" % [id, reason], {"homes_before": cap_all},
+		{"tiles": [0, keys_b.size()], "homes": [0, capacity(world, new_id)], "persons": [0, _moved(moves)]}, id)
+	return new_id
+
+
+## TENANCY (step 7, agreed with Otto 2026-11-17): who lives in whose homes will be held once, in the landlord's company
+## record (slots {plant: {pool id: households}}), written only by the household side. A split changes the movers' pool
+## ids (the area changes), so it must move their tenancies to the new pool ids in the same step.
+## People of `id` follow the homes into `new_id`: its share of the homes (cap_all = the homes before the split), by
+## income band so every band keeps its share in both parts; or, for an enclave, the given bands first, up to its homes.
+static func _move_share(world: WorldState, id: String, new_id: String, cap_all: int, bands_first: Array = []) -> Array:
 	var cap_b := capacity(world, new_id)
 	var total := residents(world, id)
 	var want := int(round(float(total) * float(cap_b) / maxf(1.0, float(cap_all))))
@@ -218,9 +308,78 @@ static func split(world: WorldState, id: String, tiles_b: Array, kind_b: String,
 				PopStore.move_group(world, {"hb": id, "inc": bands[i]}, k2, {"hb": new_id}, "AREA_SPLIT")
 				moves.append({"from": id, "to": new_id, "band": bands[i], "persons": k2})
 	_notify(world, moves)
+	return moves
+
+
+## Split the town-grid blocks `blocks_b` out of area `id` into a new area (a neighbourhood of the same town). Its
+## country tile is the tile its first block lies in, shared with the parent (the tile stays the parent's on the map).
+## People follow the homes. Returns the new id.
+static func split_blocks(world: WorldState, id: String, blocks_b: Array, reason: String, why: Dictionary = {}) -> String:
+	var a: Dictionary = world.table("area")[id]
+	var cap_all := capacity(world, id)
+	var bs: Array = blocks_b.duplicate()
+	bs.sort()
+	var t := TownGrid.tile_of(TownGrid.block_cells(String(bs[0]))[0])
+	var new_id := world.new_id("hb")
+	world.table("area")[new_id] = {"id": new_id, "name": _name(world, t, "SETTLEMENT"), "kind": "SETTLEMENT",
+		"tiles": [Terrain.key(t.x, t.y)], "town": town_of(world, id), "district": String(a.get("district", "")), "founded": world.month,
+		"parents": [id], "children": [], "status": "ACTIVE"}
+	for b in bs:
+		world.table("area_block")[String(b)] = new_id
+	a["children"].append(new_id)
+	var moves := _move_share(world, id, new_id, cap_all)
 	world.add_fact({"type": "POP_AREA_SPLIT", "owner": "pop", "subjects": [], "responsible": [], "impact": {}, "magnitude": 40,
 		"visibility": "PUBLIC", "data": {"area": id, "new": new_id, "reason": reason, "moved": _moved(moves)}})
+	var w := why.duplicate()
+	w["homes_before"] = cap_all
+	Logbook.note(world, "AREA", new_id, "split from %s (%s)" % [id, reason], w,
+		{"blocks": [0, bs.size()], "homes": [0, capacity(world, new_id)], "persons": [0, _moved(moves)]}, id)
 	return new_id
+
+
+## Where area `id` should split by reach, or {}: when a block with homes lies farther than a school's reach from the
+## homes-weighted centre. The cut is one of TownGrid.boundaries that leaves homes on both sides: the strongest kind of
+## boundary (river, fast road, main street, street), and within a kind the one that leaves both parts most compact
+## (the smallest distance from a part's homes centre to its farthest block with homes), then Terra's order. The side
+## fewer homes leaves. {"blocks": [...], "cut": {...}, "far_km": float}; {} within reach; "blocks" empty when the
+## homes reach too far but no cut line leaves homes on both sides.
+static func reach_split(world: WorldState, id: String) -> Dictionary:
+	var mine := blocks_of(world, id)
+	var far := _spread_km(world, mine)
+	if far <= float(TownGrid.CATCH_KM["SCHOOL"]):
+		return {}
+	var best := {}
+	var best_key := [INF, INF]
+	for cut in TownGrid.boundaries(world, mine):
+		if int(cut["homes_a"]) <= 0 or int(cut["homes_b"]) <= 0:
+			continue
+		var key := [float(TownGrid.BOUNDARY_RANK[String(cut["kind"])]), maxf(_spread_km(world, cut["a"]), _spread_km(world, cut["b"]))]
+		if key[0] < best_key[0] or (key[0] == best_key[0] and key[1] < best_key[1] - 0.0001):
+			best_key = key
+			best = cut
+	if best.is_empty():
+		return {"blocks": [], "cut": {}, "far_km": far}   # too far, but no line leaves homes on both sides
+	var side: Array = best["a"] if int(best["homes_a"]) < int(best["homes_b"]) else best["b"]
+	return {"blocks": side, "cut": best, "far_km": far}
+
+
+## How far (km) the farthest block with homes lies from the homes-weighted middle of `blocks`; 0 without homes.
+static func _spread_km(world: WorldState, blocks: Array) -> float:
+	var c := Vector2.ZERO
+	var n := 0
+	for b in blocks:
+		var h := TownGrid.block_homes(world, String(b))
+		if h > 0:
+			c += _block_mid_km(String(b)) * float(h)
+			n += h
+	if n <= 0:
+		return 0.0
+	c /= float(n)
+	var far := 0.0
+	for b in blocks:
+		if TownGrid.block_homes(world, String(b)) > 0:
+			far = maxf(far, _block_mid_km(String(b)).distance_to(c))
+	return far
 
 
 ## Merge area `b` into area `a` (people, tiles); b becomes MERGED with a recorded as its successor.
@@ -251,7 +410,8 @@ static func merge(world: WorldState, a_id: String, b_id: String) -> void:
 		"visibility": "PUBLIC", "data": {"into": a_id, "absorbed": b_id}})
 
 
-## Yearly (January): oversized areas split in two; private enclaves inside an area break away.
+## Yearly (January): private enclaves inside an area break away; an area whose homes reach farther than a school's
+## catchment splits along its strongest boundary (reach_split).
 static func yearly(world: WorldState) -> void:
 	if world.month_of_year() != 1:
 		return
@@ -264,14 +424,15 @@ static func yearly(world: WorldState) -> void:
 			if cl.size() >= ENCLAVE_MIN_TILES:
 				split(world, id, cl, "ENCLAVE", "ENCLAVE", ["I5", "I4"])
 				continue
-		# size: split along the longest axis at the median
-		if residents(world, id) > SPLIT_SIZE and a["tiles"].size() >= 2:
-			var ts: Array = a["tiles"].map(func(k): return _vec(k))
-			var xs: Array = ts.map(func(t): return t.x)
-			var ys: Array = ts.map(func(t): return t.y)
-			var along_x: bool = (xs.max() - xs.min()) >= (ys.max() - ys.min())
-			ts.sort_custom(func(p, q): return (p.x < q.x or (p.x == q.x and p.y < q.y)) if along_x else (p.y < q.y or (p.y == q.y and p.x < q.x)))
-			split(world, id, ts.slice(ts.size() / 2), "SETTLEMENT", "SIZE")
+		# reach: homes farther than a school's walk from the rest split off as their own neighbourhood
+		var rs := reach_split(world, id)
+		if not rs.is_empty() and (rs["blocks"] as Array).is_empty():
+			Logbook.note(world, "AREA", id, "no cut", {"far_km": snappedf(float(rs["far_km"]), 0.01),
+				"reach_km": float(TownGrid.CATCH_KM["SCHOOL"])})
+		elif not rs.is_empty():
+			var cut: Dictionary = rs["cut"]
+			split_blocks(world, id, rs["blocks"], "REACH", {"far_km": snappedf(float(rs["far_km"]), 0.01),
+				"reach_km": float(TownGrid.CATCH_KM["SCHOOL"]), "cut": String(cut["kind"]), "axis": String(cut["axis"]), "at": int(cut["at"])})
 
 
 # ======================================================================= helpers

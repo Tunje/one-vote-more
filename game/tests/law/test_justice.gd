@@ -21,7 +21,7 @@ func _accounts(w: WorldState, org: String, cash_wref: int) -> void:
 			w.ledger.open_account(a)
 	w.ledger.transfer(Ledger.EXTERNAL, "co:" + org, cash_wref * 1200000, "seed", w.month)
 	w.ledger.transfer(Ledger.EXTERNAL, "gov:treasury", 1000 * 1200000, "seed", w.month)
-	w.table("org")[org] = {"id": org, "pl_last": {"rev": 100 * 1200000}}
+	F.company(w, org, "PRIVATE", {"pl_last": {"rev": 100 * 1200000}})
 
 
 func test_courts_and_capacity() -> void:

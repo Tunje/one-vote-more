@@ -85,20 +85,20 @@ static func gather(w: WorldState) -> Dictionary:
 	d["seed"] = w.rng.derive_seed("ui.vista")
 	# what stands where (facility tiles: A2 tiles, or the display placement before A2)
 	var ft := ColonyLayout.facility_tiles(w)
-	var fac: Dictionary = w.peek("facility")
+	var fac: Dictionary = ColonyLayout.plants(w)
 	var things: Array = []   # [{kind, tile}] drawn as objects
 	var farm := {}           # tile int -> true: farmed land (a farm and its fields around it)
 	var land := Terrain.landing(w)
 	var homes_here := 0
 	for fid in CoreUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
-		if f.is_empty() or f.get("closed_m", 0) == null:
+		if f.is_empty():
 			continue
 		var t: Vector2i = ft[fid]
 		var ty := String(f["type"])
 		things.append({"kind": ty, "tile": t, "fid": fid})
-		if ty == "HOUSING" and maxi(absi(t.x - land.x), absi(t.y - land.y)) <= 4:
-			homes_here += 1
+		if ty == "LANDLORD" and maxi(absi(t.x - land.x), absi(t.y - land.y)) <= 4:
+			homes_here += TownGrid.homes_of(w, String(fid))
 		if ty == "FARM":
 			for dy in range(-1, 2):
 				for dx in range(-1, 2):

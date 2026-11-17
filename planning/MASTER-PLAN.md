@@ -754,6 +754,13 @@ Replacing Wilma's proposal (underpaid = paid less than a new hire is offered):
 Written into [rebuild-company.md](rebuild-company.md) section 9.2.
 
 
+### The rebuild: negotiating a salary with the manager (the user, 2026-11-17, verbatim)
+
+> Lets as one more thing to the sallery, the manager, negotiation can bring it closer to avrage
+
+Written into [rebuild-company.md](rebuild-company.md) section 9.2.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

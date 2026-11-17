@@ -36,10 +36,12 @@ const SLOTS := {
 	"TREE": {"size": [8.0, 11.0, 8.0], "color": Color("#4f7a3a"), "roof": Color("#5a4632")},
 }
 ## Facility types to slots (housing goes by its form; anything not listed that is a TOWN building is an OFFICE).
-const TYPE_SLOT := {"RETAIL": "SHOP", "COMFORT": "SHOP", "BAKERY": "BAKERY", "FAMBAKERY": "BAKERY", "CLINIC": "CLINIC",
-	"SCHOOL": "SCHOOL", "CHILDCARE": "CARE", "ELDERCARE": "CARE", "POLICE_STATION": "POLICE", "OFFICE": "OFFICE",
-	"BIZSVC": "OFFICE", "SERVICEHUB": "OFFICE", "PUBJOBS": "OFFICE", "DEPOT": "DEPOT", "WAREHOUSE": "DEPOT",
-	"TRANSIT": "DEPOT", "MINE": "MINE", "FARM": "FARM", "FAMFARM": "FARM"}
+const TYPE_SLOT := {"SHOP": "SHOP", "CAFE": "SHOP", "BAKERY": "BAKERY", "CLINIC": "CLINIC", "SCHOOL": "SCHOOL",
+	"CHILDCARE": "CARE", "ELDERCARE": "CARE", "POLICE": "POLICE", "OFFICEBLOCK": "OFFICE", "SERVICEHUB": "OFFICE",
+	"ADMIN": "OFFICE", "BANK": "OFFICE", "NEWSPAPER": "OFFICE", "TRUCKSHOP": "DEPOT", "HAULIER": "DEPOT",
+	"TRANSIT": "DEPOT", "BUILDER": "DEPOT", "MINE": "MINE", "FARM": "FARM"}
+const Site := preload("res://sim/transport/site.gd")
+const LandLaw := preload("res://sim/law/land_law.gd")
 const GROUND := {".": Color("#8fb35a"), "f": Color("#6fa84a"), "n": Color("#7fbf8a"), "L": Color("#b5a77a"),
 	"h": Color("#8c8a52"), "k": Color("#7d756c"), "o": Color("#8a6a4a"), "x": Color("#8a7a8f"), "r": Color("#79a86e"),
 	"~": Color("#3f78ad")}
@@ -195,11 +197,11 @@ func open_town(tid: String) -> void:
 
 ## Which slot a building takes: housing by its form; town buildings by type; other works are WORKS.
 static func slot_of(ftype: String, form: String = "") -> String:
-	if ftype == "HOUSING":
+	if ftype == "LANDLORD":
 		return form if form in ["HOUSE", "APARTMENT", "TOWER"] else "HOUSE"
 	if TYPE_SLOT.has(ftype):
 		return String(TYPE_SLOT[ftype])
-	return "OFFICE" if Siting.kind_of(ftype) == "TOWN" else "WORKS"
+	return "OFFICE" if Site.setting(ftype) == "TOWN" else "WORKS"
 
 
 ## Everything the scene is built from, as plain data: {name, centre [fx, fy], window {x0, y0, w, h} (fine cells),
@@ -224,7 +226,7 @@ static func layout(w: WorldState, tid: String) -> Dictionary:
 	for s in ColonyLayout.settlements(w):
 		if String(s["id"]) == tid:
 			name = String(s["name"])
-	var fac: Dictionary = w.peek("facility")
+	var fac: Dictionary = ColonyLayout.plants(w)
 	var items: Array = []
 	var street := {}
 	var homes := 0
@@ -232,7 +234,7 @@ static func layout(w: WorldState, tid: String) -> Dictionary:
 		var row: Array = cells[ck]
 		var c := ColonyLayout.as_tile(ck)
 		var fid := String(row[0])
-		var ftype := String(fac.get(fid, {}).get("type", "HOUSING"))
+		var ftype := String(fac.get(fid, {}).get("type", "LANDLORD"))
 		var slot := slot_of(ftype, String(row[1]))
 		var h := int(row[2])
 		homes += h
@@ -285,7 +287,7 @@ static func layout(w: WorldState, tid: String) -> Dictionary:
 	for fid in CoreUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
 		var ty := String(f.get("type", ""))
-		if f.is_empty() or ty == "HOUSING" or Siting.kind_of(ty) == "TOWN" or not TownGrid.cells_of(w, String(fid)).is_empty():
+		if f.is_empty() or Site.setting(ty) == "TOWN" or not TownGrid.cells_of(w, String(fid)).is_empty():
 			continue
 		var tl := ColonyLayout.as_tile(ft[fid])
 		if not _near_tile(tl, ct):
@@ -382,21 +384,20 @@ static func cell_text(w: WorldState, tid: String, cell: Vector2i, ctx: Dictionar
 	var idx: Dictionary = TownGrid._index(w)["cells"]
 	if idx.has(ck):
 		var row: Array = idx[ck]
-		var f: Dictionary = w.peek("facility").get(String(row[0]), {})
+		var f := Site.what(w, String(row[0]))
 		var ty := String(f.get("type", ""))
-		if ty == "HOUSING":
-			var org: Dictionary = w.peek("org").get(String(f.get("org", "")), {})
-			t += "%s: %d home%s (block %s, %s)\n" % [String(row[1]).capitalize(), int(row[2]), "" if int(row[2]) == 1 else "s",
-				String(row[0]), String(org.get("name", "?"))]
+		if ty == "LANDLORD":
+			t += "%s: %d home%s (%s, %s)\n" % [String(row[1]).capitalize(), int(row[2]), "" if int(row[2]) == 1 else "s",
+				String(row[0]), String(f.get("company", "")) if not f.get("plan", false) else "being built"]
 			t += "Connection: %d m of street, pipe and cable a home\n" % TownGrid.connection_m(w, String(row[0]))
 		else:
 			t += "%s (%s)\n" % [ty.capitalize().replace("_", " "), String(row[0])]
 	else:
-		var why := TownGrid.blocked(w, cell, "HOUSING", ctx)
+		var why := TownGrid.blocked(w, cell, "LANDLORD", ctx)
 		t += "Empty: %s\n" % ("free for homes" if why == "" else why)
-		var use := Siting.use_at(w, tl) if Siting.on(w) else ""
-		if use != "":
-			t += "Reserved for %s\n" % use.to_lower()
+		var zone := LandLaw.zone_of(w, tl)
+		if zone != "UNZONED":
+			t += "Zoned %s\n" % zone.to_lower()
 	var v := TownGrid.value(w, cell, ctx)
 	t += "\n[b]Location value %d[/b] (1000 = an ordinary cell)\n" % int(v["value_pm"])
 	var parts: Dictionary = v["parts"]

@@ -40,7 +40,7 @@ const GRAZ_LOSS_MAX := 10
 ## Attacks: expected per month = ATTACK_BASE x danger x boldness x sum over sites of (predators ‰ / 1000 x exposure).
 const ATTACK_BASE := 0.012   # an average world (danger 3, boldness 1): ~1 attack a year, a death every few years
 const KILL_PER_DANGER := 0.07     # chance an attack kills, per danger point
-const OUTDOOR_SITES := ["FARM", "FAMFARM", "MINE"]
+const OUTDOOR_SITES := ["FARM", "MINE"]
 const POLICY_LEVER := "ECO_WILDLIFE_POLICY"
 const POLICIES := ["PROTECT", "MANAGE", "CULL"]
 
@@ -174,7 +174,7 @@ static func land_use(world: WorldState) -> Dictionary:
 	var tph := _tiles_per_hex(world)
 	var cleared := {}
 	var farmed := {}
-	var fac: Dictionary = world.peek("facility")
+	var fac: Dictionary = ColonyLayout.plants(world)
 	var ft: Dictionary = ColonyLayout.facility_tiles(world)
 	for fid in CoreUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
@@ -184,9 +184,9 @@ static func land_use(world: WorldState) -> Dictionary:
 		if h < 0:
 			continue
 		var ty := String(f.get("type", ""))
-		var n := 9 if ty == "FARM" else (2 if ty == "FAMFARM" else 1)
+		var n := 1 + roundi(8.0 * float(f.get("sixths", 6)) / 6.0) if ty == "FARM" else 1   # a large farm clears 9, a family farm 2
 		cleared[h] = int(cleared.get(h, 0)) + n
-		if ty in ["FARM", "FAMFARM"]:
+		if ty == "FARM":
 			farmed[h] = int(farmed.get(h, 0)) + n
 	for k in world.peek("map").get("uses", {}):
 		var h2 := Planet.hex_of_tile(world, ColonyLayout.as_tile(k))
@@ -334,7 +334,7 @@ static func sites(world: WorldState) -> Array:
 	if not Terrain.ready(world):
 		return out
 	var land := Terrain.landing(world)
-	var fac: Dictionary = world.peek("facility")
+	var fac: Dictionary = ColonyLayout.plants(world)
 	var ft: Dictionary = ColonyLayout.facility_tiles(world)
 	var busy := {}
 	for fid in ft:
@@ -344,9 +344,9 @@ static func sites(world: WorldState) -> Array:
 	var cand: Array = []
 	for fid in CoreUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
-		if f.is_empty() or not String(f.get("type", "")) in OUTDOOR_SITES or bool(f.get("mothball", false)):
+		if f.is_empty() or not String(f.get("type", "")) in OUTDOOR_SITES or bool(f.get("closed", false)) or bool(f.get("plan", false)):
 			continue
-		cand.append({"kind": String(f["type"]), "fid": fid, "tile": ColonyLayout.as_tile(ft[fid]), "district": String(f.get("district", "")), "org": String(f.get("org", ""))})
+		cand.append({"kind": String(f["type"]), "fid": fid, "tile": ColonyLayout.as_tile(ft[fid]), "district": String(f.get("district", "")), "org": String(f.get("company", ""))})
 	for s in ColonyLayout.settlements(world):
 		cand.append({"kind": "SETTLEMENT", "fid": "", "tile": ColonyLayout.as_tile(s["tile"]), "district": String(s.get("district", "")), "org": "", "name": String(s.get("name", ""))})
 	for c in cand:
@@ -423,11 +423,11 @@ static func dangerous_district(world: WorldState, d: String) -> bool:
 ## web and every outdoor facility's type, district and mothball state, so it never outlives what it read.
 static func _risks(world: WorldState) -> Dictionary:
 	var sig: Array = []
-	var fac: Dictionary = world.peek("facility")
+	var fac: Dictionary = ColonyLayout.plants(world)
 	for fid in CoreUtil.sorted_keys(fac):
 		var f: Dictionary = fac[fid]
 		if String(f.get("type", "")) in OUTDOOR_SITES:
-			sig.append("%s%s%s%d" % [fid, String(f.get("type", "")), String(f.get("district", "")), 1 if bool(f.get("mothball", false)) else 0])
+			sig.append("%s%s%s%d" % [fid, String(f.get("type", "")), String(f.get("district", "")), 1 if bool(f.get("closed", false)) or bool(f.get("plan", false)) else 0])
 	var key := "%d|%s|%d|%d" % [world.rng.derive_seed("planet.eco.web"), ColonyLayout.key(world), hash(world.peek("planet").get("web", {})), hash(sig)]
 	if not _risk_cache.has(key):
 		if _risk_cache.size() >= 64:

@@ -37,6 +37,7 @@ const Land := preload("res://sim/law/land_law.gd")
 const JO := preload("res://sim/law/justice_ops.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 const L := preload("res://sim/law/law_data.gd")
+const LawCompany := preload("res://sim/law/law_company.gd")
 const Desk := preload("res://sim/office/decision_desk.gd")   # who decides (flag DELEGATION): counts decisions
 
 const FLAG := "PRIVATE_ROADS"
@@ -287,7 +288,7 @@ static func refusal_grounds(row: Dictionary) -> Array:
 
 static func _post(world: WorldState, row: Dictionary) -> String:
 	var ai := licence_decision(world, row)
-	var org_name := String(world.peek("org").get(String(row["org"]), {}).get("name", row["org"]))
+	var org_name := LawCompany.name_of(world, String(row["org"]))
 	var ds: Array = row["plan"].get("districts", [])
 	var lines: Array = ["%s asks to build its own %s road through %s." % [org_name, String(row["plan"].get("kind", "")).to_lower(),
 		", ".join(ds.map(func(x): return String(x)))]]
@@ -658,7 +659,7 @@ static func _ask(world: WorldState, row: Dictionary, link: Dictionary) -> void:
 	var dec := neglect_decision(world, row, link)
 	var labels := {"STEP_IN": "Repair it at the owner's cost", "LEAVE": "Leave it to the owner", "REVOKE": "Revoke the licence"}
 	var opts: Array = (dec["options"] as Array).map(func(o): return {"id": o, "label": labels[o], "action": {}})
-	var org_name := String(world.peek("org").get(String(link["owner"]), {}).get("name", link["owner"]))
+	var org_name := LawCompany.name_of(world, String(link["owner"]))
 	row["pending"] = "NEGLECT"
 	row["item"] = Office.post(world, {"kind": "EMAIL", "role": "ENGINEER", "category": "INFRASTRUCTURE", "priority": 45,
 		"subject": "Neglected private road: %s" % org_name,
@@ -694,8 +695,7 @@ static func _poll(world: WorldState, row: Dictionary) -> void:
 ## A failed owner (LIQUIDATION or DISSOLVED, or gone): the road may be sold with the estate for ESTATE_MONTHS; unsold,
 ## it reverts to the state without payment, and the owner's step-in debts on it lapse. -> true while the estate runs.
 static func _estate(world: WorldState, row: Dictionary, link: Dictionary) -> bool:
-	var o: Dictionary = world.peek("org").get(String(link["owner"]), {})
-	if not o.is_empty() and not (String(o.get("status", "")) in DEAD):
+	if LawCompany.trading(world, String(link["owner"])):
 		return false
 	if int(row["estate"]) < 0:
 		row["estate"] = world.month

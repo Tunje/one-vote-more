@@ -15,6 +15,7 @@ extends RefCounted
 ## Queries (pure): network, route, reachable_sites, closures, plan_link / validate_link (cost of a link).
 ## Writes: step_month (NATURE: wear, weather), complete_road (Bob's ROAD projects), add_traffic, add_base.
 
+const Site := preload("res://sim/transport/site.gd")
 const KINDS := ["TRACK", "ROAD", "PAVED"]
 const KIND_NAMES := {"TRACK": "dirt track", "ROAD": "road", "PAVED": "paved road"}
 const KM_PER_TILE := Terrain.KM_PER_TILE   # the colony map holds the whole landing hex
@@ -56,7 +57,6 @@ const JUNCTION_CAPACITY := {"CROSSING": 400, "PRIORITY": 900, "ROUNDABOUT": 2000
 const JUNCTION_RISK := {"CROSSING": 100, "PRIORITY": 70, "ROUNDABOUT": 25, "SIGNALS": 45, "FLYOVER": 10}
 const BILL_JUNCTION := {"PRIORITY": [15, 8, 0], "ROUNDABOUT": [110, 140, 2], "SIGNALS": [50, 40, 14], "FLYOVER": [400, 500, 10]}
 const LANE_SHARE := 70             # a second lane costs this % of the link's bill (bridges excluded)
-const PLANT_FREE_TYPES := ["HOUSING", "CLINIC", "SCHOOL", "ADMIN", "SERVICEHUB", "POLICE_STATION"]   # in-town services, not plants
 
 static var _init_cache := {}
 static var _memo := {}
@@ -171,9 +171,9 @@ static func _founding(world: WorldState) -> Dictionary:
 		joined.append(s)
 	# spur tracks to founding plants that stand outside every town
 	var ft := ColonyLayout.facility_tiles(world)
-	var fac: Dictionary = world.peek("facility")
+	var fac: Dictionary = ColonyLayout.plants(world)
 	for fid in CoreUtil.sorted_keys(ft):
-		if String(fac.get(fid, {}).get("type", "")) in PLANT_FREE_TYPES:
+		if Site.setting(String(fac.get(fid, {}).get("type", ""))) == "TOWN":   # town buildings stand on the town's streets
 			continue
 		var t: Vector2i = ft[fid]
 		if _town_of(setl, t) != "":
@@ -497,10 +497,10 @@ static func _nodes(world: WorldState) -> Array:
 	var land := Terrain.landing(world)
 	out.append({"id": "port", "kind": "PORT", "name": "the landing port", "tile": tile_int(land), "cell": home, "town": _town_of(setl, land)})
 	var ft := ColonyLayout.facility_tiles(world)
-	var fac: Dictionary = world.peek("facility")
+	var fac: Dictionary = ColonyLayout.plants(world)
 	for fid in CoreUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
-		if f.is_empty() or String(f["type"]) in PLANT_FREE_TYPES:
+		if f.is_empty() or Site.setting(String(f["type"])) == "TOWN":
 			continue
 		out.append({"id": fid, "kind": "PLANT", "name": "%s %s" % [String(f["type"]).to_lower(), fid], "tile": tile_int(ft[fid]),
 			"cell": home, "town": _town_of(setl, ft[fid])})
@@ -1312,8 +1312,7 @@ static func step_month(world: WorldState) -> void:
 	FreightRoads.step_month(world)   # FREIGHT_ROADS (opt-in): last month's freight, the yearly trend, jam facts
 	PrivateRoads.step_month(world)   # PRIVATE_ROADS: unbooked toll counts close
 	RoadSafety.step_month(world)     # ROAD_SAFETY: accidents near people on fast roads
-	Siting.step_month(world)         # SITING: a built project's chosen site goes to its facility
-	TownGrid.step_month(world)       # TOWN_GRID: towns that are due get their grid; new blocks take cells
+	Site.step_month(world)           # places of ids that are neither a plant nor a held plan are freed
 	if closed > 0:
 		world.add_fact({"type": "TRANSPORT_LINKS_CLOSED", "owner": "transport", "subjects": [], "responsible": [], "impact": {},
 			"magnitude": clampi(10 + closed * 5, 0, 60), "visibility": "PUBLIC",

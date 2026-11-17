@@ -7,16 +7,18 @@ extends RefCounted
 ## - Streets run on one global lattice (every BLOCK_CELLS cells), so a street block (400 m, 16 cells) is fixed by
 ##   geography: block_of(cell). A street block is the town's "square" (rebuild 5) and the piece areas are made of
 ##   (Maja's AreaStore holds which blocks form an area; this file holds the cells).
-## - Housing blocks take cells in a form (HOUSE / APARTMENT / TOWER); town buildings (shops, clinic, school, care,
-##   offices...) take one cell. Only occupied cells are stored; streets are derived.
+## - A plant is laid explicitly (Site.place / Site.hold, which call lay()): a plant with homes (a LANDLORD) takes cells
+##   in a form (HOUSE / APARTMENT / TOWER) for its homes; a town building (shop, clinic, school, care, offices...) takes
+##   one cell. The cells are the one record of where a town plant stands and of its homes (homes_of). Only occupied
+##   cells are stored; streets are derived.
 ## - Where a town grows is scored per cell, by what draws people (jobs, school, clinic, shops, laid utilities, water,
 ##   a road, the centre) less what keeps them away (a fast road, industry next door), with a little randomness per seed
 ##   (the user: "not perfect circular towns"). The parts stay visible for a site case.
 ## - The allowed forms are a policy (the commander's, later the government's or a municipality's): per town or "*".
 ## - A grid from the first house (the user, 2026-11-17: "Below 250 start a gridd anyway and only use what you need"):
-##   a settlement gets its grid as soon as it has a home or a town building. No high-rise exists in a town until it
-##   has apartments.
-## Table "town": {"towns": {tid: {"c": [fx, fy], "cells": {"fx,fy": [fid, form, homes]}}},
+##   a town (an area's id) gets its grid with the first building laid in it (ensure_town). No high-rise exists in a
+##   town until it has apartments.
+## Table "town": {"towns": {tid: {"c": [fx, fy], "cells": {"fx,fy": [plant or plan id, form, homes]}}},
 ##   "policy": {tid | "*": [form, ...]}, "rev": int}.
 
 const PER_TILE := 30          # cells along a 3 km tile
@@ -28,7 +30,6 @@ const FORMS := {
 	"TOWER": {"homes": 200, "storeys": 15, "conn_m": 1},
 }
 const DEFAULT_FORMS := ["HOUSE"]
-const BLOCK_HOMES := 50       # EconRulesHousing.BLOCK_UNITS (× the block's scale)
 const TRUNK_HOMES := 100      # a metre of trunk (centre → cell) is shared by about this many homes (a guess)
 ## Score weights (draws positive, penalties negative) and reach (km). "view": the sea or a river in sight (close);
 ## "water": the shore within walking distance.
@@ -43,12 +44,14 @@ const VALUE_MIN_PM := 300
 ## Catchments: how far people walk or travel to a place (km), and when it counts as full (free cells for houses left).
 const CATCH_KM := {"SCHOOL": 1.5, "CLINIC": 2.0, "": 3.0}   # "" = a workplace
 const FULL_FREE := 5          # fewer free cells than one 50-home block of houses takes
-const SHOP_TYPES := ["RETAIL", "BAKERY", "FAMBAKERY", "COMFORT"]
+const SHOP_TYPES := ["SHOP", "BAKERY", "CAFE"]
 const SEED_KM := 12.0         # a new neighbourhood may start at a workplace this close to the centre
 const SEED_CELLS := 6         # ... at cells this far from it (a 3 × 3 sample, every SEED_CELLS cells)
 const KEEP_CLEAR := 2         # cells around a country building's site (its tile's middle) that homes do not take
 const START_R := 5            # an empty town's candidates: cells this close to its centre
 const BLOCK_CELLS := 4        # a street every 4 cells: a street block is 400 m, 16 cells
+
+const Site := preload("res://sim/transport/site.gd")
 
 static var _cache := {}
 
@@ -126,57 +129,44 @@ static func town_of(world: WorldState, fid: String) -> String:
 	return "" if cs.is_empty() else String(_index(world)["cells"][cs[0]][3])
 
 
-## A block's form; a block in a settlement without a grid is houses on its tile ("HOUSE"). "" if not housing.
+## A plant's form (HOUSE, APARTMENT, TOWER for homes; "" for a town building or a plant without cells).
 static func form_of(world: WorldState, fid: String) -> String:
 	var cs := cells_of(world, fid)
-	if not cs.is_empty():
-		return String(_index(world)["cells"][cs[0]][1])
-	return "HOUSE" if String(world.peek("facility").get(fid, {}).get("type", "")) == "HOUSING" else ""
+	return String(_index(world)["cells"][cs[0]][1]) if not cs.is_empty() else ""
+
+
+## The homes of a plant: the homes in its cells (the one record of homes; a landlord's client places).
+static func homes_of(world: WorldState, fid: String) -> int:
+	var n := 0
+	var cells: Dictionary = _index(world)["cells"]
+	for ck in cells_of(world, fid):
+		n += int(cells[ck][2])
+	return n
+
+
+## The homes on one cell (Vector2i or "fx,fy"); 0 for an empty cell or a town building. Land law reads it (evictions).
+static func homes_on_cell(world: WorldState, cell) -> int:
+	var row: Array = (_index(world)["cells"] as Dictionary).get(_ck(_cell(cell)), [])
+	return int(row[2]) if not row.is_empty() else 0
+
+
+## Every id that holds cells, sorted.
+static func ids(world: WorldState) -> Array:
+	return CoreUtil.sorted_keys(_index(world)["of"])
+
+
+## The 3 km tiles that hold town cells: {"x,y": true}.
+static func town_tiles(world: WorldState) -> Dictionary:
+	var out := {}
+	for ck in _index(world)["cells"]:
+		var t := tile_of(ck)
+		out[Terrain.key(t.x, t.y)] = true
+	return out
 
 
 ## Does the town have its fine grid yet?
 static func has_grid(world: WorldState, tid: String) -> bool:
 	return world.peek("town").get("towns", {}).has(tid)
-
-
-## Is a settlement due its grid? {due, why ("homes" | "buildings" | ""), homes, buildings, kinds}. Pure. Due from its
-## first home or town building ("Below 250 start a gridd anyway").
-static func grid_due(world: WorldState, tid: String) -> Dictionary:
-	var homes := 0
-	var kinds := {}
-	var nb := 0
-	var fac: Dictionary = world.peek("facility")
-	for fid in CoreUtil.sorted_keys(fac):
-		var f: Dictionary = fac[fid]
-		var ty := String(f.get("type", ""))
-		if ty != "HOUSING" and Siting.kind_of(ty) != "TOWN":
-			continue
-		if town_for(world, f) != tid:
-			continue
-		if ty == "HOUSING":
-			homes += _homes(f)
-		else:
-			nb += 1
-			kinds[ty] = true
-	var why := ""
-	if homes > 0:
-		why = "homes"
-	elif nb > 0:
-		why = "buildings"
-	return {"due": why != "", "why": why, "homes": homes, "buildings": nb, "kinds": kinds.size()}
-
-
-## Which town a building of this district or area belongs to: the area's settlement, else the district's first. "".
-static func town_for(world: WorldState, f: Dictionary) -> String:
-	var setl := ColonyLayout.settlements(world)
-	if f.has("area"):
-		for s in setl:
-			if String(s["id"]) == String(f["area"]):
-				return String(s["id"])
-	for s in setl:
-		if String(s["district"]) == String(f.get("district", "")):
-			return String(s["id"])
-	return ""
 
 
 static func _centre_of(world: WorldState, tid: String) -> Vector2i:
@@ -227,17 +217,11 @@ static func connection_m(world: WorldState, fid: String) -> int:
 	return int(FORMS.get(form_of(world, fid), FORMS["HOUSE"])["conn_m"]) + roundi(m / TRUNK_HOMES)
 
 
-## A building's mean distance to its town centre, km (straight). Without a grid, the tile-level answer: from its
-## country tile to its settlement's tile. -1.0 if unknown.
+## A town building's mean distance to its town centre, km (straight). -1.0 for a plant without cells.
 static func centre_km(world: WorldState, fid: String) -> float:
 	var cs := cells_of(world, fid)
 	if cs.is_empty():
-		var f: Dictionary = world.peek("facility").get(fid, {})
-		var tid0 := town_for(world, f) if not f.is_empty() else ""
-		var p := _pos_km(world, fid)
-		if tid0 == "" or p.x < 0.0:
-			return -1.0
-		return p.distance_to(_km(_centre_of(world, tid0)))
+		return -1.0
 	var c0 := _km(_centre_of(world, town_of(world, fid)))
 	var s := 0.0
 	for ck in cs:
@@ -324,7 +308,8 @@ static func block_homes(world: WorldState, block: String) -> int:
 ## Where a set of blocks (an area) could be cut in two: every street-lattice line that leaves blocks on both sides,
 ## strongest boundary first. Kinds, strongest first (agreed with Maja, 2026-11-17): RIVER (a river runs along the line),
 ## FAST_ROAD (a road at 70 km/h or more runs along it), MAIN_STREET (any colony road runs along it), STREET (the plain
-## lattice). Within a kind, the cut that splits the homes most evenly first, then by position.
+## lattice). Within a kind, the cut that leaves both parts most compact first (the smaller of the two parts'
+## spread_km, agreed with Maja), then the most even split of the homes, then by position.
 ## [{axis: "x" | "y" (the line is x = at or y = at, in fine cells), at, kind, a: [blocks on the smaller-coordinate side (west
 ## for "x", north for "y")], b: [the larger side], homes_a, homes_b}]. Pure in the town table, the roads and the terrain. Roads and rivers are drawn as straight
 ## runs between 3 km tile middles (as the town view draws them); "along" means a run that is more along the line than
@@ -373,10 +358,13 @@ static func boundaries(world: WorldState, blocks_in: Array) -> Array:
 					kind = String(r["kind"])
 			a.sort()
 			b2.sort()
-			out.append({"axis": axis, "at": at, "kind": kind, "a": a, "b": b2, "homes_a": ha, "homes_b": hb})
+			out.append({"axis": axis, "at": at, "kind": kind, "a": a, "b": b2, "homes_a": ha, "homes_b": hb,
+				"spread_km": snappedf(maxf(spread_km(world, a), spread_km(world, b2)), 0.001)})
 	out.sort_custom(func(p, q):
 		if BOUNDARY_RANK[p["kind"]] != BOUNDARY_RANK[q["kind"]]:
 			return BOUNDARY_RANK[p["kind"]] < BOUNDARY_RANK[q["kind"]]
+		if float(p["spread_km"]) != float(q["spread_km"]):
+			return float(p["spread_km"]) < float(q["spread_km"])
 		var dp := absi(int(p["homes_a"]) - int(p["homes_b"]))
 		var dq := absi(int(q["homes_a"]) - int(q["homes_b"]))
 		if dp != dq:
@@ -388,6 +376,33 @@ static func boundaries(world: WorldState, blocks_in: Array) -> Array:
 
 
 const BOUNDARY_RANK := {"RIVER": 0, "FAST_ROAD": 1, "MAIN_STREET": 2, "STREET": 3}
+
+
+## The middle of a street block, km.
+static func block_mid_km(block: String) -> Vector2:
+	var b := _block_xy(block)
+	var m := float(BLOCK_CELLS) * 0.5
+	return Vector2((float(b.x * BLOCK_CELLS) + m) * CELL_KM, (float(b.y * BLOCK_CELLS) + m) * CELL_KM)
+
+
+## How far (km) the farthest block with homes lies from the homes-weighted middle of `blocks`; 0 without homes.
+## The compactness of a neighbourhood (Maja's reach split reads it; one rule for both of us).
+static func spread_km(world: WorldState, blocks: Array) -> float:
+	var c := Vector2.ZERO
+	var n := 0
+	for b in blocks:
+		var h := block_homes(world, String(b))
+		if h > 0:
+			c += block_mid_km(String(b)) * float(h)
+			n += h
+	if n <= 0:
+		return 0.0
+	c /= float(n)
+	var far := 0.0
+	for b in blocks:
+		if block_homes(world, String(b)) > 0:
+			far = maxf(far, block_mid_km(String(b)).distance_to(c))
+	return far
 const FAST_KMH := 70
 
 
@@ -433,16 +448,9 @@ static func _runs_along(r: Dictionary, axis: String, at: int, span_lo: int, span
 	return r_hi > float(span_lo) and r_lo < float(span_hi)
 
 
-## The 3 km tiles a town covers: {"x,y": homes}. Without a grid: its homes on its settlement tile.
+## The 3 km tiles a town covers: {"x,y": homes}. {} before it has a grid.
 static func footprint(world: WorldState, tid: String) -> Dictionary:
 	var out := {}
-	if not has_grid(world, tid):
-		var c0 := _centre_of(world, tid)
-		if c0.x < 0:
-			return out
-		var t0 := tile_of(c0)
-		out[Terrain.key(t0.x, t0.y)] = int(grid_due(world, tid)["homes"])
-		return out
 	var cs: Dictionary = world.peek("town").get("towns", {}).get(tid, {}).get("cells", {})
 	for ck in CoreUtil.sorted_keys(cs):
 		var t := tile_of(ck)
@@ -451,7 +459,7 @@ static func footprint(world: WorldState, tid: String) -> Dictionary:
 	return out
 
 
-## Homes in a 3 km tile: the cells of towns with a grid, and the blocks without cells on their own country tile.
+## Homes in a 3 km tile (every home stands on a town cell).
 static func homes_in_tile(world: WorldState, tile) -> int:
 	var t := ColonyLayout.as_tile(tile)
 	var n := 0
@@ -459,31 +467,24 @@ static func homes_in_tile(world: WorldState, tile) -> int:
 	for ck in idx["cells"]:
 		if tile_of(ck) == t:
 			n += int(idx["cells"][ck][2])
-	var fac: Dictionary = world.peek("facility")
-	var ft := ColonyLayout.facility_tiles(world)
-	for fid in ft:
-		if String(fac.get(fid, {}).get("type", "")) == "HOUSING" and not (idx["of"] as Dictionary).has(fid) \
-				and ColonyLayout.as_tile(ft[fid]) == t:
-			n += _homes(fac[fid])
 	return n
 
 
 # ================================================================== scoring
 
 ## What the scoring reads once per call: the places that draw people or keep them away, in km, and the roads.
-static func _context(world: WorldState) -> Dictionary:
-	var fac: Dictionary = world.peek("facility")
+static func _context(world: WorldState, tid: String = "") -> Dictionary:
 	var ft := ColonyLayout.facility_tiles(world)
 	var idx: Dictionary = _index(world)
 	var pts := {"jobs": [], "school": [], "clinic": [], "shops": [], "industry": [], "clear": []}
 	for fid in CoreUtil.sorted_keys(ft):
-		var f: Dictionary = fac.get(fid, {})
-		if f.is_empty():
+		var wt := Site.what(world, String(fid))
+		if wt.is_empty():
 			continue
-		var ty := String(f.get("type", ""))
+		var ty := String(wt["type"])
 		var cs: Array = (idx["of"] as Dictionary).get(fid, [])
 		var p := _km(_cell(cs[0])) if not cs.is_empty() else _tile_km(ColonyLayout.as_tile(ft[fid]))
-		if ty != "HOUSING":
+		if ty != "LANDLORD":
 			pts["jobs"].append(p)
 		match ty:
 			"SCHOOL":
@@ -492,10 +493,9 @@ static func _context(world: WorldState) -> Dictionary:
 				pts["clinic"].append(p)
 		if ty in SHOP_TYPES:
 			pts["shops"].append(p)
-		var kd := Siting.kind_of(ty)
-		if kd == "INDUSTRY":
+		if _industry(ty):
 			pts["industry"].append(p)
-		if kd in ["INDUSTRY", "FARMLAND"] and cs.is_empty():
+		if Site.setting(ty) == "COUNTRY" and cs.is_empty():
 			pts["clear"].append(centre_cell(ft[fid]))
 	pts["jobs"].append(_tile_km(Terrain.landing(world)))   # the port
 	var segs: Array = []   # [a km, b km, kmh]
@@ -508,7 +508,12 @@ static func _context(world: WorldState) -> Dictionary:
 		var v := RoadSafety.kmh(world, l)
 		for i in range(1, path.size()):
 			segs.append([_tile_km(Transport.int_tile(int(path[i - 1]))), _tile_km(Transport.int_tile(int(path[i]))), v])
-	return {"pts": pts, "segs": segs, "cells": idx["cells"], "salt": world.rng.derive_seed("town.grid")}
+	return {"pts": pts, "segs": segs, "cells": idx["cells"], "salt": world.rng.derive_seed("town.grid"), "tid": tid}
+
+
+## Industry keeps homes away and lowers their value: every country type but a farm.
+static func _industry(type: String) -> bool:
+	return type != "FARM" and type != "" and Site.setting(type) == "COUNTRY"
 
 
 static func _nearest(p: Vector2, arr: Array) -> float:
@@ -546,7 +551,8 @@ static func _water_km(world: WorldState, c: Vector2i) -> float:
 
 
 ## Why a cell cannot take a building of this type ("" = it can): off the map, unbuildable terrain, taken, next to a
-## country building's site, or land SITING reserves for another use.
+## country building's site, a zone that does not allow it (land law), or a street block that belongs to another town
+## (a block belongs to the first area that builds in it, and an area to its town; Maja's AreaStore).
 static func blocked(world: WorldState, c: Vector2i, ftype: String, ctx: Dictionary) -> String:
 	var t := tile_of(c)
 	if t.x < 0 or t.y < 0 or t.x >= Terrain.W or t.y >= Terrain.H:
@@ -559,17 +565,20 @@ static func blocked(world: WorldState, c: Vector2i, ftype: String, ctx: Dictiona
 		var sc: Vector2i = s
 		if absi(sc.x - c.x) <= KEEP_CLEAR and absi(sc.y - c.y) <= KEEP_CLEAR:
 			return "a country building's site"
-	if Siting.on(world) and not Siting.fits(Siting.use_at(world, t), ftype):
-		return "land reserved for %s" % Siting.use_at(world, t).to_lower()
+	if ftype != "" and not Site.zone_allows(world, Site.cell_key(c), ftype):   # the cell's own zone (Anni)
+		return "the zone does not allow it"
+	var own := AreaStore.area_of_block(world, block_of(c))
+	if own != "" and String(ctx.get("tid", "")) != "" and AreaStore.town_of(world, own) != String(ctx["tid"]):
+		return "a block of another town"
 	return ""
 
 
 ## How much a cell draws a building of this type to a town: {score, parts {the location value's parts (VALUE_PARTS),
 ## centre, noise}, blocked ("" or why not)}. Draws are weight × (1 − km ÷ reach); penalties likewise, negative; noise
 ## is fixed per seed and cell. Pure.
-static func cell_score(world: WorldState, tid: String, cell, ftype: String = "HOUSING", ctx: Dictionary = {}) -> Dictionary:
+static func cell_score(world: WorldState, tid: String, cell, ftype: String = "LANDLORD", ctx: Dictionary = {}) -> Dictionary:
 	if ctx.is_empty():
-		ctx = _context(world)
+		ctx = _context(world, tid)
 	var c := _cell(cell)
 	var p := _km(c)
 	var own: Dictionary = world.peek("town").get("towns", {}).get(tid, {}).get("cells", {})
@@ -594,7 +603,7 @@ static func value(world: WorldState, cell, ctx: Dictionary = {}) -> Dictionary:
 	if ctx.is_empty():
 		ctx = _context(world)
 	var c := _cell(cell)
-	var parts := _value_parts(world, c, ctx, ctx["cells"], Vector2i(-1, -1), "HOUSING")
+	var parts := _value_parts(world, c, ctx, ctx["cells"], Vector2i(-1, -1), "LANDLORD")
 	var s := 0.0
 	for k in parts:
 		parts[k] = snappedf(float(parts[k]), 0.001)
@@ -643,7 +652,7 @@ static func _value_parts(world: WorldState, c: Vector2i, ctx: Dictionary, built:
 	parts["road"] = float(W["road"]) * _draw(rd, float(REACH_KM["road"]))
 	parts["fast_road"] = float(W["fast_road"]) * fast
 	parts["industry"] = float(W["industry"]) * _draw(_nearest(p, pts["industry"]), float(REACH_KM["industry"])) \
-		if Siting.kind_of(ftype) != "INDUSTRY" else 0.0
+		if not _industry(ftype) else 0.0
 	return parts
 
 
@@ -663,13 +672,13 @@ static func form_table() -> Dictionary:
 ## (buildable cells within reach), free (of them, free for housing), homes (in reach), full (free < FULL_FREE)}.
 ## "No room left where people want to be" is a motive to build upward there. {} if the building has no place. Pure.
 static func catchment(world: WorldState, fid: String, reach_km: float = -1.0) -> Dictionary:
-	var f: Dictionary = world.peek("facility").get(fid, {})
-	if f.is_empty():
+	var wt := Site.what(world, fid)
+	if wt.is_empty():
 		return {}
 	var p := _pos_km(world, fid)
 	if p.x < 0.0:
 		return {}
-	var ty := String(f.get("type", ""))
+	var ty := String(wt["type"])
 	var rk := reach_km if reach_km > 0.0 else float(CATCH_KM.get(ty, CATCH_KM[""]))
 	var ctx := _context(world)
 	var idx: Dictionary = ctx["cells"]
@@ -688,7 +697,7 @@ static func catchment(world: WorldState, fid: String, reach_km: float = -1.0) ->
 				n += 1
 				homes += int(idx[k][2])
 				continue
-			var why := blocked(world, c, "HOUSING", ctx)
+			var why := blocked(world, c, "LANDLORD", ctx)
 			if why == "":
 				n += 1
 				free += 1
@@ -698,8 +707,8 @@ static func catchment(world: WorldState, fid: String, reach_km: float = -1.0) ->
 ## Where a building of this type would best go in a town: up to n cells, best first, each a cell_score row with its
 ## tile. The candidates: the free cells next to the town; around its centre while it is empty; and cells near
 ## workplaces within SEED_KM of the centre (a new neighbourhood at a plant, as Rydebäck). Pure.
-static func site_scores(world: WorldState, tid: String, ftype: String = "HOUSING", n: int = 5) -> Array:
-	var ctx := _context(world)
+static func site_scores(world: WorldState, tid: String, ftype: String = "LANDLORD", n: int = 5) -> Array:
+	var ctx := _context(world, tid)
 	var rows: Array = []
 	for ck in _candidates(world, tid, ctx):
 		var r := cell_score(world, tid, ck, ftype, ctx)
@@ -752,6 +761,7 @@ static func set_forms(world: WorldState, tid: String, forms: Array, by: String =
 	_bump(tb)
 	world.add_fact({"type": "TOWN_FORMS_SET", "owner": "transport", "subjects": [], "responsible": [], "impact": {},
 		"magnitude": 15, "visibility": "PUBLIC", "data": {"town": tid, "forms": tb["policy"][tid].duplicate(), "was": was, "by": by}})
+	Logbook.note(world, "TOWN", tid, "forms set", {"by": by}, {"forms": [was, tb["policy"][tid].duplicate()]})
 	return ""
 
 
@@ -764,8 +774,8 @@ static func set_form(world: WorldState, fid: String, form: String) -> String:
 	var tid := town_of(world, fid)
 	if not form in forms_allowed(world, tid):
 		return "%s is not allowed in %s" % [form, tid]
-	var f: Dictionary = world.peek("facility").get(fid, {})
-	var homes := _homes(f)
+	var homes := homes_of(world, fid)
+	var ftype := String(Site.what(world, fid).get("type", "LANDLORD"))
 	var tb := _table(world)
 	var cells: Dictionary = tb["towns"][tid]["cells"]
 	var c0 := _centre_of(world, tid)
@@ -775,7 +785,7 @@ static func set_form(world: WorldState, fid: String, form: String) -> String:
 		cells.erase(cs[i])
 	var kept: Array = cs.slice(0, need)
 	_bump(tb)
-	_lay(world, tid, fid, form, homes, kept, need - kept.size())
+	_lay(world, tid, fid, ftype, form, homes, kept, need - kept.size())
 	return ""
 
 
@@ -792,24 +802,22 @@ static func _table(world: WorldState) -> Dictionary:
 	return tb
 
 
-static func _homes(f: Dictionary) -> int:
-	return maxi(1, roundi(float(BLOCK_HOMES) * CoreUtil.fscale(f)))
-
-
 static func _cells_needed(homes: int, form: String) -> int:
 	return maxi(1, ceili(float(homes) / float(FORMS[form]["homes"])))
 
 
 ## Put a block's homes into its kept cells and `more` new ones, grown from the best free cells next to them (or the
 ## best site in the town when it has none yet).
-static func _lay(world: WorldState, tid: String, fid: String, form: String, homes: int, kept: Array, more: int) -> void:
+static func _lay(world: WorldState, tid: String, fid: String, ftype: String, form: String, homes: int, kept: Array, more: int) -> void:
 	var tb := _table(world)
 	var town: Dictionary = tb["towns"][tid]
 	var cells: Dictionary = town["cells"]
 	var mine: Array = kept.duplicate()
-	var ftype := String(world.peek("facility").get(fid, {}).get("type", "HOUSING"))
+	for ck0 in mine:
+		cells[ck0] = [fid, form, 0]
+	_bump(tb)
 	for _i in more:
-		var ctx := _context(world)
+		var ctx := _context(world, tid)
 		var best := ""
 		var bs := -INF
 		var cand: Array = []
@@ -843,82 +851,76 @@ static func _lay(world: WorldState, tid: String, fid: String, form: String, home
 	_bump(tb)
 
 
-## Give a settlement its grid now (it is due, or it was designated a municipality): the homes and town buildings
-## already there are laid out on it at once, in the order they were built, by the same scoring. Public fact
-## TOWN_GRID_LAID. → "" or why not.
-static func step_up(world: WorldState, tid: String, why: String = "designated") -> String:
+## A town gets its grid with its first building ("Below 250 start a gridd anyway"): public fact TOWN_GRID_LAID and a
+## Logbook row. → "" or why not.
+static func ensure_town(world: WorldState, tid: String) -> String:
 	if has_grid(world, tid):
-		return "%s has its grid" % tid
+		return ""
 	var c0 := _centre_of(world, tid)
 	if c0.x < 0:
 		return "Unknown town '%s'" % tid
 	var tb := _table(world)
 	tb["towns"][tid] = {"c": [c0.x, c0.y], "cells": {}}
 	_bump(tb)
-	_place_new(world, tid)
-	var due := grid_due(world, tid)
 	world.add_fact({"type": "TOWN_GRID_LAID", "owner": "transport", "subjects": [], "responsible": [], "impact": {},
-		"magnitude": 10, "visibility": "PUBLIC", "data": {"town": tid, "why": why, "homes": int(due["homes"]),
-			"buildings": int(due["buildings"]), "cells": (tb["towns"][tid]["cells"] as Dictionary).size()}})
+		"magnitude": 10, "visibility": "PUBLIC", "data": {"town": tid, "centre": [c0.x, c0.y]}})
+	Logbook.note(world, "TOWN", tid, "grid laid", {"centre": [c0.x, c0.y]}, {})
 	return ""
 
 
-## Monthly (NATURE tick): blocks and town buildings that are gone free their cells; a settlement that is due gets its
-## grid; in towns with a grid, new housing blocks take cells in their form (the block's "form" if allowed there, else
-## the first allowed) and new town buildings take one cell.
-static func step_month(world: WorldState) -> void:
+## Lay a building on the grid from `first` (a free cell): a town building takes one cell; a plant with homes takes as
+## many cells as its homes need in the town's first allowed form, grown from the first by the same scoring. Each block
+## it touches that nobody owns yet joins the neighbourhood Maja's AreaStore picks (area_for_new_block, claim_block).
+## A town's id is its founding area's id (AreaStore.town_of). → "" or why not.
+static func lay(world: WorldState, tid: String, id: String, ftype: String, first: String, homes: int = 0) -> String:
+	var why := ensure_town(world, tid)
+	if why != "":
+		return why
+	var c := _cell(first)
+	var bl := blocked(world, c, ftype, _context(world, tid))
+	if bl != "":
+		return "Cell %s: %s" % [first, bl]
+	var form := ""
+	var need := 1
+	if homes > 0:
+		form = String(forms_allowed(world, tid)[0])
+		need = _cells_needed(homes, form)
+	_lay(world, tid, id, ftype, form, homes, [_ck(c)], need - 1)
+	for ck in cells_of(world, id):
+		var blk := block_of(ck)
+		if AreaStore.area_of_block(world, blk) == "":
+			AreaStore.claim_block(world, AreaStore.area_for_new_block(world, tid, blk), blk)
+	return ""
+
+
+## A plan's cells become its plant's (Site.open).
+static func rekey(world: WorldState, from_id: String, to_id: String) -> void:
 	var tb := _table(world)
-	var fac: Dictionary = world.peek("facility")
-	for tid in CoreUtil.sorted_keys(tb["towns"]):
+	for tid in tb["towns"]:
+		var cells: Dictionary = tb["towns"][tid]["cells"]
+		for ck in cells:
+			if String(cells[ck][0]) == from_id:
+				cells[ck][0] = to_id
+	_bump(tb)
+
+
+## Free a building's cells (Site.release). A block left with no cells goes back to free (AreaStore.release_block): a
+## plan given up has built nothing there.
+static func free_cells(world: WorldState, id: String) -> void:
+	var tb := _table(world)
+	var touched := {}
+	for tid in tb["towns"]:
 		var cells: Dictionary = tb["towns"][tid]["cells"]
 		for ck in CoreUtil.sorted_keys(cells):
-			if not fac.has(String(cells[ck][0])):
+			if String(cells[ck][0]) == id:
 				cells.erase(ck)
-				_bump(tb)
-	for s in ColonyLayout.settlements(world):
-		var sid := String(s["id"])
-		if has_grid(world, sid):
-			_place_new(world, sid)
-		else:
-			var due := grid_due(world, sid)
-			if bool(due["due"]):
-				step_up(world, sid, String(due["why"]))
-
-
-## Lay out the town's housing blocks and town buildings that have no cells yet, in the order they were built.
-static func _place_new(world: WorldState, tid: String) -> void:
-	var fac: Dictionary = world.peek("facility")
-	var have: Dictionary = _index(world)["of"]
-	for fid in _ordered(fac):
-		if have.has(fid):
-			continue
-		var f: Dictionary = fac[fid]
-		var ty := String(f.get("type", ""))
-		if ty != "HOUSING" and Siting.kind_of(ty) != "TOWN":
-			continue
-		if town_for(world, f) != tid:
-			continue
-		if ty == "HOUSING":
-			var allowed := forms_allowed(world, tid)
-			var form := String(f.get("form", ""))
-			if not form in allowed:
-				form = String(allowed[0])
-			var homes := _homes(f)
-			_lay(world, tid, String(fid), form, homes, [], _cells_needed(homes, form))
-		else:
-			_lay(world, tid, String(fid), "", 0, [], 1)
-
-
-## Facilities in the order they were made (id number), so a town grows in the order its buildings came.
-static func _ordered(fac: Dictionary) -> Array:
-	var ids: Array = fac.keys()
-	ids.sort_custom(_id_less)
-	return ids
-
-
-static func _id_less(a, b) -> bool:
-	var pa := String(a).get_slice(":", 0)
-	var pb := String(b).get_slice(":", 0)
-	if pa != pb:
-		return pa < pb
-	return int(String(a).get_slice(":", 1)) < int(String(b).get_slice(":", 1))
+				touched[block_of(ck)] = true
+	_bump(tb)
+	for blk in CoreUtil.sorted_keys(touched):
+		var empty := true
+		for ck in block_cells(blk):
+			if (_index(world)["cells"] as Dictionary).has(ck):
+				empty = false
+				break
+		if empty:
+			AreaStore.release_block(world, blk)

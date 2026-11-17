@@ -27,8 +27,8 @@ const LIMITS := [30, 50, 70, 90]
 const SAFE_KMH := 30.0            # at or under this a road near people is (almost) safe
 const NEAR := 1                   # tiles (3 km): a link tile this close to people is a spot
 const TOWN_W := 2                 # a town tile (its houses and streets)
-const WALK := {"HOUSING": 3, "CLINIC": 2, "SCHOOL": 2, "RETAIL": 2, "SERVICEHUB": 2, "CHILDCARE": 2, "ELDERCARE": 2,
-	"COMFORT": 1, "ADMIN": 1, "POLICE_STATION": 1}
+const WALK := {"LANDLORD": 3, "CLINIC": 2, "SCHOOL": 2, "SHOP": 2, "SERVICEHUB": 2, "CHILDCARE": 2, "ELDERCARE": 2,
+	"BAKERY": 2, "CAFE": 1, "ADMIN": 1, "POLICE": 1}
 const WORK_W := 1                 # any other facility with people at work
 const BASE := 0.002               # a busy fast road through a village: about an accident a year
 const PASS_CUT := {"OVERPASS": 700, "UNDERPASS": 850}   # ‰ of the danger a pass takes away at spots within its reach
@@ -112,11 +112,11 @@ static func people(world: WorldState) -> Dictionary:
 	if _cache.size() >= 32:
 		_cache.clear()
 	var src := {}   # tile int -> [weight, fid, what]
-	var fac: Dictionary = world.peek("facility")
+	var fac: Dictionary = ColonyLayout.plants(world)
 	var ft: Dictionary = ColonyLayout.facility_tiles(world)
 	for fid in CoreUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
-		if f.is_empty() or bool(f.get("mothball", false)):
+		if f.is_empty() or bool(f.get("closed", false)) or bool(f.get("plan", false)):
 			continue
 		var ty := String(f.get("type", ""))
 		var w := int(WALK.get(ty, WORK_W))

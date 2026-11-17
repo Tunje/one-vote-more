@@ -54,12 +54,13 @@ func test_lease_and_sale_follow_land_policy() -> void:
 	check(Land.can_build(w, CO, t, "INDUSTRY")["ok"], "and may build")
 	w.levers["LAW_LAND_DISPOSAL"] = "KEEP"
 	var t2 := _free(w, 6)
-	check(not LQ.land_offer(w, t2, CO)["allowed"], "KEEP: nothing on offer")
+	var keep := LQ.land_offer(w, t2, CO)
+	check(keep["allowed"] and keep["mode"] == "LEASE" and keep["lease_rent"] == int(round(value * 0.012)), "KEEP: lease only, at double rent (%s)" % [keep])
 	w.levers["LAW_LAND_DISPOSAL"] = "SELL"
 	w.levers["LAW_LAND_PRICE_FLOOR_PCT"] = 30
 	check_eq(LQ.land_offer(w, t2, HH)["price"], int(round(value * 0.3)), "cheap land for households")
-	check_eq(LQ.land_offer(w, t2, CO)["price"], int(round(value * 0.9)), "companies still pay 90%")
-	check(not Land.grant_land(w, t2, CO, "SELL", int(value * 0.5))["ok"], "below the floor: rejected")
+	check_eq(LQ.land_offer(w, t2, CO)["price"], int(round(value * 0.3)), "companies pay the same legal floor")
+	check(not Land.grant_land(w, t2, CO, "SELL", int(value * 0.2))["ok"], "below the floor: rejected")
 	check(Land.grant_land(w, t2, HH, "SELL", int(round(value * 0.3)))["ok"], "cheap household purchase")
 	var sold := w.facts.query("LAND_SOLD")
 	check(sold.size() == 1 and int(sold[0]["data"]["discount_pct"]) == 70, "public sale fact with discount")

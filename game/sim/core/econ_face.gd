@@ -7,6 +7,22 @@ extends RefCounted
 ## may call the economy any other way. Built by planning/step1_doorway.py; edit by hand from here on.
 
 const NO := "There is no economy yet."
+const EconPublish := preload("res://sim/economy/econ_publish.gd")
+
+
+## Is there an economy running (companies trading)? False until rebuild step 3. Replaces the old test
+## `world.table("econ").has("s")` (rebuild-politics-face.md 6); read with peek, so asking creates no table.
+## STEP 3 MUST REDEFINE THIS on something real (companies trading, or households paid wages this month): nothing in the
+## rebuild writes table "econ", so until then the press never pays wages or gets its subsidy (Anni's review).
+static func running(world: WorldState) -> bool:
+	return world.peek("econ").has("s")
+
+
+## Where each grant type has need nobody meets: {kind: {district: need}} for the kinds of GovBuilder.GRANT_KINDS
+## (FARM, BAKERY, TRUCKER, TRUCKSHOP). {} while the economy publishes no need (the grants come with step 3; until then
+## this reads the shared state's "family_need_d", where the old economy and the tests put it).
+static func grant_need(world: WorldState) -> Dictionary:
+	return (CoreUtil.peek_st(world).get("family_need_d", {}) as Dictionary).duplicate(true)
 
 const ACTIONS_LINE_OF := {"HOUSING": "ECON_BUDGET_HOUSING"}  # old EconActions.LINE_OF: which budget line a type is paid from
 const ANNUAL_MIN_M := 3  # old EconAnnual.MIN_M
@@ -201,7 +217,12 @@ static func publicco_pending(_world: WorldState) -> Dictionary:
 
 ## old EconQuery.budget_view (economy/econ_query.gd), 3 calls
 static func query_budget_view(world: WorldState) -> Dictionary:
-	return {"treasury": float(world.ledger.balance(CoreUtil.TREASURY)) / float(CoreUtil.S), "debt": 0.0, "credit_headroom": 0.0, "runway_months": 0, "balance_pct": 0, "grant_this_month": 0.0, "lines": [], "tax_levers": {"income": 0, "profit": 0, "tariff": 0}}
+	# step 2: the treasury, its runway and the balance of the last twelve months (EconPublish). Debt, credit, the home
+	# world's grant, the budget lines and the tax levers come with steps 5 and 8.
+	var f: Dictionary = EconPublish.figures(world)
+	return {"treasury": float(int(f["treasury"])) / float(CoreUtil.S), "debt": 0.0, "credit_headroom": 0.0,
+		"runway_months": int(f["runway_milli"]) / 1000, "balance_pct": int(f["balance_milli"]) / 1000, "grant_this_month": 0.0,
+		"lines": [], "tax_levers": {"income": 0, "profit": 0, "tariff": 0}}
 
 
 ## old EconQuery.commission_options (economy/econ_query.gd), 1 call

@@ -2,7 +2,10 @@ extends RefCounted
 ## M13 land law (planning/spec-areas-v1.md §9.4, A37; agreed with Bob in planning/m13-econ-notes.md).
 ## Law owns titles and legality; Bob owns prices and money flows (he books the money, then calls grant_land).
 ##
-## Registry: table land_title, sparse, keyed "x,y"; no row = government freehold (all land is the state's at founding).
+## Registry: table land_title, sparse; no row = government freehold (all land is the colony's at landing, rebuild 12.1, 3).
+## Keys: a 3 km country tile "x,y"; a 100 m town cell "c:fx,fy" (TownGrid's fine coordinates). A cell with no row of its
+## own has its tile's title (rebuild step 2, agreed with Terra). Where a plant stands is Terra's (Site.of); land law
+## holds only who owns or leases the land and its zone. Every deed writes a Logbook row (kind LAND).
 ## Row: {tile, owner "gov"|org id|pool id, owner_kind GOV|COMPANY|HOUSEHOLD, tenure OWNED|LEASED, lessee, lessee_kind,
 ##       lease_rent, lease_until, zoning, acquired_month, price_paid, arrears_months, history}
 ## People are never deleted: clearance and eviction only say WHEN people must move; Bob/Wilma move them.
@@ -15,18 +18,18 @@ const GOV := {"kind": "GOVERNMENT", "id": "government"}
 const ZONES := ["UNZONED", "RESIDENTIAL", "INDUSTRIAL", "FARM", "RESERVE"]
 const ZONE_USES := {"UNZONED": ["HOUSING", "INDUSTRY", "MINE", "FARM", "SERVICE"], "RESIDENTIAL": ["HOUSING", "SERVICE"],
 	"INDUSTRIAL": ["INDUSTRY", "MINE", "SERVICE"], "FARM": ["FARM"], "RESERVE": []}
-const COMPANY_FLOOR_PCT := 90
 const LEASE_YIELD_PER_MONTH := 0.006        # lease rent = land value x 0.6% a month
 const MAX_LEASE_MONTHS := 1188              # 99 years
 const ARREARS_LIMIT := 3                    # months unpaid before the lease ends
 const PLACEHOLDER_VALUE_WREF := 12000       # milli-W_ref per tile until Bob registers land_value_fn
 
-## Hooks registered by the economy (Bob, A2): land value in milli-credits; called after an expropriation.
+## Hooks: land value in milli-credits by key ("x,y" or "c:fx,fy"), registered by Terra (Site.land_value_milli);
+## called after an expropriation with the tile.
 static var land_value_fn: Callable = Callable()
 static var on_land_taken_fn: Callable = Callable()
 
 
-const RULES_VERSION := 2
+const RULES_VERSION := 3   # 3: KEEP leases (no law forbids a private company, rebuild 12.10, 65)
 
 
 ## Land rules, (re)installed when missing or older than RULES_VERSION (old LAND_LAW rules are retired).
@@ -34,6 +37,8 @@ static func ensure_rules(world: WorldState) -> void:
 	var s := LawOps.state(world)
 	if int(s.get("land_rules_v", 0)) >= RULES_VERSION:
 		return
+	if int(s.get("land_rules_v", 0)) == 0:
+		Logbook.note(world, "LAND", "gov", "the colony holds all land", {"rule": "rebuild 12.1, 3"})
 	s["land_rules_v"] = RULES_VERSION
 	for k in ["land_title", "land_eviction"]:
 		world.table(k)
@@ -51,8 +56,24 @@ static func _k(tile) -> String:
 	return tile if typeof(tile) == TYPE_STRING else "%d,%d" % [tile.x, tile.y]
 
 
+## The title key of a town cell (Vector2i or "fx,fy").
+static func key_of_cell(cell) -> String:
+	var c: Vector2i = cell if cell is Vector2i else _v(String(cell))
+	return "c:%d,%d" % [c.x, c.y]
+
+
+static func is_cell(key: String) -> bool:
+	return key.begins_with("c:")
+
+
 static func _v(key: String) -> Vector2i:
-	return Vector2i(int(key.get_slice(",", 0)), int(key.get_slice(",", 1)))
+	var k := key.substr(2) if key.begins_with("c:") else key
+	return Vector2i(int(k.get_slice(",", 0)), int(k.get_slice(",", 1)))
+
+
+## The 3 km tile a key lies in (a cell's tile, or the tile itself).
+static func tile_of_key(key: String) -> Vector2i:
+	return TownGrid.tile_of(_v(key)) if is_cell(key) else _v(key)
 
 
 static func _actor_kind(ref) -> String:
@@ -76,6 +97,16 @@ static func _actor_id(ref) -> String:
 static func title(world: WorldState, tile) -> Dictionary:
 	var k := _k(tile)
 	var t: Dictionary = world.peek("land_title").get(k, {})
+	if is_cell(k):
+		# A cell's own row holds only what was set on the cell itself (its zone, its own sale or lease); everything
+		# else is its tile's, so a tile sold or leased takes along every cell not dealt with on its own (Ella's review).
+		var tt: Dictionary = title(world, _k(tile_of_key(k))).duplicate(true)
+		for f in t:
+			tt[f] = t[f]
+		tt["tile"] = k
+		if not t.has("history"):
+			tt["history"] = []
+		return tt
 	if t.is_empty():
 		return {"tile": k, "owner": "gov", "owner_kind": "GOVERNMENT", "tenure": "OWNED", "lessee": "", "lessee_kind": "",
 			"lease_rent": 0, "lease_until": -1, "zoning": "UNZONED", "acquired_month": 0, "price_paid": 0, "arrears_months": 0,
@@ -85,6 +116,14 @@ static func title(world: WorldState, tile) -> Dictionary:
 
 static func zone_of(world: WorldState, tile) -> String:
 	return String(title(world, tile).get("zoning", "UNZONED"))
+
+
+## The titles of a place: {key: title} for a list of keys ("x,y" tiles or "c:fx,fy" cells).
+static func title_of_place(world: WorldState, keys: Array) -> Dictionary:
+	var out := {}
+	for k in keys:
+		out[_k(k)] = title(world, k)
+	return out
 
 
 ## OWNER | LESSEE | "" for an actor ({kind,id} or an id string) on a tile.
@@ -102,7 +141,7 @@ static func right_of(world: WorldState, actor, tile) -> String:
 
 static func land_value(world: WorldState, tile) -> int:
 	if land_value_fn.is_valid():
-		return int(land_value_fn.call(world, _v(_k(tile))))
+		return int(land_value_fn.call(world, _k(tile)))
 	return int(PLACEHOLDER_VALUE_WREF * LawOps.Staff.w_ref_milli(world) / 1000)
 
 
@@ -132,8 +171,10 @@ static func land_offer(world: WorldState, tile, buyer, use: String = "") -> Dict
 		return out
 	var value := land_value(world, tile)
 	match String(world.levers.get("LAW_LAND_DISPOSAL", "LEASE")):
-		"KEEP":
-			out["reason"] = "land policy: the state keeps its land"
+		"KEEP":   # the state keeps its land: it leases, never sells, at double the rent (no law forbids a private company, rebuild 12.10, 65)
+			out["allowed"] = true
+			out["mode"] = "LEASE"
+			out["lease_rent"] = int(round(float(value) * LEASE_YIELD_PER_MONTH * 2.0))
 		"LEASE":
 			out["allowed"] = true
 			out["mode"] = "LEASE"
@@ -146,9 +187,8 @@ static func land_offer(world: WorldState, tile, buyer, use: String = "") -> Dict
 	return out
 
 
-static func _floor_pct(world: WorldState, buyer) -> int:
-	if _actor_kind(buyer) == "COMPANY":
-		return COMPANY_FLOOR_PCT
+## The legal least price of state land, % of its value: the government's lever, the same for every buyer.
+static func _floor_pct(world: WorldState, _buyer) -> int:
 	return int(world.levers.get("LAW_LAND_PRICE_FLOOR_PCT", 90))
 
 
@@ -166,8 +206,17 @@ static func _row(world: WorldState, tile) -> Dictionary:
 	var k := _k(tile)
 	var tt := world.table("land_title")
 	if not tt.has(k):
-		tt[k] = title(world, k).duplicate(true)
+		tt[k] = {"tile": k, "history": []} if is_cell(k) else title(world, k).duplicate(true)
 	return tt[k]
+
+
+## The stored row that holds the deed (owner, tenure, lease) for a key: a cell's own row once the cell was sold, leased
+## or taken on its own, else its tile's row. A tile's own row for a tile.
+static func _deed_row(world: WorldState, tile) -> Dictionary:
+	var k := _k(tile)
+	if is_cell(k) and not (world.peek("land_title").get(k, {}) as Dictionary).has("tenure"):
+		return _row(world, _k(tile_of_key(k)))
+	return _row(world, k)
 
 
 ## Grant state land to a buyer (Bob has booked the money). mode SELL | LEASE. Re-validates against current law.
@@ -202,7 +251,10 @@ static func grant_land(world: WorldState, tile, buyer, mode: String, price: int,
 	r["history"].append({"month": world.month, "from": "gov", "to": id, "kind": mode, "price": price})
 	_fact(world, "LAND_SOLD" if mode == "SELL" else "LAND_LEASED", {"tile": r["tile"], "to": id, "to_kind": _actor_kind(buyer),
 		"price": price, "value": value, "discount_pct": 0 if value <= 0 else maxi(0, int(round(100.0 - 100.0 * float(price) / float(value)))),
-		"area": AreaStore.area_of(world, _v(r["tile"]))}, 20)
+		"area": AreaStore.area_of(world, tile_of_key(r["tile"]))}, 20)
+	Logbook.note(world, "LAND", id, "land sold" if mode == "SELL" else "land leased", {"value": value, "floor": floor_price,
+		"lease_months": lease_months if mode != "SELL" else 0}, {"owner" if mode == "SELL" else "lessee": ["gov" if mode == "SELL" else "", id],
+		"price": [0, price]}, "gov", String(r["tile"]))
 	return {"ok": true, "reason": ""}
 
 
@@ -217,6 +269,8 @@ static func transfer_title(world: WorldState, tile, seller, buyer, price: int) -
 	r["price_paid"] = price
 	r["acquired_month"] = world.month
 	r["history"].append({"month": world.month, "from": _actor_id(seller), "to": _actor_id(buyer), "kind": "RESALE", "price": price})
+	Logbook.note(world, "LAND", _actor_id(buyer), "title passed", {"price": price}, {"owner": [_actor_id(seller), _actor_id(buyer)]},
+		_actor_id(seller), String(r["tile"]))
 	return {"ok": true, "reason": ""}
 
 
@@ -228,7 +282,9 @@ static func zone(world: WorldState, tiles: Array, zoning: String, by: Dictionary
 	if res["result"] != "AUTHORIZED":
 		return {"ok": false, "reason": "not authorized: %s" % res["reason"]}
 	for tile in tiles:
-		_row(world, tile)["zoning"] = zoning
+		var zr := _row(world, tile)
+		Logbook.note(world, "LAND", _actor_id(by), "zoned", {}, {"zoning": [zone_of(world, tile), zoning]}, "", String(zr["tile"]))
+		zr["zoning"] = zoning
 	_fact(world, "LAND_ZONED", {"tiles": tiles.map(func(t): return _k(t)), "zone": zoning}, 20, [{"actor": by, "share": 1.0}])
 	return {"ok": true, "reason": ""}
 
@@ -251,8 +307,10 @@ static func expropriate(world: WorldState, tiles: Array, by: Dictionary, purpose
 		return {"ok": false, "reason": "unlawful: %s" % (res["reason"] if purpose != "" else "no public purpose"), "compensation_due": due}
 	for tile in tiles:
 		var r := _row(world, tile)
-		var prev := String(r["owner"])
+		var prev := String(title(world, tile)["owner"])
 		r["history"].append({"month": world.month, "from": prev, "to": "gov", "kind": "EXPROPRIATION", "price": compensation})
+		Logbook.note(world, "LAND", "gov", "expropriated", {"purpose": purpose, "compensation": compensation, "due": due},
+			{"owner": [prev, "gov"]}, prev, String(r["tile"]))
 		r["owner"] = "gov"
 		r["owner_kind"] = "GOVERNMENT"
 		r["tenure"] = "OWNED"
@@ -260,7 +318,7 @@ static func expropriate(world: WorldState, tiles: Array, by: Dictionary, purpose
 		r["lease_until"] = -1
 		r["lease_rent"] = 0
 		if on_land_taken_fn.is_valid():
-			on_land_taken_fn.call(world, _v(r["tile"]), "gov")
+			on_land_taken_fn.call(world, tile_of_key(r["tile"]), "gov")
 	_fact(world, "LAND_EXPROPRIATED", {"tiles": tiles.map(func(t): return _k(t)), "purpose": purpose, "compensation": compensation,
 		"due": due}, 45, [{"actor": by, "share": 1.0}])
 	return {"ok": true, "reason": "", "compensation_due": due}
@@ -270,8 +328,8 @@ static func expropriate(world: WorldState, tiles: Array, by: Dictionary, purpose
 
 ## Bob reports unpaid lease rent; at ARREARS_LIMIT months the lease ends and occupied land goes to an eviction case.
 static func report_arrears(world: WorldState, tile, months_unpaid: int) -> void:
-	var r := _row(world, tile)
-	if r["tenure"] != "LEASED":
+	var r := _deed_row(world, tile)
+	if String(r.get("tenure", "")) != "LEASED":
 		return
 	r["arrears_months"] = months_unpaid
 	if months_unpaid >= ARREARS_LIMIT:
@@ -281,12 +339,14 @@ static func report_arrears(world: WorldState, tile, months_unpaid: int) -> void:
 static func _end_lease(world: WorldState, r: Dictionary, why: String) -> void:
 	var lessee := String(r["lessee"])
 	r["history"].append({"month": world.month, "from": lessee, "to": "gov", "kind": "LEASE_END_" + why, "price": 0})
+	Logbook.note(world, "LAND", lessee, "lease ended", {"why": why, "arrears_months": int(r.get("arrears_months", 0))},
+		{"lessee": [lessee, ""]}, "gov", String(r["tile"]))
 	r["tenure"] = "OWNED"
 	r["lessee"] = ""
 	r["lease_until"] = -1
 	r["lease_rent"] = 0
 	_fact(world, "LAND_LEASE_TERMINATED", {"tile": r["tile"], "lessee": lessee, "reason": why,
-		"area": AreaStore.area_of(world, _v(r["tile"]))}, 25)
+		"area": AreaStore.area_of(world, tile_of_key(r["tile"]))}, 25)
 	if residents_on(world, [r["tile"]]) > 0:
 		request_eviction(world, GOV, [r["tile"]], "LEASE_END" if why != "ARREARS" else "ARREARS")
 
@@ -295,11 +355,15 @@ static func _end_lease(world: WorldState, r: Dictionary, why: String) -> void:
 static func residents_on(world: WorldState, tiles: Array) -> int:
 	var by_area := {}
 	for tile in tiles:
-		var v := _v(_k(tile))
+		var k := _k(tile)
+		var v := tile_of_key(k)
 		var a := AreaStore.area_of(world, v)
 		if a == "":
 			continue
-		by_area[a] = int(by_area.get(a, 0)) + int(Terrain.use_at(world, v.x, v.y).get("units", 0))
+		var units := int(Terrain.use_at(world, v.x, v.y).get("units", 0))
+		if is_cell(k):
+			units = TownGrid.homes_on_cell(world, k.substr(2))
+		by_area[a] = int(by_area.get(a, 0)) + units
 	var n := 0
 	for a in by_area:
 		var cap := maxi(1, AreaStore.capacity(world, a))
@@ -331,7 +395,9 @@ static func request_eviction(world: WorldState, landlord, tiles: Array, ground: 
 	var keys: Array = tiles.map(func(t): return _k(t))
 	world.table("land_eviction")[id] = {"id": id, "landlord": _actor_id(landlord), "tiles": keys, "ground": ground,
 		"filed_month": world.month, "due_month": world.month + notice, "status": "PENDING",
-		"area": AreaStore.area_of(world, _v(keys[0])) if not keys.is_empty() else ""}
+		"area": AreaStore.area_of(world, tile_of_key(keys[0])) if not keys.is_empty() else ""}
+	Logbook.note(world, "LAND", _actor_id(landlord), "eviction filed", {"ground": ground, "notice_months": notice,
+		"residents": residents_on(world, keys)}, {"status": ["", "PENDING"]}, "", id)
 	_fact(world, "LAND_EVICTION_FILED", {"eviction": id, "tiles": keys, "ground": ground, "notice_months": notice,
 		"residents": residents_on(world, keys)}, 30)
 	return id
@@ -355,6 +421,8 @@ static func tick(world: WorldState) -> void:
 			e["status"] = "ORDERED"
 			e["ordered_month"] = world.month
 			var n := residents_on(world, e["tiles"])
+			Logbook.note(world, "LAND", String(e["landlord"]), "eviction ordered", {"ground": String(e["ground"]), "residents": n},
+				{"status": ["PENDING", "ORDERED"]}, "court", String(id))
 			_fact(world, "LAND_EVICTION_ORDERED", {"eviction": id, "tiles": e["tiles"], "area": e["area"], "residents": n,
 				"by": e["landlord"], "ground": e["ground"]}, 40 if n > 0 else 20, [],
 				{"scope": {"housing": [e["area"]]}, "share": 1000, "intensity": 600, "kind": "DISPLACEMENT", "decay": 100,
@@ -362,7 +430,7 @@ static func tick(world: WorldState) -> void:
 	var tt := world.table("land_title")
 	for k in Det.ordered(tt):
 		var r: Dictionary = tt[k]
-		if r["tenure"] == "LEASED" and int(r["lease_until"]) >= 0 and world.month >= int(r["lease_until"]):
+		if String(r.get("tenure", "")) == "LEASED" and int(r.get("lease_until", -1)) >= 0 and world.month >= int(r["lease_until"]):
 			_end_lease(world, r, "EXPIRED")
 
 

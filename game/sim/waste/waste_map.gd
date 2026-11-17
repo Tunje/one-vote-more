@@ -207,7 +207,7 @@ static func on_banks_downstream(world: WorldState, tile: int, reach: int = 2) ->
 	var ft := ColonyLayout.facility_tiles(world)
 	for fid in CoreUtil.sorted_keys(ft):
 		if near.call(ft[fid]):
-			out.append({"kind": "FACILITY", "id": fid, "name": String(world.peek("facility")[fid]["type"]).to_lower(), "tile": Transport.tile_int(ft[fid]),
+			out.append({"kind": "FACILITY", "id": fid, "name": String(ColonyLayout.plants(world).get(fid, {}).get("type", "building")).to_lower(), "tile": Transport.tile_int(ft[fid]),
 				"quality": river_quality(world, Transport.tile_int(ft[fid]))})
 	for s in PlanetSites.sites(world):
 		if s["where"] == "COLONY" and near.call(s["tile"]):

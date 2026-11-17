@@ -28,7 +28,6 @@ const Det := preload("res://sim/staff/det.gd")
 const J := preload("res://sim/law/justice_ops.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 
-const FLAG := "ROAD_SAFETY"
 const GOV := {"kind": "GOVERNMENT", "id": "government"}
 const LEVER := "LAW_SPEED_NEAR_HOMES"
 const STATUTORY := [0, 70, 50, 30]                 # km/h by lever value

@@ -9,6 +9,7 @@ extends RefCounted
 const Det := preload("res://sim/staff/det.gd")
 const Staff := preload("res://sim/staff/staff_ops.gd")
 const Justice := preload("res://sim/law/justice_ops.gd")
+const LawCompany := preload("res://sim/law/law_company.gd")
 
 const PROSECUTOR := {"kind": "INSTITUTION", "id": "prosecutor"}
 const DISCLOSURE_THRESHOLD_WREF := 2000   # milli-W_ref per donation; ABOVE_THRESHOLD discloses gifts above this
@@ -312,7 +313,7 @@ static func _donor_strike(world: WorldState, donor: String, fid: String) -> void
 		st["donor_bans"] = {}
 	st["donor_bans"][donor] = until
 	var fine := 0
-	if world.peek("org").has(donor):
+	if LawCompany.exists(world, donor):
 		fine = Justice._fine(world, donor, "SERIOUS", "")
 	var dref := {"kind": "COMPANY", "id": donor}
 	Justice.fact(world, "LAW_DONOR_BANNED", "PUBLIC", [dref], [{"actor": dref, "share": 1.0}], {"FAIRNESS": 3}, 50,

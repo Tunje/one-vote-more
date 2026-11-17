@@ -5,6 +5,7 @@ extends RefCounted
 const L := preload("res://sim/law/law_data.gd")
 const RE := preload("res://sim/law/rules_engine.gd")
 const Names := preload("res://sim/law/names.gd")
+const LawCompany := preload("res://sim/law/law_company.gd")
 const LawOps := preload("res://sim/law/law_ops.gd")
 const J := preload("res://sim/law/justice_ops.gd")
 const Staff := preload("res://sim/staff/staff_ops.gd")
@@ -254,7 +255,7 @@ static func _actor_name(world: WorldState, ref: Dictionary) -> String:
 		"AUTHORITY": return "Permit & Licence Office"
 		"INSTITUTION": return "Inspectorate" if ref.get("id", "") == "inspectorate" else String(ref.get("id", ""))
 		"PARTY": return String(world.peek("party").get(ref["id"], {}).get("name", ref["id"]))
-		"COMPANY": return String(world.peek("org").get(ref["id"], {}).get("name", ref["id"]))
+		"COMPANY": return LawCompany.name_of(world, String(ref["id"]))
 	return String(ref.get("id", "?"))
 
 

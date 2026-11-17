@@ -1,4 +1,6 @@
 extends TestCase
+
+const Company := preload("res://sim/economy/company.gd")
 ## M13 A1: terrain map and areas (planning/spec-areas-v1.md §1–§4; population.md §3, §26 tests 1 and 3).
 
 
@@ -54,31 +56,36 @@ func test_housing_extends_or_founds_areas() -> void:
 	check_eq(AreaStore.place_housing(w, far, 10, "GOV"), "", "a taken tile cannot be built on")
 
 
-func test_size_split_conserves_people_and_records_history() -> void:
+func test_a_tile_split_conserves_people_and_records_history() -> void:
 	var w := _world()
 	var l := Terrain.landing(w)
 	var a := AreaStore.place_housing(w, l, 300, "GOV")
-	_flatten(w, [l + Vector2i(1, 0), l + Vector2i(2, 0), l + Vector2i(3, 0)])
-	for d in [Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0)]:
-		var t: Vector2i = l + d
-		if Terrain.at(w, t.x, t.y) in Terrain.BUILDABLE_HOUSING:
-			AreaStore.place_housing(w, t, 300, "GOV")
+	_flatten(w, [l + Vector2i(1, 0)])
+	AreaStore.place_housing(w, l + Vector2i(1, 0), 300, "GOV")
 	if AreaStore.get_area(w, a)["tiles"].size() < 2:
-		return  # map edge case: not enough room next to the landing site in this seed
+		return  # map edge case
 	_leaf(w, a, "I2", 600)
 	_leaf(w, a, "I4", 300)
 	var moved_seen := []
 	AreaStore.change_listeners = [func(_w, moves): moved_seen.append_array(moves)]
-	w.month = 12  # January
-	AreaStore.yearly(w)
-	var kids: Array = AreaStore.get_area(w, a)["children"]
-	check_eq(kids.size(), 1, "oversized area split once")
-	var b: String = kids[0]
+	var b := AreaStore.split(w, a, [l + Vector2i(1, 0)], "SETTLEMENT", "TEST")
 	check_eq(AreaStore.residents(w, a) + AreaStore.residents(w, b), 900, "nobody lost or duplicated")
-	check(AreaStore.residents(w, b) > 0, "people moved to the new area")
+	check_eq(AreaStore.residents(w, b), 450, "people follow the homes (half of them)")
 	check_eq(String(AreaStore.get_area(w, b)["parents"][0]), a, "new area remembers its parent")
 	check(not moved_seen.is_empty(), "listeners told where people went (savings follow them)")
 	check(PopStore.reconcile(w).is_empty(), "population reconciles")
+
+
+func test_no_split_by_headcount_any_more() -> void:
+	var w := _world()
+	var l := Terrain.landing(w)
+	var a := AreaStore.place_housing(w, l, 300, "GOV")
+	_flatten(w, [l + Vector2i(1, 0)])
+	AreaStore.place_housing(w, l + Vector2i(1, 0), 300, "GOV")
+	_leaf(w, a, "I2", 5000)
+	w.month = 12
+	AreaStore.yearly(w)
+	check_eq(AreaStore.get_area(w, a)["children"].size(), 0, "5,000 people within reach of one school stay one area")
 
 
 func test_private_enclave_breaks_away_with_the_rich() -> void:
@@ -190,3 +197,114 @@ func test_found_landing_finds_the_area_on_the_landfall_tile() -> void:
 	var far := Terrain.nearest_free(w, (Terrain.landing(w).x + 30) % Terrain.W, Terrain.landing(w).y, Terrain.BUILDABLE_HOUSING, 10)
 	AreaStore.place_housing(w, far, 20, "COMPANY")
 	check_eq(AreaStore.found_landing(w), "", "an area elsewhere is not the Landing, and none is founded beside it")
+
+
+## Homes laid straight into the town grid's table (the shape TownGrid reads), in cells (fine coordinates), and their
+## blocks claimed for the area.
+func _homes(w: WorldState, area: String, cells: Array, per_cell: int) -> void:
+	# real plants laid through Terra's TownGrid.lay (it claims the blocks): a family-size landlord of `per_cell` homes
+	# on each cell, or a shop (no homes) when per_cell is 0
+	var type := "LANDLORD" if per_cell > 0 else "SHOP"
+	var cid := Company.create(w, type, "FAMILY", {"kind": "STATE", "holders": {"gov": 1000}}, "test " + type.to_lower(), {"area": area})
+	for c in cells:
+		var pid := Company.add_plant(w, cid, "FAMILY")
+		var why := TownGrid.lay(w, area, pid, type, "%d,%d" % [c.x, c.y], per_cell)
+		check_eq(why, "", "laid a %s on cell %s" % [type.to_lower(), str(c)])
+
+
+func test_homes_within_a_schools_reach_stay_one_area() -> void:
+	var w := _world()
+	var a := AreaStore.found_landing(w)
+	var c0 := TownGrid.centre_cell(Terrain.landing(w))
+	_homes(w, a, [c0, c0 + Vector2i(4, 0), c0 + Vector2i(8, 0)], 8)
+	check_eq(AreaStore.capacity(w, a), 24, "the area's homes are the homes in its blocks")
+	check(AreaStore.reach_split(w, a).is_empty(), "800 m across: no split")
+
+
+func test_homes_beyond_a_schools_reach_split_off_with_their_people() -> void:
+	var w := _world()
+	var a := AreaStore.found_landing(w)
+	var c0 := TownGrid.centre_cell(Terrain.landing(w))
+	var near: Array = []
+	for i in 6:
+		near.append(c0 + Vector2i(i % 3, i / 3))   # 48 homes in the middle
+	var far: Array = [c0 + Vector2i(40, 0), c0 + Vector2i(41, 0)]   # 16 homes 4 km east
+	_homes(w, a, near, 8)
+	_homes(w, a, far, 8)
+	_leaf(w, a, "I2", 400)
+	_leaf(w, a, "I4", 240)
+	var rs := AreaStore.reach_split(w, a)
+	check(not rs.is_empty(), "a block farther than %.1f km from the homes' centre" % TownGrid.CATCH_KM["SCHOOL"])
+	w.month = 12
+	AreaStore.yearly(w)
+	var kids: Array = AreaStore.get_area(w, a)["children"]
+	check_eq(kids.size(), 1, "the far homes split off")
+	if kids.is_empty():
+		return
+	var b: String = kids[0]
+	check_eq(AreaStore.area_of_block(w, TownGrid.block_of(far[0])), b, "the far block is the new area's")
+	check_eq(AreaStore.area_of_block(w, TownGrid.block_of(near[0])), a, "the middle stays")
+	check_eq(AreaStore.capacity(w, b), 16, "its homes")
+	check_eq(AreaStore.residents(w, b), 160, "people follow the homes: 16 of 64 homes, a quarter of 640")
+	check_eq(PopStore.count(w, {"hb": b, "inc": "I4"}), 60, "every band keeps its share")
+	check(PopStore.reconcile(w).is_empty(), "population reconciles")
+	check_eq(Logbook.rows(w, {"kind": "AREA"}).size(), 1, "the split is a log row")
+	check(AreaStore.reach_split(w, a).is_empty() and AreaStore.reach_split(w, b).is_empty(), "both parts are within reach now")
+
+
+func test_shelters_laid_in_cells_on_the_landing_tile_are_counted_once() -> void:
+	var w := _world()
+	var a := AreaStore.found_landing(w)
+	var c0 := TownGrid.centre_cell(Terrain.landing(w))
+	var cells: Array = []
+	for i in 50:
+		cells.append(c0 + Vector2i(i % 10, i / 10))   # 50 HOUSE cells of 8: the 400 landing shelters
+	_homes(w, a, cells, 8)
+	check_eq(AreaStore.capacity(w, a), 400, "400 shelters, counted from the cells only (not also as tile units)")
+
+
+func test_a_neighbourhood_split_off_stays_in_its_town() -> void:
+	var w := _world()
+	var a := AreaStore.found_landing(w)
+	check_eq(AreaStore.town_of(w, a), a, "the Landing is its own town")
+	var c0 := TownGrid.centre_cell(Terrain.landing(w))
+	var near: Array = []
+	for i in 6:
+		near.append(c0 + Vector2i(i % 3, i / 3))
+	var far: Array = [c0 + Vector2i(40, 0), c0 + Vector2i(41, 0)]
+	_homes(w, a, near, 8)
+	_homes(w, a, far, 8)
+	w.month = 12
+	AreaStore.yearly(w)
+	var b: String = AreaStore.get_area(w, a)["children"][0]
+	check_eq(AreaStore.town_of(w, b), a, "the new neighbourhood is in the Landing's town")
+	check_eq(AreaStore.areas_of_town(w, a), [a, b], "the town has two neighbourhoods")
+	check_eq(AreaStore.area_for_new_block(w, a, TownGrid.block_of(c0 + Vector2i(44, 0))), b, "a block by the far homes joins them")
+	check_eq(AreaStore.area_for_new_block(w, a, TownGrid.block_of(c0 + Vector2i(0, 4))), a, "a block in the middle joins the Landing")
+	var far2 := Terrain.nearest_free(w, (Terrain.landing(w).x + 30) % Terrain.W, Terrain.landing(w).y, Terrain.BUILDABLE_HOUSING, 10)
+	var e := AreaStore.place_housing(w, far2, 20, "COMPANY")
+	check_eq(AreaStore.town_of(w, e), e, "an area founded apart is its own town")
+
+
+func test_too_far_but_no_cut_is_a_log_row() -> void:
+	var w := _world()
+	var a := AreaStore.found_landing(w)
+	var c0 := TownGrid.centre_cell(Terrain.landing(w))
+	_homes(w, a, [c0 + Vector2i(1, 1), c0 + Vector2i(2, 2)], 8)   # one block with homes
+	_homes(w, a, [c0 + Vector2i(40, 1)], 0)                        # a far block with no homes
+	w.month = 12
+	AreaStore.yearly(w)
+	check_eq(AreaStore.get_area(w, a)["children"].size(), 0, "nothing splits")
+	check_eq(Logbook.rows(w, {"kind": "AREA", "what": "no cut"}).size(), 0, "a block without homes does not count as far")
+
+
+func test_a_released_block_is_free_again() -> void:
+	var w := _world()
+	var a := AreaStore.found_landing(w)
+	var far := Terrain.nearest_free(w, (Terrain.landing(w).x + 30) % Terrain.W, Terrain.landing(w).y, Terrain.BUILDABLE_HOUSING, 10)
+	var b := AreaStore.place_housing(w, far, 20, "COMPANY")
+	AreaStore.claim_block(w, a, "b:10,10")
+	check_eq(AreaStore.release_block(w, "b:10,10"), a, "the Landing gives it up")
+	check_eq(AreaStore.area_of_block(w, "b:10,10"), "", "nobody owns it")
+	check_eq(AreaStore.claim_block(w, b, "b:10,10"), b, "another area may take it now")
+	check_eq(AreaStore.release_block(w, "b:99,99"), "", "releasing a free block does nothing")

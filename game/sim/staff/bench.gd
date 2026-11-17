@@ -20,6 +20,7 @@ extends RefCounted
 const Det := preload("res://sim/staff/det.gd")
 const Ops := preload("res://sim/staff/staff_ops.gd")
 const D := preload("res://sim/staff/staff_data.gd")
+const LawCompany := preload("res://sim/law/law_company.gd")
 const RG := preload("res://sim/staff/roster_gen.gd")
 const OFS := preload("res://sim/staff/office_staff.gd")
 
@@ -96,9 +97,8 @@ static func source_weights(world: WorldState, party: String) -> Dictionary:
 
 static func _companies(world: WorldState) -> Array:
 	var out: Array = []
-	for oid in Det.ordered(world.peek("org")):
-		var o: Dictionary = world.peek("org")[oid]
-		if String(o.get("status", "ACTIVE")) == "ACTIVE" and not String(o.get("type", "")).begins_with("PUBLIC"):
+	for oid in LawCompany.Company.ids(world):
+		if LawCompany.trading(world, String(oid)) and not LawCompany.is_state(world, String(oid)):
 			out.append(String(oid))
 	return out
 

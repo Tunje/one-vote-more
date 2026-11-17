@@ -11,6 +11,7 @@ const RG := preload("res://sim/staff/roster_gen.gd")
 const Vis := preload("res://sim/law/visibility.gd")
 const WK := preload("res://sim/law/work_law.gd")
 const L := preload("res://sim/law/law_data.gd")
+const LawCompany := preload("res://sim/law/law_company.gd")
 
 const GOVERNMENT := {"kind": "GOVERNMENT", "id": "government"}
 const STATE := {"kind": "INSTITUTION", "id": "inspectorate"}
@@ -381,8 +382,7 @@ static func _stress_torts(world: WorldState) -> void:
 			if String(v["company"]) == op and String(v.get("facility", "")) == fac and v["kind"] in ["OVERWORK", "UNDERSTAFFING"] 					and bool(v.get("active", false)):
 				lean = vid
 				break
-		var org: Dictionary = world.peek("org").get(op, {})
-		var public: bool = String(org.get("type", "")) in EconData.PUBLIC_TYPES
+		var public: bool = LawCompany.is_state(world, op)
 		var resp: Dictionary = GOVERNMENT if public else {"kind": "COMPANY", "id": op}
 		var claim := int(round(float(maxi(1, int(d.get("workers_affected", 1)))) * STRESS_TORT_WREF * float(w_ref(world))
 			* (STRESS_LEAN_MULT if lean != "" else 1.0)))
@@ -603,19 +603,17 @@ static func _final(world: WorldState, c: Dictionary, claimant_wins: bool) -> voi
 					js(world)["sanctioned"][v["company"]] = world.month
 				_repeat_ladder(world, String(c["respondent"]["id"]))
 				if String(c["data"].get("class", "")) == "SEVERE":
-					var org: Dictionary = world.table("org").get(c["respondent"]["id"], {})
-					var ceo = org.get("ceo", {})
 					var cref := {"kind": "COMPANY", "id": c["respondent"]["id"]}
-					var ceo_name: String = String(ceo.get("name", "")) if ceo is Dictionary else str(ceo)
+					var ceo_name: String = LawCompany.chief_name(world, String(c["respondent"]["id"]))
 					var Crim = load("res://sim/law/criminal.gd")
 					var jail := int(Crim.named_months(world))      # P2a: 0 unless PRISONS is on and the sentence is prison
 					fact(world, "LAW_MANAGER_CONVICTED", "PUBLIC", [cref], [{"actor": cref, "share": 1.0}], {"FAIRNESS": 3}, 40,
 						{"org": c["respondent"]["id"], "ceo": ceo_name,
 						"violation": c["data"]["violation"], "case": c["id"], "prison_months": jail})
 					if jail > 0:
-						var nm := ceo_name if ceo_name != "" else "the chief executive of " + String(org.get("name", c["respondent"]["id"]))
+						var nm := ceo_name if ceo_name != "" else "the chief executive of " + LawCompany.name_of(world, String(c["respondent"]["id"]))
 						Crim.imprison_named(world, "CEO", jail, {"name": nm, "org": String(c["respondent"]["id"]), "case": c["id"],
-							"district": String(org.get("hq", "d:1"))})
+							"district": LawCompany.district_of(world, String(c["respondent"]["id"]))})
 			"TORT":
 				var claim := int(c["data"].get("claim", 0))
 				var gov_share := float(c["data"].get("gov_share", 0.0))
@@ -815,6 +813,7 @@ static func _repeat_ladder(world: WorldState, org_id: String) -> void:
 	log.append(world.month)       # this conviction (warnings for MINOR conduct are not convictions)
 	js(world)["convictions"][org_id] = log
 	var n := log.size()
+	Logbook.note(world, "LAW", org_id, "conviction", {"in_window": n, "window_months": REPEAT_WINDOW, "revoke_after": n_max}, {}, "court")
 	if n_max <= 0 or n < n_max:
 		return
 	if not _liquidate(world, org_id, "LICENCE_REVOKED"):
@@ -822,6 +821,8 @@ static func _repeat_ladder(world: WorldState, org_id: String) -> void:
 	for l in world.table("licence").values():
 		if String(l["holder_id"]) == org_id and String(l["status"]) == "ACTIVE":
 			l["status"] = "REVOKED"
+			Logbook.note(world, "LAW", org_id, "licence revoked", {"convictions": n}, {"status": ["ACTIVE", "REVOKED"]},
+				"court", String(l.get("id", "")))
 	var cref := {"kind": "COMPANY", "id": org_id}
 	fact(world, "LAW_LICENCE_REVOKED", "PUBLIC", [cref], [{"actor": cref, "share": 1.0}], {"FAIRNESS": 4, "JOBS": -3}, 50,
 		{"org": org_id, "convictions": n, "window_months": REPEAT_WINDOW, "wound_up": true})
@@ -847,6 +848,8 @@ static func _petitions(world: WorldState) -> void:
 		for li2 in liab.values():
 			if String(li2["debtor"]) == org and String(li2["status"]) == "OPEN":
 				owed += int(li2["amount"])
+		Logbook.note(world, "LAW", org, "petition", {"owed": owed, "kind": String(li["kind"]),
+			"months_overdue": world.month - int(li["due_month"])}, {}, String(li.get("creditor", "gov")), String(lid))
 		if _liquidate(world, org, "UNPAID_FINES"):
 			var cref := {"kind": "COMPANY", "id": org}
 			fact(world, "LAW_LIQUIDATION_PETITION", "PUBLIC", [cref], [{"actor": cref, "share": 1.0}], {"FAIRNESS": 3, "JOBS": -3}, 45,
@@ -855,9 +858,10 @@ static func _petitions(world: WorldState) -> void:
 
 
 static func _liquidate(world: WorldState, org_id: String, reason: String) -> bool:
-	if not world.table("org").has(org_id):
-		return false
+	if not LawCompany.exists(world, org_id) or LawCompany.is_state(world, org_id):
+		return false   # a state company is never wound up by the court (rebuild 12.8, 54)
 	var ok := EconFace.insolvency_court_liquidation(world, org_id, reason)
+	Logbook.note(world, "LAW", org_id, "wind up ordered" if ok else "wind up refused", {"reason": reason}, {}, "court")
 	if ok:
 		if not js(world).has("wound_up"):
 			js(world)["wound_up"] = {}
@@ -932,7 +936,7 @@ static func _revert(world: WorldState, overturned: Dictionary) -> void:
 ## A firm's revenue over its last twelve months (mcr), never one month's (the user: firms are judged by the year).
 ## Under twelve months of history (EconAnnual.MIN_M or more): the months it has, as a year. Under MIN_M: last month × 12.
 static func annual_rev(world: WorldState, org_id: String) -> float:
-	var o: Dictionary = world.peek("org").get(org_id, {})
+	var o: Dictionary = LawCompany.record(world, org_id)
 	var n := EconFace.annual_months(o)
 	if n >= EconFace.ANNUAL_MIN_M:
 		return float(EconFace.annual_sum12(o).get("rev", 0)) * 12.0 / float(n)
@@ -943,7 +947,6 @@ static func annual_rev(world: WorldState, org_id: String) -> float:
 ## any shortfall becomes a FINE liability (88's insolvency machine collects it). SEVERE also suspends licences.
 static func _fine(world: WorldState, org_id: String, cls: String, violation: String) -> int:
 	var spec: Array = FINE.get(cls, FINE["SERIOUS"])
-	var org: Dictionary = world.table("org").get(org_id, {})
 	var annual := annual_rev(world, org_id)
 	var floor_amt := float(spec[1]) * float(w_ref(world))
 	var base := maxf(float(spec[0]) * annual, floor_amt)
@@ -969,6 +972,8 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 		paid = mini(amount, maxi(0, world.ledger.balance(acct)))
 		if paid > 0:
 			world.ledger.transfer(acct, "gov:fines_revenue", paid, "FINE", world.month)
+	Logbook.note(world, "LAW", org_id, "fine", {"class": cls, "violation": violation, "annual_rev": int(annual),
+		"repeat": repeat, "capped": capped, "open_fines": open_fines, "amount": amount, "paid": paid, "owed": amount - paid}, {}, "gov")
 	if amount - paid > 0:
 		_owe(world, org_id, "gov", "", amount - paid, "FINE")
 	if cls == "SEVERE" or (repeat and cls == "SERIOUS"):
@@ -981,6 +986,8 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 				l["status"] = "SUSPENDED"
 				l["suspended_until"] = world.month + months
 				lics.append({"id": String(lid), "kind": l.get("kind", ""), "type": l.get("type", "")})
+				Logbook.note(world, "LAW", org_id, "licence suspended", {"class": cls, "repeat": repeat, "months": months},
+					{"status": ["ACTIVE", "SUSPENDED"]}, "permit_office", String(lid))
 		if not lics.is_empty():        # v8 review: no fact when nothing new was suspended
 			var vt: Dictionary = world.peek("violation_track").get(violation, {})
 			fact(world, "LAW_LICENCE_SUSPENDED", "PUBLIC", [{"kind": "COMPANY", "id": org_id}],
@@ -1016,6 +1023,8 @@ static func _owe(world: WorldState, debtor: String, creditor: String, creditor_a
 		if creditor_acct != "":
 			row["creditor_acct"] = creditor_acct
 		world.table("liability")[lid] = row
+		Logbook.note(world, "LAW", debtor, "owed", {"kind": kind, "due_month": int(row["due_month"]), "plan": small},
+			{"amount": [0, part]}, creditor, lid)
 
 
 static func repeat_offender(world: WorldState, org_id: String, violation: String) -> bool:

@@ -14,7 +14,7 @@ const GOV := "gov"
 func _world() -> WorldState:
 	var w := F.bare_world()
 	LawOps.init_world(w)
-	w.table("org")["org:1"] = {"id": "org:1", "type": "PRIVATE", "status": "ACTIVE"}
+	F.company(w, "org:1")
 	w.table("union")["union:1"] = {"id": "union:1", "acct": "union:union:1", "status": "ACTIVE", "federation": false}
 	return w
 

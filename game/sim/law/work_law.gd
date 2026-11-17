@@ -1,4 +1,5 @@
 extends RefCounted
+const LawCompany := preload("res://sim/law/law_company.gd")
 ## Workload and stress law (user ruling: lean staffing pays, stress costs). Owner: Anni (law). Pure lever reads;
 ## preload it (no class_name). Step 1: levers and readers only. Nothing reads them until Bob's support-economy pass
 ## reports workload per facility; then OVERWORK / UNDERSTAFFING become M11 conduct kinds (channel WORK).
@@ -61,18 +62,16 @@ static func strike_lawful_staffing(world: WorldState, sector: String) -> bool:
 		return false
 	if sector == "PUBLIC_SECTOR" and not public_shortfalls(world).is_empty():
 		return true
-	var fac := world.peek("facility")
-	var orgs := world.peek("org")
 	var vt := world.peek("violation_track")
 	for vid in vt:
 		var v: Dictionary = vt[vid]
 		if String(v.get("kind", "")) != "UNDERSTAFFING" or not bool(v.get("active", false)) or not bool(v.get("unlawful", false)):
 			continue
-		var f: Dictionary = fac.get(String(v.get("facility", "")), {})
-		var org := String(f.get("org", ""))
-		if f.is_empty() or not orgs.has(org):
+		var f: Dictionary = LawCompany.plant(world, String(v.get("facility", "")))
+		var org := String(f.get("company", ""))
+		if f.is_empty() or not LawCompany.exists(world, org):
 			continue
-		if EconFace.labor_occupation_of(world, org, String(f["type"])) == sector:
+		if EconFace.labor_occupation_of(world, org, String(f.get("type", ""))) == sector:
 			return true
 	return false
 

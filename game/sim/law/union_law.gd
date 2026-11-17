@@ -12,6 +12,7 @@ extends RefCounted
 ##   LAW_ESSENTIAL_SERVICES   (ENUM, Bob's EconUnions) NONE / MIN_SERVICE / NO_STRIKE
 
 const J := preload("res://sim/law/justice_ops.gd")
+const LawCompany := preload("res://sim/law/law_company.gd")
 
 ## Share of the fund a union may spend on parties by LAW_POLITICAL_LEVY (members who opt out, or never opt in).
 const LEVY_SHARE := [1.0, 0.85, 0.35]
@@ -62,7 +63,7 @@ static func liability_share(world: WorldState) -> float:
 static func is_public(world: WorldState, employer: String, occ: String) -> bool:
 	if employer == "gov" or occ == "PUBLIC_SECTOR":
 		return true
-	return String(world.peek("org").get(employer, {}).get("type", "")) == "PUBLIC_INSTITUTION"
+	return LawCompany.is_state(world, employer)
 
 
 ## Is this strike lawful? Called by Bob's union AI (U2) right after talks fail. employer: an org id, or "gov" for
@@ -87,7 +88,7 @@ static func strike_check(world: WorldState, _union_id: String, employer: String,
 ## union's row["acct"] up to its balance (a suit can empty the fund). -> case id, or "" when nobody sues.
 static func sue_unlawful_strike(world: WorldState, employer: String, union_id: String, losses: int, reasons: Array,
 		force: bool = false) -> String:
-	if employer == "gov" or not world.peek("org").has(employer) or losses <= 0:
+	if employer == "gov" or not LawCompany.exists(world, employer) or losses <= 0:
 		return ""
 	var claim := int(round(float(losses) * liability_share(world)))
 	if claim <= 0:

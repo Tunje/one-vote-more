@@ -127,6 +127,7 @@ func test_licence_renewal() -> void:
 	var s := F.sim(9, true)
 	var w := s.world
 	var RE := preload("res://sim/law/rules_engine.gd")
+	F.company(w, "org:77")
 	var lid := LawOps.grant_licence(w, "org:77", "licence", "HAZARD", 6)
 	var exp0 := int(w.table("licence")[lid]["expiry_month"])
 	for _i in 10:

@@ -16,40 +16,43 @@ signal district_selected(district_id: String)   # an economic district (pre-A2 s
 
 const LQ := preload("res://sim/law/law_query.gd")
 const DL := preload("res://sim/law/districting.gd")
+const Site := preload("res://sim/transport/site.gd")
+const Company := preload("res://sim/economy/company.gd")
 
 const PANEL_W := 340.0
 const KIND_COLORS := {"SETTLEMENT": Color("#e9c46a"), "CAMP": Color("#e07a5f"), "VILLAGE": Color("#9cc97a"),
 	"ENCLAVE": Color("#c39be8"), "SHELTER": Color("#a8a8a8"), "SLUM": Color("#8d6e63")}
 const KIND_NAMES := {"SETTLEMENT": "settlement", "CAMP": "company camp", "VILLAGE": "village", "ENCLAVE": "private enclave",
 	"SHELTER": "shelter", "SLUM": "slum"}
-## Facility icons: glyph, colour.
-const FAC_STYLE := {"POWER": ["P", Color("#f4d03f")], "WATERWORKS": ["W", Color("#4fa3e0")], "DEPOT": ["D", Color("#b08968")],
-	"ROAD": ["R", Color("#8d8d8d")], "HOUSING": ["H", Color("#f1e3c8")], "FARM": ["F", Color("#7cc06a")],
+## Plant icons by type (the type table's 30 rows): glyph, colour.
+const FAC_STYLE := {"POWER": ["P", Color("#f4d03f")], "WATERWORKS": ["W", Color("#4fa3e0")], "HAULIER": ["D", Color("#b08968")],
+	"ROAD": ["R", Color("#8d8d8d")], "LANDLORD": ["H", Color("#f1e3c8")], "FARM": ["F", Color("#7cc06a")],
 	"MINE": ["M", Color("#c97b43")], "PROCESSING": ["Pr", Color("#9aa5b1")], "COMPONENTS": ["C", Color("#7f9cb8")],
 	"MEDWORKS": ["Md", Color("#f28fb1")], "CONSUMERF": ["G", Color("#e8a85c")], "SERVICEHUB": ["S", Color("#4fc1b0")],
 	"CLINIC": ["+", Color("#ef5350")], "SCHOOL": ["Sc", Color("#a58ad8")], "ADMIN": ["A", Color("#f5f5f5")],
-	"POLICE_STATION": ["Po", Color("#3f6fd8")], "TEXTILE": ["Tx", Color("#d9a0c8")], "FURNITURE": ["Fu", Color("#b9875a")],
-	"BAKERY": ["Bk", Color("#f0c27a")], "WAREHOUSE": ["Wh", Color("#a89a86")], "SANITATION": ["Sa", Color("#7aa38a")],
-	"TRANSIT": ["Bu", Color("#ff9f43")], "OFFICE": ["O", Color("#c8ccd2")], "HQOFFICE": ["HQ", Color("#e3e6ea")],
-	"BIZSVC": ["Bz", Color("#b8c4d8")], "RETAIL": ["Rt", Color("#f6b8a0")], "COMFORT": ["Co", Color("#e7a3c4")],
-	"ELDERCARE": ["El", Color("#e9a6a6")], "CHILDCARE": ["Ch", Color("#f3d58a")], "NEWSROOM": ["N", Color("#d0d0d0")],
-	"PUBJOBS": ["Pj", Color("#9ccbe0")]}
+	"POLICE": ["Po", Color("#3f6fd8")], "TEXTILE": ["Tx", Color("#d9a0c8")], "FURNITURE": ["Fu", Color("#b9875a")],
+	"BAKERY": ["Bk", Color("#f0c27a")], "SANITATION": ["Sa", Color("#7aa38a")], "TRANSIT": ["Bu", Color("#ff9f43")],
+	"OFFICEBLOCK": ["O", Color("#c8ccd2")], "SHOP": ["Sh", Color("#f6b8a0")], "CAFE": ["Ca", Color("#e7a3c4")],
+	"ELDERCARE": ["El", Color("#e9a6a6")], "CHILDCARE": ["Ch", Color("#f3d58a")], "NEWSPAPER": ["N", Color("#d0d0d0")],
+	"BUILDER": ["Bd", Color("#c9a26b")], "TRUCKSHOP": ["Tr", Color("#a0a8b0")], "BANK": ["$", Color("#e8d27a")],
+	"PRISON": ["Pn", Color("#8a8f99")]}
 ## Small in-town services and offices: drawn as smaller badges so the towns stay readable as they fill up.
-const MINOR_FAC := ["OFFICE", "BIZSVC", "RETAIL", "COMFORT", "ELDERCARE", "CHILDCARE", "NEWSROOM", "PUBJOBS", "HQOFFICE", "BAKERY"]
-const FAC_NAMES := {"POWER": "power plant", "WATERWORKS": "waterworks", "DEPOT": "depot", "ROAD": "road", "HOUSING": "housing block",
-	"FARM": "farm", "MINE": "mine", "PROCESSING": "processing plant", "COMPONENTS": "component workshop", "MEDWORKS": "medical works",
-	"CONSUMERF": "consumer goods factory", "SERVICEHUB": "service hub", "CLINIC": "clinic", "SCHOOL": "school", "ADMIN": "administration",
-	"POLICE_STATION": "police station", "TEXTILE": "textile mill", "FURNITURE": "furniture workshop", "BAKERY": "bakery",
-	"WAREHOUSE": "warehouse", "SANITATION": "sanitation works", "TRANSIT": "bus depot", "OFFICE": "office", "HQOFFICE": "head office",
-	"BIZSVC": "business services", "RETAIL": "shop", "COMFORT": "comfort services", "ELDERCARE": "elder care home",
-	"CHILDCARE": "childcare centre", "NEWSROOM": "newsroom", "PUBJOBS": "public works"}
+const MINOR_FAC := ["OFFICEBLOCK", "SHOP", "CAFE", "ELDERCARE", "CHILDCARE", "NEWSPAPER", "BAKERY", "BANK", "TRUCKSHOP"]
+const FAC_NAMES := {"POWER": "power plant", "WATERWORKS": "waterworks", "HAULIER": "haulier's yard", "ROAD": "road",
+	"LANDLORD": "homes", "FARM": "farm", "MINE": "mine", "PROCESSING": "processing plant", "COMPONENTS": "component works",
+	"MEDWORKS": "medical works", "CONSUMERF": "consumer goods factory", "SERVICEHUB": "service hub", "CLINIC": "clinic",
+	"SCHOOL": "school", "ADMIN": "administration", "POLICE": "police station", "TEXTILE": "textile mill",
+	"FURNITURE": "furniture workshop", "BAKERY": "bakery", "SANITATION": "sanitation works", "TRANSIT": "bus depot",
+	"OFFICEBLOCK": "office building", "SHOP": "shop", "CAFE": "cafe", "ELDERCARE": "elder care home",
+	"CHILDCARE": "childcare centre", "NEWSPAPER": "newspaper", "BUILDER": "builder's yard", "TRUCKSHOP": "truck workshop",
+	"BANK": "bank", "PRISON": "prison"}
 const DISTRICT_COLORS := [Color("#5dade2"), Color("#f5b041"), Color("#58d68d"), Color("#ec7063"), Color("#af7ac5"),
 	Color("#f4d03f"), Color("#48c9b0"), Color("#eb984e"), Color("#85929e"), Color("#f1948a"), Color("#7fb3d5"), Color("#c39bd3")]
 ## Where facilities may stand (display placement before A2, and build validity).
 const FAC_TERRAIN := ColonyLayout.FAC_TERRAIN
 const BUILD_TERRAIN := ColonyLayout.BUILD_TERRAIN
 ## What the player can place: public housing and public buildings (EconActions.OPERATOR ∩ EconData.BUILD).
-const BUILD_TYPES := ["HOUSING", "CLINIC", "SCHOOL", "POWER", "WATERWORKS", "DEPOT", "ROAD",
+const BUILD_TYPES := ["LANDLORD", "CLINIC", "SCHOOL", "POWER", "WATERWORKS", "HAULIER", "ROAD",
 	"LANDFILL", "INCINERATOR", "RECYCLING", "TREATMENT", "CEMETERY", "CREMATORIUM"]
 ## Waste, sewage and the dead (A45): site colours (open / filled) and glyphs; WASTE_BUILD_LIVE flips when Bob's waste
 ## economy builds these facilities (W3-W5). Until then the Build tab shows the siting study only.
@@ -68,7 +71,7 @@ const TERRITORY_REACH := 6   # tiles of open land a district's areas claim aroun
 var session: GameSession
 var mode := "INSPECT"        # INSPECT | BUILD | DISTRICTS | DRAW
 var selected := {}           # {"kind": AREA|FACILITY|SETTLEMENT|TILE, "id": …, "tile": Vector2i}
-var build_type := "HOUSING"
+var build_type := "LANDLORD"
 var build_tile := Vector2i(-1, -1)
 var plan := {}               # DRAW: district name -> [area ids]
 var draw_group := ""
@@ -169,7 +172,7 @@ func _ready() -> void:
 	_build_box.add_child(bl)
 	_build_pick = OptionButton.new()
 	for t in BUILD_TYPES:
-		_build_pick.add_item("Public housing" if t == "HOUSING" else ("Road link" if t == "ROAD" else String(FAC_NAMES.get(t, WasteMap.KIND_NAMES.get(t, t))).capitalize()))
+		_build_pick.add_item("Public housing" if t == "LANDLORD" else ("Road link" if t == "ROAD" else String(FAC_NAMES.get(t, WasteMap.KIND_NAMES.get(t, t))).capitalize()))
 	_build_pick.item_selected.connect(func(i: int): build_type = BUILD_TYPES[i]; build_tile = Vector2i(-1, -1); road_a = Vector2i(-1, -1); road_b = Vector2i(-1, -1); _refresh_siting(); _update_panel(); queue_redraw())
 	_build_box.add_child(_build_pick)
 	_road_kind_pick = OptionButton.new()
@@ -376,8 +379,9 @@ func _build_territory(w: WorldState) -> void:
 			_dist_keys.append(d)
 			_dist_names[d] = String(EconData.DISTRICTS.get(d, {}).get("name", d))
 			seeds[Terrain.key(_anchors[d].x, _anchors[d].y)] = d
+		var pl := ColonyLayout.plants(w)
 		for fid in _fac_tiles:
-			var dk := String(w.peek("facility")[fid].get("district", ""))
+			var dk := String(pl.get(fid, {}).get("district", ""))
 			if _dist_names.has(dk):
 				seeds[Terrain.key(_fac_tiles[fid].x, _fac_tiles[fid].y)] = dk
 	_territory = _grow(seeds)
@@ -556,7 +560,7 @@ func _draw_district_borders(t: float) -> void:
 
 func _draw_facilities(w: WorldState, t: float) -> void:
 	var font := get_theme_default_font()
-	var fac: Dictionary = w.peek("facility")
+	var fac: Dictionary = ColonyLayout.plants(w)
 	var sel_fac := String(selected.get("id", "")) if selected.get("kind", "") == "FACILITY" else ""
 	for fid in _fac_tiles:
 		var f: Dictionary = fac.get(fid, {})
@@ -566,8 +570,10 @@ func _draw_facilities(w: WorldState, t: float) -> void:
 		var p := _tile_center(_fac_tiles[fid])
 		var r := maxf(2.5, t * 0.42) * (0.62 if String(f["type"]) in MINOR_FAC else 1.0)
 		var col: Color = st[1]
-		if f.get("mothball", false) or int(f.get("closed_m", 0)) > 0:
+		if bool(f.get("closed", false)):
 			col = col.darkened(0.5)
+		elif bool(f.get("plan", false)):   # a plan holding its site: being built
+			col = Color(col, 0.45)
 		draw_circle(p, r + 1.0, Color(0.05, 0.05, 0.05, 0.9))
 		draw_circle(p, r, col)
 		if fid == sel_fac:
@@ -772,7 +778,8 @@ func hover_text(w: WorldState, t: Vector2i) -> String:
 		s += " · " + String(AreaStore.get_area(w, area)["name"])
 	var fid := String(_fac_at.get(Terrain.key(t.x, t.y), ""))
 	if fid != "":
-		s += " · " + String(FAC_NAMES.get(String(w.peek("facility")[fid]["type"]), "facility"))
+		var ty0 := String(ColonyLayout.plants(w).get(fid, {}).get("type", ""))
+		s += " · " + String(FAC_NAMES.get(ty0, "building"))
 	for lid in _link_at.get(Transport.tile_int(t), []):
 		s += " · " + String(Transport.KIND_NAMES[_link(lid).get("kind", "TRACK")])
 	for i in _bus_at.get(Transport.tile_int(t), []):
@@ -848,7 +855,7 @@ static func build_problem(w: WorldState, type: String, t: Vector2i, fac_at: Dict
 		return "Taken: %s" % ("part of " + String(AreaStore.get_area(w, AreaStore.area_of(w, t)).get("name", "an area")) if AreaStore.area_of(w, t) != "" else "already in use")
 	if fac_at.has(Terrain.key(t.x, t.y)):
 		return "Taken by a facility"
-	var allowed: Array = FAC_TERRAIN.get(type, BUILD_TERRAIN) if type == "HOUSING" else BUILD_TERRAIN
+	var allowed: Array = FAC_TERRAIN.get(type, BUILD_TERRAIN) if type == "LANDLORD" else BUILD_TERRAIN
 	if not code in allowed:
 		return "Cannot build %s on %s" % [String(FAC_NAMES.get(type, type)), String(Terrain.NAMES.get(code, code))]
 	var title: Dictionary = LQ.land_title(w, t)
@@ -1081,7 +1088,7 @@ func area_text(w: WorldState, id: String) -> String:
 	var facs := {}
 	for fid in _fac_tiles:
 		if AreaStore.area_of(w, _fac_tiles[fid]) == id or AreaStore.adjacent_area(w, _fac_tiles[fid]) == id:
-			var fn := String(FAC_NAMES.get(String(w.peek("facility")[fid]["type"]), "facility"))
+			var fn := String(FAC_NAMES.get(String(ColonyLayout.plants(w).get(fid, {}).get("type", "")), "building"))
 			facs[fn] = int(facs.get(fn, 0)) + 1
 	if not facs.is_empty():
 		var names: Array = facs.keys()
@@ -1150,38 +1157,41 @@ func settlement_text(w: WorldState, d: String) -> String:
 	var t := "[b]%s[/b]\nSettlement of the %s district (shown at its district until the economy keys housing by area, A2)\n" % [nm, nm]
 	var res := PopStore.count(w, {"hb": "hb:" + d})
 	var cap := 0
+	var pl := ColonyLayout.plants(w)
 	for fid in _fac_tiles:
-		var f: Dictionary = w.peek("facility")[fid]
-		if String(f["type"]) == "HOUSING" and String(f.get("district", "")) == d:
-			cap += 1
-	t += "\nResidents %d, %d housing block%s\n" % [res, cap, "" if cap == 1 else "s"]
+		if String(pl.get(fid, {}).get("type", "")) == "LANDLORD" and String(pl[fid].get("district", "")) == d:
+			cap += TownGrid.homes_of(w, String(fid))
+	t += "\nResidents %d, %d home%s\n" % [res, cap, "" if cap == 1 else "s"]
 	t += _people_text(w, "hb:" + d)
 	return t
 
 
 func facility_text(w: WorldState, fid: String) -> String:
-	var f: Dictionary = w.peek("facility").get(fid, {})
+	var f: Dictionary = ColonyLayout.plants(w).get(fid, {})
 	if f.is_empty():
-		return "Unknown facility."
+		return "Unknown building."
 	var ty := String(f["type"])
-	var org: Dictionary = w.peek("org").get(String(f.get("org", "")), {})
-	var t := "[b]%s[/b] (%s)\nOwner: %s\n" % [String(FAC_NAMES.get(ty, ty)).capitalize(), fid, org.get("name", "?")]
-	var d := String(f.get("district", ""))
-	if d != "":
-		t += "District: %s\n" % String(EconData.DISTRICTS.get(d, {}).get("name", d))
-	if f.has("tile"):
-		t += "Tile %s\n" % str(f["tile"])
+	var size := String({1: "family", 2: "small", 4: "average", 6: "large"}.get(int(f.get("sixths", 6)), ""))
+	var t := "[b]%s[/b], %s size (%s)\n" % [String(FAC_NAMES.get(ty, ty)).capitalize(), size, fid]
+	if bool(f.get("plan", false)):
+		t += "[i]A plan holding its site: being built.[/i]\n"
 	else:
-		t += "[i]Shown near its district: facilities get their own tile with the economy's tile update (A2).[/i]\n"
-	t += "\nUtilisation %.0f%%, condition %.0f%%" % [float(f.get("util", 0)) / 10.0, float(f.get("condition", 0)) / 1000.0]
-	if int(f.get("tier", 0)) > 0:
-		t += ", Mk %s" % ["I", "II", "III"][clampi(int(f["tier"]) - 1, 0, 2)]
-	t += "\n"
-	if f.get("mothball", false):
-		t += "[color=#ef5350]Mothballed[/color]\n"
-	if int(f.get("stop_until", 0)) > w.month:
-		t += "[color=#ef5350]Stopped (%s) until %s[/color]\n" % [String(f.get("stop_kind", "")).to_lower(), _month_text(int(f["stop_until"]))]
-	if ty == "POLICE_STATION":
+		t += "Company: %s\n" % String(f.get("company", "?"))
+	var site := Site.of(w, fid)
+	if String(site.get("where", "")) == "TOWN":
+		t += "In %s, %d cell%s (block %s)" % [String(AreaStore.get_area(w, String(site["town"])).get("name", site["town"])),
+			(site["cells"] as Array).size(), "" if (site["cells"] as Array).size() == 1 else "s", String(site["block"])]
+		if int(site.get("homes", 0)) > 0:
+			t += ", %d homes" % int(site["homes"])
+		t += "\n"
+	else:
+		t += "Tile %s\n" % String(site.get("tile", ""))
+	if String(f.get("district", "")) != "":
+		t += "District: %s\n" % String(f["district"])
+	t += "Land worth %s\n" % _money(float(Site.land_price(w, site, Site.bill_credits(ty, String(Company.plant(w, fid).get("size", "LARGE"))))))
+	if bool(f.get("closed", false)):
+		t += "[color=#ef5350]Closed[/color]\n"
+	if ty == "POLICE":
 		t += _police_text(fid)
 	var ex: Dictionary = EconFace.query_explain_facility(w, fid)
 	for c in ex.get("causes", []).slice(0, 3):
@@ -1225,7 +1235,7 @@ func _build_text(w: WorldState) -> String:
 		return _road_text(w)
 	if build_type in WasteMap.KINDS:
 		return _siting_text(w)
-	var name := "public housing" if build_type == "HOUSING" else String(FAC_NAMES.get(build_type, build_type))
+	var name := "public housing" if build_type == "LANDLORD" else String(FAC_NAMES.get(build_type, build_type))
 	var t := "[b]Build %s[/b]\nChoose a free tile: green is buildable, red is not.\n" % name
 	var est := EconFace.construction_estimate(build_type) / CoreUtil.S
 	t += "Estimated cost %s, paid from %s\n" % [_money(est), String(EconFace.actions_lines_for(build_type)[0]).trim_prefix("ECON_BUDGET_").replace("_", " ").to_lower()]
@@ -1238,7 +1248,7 @@ func _build_text(w: WorldState) -> String:
 	if why != "":
 		return t + "[color=#ef5350]%s[/color]\n" % why
 	var near := AreaStore.adjacent_area(w, build_tile)
-	if build_type == "HOUSING":
+	if build_type == "LANDLORD":
 		t += ("Extends [b]%s[/b]\n" % AreaStore.get_area(w, near)["name"]) if near != "" else "Founds a new settlement here\n"
 	var chk: Dictionary = EconFace.actions_check(w, "ECON_COMMISSION_PROJECT", build_params(w, build_type, build_tile, _anchors))
 	if not chk["ok"]:
@@ -1933,8 +1943,9 @@ func _refresh_crime(w: WorldState) -> void:
 	var seeds := {}
 	for d in ids:
 		seeds[Terrain.key(_anchors[d].x, _anchors[d].y)] = d
+	var pl2 := ColonyLayout.plants(w)
 	for fid in _fac_tiles:
-		var dk := String(w.peek("facility")[fid].get("district", ""))
+		var dk := String(pl2.get(fid, {}).get("district", ""))
 		if _anchors.has(dk):
 			seeds[Terrain.key(_fac_tiles[fid].x, _fac_tiles[fid].y)] = dk
 	for a in AreaStore.areas(w):

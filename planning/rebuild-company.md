@@ -343,6 +343,14 @@ Terra's town grid (section 9.8).
   - **What "underpaid" is measured against** (the user, replacing Wilma's proposal of "what a new hire is offered"):
     "I think you should avrage ask salleries in the company and underpayed is based on that line,  that way both old and new can become underpayed". The line is the average of the salaries paid in the company. Anyone paid less than that line is
     underpaid, whether they were hired long ago at an old low salary or last month at a hiring salary that has fallen.
+  - **Negotiation with the manager** (the user, 2026-11-17, verbatim): "Lets as one more thing to the sallery, the manager, negotiation can bring it closer to avrage". An underpaid
+    worker can negotiate with the company's manager, and a negotiation can bring their salary closer to the average.
+    So a salary has three ways to change after hiring: the yearly raise, a negotiation, and leaving for another job.
+  - **(proposal, how a negotiation goes:)** it is tried once a year, before the worker thinks of quitting or the union.
+    How far it closes the gap to the average depends on the manager (section 12.11, 77: every company has a chief with
+    a management skill) and on whether the company can pay. It never takes a salary above the average, and never
+    lowers one. A negotiation that fails leaves the worker where the earlier ruling has them: quit if better pay is in
+    reach, otherwise perhaps unionise.
   - **(proposal, one detail:)** the average is taken among the same kind of post (general, skilled, specialist). Taken
     over the whole company, every general worker would always count as underpaid beside the specialists.
 
