@@ -595,8 +595,12 @@ is wrong; nothing here is asked again.
 
 ### 12.5 People
 
-35. **Households stay pools,** each with a count per company its members work for. A household that must be named (the
-    owner of a family company, an owner in court, a home owner) has its own account inside its pool.
+35. **Households stay pools,** each with a count per company its members work for. **Company owners are counted
+    individually** (the user, 2026-11-17, verbatim: "On company owners, they should become individually counted on
+    company start, that divides them from the others but don't malt to many people to track"). When a company starts,
+    its owner is taken out of the pool and becomes a person of their own, with their own account. That is who the court,
+    a grant, the profit and a settlement act on. Everyone else stays in the pools, so the number of people tracked one
+    by one stays small: one per company owner.
 36. **The old household code is fitted like this:** its district keys become areas; its self-employed become family-size
     service companies; its price floors and ceilings and the ceiling on the self-employed are removed; every number it
     read from the old data file is set new. The 130% crowding limit stays: it is how many people fit in a home.

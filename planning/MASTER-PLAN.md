@@ -628,6 +628,13 @@ No plants are placed at the start; the colony lands with materials, five years' 
 Done the same turn: [rebuild-company.md](rebuild-company.md) version 9, section 12, decides all 76 open points from the two reviews; section 13 is the reworked build order; section 14 flags the three decisions Wilma is least sure of.
 
 
+### The rebuild: company owners are individuals (the user, 2026-11-17, verbatim)
+
+> On company owners, they should become individually counted on company start, that divides them from the others but don't malt to many people to track
+
+Written into [rebuild-company.md](rebuild-company.md) section 12.5, point 35, the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
