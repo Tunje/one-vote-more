@@ -91,3 +91,44 @@ The three things to carry into step 3's report are results, not faults:
 - the treasury's runway (about 24 months, 14 with the grants);
 - builders paying their own crews from step 3;
 - the hiring order across income bands.
+
+## 5. The food check again, with step 3's timeline and the planet's seasons (added for step 3)
+
+The joins ([rebuild-step3-joins.md](rebuild-step3-joins.md)) fix the timeline: a family farm signed in month 1 makes
+food from **month 7**. Terra's yield runs month by month with the season (`PlanetSeasons.farm_pct`, the same as
+`Site.yield_pm`): there is no harvest lump, but output swings hard.
+
+The yield at the landing, read from new games, in % of the yearly average (it averages 100):
+
+| Seed | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 19 | 20 | 54 | 99 | 145 | 179 | 187 | 179 | 145 | 99 | 54 | 20 |
+| 2 | 30 | 40 | 67 | 103 | 138 | 158 | 158 | 158 | 138 | 103 | 67 | 40 |
+| 3 | 19 | 19 | 51 | 99 | 145 | 181 | 190 | 181 | 145 | 99 | 51 | 19 |
+
+The game starts in January, so a farm making food from month 7 starts in July, at the top of the year.
+
+Worked month by month, with these assumptions:
+- 1,000 people eating 1,000 FOOD a month;
+- 12,000 landed, spoiling at 1% a month;
+- 41 family farms, each making 24.4 FOOD a month × the season;
+- a month short is a shortfall, not a debt.
+
+| Case | When the farms make food | Lowest stock (seeds 1, 2, 3) | Short |
+|---|---|---|---|
+| **Step 3, builders hire** to the work (all 41 jobs at once) | all 41 from month 7 | 3,650 / 3,940 / 3,650 at month 15 | **never** |
+| **Step 3, crews stay at 180** (13 jobs at a time) | 13 from month 7, 13 from 9, 13 from 12, 2 from 14 | 300 / 830 / 250 at month 15 | **never, by a few days' food** |
+| **A full game**, the state's power plant and waterworks on two builders, crews that cannot grow (6 farm jobs every 3 months) | 6 more every 3 months from month 7, all 41 by month 25 | 0 from month 13 | **from month 13**; about 5,000 to 5,500 meals short over three years, most in the first two winters |
+
+So with step 3's timeline and the real seasons:
+- **twelve months of landed food reaches in step 3**, whether or not the builders grow their crews;
+- with crews that cannot grow, it reaches by a few days' food, at the end of the first winter (month 15);
+- in a full game where the state's big jobs take two builders first and crews cannot grow, it does not reach: the
+  colony is short from month 13, through the first two winters.
+
+**It also depends on landing in January.** The first farms then open in July, at the peak. A colony landing in any
+other month, if that is ever possible, would open its first farms into a weaker season. The figures above hold only
+for a January landing.
+
+No number was changed. The first case is what step 3's games will show. The third case is for step 8, when the
+government commissions.

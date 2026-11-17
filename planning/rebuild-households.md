@@ -77,7 +77,7 @@ The area code (`game/sim/population/area_store.gd`) was a separate design. Areas
 - **Jobs** are in the company record: company["staff"][plant id or "crew"][post tier]["area|band|skill"] = persons × S. They are written only through Bob's Company.staff_change, by Households.hire and Households.layoff. Those two move the people and write the entry in one call.
 - **A pool's count per company** is read through Company.staff_of_pool.
 
-**Who fills a post (decided):** people of the post's own skill first, then a higher skill, never a lower one. Within a skill, the lowest income band first, so a run repeats. The occupation is the company's (Company.occupation: PUBLIC_SECTOR for a state company, PROFESSIONAL for a specialist post, otherwise the type's).
+**Who fills a post (decided):** people of the post's own skill first, then a higher skill, never a lower one. Within a skill nobody goes first (12.3, 28): the posts are shared over the income bands in proportion to their jobless of that skill, with a largest remainder so a run repeats. (Corrected after Bob's month-one check. The first version took the lowest band first, so in month one the poorest band filled 135 of 135 posts and the richest none. That was an ordering of ours, not a rule.) The occupation is the company's (Company.occupation: PUBLIC_SECTOR for a state company, PROFESSIONAL for a specialist post, otherwise the type's).
 
 **The starting numbers (accepted by Wilma):**
 

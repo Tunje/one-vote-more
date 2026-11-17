@@ -842,6 +842,12 @@ is wrong; nothing here is asked again.
     is still owed. The grant is owed back. What the founder cannot pay goes to court like any debt (8.3). A given-up
     plan is still not counted as a company that failed.
 61. **One grant per household.**
+61a. **A grant is a time-limited programme** (the user, 2026-11-14, about the grants, carried over from the old game
+     where it was built; found again by Ella in the old code's header, 2026-11-17): "when a grant ends, they reset to zero so they have to start over on where to put it; grants should be limited time for when you can apply".
+     And 2026-11-15: when a programme ends the government starts over on its level "and where it covers too".
+     So: all four programmes open in month one; each is a window for applying that ends; at its end the lever goes to
+     zero and a new programme needs a new decision by the government. The window's length (24 months) is a starting
+     number of ours.
 
 ### 12.10 The government, the law, politics
 

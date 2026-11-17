@@ -761,6 +761,17 @@ Written into [rebuild-company.md](rebuild-company.md) section 9.2.
 Written into [rebuild-company.md](rebuild-company.md) section 9.2.
 
 
+### The rebuild: a grant is a time-limited programme (the user, 2026-11-14 and 2026-11-15, recorded 2026-11-17)
+
+These two statements about the grants were only in the old code's comments, not in the papers. Ella found them when building the grants for step 3.
+
+> when a grant ends, they reset to zero so they have to start over on where to put it; grants should be limited time for when you can apply
+
+And, on a programme ending: the government starts over on its level "and where it covers too".
+
+Written into [rebuild-company.md](rebuild-company.md) 12.9, 61a. The 24 months is a starting number of ours.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
