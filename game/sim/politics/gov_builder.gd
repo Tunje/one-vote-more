@@ -22,8 +22,8 @@ const SafetyLaw := preload("res://sim/law/road_safety_law.gd")   # ROAD_SAFETY: 
 
 
 static func monthly(world: WorldState, st: Dictionary) -> void:
+	_grant_cover(world, st)   # the grants are open from month one (9.12); it acts once the economy publishes need
 	if world.table("econ").has("s"):
-		_grant_cover(world, st)
 		_road_budget_need(world, st)
 		_toll_feelings(world)
 	if world.month % 3 != QUARTER_MONTH or not world.table("econ").has("s"):
@@ -545,8 +545,6 @@ static func _grant_cover(world: WorldState, st: Dictionary) -> void:
 		var need_d: Dictionary = need_all.get(kind, {})
 		if int(world.levers.get(GRANT_KINDS[kind], 0)) <= 0:
 			if progs.has(kind):
-				Logbook.note(world, "GRANT", "government", "programme ended", {"kind": kind, "months": int(progs[kind]["months"]),
-					"need_months": int(progs[kind]["need_m"])}, {"cover": [cover.get(kind, []), []]}, String(progs[kind]["by"]), String(GRANT_KINDS[kind]))
 				_programme_ended(world, st, String(kind), progs[kind])
 				progs.erase(kind)
 			cover.erase(kind)
@@ -554,8 +552,6 @@ static func _grant_cover(world: WorldState, st: Dictionary) -> void:
 		# the open programme: who opened it, how long it has run and in how many of those months there was a need
 		if not progs.has(kind):
 			progs[kind] = {"by": String(_who(world, st).get("by", "")), "start": world.month, "months": 0, "need_m": 0}
-			Logbook.note(world, "GRANT", "government", "programme opened", {"kind": kind, "level": int(world.levers.get(GRANT_KINDS[kind], 0))},
-				{}, String(progs[kind]["by"]), String(GRANT_KINDS[kind]))
 		progs[kind]["months"] = int(progs[kind]["months"]) + 1
 		for d0 in need_d:
 			if int(need_d[d0]) > 0:

@@ -1,0 +1,285 @@
+extends RefCounted
+## The four grants (rebuild step 3; plan 9.5, 9.12, 8.1, 12.9 points 60 to 61a; joins: planning/rebuild-step3-joins.md).
+## Owner: Ella. Preload it (no class_name): const Grants := preload("res://sim/economy/grants.gd").
+##
+## "I DID NOT SAY GIVE EVERYONE ... GRANTS": grants exist only for family farms, family bakeries, truck drivers and truck
+## workshops ("No split trucks and workshops"), and all four are open from month one ("JUST ALL FUCKING GRANTS").
+##
+## A grant is a time-limited programme (the user, 2026-11-14: "when a grant ends, they reset to zero so they have to
+## start over on where to put it; grants should be limited time for when you can apply"; plan 12.9, 61a). A grant lever
+## above 0 opens an application window of PROGRAMME_M months; changing the level inside it does not extend it. When the
+## window ends the lever goes to 0 by the law's "programme ended" enactment and a public fact says what the programme
+## paid and refused. A new programme is a new decision of the government's. PROGRAMME_M is a START number of ours.
+##
+## Where a grant can be had: the districts the government chose for the programme (GovBuilder.grant_cover, politics'
+## own memory). A kind not chosen yet pays nothing. The government chooses from the need this file publishes: the work a
+## founder of that kind would see, by district (rule 7's signal, 15a).
+##
+## The money: a grant is the lever's per cent of what a founder must bring for the plant (Building.founder_needs). It
+## is paid from the treasury into the plan's own account (60) right after the plan is made and before it signs with a
+## builder (joins, COMPANY_AI 2), with memo "GRANT:<kind>". A treasury that cannot pay the whole grant pays none (a
+## half grant would leave a plan short that was planned on the whole). One grant per household (61): the household is
+## the founder's own, counted individually from the day the plan is made (60a), so the key is the founder's id
+## ("founder:N") and the founder's "had_grant", not the pool, which holds a whole block's band of households (Anni's
+## review). A founder who goes back into the pool (60c) takes its grant with it as one of the pool's granted households,
+## and a household drawn from those comes back with "had_grant" (Maja's pick_founder), so it cannot take a second grant.
+## A plan given up owes its grant back (60b): from the plan's account what it can, the founder the rest, as a debt to the
+## government that goes to court like any other.
+##
+## Every decision and deed writes a Logbook row of kind GRANT.
+
+const Company := preload("res://sim/economy/company.gd")
+const LawOps := preload("res://sim/law/law_ops.gd")
+const Justice := preload("res://sim/law/justice_ops.gd")
+const LawQuery := preload("res://sim/law/law_query.gd")
+
+const TABLE := "grant"             # one row per grant paid: keyed by plan id
+const STATE := "grant_prog"        # this file's own state: the programmes, the need (one table, one row "s")
+const PROGRAMME_M := 24            # START: months a programme stays open for applications
+const S := CoreUtil.S
+
+## kind -> [lever, company type, size]. Every grant is for a family-size company: one household runs it (plan 5).
+const KINDS := {
+	"FARM": ["ECON_FAMILY_FARM_GRANT", "FARM", "FAMILY"],
+	"BAKERY": ["ECON_FAMILY_BAKERY_GRANT", "BAKERY", "FAMILY"],
+	"TRUCKER": ["ECON_TRUCK_DRIVER_GRANT", "HAULIER", "FAMILY"],
+	"TRUCKSHOP": ["ECON_TRUCK_WORKSHOP_GRANT", "TRUCKSHOP", "FAMILY"],
+}
+
+## What a founder must bring for a plant: Otto's Building.founder_needs(world, type, size, area) -> credits x S. Set by
+## the conductor when Otto's piece is in; tests set their own. Unset, a grant quotes 0.
+static var needs_fn: Callable = Callable()
+
+
+static func lever_of(kind: String) -> String:
+	return String(KINDS.get(kind, ["", "", ""])[0])
+
+
+## The grant kind for a company type and size, or "" when none exists.
+static func kind_of(type: String, size: String) -> String:
+	for k in KINDS:
+		if String(KINDS[k][1]) == type and String(KINDS[k][2]) == size:
+			return String(k)
+	return ""
+
+
+static func _st(world: WorldState) -> Dictionary:
+	var t := world.table(STATE)
+	if not t.has("s"):
+		t["s"] = {"progs": {}, "need": {}, "seen": {}}
+	return t["s"]
+
+
+static func _peek_st(world: WorldState) -> Dictionary:
+	return world.peek(STATE).get("s", {})
+
+
+## The district an area lies in; a grant is covered by district. An area no district has been drawn over yet (month
+## one has the Landing and no districts: 12.1, 2) stands for itself, so the government can still choose it.
+static func _district(world: WorldState, area: String) -> String:
+	var d := LawQuery.district_of(world, area)
+	return d if d != "" else area
+
+
+## Why a grant of this kind cannot be had in this area now ("" when it can). A founder who already had a grant is
+## checked with `founder` ("" skips that check: a quote is asked before the founder is picked).
+## A cover entry may name the area's district or, chosen while no district was drawn over it (month one), the area
+## itself; both count, so drawing a district later does not silently empty a programme (Anni's review).
+static func _refusal(world: WorldState, kind: String, area: String, founder: String) -> String:
+	if not KINDS.has(kind):
+		return "no such grant"
+	if int(world.levers.get(lever_of(kind), 0)) <= 0:
+		return "no programme open"
+	var cover: Array = GovBuilder.grant_cover(world).get(kind, [])
+	if not (_district(world, area) in cover) and not (area in cover):
+		return "not in a district the programme covers"
+	if founder != "" and had(world, founder):
+		return "this household has had a grant"
+	return ""
+
+
+## Has this founder's household had a grant? (61: one per household.) Households are counts in pools, so the memory is
+## kept there (Maja): a founder drawn from a pool's granted households carries "had_grant" on its record, and a paid
+## grant is marked on the founder (Households.mark_granted, called from apply once her piece is in the tree) and goes
+## back to the pool with it. This file's own grants by founder id are checked too.
+static func had(world: WorldState, founder: String) -> bool:
+	if bool(world.peek("founder").get(founder, {}).get("had_grant", false)):
+		return true
+	for pid in world.peek(TABLE):
+		if String(world.peek(TABLE)[pid]["founder"]) == founder:
+			return true
+	return false
+
+
+## The grant's amount for a sum a founder must bring: the lever's per cent of it.
+static func amount_for(world: WorldState, kind: String, needed: int) -> int:
+	return int(round(float(maxi(0, needed)) * float(int(world.levers.get(lever_of(kind), 0))) / 100.0))
+
+
+## What a grant of `kind` would pay a founder from `pool` in `area` this month, credits x S; 0 when none can be had.
+## Read-only. Called by the founding sequence before the founder is picked (joins, COMPANY_AI 2), so it cannot know
+## whether that founder had a grant before; apply checks that. `pool` is kept for the joins' signature.
+static func quote(world: WorldState, kind: String, area: String, _pool: String) -> int:
+	if _refusal(world, kind, area, "") != "" or not needs_fn.is_valid():
+		return 0
+	var k: Array = KINDS[kind]
+	return amount_for(world, kind, int(needs_fn.call(world, String(k[1]), String(k[2]), area)))
+
+
+## A plan as this file reads it: {id, founder (person id), pool (the household the founder came from), type, size,
+## area, account}. From Otto's plan record (table "plan") and Maja's founder record (table "founder", ids "founder:N",
+## field "pool"; read through Households.person once her piece is in).
+## The one place that knows their field names.
+static func plan_of(world: WorldState, plan_id: String) -> Dictionary:
+	var p: Dictionary = world.peek("plan").get(plan_id, {})
+	if p.is_empty():
+		return {}
+	var founder := String(p.get("founder", ""))
+	return {"id": plan_id, "founder": founder, "pool": String(world.peek("founder").get(founder, {}).get("pool", "")),
+		"type": String(p.get("type", "")), "size": String(p.get("size", "")), "area": String(p.get("area", "")),
+		"account": String(p.get("account", plan_id))}
+
+
+## Pays the grant for a plan just made: from the treasury into the plan's account, all or nothing. -> {ok, amount, why}.
+static func apply(world: WorldState, plan_id: String) -> Dictionary:
+	var plan := plan_of(world, plan_id)
+	if plan.is_empty():
+		return {"ok": false, "amount": 0, "why": "no such plan"}
+	var pid := plan_id
+	var kind := kind_of(String(plan.get("type", "")), String(plan.get("size", "")))
+	var why := {"kind": kind, "area": String(plan.get("area", "")), "pool": String(plan.get("pool", ""))}
+	if kind == "":
+		return {"ok": false, "amount": 0, "why": "no grant for this type and size"}   # no row: not a grant decision
+	if world.peek(TABLE).has(pid):
+		return {"ok": false, "amount": 0, "why": "this plan has its grant"}
+	var no := _refusal(world, kind, String(plan.get("area", "")), String(plan.get("founder", "")))
+	var needed := int(needs_fn.call(world, String(plan["type"]), String(plan["size"]), String(plan["area"]))) if needs_fn.is_valid() else 0
+	var amount := amount_for(world, kind, needed)
+	why["level_pct"] = int(world.levers.get(lever_of(kind), 0))
+	why["needs"] = needed / S
+	if no == "" and amount <= 0:
+		no = "nothing to pay"
+	if no == "" and world.ledger.balance(CoreUtil.TREASURY) < amount:
+		no = "the treasury cannot pay it"
+		why["treasury"] = world.ledger.balance(CoreUtil.TREASURY) / S
+	if no != "":
+		_count(world, kind, "refused")
+		Logbook.note(world, "GRANT", String(plan.get("founder", "")), "grant refused", why.merged({"reason": no}), {}, "gov", pid)
+		return {"ok": false, "amount": 0, "why": no}
+	world.ledger.transfer(CoreUtil.TREASURY, String(plan["account"]), amount, "GRANT:" + kind, world.month)
+	world.table(TABLE)[pid] = {"plan": pid, "kind": kind, "founder": String(plan.get("founder", "")),
+		"pool": String(plan.get("pool", "")), "area": String(plan.get("area", "")), "amount": amount, "month": world.month,
+		"status": "PAID", "repaid": 0}
+	_count(world, kind, "paid")
+	Logbook.note(world, "GRANT", String(plan.get("founder", "")), "grant paid", why, {"plan money": [0, amount / S]}, "gov", pid)
+	return {"ok": true, "amount": amount, "why": ""}
+
+
+static func _count(world: WorldState, kind: String, what: String) -> void:
+	var progs: Dictionary = _st(world)["progs"]
+	if progs.has(kind):
+		progs[kind][what] = int(progs[kind][what]) + 1
+
+
+## A plan given up owes its grant back (60b). From the plan's account what it holds, up to the grant, back to the
+## treasury; the founder owes the rest to the government. Returns what was paid back now. Call it while the plan's
+## account still holds the plan's money.
+static func reclaim(world: WorldState, plan_id: String) -> int:
+	var g: Dictionary = world.peek(TABLE).get(plan_id, {})
+	if g.is_empty() or String(g["status"]) != "PAID":
+		return 0
+	var plan := plan_of(world, plan_id)
+	var plan_account := String(plan.get("account", plan_id))
+	var founder := String(g["founder"])
+	var due := int(g["amount"])
+	var back := CoreUtil.pay_upto(world, plan_account, CoreUtil.TREASURY, due, "GRANT_BACK:" + String(g["kind"]))
+	var owed := due - back
+	if owed > 0:
+		Justice.owe(world, founder, "gov", CoreUtil.TREASURY, owed, "GRANT")
+	world.table(TABLE)[plan_id]["status"] = "REPAID" if owed == 0 else "OWED"
+	world.table(TABLE)[plan_id]["repaid"] = back
+	Logbook.note(world, "GRANT", founder, "grant owed back", {"kind": String(g["kind"]), "grant": due / S},
+		{"paid back": [0, back / S], "owed": [0, owed / S]}, "gov", plan_id)
+	return back
+
+
+## The month (COMPANY_AI, last): open and close programmes, then publish the need the government reads.
+## need_fn: (world, type, size, area) -> the work a founder of that kind would see in that area, credits x S a month
+## (rule 7's signal, Bob's Rules). Unset, the need is 0 everywhere.
+static var need_fn: Callable = Callable()
+
+
+static func monthly(world: WorldState) -> void:
+	var st := _st(world)
+	var progs: Dictionary = st["progs"]
+	var seen: Dictionary = st["seen"]
+	for kind in CoreUtil.sorted_keys(KINDS):
+		var lid := lever_of(kind)
+		var lv := int(world.levers.get(lid, 0))
+		if progs.has(kind):
+			var pr: Dictionary = progs[kind]
+			pr["level"] = maxi(int(pr["level"]), lv)
+			if lv <= 0:
+				_closed(world, kind, pr, "the government closed it")
+				progs.erase(kind)
+			elif world.month >= int(pr["until"]):
+				_end_programme(world, kind, pr)
+				progs.erase(kind)
+		elif lv > 0:
+			progs[kind] = {"start": world.month, "until": world.month + PROGRAMME_M, "level": lv, "paid": 0, "refused": 0}
+			Logbook.note(world, "GRANT", "gov", "programme opened", {"kind": kind, "level_pct": lv, "months": PROGRAMME_M,
+				"until": world.month + PROGRAMME_M}, {}, "", lid)
+		seen[kind] = lv
+	_publish_need(world)
+
+
+## The window has run out: the lever goes to 0 by the law ("programme ended"), in force at once, and the public fact.
+static func _end_programme(world: WorldState, kind: String, pr: Dictionary) -> void:
+	LawOps.end_programme(world, lever_of(kind), "its %d months ran out" % PROGRAMME_M)   # a sunset: no new vote (Anni)
+	_closed(world, kind, pr, "its time ran out")
+
+
+## The fact politics reads (GovBuilder._programme_ended: data.lever, level, paid) and the log row.
+static func _closed(world: WorldState, kind: String, pr: Dictionary, how: String) -> void:
+	var lid := lever_of(kind)
+	var data := {"lever": lid, "kind": kind, "start": int(pr["start"]), "months": world.month - int(pr["start"]),
+		"level": int(pr["level"]), "paid": int(pr["paid"]), "refused": int(pr["refused"]), "how": how}
+	world.add_fact({"type": "ECON_GRANT_PROGRAMME_ENDED", "owner": "econ", "subjects": [],
+		"responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}], "impact": {}, "magnitude": 20,
+		"visibility": "PUBLIC", "data": data})
+	Logbook.note(world, "GRANT", "gov", "programme ended", data, {lid: [int(pr["level"]), 0]}, "", lid)
+
+
+## {kind: {district: need}}: the work a founder of each grant's kind would see, summed over the areas of a district.
+static func _publish_need(world: WorldState) -> void:
+	var out := {}
+	for kind in CoreUtil.sorted_keys(KINDS):
+		var by_d := {}
+		if need_fn.is_valid():
+			for ar in AreaStore.areas(world):
+				var a := String(ar["id"])
+				var d := _district(world, a)
+				if d == "":
+					continue
+				var k: Array = KINDS[kind]
+				by_d[d] = int(by_d.get(d, 0)) + maxi(0, int(need_fn.call(world, String(k[1]), String(k[2]), a)))
+		out[kind] = by_d
+	_st(world)["need"] = out
+
+
+## What the economy publishes for politics (EconFace.grant_need): {kind: {district: need}}; {} before the first month.
+static func need(world: WorldState) -> Dictionary:
+	return (_peek_st(world).get("need", {}) as Dictionary).duplicate(true)
+
+
+## {grant lever: 1000 where some district has need for it, else 0} (EconFace.lever_need, read by the legislature).
+static func lever_need(world: WorldState) -> Dictionary:
+	var out := {}
+	var n := need(world)
+	for kind in CoreUtil.sorted_keys(KINDS):
+		var any := false
+		for d in n.get(kind, {}):
+			if int(n[kind][d]) > 0:
+				any = true
+		out[lever_of(kind)] = 1000 if any else 0
+	return out

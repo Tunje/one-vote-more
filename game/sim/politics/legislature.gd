@@ -394,7 +394,7 @@ static func propose(world: WorldState, pos: Dictionary, sat: Dictionary, sal: Di
 	var scored: Array = []
 	var guarded := fiscal_guard(world)
 	var room := fiscal_room(world) * (E151_ROOM_PULL / FISCAL_ROOM_PULL if e151(world) else 1.0)   # E151: reserves above target push harder
-	var need_levers: Dictionary = CoreUtil.peek_st(world).get("lever_need", {}) if world.table("econ").has("s") else {}
+	var need_levers: Dictionary = EconFace.lever_need(world)   # the grants' need (rebuild step 3); {} before the economy's first month
 	var own_need: Dictionary = (world.peek("pol").get("state", {}) as Dictionary).get("lever_need", {})   # needs the government's own departments report (ROAD_WORKS)
 	if not own_need.is_empty():
 		need_levers = need_levers.duplicate()

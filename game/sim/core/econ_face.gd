@@ -8,6 +8,7 @@ extends RefCounted
 
 const NO := "There is no economy yet."
 const EconPublish := preload("res://sim/economy/econ_publish.gd")
+const Grants := preload("res://sim/economy/grants.gd")
 
 
 ## Is there an economy running (companies trading)? False until rebuild step 3. Replaces the old test
@@ -18,11 +19,16 @@ static func running(world: WorldState) -> bool:
 	return world.peek("econ").has("s")
 
 
-## Where each grant type has need nobody meets: {kind: {district: need}} for the kinds of GovBuilder.GRANT_KINDS
-## (FARM, BAKERY, TRUCKER, TRUCKSHOP). {} while the economy publishes no need (the grants come with step 3; until then
-## this reads the shared state's "family_need_d", where the old economy and the tests put it).
+## Where each grant type has work a founder would see: {kind: {district: need}} for the kinds of GovBuilder.GRANT_KINDS
+## (FARM, BAKERY, TRUCKER, TRUCKSHOP), published each month by Grants.monthly. {} before its first month.
 static func grant_need(world: WorldState) -> Dictionary:
-	return (CoreUtil.peek_st(world).get("family_need_d", {}) as Dictionary).duplicate(true)
+	return Grants.need(world)
+
+
+## {lever: 1000 where the economy says it is needed, else 0}: the grant levers (Grants.lever_need). Read by the
+## legislature in place of the old economy's shared state.
+static func lever_need(world: WorldState) -> Dictionary:
+	return Grants.lever_need(world)
 
 const ACTIONS_LINE_OF := {"HOUSING": "ECON_BUDGET_HOUSING"}  # old EconActions.LINE_OF: which budget line a type is paid from
 const ANNUAL_MIN_M := 3  # old EconAnnual.MIN_M

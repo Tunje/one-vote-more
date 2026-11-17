@@ -25,10 +25,15 @@ extends PicProvider
 
 const OWNER := "econ_pub"
 const PURSE := "gov:"   # the prefix of every government account
-const CAPITAL_MEMOS := ["LANDING_TREASURY"]   # payments into the purse that are capital, not income
+## Payments into the purse that are capital, not income: the landing treasury, the colony's land sold (LandLaw.sell),
+## the landing stock sold by Colony Stores (the sale of an asset; Wilma, step 3).
+const CAPITAL_MEMOS := ["LANDING_TREASURY", "LAND_SALE", "LANDING_STOCK_SALE"]
 const KEEP_M := 12
 const RUNWAY_MAX_M := 240   # the indicator's range: a treasury that spends nothing lasts "240 months or more"
 const STEP2_LEVERS := ["ECON_UNEMPLOYMENT_BENEFIT_RATE", "ECON_PENSION_RATE"]
+const STEP3_LEVERS := ["ECON_YEARLY_RAISE_MIN_PCT", "ECON_FAMILY_FARM_GRANT", "ECON_FAMILY_BAKERY_GRANT",
+	"ECON_TRUCK_DRIVER_GRANT", "ECON_TRUCK_WORKSHOP_GRANT"]
+const GRANT_START_PCT := 50   # START: a grant's share of what a founder must bring, open from month one (9.12)
 const STEP2_INDICATORS := ["ECON_TREASURY_RUNWAY", "ECON_BUDGET_BALANCE", "ECON_OPERATING_BALANCE"]
 
 
@@ -48,13 +53,34 @@ func lever_defs() -> Array:
 			{"COST_OF_LIVING": 30, "FAIRNESS": 20, "GOVERNANCE": -15}),
 		_lever("ECON_PENSION_RATE", [0, 100], 35, {"REDISTRIBUTION": 0.4, "FISCAL": 0.2},
 			{"COST_OF_LIVING": 25, "GOVERNANCE": -20}),
+		# step 3. The yearly raise every employed person gets at least (9.2: "they have a sallery set on hire then it
+		# climbs based on yearly upps set by goverment"; "2% is a good start"). Households.yearly_raise_month reads it.
+		_lever("ECON_YEARLY_RAISE_MIN_PCT", [0, 20], 2, {"LABOR": 0.4, "REDISTRIBUTION": 0.2, "ECON_ROLE": 0.1},
+			{"COST_OF_LIVING": 20, "FAIRNESS": 15, "JOBS": -10}),
+		# step 3. The four grants (9.5, 9.12: all open from month one), each a time-limited programme (12.9, 61a;
+		# sim/economy/grants.gd). Per cent of what a founder must bring.
+		_lever("ECON_FAMILY_FARM_GRANT", [0, 100], GRANT_START_PCT, {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01},
+			{"COST_OF_LIVING": 25, "JOBS": 15, "FAIRNESS": 15, "GOVERNANCE": -10}),
+		_lever("ECON_FAMILY_BAKERY_GRANT", [0, 100], GRANT_START_PCT, {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01},
+			{"COST_OF_LIVING": 25, "JOBS": 15, "FAIRNESS": 15, "GOVERNANCE": -10}),
+		_lever("ECON_TRUCK_DRIVER_GRANT", [0, 100], GRANT_START_PCT, {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01},
+			{"JOBS": 15, "INFRASTRUCTURE": 15, "FAIRNESS": 10, "GOVERNANCE": -10}),
+		_lever("ECON_TRUCK_WORKSHOP_GRANT", [0, 100], GRANT_START_PCT, {"REDISTRIBUTION": 0.01, "ECON_ROLE": 0.01},
+			{"JOBS": 15, "INFRASTRUCTURE": 15, "FAIRNESS": 10, "GOVERNANCE": -10}),
 	]
 
 
+## What a grant lever means, for the legislature's and the voters' screens: it lapses (12.9, 61a; Anni's review).
+const GRANT_NOTE := "A grant programme: per cent of what a founder must bring. Each programme is open for 24 months, then the lever returns to 0 by law and a new programme needs a new decision."
+
+
 func _lever(id: String, rng: Array, def: int, ideo: Dictionary, concerns: Dictionary) -> Dictionary:
-	return {"id": id, "owner": OWNER, "type": "NUMBER", "range": rng, "default": def, "legalLevel": "LAW",
+	# owner "econ", not this provider's id: the law names a lever's facts after its owner (ECON_LEVER_EFFECTIVE), and the
+	# press and gazette know that name; an indicator's owner is the provider that writes it
+	return {"id": id, "owner": "econ", "type": "NUMBER", "range": rng, "default": def, "legalLevel": "LAW",
 		"foundingEra": "COMMANDER", "ideology": ideo, "concerns": concerns, "implementation": "STAFF_T_IMPL_PROGRAM",
-		"lag": 1, "scope": "COLONY", "fiscal": null, "domain": "ECON"}
+		"lag": 1, "scope": "COLONY", "fiscal": null, "domain": "ECON",
+		"description": GRANT_NOTE if id in STEP3_LEVERS and id != "ECON_YEARLY_RAISE_MIN_PCT" else ""}
 
 
 func indicator_defs() -> Array:

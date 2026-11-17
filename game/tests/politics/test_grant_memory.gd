@@ -13,9 +13,12 @@ func _world() -> WorldState:
 	return sim.world
 
 
-## The economy's grant need, as the economy publishes it until step 3 builds the grants.
+## The economy's grant need, as Grants.monthly publishes it (rebuild step 3).
 func _need(w: WorldState, farm: Dictionary) -> void:
-	CoreUtil.st(w)["family_need_d"] = {"FARM": farm, "BAKERY": {}}
+	var t := w.table("grant_prog")
+	if not t.has("s"):
+		t["s"] = {"progs": {}, "need": {}, "seen": {}}
+	t["s"]["need"] = {"FARM": farm, "BAKERY": {}}
 
 
 ## No governing parties: the cover is chosen by need alone.
@@ -72,12 +75,12 @@ func test_every_decision_is_in_the_logbook() -> void:
 	GovBuilder._grant_cover(w, st)
 	w.levers["ECON_FAMILY_FARM_GRANT"] = 0
 	GovBuilder._grant_cover(w, st)
-	var rows := Logbook.rows(w, {"kind": "GRANT"})
+	# politics' decision is the cover; the programme's opening and end are the grants' deeds (Grants logs them)
+	var rows := Logbook.rows(w, {"kind": "GRANT", "ref": "ECON_FAMILY_FARM_GRANT"})
 	var whats: Array = rows.map(func(r): return String(r["what"]))
-	check_eq(whats, ["programme opened", "cover chosen", "programme ended"], "opened, covered, ended, in order")
-	for r in rows:
-		check_eq(String(r["ref"]), "ECON_FAMILY_FARM_GRANT", "each row names the grant's lever")
-	check_eq(rows[1]["change"]["cover"][1], GovBuilder.grant_cover(w).get("FARM", rows[1]["change"]["cover"][1]), "the chosen districts are on the row")
+	check_eq(whats, ["cover chosen"], "the cover chosen, once")
+	if rows.size() == 1:
+		check(not (rows[0]["change"]["cover"][1] as Array).is_empty(), "the chosen districts are on the row")
 
 
 func test_no_need_published_nothing_happens() -> void:
