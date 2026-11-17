@@ -1,0 +1,400 @@
+extends TestCase
+## Rebuild step 3 (Maja): the households' month: buying food in the ruled order, eating and hunger by why, rent,
+## applying only to jobs that meet their needs, quitting for better pay, the negotiation, founders counted one by one,
+## life (births, deaths, growing up, retiring, band moves), settlers and leavers on a ship. Short exact tests.
+
+const Households := preload("res://sim/population/households.gd")
+const Demography := preload("res://sim/population/demography.gd")
+const Company := preload("res://sim/economy/company.gd")
+const Market := preload("res://sim/economy/market.gd")
+const S := 1000
+
+
+func _world() -> WorldState:
+	var w := WorldState.new(5)
+	Terrain.generate(w)
+	AreaStore.change_listeners = []
+	AreaStore.district_resolver = Callable()
+	return w
+
+
+## A seller of FOOD in the area holding `qty` units, at its starting price.
+func _seller(w: WorldState, area: String, qty: int) -> String:
+	var cid := Company.create(w, "FARM", "SMALL", {"kind": "STATE", "holders": {"gov": 1000}}, "test farm", {"area": area})
+	if qty > 0:
+		Company.stock_add(w, cid, "FOOD", qty * S, 0, "LANDING", "test")
+	return cid
+
+
+## A pool of n unemployed general workers with `money` credits.
+func _pool(w: WorldState, area: String, band: String, n: int, money: int) -> String:
+	var pid := Households.seed_test(w, area, band, "G", n)
+	if money > 0:
+		w.ledger.transfer(Ledger.EXTERNAL, Households.account(pid), money * S, "TEST", w.month)
+	return pid
+
+
+func _buy_month(w: WorldState) -> Dictionary:
+	Households.post_orders(w)
+	Market.clear(w)
+	return Households.after_market(w)
+
+
+func test_food_is_bought_eaten_and_nothing_appears_or_vanishes() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var pid := _pool(w, land, "I2", 10, 10000)
+	var cid := _seller(w, land, 50)
+	var price := Company.price(w, cid, "FOOD")
+	var money0 := Households.savings(w, pid) + w.ledger.balance(CoreUtil.acct(cid))
+	var tot := _buy_month(w)
+	var m := Households.month_of(w, pid)
+	check_eq(int(m["food_need"]), 10 * S, "ten people need ten units")
+	check_eq(int(m["food_bought"]), 10 * S, "they bought ten")
+	check_eq(int(m["hunger"]), 0, "nobody hungry")
+	check_eq(int(tot["hunger"]), 0, "the colony fed")
+	check_eq(int(Company.stock_of(w, cid, "FOOD")["qty"]), 40 * S, "the seller holds 40 units less 10: goods come from somewhere")
+	check_eq(w.ledger.balance(CoreUtil.acct(cid)), 10 * price, "the seller was paid ten units at its price")
+	check_eq(Households.savings(w, pid) + w.ledger.balance(CoreUtil.acct(cid)), money0, "money only changed hands")
+	check_eq(Households.fed_pm(w, pid), 1000, "fed in full")
+	check_eq(Logbook.rows(w, {"kind": "BUDGET", "who": pid}).size(), 1, "the budget is a log row")
+
+
+func test_hunger_is_counted_from_need_and_split_by_why() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var poor := _pool(w, land, "I1", 10, 0)       # no money at all
+	var short := _pool(w, land, "I2", 10, 100)    # some money, less than the price of ten units
+	var cid := _seller(w, land, 100)
+	var price := Company.price(w, cid, "FOOD")
+	check(100 * S < 10 * price, "the test needs 100 credits to be under ten units' price")
+	_buy_month(w)
+	check_eq(int(Households.month_of(w, poor)["hunger_money"]), 10 * S, "no money behind the order: unmet for lack of money")
+	var ms := Households.month_of(w, short)
+	check(int(ms["food_bought"]) > 0 and int(ms["food_bought"]) < 10 * S, "with some money it buys what its budget reaches (%d)" % int(ms["food_bought"]))
+	check_eq(int(ms["hunger_price"]), 10 * S - int(ms["food_bought"]), "the rest it could not pay for is a refusal of the price (23a)")
+	check_eq(Households.fed_pm(w, poor), 0, "nothing eaten")
+	var w2 := _world()
+	var land2 := AreaStore.found_landing(w2)
+	var p2 := _pool(w2, land2, "I3", 10, 100000)
+	_buy_month(w2)
+	check_eq(int(Households.month_of(w2, p2)["hunger_scarce"]), 10 * S, "money but nobody selling: none to be had")
+
+
+func test_a_famine_after_three_hungry_months() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	_pool(w, land, "I1", 10, 0)
+	for i in 3:
+		_buy_month(w)
+		w.month += 1
+	check(Households.famine_now(w), "three months with more than a quarter uneaten is a famine")
+	check_eq(w.facts.query("ECON_FAMINE", 0).size(), 1, "one fact when it begins")
+	check_eq(w.facts.query("ECON_FOOD_UNAFFORDABLE", 0).size(), 1, "and food unaffordable, once")
+
+
+func test_food_spoils_in_store_and_is_eaten_first() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var pid := _pool(w, land, "I3", 2, 10000)
+	var st: Dictionary = w.table("pool")[pid]
+	st["stock"] = {"FOOD": 1000 * S}
+	_seller(w, land, 50)
+	_buy_month(w)
+	check_eq(int(Households.month_of(w, pid)["food_bought"]), 0, "it holds enough: it buys nothing")
+	check_eq(int(st["stock"]["FOOD"]), (998 * S) - (998 * S) * 10 / 1000, "ate two, then 1% of the rest spoiled")
+
+
+func test_rent_after_food_and_what_is_left_unpaid_is_owed() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var pid := _pool(w, land, "I2", 5, 0)
+	w.ledger.open_account("test:landlord")
+	var rent := func(id: String) -> Dictionary: return {"test:landlord": 100 * S} if id == pid else {}
+	w.ledger.transfer(Ledger.EXTERNAL, Households.account(pid), 60 * S, "TEST", w.month)
+	check_eq(Households.pay_rent(w, rent), 60 * S, "pays what it holds")
+	check_eq(int(Households.month_of(w, pid)["rent_paid"]), 60 * S, "booked")
+	w.month += 1
+	w.ledger.transfer(Ledger.EXTERNAL, Households.account(pid), 500 * S, "TEST", w.month)
+	check_eq(Households.pay_rent(w, rent), 140 * S, "next month: the 40 owed and the month's 100")
+	check_eq(w.ledger.balance("test:landlord"), 200 * S, "the landlord has two months' rent")
+
+
+func test_nobody_applies_to_a_post_below_their_needs() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	_pool(w, land, "I2", 10, 1000)
+	var cid := _seller(w, land, 100)
+	var needs := Households.needs_per_worker(w, land)
+	check(needs > 0, "food has a price, so needs are above nothing (%d)" % needs)
+	check_eq(Households.applicants(w, land, "G", needs - 1), 0, "below the needs: no applicants")
+	check_eq(Households.applicants(w, land, "G", needs), 10, "at the needs: all of them")
+	var b := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "b", {"area": land})
+	check_eq(Households.hire(w, b, "crew", "G", land, 3, {}, needs - 1), 0, "a hire below the needs finds nobody")
+	check_eq(Logbook.rows(w, {"kind": "HIRE", "what": "no applicants: the pay is below their needs"}).size(), 1, "said in the log")
+	check_eq(Households.hire(w, b, "crew", "G", land, 3, {}, needs), 3, "at the needs they come")
+
+
+func test_a_founder_is_drawn_counted_one_by_one_and_goes_back() -> void:
+	var sim := GameSim.make(3)
+	var w := sim.world
+	var land := AreaStore.found_landing(w)
+	var need := 20000 * S
+	var grants := {}
+	for pid in Households.pools(w):
+		grants[pid] = 10000 * S
+	var pick := Households.pick_founder(w, land, need, grants)
+	check(pick != "", "some household can pay 20,000 with a 10,000 grant")
+	check(Households.household_share(w, pick) + 10000 * S >= need, "the pool drawn can pay")
+	var again := Households.pick_founder(GameSim.make(3).world, land, need, grants)
+	check_eq(again, pick, "the draw repeats with the seed")
+	var share := Households.household_share(w, pick)
+	var before := PopStore.total(w)
+	var id := Households.make_founder(w, pick, "plan:test")
+	check(id.begins_with("founder:"), "a person of their own")
+	var r := Households.person(w, id)
+	check_eq(String(r["pool"]), pick, "the record carries the pool (one grant per household)")
+	check_eq(w.ledger.balance(id), share, "they take one household's share of the savings")
+	check_eq(PopStore.total(w), before, "nobody appears or vanishes")
+	check_eq(int(Households.counts(w, pick)["owners"]) / S, 1, "counted as an owner in PopStore")
+	check(Households.check(w).is_empty(), "jobs = people")
+	check(not Households.release_founder(w, id), "not back while they own something")
+	Households.disown(w, id, "plan:test")
+	var bal := Households.savings(w, pick)
+	check(Households.release_founder(w, id), "back into the pool once they own nothing")
+	check_eq(Households.savings(w, pick), bal + share, "their money with them")
+	check_eq(int(Households.counts(w, pick)["owners"]), 0, "no owner left")
+	check(PopStore.reconcile(w).is_empty(), "the population reconciles")
+
+
+func test_nobody_founds_when_no_household_can_pay() -> void:
+	var sim := GameSim.make(3)
+	var w := sim.world
+	check_eq(Households.pick_founder(w, AreaStore.found_landing(w), 10000000 * S, {}), "", "ten million is beyond everyone")
+	check_eq(Logbook.rows(w, {"kind": "FOUNDER", "what": "nobody can pay"}).size(), 1, "said in the log")
+
+
+func test_two_years_of_life_keep_the_population_whole() -> void:
+	var sim := GameSim.make(3)
+	var w := sim.world
+	var land := AreaStore.found_landing(w)
+	var start := PopStore.total(w)
+	for i in 24:
+		Demography.monthly(w)
+		w.month += 1
+	var v := w.values
+	check_eq(PopStore.total(w), start + int(v.get("pop_births", 0)) - int(v.get("pop_deaths", 0)) + int(v.get("pop_arrivals", 0)) - int(v.get("pop_departures", 0)),
+		"the total is the start plus births less deaths")
+	check(int(v.get("pop_births", 0)) > 0, "children were born (%d)" % int(v.get("pop_births", 0)))
+	check(int(v.get("pop_deaths", 0)) > 0, "people died (%d)" % int(v.get("pop_deaths", 0)))
+	var h := Demography.histogram(w, land)
+	var hs := 0
+	for x in h:
+		hs += int(x)
+	check(absi(hs - AreaStore.residents(w, land)) <= 2, "the age histogram follows the people (%d vs %d)" % [hs, AreaStore.residents(w, land)])
+	check(PopStore.reconcile(w).is_empty(), "the population reconciles")
+	check(Households.check(w).is_empty(), "jobs = people after deaths and retirements: %s" % str(Households.check(w)))
+
+
+func test_hunger_raises_deaths() -> void:
+	var fed := GameSim.make(4).world
+	var hungry := GameSim.make(4).world
+	for pid in Households.pools(hungry):
+		var m := {"m": hungry.month, "food_need": 1000, "food_eaten": 0}
+		hungry.table("pool")[pid]["month"] = m
+	for i in 6:
+		Demography.monthly(fed)
+		for pid in Households.pools(hungry):
+			hungry.table("pool")[pid]["month"] = {"m": hungry.month, "food_need": 1000, "food_eaten": 0}
+		Demography.monthly(hungry)
+		fed.month += 1
+		hungry.month += 1
+	check(int(hungry.values.get("pop_deaths", 0)) > int(fed.values.get("pop_deaths", 0)),
+		"a hungry colony loses more people (%d vs %d)" % [int(hungry.values.get("pop_deaths", 0)), int(fed.values.get("pop_deaths", 0))])
+	check(int(hungry.values.get("pop_births", 0)) < int(fed.values.get("pop_births", 0)) or int(fed.values.get("pop_births", 0)) == 0,
+		"and has fewer children")
+
+
+func test_band_moves_take_their_jobs_and_savings_and_keep_everything_whole() -> void:
+	var sim := GameSim.make(3)
+	var w := sim.world
+	var land := AreaStore.found_landing(w)
+	for i in 3:
+		Households.pay_support(w, "benefit", Ledger.EXTERNAL, {land: 50 * S})
+		Demography.monthly(w)
+		w.month += 1
+	var money0 := 0
+	for pid in Households.pools(w):
+		money0 += Households.savings(w, pid)
+	var people0 := PopStore.total(w)
+	var jobs0 := 0
+	for cid in Company.ids(w):
+		jobs0 += Company.staff_count(w, cid)
+	var moved := Demography.band_moves(w)
+	check(moved > 0, "with wages against a small benefit, groups change band (%d persons)" % moved)
+	var money1 := 0
+	for pid in Households.pools(w):
+		money1 += Households.savings(w, pid)
+	var jobs1 := 0
+	for cid in Company.ids(w):
+		jobs1 += Company.staff_count(w, cid)
+	check_eq(money1, money0, "savings only move between pools")
+	check_eq(PopStore.total(w), people0, "nobody appears or vanishes")
+	check_eq(jobs1, jobs0, "every post is still filled: the jobs went with the people")
+	check(PopStore.reconcile(w).is_empty(), "the population reconciles")
+	check(Households.check(w).is_empty(), "jobs = people: %s" % str(Households.check(w)))
+	check(not Logbook.rows(w, {"kind": "BAND"}).is_empty(), "each move is a log row")
+
+
+func test_settlers_land_and_young_jobless_leave() -> void:
+	var sim := GameSim.make(3)
+	var w := sim.world
+	var land := AreaStore.found_landing(w)
+	var before := PopStore.total(w)
+	check_eq(Households.land_settlers(w, land, 100), 100, "a hundred landed")
+	check_eq(PopStore.total(w), before + 100, "counted as arrivals")
+	check_eq(w.facts.query("ECON_MIGRANTS_ARRIVED", 0).size(), 1, "a fact")
+	var gone := Households.departures(w, land)
+	check(gone >= 0, "some may leave (%d)" % gone)
+	check(PopStore.reconcile(w).is_empty(), "the population reconciles")
+	check(Households.check(w).is_empty(), "jobs = people")
+
+
+func test_a_worker_quits_for_a_better_paid_post() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	_pool(w, land, "I2", 6, 1000)
+	var needs := Households.needs_per_worker(w, land)
+	var a := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "low", {"area": land})
+	check_eq(Households.hire(w, a, "crew", "G", land, 6, {}, needs + 10 * S), 6, "hired just above their needs")
+	var b := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "high", {"area": land})
+	Company.set_hiring_salary(w, b, "G", land, needs + 100 * S)
+	var open := 0
+	for v in Company.vacancies(w, land):
+		if String(v["cid"]) == b and String(v["tier"]) == "G":
+			open = int(v["open"])
+	check(open > 0, "the better payer has open general posts (%d)" % open)
+	var moved := Households.labour_month(w)
+	check_eq(moved, mini(6, open), "they move for the better pay")
+	check_eq(Company.staff_count(w, b, "G") / S, mini(6, open), "now at the better payer")
+	check(Households.check(w).is_empty(), "jobs = people")
+	check(not Logbook.rows(w, {"kind": "JOB", "what": "QUIT_FOR_PAY"}).is_empty(), "each move is a log row")
+
+
+func test_press_income_is_shared_by_the_employed() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var p1 := _pool(w, land, "I2", 4, 0)
+	var p2 := _pool(w, land, "I3", 4, 0)
+	w.ledger.open_account("media:test")
+	w.ledger.transfer(Ledger.EXTERNAL, "media:test", 90 * S, "TEST", w.month)
+	check_eq(Households.pay_income(w, "media:test", 100 * S, land, "press"), 90 * S, "never more than the account holds")
+	check_eq(Households.savings(w, p1) + Households.savings(w, p2), 90 * S, "all of it reached the pools")
+	check_eq(int(Households.income(w, p1).get("press", 0)), 45 * S, "shared evenly (by persons, as nobody works)")
+
+
+func test_life_survives_a_save_and_the_game_continues_the_same() -> void:
+	var a := GameSim.make(6)
+	for _m in 14:   # past a January: ageing, the band moves and the yearly raise have run
+		a.step()
+	var path := "user://test_households_month.sav"
+	check_eq(SaveIO.save(a, path), OK, "saved")
+	var c := GameSim.for_load()
+	check_eq(SaveIO.load_into(c, path), OK, "loaded")
+	for _m in 2:
+		a.step()
+		c.step()
+	check_eq(c.world.state_hash(), a.world.state_hash(), "save/load/continue stays identical")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func test_one_grant_per_household_survives_a_founder_going_back() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var pid := _pool(w, land, "I2", 10, 1000)   # 4 households; one household's share of 1,000 is 250
+	var share := Households.household_share(w, pid)
+	var need := share + 5000 * S                 # only with a grant can a household of this pool found
+	var grants := {pid: 10000 * S}
+	check_eq(Households.pick_founder(w, land, need, grants), pid, "with the grant it can found")
+	var f1 := Households.make_founder(w, pid, "plan:a")
+	check(not bool(Households.person(w, f1)["had_grant"]), "it had no grant before")
+	Households.mark_granted(w, f1)
+	check(bool(Households.person(w, f1)["had_grant"]), "marked when the grant is paid")
+	Households.disown(w, f1, "plan:a")
+	Households.release_founder(w, f1)
+	check_eq(int(w.peek("pool")[pid]["granted"]), 1, "it went back as a household that has had its grant")
+	var hh := int(Households.counts(w, pid)["households"]) / S
+	w.table("pool")[pid]["granted"] = hh          # every household of the pool has had its grant now
+	check_eq(Households.pick_founder(w, land, need, grants), "", "none of them can take a second one")
+	w.table("pool")[pid]["granted"] = hh - 1
+	check_eq(Households.pick_founder(w, land, need, grants), pid, "one household without a grant: it can")
+	var f2 := Households.make_founder(w, pid, "plan:b")
+	check(not bool(Households.person(w, f2)["had_grant"]), "and it is the one drawn")
+	check_eq(int(w.peek("pool")[pid]["granted"]), hh - 1, "the granted count is unchanged by an ungranted founder leaving")
+
+
+func test_a_small_colony_still_loses_some_of_its_young_jobless() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	_pool(w, land, "I2", 5, 0)   # 5 unemployed, about 2 of them young
+	var gone := 0
+	for i in 40:
+		gone += Households.departures(w, land)
+		w.month += 1
+	check(gone > 0, "over many ships some leave, with fewer than ten young jobless (%d)" % gone)
+
+
+func test_ages_follow_people_when_areas_split() -> void:
+	var w := _world()
+	AreaStore.change_listeners = [func(world, moves): Demography.on_area_moves(world, moves)]
+	var l := Terrain.landing(w)
+	var a := AreaStore.place_housing(w, l, 300, "GOV")
+	var t2 := l + Vector2i(1, 0)
+	var rows: Array = w.table("map")["grid"]["rows"]
+	rows[t2.y] = String(rows[t2.y]).substr(0, t2.x) + "." + String(rows[t2.y]).substr(t2.x + 1)
+	AreaStore.place_housing(w, t2, 300, "GOV")
+	Households.seed_test(w, a, "I2", "G", 400)
+	var h0 := 0
+	for x in Demography.histogram(w, a):
+		h0 += int(x)
+	var b := AreaStore.split(w, a, [t2], "SETTLEMENT", "TEST")
+	var ha := 0
+	var hb := 0
+	for x in Demography.histogram(w, a):
+		ha += int(x)
+	for x in Demography.histogram(w, b):
+		hb += int(x)
+	check_eq(ha + hb, h0, "no age lost or doubled")
+	check_eq(hb, AreaStore.residents(w, b), "the new area's ages are its people's")
+	check_eq(ha, AreaStore.residents(w, a), "and the old area keeps the rest")
+
+
+func test_a_pool_with_half_the_money_for_its_food_buys_half_its_food() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var cid := _seller(w, land, 100)
+	var price := Company.price(w, cid, "FOOD")
+	var pid := Households.seed_test(w, land, "I2", "G", 10)
+	w.ledger.transfer(Ledger.EXTERNAL, Households.account(pid), 5 * price, "TEST", w.month)   # half of ten units
+	_buy_month(w)
+	var m := Households.month_of(w, pid)
+	check_eq(int(m["food_bought"]), 5 * S, "half the money buys half the food, not none")
+	check_eq(int(m["hunger_price"]), 5 * S, "the rest is a refusal of the price: the seller hears it (23a)")
+	check_eq(Households.savings(w, pid), 0, "its money went on food")
+
+
+func test_money_for_food_only_goes_on_food_and_the_rent_is_owed() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var cid := _seller(w, land, 100)
+	var price := Company.price(w, cid, "FOOD")
+	var pid := Households.seed_test(w, land, "I2", "G", 10)
+	w.ledger.transfer(Ledger.EXTERNAL, Households.account(pid), 10 * price, "TEST", w.month)   # exactly the food
+	w.ledger.open_account("test:landlord")
+	_buy_month(w)
+	var rent := func(id: String) -> Dictionary: return {"test:landlord": 100 * S} if id == pid else {}
+	Households.pay_rent(w, rent)
+	var m := Households.month_of(w, pid)
+	check_eq(int(m["food_bought"]), 10 * S, "food first: all of it")
+	check_eq(int(m["rent_paid"]), 0, "nothing left for the rent")
+	check_eq(int(w.peek("pool")[pid]["rent_owed"]["test:landlord"]), 100 * S, "so it is owed")

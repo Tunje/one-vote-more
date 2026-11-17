@@ -272,12 +272,17 @@ static func purse_month(world: WorldState) -> Dictionary:
 	return out
 
 
-## What a pool owes in rent this month, by landlord: {landlord's account: credits x S}. One home per household at the
+## What a pool (or a founder, "founder:N") owes in rent this month, by landlord: {landlord's account: credits x S}. One home per household at the
 ## landlord's own rent. In step 3 the only homes are the housing office's shelters; a pool's households are spread
 ## over them, so all of it is owed to the housing office. (Homes of other landlords: step 7.)
 static func rent_due(world: WorldState, pool_id: String) -> Dictionary:
 	var housing := String(world.peek(OWNER).get("made", {}).get("housing", ""))
-	if housing == "" or not world.peek("pool").has(pool_id):
+	if housing == "":
+		return {}
+	if pool_id.begins_with("founder:"):   # a company's founder is one household in one home (Maja)
+		var one := Company.price(world, housing, "@home") if not Households.person(world, pool_id).is_empty() else 0
+		return {CoreUtil.acct(housing): one} if one > 0 else {}
+	if not world.peek("pool").has(pool_id):
 		return {}
 	var households := int(Households.counts(world, pool_id)["households"]) / S
 	var amount := households * Company.price(world, housing, "@home")

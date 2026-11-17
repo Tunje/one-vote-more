@@ -185,7 +185,7 @@ func test_a_game_pays_every_month_and_saves_and_loads_the_same() -> void:
 	var a := _game()
 	for i in 6:
 		a.step()
-	check_eq(Logbook.rows(a.world, {"kind": "PURSE"}).size(), 6, "six months, six purse rows")
+	check_eq(Logbook.rows(a.world, {"kind": "PURSE", "what_has": "the month's payments"}).size(), 6, "six months, six purse rows")
 	var b := GameSim.for_load()
 	b.load_dict(a.to_dict())
 	a.step()

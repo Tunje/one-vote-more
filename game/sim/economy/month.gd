@@ -48,7 +48,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 			social(world)
 
 
-## 1. the ship.   To come: settlers landing and leavers going aboard (Maja), inside Ship.month's call in port.
+## 1. the ship. Settlers land and leavers go aboard inside it, when a ship arrives (the households' side, 12.5, 42).
 static func trade(world: WorldState) -> void:
 	Ship.month(world)
 
@@ -58,9 +58,10 @@ static func production(world: WorldState) -> void:
 	Making.month(world)
 
 
-## To come: 1. orders posted (Maja, Bob, Otto), before the clear;  3. what was bought taken in (Maja, Otto)
-## 4. Building.bill_month (Otto)  5. Households.pay_rent (Maja), all three between the clear and the purse.
-## Here now: 2. Market.clear (Bob);  6. the purse's bill, which gives a state company what it lacks for its wages, and pays the benefit and
+## To come: 1. Building.supply_orders (Otto), with the orders;  3. Building.take_deliveries (Otto), after the clear;
+## 4. Building.bill_month (Otto), before the rent.
+## Here now: 1. the households' and the companies' orders;  2. Market.clear (Bob);  3. the households take in what they
+## bought and eat;  5. the rent;  6. the purse's bill, which gives a state company what it lacks for its wages, and pays the benefit and
 ## pensions;  7. every company pays its own wages from its own account;  8. Colony Stores' takings to the treasury,
 ## and the sweep.
 ## The market and the rent, when they come, go BEFORE the purse's bill: a state company's takings and rent must be in
@@ -68,8 +69,11 @@ static func production(world: WorldState) -> void:
 ## (The joins paper had the purse after the wages. A state company can only pay its wages once the purse has given it
 ## what it lacks, so the purse's bill comes first; nothing else moved.)
 static func settlement(world: WorldState) -> void:
-	Making.post_orders(world)   # 1. companies' inputs
+	Households.post_orders(world)   # 1. what households need, each line with its budget
+	Making.post_orders(world)       # 1. companies' inputs
 	Market.clear(world)
+	Households.after_market(world)
+	Households.pay_rent(world, func(id): return Landing.rent_due(world, id))
 	Landing.purse_month(world)
 	for cid in Company.ids(world):
 		if String(Company.record(world, cid)["status"]) == "OPEN":
@@ -84,7 +88,7 @@ static func company_ai(world: WorldState) -> void:
 	Rules.month(world)
 
 
-## To come: Households.labour_month and yearly_raise_month (Maja). The population's own month runs before this, and
-## what politics reads (econ_publish) after it.
+## Nothing of the conductor's: the population provider runs life, the labour month and the yearly raise before this,
+## and what politics reads (econ_publish) is registered after it.
 static func social(_world: WorldState) -> void:
 	pass

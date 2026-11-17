@@ -7,11 +7,20 @@ extends PicProvider
 ## (the housing office's plant, on Terra's town grid) and the month-one companies hire their crews from the settlers.
 
 const Households := preload("res://sim/population/households.gd")
+const Demography := preload("res://sim/population/demography.gd")
 const OWNER := "population"
 
 
 func owner_id() -> String:
 	return OWNER
+
+
+## Ages follow people when areas split or merge (Demography.on_area_moves). AreaStore's listeners are static hooks,
+## not state: registered here, for every game this provider runs.
+func _init() -> void:
+	var cb := func(world: WorldState, moves: Array) -> void: Demography.on_area_moves(world, moves)
+	if not AreaStore.change_listeners.any(func(c): return c is Callable and String(c.get_method()) == String(cb.get_method())):
+		AreaStore.change_listeners.append(cb)
 
 
 func phases() -> Array:
@@ -21,6 +30,11 @@ func phases() -> Array:
 ## First month: the start-up has had its turn to lay the landing shelters. If the Landing holds fewer homes than its
 ## households, say so (Terra's review): a Logbook row, and an official fact for the government.
 func run_phase(_phase: int, world: WorldState) -> void:
+	# the households' SOCIAL month (rebuild step 3, the joins): life (births, deaths, growing up, retiring, January's
+	# band moves), then the labour month (negotiation, quitting for better pay), then January's yearly raise
+	Demography.monthly(world)
+	Households.labour_month(world)
+	Households.yearly_raise_month(world)
 	if world.month != 0:
 		return
 	var land := AreaStore.found_landing(world)

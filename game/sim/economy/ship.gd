@@ -18,17 +18,19 @@ extends RefCounted
 ##
 ## Only a company can order here. The government ordering for the colony (12.11, 102) comes with the purse at step 8.
 ## NOT here yet: exports and the charter quota (step 10), the port's size (106, step 10), the home world's prices
-## moving (105, step 10), settlers and leavers (the households' side calls in through the conductor, 42).
+## moving (105, step 10). Settlers and leavers are the households' side's (42); a ship's arrival calls them.
 ## State: table "ship" {"ships": [...], "last": {...}, "n": orders made}. Every deed writes a Logbook row.
 
 const Company := preload("res://sim/economy/company.gd")
 const TypeTable := preload("res://sim/economy/type_table.gd")
+const Households := preload("res://sim/population/households.gd")
 
 const TABLE := "ship"
 const S := CoreUtil.S
 const HOLD_START := 3000          # START: units of cargo one call can bring
 const HOME_PRICE_PM := 2000       # START (Bob): the home world sells at twice the colony's starting price
 const RNG := "econ.ship"
+const SETTLERS_PER_CALL := 200    # START: settlers a ship brings when the colony looked its best at the last ship; fewer otherwise
 
 
 # ---------------------------------------------------------------- the month
@@ -65,6 +67,7 @@ static func _leave(world: WorldState, sh: Dictionary) -> void:
 	var gap: Array = EconFace.trade_ship_interval(world)
 	var away := world.rng.stream(RNG).randi_range(int(gap[0]), int(gap[1]))
 	sh["in_port"] = false
+	Households.remember_attractiveness(world)   # the home world knows the colony only as of the last ship (9.6)
 	sh["bringing"] = sh["taking"]
 	sh["taking"] = []
 	sh["next"] = maxi(world.month + 1, world.month - 1 + away)   # it lay in port last month; the round trip counts from then
@@ -84,11 +87,18 @@ static func _arrive(world: WorldState, sh: Dictionary) -> void:
 		if got < int(o["qty"]):
 			returned[o["item"]] = int(returned.get(o["item"], 0)) + int(o["qty"]) - got
 	sh["bringing"] = []
+	# settlers come, more when the colony looked attractive at the last ship; the jobless young and the homeless leave
+	var area := AreaStore.area_of(world, Terrain.landing(world))   # the port's area, taken at each call (Terra's review)
+	var want := SETTLERS_PER_CALL * Households.attractiveness(world) / 1000
+	var came := Households.land_settlers(world, area, want) if want > 0 and area != "" else 0
+	var went := Households.departures(world, area) if area != "" else 0
+	Logbook.note(world, "SHIP", String(sh["id"]), "settlers and leavers", {"attractiveness": Households.attractiveness(world), "per_call": SETTLERS_PER_CALL},
+		{"came": [0, came], "went": [0, went]})
 	world.table(TABLE)["last"] = {"ship": sh["id"], "month": world.month, "landed": landed, "returned": returned}
 	Logbook.note(world, "SHIP", String(sh["id"]), "arrived", {"call": sh["calls"]}, {"landed": [{}, landed], "returned": [{}, returned]})
 	world.add_fact({"type": "ECON_SHIP_ARRIVED", "owner": "econ", "subjects": [], "responsible": [], "impact": {},
 		"magnitude": 30, "visibility": "PUBLIC", "data": _at_port(world, {"ship": sh["id"], "landed": landed, "returned": returned,
-		"migrants": 0, "export_value": 0})})   # the news reads both: settlers come with the households' side, exports at step 10
+		"migrants": came, "left": went, "export_value": 0})})   # the news reads both: settlers come with the households' side, exports at step 10
 
 
 ## Lands one order: the buyer pays on the dock for what it can, and that much goes into its stock as an IMPORT.
@@ -173,7 +183,7 @@ static func order(world: WorldState, buyer_cid: String, item: String, qty_milli:
 				continue
 			var t := world.table(TABLE)
 			t["n"] = int(t["n"]) + 1
-			var o := {"id": "order:%d" % int(t["n"]), "buyer": buyer_cid, "item": item, "qty": mini(qty_milli, room),
+			var o := {"id": "ship_order:%d" % int(t["n"]), "buyer": buyer_cid, "item": item, "qty": mini(qty_milli, room),
 				"price": home_price(world, item), "month": world.month}
 			(sh["taking"] as Array).append(o)
 			Logbook.note(world, "IMPORT", buyer_cid, "ordered with the ship in port", why.merged({"asked": qty_milli, "room": room}),

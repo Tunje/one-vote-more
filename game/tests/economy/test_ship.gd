@@ -77,13 +77,17 @@ func test_an_order_comes_back_with_the_same_ship_and_is_paid_on_the_dock() -> vo
 	check(r["ok"], "taken by the ship in port")
 	var price := Ship.home_price(w, "FOOD")
 	check_eq(price, 2 * TypeTable.start_price("FOOD"), "at the home world's price")
-	var food := int(Company.stock_of(w, stores, "FOOD")["qty"])
 	var months := _run_to_next_call(sim)
 	var gap: Array = EconFace.trade_ship_interval(w)
 	check(months >= int(gap[0]), "nothing came before the full round trip (%d months)" % months)
 	check_eq(Logbook.rows(w, {"kind": "IMPORT", "what": "landed and paid on the dock"}).size(), 0, "unpaid: the Stores hold no money")
 	check_eq(Logbook.rows(w, {"kind": "IMPORT", "what": "landed IN PART: short of money"}).size(), 1, "a buyer with no money gets nothing, and the log says why")
-	check_eq(int(Company.stock_of(w, stores, "FOOD")["qty"]), food, "no food from nowhere")
+	check_eq(Logbook.rows(w, {"kind": "STOCK", "who": stores, "what_has": "IMPORT"}).size(), 0, "no food from nowhere: nothing came into its stock as an import")
+	var imports := 0
+	for e in w.ledger.journal:
+		if String(e["memo"]) == "IMPORT":
+			imports += 1
+	check_eq(imports, 0, "and nothing was paid")
 	check_eq(int(Ship.last(w)["returned"]["FOOD"]), 200 * S, "it all went back")
 
 
@@ -103,12 +107,15 @@ func test_a_buyer_with_money_gets_its_goods_and_the_money_leaves_the_colony() ->
 		sim.step()
 		n += 1
 	check_eq(int(Company.stock_of(w, buyer, "MATERIAL")["qty"]), 0, "nothing while the ship is away")
-	var total := -w.ledger.balance(Ledger.EXTERNAL)
 	_run_to_next_call(sim)
 	check_eq(int(Company.stock_of(w, buyer, "MATERIAL")["qty"]), 10 * S, "ten units landed in its stock")
 	check_eq(int(Company.stock_of(w, buyer, "MATERIAL")["value"]), 10 * price, "booked at what it paid")
 	check_eq(w.ledger.balance(acct), 5 * price, "paid on the dock from its own account")
-	check_eq(-w.ledger.balance(Ledger.EXTERNAL), total - 10 * price, "the payment left the colony aboard the ship, and nothing else did")
+	var left := 0
+	for e in w.ledger.journal:
+		if String(e["memo"]) == "IMPORT" and String(e["to"]) == Ledger.EXTERNAL:
+			left += int(e["amt"])
+	check_eq(left, 10 * price, "the payment left the colony aboard the ship: one entry, to outside")
 	check_eq(Logbook.rows(w, {"kind": "IMPORT", "what": "landed and paid on the dock"}).size(), 1, "in the log, once")
 	check_eq(w.facts.query("ECON_IMPORT_ARRIVED", 0).size(), 1, "and published")
 	check_eq(Logbook.rows(w, {"ref": String(r["order"])}).size(), 2, "the order's two rows: taken and landed")
