@@ -9,11 +9,29 @@ const S := CoreUtil.S
 const NEEDS := 100000 * 1000   # what a founder must bring in these tests: 100,000 credits
 
 
+## The real hooks, as month.gd sets them when a game is made; each test puts them back (_unhook), since the hooks are
+## static and would otherwise leak this file's stubs into later tests.
+var _real_needs := Callable()
+var _real_need := Callable()
+
+
+## A game, then the stubs: making a game sets the real hooks (month.gd's _init), so a stub set before it is replaced.
 func _world() -> WorldState:
+	var sim := GameSim.make(3)
+	_stub()
+	return sim.world
+
+
+func _stub() -> void:
+	_real_needs = Grants.needs_fn
+	_real_need = Grants.need_fn
 	Grants.needs_fn = func(_w, _t, _s, _a): return NEEDS
 	Grants.need_fn = Callable()
-	var sim := GameSim.make(3)
-	return sim.world
+
+
+func _unhook() -> void:
+	Grants.needs_fn = _real_needs
+	Grants.need_fn = _real_need
 
 
 func _area(w: WorldState) -> String:
@@ -62,6 +80,7 @@ func test_a_grant_is_paid_into_the_plan_exactly() -> void:
 	var again := Grants.apply(w, pid)
 	check(not bool(again["ok"]), "a plan has one grant")
 	check_eq(w.ledger.balance(pid), want, "and is not paid twice")
+	_unhook()
 
 
 func test_refusals_pay_nothing_and_say_why() -> void:
@@ -88,6 +107,7 @@ func test_refusals_pay_nothing_and_say_why() -> void:
 	w.table("founder")["founder:4"]["had_grant"] = true
 	check(String(Grants.apply(w, p4)["why"]).contains("household"), "a household that had a grant gets no second one")
 	check_eq(Logbook.rows(w, {"kind": "GRANT", "what": "grant refused"}).size(), 4, "each refusal logged")
+	_unhook()
 
 
 func test_a_treasury_that_cannot_pay_it_all_pays_nothing() -> void:
@@ -100,6 +120,7 @@ func test_a_treasury_that_cannot_pay_it_all_pays_nothing() -> void:
 	check(not bool(r["ok"]) and String(r["why"]).contains("treasury"), "refused (%s)" % r["why"])
 	check_eq(w.ledger.balance(pid), 0, "no half grant")
 	check_eq(w.ledger.balance(CoreUtil.TREASURY), 1000, "the treasury keeps what it had")
+	_unhook()
 
 
 func test_only_the_four_family_kinds_have_a_grant() -> void:
@@ -113,6 +134,7 @@ func test_only_the_four_family_kinds_have_a_grant() -> void:
 		"not a grant decision, so no row")
 	check_eq(Grants.kind_of("HAULIER", "FAMILY"), "TRUCKER", "a truck driver is a family haulier")
 	check_eq(Grants.kind_of("TRUCKSHOP", "FAMILY"), "TRUCKSHOP", "and the workshop has its own")
+	_unhook()
 
 
 func test_a_plan_given_up_owes_its_grant_back() -> void:
@@ -137,6 +159,7 @@ func test_a_plan_given_up_owes_its_grant_back() -> void:
 			owed += int(l["amount"])
 	check_eq(owed, a2 - 400 * S, "the founder owes the rest to the government")
 	check_eq(String(w.peek("grant")[p2]["status"]), "OWED", "owed")
+	_unhook()
 
 
 ## Month one has no district: the Landing area stands for itself, and the government can cover it.
@@ -147,6 +170,7 @@ func test_an_area_without_a_district_can_be_covered() -> void:
 		check_eq(Grants._district(w, area), area, "the area stands for itself")
 	_cover(w, "FARM", [Grants._district(w, area)])
 	check(bool(Grants.apply(w, _plan(w, 1, "pool:a"))["ok"]), "and its founders get the grant")
+	_unhook()
 
 
 ## A cover chosen for the area itself (no district yet) still holds once a district is drawn over it.
@@ -156,6 +180,7 @@ func test_a_cover_survives_a_district_drawn_later() -> void:
 	_cover(w, "FARM", [area])
 	AreaStore.set_district(w, area, "d:new")
 	check(bool(Grants.apply(w, _plan(w, 1, "pool:a"))["ok"]), "the programme still covers the Landing")
+	_unhook()
 
 
 func test_a_grant_lever_says_it_lapses() -> void:
@@ -164,6 +189,7 @@ func test_a_grant_lever_says_it_lapses() -> void:
 	Grants.monthly(w)
 	var row: Array = Logbook.rows(w, {"kind": "GRANT", "what": "programme opened", "ref": "ECON_FAMILY_FARM_GRANT"})
 	check(row.size() == 1 and int(row[0]["why"]["until"]) == w.month + Grants.PROGRAMME_M, "the opening row says until when")
+	_unhook()
 
 
 func test_a_programme_is_a_window_the_law_closes() -> void:
@@ -186,6 +212,7 @@ func test_a_programme_is_a_window_the_law_closes() -> void:
 	check(not w.peek(Grants.STATE)["s"]["progs"].has("FARM"), "a new programme needs a new decision")
 	Grants.monthly(w)
 	check(not w.peek(Grants.STATE)["s"]["progs"].has("FARM"), "nothing reopens it by itself")
+	_unhook()
 
 
 func LawOps_legal(w: WorldState) -> Dictionary:
@@ -202,6 +229,7 @@ func test_a_government_that_closes_a_programme_early_is_on_record() -> void:
 	check_eq(ended.size(), 1, "the end is public")
 	if ended.size() == 1:
 		check_eq(String(ended[0]["data"]["how"]), "the government closed it", "and says who ended it")
+	_unhook()
 
 
 func test_the_need_is_published_by_district() -> void:
@@ -214,6 +242,7 @@ func test_the_need_is_published_by_district() -> void:
 	var ln := EconFace.lever_need(w)
 	check_eq(int(ln["ECON_FAMILY_FARM_GRANT"]), 1000, "the farm grant is needed")
 	check_eq(int(ln["ECON_FAMILY_BAKERY_GRANT"]), 0, "the bakery grant is not")
+	_unhook()
 
 
 func test_the_levers_and_memos_of_step_3() -> void:
@@ -225,11 +254,12 @@ func test_the_levers_and_memos_of_step_3() -> void:
 	var EP := preload("res://sim/economy/econ_publish.gd")
 	for m in ["LANDING_TREASURY", "LAND_SALE", "LANDING_STOCK_SALE"]:
 		check(m in EP.CAPITAL_MEMOS, "%s is capital" % m)
+	_unhook()
 
 
 func test_grants_survive_save_and_load() -> void:
-	Grants.needs_fn = func(_w, _t, _s, _a): return NEEDS
 	var sim := GameSim.make(3)
+	_stub()
 	var w := sim.world
 	Grants.monthly(w)
 	_cover(w, "FARM", [_district(w)])
@@ -241,3 +271,4 @@ func test_grants_survive_save_and_load() -> void:
 	check_eq(l.world.peek("grant"), w.peek("grant"), "the grants paid")
 	check_eq(l.world.peek(Grants.STATE), w.peek(Grants.STATE), "the programmes")
 	check_eq(l.world.state_hash(), w.state_hash(), "the same state")
+	_unhook()

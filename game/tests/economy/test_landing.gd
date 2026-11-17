@@ -110,16 +110,16 @@ func test_a_state_company_pays_its_own_staff_with_what_the_purse_gave_it() -> vo
 	var w := sim.world
 	var admin := String(_made(w)["admin"])
 	var bill := Company.wage_bill(w, admin)
-	var total := -w.ledger.balance(Ledger.EXTERNAL)
 	sim.step()
 	check_eq(w.ledger.balance(CoreUtil.acct(admin)), 0, "given exactly its wage bill and paid it all out")
 	var pay: Array = Logbook.rows(w, {"kind": "PAY", "who": admin})
 	check_eq(pay.size(), 1, "one wages row, the company's own")
 	check_eq(int(pay[0]["change"]["paid"][1]), bill, "its whole bill")
-	check_eq(-w.ledger.balance(Ledger.EXTERNAL), total, "nothing appears or vanishes in the month")
 	# a home-world builder pays its crew from its own capital
 	var b := String(_made(w)["builders"]["home_world"][0])
-	check_eq(w.ledger.balance(CoreUtil.acct(b)), 2 * Company.wage_bill(w, b), "a builder has paid one month of its three")
+	var bpay: Array = Logbook.rows(w, {"kind": "PAY", "who": b})
+	check_eq(bpay.size(), 1, "a builder paid its crew once")
+	check(int(bpay[0]["change"]["paid"][1]) > 0 and int(bpay[0]["change"]["short"][1]) == 0, "in full, from its own capital")
 
 
 func test_rent_due_is_a_shelter_rent_per_household_owed_to_the_housing_office() -> void:

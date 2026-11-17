@@ -7,10 +7,20 @@ extends TestCase
 const DS := ["d:1", "d:2", "d:3"]
 
 
+## Two months of the real game, then politics' grant memory and the log emptied: the economy publishes a need and the
+## government chooses a cover from month one (rebuild step 3), and each test below is about one choice it sets up.
 func _world() -> WorldState:
 	var sim := GameSim.make(4)
 	sim.run(2)
+	_fresh(sim.world)
 	return sim.world
+
+
+func _fresh(w: WorldState) -> void:
+	var st: Dictionary = w.table("pol")["state"]
+	st.erase("grant_prog")
+	st.erase("grant_cover")
+	Logbook.clear(w)
 
 
 ## The economy's grant need, as Grants.monthly publishes it (rebuild step 3).
@@ -86,6 +96,7 @@ func test_every_decision_is_in_the_logbook() -> void:
 func test_no_need_published_nothing_happens() -> void:
 	var w := _world()
 	var st: Dictionary = w.table("pol")["state"]
+	w.table("grant_prog")["s"]["need"] = {}   # the economy publishes no need (the real loop does from month one)
 	w.levers["ECON_FAMILY_FARM_GRANT"] = 50
 	var h := w.state_hash()
 	GovBuilder._grant_cover(w, st)
@@ -128,6 +139,7 @@ func test_the_memory_survives_save_and_load() -> void:
 	var sim := GameSim.make(4)
 	sim.run(2)
 	var w := sim.world
+	_fresh(w)
 	var st: Dictionary = w.table("pol")["state"]
 	_by_need(st)
 	_need(w, {"d:1": 900, "d:2": 500, "d:3": 0})

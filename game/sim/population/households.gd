@@ -980,6 +980,15 @@ static func mark_granted(world: WorldState, id: String) -> void:
 		Logbook.note(world, "FOUNDER", id, "had its grant", {"pool": r["pool"]}, {"had_grant": [false, true]})
 
 
+## A founder's person record takes on one thing it owns (the plan made for them, right after it is made: the plan's
+## id is not known before). The founding sequence calls it (Wilma, on merge; for Maja to read).
+static func own(world: WorldState, id: String, ref: String) -> void:
+	var r: Dictionary = world.table(PERSON_TABLE).get(id, {})
+	if not r.is_empty() and ref != "" and not (r["owns"] as Array).has(ref):
+		(r["owns"] as Array).append(ref)
+		Logbook.note(world, "FOUNDER", id, "owns", {}, {"owns": [(r["owns"] as Array).size() - 1, (r["owns"] as Array).size()]}, "", ref)
+
+
 ## A founder's person record gives up one thing it owned (a plan given up, a company ended). The conductor or Otto's
 ## give_up calls it before release_founder.
 static func disown(world: WorldState, id: String, ref: String) -> void:

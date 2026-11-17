@@ -5,10 +5,10 @@ extends PicProvider
 ## this file calls, in the order written in the joins paper, so nothing depends on the order providers were registered
 ## in and the market can never clear before every order is posted.
 ##
-## A call to a function whose piece is not merged yet is NOT here: it is added, at its place, in the same commit that
-## merges the piece. The list of what is still to come is at each phase.
+## Every piece of step 3 is called here.
 ##
-## The conductor decides nothing and moves nothing itself. It writes no Logbook rows: the pieces write their own.
+## The conductor decides nothing and moves nothing itself; the pieces write their own Logbook rows. Its one row is
+## "no plan: no free site", which no piece can write because none was called.
 
 const Company := preload("res://sim/economy/company.gd")
 const Households := preload("res://sim/population/households.gd")
@@ -17,8 +17,22 @@ const Ship := preload("res://sim/economy/ship.gd")
 const Market := preload("res://sim/economy/market.gd")
 const Making := preload("res://sim/economy/making.gd")
 const Rules := preload("res://sim/economy/rules.gd")
+const Building := preload("res://sim/economy/building.gd")
+const Grants := preload("res://sim/economy/grants.gd")
+const TypeTable := preload("res://sim/economy/type_table.gd")
+const Site := preload("res://sim/transport/site.gd")
+
+## The types a settler may found. Step 3 is tested on food alone first (plan 13): every other type is in the table but
+## nobody may found it until food passes.
+const FOUNDABLE: Array[String] = ["FARM"]
 
 const OWNER := "econ_month"
+
+
+## The grants read what a founder must bring and what work a type has from the pieces that know (Ella's two hooks).
+func _init() -> void:
+	Grants.needs_fn = func(w, type, size, area): return Building.founder_needs(w, type, size, area)
+	Grants.need_fn = func(w, type, _size, area): return Rules.work(w, type, area)
 
 
 func owner_id() -> String:
@@ -53,15 +67,15 @@ static func trade(world: WorldState) -> void:
 	Ship.month(world)
 
 
-## To come: 1. Building.open_due (Otto), first;  3. Building.work_month (Otto), last.  Here now: 2. Making.month (Bob).
+## 1. plants whose building was done last month open;  2. every company makes;  3. the builders work their contracts.
 static func production(world: WorldState) -> void:
+	Building.open_due(world)
 	Making.month(world)
+	Building.work_month(world)
 
 
-## To come: 1. Building.supply_orders (Otto), with the orders;  3. Building.take_deliveries (Otto), after the clear;
-## 4. Building.bill_month (Otto), before the rent.
-## Here now: 1. the households' and the companies' orders;  2. Market.clear (Bob);  3. the households take in what they
-## bought and eat;  5. the rent;  6. the purse's bill, which gives a state company what it lacks for its wages, and pays the benefit and
+## 1. everyone's orders: households, companies' inputs, building sites' supplies;  2. Market.clear (Bob);  3. what was
+## bought is taken in (households eat; sites take their supplies);  4. contract bills, before wages;  5. the rent;  6. the purse's bill, which gives a state company what it lacks for its wages, and pays the benefit and
 ## pensions;  7. every company pays its own wages from its own account;  8. Colony Stores' takings to the treasury,
 ## and the sweep.
 ## The market and the rent, when they come, go BEFORE the purse's bill: a state company's takings and rent must be in
@@ -71,8 +85,11 @@ static func production(world: WorldState) -> void:
 static func settlement(world: WorldState) -> void:
 	Households.post_orders(world)   # 1. what households need, each line with its budget
 	Making.post_orders(world)       # 1. companies' inputs
+	Building.supply_orders(world)   # 1. building sites' supplies
 	Market.clear(world)
 	Households.after_market(world)
+	Building.take_deliveries(world)
+	Building.bill_month(world)
 	Households.pay_rent(world, func(id): return Landing.rent_due(world, id))
 	Landing.purse_month(world)
 	for cid in Company.ids(world):
@@ -82,10 +99,62 @@ static func settlement(world: WorldState) -> void:
 	Landing.sweep(world)
 
 
-## Here now: 1. Rules.month (Bob), which also closes each company's books for the month.
-## To come: 2. founding (the sequence in the joins paper)  3. Building.sign_round (Otto)  4. Grants.monthly (Ella).
+## 1. Rules.month (Bob), which also closes each company's books for the month;  2. founding;  3. plans sign with
+## builders (Otto);  4. the grant programmes' month (Ella).
 static func company_ai(world: WorldState) -> void:
 	Rules.month(world)
+	founding(world)
+	Building.sign_round(world)
+	Grants.monthly(world)
+
+
+## The founding sequence (joins paper, COMPANY_AI 2), for every type that may be founded and every area. Each call is
+## its owner's; this only puts them in order. For one plan:
+##   rule 7 and 8 say which sizes pass (Bob); from the largest passing size down, what a founder must bring (Otto) and
+##   what grant each pool would get (Ella); a founder is drawn among the households that can pay (Maja); a site is
+##   chosen (Terra); the founder is counted one by one (Maja); the plan is made, holding its site, with the founder's
+##   money (Otto); the grant is paid into the plan's account (Ella).
+## "Nothing limits how many may plan at once" (plan 12.3, 15a): it goes on while rule 7 passes, a household can pay
+## and a site is free. A plant counts in rule 7 once it stands; a plan does not. So many may plan into the same work.
+static func founding(world: WorldState) -> void:
+	for type in FOUNDABLE:
+		for a in AreaStore.areas(world):
+			var area := String(a["id"])
+			Rules.founding(world, type, area)   # the month's row: what each size read
+			while _found_one(world, type, area):
+				pass
+
+
+## Makes one plan of `type` in `area` if anyone can and will. Returns false when nobody did.
+static func _found_one(world: WorldState, type: String, area: String) -> bool:
+	var sizes: Array = Building.passing_sizes(world, type, area)
+	sizes.reverse()   # the largest that passes first
+	for size in sizes:
+		var needs := Building.founder_needs(world, type, String(size), area)
+		var kind := Grants.kind_of(type, String(size))
+		var grants := {}
+		for pid in Households.pools(world):
+			if String(world.peek("pool")[pid]["area"]) == area:
+				grants[pid] = Grants.quote(world, kind, area, String(pid)) if kind != "" else 0
+		var pool := Households.pick_founder(world, area, needs, grants)
+		if pool == "":
+			continue
+		var sixths := TypeTable.sixths(String(size))
+		var sites: Array = Site.choose_country(world, type, sixths, 1) if Site.setting(type) == "COUNTRY" else Site.choose_town(world, area, type, sixths, 1)
+		if sites.is_empty():
+			Logbook.note(world, "PLAN", area, "no plan: no free site", {"type": type, "size": size})
+			return false
+		var founder := Households.make_founder(world, pool, "")
+		if founder == "":
+			return false
+		var plan := Building.make_plan(world, founder, type, String(size), area, sites[0], {"needs": needs / CoreUtil.S})
+		if plan == "":
+			Households.release_founder(world, founder)
+			return false
+		Households.own(world, founder, plan)
+		Grants.apply(world, plan)
+		return true
+	return false
 
 
 ## Nothing of the conductor's: the population provider runs life, the labour month and the yearly raise before this,
