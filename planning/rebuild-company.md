@@ -185,8 +185,9 @@ type has its own copy, and no rule is skipped for a type because it cannot take 
 What goes with them:
 
 - **Only price moves price.** "If something else than price stops sales it should not count on adjusting price!!" A
-  sale stopped by freight, the road or the buyer's money counts neither as unsold stock (rules 2 and 4) nor as an
-  unfilled order (rule 1). "Ignore the stoch in that other place too".
+  sale stopped by freight or the road counts neither as unsold stock (rules 2 and 4) nor as an unfilled order (rule 1).
+  A buyer who is short of money is different, and is spelled out in 12.3, 23a: being unable to pay THIS price is a
+  matter of price. "Ignore the stoch in that other place too".
 - **Held-back stock is nobody's signal.** A seller below its making price offers what covers its monthly expenses and
   holds the rest: "It sells too cover all monthly expences". Stock it did not offer does not lower its price.
 - **Rule 9 only decides a tie.** When both signals come in the same month, the one with priority acts. One signal alone
@@ -654,6 +655,15 @@ is wrong; nothing here is asked again.
 22. **Types with work slots do not hold back.** An empty slot is lost that month whatever they do.
 23. **Hunger is counted from need, not from orders.** A household's food need that is not met, for any reason
     including its own money, is hunger. Only the price rules ignore the part stopped by money.
+23a. **Short of money, or refusing the price.** Every order carries the most its buyer will and can pay per unit.
+    - The buyer could pay something, but less than the asking price: that is a refusal of the price. The goods left
+      unsold because of it count for a cut (rule 2). The user, 2026-11-14, on bread: "if they want to but can't buy,
+      bread goes too high — the company can win by lowering".
+    - The buyer has nothing at all to pay with: no order with money behind it exists, so there is nothing for the
+      price rules to read. That is the only case that is "not price".
+    So when a colony is poor and food piles up unsold, food prices fall. Earlier versions of this plan lumped both
+    cases together as "the buyer's money" and would have kept prices up while people went hungry; that wording was
+    Wilma's and Bob's, not the user's.
 24. **The second output** is switched from one month to the next, at no cost.
 25. **An export** counts as sold, at the home world's price, when it goes aboard. Stock at the port waiting for a ship
     is waiting for freight, not unsold.
@@ -754,6 +764,9 @@ is wrong; nothing here is asked again.
 60a. **The founder is counted individually from the day the plan is made,** not from the opening, so that a grant, a
     loan and "one grant per household" have a named person to attach to while the venture is still a plan. (The user
     ruled individual counting "on company start"; Wilma reads the plan as where a company starts.)
+60c. **A founder or owner is still a household.** Counted individually, they eat, pay rent and buy like any household,
+    from their own account. When they no longer own a company or a plan and their debts are settled or carried, they go
+    back into the pool of the block they live in, in the income band they now belong to.
 60b. **A plan that is given up is settled, not erased.** The builder keeps what it was paid for work done. The land
     bought and the half-built building belong to the founder and can be sold; another plan may take them over. The loan
     is still owed. The grant is owed back. What the founder cannot pay goes to court like any debt (8.3). A given-up
@@ -926,6 +939,8 @@ therefore the whole loop once, end to end, through the real company object:
   savings plus the grant pay for the land, the three months of material up front and the builder for a family farm,
   and for a truck driver? If not, nobody can plan anything and the colony only eats its stock. That is a mistake in
   our starting numbers, not a result.
+  And, since the bank does not lend until step 5: which types can be paid for from savings and a grant alone? Only
+  those appear in step 3, and the report says which could not.
   And: does the food the colony lands with last longer than it takes to plan, build and open the first farms and
   bring in a first harvest? An outside run with made-up numbers (12 months of food, 4 months to build a family farm)
   got through with food to spare; with 8 months to build, or under 8 months of food, the stock ran out first.
