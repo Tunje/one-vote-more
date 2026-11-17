@@ -297,29 +297,35 @@ func test_a_site_orders_its_supplies_when_its_job_is_next_in_line_not_at_signing
 
 func test_plans_signed_to_wait_behind_a_full_book_count_once_as_unmet() -> void:
 	var w := _world()
-	var b: String = Building.builders(w)[0]
-	var q := {"builder": b, "bw_price": Company.price(w, b, "BW"), "total": 0, "start": w.month + 2}
-	for i in 8:
-		Building._sign(w, _plan(w, 40000), q)
-	# the cheapest builder, so both new plans take it although they must wait behind its book
-	Company.set_price(w, b, "BW", Company.price(w, b, "BW") / 2, {"test": true}, "test price")
+	# every builder's book full, so even the soonest start is later than month + 2
+	for b in Building.builders(w):
+		var q := {"builder": b, "bw_price": Company.price(w, b, "BW"), "total": 0, "start": w.month + 2}
+		for i in 8:
+			Building._sign(w, _plan(w, 40000), q)
+		check(Building.start_month(w, b) > w.month + 2, "its book is full: a new job would wait")
 	var p1 := _plan(w, 40000)
 	var p2 := _plan(w, 40000)
-	check(Building.start_month(w, b) > w.month + 2, "its book is full: a new job would wait")
 	Building.sign_round(w)
+	var chosen := {}
 	for pid in [p1, p2]:
 		var cid := String(w.peek("plan")[pid]["contract"])
-		check(cid != "" and String(w.peek("contract")[cid]["builder"]) == b, "signed with the cheap builder")
+		check(cid != "", "signed although it must wait")
+		chosen[String(w.peek("contract")[cid]["builder"])] = true
 	var bw := int(TypeTable.bill("FARM", "FAMILY")["bw"])
 	_month(w)
-	check_eq(int(Building.seller_signal(w, b)["unmet_above"]), 2 * bw, "next month: the two plans' BW, once")
+	var unmet := 0
+	for b in Building.builders(w):
+		var u := int(Building.seller_signal(w, b)["unmet_above"])
+		unmet += u
+		if not chosen.has(b):
+			check_eq(u, 0, "a builder nobody waited for counts nothing")
+	check_eq(unmet, 2 * bw, "next month: the two plans' BW, once")
 	_month(w)
-	check(Building.book(w, b).size() >= 8, "the book is still there")
-	check_eq(int(Building.seller_signal(w, b)["unmet_above"]), 0, "the month after: nothing, the waiting book is not counted again")
-	var other: String = Building.builders(w)[1]
-	check_eq(int(Building.seller_signal(w, other)["unmet_above"]), 0, "a builder nobody waited for counts nothing")
-
-
+	unmet = 0
+	for b in Building.builders(w):
+		check(Building.book(w, b).size() >= 8, "the book is still there")
+		unmet += int(Building.seller_signal(w, b)["unmet_above"])
+	check_eq(unmet, 0, "the month after: nothing, the waiting book is not counted again")
 
 func test_at_the_start_no_rule_cuts_a_builders_price_or_crew_until_the_first_plan_asks() -> void:
 	var w := _world()
@@ -346,3 +352,90 @@ func test_at_the_start_no_rule_cuts_a_builders_price_or_crew_until_the_first_pla
 	check(not Building.seller_signal(w, b).is_empty(), "after the first quote the signal is there")
 	check(not Building.seller_signal(w, other).is_empty(), "for every builder, quoted or chosen or not")
 	check_eq(Logbook.rows(w, {"kind": "QUOTE", "who": "builders"}).size(), 1, "the opening of the market is in the log once")
+
+
+func test_booked_and_made_plans_count_each_plan_in_one_place_until_it_opens() -> void:
+	var w := _world()
+	var area := AreaStore.found_landing(w)
+	var six := TypeTable.sixths("FAMILY")
+	var pid := _plan(w, 40000)
+	check_eq(Building.booked(w, "FARM", area), 0, "a plan only made is not booked")
+	check_eq(Building.made_plans(w, "FARM", area), {pid: six}, "it is among the plans only made")
+	check_eq(Building.made_plans(w, "FARM", area, pid), {}, "except_plan leaves it out")
+	Building.sign_round(w)
+	check_eq(String(w.peek("plan")[pid]["status"]), "SIGNED", "it signed")
+	check_eq(Building.booked_plans(w, "FARM", area), {pid: six}, "booked: the plan and its sixths")
+	check_eq(Building.made_plans(w, "FARM", area), {}, "signed: no longer only made, so never counted twice")
+	check_eq(Building.booked(w, "FARM", area), six, "booked sixths")
+	check_eq(Building.booked(w, "FARM", area, pid), 0, "except_plan leaves it out")
+	check_eq(Building.booked(w, "SHOP", area), 0, "another type is not counted")
+	check_eq(Building.booked(w, "FARM", "area:nowhere"), 0, "nor another area")
+	var given := _plan(w, 40000)
+	Building.sign_round(w)
+	check_eq(Building.booked(w, "FARM", area), 2 * six, "two booked")
+	Building.give_up(w, given, "test")
+	check_eq(Building.booked(w, "FARM", area), six, "a plan given up is no longer booked")
+	for i in 6:
+		_month(w)
+	check_eq(String(w.peek("plan")[pid]["status"]), "OPEN", "the first opened")
+	check_eq(Building.booked(w, "FARM", area), 0, "an opened plan is a plant now, not booked")
+
+
+func test_a_plan_takes_the_soonest_start_not_the_lowest_price() -> void:
+	var w := _world()
+	var bs: Array = Building.builders(w)
+	var cheap: String = bs[0]
+	var soon: String = bs[1]
+	# the cheap builder is busy for years; the soon one charges more; the others charge even more and are busy too
+	for b in bs:
+		Company.set_price(w, b, "BW", Company.price(w, b, "BW") * (1 if b == cheap else (2 if b == soon else 3)), {"test": true}, "test price")
+		if b != soon:
+			var q := {"builder": b, "bw_price": Company.price(w, b, "BW"), "total": 0, "start": w.month + 2}
+			for i in 6:
+				Building._sign(w, _plan(w, 40000), q)
+	check(Building.start_month(w, soon) < Building.start_month(w, cheap), "the dear builder can start sooner")
+	var pid := _plan(w, 400000)
+	Building.sign_round(w)
+	var cid := String(w.peek("plan")[pid]["contract"])
+	check_eq(String(w.peek("contract")[cid]["builder"]), soon, "the soonest start is taken, not the lowest price")
+	var row: Dictionary = Logbook.rows(w, {"kind": "CONTRACT", "who": cid})[0]
+	check_eq(String(row["why"]["cheapest_builder"]), cheap, "the row names the cheapest quote")
+	check(int(row["why"]["cheapest_quote"]) < int(row["why"]["quote"]), "and what the soonest cost over it")
+	check(int(row["why"]["cheapest_start"]) > int(row["why"]["start"]), "and how much later the cheapest would have started")
+
+
+func test_a_soonest_quote_it_cannot_pay_is_refused_and_the_next_soonest_taken() -> void:
+	var w := _world()
+	var bs: Array = Building.builders(w)
+	var dear: String = bs[0]
+	for b in bs:
+		Company.set_price(w, b, "BW", Company.price(w, b, "BW") * (20 if b == dear else 1), {"test": true}, "test price")
+		if b != dear:
+			var q := {"builder": b, "bw_price": Company.price(w, b, "BW"), "total": 0, "start": w.month + 2}
+			Building._sign(w, _plan(w, 40000), q)
+	var pid := _plan(w, 40000)
+	Building.sign_round(w)
+	var cid := String(w.peek("plan")[pid]["contract"])
+	check(cid != "", "it signed")
+	check(String(w.peek("contract")[cid]["builder"]) != dear, "not with the soonest, which it cannot pay")
+	check_eq(int(w.peek(Building.MONTH)[dear]["refused_pending"]), int(TypeTable.bill("FARM", "FAMILY")["bw"]), "the soonest quote refused for its price")
+
+
+func test_a_plan_that_can_pay_no_quote_refuses_its_bw_once_shared_among_the_builders() -> void:
+	var w := _world()
+	var bs: Array = Building.builders(w)
+	var pid := _plan(w, 1)   # it can pay no quote
+	Building.sign_round(w)
+	check_eq(String(w.peek("plan")[pid]["status"]), "MADE", "it waits")
+	var bw := int(TypeTable.bill("FARM", "FAMILY")["bw"])
+	var sum := 0
+	for b in bs:
+		var part := int(w.peek(Building.MONTH)[b]["refused_pending"])
+		check(absi(part - bw / bs.size()) <= 1, "an equal part at each builder")
+		sum += part
+	check_eq(sum, bw, "the plan's BW once in all, not once at each of %d builders" % bs.size())
+	_month(w)
+	sum = 0
+	for b in bs:
+		sum += int(Building.seller_signal(w, b)["refused"])
+	check_eq(sum, bw, "next month the rules read it once")

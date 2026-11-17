@@ -165,6 +165,9 @@ static func _clear_book(world: WorldState, st: Dictionary, item: String, area: S
 				moved += got
 				if got > 0:
 					sales += 1
+					if not st.has("last"):
+						st["last"] = {}
+					st["last"][item + "|" + area] = {"price": price, "m": world.month}
 			left -= moved
 			sig[seller]["sold"] = int(sig[seller]["sold"]) + moved
 			if moved == 0:
@@ -339,6 +342,12 @@ static func history(world: WorldState, item: String, area: String, months: int =
 
 
 ## A sale record (a copy), or {}.
+## The price `item` last sold at in `area` (milli-credits), and the month: {"price", "m"}, or {} if it never sold
+## there. Kept for good (one entry per item and area), not pruned with the sale records.
+static func last_sold(world: WorldState, item: String, area: String) -> Dictionary:
+	return (world.peek(TABLE).get("last", {}).get(item + "|" + area, {}) as Dictionary).duplicate()
+
+
 static func sale(world: WorldState, sid: String) -> Dictionary:
 	return (world.peek(SALES).get(sid, {}) as Dictionary).duplicate(true)
 

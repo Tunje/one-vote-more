@@ -26,6 +26,9 @@ const Market := preload("res://sim/economy/market.gd")
 const Making := preload("res://sim/economy/making.gd")
 const Households := preload("res://sim/population/households.gd")
 const HomeBuilders := preload("res://sim/economy/home_builders.gd")
+const Grants := preload("res://sim/economy/grants.gd")
+## Otto's building side; it preloads this file, so this file loads it when it is needed.
+const BUILDING_PATH := "res://sim/economy/building.gd"
 
 const S := 1000
 ## k: how far a price (or a hiring salary) can move in a month, per mille (12.3, 15: "starts at 0.2").
@@ -80,10 +83,9 @@ static func company_month(world: WorldState, cid: String) -> void:
 ## A builder's market signal for its building work, from the building side (Otto): {"offered", "sold", "price",
 ## "unmet_above", "refused"} in BW milli-units, or {} until that piece is in the tree.
 static func building_signal(world: WorldState, cid: String) -> Dictionary:
-	const PATH := "res://sim/economy/building.gd"
-	if not ResourceLoader.exists(PATH):
+	if not ResourceLoader.exists(BUILDING_PATH):
 		return {}
-	var b: GDScript = load(PATH)
+	var b: GDScript = load(BUILDING_PATH)
 	for m in b.get_script_method_list():
 		if String(m["name"]) == "seller_signal":
 			return b.call("seller_signal", world, cid)
@@ -213,7 +215,8 @@ static func salary_rules(world: WorldState, cid: String) -> void:
 			continue
 		var new_sal := sal * (1000 + up) / 1000 if which == "R1" else sal * (1000 - down) / 1000
 		Company.set_hiring_salary(world, cid, tier, area, new_sal, {"rule": which, "posts": want, "staff": have, "open": open,
-			"applicants": jobless, "needs": needs_line(world, area), "step_pm": up if which == "R1" else down, "line": line})
+			"applicants": jobless, "needs": needs_line(world, area), "food_from": needs_food(world, area)["from"],
+			"step_pm": up if which == "R1" else down, "line": line})
 
 
 ## Applicants for a post of this tier at this pay: the household side's Households.applicants when it has one (Maja,
@@ -246,9 +249,20 @@ static func needs_line(world: WorldState, area: String) -> int:
 				rent = r
 	if rent < 0:
 		rent = TypeTable.start_price_of("LANDLORD")
+	return rent + int(needs_food(world, area)["price"]) * HOUSEHOLD_PERSONS_PM / 1000
+
+
+## The FOOD price the needs line reads in an area: {"price", "from"}. The cheapest FOOD offered there; when nothing is
+## offered (sold out), the last price FOOD actually sold at there; the starting price only if it never sold there
+## (Wilma: a sold-out market is not a cheap one). "from": OFFER, LAST_SOLD or START, for the rows that weigh it.
+static func needs_food(world: WorldState, area: String) -> Dictionary:
 	var offs := Market.offers(world, "FOOD", area)
-	var food := TypeTable.start_price("FOOD") if offs.is_empty() else int(offs[0]["price"])
-	return rent + food * HOUSEHOLD_PERSONS_PM / 1000
+	if not offs.is_empty():
+		return {"price": int(offs[0]["price"]), "from": "OFFER"}
+	var last := Market.last_sold(world, "FOOD", area)
+	if not last.is_empty():
+		return {"price": int(last["price"]), "from": "LAST_SOLD"}
+	return {"price": TypeTable.start_price("FOOD"), "from": "START"}
 
 
 # ---------------------------------------------------------------- staff to the posts
@@ -327,16 +341,31 @@ static func running_cost(world: WorldState, type: String, size: String, area: St
 ## costs to run. {size: {"work_share", "cost", "covers"}}. A founder plans the largest size that covers and that their
 ## money reaches; the founder's own reading (12.11, 77) bends it on their side. log_row false: a plain read (a plan's
 ## re-read before signing), with no row.
-static func founding(world: WorldState, type: String, area: String, log_row: bool = true) -> Dictionary:
+static func founding(world: WorldState, type: String, area: String, log_row: bool = true, except_plan: String = "") -> Dictionary:
 	var w := work(world, type, area)
-	var have := 0
+	var standing := 0
 	for pid in Company.plant_ids(world):
 		var p := Company.plant(world, String(pid))
 		if String(p["type"]) != type or bool(p["closed"]):
 			continue
 		if String(world.peek(Company.TABLE)[p["company"]]["area"]) != area:
 			continue
-		have += int(p["sixths"])
+		standing += int(p["sixths"])
+	# "It does not see plans made, but they do see plans booked on builders notes and plans that have accepted
+	# grants" (the user, plan 12.3 15a): a plan in a builder's book, or a plan still MADE that has its grant, counts
+	# by its size as a plant would, each plan once; a plan only made does not. except_plan: the plan re-reading rule 7
+	# before it signs, whose own size is the newcomer's below ("its own included"), so it is not counted twice.
+	var booked := 0
+	var granted := 0
+	if ResourceLoader.exists(BUILDING_PATH):
+		var b: GDScript = load(BUILDING_PATH)   # building.gd preloads this file, so it is loaded, not preloaded
+		booked = int(b.call("booked", world, type, area, except_plan))
+		var made: Dictionary = b.call("made_plans", world, type, area, except_plan)
+		var with_grant: Dictionary = Grants.granted_plans(world)
+		for plan_id in made:
+			if with_grant.has(plan_id):
+				granted += int(made[plan_id])
+	var have := standing + booked + granted
 	var out := {}
 	for size in TypeTable.SIZES:
 		var six := TypeTable.sixths(size)
@@ -344,6 +373,7 @@ static func founding(world: WorldState, type: String, area: String, log_row: boo
 		var cost := running_cost(world, type, size, area)
 		out[size] = {"work_share": share, "cost": cost, "covers": share >= cost}
 	if log_row:
-		Logbook.note(world, "RULE", type, "R7/8 founding signal", {"area": area, "work": w, "plants_sixths": have},
+		Logbook.note(world, "RULE", type, "R7/8 founding signal", {"area": area, "work": w, "plants_sixths": have,
+			"standing": standing, "booked": booked, "granted": granted},
 			{"covers": [{}, out.keys().filter(func(s): return out[s]["covers"])]})
 	return out

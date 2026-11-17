@@ -223,6 +223,17 @@ func test_goods_for_a_building_site_never_go_into_a_companys_stock() -> void:
 	check_eq(w.ledger.balance(CoreUtil.acct(client)), 10000 * S - 40 * 37 * S, "paid from the client's account")
 
 
+func test_the_last_price_sold_is_kept_per_item_and_area() -> void:
+	var w := _w()
+	check(Market.last_sold(w, "FOOD", "landing").is_empty(), "nothing sold yet")
+	_farm(w, 10, 50 * S)
+	_farm(w, 10, 60 * S)
+	Market.order(w, _buyer(w, "a", 100000 * S), "FOOD", 15 * S, 70 * S)
+	Market.clear(w)
+	check_eq(Market.last_sold(w, "FOOD", "landing"), {"price": 60 * S, "m": 0}, "the last sale's price, the dearer one cleared last")
+	check(Market.last_sold(w, "FOOD", "elsewhere").is_empty(), "per area")
+
+
 func test_bad_orders_are_refused() -> void:
 	var w := _w()
 	var b := _buyer(w, "a", 100 * S)

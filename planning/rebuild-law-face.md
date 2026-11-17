@@ -126,6 +126,12 @@ empty queue, and the old `law_bridge` gate is not rebuilt before then.
   - The fine's own upper bounds (a share of revenue for one fine and for all open fines) are the law's
     proportionality. They stay, with numbers set new **(Anni's decision)**.
 - **A severe conviction** suspends the company's licences for a time.
+- **Collection** (Wilma, 2026-11-17: "a debt nobody collects is a fault, not a design"; Anni's `Justice.collect_debts`).
+  Each month in JUSTICE, after SETTLEMENT's wages (this month's staff before old debts), every open debt of every kind
+  that is due and whose debtor has an account is paid, oldest first, from the debtor's account to the creditor's as
+  the balance allows. A part payment lowers what is owed; paid in full, the debt is closed. Each payment is a Logbook
+  row and a ledger memo `DEBT:<kind>`. A fine goes to the fines account, another debt to the government to the
+  treasury, any other to its creditor's account. A debt whose debtor or creditor has no account waits.
 
 **Until step 5:** nothing can break a rule, because the things the rules cover do not exist yet, so there is nothing to
 fine. Any fine raised before the court exists is recorded as owed and waits.
@@ -220,6 +226,18 @@ crime, defamation, the government's unlawful acts, appeals.
    The government sets the raise's minimum (the lever starts at 2%). Giving it is a yearly duty, not the company's
    choice; a company may give more. Work law reads each company's staff once a year: a worker whose salary did not
    climb by at least the minimum is a violation, found by the work inspectors like any other (section 3).
+6. **Pay owed after a layoff** (the user, 2026-11-17, rebuild-company.md 9.2, ruled on Wilma's proposal: "On the
+   workers rules i belive you have the right of it, and it should apply to builders"). A laid-off worker is owed
+   `LAW_LAYOFF_PAY_MONTHS` months of their own pay by the company (default 3, range 0–12; a law the government can
+   change). It applies to builders as to every company.
+   - **The months are the law as it stands on the day of the layoff, for everyone** (Wilma's decision, 2026-11-17: the
+     law is a minimum every contract carries, so raising it protects people already hired; nothing is stored on the
+     job; she is telling the user and it can change).
+   - Bob's layoff rule reads it through `WorkLaw.layoff_pay_months`; Maja's `Households.layoff` pays it from the
+     company's account to the pool the worker went back to.
+   - What the company cannot pay is a debt, `Justice.owe(company, pool, pool's account, rest, "LAYOFF_PAY")`, collected
+     like every other debt (section 3, collection). Unpaid 12 months past due, the pool petitions the court to wind the
+     company up, as for a fine ("a debt like unpaid wages, and can end the company").
 
 **Until then:**
 - **Accidents** may happen from production at step 3. They are published and counted, but nobody pays for them until

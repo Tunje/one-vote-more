@@ -145,7 +145,11 @@ The households' month is built against Wilma's joins (rebuild-step3-joins.md): b
   - none to be had.
 - **Hunger is counted from need** (23).
 - **Workers apply only to jobs that meet their needs** (9.2, the user). A worker's needs are a household's rent and food in the area (12.5, 38 as revised: no longer divided by earners). They are Bob's Rules.needs_line, the one figure his salary rule reads too. A hire below it finds nobody, and the log says why.
-- **Quitting for better pay** (12.5, 39): an employed worker moves to an open post in reach that pays more.
+- **Quitting for better pay** (12.5, 39): an employed worker moves to an open post in reach that pays more, over a bar. The user's ruling, verbatim (plan 9.2): "10% if it's a good job less if stressfull, and plus 1% per year in the same workplace up to 15%". The question was how much more another post must pay before a worker moves (game/tools/tenure.gd had shown jobs lasting two to four months, about half of them ended by a move for any gain at all).
+  - A worker moves only to a post paying at least their own pay × (1 + bar): `Households.quit_bar_pm`.
+  - Wilma's readings: "up to 15%" caps the whole bar (10%, rising to 15% after five full years). "Less if stressful" waits for stress at step 9. Until then the bar starts at 10%, and `quit_bar_base_pm` is where stress will lower it, toward 5% at the highest stress.
+  - The years count from the "since" month on each staff entry (Bob's company record), averaged by head count when people join an entry, as pay is. A move to another company starts the years again. A band move keeps them, since it is the same workplace.
+  - Every JOB row carries the bar, the old pay and the new pay. A better-paid post NOT taken because the bar was not reached gets one STAY row per company a month, giving each entry's bar, old pay, the best pay offered, persons and years.
 - **The negotiation** (9.2, the user): underpaid = below the company's average for the post. The worker negotiates first, and only if that fails do they look for better pay.
 - **The yearly raise:** the company's choice, and at least the government's minimum (the lever ECON_YEARLY_RAISE_MIN_PCT).
 - **Founders** are counted individually from the day the plan is made, take their household's share, and go back into the pool when they own nothing (12.5, 35; 60a–60c).
@@ -322,7 +326,7 @@ Every row is written with `Logbook.note(world, kind, who, what, why, change)`:
 
 - hire;
 - layoff;
-- changing jobs;
+- changing jobs (JOB: bar, old and new pay), and staying because a better offer did not reach the bar (STAY, one row per company a month);
 - retiring;
 - growing up;
 - birth and death, with cause (age, hunger, clinic, crowding, shack, homeless, wildlife, storm, accident);

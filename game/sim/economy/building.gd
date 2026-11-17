@@ -87,13 +87,50 @@ static func founder_needs(world: WorldState, type: String, size: String, area: S
 
 
 ## The sizes of a type that pass rule 7 in an area now (Bob's Rules.founding: {size: {covers}}).
-static func passing_sizes(world: WorldState, type: String, area: String) -> Array:
-	var f: Dictionary = Rules.founding(world, type, area, false)
+## except_plan: the plan re-reading rule 7 for itself (sign_round), which must not count itself among the plans rule 7
+## sees (it is seen through its grant before it signs; the user, plan 12.3 15a).
+static func passing_sizes(world: WorldState, type: String, area: String, except_plan: String = "") -> Array:
+	var f: Dictionary = Rules.founding(world, type, area, false, except_plan)
 	var out: Array = []
 	for size in TypeTable.SIZES:
 		if bool(f.get(size, {}).get("covers", false)):
 			out.append(size)
 	return out
+
+
+## The plans of `type` in `area` booked on a builder and not opened yet: {plan id: sixths} (pure). "It does not see
+## plans made, but they do see plans booked on builders notes and plans that have accepted grants" (the user, plan
+## 12.3 15a): a plan is booked from its signing until it opens (then its plant counts) or is given up. A job DONE and
+## opening next month, or STOPPED for want of pay, is still booked. Keyed by plan, so rule 7 counts a plan that is both
+## booked and granted once (Bob). except_plan is left out.
+static func booked_plans(world: WorldState, type: String, area: String, except_plan: String = "") -> Dictionary:
+	return _plans_at(world, "SIGNED", type, area, except_plan)
+
+
+## The plans of `type` in `area` still only made, not booked on a builder: {plan id: sixths} (pure). Rule 7 keeps
+## those that have accepted a grant (Grants.granted_plans, Ella's), so a granted plan counts while MADE and as booked
+## once SIGNED: once either way (Bob). except_plan is left out.
+static func made_plans(world: WorldState, type: String, area: String, except_plan: String = "") -> Dictionary:
+	return _plans_at(world, "MADE", type, area, except_plan)
+
+
+static func _plans_at(world: WorldState, status: String, type: String, area: String, except_plan: String) -> Dictionary:
+	var out := {}
+	for pid in CoreUtil.sorted_keys(world.peek(PLAN)):
+		var p: Dictionary = world.peek(PLAN)[pid]
+		if String(pid) == except_plan or String(p["status"]) != status or String(p["type"]) != type or String(p["area"]) != area:
+			continue
+		out[pid] = TypeTable.sixths(String(p["size"]))
+	return out
+
+
+## The sixths of every plan of `type` in `area` booked on a builder and not opened yet (pure; booked_plans summed).
+static func booked(world: WorldState, type: String, area: String, except_plan: String = "") -> int:
+	var n := 0
+	var bp := booked_plans(world, type, area, except_plan)
+	for pid in bp:
+		n += int(bp[pid])
+	return n
 
 
 # ================================================================ the plan (COMPANY_AI, the founding sequence)
@@ -199,7 +236,7 @@ static func sign_round(world: WorldState) -> void:
 		if builders(world).is_empty():
 			give_up(world, pid, "no builder")
 			continue
-		if not passing_sizes(world, String(p["type"]), String(p["area"])).has(String(p["size"])):
+		if not passing_sizes(world, String(p["type"]), String(p["area"]), pid).has(String(p["size"])):
 			give_up(world, pid, "the work is no longer there (rule 7)")
 			continue
 		var law: Dictionary = LawCompany.may_sign(world, pid, String(p["type"]), p["site"])
@@ -211,35 +248,54 @@ static func sign_round(world: WorldState) -> void:
 			world.table(OPENED)["first_quote_m"] = world.month
 			Logbook.note(world, "QUOTE", "builders", "the first plan asked the builders for quotes: their market is open",
 				{"plan": pid, "builders": qs.size()}, {}, pid)
-		qs.sort_custom(func(a, b): return int(a["total"]) < int(b["total"]) or (int(a["total"]) == int(b["total"]) and (int(a["start"]) < int(b["start"]) or (int(a["start"]) == int(b["start"]) and String(a["builder"]) < String(b["builder"])))))
-		var q: Dictionary = qs[0]
+		# "He should look for the shortest time" (the user, plan 12.3 15d): the earliest start first, the lowest total
+		# between equal starts. A far start is still taken: the soonest builder there is.
+		qs.sort_custom(func(a, b): return int(a["start"]) < int(b["start"]) or (int(a["start"]) == int(b["start"]) and (int(a["total"]) < int(b["total"]) or (int(a["total"]) == int(b["total"]) and String(a["builder"]) < String(b["builder"])))))
+		var cheapest: Dictionary = qs[0]
+		for qq in qs:
+			if int(qq["total"]) < int(cheapest["total"]):
+				cheapest = qq
 		var land := int(Site.land_terms(world, pid).get("due", 0))   # what the land costs at signing: its price, or a lease's first rent (Terra)
 		var have := world.ledger.balance(account(pid))
 		for qq in qs:
 			Logbook.note(world, "QUOTE", String(qq["builder"]), "quoted", {"total": int(qq["total"]) / S, "start": qq["start"],
 				"bw_price": int(qq["bw_price"]) / S}, {}, pid, pid)
-		if have < land + int(q["total"]):
-			_month_stat(world, String(q["builder"]), "refused_pending", int(TypeTable.bill(String(p["type"]), String(p["size"]))["bw"]))
-			Logbook.note(world, "PLAN", pid, "waits: its money does not cover the land and the lowest quote",
-				{"has": have / S, "land": land / S, "quote": int(q["total"]) / S}, {}, String(q["builder"]))
+		# the soonest quote its money covers; the sooner ones it cannot pay (or all, when it can pay none) are quotes
+		# refused for their price (23a): the plan's BW once, shared among them, as the market shares a shortfall
+		# among the sellers, not counted at each (Bob's review)
+		var bw_bill := int(TypeTable.bill(String(p["type"]), String(p["size"]))["bw"])
+		var q := {}
+		var refused: Array = []
+		for qq in qs:
+			if have >= land + int(qq["total"]):
+				q = qq
+				break
+			refused.append(String(qq["builder"]))
+		for i in refused.size():
+			# equal parts; the remainder one milli-BW each to the first, so the parts add up to the bill exactly
+			var part := bw_bill / refused.size() + (1 if i < bw_bill % refused.size() else 0)
+			_month_stat(world, String(refused[i]), "refused_pending", part)
+		if q.is_empty():
+			Logbook.note(world, "PLAN", pid, "waits: its money does not cover the land and any quote",
+				{"has": have / S, "land": land / S, "lowest": int(cheapest["total"]) / S}, {}, String(cheapest["builder"]))
 			continue
 		var bought: Dictionary = Site.buy_land(world, pid, account(pid))
 		if not bool(bought.get("ok", false)):
 			Logbook.note(world, "PLAN", pid, "waits: the land", {"why": bought.get("why", "")})
 			continue
 		p["cost"]["land"] = int(bought.get("due", land))
-		_sign(world, pid, q)
+		_sign(world, pid, q, cheapest)
 		# asked for now and not to be had now: the plan waits behind the builder's book (later than the earliest any
 		# builder could start, month + 2). Counted once, in the month it signs; the waiting book is never counted
 		# again (Wilma's decision; the reading agreed with Bob)
 		if int(q["start"]) > world.month + 2:
-			var bw := int(TypeTable.bill(String(p["type"]), String(p["size"]))["bw"])
-			_month_stat(world, String(q["builder"]), "unmet_pending", bw)
+			_month_stat(world, String(q["builder"]), "unmet_pending", bw_bill)
 			Logbook.note(world, "PLAN", pid, "signed to wait behind the builder's book", {"start": int(q["start"]),
-				"earliest": world.month + 2, "bw": bw / S}, {}, String(q["builder"]))
+				"earliest": world.month + 2, "bw": bw_bill / S}, {}, String(q["builder"]))
 
 
-static func _sign(world: WorldState, pid: String, q: Dictionary) -> String:
+## cheapest: the lowest quote the plan had, for the CONTRACT row (what choosing the soonest cost; Wilma).
+static func _sign(world: WorldState, pid: String, q: Dictionary, cheapest: Dictionary = {}) -> String:
 	var p: Dictionary = world.table(PLAN)[pid]
 	var b := String(q["builder"])
 	var bill := TypeTable.bill(String(p["type"]), String(p["size"]))
@@ -257,8 +313,11 @@ static func _sign(world: WorldState, pid: String, q: Dictionary) -> String:
 		"paid": 0, "owed": 0, "unpaid_m": 0}
 	p["status"] = "SIGNED"
 	p["contract"] = cid
+	var low := cheapest if not cheapest.is_empty() else q
 	Logbook.note(world, "CONTRACT", cid, "signed", {"price_bw": int(q["bw_price"]) / S, "quote": int(q["total"]) / S,
-		"start": q["start"], "bw": int(bill["bw"]) / S, "material": int(bill["material"]) / S}, {"status": ["", "SIGNED"]}, b, pid)
+		"start": q["start"], "bw": int(bill["bw"]) / S, "material": int(bill["material"]) / S,
+		"cheapest_quote": int(low["total"]) / S, "cheapest_start": low["start"], "cheapest_builder": String(low["builder"])},
+		{"status": ["", "SIGNED"]}, b, pid)
 	_fact(world, "ECON_CONTRACT_AWARDED", b, 20, {"contract": cid, "plan": pid, "type": p["type"], "price": int(q["total"]) / S})
 	return cid
 

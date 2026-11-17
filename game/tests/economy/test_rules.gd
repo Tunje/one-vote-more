@@ -206,6 +206,52 @@ func test_rule_7_reads_the_work_and_rule_8_says_when_it_is_covered() -> void:
 	check_eq(Rules.work(w, "CLINIC", "landing"), 0, "services have no work signal before step 4")
 
 
+func test_founding_sees_plans_booked_with_a_builder_and_plans_with_a_grant_not_plans_only_made() -> void:
+	var w := _w()
+	var stores := Company.create(w, "SHOP", "LARGE", HW, "Stores", {"area": "landing"})
+	Company.stock_add(w, stores, "FOOD", 100000 * S, 10 * S, "LANDING", "x")
+	Company.offer(w, stores, "FOOD", TypeTable.start_price("FOOD"))
+	var acct := "hh:test"
+	w.ledger.open_account(acct)
+	w.ledger.transfer(Ledger.EXTERNAL, acct, 100000000 * S, "TEST", 0)
+	for m in 3:
+		w.month = m
+		Market.order(w, {"kind": "POOL", "id": "pool", "acct": acct, "area": "landing"}, "FOOD", 1000 * S, 100 * S)
+		Market.clear(w)
+	var work := Rules.work(w, "FARM", "landing")
+	_farm(w, 0, 0)   # one small farm stands: 2 sixths
+	# four plans of a small farm (Otto's plan rows, Ella's grant row; as their pieces write them)
+	for row in [["plan:1", "MADE"], ["plan:2", "MADE"], ["plan:3", "SIGNED"], ["plan:4", "GIVEN_UP"]]:
+		w.table("plan")[row[0]] = {"id": row[0], "type": "FARM", "size": "SMALL", "area": "landing", "status": row[1]}
+	w.table("grant")["plan:2"] = {"plan": "plan:2", "status": "PAID"}
+	w.table("grant")["plan:4"] = {"plan": "plan:4", "status": "OWED"}
+	var f := Rules.founding(w, "FARM", "landing")
+	check_eq(int(f["FAMILY"]["work_share"]), work * 1 / 7, "2 standing + 2 booked (plan 3) + 2 granted (plan 2) + its own 1; plan 1 only made, plan 4 given up")
+	var row: Dictionary = Logbook.rows(w, {"kind": "RULE"})[-1]
+	check_eq([int(row["why"]["standing"]), int(row["why"]["booked"]), int(row["why"]["granted"])], [2, 2, 2], "the founding row names the three")
+	var own := Rules.founding(w, "FARM", "landing", false, "plan:2")
+	check_eq(int(own["SMALL"]["work_share"]), work * 2 / 6, "plan 2 re-reading before it signs: 2 standing + 2 booked + its own 2, not counted twice")
+	w.table("plan")["plan:2"]["status"] = "SIGNED"
+	var g := Rules.founding(w, "FARM", "landing", false)
+	check_eq(int(g["FAMILY"]["work_share"]), work * 1 / 7, "a granted plan that signs counts once, as booked")
+
+
+func test_the_needs_line_reads_the_last_food_price_when_food_is_sold_out() -> void:
+	var w := _w()
+	check_eq(Rules.needs_food(w, "landing"), {"price": TypeTable.start_price("FOOD"), "from": "START"}, "never sold: the starting price")
+	var stores := Company.create(w, "SHOP", "LARGE", HW, "Stores", {"area": "landing"})
+	Company.stock_add(w, stores, "FOOD", 10 * S, 10 * S, "LANDING", "x")
+	Company.offer(w, stores, "FOOD", 200 * S)
+	check_eq(Rules.needs_food(w, "landing"), {"price": 200 * S, "from": "OFFER"}, "offered: the cheapest offer")
+	var acct := "hh:test"
+	w.ledger.open_account(acct)
+	w.ledger.transfer(Ledger.EXTERNAL, acct, 100000 * S, "TEST", 0)
+	Market.order(w, {"kind": "POOL", "id": "pool", "acct": acct, "area": "landing"}, "FOOD", 20 * S, 300 * S)
+	Market.clear(w)
+	check_eq(Rules.needs_food(w, "landing"), {"price": 200 * S, "from": "LAST_SOLD"}, "sold out: the last price it sold at, not the starting price")
+	check_eq(Rules.needs_line(w, "landing"), TypeTable.start_price_of("LANDLORD") + 200 * S * 2500 / 1000, "and the line uses it")
+
+
 func test_stocking_up_tops_up_to_two_months_and_no_more() -> void:
 	var w := _w()
 	var stores := Company.create(w, "SHOP", "LARGE", HW, "Stores", {"area": "landing"})
