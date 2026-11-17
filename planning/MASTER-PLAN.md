@@ -566,6 +566,13 @@ Written into [rebuild-company.md](rebuild-company.md) section 8h the same turn.
 Written into [rebuild-company.md](rebuild-company.md) section 8h the same turn. Consequence: prices in the rebuild are set by us and adjusted in testing; the user has no price sheet.
 
 
+### The rebuild: the end of a company (the user, 2026-11-17, verbatim)
+
+> End of a company can happen in three ways,  each with its own survival clause, first sales death, if even with the company hording and just trying to stay afloat it cant turn the price in two years its going to sell of its stock and shuts down,  it's plants shut down and it cant affort too replace them and finally someone buys them out, the last one has to do with land and if they get enough they can buy another building and continue there
+
+Written into [rebuild-company.md](rebuild-company.md) section 8i the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

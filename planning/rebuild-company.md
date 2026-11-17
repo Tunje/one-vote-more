@@ -341,6 +341,28 @@ So these stand:
 - **Starting figure for land (Wilma's, to be adjusted):** the land for one home on an ordinary cell costs 10% of that
   home's building bill, and scales with the cell's value (value / 1000).
 
+### 8i. The end of a company (the user, 2026-11-17, verbatim)
+
+> End of a company can happen in three ways,  each with its own survival clause, first sales death, if even with the company hording and just trying to stay afloat it cant turn the price in two years its going to sell of its stock and shuts down,  it's plants shut down and it cant affort too replace them and finally someone buys them out, the last one has to do with land and if they get enough they can buy another building and continue there
+
+Three ways a company ends, each with its own way to survive:
+
+| # | How it ends | What happens | How it survives |
+|---|---|---|---|
+| 1 | **Sales death** | Even while holding stock back and only trying to stay afloat, it cannot turn its price in two years. It sells off its stock and shuts down. | It turns the price within the two years. |
+| 2 | **Its plants shut down** | Its plants shut down and it cannot afford to replace them. | It can afford to replace them. |
+| 3 | **Someone buys it out** | Another company buys it out. This one has to do with land. | If it gets enough for it, it buys another building and continues there. |
+
+**(Wilma's reading:)** the user gave the survival clause in words only for the third; for the first two it is taken from
+the sentence itself (it ends "if it can't", so it survives if it can). "Turn the price" is read as: get its price back
+above its making price, the line rule nine turns on. The buy-out is the same event as growing in a shared square
+(section 8e, 6): the buyer wants the place; the seller is paid and may start again elsewhere.
+
+What the old game had and this replaces: distress, administration, liquidation and dissolution as a state machine
+driven by missed payments. Not carried over. Still to place: what happens to the staff (they are laid off and look for
+work), to its loans (the bank's loss if the sale of stock and plants does not cover them), and the court winding a
+company up for convictions (the law's own fourth way, Anni's review 1b).
+
 ## 9. Every outside connection, and how it gets what it needs
 
 From [economy-connections.md](economy-connections.md): 367 open lines in 61 files. Grouped by what they ask for.
@@ -443,7 +465,7 @@ ruling is quoted; none of the old code or numbers carries over.
 | econ_finance (taxes, the grant, budget lines), econ_actions, econ_autopilot, econ_essentials | the state's money and its actions on the economy | THE GOVERNMENT'S PURSE. Taxes companies and sales, owns state companies, pays brackets, commissions buildings, holds the reserve |
 | econ_trade, econ_imports | ships, the port, exports, imports | SHIPS AND THE PORT. The only way in or out; a company's exports are stock put on a ship in port |
 | econ_construction, econ_unfinished | projects, tenders, bids, progress | THE BUILDING CONTRACT between a client (a plan, a company, the state) and a builder company |
-| insolvency | distress to liquidation | THE END OF A COMPANY. Not designed yet |
+| insolvency | distress to liquidation | THE END OF A COMPANY: three ways, each with its survival (section 8i) |
 | unions, union_disputes, econ_unions | unions | UNIONS (section 8a) |
 | law_bridge | licences and the law's gate | THE LAW'S HOLD on a company (Anni's review, 1a) |
 | econ_victims | the victim fund paid to households | the law's, paid to households |
