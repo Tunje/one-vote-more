@@ -589,6 +589,13 @@ Correcting Wilma's reading that counted truck drivers and truck workshops as one
 The grant types: family farms, family bakeries, truck drivers, truck workshops. All open in month one.
 
 
+### The rebuild: unify the plan, a second review of the whole (the user, 2026-11-17, verbatim)
+
+> Allright unify the plan and give the others a new chance this time asked them to review the whole thing from their perspectives not just their parts, this is what i sake for last time and you did not this time i really do want it,
+
+Done the same turn: [rebuild-company.md](rebuild-company.md) version 8 is one unified document, and all six sessions were asked to review all of it from their own perspective.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
