@@ -280,13 +280,28 @@ static func rent_due(world: WorldState, pool_id: String) -> Dictionary:
 	if housing == "":
 		return {}
 	if pool_id.begins_with("founder:"):   # a company's founder is one household in one home (Maja)
-		var one := Company.price(world, housing, "@home") if not Households.person(world, pool_id).is_empty() else 0
+		if Households.person(world, pool_id).is_empty() or lives_on_own_farm(world, pool_id):
+			return {}   # "the farm would be their home": no rent to a landlord (plan 12.3, 15e)
+		var one := Company.price(world, housing, "@home")
 		return {CoreUtil.acct(housing): one} if one > 0 else {}
 	if not world.peek("pool").has(pool_id):
 		return {}
 	var households := int(Households.counts(world, pool_id)["households"]) / S
 	var amount := households * Company.price(world, housing, "@home")
 	return {CoreUtil.acct(housing): amount} if amount > 0 else {}
+
+
+## Does this founder's family live on a family farm of its own that has opened? (The user: "the farm would be their
+## home".) Read from what the founder owns: a plan whose company is an open FARM of family size.
+static func lives_on_own_farm(world: WorldState, founder_id: String) -> bool:
+	for ref in Households.person(world, founder_id).get("owns", []):
+		var cid := String(world.peek("plan").get(String(ref), {}).get("company", ""))
+		if cid == "":
+			continue
+		var c := Company.record(world, cid)
+		if not c.is_empty() and String(c["type"]) == "FARM" and String(c["size"]) == "FAMILY" and String(c["status"]) == "OPEN":
+			return true
+	return false
 
 
 ## The landing stock is the colony's, so what Colony Stores has taken for it, after paying its own staff this month,

@@ -191,3 +191,25 @@ func test_a_game_pays_every_month_and_saves_and_loads_the_same() -> void:
 	a.step()
 	b.step()
 	check_eq(a.world.state_hash(), b.world.state_hash(), "a loaded game goes on the same")
+
+
+func test_a_family_on_its_own_opened_farm_pays_no_rent() -> void:
+	var sim := _game()
+	var w := sim.world
+	var housing := String(_made(w)["housing"])
+	var on_farm := ""
+	var planning := ""
+	for m in 14:
+		sim.step()
+		for fid in w.peek("founder"):
+			if Landing.lives_on_own_farm(w, fid):
+				on_farm = fid
+			elif not (w.peek("founder")[fid]["owns"] as Array).is_empty():
+				planning = fid
+		if on_farm != "" and planning != "":
+			break
+	check(on_farm != "", "a family farm has opened within fourteen months")
+	check(Landing.rent_due(w, on_farm).is_empty(), "the farm is their home: no rent to a landlord")
+	if planning != "":
+		check_eq(int(Landing.rent_due(w, planning)[CoreUtil.acct(housing)]), Landing.SHELTER_RENT, "a family whose farm is still a plan pays its shelter's rent")
+
