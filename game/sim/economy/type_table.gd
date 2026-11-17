@@ -201,6 +201,11 @@ static func is_item(name: String) -> bool:
 	return ITEMS.has(name)
 
 
+## How much of an item spoils in a month, per mille of what is held (0 for goods that keep).
+static func spoil_pm(item: String) -> int:
+	return int(ITEMS.get(item, {}).get("spoil_pm", 0))
+
+
 static func way(type: String) -> Dictionary:
 	return ROWS[type]["way"]
 

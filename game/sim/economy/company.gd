@@ -29,7 +29,10 @@ const CONDITION_FULL := 100 * 1000   # a plant's condition, 0..100 in milli-poin
 ## type, size or owner register is not valid.
 ## owner: {"kind": one of OWNER_KINDS, "holders": {holder id: share per mille}}, the shares adding up to 1000.
 ## opts: optional fields the creator sets once: "origin" (e.g. "HOME_WORLD_LANDING"), "origin_n" (its number among
-## those of the same origin), "area" (its home area).
+## those of the same origin), "area" (its home area), "price_fixed" (true: the price rules leave its prices alone, as
+## for Colony Stores, which sells the landing stock at the starting prices, plan 12.2, 9), "crew_posts" (true: a
+## company with no plant that still has posts to fill as a crew, like the administration; a BUILDER always has),
+## "chief" ({"mgmt": 0..100, "risk": 0..100}, plan 12.11, 77; 50 and 50 if not given).
 static func create(world: WorldState, type: String, size: String, owner: Dictionary, name: String, opts: Dictionary = {}) -> String:
 	if not TypeTable.has_type(type) or not TypeTable.is_size(size) or not _owner_ok(owner):
 		return ""
@@ -43,13 +46,19 @@ static func create(world: WorldState, type: String, size: String, owner: Diction
 	var rec := {
 		"id": id, "name": name, "type": type, "size": size, "status": "OPEN", "opened": world.month,
 		"origin": String(opts.get("origin", "")), "origin_n": int(opts.get("origin_n", 0)), "area": String(opts.get("area", "")),
+		"price_fixed": bool(opts.get("price_fixed", false)), "crew_posts": bool(opts.get("crew_posts", false)) or type == "BUILDER",
+		"chief": {"mgmt": int(opts.get("chief", {}).get("mgmt", 50)), "risk": int(opts.get("chief", {}).get("risk", 50))},
+		"raise_pm": 0,             # the yearly raise this company chooses to give, per mille (at least the government's minimum)
+		"crew_level_pm": 1000,     # output level of its crew (rule 3/4), per mille of full; plants keep their own
+		"hold": {},                # {item: milli-units held back from sale this month (the hold-back, set by the rules)}
+		"market": {},              # this month's sales signals per thing it sells, written by the market's clear
 		"owner": {"kind": String(owner["kind"]), "holders": (owner["holders"] as Dictionary).duplicate()},
 		"plants": [],              # plant ids; the plants are in table "plant"
 		"line": 0,                 # which output line it runs (first = 0, second = 1)
 		"staff": {},               # {plant id or "crew": {post tier: {"area|band|skill": {"n": persons × S, "pay": milli-credits a month each}}}}
 		"salary": {},              # the HIRING salary: {tier: {area: milli-credits a month}}, moved only by the price rules
 		"stock": {},               # {item: {"qty": milli-units, "value": milli-credits in all, "waiting": milli-units}}
-		"books": {"month": {}, "year": {}},
+		"books": {"month": {}, "year": []},   # the open month's lines, and the last 12 closed months (oldest first)
 		"price": price,            # ONE price per company for each thing it sells: {item or "BW"/"FREIGHT"/"@client": milli-credits}
 		"orders": {},              # filled and unfilled, each unfilled one with WHY (step 3)
 		"slots": {},               # for types with nothing to stock: {kind: {"taken": n, "empty": n}} (step 4)
@@ -73,7 +82,7 @@ static func add_plant(world: WorldState, cid: String, size: String, ref: String 
 		return ""
 	var pid := world.new_id(PLANT_TABLE)
 	world.table(PLANT_TABLE)[pid] = {"id": pid, "company": cid, "type": String(c["type"]), "size": size,
-		"condition": CONDITION_FULL, "closed": false, "opened": world.month}
+		"condition": CONDITION_FULL, "closed": false, "closed_why": "", "level_pm": 1000, "opened": world.month}
 	(c["plants"] as Array).append(pid)
 	Logbook.note(world, "PLANT", cid, "plant added", {"size": size, "type": c["type"]}, {"plants": [(c["plants"] as Array).size() - 1, (c["plants"] as Array).size()]}, "", pid if ref == "" else ref)
 	return pid
@@ -353,6 +362,247 @@ static func occupation(world: WorldState, cid: String, post_tier: String) -> Str
 	if post_tier == "Sp":
 		return "PROFESSIONAL"
 	return String(TypeTable.occupation(String(c["type"]))["occ"])
+
+
+# ---------------------------------------------------------------- posts, wages, books (step 3)
+
+## Posts a company wants filled at one plant key (a plant id, or "crew"), whole persons by tier: the type row's labour
+## for the plant's size × its output level (rules 3 and 4). A closed plant wants none; "crew" has posts only for a
+## company with crew posts (a builder, or one created with "crew_posts").
+static func posts_wanted(world: WorldState, cid: String, plant_key: String) -> Dictionary:
+	var c: Dictionary = world.peek(TABLE).get(cid, {})
+	var none := {"G": 0, "S": 0, "Sp": 0}
+	if c.is_empty():
+		return none
+	var size := String(c["size"])
+	var level := int(c["crew_level_pm"])
+	if plant_key == "crew":
+		if not bool(c["crew_posts"]):
+			return none
+	else:
+		var p: Dictionary = world.peek(PLANT_TABLE).get(plant_key, {})
+		if p.is_empty() or String(p["company"]) != cid or bool(p["closed"]):
+			return none
+		size = String(p["size"])
+		level = int(p["level_pm"])
+	var full := TypeTable.posts(String(c["type"]), size, int(c["line"]))
+	var total := 0
+	var weights: Array = []
+	for t in ["G", "S", "Sp"]:
+		total += int(full[t])
+		weights.append(float(int(full[t])))
+	var parts := CoreUtil.split_lr(total * level / 1000, weights)
+	return {"G": int(parts[0]), "S": int(parts[1]), "Sp": int(parts[2])}
+
+
+## Every open post in an area, for the households' applying (plan 9.2: a worker applies only to a job whose salary
+## meets their needs): [{"cid", "plant_key", "tier", "open" (whole persons), "pay" (the hiring salary)}], in a fixed
+## order. Until plants carry Terra's area here, a company's posts are in its own area.
+static func vacancies(world: WorldState, area: String) -> Array:
+	var out: Array = []
+	for cid in ids(world):
+		var c: Dictionary = world.peek(TABLE)[cid]
+		if String(c["status"]) != "OPEN" or String(c["area"]) != area:
+			continue
+		var keys: Array = ["crew"]
+		keys.append_array(c["plants"])
+		for pk in keys:
+			var want := posts_wanted(world, cid, String(pk))
+			for t in ["Sp", "S", "G"]:
+				var have := staff_count(world, cid, t, String(pk)) / CoreUtil.S
+				if int(want[t]) > have:
+					out.append({"cid": cid, "plant_key": String(pk), "tier": t, "open": int(want[t]) - have,
+						"pay": hiring_salary(world, cid, t, area)})
+	return out
+
+
+## The output level of a plant (or of a company's crew with plant_key "crew"), per mille of full.
+static func level_of(world: WorldState, cid: String, plant_key: String) -> int:
+	if plant_key == "crew":
+		return int(world.peek(TABLE).get(cid, {}).get("crew_level_pm", 0))
+	return int(world.peek(PLANT_TABLE).get(plant_key, {}).get("level_pm", 0))
+
+
+## Sets an output level (rules 3 and 4), per mille of full, 0..1000 (above full is rule 5's job). Writes a LEVEL row.
+static func set_level(world: WorldState, cid: String, plant_key: String, level_pm: int, why: Dictionary = {}) -> bool:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty() or level_pm < 0 or level_pm > 1000:
+		return false
+	var old := level_of(world, cid, plant_key)
+	if plant_key == "crew":
+		c["crew_level_pm"] = level_pm
+	else:
+		var p: Dictionary = world.table(PLANT_TABLE).get(plant_key, {})
+		if p.is_empty() or String(p["company"]) != cid:
+			return false
+		p["level_pm"] = level_pm
+	Logbook.note(world, "LEVEL", cid, "output level set", why, {"level_pm": [old, level_pm]}, "", plant_key)
+	return true
+
+
+## Holds back stock from sale (plan section 6: a seller below its making price offers what covers its monthly expenses
+## and holds the rest). qty in milli-units; 0 offers everything. Writes a HOLD row when it changes.
+static func set_hold(world: WorldState, cid: String, item: String, qty_milli: int, why: Dictionary = {}) -> bool:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty() or qty_milli < 0:
+		return false
+	var old := int(c["hold"].get(item, 0))
+	if old == qty_milli:
+		return true
+	if qty_milli == 0:
+		c["hold"].erase(item)
+	else:
+		c["hold"][item] = qty_milli
+	Logbook.note(world, "HOLD", cid, "hold-back set", why, {item: [old, qty_milli]})
+	return true
+
+
+static func hold_of(world: WorldState, cid: String, item: String) -> int:
+	return int(world.peek(TABLE).get(cid, {}).get("hold", {}).get(item, 0))
+
+
+## The average pay a company gives in one post tier, milli-credits a month, head-weighted over its staff entries
+## (the user: "avrage ask salleries in the company and underpayed is based on that line"); 0 with nobody in the tier.
+static func avg_pay(world: WorldState, cid: String, post_tier: String) -> int:
+	var n := 0
+	var sum := 0
+	for e in payroll(world, cid):
+		if String(e["post_tier"]) == post_tier:
+			n += int(e["n"])
+			sum += int(e["n"]) * int(e["pay"])
+	return 0 if n == 0 else sum / n
+
+
+## A negotiated rise for one staff entry (plan 9.2: "the manager, negotiation can bring it closer to avrage"): the
+## entry's pay becomes new_pay. Refused if it would lower the pay or go above the company's average for that tier.
+## How far it goes is the rules' and the households' to decide. Writes a NEGOTIATE row.
+static func negotiate(world: WorldState, cid: String, plant_key: String, post_tier: String, labour_key: String, new_pay: int, why: Dictionary = {}) -> bool:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty():
+		return false
+	var e: Dictionary = c["staff"].get(plant_key, {}).get(post_tier, {}).get(labour_key, {})
+	if e.is_empty() or new_pay < int(e["pay"]) or new_pay > avg_pay(world, cid, post_tier):
+		return false
+	var old := int(e["pay"])
+	e["pay"] = new_pay
+	Logbook.note(world, "NEGOTIATE", cid, "pay negotiated", why.merged({"tier": post_tier, "entry": labour_key, "at": plant_key}),
+		{"pay": [old, new_pay]})
+	return true
+
+
+## The yearly raise this company chooses (per mille, 0 = only what the government's minimum requires).
+static func raise_choice(world: WorldState, cid: String) -> int:
+	return int(world.peek(TABLE).get(cid, {}).get("raise_pm", 0))
+
+
+static func set_raise_choice(world: WorldState, cid: String, raise_pm: int, why: Dictionary = {}) -> bool:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty() or raise_pm < 0:
+		return false
+	var old := int(c["raise_pm"])
+	c["raise_pm"] = raise_pm
+	Logbook.note(world, "RAISE", cid, "yearly raise chosen", why, {"raise_pm": [old, raise_pm]})
+	return true
+
+
+## The company's chief (plan 12.11, 77): {"mgmt": 0..100, "risk": 0..100}.
+static func chief(world: WorldState, cid: String) -> Dictionary:
+	return (world.peek(TABLE).get(cid, {}).get("chief", {}) as Dictionary).duplicate()
+
+
+## The reference wage (plan 12.11, 108): the average pay over every company's staff, head-weighted, in one area
+## (by the company's area) or the whole colony (""). milli-credits a month; 0 with nobody employed.
+static func reference_wage(world: WorldState, area: String = "") -> int:
+	var n := 0
+	var sum := 0
+	for cid in ids(world):
+		if area != "" and String(world.peek(TABLE)[cid]["area"]) != area:
+			continue
+		for e in payroll(world, cid):
+			n += int(e["n"])
+			sum += int(e["n"]) * int(e["pay"])
+	return 0 if n == 0 else sum / n
+
+
+## A company pays its own staff from its own account (step 3; the joins: SETTLEMENT 6). Short of money, everyone is
+## paid the same share (the household side's _pay). Books what was due and what was paid. Returns what was paid.
+static func pay_wages(world: WorldState, cid: String) -> int:
+	if world.peek(TABLE).get(cid, {}).is_empty():
+		return 0
+	var due := wage_bill(world, cid)
+	var paid: int = load("res://sim/population/households.gd").pay_wages(world, cid, CoreUtil.acct(cid), {"why": "its own wages"})
+	book(world, cid, "wages_due", due)
+	book(world, cid, "wages", paid)
+	return paid
+
+
+## Adds to a line of the open month's books (milli-credits, or milli-units for quantities): "rev", "wages", "inputs",
+## "upkeep", "made:<item>", ... No row: the deed that books it writes its own.
+static func book(world: WorldState, cid: String, key: String, amount: int) -> void:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty():
+		return
+	var m: Dictionary = c["books"]["month"]
+	m[key] = int(m.get(key, 0)) + amount
+
+
+## The open month's books (a copy).
+static func books_month(world: WorldState, cid: String) -> Dictionary:
+	return (world.peek(TABLE).get(cid, {}).get("books", {}).get("month", {}) as Dictionary).duplicate()
+
+
+## Closes the month's books into the ring of the last 12 closed months and opens an empty one. Called once a month for
+## every company, after the rules have read the month. Writes no row (the deeds were logged as they happened).
+static func close_month(world: WorldState, cid: String) -> void:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty():
+		return
+	var m: Dictionary = (c["books"]["month"] as Dictionary).duplicate()
+	m["m"] = world.month
+	var ring: Array = c["books"]["year"]
+	ring.append(m)
+	while ring.size() > 12:
+		ring.pop_front()
+	c["books"]["month"] = {}
+
+
+## Revenue over the last twelve closed months (or as many as it has had), milli-credits. For the law's fines (Ella).
+static func revenue_12(world: WorldState, cid: String) -> int:
+	var total := 0
+	for m in world.peek(TABLE).get(cid, {}).get("books", {}).get("year", []):
+		total += int(m.get("rev", 0))
+	return total
+
+
+## How many closed months a company has on its books, up to 12.
+static func months_on_books(world: WorldState, cid: String) -> int:
+	return (world.peek(TABLE).get(cid, {}).get("books", {}).get("year", []) as Array).size()
+
+
+## Closes a plant, with a reason (LAW, IDLE, NO_STAFF, ...); it keeps its place and wears (step 6). Its staff are not
+## laid off here: the household side's layoff does that. Writes a CLOSE row.
+static func close_plant(world: WorldState, pid: String, reason: String, why: Dictionary = {}) -> bool:
+	var p: Dictionary = world.table(PLANT_TABLE).get(pid, {})
+	if p.is_empty() or bool(p["closed"]):
+		return false
+	p["closed"] = true
+	p["closed_why"] = reason
+	Logbook.note(world, "CLOSE", String(p["company"]), "plant closed", why.merged({"reason": reason}), {"closed": [false, true]}, "", pid)
+	return true
+
+
+static func reopen_plant(world: WorldState, pid: String, reason: String, why: Dictionary = {}) -> bool:
+	var p: Dictionary = world.table(PLANT_TABLE).get(pid, {})
+	if p.is_empty() or not bool(p["closed"]):
+		return false
+	p["closed"] = false
+	p["closed_why"] = ""
+	Logbook.note(world, "REOPEN", String(p["company"]), "plant reopened", why.merged({"reason": reason}), {"closed": [true, false]}, "", pid)
+	return true
+
+
+static func is_price_fixed(world: WorldState, cid: String) -> bool:
+	return bool(world.peek(TABLE).get(cid, {}).get("price_fixed", false))
 
 
 # ---------------------------------------------------------------- reading (for every other part of the game)

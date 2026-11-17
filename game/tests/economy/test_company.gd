@@ -5,6 +5,7 @@ extends TestCase
 const Company := preload("res://sim/economy/company.gd")
 const TypeTable := preload("res://sim/economy/type_table.gd")
 const S := 1000
+const Households := preload("res://sim/population/households.gd")
 const HW := {"kind": "HOME_WORLD", "holders": {"home_world": 1000}}
 
 
@@ -208,6 +209,89 @@ func test_crew_is_for_builders_and_companies_without_a_plant() -> void:
 	check(Company.staff_change(w, b, "crew", "G", "a|I1|G", S, 300 * S), "a builder with a yard still keeps its crews as crew")
 	check(not Company.staff_change(w, b, "plant:999", "G", "a|I1|G", S, 300 * S), "not at a plant it does not own")
 	check_eq(Company.create(w, "FARM", "FAMILY", {"kind": "PRIVATE", "holders": {"person:1": 500, "person:2": 499}}, "x"), "", "999 per mille is refused")
+
+
+func test_posts_follow_size_and_output_level_and_open_posts_are_vacancies() -> void:
+	var w := _w()
+	var farm := Company.create(w, "FARM", "SMALL", HW, "F", {"area": "landing"})
+	var pid := Company.add_plant(w, farm, "SMALL")
+	check_eq(Company.posts_wanted(w, farm, pid), {"G": 6, "S": 2, "Sp": 0}, "a small farm at full: 8 posts")
+	check_eq(Company.posts_wanted(w, farm, "crew"), {"G": 0, "S": 0, "Sp": 0}, "a farm has no crew posts")
+	check(Company.set_level(w, farm, pid, 500, {"rule": "R4"}), "half output")
+	check_eq(Company.posts_wanted(w, farm, pid), {"G": 3, "S": 1, "Sp": 0}, "half the posts")
+	check(not Company.set_level(w, farm, pid, 1200), "not above full: that is rule 5")
+	Company.staff_change(w, farm, pid, "G", "landing|I2|G", 2 * S, 300 * S)
+	var v := Company.vacancies(w, "landing")
+	check_eq(v.size(), 2, "open posts: one general, one skilled")
+	check_eq([v[0]["tier"], v[0]["open"], v[1]["tier"], v[1]["open"]], ["S", 1, "G", 1], "highest tier first")
+	check_eq(int(v[0]["pay"]), TypeTable.salary("S"), "at the hiring salary")
+	check(Company.vacancies(w, "elsewhere").is_empty(), "none in another area")
+	var admin := Company.create(w, "ADMIN", "LARGE", {"kind": "STATE", "holders": {"gov": 1000}}, "A", {"area": "landing", "crew_posts": true})
+	check_eq(Company.posts_wanted(w, admin, "crew"), {"G": 4, "S": 8, "Sp": 3}, "a company created with crew posts")
+	check(Company.close_plant(w, pid, "LAW"), "closed by the law")
+	check_eq(Company.posts_wanted(w, farm, pid), {"G": 0, "S": 0, "Sp": 0}, "a closed plant wants nobody")
+	check(not Company.close_plant(w, pid, "LAW"), "not twice")
+	check(Company.reopen_plant(w, pid, "LICENSED"), "reopened")
+	check_eq(Logbook.rows(w, {"kind": "CLOSE", "ref": pid}).size(), 1, "a CLOSE row")
+
+
+func test_average_pay_negotiation_and_the_reference_wage() -> void:
+	var w := _w()
+	var id := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	Company.staff_change(w, id, "crew", "G", "landing|I1|G", 10 * S, 300 * S)
+	Company.staff_change(w, id, "crew", "G", "landing|I2|G", 10 * S, 200 * S)
+	check_eq(Company.avg_pay(w, id, "G"), 250 * S, "the company's average for the tier")
+	check(not Company.negotiate(w, id, "crew", "G", "landing|I2|G", 260 * S), "never above the average")
+	check(not Company.negotiate(w, id, "crew", "G", "landing|I2|G", 190 * S), "never lower")
+	check(Company.negotiate(w, id, "crew", "G", "landing|I2|G", 240 * S, {"chief_mgmt": 50}), "closer to the average")
+	check_eq(Company.payroll(w, id)[1]["pay"], 240 * S, "the underpaid entry rose")
+	check_eq(Company.payroll(w, id)[0]["pay"], 300 * S, "the others did not move")
+	check_eq(Company.reference_wage(w, "landing"), 270 * S, "the reference wage: head-weighted over all staff")
+	check_eq(Company.reference_wage(w), 270 * S, "colony-wide the same here")
+	check_eq(Company.chief(w, id), {"mgmt": 50, "risk": 50}, "a chief, 50 and 50 by default")
+	check_eq(Company.raise_choice(w, id), 0, "it gives only the minimum unless it chooses more")
+	check(Company.set_raise_choice(w, id, 30), "it may choose more")
+	check_eq(Company.raise_choice(w, id), 30, "3%")
+
+
+func test_books_close_into_twelve_months_and_revenue_is_read_from_them() -> void:
+	var w := _w()
+	var id := Company.create(w, "FARM", "SMALL", HW, "F")
+	for m in 15:
+		w.month = m
+		Company.book(w, id, "rev", 1000 * S)
+		Company.close_month(w, id)
+	check_eq(Company.months_on_books(w, id), 12, "twelve months kept")
+	check_eq(Company.revenue_12(w, id), 12000 * S, "the last twelve months' revenue")
+	check(Company.books_month(w, id).is_empty(), "a new month opens empty")
+
+
+func test_price_fixed_and_hold_back() -> void:
+	var w := _w()
+	var stores := Company.create(w, "SHOP", "LARGE", {"kind": "STATE", "holders": {"gov": 1000}}, "Stores", {"price_fixed": true})
+	check(Company.is_price_fixed(w, stores), "the Stores' prices are fixed")
+	var farm := Company.create(w, "FARM", "SMALL", HW, "F")
+	check(not Company.is_price_fixed(w, farm), "an ordinary company's are not")
+	check(Company.set_hold(w, farm, "FOOD", 5 * S, {"rule": "hold"}), "hold back 5")
+	check_eq(Company.hold_of(w, farm, "FOOD"), 5 * S, "held")
+	Company.set_hold(w, farm, "FOOD", 0)
+	check_eq(Company.hold_of(w, farm, "FOOD"), 0, "released")
+	check_eq(Logbook.rows(w, {"kind": "HOLD", "who": farm}).size(), 2, "each change a row")
+
+
+func test_a_company_pays_its_own_wages() -> void:
+	var w := _w()
+	var pool := Households.seed_test(w, "landing", "I2", "G", 10)
+	var id := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	check_eq(Households.hire(w, id, "crew", "G", "landing", 4, {}, 300 * S), 4, "four hired")
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(id), 1000 * S, "TEST", w.month)
+	var m0 := w.ledger.total()
+	var paid := Company.pay_wages(w, id)
+	check_eq(paid, 1000 * S, "short of money it pays what it has (1,000 of 1,200)")
+	check_eq(Company.books_month(w, id)["wages_due"], 1200 * S, "what was due is booked")
+	check_eq(Company.books_month(w, id)["wages"], 1000 * S, "and what was paid")
+	check_eq(w.ledger.balance(Households.account(pool)), 1000 * S, "the pool got it")
+	check_eq(w.ledger.total(), m0, "no money appeared or vanished")
 
 
 func test_no_old_table_is_created() -> void:

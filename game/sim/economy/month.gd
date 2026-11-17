@@ -14,6 +14,7 @@ const Company := preload("res://sim/economy/company.gd")
 const Households := preload("res://sim/population/households.gd")
 const Landing := preload("res://sim/economy/landing.gd")
 const Ship := preload("res://sim/economy/ship.gd")
+const Market := preload("res://sim/economy/market.gd")
 
 const OWNER := "econ_month"
 
@@ -55,9 +56,9 @@ static func production(_world: WorldState) -> void:
 	pass
 
 
-## To come before the wages: 1. orders posted (Maja, Bob, Otto)  2. Market.clear (Bob)  3. what was bought taken in
-## (Maja, Otto)  4. Building.bill_month (Otto)  5. Households.pay_rent (Maja).
-## Here now: 6. the purse's bill, which gives a state company what it lacks for its wages, and pays the benefit and
+## To come: 1. orders posted (Maja, Bob, Otto), before the clear;  3. what was bought taken in (Maja, Otto)
+## 4. Building.bill_month (Otto)  5. Households.pay_rent (Maja), all three between the clear and the purse.
+## Here now: 2. Market.clear (Bob);  6. the purse's bill, which gives a state company what it lacks for its wages, and pays the benefit and
 ## pensions;  7. every company pays its own wages from its own account;  8. Colony Stores' takings to the treasury,
 ## and the sweep.
 ## The market and the rent, when they come, go BEFORE the purse's bill: a state company's takings and rent must be in
@@ -65,10 +66,11 @@ static func production(_world: WorldState) -> void:
 ## (The joins paper had the purse after the wages. A state company can only pay its wages once the purse has given it
 ## what it lacks, so the purse's bill comes first; nothing else moved.)
 static func settlement(world: WorldState) -> void:
+	Market.clear(world)
 	Landing.purse_month(world)
 	for cid in Company.ids(world):
 		if String(Company.record(world, cid)["status"]) == "OPEN":
-			Households.pay_wages(world, cid, CoreUtil.acct(cid), {"why": "its own wages, from its own account"})
+			Company.pay_wages(world, cid)   # books what was due and what was paid, which rule 19a reads (Bob)
 	Landing.stores_takings(world)
 	Landing.sweep(world)
 
