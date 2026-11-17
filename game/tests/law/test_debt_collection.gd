@@ -1,0 +1,113 @@
+extends TestCase
+## The court collects what is owed (Wilma, 2026-11-17) and the pay owed after a layoff (the user, rebuild-company.md
+## 9.2). Anni's; reviewed by Ella.
+
+const F := preload("res://tests/support/staff_fixture.gd")
+const LawOps := preload("res://sim/law/law_ops.gd")
+const J := preload("res://sim/law/justice_ops.gd")
+const WK := preload("res://sim/law/work_law.gd")
+
+const S := 1000
+const CO := "company:1"
+const ACCT := "co:company:1"
+const POOL := "pool:p1"
+
+
+func _world() -> WorldState:
+	var w := F.bare_world()
+	LawOps.init_world(w)
+	J.init_courts(w)
+	F.company(w, CO)
+	for a in [ACCT, POOL, CoreUtil.TREASURY, CoreUtil.FINES]:
+		w.ledger.open_account(a)
+	w.month = 10
+	return w
+
+
+func _fund(w: WorldState, acct: String, amount: int) -> void:
+	w.ledger.transfer(Ledger.EXTERNAL, acct, amount, "TEST", w.month)
+
+
+## A liability row as _owe writes it, due in `due`.
+func _debt(w: WorldState, kind: String, amount: int, due: int, creditor: String = "gov", creditor_acct: String = "") -> String:
+	var lid := w.new_id("liability")
+	var row := {"id": lid, "debtor": CO, "creditor": creditor, "amount": amount, "due_month": due, "kind": kind,
+		"status": "OPEN", "plan": false}
+	if creditor_acct != "":
+		row["creditor_acct"] = creditor_acct
+	w.table("liability")[lid] = row
+	return lid
+
+
+func test_the_layoff_pay_lever() -> void:
+	var w := _world()
+	var d: Dictionary = w.lever_defs["LAW_LAYOFF_PAY_MONTHS"]
+	check(String(d["type"]) == "NUMBER" and bool(d["legislative"]), "a law the government can change")
+	check_eq(d["range"], [0, 12], "a sensible range")
+	check_eq(WK.layoff_pay_months(w), 3, "three months to start")
+	check(float(d["ideology"]["LABOR"]) > 0.0 and int(d["concerns"]["JOBS"]) < 0, "pro-worker; dearer hiring")
+	w.levers["LAW_LAYOFF_PAY_MONTHS"] = 6
+	check_eq(WK.layoff_pay_months(w), 6, "as the law stands on the day")
+	w.levers["LAW_LAYOFF_PAY_MONTHS"] = 40
+	check_eq(WK.layoff_pay_months(w), 12, "held to its range")
+
+
+func test_debts_are_paid_oldest_first_as_the_balance_allows() -> void:
+	var w := _world()
+	var old := _debt(w, "FINE", 300 * S, 4)
+	var rent := _debt(w, "LAND_RENT", 500 * S, 7, "gov", CoreUtil.TREASURY)
+	var later := _debt(w, "LAYOFF_PAY", 200 * S, 11, POOL, POOL)
+	_fund(w, ACCT, 600 * S)
+	J.collect_debts(w)
+	var t := w.peek("liability")
+	check_eq(String(t[old]["status"]), "PAID", "the oldest is paid in full")
+	check_eq(int(t[old]["paid"]), 300 * S, "and says what was paid")
+	check_eq(w.ledger.balance(CoreUtil.FINES), 300 * S, "a fine goes to the fines account")
+	check_eq(int(t[rent]["amount"]), 200 * S, "the next is paid in part: the amount is lowered")
+	check_eq(String(t[rent]["status"]), "OPEN", "and stays open")
+	check_eq(w.ledger.balance(CoreUtil.TREASURY), 300 * S, "into its creditor's account")
+	check_eq(int(t[later]["amount"]), 200 * S, "a debt not yet due waits")
+	check_eq(w.ledger.balance(ACCT), 0, "the balance is spent, never below 0")
+	var memos: Array = []
+	for e in w.ledger.journal:
+		memos.append(String(e["memo"]))
+	check(memos.has("DEBT:FINE") and memos.has("DEBT:LAND_RENT"), "the memo names the kind (%s)" % [memos])
+	var rows := Logbook.rows(w, {"kind": "LAW", "what": "debt paid", "who": CO})
+	check_eq(rows.size(), 2, "a row for each payment")
+	check_eq(J.paid_this_month(w, CO), 600 * S, "what it paid on its debts this month, for its books")
+	check_eq(J.paid_this_month(w, "company:2"), 0, "another paid nothing")
+	w.month += 1
+	check_eq(J.paid_this_month(w, CO), 0, "a new month starts at 0")
+
+
+func test_layoff_pay_reaches_the_pool_and_can_end_the_company() -> void:
+	var w := _world()
+	J.owe(w, CO, POOL, POOL, 90 * S, "LAYOFF_PAY", "plant:1")
+	var ids: Array = w.peek("liability").keys()
+	check(ids.size() >= 1 and String(w.peek("liability")[ids[0]].get("ref", "")) == "plant:1", "the debt keeps its ref")
+	w.month += 30
+	_fund(w, ACCT, 30 * S)
+	J.collect_debts(w)
+	check_eq(w.ledger.balance(POOL), 30 * S, "what the company had went to the pool")
+	var open := 0
+	for li in w.peek("liability").values():
+		if String(li["status"]) == "OPEN":
+			open += int(li["amount"])
+	check_eq(open, 60 * S, "the rest is still owed")
+	w.month += J.PETITION_MONTHS
+	J._petitions(w)
+	check(Logbook.rows(w, {"what": "petition", "who": CO}).size() >= 1, "unpaid layoff pay: the pool petitions")
+	check(Logbook.rows(w, {"what": "wind up refused", "who": CO}).size() >= 1, "(the doorway refuses endings before step 5)")
+
+
+func test_a_debt_without_an_account_waits() -> void:
+	var w := _world()
+	var lid := _debt(w, "LAND_RENT", 50 * S, 5, "gov", "acct:none")
+	_fund(w, ACCT, 100 * S)
+	J.collect_debts(w)
+	check_eq(int(w.peek("liability")[lid]["amount"]), 50 * S, "no creditor account: nothing moves")
+	check_eq(w.ledger.balance(ACCT), 100 * S, "the debtor keeps its money")
+	w.table("liability")[lid]["debtor"] = "person:9"
+	w.table("liability")[lid]["creditor_acct"] = CoreUtil.TREASURY
+	J.collect_debts(w)
+	check_eq(String(w.peek("liability")[lid]["status"]), "OPEN", "no debtor account: it waits")

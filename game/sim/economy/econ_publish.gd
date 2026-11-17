@@ -103,6 +103,48 @@ func init_world(world: WorldState) -> void:
 	world.table(OWNER)["months"] = []
 
 
+## Mass layoffs (ECON_LAYOFFS_MASS, rebuild-politics-face.md 4), by the rule recorded in planning/pic-economy.md: a
+## company lays off MASS_N persons or more in one month and they are MASS_PCT% or more of its workforce; at most one fact
+## per company per MASS_GAP_M months. The owner carries it whole (the plan, rebuild-politics-face.md 4: "the owner; the
+## government's share when its lever or bracket was the cause", which this call cannot know yet); JOBS -(4 x persons, 40..300), FAIRNESS -20; magnitude 30..80,
+## here 30 + half the share laid off. Since the user's ruling on keeping workers (9.2) a layoff costs the company months
+## of pay (Anni's lever), so the fact carries what was owed, what was paid and what is still unpaid; politics and the
+## press read them. Bob's Rules calls this once per company per month that lays people off, with data {company, area,
+## n (laid off), staff (before the layoff), owed, paid (credits x S), months_pay, closing (optional)}. Returns the fact
+## id, or "" when it is not a mass layoff. A Logbook row LAYOFF when the fact is written or held back by the gap.
+const MASS_N := 15
+const MASS_PCT := 20
+const MASS_GAP_M := 6
+const LAYOFFS := "econ_layoffs"   # {company id: the month of its last mass-layoff fact}
+
+
+static func layoffs(world: WorldState, data: Dictionary) -> String:
+	var cid := String(data.get("company", ""))
+	var n := int(data.get("n", 0))
+	var staff := int(data.get("staff", 0))
+	var share := n * 100 / staff if staff > 0 else 100
+	if cid == "" or n < MASS_N or share < MASS_PCT:
+		return ""
+	var owed := int(data.get("owed", 0))
+	var paid := int(data.get("paid", 0))
+	var why := {"n": n, "staff": staff, "share_pct": share, "owed": owed / CoreUtil.S, "paid": paid / CoreUtil.S}
+	var last := int(world.peek(LAYOFFS).get(cid, -MASS_GAP_M))
+	if world.month - last < MASS_GAP_M:
+		why["last_fact_month"] = last
+		Logbook.note(world, "LAYOFF", cid, "mass layoffs, no new fact within six months", why)
+		return ""
+	world.table(LAYOFFS)[cid] = world.month
+	var cref := {"kind": "COMPANY", "id": cid}
+	var fid := world.add_fact({"type": "ECON_LAYOFFS_MASS", "owner": "econ", "subjects": [cref],
+		"responsible": [{"actor": cref, "share": 1.0}], "impact": {"JOBS": -clampi(4 * n, 40, 300), "FAIRNESS": -20},
+		"magnitude": clampi(30 + share / 2, 30, 80), "visibility": "PUBLIC",
+		"data": {"org": cid, "area": String(data.get("area", "")), "persons": n, "staff": staff, "share_pct": share,
+			"owed": owed, "paid": paid, "unpaid": maxi(0, owed - paid), "months_pay": int(data.get("months_pay", 0)),
+			"closing": bool(data.get("closing", false))}})
+	Logbook.note(world, "LAYOFF", cid, "mass layoffs", why, {}, "", fid)
+	return fid
+
+
 ## The reference wage (12.11, 108): the average pay over every company's staff, colony-wide (Company.reference_wage),
 ## a month in milli-credits, as world value ECON_W_REF. The law's fines, the press's costs and the legislature read it.
 ## Not written while nobody is paid (the readers keep their own fallback), so it never reads 0.

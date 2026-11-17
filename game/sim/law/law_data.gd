@@ -490,6 +490,14 @@ const LEVERS := [
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": 0.0006, "ECON_ROLE": 0.0003},
 		"concerns": {"SAFETY": 6, "PUBLIC_SERVICES": 3, "GOVERNANCE": -5},
 		"fiscal": "est_budget_line", "implementation": "STAFF_T_IMPL_FISCAL", "lag": 1, "scope": "COLONY", "domain": "ECON"},
+	# Pay owed after a layoff (the user, 2026-11-17, rebuild-company.md 9.2): months of the worker's own pay the company
+	# owes a worker it lays off; unpaid, a debt to the pool the worker went back to (kind LAYOFF_PAY), which can end the
+	# company. The law on the day of the layoff applies to everyone (Wilma). Read by Bob's layoff rule and Maja's layoff
+	# through WorkLaw.layoff_pay_months. More months protect workers (LABOR +) but make a hire dearer (JOBS −).
+	{"id": "LAW_LAYOFF_PAY_MONTHS", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 12], "default": 3,
+		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"LABOR": 1.5, "ECON_ROLE": 0.5},
+		"concerns": {"FAIRNESS": 8, "JOBS": -6},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "ECON"},
 	# P1a police strength (plan-public-safety A60): ‰ of the reference strength per resident (1000 = 20 officers per 10k
 	# plus support staff, ≈ 26 milli-W_ref per 10k residents a month), so coverage does not erode as the colony grows.
 	# Bob's budget line prices it as value × REF_COST × population (crime.gd police_cost).

@@ -264,7 +264,80 @@ static func run(world: WorldState) -> void:
 	_settlements(world)
 	_process_courts(world)
 	_pay_victims(world)
+	collect_debts(world)
 	_petitions(world)
+
+
+## The court collects what is owed (Wilma, 2026-11-17: "a debt nobody collects is a fault, not a design"). Each month,
+## after SETTLEMENT's wages (this month's staff before old debts), every OPEN liability that is due and whose debtor has
+## an account is paid, oldest first, from the debtor's account to the creditor's as the balance allows. A part payment
+## lowers the amount (and adds to "paid"); paid in full is PAID. Each payment is a LAW row and a ledger memo naming the
+## kind ("DEBT:<kind>"). A debt whose debtor or creditor has no account waits.
+static func collect_debts(world: WorldState) -> void:
+	var t := world.table("liability")
+	var due: Array = []
+	for lid in Det.ordered(t):
+		var li: Dictionary = t[lid]
+		if String(li["status"]) == "OPEN" and int(li["due_month"]) <= world.month and int(li["amount"]) > 0:
+			due.append(lid)
+	var order := {}
+	for i in due.size():
+		order[due[i]] = i
+	due.sort_custom(func(a, b):
+		var da := int(t[a]["due_month"])
+		var db := int(t[b]["due_month"])
+		return da < db if da != db else int(order[a]) < int(order[b]))
+	for lid in due:
+		var li: Dictionary = t[lid]
+		var from := debtor_acct(world, String(li["debtor"]))
+		var to := creditor_acct_of(world, li)
+		if from == "" or to == "":
+			continue
+		var paid := CoreUtil.pay_upto(world, from, to, int(li["amount"]), "DEBT:" + String(li["kind"]))
+		if paid <= 0:
+			continue
+		var before := int(li["amount"])
+		li["amount"] = before - paid
+		li["paid"] = int(li.get("paid", 0)) + paid
+		if int(li["amount"]) == 0:
+			li["status"] = "PAID"
+			li["paid_month"] = world.month
+		var dp: Dictionary = js(world).get("debts_paid", {})
+		if int(dp.get("m", -1)) != world.month:
+			dp = {"m": world.month, "by": {}}
+		dp["by"][String(li["debtor"])] = int(dp["by"].get(String(li["debtor"]), 0)) + paid
+		js(world)["debts_paid"] = dp
+		Logbook.note(world, "LAW", String(li["debtor"]), "debt paid", {"kind": String(li["kind"]), "to": to},
+			{"amount": [before, int(li["amount"])], "status": ["OPEN", String(li["status"])]},
+			String(li.get("creditor", "")), String(lid))
+
+
+## What `debtor` paid on its debts this month (credits x S), for its books (Bob's "debts_paid"). Pure; 0 before
+## collect_debts has run this month or when nothing was paid.
+static func paid_this_month(world: WorldState, debtor: String) -> int:
+	var dp: Dictionary = world.peek("law_state").get("s", {}).get("justice", {}).get("debts_paid", {})
+	return int(dp.get("by", {}).get(debtor, 0)) if int(dp.get("m", -1)) == world.month else 0
+
+
+## The account a debtor pays from: a company's "co:" account, else an account of the debtor's own id (a plan, a
+## founder, a pool); "" when it has none.
+static func debtor_acct(world: WorldState, debtor: String) -> String:
+	if world.ledger.has_account(company_acct(debtor)):
+		return company_acct(debtor)
+	return debtor if world.ledger.has_account(debtor) else ""
+
+
+## The account a liability is paid into: its creditor_acct; else a fine into the fines account and any other debt to
+## the government into the treasury; else the creditor company's account or the creditor's own; "" when none.
+static func creditor_acct_of(world: WorldState, li: Dictionary) -> String:
+	var acct := String(li.get("creditor_acct", ""))
+	if acct != "":
+		return acct if world.ledger.has_account(acct) else ""
+	var creditor := String(li.get("creditor", "gov"))
+	if creditor == "gov":
+		var gov := CoreUtil.FINES if String(li["kind"]) == "FINE" else CoreUtil.TREASURY
+		return gov if world.ledger.has_account(gov) else ""
+	return debtor_acct(world, creditor)
 
 
 static func _reactivate_licences(world: WorldState) -> void:
@@ -829,7 +902,10 @@ static func _repeat_ladder(world: WorldState, org_id: String) -> void:
 
 
 ## v8 unpaid fines and awards: a FINE or COMPENSATION liability more than PETITION_MONTHS past due makes the creditor
-## (the state, the victims' fund or the firm owed) petition the court, which winds the firm up (UNPAID_FINES).
+## (the state, the victims' fund or the firm owed) petition the court, which winds the firm up (UNPAID_FINES). Unpaid
+## layoff pay too (the user, rebuild-company.md 9.2: a debt like unpaid wages, which can end the company); the pool the
+## workers went back to is the creditor.
+const PETITION_KINDS := ["FINE", "COMPENSATION", "LAYOFF_PAY"]
 const PETITION_MONTHS := 12
 
 
@@ -837,7 +913,7 @@ static func _petitions(world: WorldState) -> void:
 	var liab := world.peek("liability")
 	for lid in Det.ordered(liab):
 		var li: Dictionary = liab[lid]
-		if String(li["status"]) != "OPEN" or not (String(li["kind"]) in ["FINE", "COMPENSATION"]):
+		if String(li["status"]) != "OPEN" or not (String(li["kind"]) in PETITION_KINDS):
 			continue
 		if world.month - int(li["due_month"]) < PETITION_MONTHS:
 			continue
@@ -1004,9 +1080,12 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 ## The company was fined for the same kind of offence (greed kind, else the violated action) within REPEAT_WINDOW
 ## months, on another violation record (lasting: violation_track.fined_month).
 ## A firm owes `amount` it could not pay now: one liability due next month, or for a small firm (annual revenue below
-## SMALL_FIRM_REV_WREF) PLAN_PARTS instalments over PLAN_MONTHS (v8: viable small firms died of lump sums). The economy
-## pays each row when due (EconInsolvency); the creditor petitions only 12 months past a missed row (_petitions).
-static func _owe(world: WorldState, debtor: String, creditor: String, creditor_acct: String, amount: int, kind: String) -> void:
+## SMALL_FIRM_REV_WREF) PLAN_PARTS instalments over PLAN_MONTHS (v8: viable small firms died of lump sums). The court
+## collects each row when due (collect_debts); the creditor petitions only 12 months past a missed row (_petitions).
+## `ref` (optional) names what the debt is for, e.g. the plan whose grant is owed back, so its owner can read what
+## was collected of it (the row's "paid").
+static func _owe(world: WorldState, debtor: String, creditor: String, creditor_acct: String, amount: int, kind: String,
+		ref: String = "") -> void:
 	var annual := annual_rev(world, debtor)
 	var small := annual < SMALL_FIRM_REV_WREF * float(w_ref(world))
 	var parts := PLAN_PARTS if small else 1
@@ -1022,6 +1101,8 @@ static func _owe(world: WorldState, debtor: String, creditor: String, creditor_a
 			"plan": small}
 		if creditor_acct != "":
 			row["creditor_acct"] = creditor_acct
+		if ref != "":
+			row["ref"] = ref
 		world.table("liability")[lid] = row
 		Logbook.note(world, "LAW", debtor, "owed", {"kind": kind, "due_month": int(row["due_month"]), "plan": small},
 			{"amount": [0, part]}, creditor, lid)
@@ -1115,7 +1196,9 @@ static func court_duration(world: WorldState) -> float:
 
 ## A debt owed to a creditor, recorded by the law (rebuild step 3; public for the economy's pieces, e.g. a grant owed
 ## back by a founder, 60b): one liability row, or a small debtor's instalments, with a LAW row each. The court acts on
-## it at step 5 (a company's unpaid fine already petitions after 12 months).
-static func owe(world: WorldState, debtor: String, creditor: String, creditor_acct: String, amount: int, kind: String) -> void:
+## it at step 5 (a company's unpaid fine already petitions after 12 months). The court collects it when due
+## (collect_debts). `ref`: what the debt is for (optional; kept on the row).
+static func owe(world: WorldState, debtor: String, creditor: String, creditor_acct: String, amount: int, kind: String,
+		ref: String = "") -> void:
 	if amount > 0:
-		_owe(world, debtor, creditor, creditor_acct, amount, kind)
+		_owe(world, debtor, creditor, creditor_acct, amount, kind, ref)

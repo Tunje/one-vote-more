@@ -904,6 +904,98 @@ static func pay_ads(world: WorldState, from_acc: String, amount: int, district_w
 	return paid
 
 
+## Job adverts (the user's ruling on keeping workers, rebuild-company.md 9.2): hiring costs the company an advert, paid
+## to a newspaper, so job adverts are income for the papers. A tenth of one month's pay of the post per person hired
+## (ADVERT_PM, a START number). Bob's hiring calls job_advert once per hiring. The papers paid are those read in the
+## hiring area's district (the area itself where no district is drawn), shared by their circulation there; where no
+## paper is read, every paper by its whole circulation. With no paper in the colony nothing is charged. Never
+## overdrawn: the company pays what its account holds, up to the charge. The month's advert income of each paper is
+## kept in state "adverts" and goes into its books (fin.adverts) and its margin. One Logbook row of kind ADVERT.
+## Hiring runs in COMPANY_AI and the papers' books in JUSTICE, so an advert lands in the same month's books; the
+## circulation it is shared by is last month's (Media.run refreshes it after the hiring).
+const ADVERT_PM := 100
+const LQ := preload("res://sim/law/law_query.gd")
+
+
+## The papers an advert in `area` goes to: {district, where, ids, weights (their circulation)}; ids empty when the
+## colony has no paper that is read.
+static func _advert_papers(world: WorldState, area: String) -> Dictionary:
+	var d := LQ.district_of(world, area)
+	if d == "":
+		d = area
+	var circ: Dictionary = state(world).get("circ", {})
+	var ids: Array = []
+	var w: Array = []
+	for oid in outlets(world):
+		var c := int(circ.get(oid, {}).get(d, 0))
+		if c > 0:
+			ids.append(oid)
+			w.append(c)
+	var where := "read in the district"
+	if ids.is_empty():
+		where = "the whole colony's papers"
+		for oid in outlets(world):
+			var c := 0
+			for dd in circ.get(oid, {}):
+				c += int(circ[oid][dd])
+			if c > 0:
+				ids.append(oid)
+				w.append(c)
+	return {"district": d, "where": where, "ids": ids, "weights": w}
+
+
+## What an advert for `n` people hired at `pay` in `area` costs (credits x S): 0 where there is no paper. Pure. Bob's
+## hiring reads it first: a company that cannot pay the advert does not hire that month (Wilma's ruling, 9.2).
+static func job_advert_cost(world: WorldState, area: String, pay: int, n: int) -> int:
+	if (_advert_papers(world, area)["ids"] as Array).is_empty():
+		return 0
+	return maxi(0, pay) * maxi(0, n) * ADVERT_PM / 1000
+
+
+## Pays the advert for `n` people hired at `pay` (one month, credits x S) by company `cid` from account `acct`, in
+## `area`. Returns what was paid.
+static func job_advert(world: WorldState, cid: String, acct: String, area: String, pay: int, n: int) -> int:
+	var due := maxi(0, pay) * maxi(0, n) * ADVERT_PM / 1000
+	if due <= 0:
+		return 0
+	var pp := _advert_papers(world, area)
+	var d := String(pp["district"])
+	var where := String(pp["where"])
+	var ids: Array = pp["ids"]
+	var w: Array = pp["weights"]
+	var why := {"area": area, "district": d, "hired": n, "pay": pay / S, "due": due / S}
+	if ids.is_empty():
+		Logbook.note(world, "ADVERT", cid, "no advert: no paper", why, {}, "", area)
+		return 0
+	var have := mini(due, maxi(0, world.ledger.balance(acct)))
+	var parts := CoreUtil.split_lr(have, w)
+	var st := state(world)
+	var ad: Dictionary = st.get("adverts", {})
+	if int(ad.get("m", -1)) != world.month:
+		ad = {"m": world.month, "by": {}}
+	var by_paper := {}
+	var paid := 0
+	for i in ids.size():
+		var part := int(parts[i])
+		if part <= 0:
+			continue
+		world.ledger.transfer(acct, String(outlet(world, ids[i])["account"]), part, "JOB_ADVERT", world.month)
+		ad["by"][ids[i]] = int(ad["by"].get(ids[i], 0)) + part
+		by_paper[ids[i]] = part
+		paid += part
+	st["adverts"] = ad
+	why["where"] = where
+	why["by_paper_mcr"] = by_paper   # credits x S, exact
+	Logbook.note(world, "ADVERT", cid, "job advert", why, {"paid": [0, paid / S]}, "", area)
+	return paid
+
+
+## A paper's advert income this month (credits x S).
+static func adverts_of(world: WorldState, out_id: String) -> int:
+	var ad: Dictionary = state(world).get("adverts", {})
+	return int(ad.get("by", {}).get(out_id, 0)) if int(ad.get("m", -1)) == world.month else 0
+
+
 # =================================================================================== M2: lies and their exposure
 
 const JO := preload("res://sim/law/justice_ops.gd")
@@ -1839,7 +1931,7 @@ static func _finances(world: WorldState) -> void:
 		if paid < cost and dist != "":
 			paid += EconFace.households_pay_media_wages(world, String(o["account"]), cost - paid, "")
 		o["fin"] = {"month": world.month, "cost": cost, "paid": paid, "balance": world.ledger.balance(String(o["account"])),
-			"sales": int(state(world).get("sales", {}).get(id, 0))}
+			"sales": int(state(world).get("sales", {}).get(id, 0)), "adverts": adverts_of(world, id)}
 		if paid < cost:
 			o["deficit_months"] = int(o.get("deficit_months", 0)) + 1
 		else:
@@ -1850,12 +1942,12 @@ static func _finances(world: WorldState) -> void:
 			manage(world, o)
 
 
-## Operating margin this month (mcr): copy sales at the paper's price minus running costs (ads and owner cover
-## are windfalls, not the business).
+## Operating margin this month (mcr): copy sales at the paper's price and job adverts (9.2: hiring pays a paper, every
+## month there is hiring) minus running costs (campaign ads and owner cover are windfalls, not the business).
 static func margin(world: WorldState, o: Dictionary) -> int:
 	var fin: Dictionary = o.get("fin", {})
 	var wref := maxi(1, int(world.values.get("ECON_W_REF", 1200 * S)))
-	return int(fin.get("sales", 0)) * (int(o["price_mw"]) * wref / 1000) / S - int(fin.get("cost", 0))
+	return int(fin.get("sales", 0)) * (int(o["price_mw"]) * wref / 1000) / S + int(fin.get("adverts", 0)) - int(fin.get("cost", 0))
 
 
 ## v5 chronicles: every private paper ran at a loss for life (price far below what readers bear, full staff and

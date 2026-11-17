@@ -23,8 +23,8 @@ extends RefCounted
 ## ("founder:N") and the founder's "had_grant", not the pool, which holds a whole block's band of households (Anni's
 ## review). A founder who goes back into the pool (60c) takes its grant with it as one of the pool's granted households,
 ## and a household drawn from those comes back with "had_grant" (Maja's pick_founder), so it cannot take a second grant.
-## A plan given up owes its grant back (60b): from the plan's account what it can, the founder the rest, as a debt to the
-## government that goes to court like any other.
+## A plan given up owes its grant back (60b): from the plan's account what it can, then from the founder's own money,
+## and only what neither reaches is a debt of the founder's to the government that goes to court like any other.
 ##
 ## The programme's sum (the user, 2026-11-17, plan 12.9, 61b: "The government should put a max sum into the grant based
 ## on how many farms they want maybe a little extra to be sure"). When a programme opens the government decides how
@@ -206,8 +206,9 @@ static func _count(world: WorldState, kind: String, what: String) -> void:
 
 
 ## A plan given up owes its grant back (60b). From the plan's account what it holds, up to the grant, back to the
-## treasury; the founder owes the rest to the government. Returns what was paid back now. Call it while the plan's
-## account still holds the plan's money.
+## treasury; then from the founder's own account (Wilma, 2026-11-17: the founder's own money comes before any debt);
+## the founder owes the rest to the government, carried on the founder's id (60c). Returns what was paid back now.
+## Call it while the plan's account still holds the plan's money.
 static func reclaim(world: WorldState, plan_id: String) -> int:
 	var g: Dictionary = world.peek(TABLE).get(plan_id, {})
 	if g.is_empty() or String(g["status"]) != "PAID":
@@ -216,14 +217,20 @@ static func reclaim(world: WorldState, plan_id: String) -> int:
 	var plan_account := String(plan.get("account", plan_id))
 	var founder := String(g["founder"])
 	var due := int(g["amount"])
-	var back := CoreUtil.pay_upto(world, plan_account, CoreUtil.TREASURY, due, "GRANT_BACK:" + String(g["kind"]))
+	var memo := "GRANT_BACK:" + String(g["kind"])
+	var from_plan := CoreUtil.pay_upto(world, plan_account, CoreUtil.TREASURY, due, memo)
+	# then the founder's own money (Wilma, 2026-11-17: the founder's own money comes before any debt; 60b)
+	var from_founder := 0
+	if due - from_plan > 0 and world.ledger.has_account(founder):
+		from_founder = CoreUtil.pay_upto(world, founder, CoreUtil.TREASURY, due - from_plan, memo)
+	var back := from_plan + from_founder
 	var owed := due - back
-	if owed > 0:
+	if owed > 0:   # what neither reaches stays on the founder, a debt the court collects (60b, 60c: carried)
 		Justice.owe(world, founder, "gov", CoreUtil.TREASURY, owed, "GRANT")
 	world.table(TABLE)[plan_id]["status"] = "REPAID" if owed == 0 else "OWED"
 	world.table(TABLE)[plan_id]["repaid"] = back
 	Logbook.note(world, "GRANT", founder, "grant owed back", {"kind": String(g["kind"]), "grant": due / S},
-		{"paid back": [0, back / S], "owed": [0, owed / S]}, "gov", plan_id)
+		{"from the plan": [0, from_plan / S], "from the founder": [0, from_founder / S], "owed": [0, owed / S]}, "gov", plan_id)
 	return back
 
 

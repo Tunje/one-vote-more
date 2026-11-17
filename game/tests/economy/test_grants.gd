@@ -259,6 +259,23 @@ func test_a_plan_given_up_owes_its_grant_back() -> void:
 			owed += int(l["amount"])
 	check_eq(owed, a2 - 400 * S, "the founder owes the rest to the government")
 	check_eq(String(w.peek("grant")[p2]["status"]), "OWED", "owed")
+	# a founder with money of its own pays from it before anything becomes a debt (Wilma, 60b)
+	var p3 := _plan(w, 3, "pool:c")
+	var a3 := int(Grants.apply(w, p3)["amount"])
+	w.ledger.transfer(p3, Ledger.EXTERNAL, a3 - 400 * S, "TEST_SPENT", w.month)
+	w.ledger.open_account("founder:3")
+	w.ledger.transfer(Ledger.EXTERNAL, "founder:3", 300 * S, "TEST", w.month)
+	var t3 := w.ledger.balance(CoreUtil.TREASURY)
+	check_eq(Grants.reclaim(w, p3), 700 * S, "the plan's 400, then the founder's own 300")
+	check_eq(w.ledger.balance("founder:3"), 0, "the founder's money first")
+	check_eq(w.ledger.balance(CoreUtil.TREASURY), t3 + 700 * S, "into the treasury")
+	var owed3 := 0
+	for lid in w.peek("liability"):
+		var l: Dictionary = w.peek("liability")[lid]
+		if String(l["debtor"]) == "founder:3" and String(l["kind"]) == "GRANT":
+			owed3 += int(l["amount"])
+	check_eq(owed3, a3 - 700 * S, "only what neither reached is owed")
+	check_eq(int(w.peek("grant")[p3]["repaid"]), 700 * S, "what came back refills the programme's sum")
 	_unhook()
 
 

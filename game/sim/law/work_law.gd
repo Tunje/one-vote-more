@@ -8,6 +8,8 @@ const LawCompany := preload("res://sim/law/law_company.gd")
 ##   LAW_MAX_WORKING_HOURS        40–70 h/week (60 default: a frontier colony); above it = overwork
 ##   LAW_STAFFING_RATIOS          0 none / 1 guidance (public, lawful) / 2 binding (understaffing unlawful)
 ##   LAW_WORK_INSPECTORATE_BUDGET 0–20000 milli-W_ref/month (3000 default): the work-environment authority
+##   LAW_LAYOFF_PAY_MONTHS        0–12 months of a laid-off worker's own pay the company owes (3 default; the user,
+##                                rebuild-company.md 9.2). Unpaid, a LAYOFF_PAY debt to the worker's pool.
 
 ## Clients per worker at the legal ratio, by service tag (Bob's facility tag).
 const RATIOS := {"HEALTH": 300, "CARE": 10, "CHILDCARE": 8, "POLICE": 500}   # POLICE: residents covered per officer
@@ -18,6 +20,12 @@ const STRESS_ACCIDENT_FROM := 1300      # workload ‰ at or above which an acci
 
 static func max_hours(world: WorldState) -> int:
 	return clampi(int(world.levers.get("LAW_MAX_WORKING_HOURS", 60)), 40, 70)
+
+
+## Months of a laid-off worker's own pay the company owes, as the law stands on the day of the layoff (for everyone,
+## not fixed at hire: Wilma, 2026-11-17).
+static func layoff_pay_months(world: WorldState) -> int:
+	return clampi(int(world.levers.get("LAW_LAYOFF_PAY_MONTHS", 3)), 0, 12)
 
 
 ## Weekly hours over the legal maximum (0 if within it).
