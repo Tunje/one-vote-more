@@ -605,6 +605,13 @@ On Bob's finding in the second review that salaries could fall without end (the 
 Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn.
 
 
+### The rebuild: all grants (the user, 2026-11-17, verbatim)
+
+> JUST ALL FUCKING GRANTS DAMNED IT WHY CAN YOU NOT FIGURE THESE THINGS OUT?! I SAID ALL THEEE THE THREE WAS A MISTAKE
+
+All grant types are open in month one: family farms, family bakeries, truck drivers, truck workshops. The number three was a slip and is not to be asked about again.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

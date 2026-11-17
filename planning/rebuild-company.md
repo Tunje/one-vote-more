@@ -422,7 +422,7 @@ and the read-only views the screens show. The rebuild publishes the same names w
 - Five building companies.
 - The government's subsidiaries as before: power and water, transit, the housing office, the public works department,
   and the public services (clinics, schools, administration).
-- All grant types open.
+- ALL grant types open: family farms, family bakeries, truck drivers, truck workshops. (The "three" in the quote was a slip; the user: "JUST ALL FUCKING GRANTS ... THE THREE WAS A MISTAKE".)
 - **No sectors beyond the landfall point.** The colony starts as one place where it landed. No districts are laid out
   in advance; where things are built decides. (The old game started with six named districts, and much code reads that
   list.)
