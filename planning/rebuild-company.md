@@ -939,6 +939,24 @@ therefore the whole loop once, end to end, through the real company object:
 5. For each limit: is it what the design should produce, is it a fault in the code, or is it there because the next
    step is not built yet. This fifth line is what stops one workaround being piled on another.
 
+**To watch for and report, not to prevent**
+
+A second outside review (2026-11-17) found no contradiction in the plan and named five things the rules will produce.
+Each is a result, not a fault. A step's report says when one is seen, and nothing is changed to stop it.
+
+1. **A plant running below its normal output** has a making price that understates what each unit really costs it that
+   month, because the making price is taken at normal full output. It can sell at a loss in cash while standing above
+   its making price, and end through its money before the two-year clock ever starts.
+2. **Waves of entry.** A shortage can set off many plans at once. They all open months later, together, into a market
+   that carries a few of them, and the rest fail. While they are being built they also take the builders and the
+   material.
+3. **Sharp price moves** if k is set high: one bad month at the port or a turn of the season can swing a price far
+   enough to break the buyers downstream.
+4. **Five builders and everything to build:** in month one building is a seller's market, and its price can climb fast
+   enough to eat the landing stock and the settlers' money before the first farm opens.
+5. **Holding back at a low price:** a company below its making price that owes a lot each month may have to sell
+   nearly all it has just to cover its expenses, so the hold-back holds little.
+
 **What counts as a fault, by example**
 
 | Case | A valid result | A fault |
