@@ -880,6 +880,15 @@ After Wilma's view (it fits; the risks are that distance costs nothing until fre
 Not to be built before trucks and roads (rebuild step 4). Marked in [rebuild-company.md](rebuild-company.md) section 13 under step 4, with the questions that are the user's to answer then.
 
 
+### The rebuild: the grant's spot away from towns, the four answers (the user, 2026-11-17, verbatim)
+
+Answering the four questions Wilma had noted with the idea marked for step 4: how far away from towns; one spot per programme or several; who pays for the road; whether settlers paying from their own savings also go to the government's spot.
+
+> 1 . Far away wnough that a few years of development wont merge them, 2. Upp to the goverment, but since they pay for the road, more spots would be more expencive for them.  3. Most comonly the government but if a company out a collective wants to they should be able to,  that could come in planing of grants the government asks and if any company wsnts it but that would cost but they would be free to charge for using it 4. No farms payed fully from saving does not
+
+Written under the step-4 mark in [rebuild-company.md](rebuild-company.md) section 13. Still not built before trucks and roads.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

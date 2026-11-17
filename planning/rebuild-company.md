@@ -1092,6 +1092,14 @@ therefore the whole loop once, end to end, through the real company object:
      So it is NOT built before trucks and roads. When step 4 is planned, bring it back to the user with these
      questions, which are theirs: how far "away from towns" is; one spot per programme or several; who pays for the
      road to the spot; whether settlers paying from their own savings also go to the government's spot.
+     **The user's answers to the four questions** (2026-11-17, verbatim): "1 . Far away wnough that a few years of development wont merge them, 2. Upp to the goverment, but since they pay for the road, more spots would be more expencive for them.  3. Most comonly the government but if a company out a collective wants to they should be able to,  that could come in planing of grants the government asks and if any company wsnts it but that would cost but they would be free to charge for using it 4. No farms payed fully from saving does not"
+     1. How far: far enough away that a few years of development will not merge the spot with a town.
+     2. One spot or several: up to the government. It pays for the road, so more spots cost it more.
+     3. Who pays for the road: most commonly the government. But a company or a collective that wants to may build
+        it instead: when a grant is planned the government asks, and any company that wants the road can take it
+        on. That costs the company, and it is then free to charge for the road's use.
+     4. Farms paid for wholly from savings do not go to the government's spot.
+     Still for step 4, not built before trucks and roads.
      Wilma's view, given when asked ("what do you think"): it fits (the farm is the family's home, so a cluster of
      family farms is already a settlement; areas already grow from where things are built; the grant already has a
      "where"; farms are already scored away from homes; the road is work for the public works department). The
