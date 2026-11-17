@@ -622,7 +622,8 @@ is wrong; nothing here is asked again.
       unfilled because the buyer would not pay the asking price is a refusal of the price: it counts here, for the cut,
       and not as unmet demand for a rise.
     - If it sold nothing at all, s is taken as without limit and the price moves by the full k.
-    - k is one number for the whole economy, set in testing. A small signal moves the price a little, a large one more,
+    - k is one number for the whole economy. It starts at 0.2 (a fifth of the price at most in a month) and is set in
+      testing. A small signal moves the price a little, a large one more,
       and never by more than k in a month. So there is a bound, the same both ways, as the user's rule nine asks.
     (This is the shape of the stock cut the user ordered into the price table on 2026-11-16.)
 15a. **Rule 7's signal, exactly.** Everything is in money per month.
@@ -742,8 +743,9 @@ is wrong; nothing here is asked again.
 
 ### 12.9 Building
 
-56. **A building contract** is paid month by month as the work is done. Its price follows wages and material prices
-    during the build. The builder stops after three unpaid months. A half-built building stays and another plan can
+56. **A building contract** is paid month by month as the work is done. The price of the builder's own work is fixed at
+    signing. Only the part that is wages and material follows what those cost during the build; a builder raising its
+    price for NEW jobs does not raise a job already signed. The builder stops after three unpaid months. A half-built building stays and another plan can
     take it over. A client may refuse a quote and wait.
 57. **A builder's book** is worked in the order the jobs were signed.
 58. **Upkeep** uses material and a little builder's work.
@@ -901,13 +903,13 @@ therefore the whole loop once, end to end, through the real company object:
    shelters; the ledger with everyone's account; the purse paying its own staff, the benefit and pensions.
 3. **The first loop, whole.** The households fitted in; hiring and salaries; the market with the price rules (1, 2, 9,
    hold-back) and output rules (3, 4); the plan, the building contract and the opening of a plant in their plainest
-   form, with rules 7 and 8; the ship schedule with arrivals, departures and orders to the home world; seasons and farm
+   form, with rules 7 and 8 and the four grants (they are open from month one); the ship schedule with arrivals, departures and orders to the home world; seasons and farm
    yield. Tested first on food alone.
 4. **Everything that is sold, and how it moves, together.** All items; the types with work slots (public services,
    shops, utilities on the grid); freight on the roads with the queue, carriers' prices, trucks and truck workshops.
 5. **Money and endings.** The bank lending; owners' money; the three ways a company ends; the court.
-6. **Building in full.** Rules 5 and 6 and growing by size, buy-out or a new plant; wear and repair; grants; permits
-   and licences; land sales.
+6. **Building in full.** Rules 5 and 6 and growing by size, buy-out or a new plant; wear and repair; permits and
+   licences; land sales.
 7. **Homes.** Landlords, the town grid, rent, owning, own houses; noise.
 8. **The government's purse in full.** Taxes, brackets, budget lines, levers, the reserve, price controls.
 9. **Offices, pollution, stress, unions, donations.**
@@ -920,6 +922,10 @@ therefore the whole loop once, end to end, through the real company object:
   lend until step 5, goods do not need trucks until step 4, and companies do not grow or close idle plants until step 6.
   Each step-3 report says so, and nothing seen there that comes from one of those missing parts is a reason to change
   a number.
+- **Month one has to add up, on paper, before step 3 is run.** With the starting numbers of step 2: can a settler's
+  savings plus the grant pay for the land, the three months of material up front and the builder for a family farm,
+  and for a truck driver? If not, nobody can plan anything and the colony only eats its stock. That is a mistake in
+  our starting numbers, not a result.
 - **Short, exact tests first:** one sale, one hire, one plan signed and built, one loan, one ending, each checked to
   the last credit and unit. A 30-year game says little until the loop of step 3 runs.
 - **Nothing appears or vanishes.** Every test and every game checks that money, goods, people in work and unfinished
@@ -956,6 +962,15 @@ Each is a result, not a fault. A step's report says when one is seen, and nothin
    enough to eat the landing stock and the settlers' money before the first farm opens.
 5. **Holding back at a low price:** a company below its making price that owes a lot each month may have to sell
    nearly all it has just to cover its expenses, so the hold-back holds little.
+
+6. **A job that costs more than it was signed for,** because wages and material rose while it was being built, and a
+   plan that cannot pay the difference.
+7. **A plant that opens before what it needs exists:** a bakery finished before the first harvest pays its staff for
+   months with nothing to bake and can run out of money as the grain arrives. A founder is free to plan it.
+8. **Many plans for the same thing in the same month.** All of them read the same signal before any has opened. What
+   holds them back is the builders: a plan knows the wait before it signs (9.7), and with five builders booked the
+   wait grows long. Plans are NOT counted as companies in rule 7's shares; the user ruled that out as protecting
+   companies from failing.
 
 **What counts as a fault, by example**
 
