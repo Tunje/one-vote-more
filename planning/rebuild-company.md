@@ -849,6 +849,17 @@ is wrong; nothing here is asked again.
      zero and a new programme needs a new decision by the government. The window's length (24 months) is a starting
      number of ours.
 
+61b. **A grant programme has a maximum sum** (the user, 2026-11-17, verbatim, after the first loop's run showed 158
+     farm plans signed in two months for a colony that about 41 farms feed): "The government should  put a max sum into the grant based on how many darms they wantmaybe a little extra to be sure".
+     So: when the government opens the farm grant it decides how many farms it wants and puts in the money for that
+     many, with a little extra to be sure. Each grant paid comes out of that sum. When the sum is spent, the programme
+     pays no more grants.
+     - **(Wilma's reading, marked as mine)** The other three grants (bakery, truck driver, truck workshop) get their
+       sum the same way, from how many of each the government wants. The user spoke of farms.
+     - **(starting numbers of ours)** How many farms the government wants: what it takes to feed the colony at full
+       output. The little extra: one tenth.
+     - This is a ruling about the grant. A founder who can pay without a grant is not stopped by it.
+
 ### 12.10 The government, the law, politics
 
 62. **Taxes** keep their old kinds (income, profit, sales, royalties, the charges the law sets), with every number set

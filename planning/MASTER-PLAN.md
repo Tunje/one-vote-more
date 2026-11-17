@@ -772,6 +772,15 @@ And, on a programme ending: the government starts over on its level "and where i
 Written into [rebuild-company.md](rebuild-company.md) 12.9, 61a. The 24 months is a starting number of ours.
 
 
+### The rebuild: a grant programme has a maximum sum (the user, 2026-11-17, verbatim)
+
+Said after the first run of the whole first loop, which showed 158 farm plans signed in two months for a colony that about 41 farms feed. It is about the grant.
+
+> The government should  put a max sum into the grant based on how many darms they wantmaybe a little extra to be sure
+
+Written into [rebuild-company.md](rebuild-company.md) 12.9, 61b.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
