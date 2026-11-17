@@ -926,6 +926,9 @@ therefore the whole loop once, end to end, through the real company object:
   savings plus the grant pay for the land, the three months of material up front and the builder for a family farm,
   and for a truck driver? If not, nobody can plan anything and the colony only eats its stock. That is a mistake in
   our starting numbers, not a result.
+  And: does the food the colony lands with last longer than it takes to plan, build and open the first farms and
+  bring in a first harvest? An outside run with made-up numbers (12 months of food, 4 months to build a family farm)
+  got through with food to spare; with 8 months to build, or under 8 months of food, the stock ran out first.
 - **Short, exact tests first:** one sale, one hire, one plan signed and built, one loan, one ending, each checked to
   the last credit and unit. A 30-year game says little until the loop of step 3 runs.
 - **Nothing appears or vanishes.** Every test and every game checks that money, goods, people in work and unfinished
