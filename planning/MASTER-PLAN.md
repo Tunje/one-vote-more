@@ -662,6 +662,11 @@ The user pasted a review of the plan written outside the team, with this instruc
 Worked into [rebuild-company.md](rebuild-company.md) version 10: the first builders arrive operating; accounts live in the ledger and outlast the bank; one record of each sale and each loan; a company that cannot pay lays off and its shut plant ends it; the making price leaves out paying a loan back; a square is per type everywhere; the first economic step is the whole loop from need to opened plant, with exact short tests and a check that nothing appears or vanishes. Left out, as ordered: counting plans as capacity so that investors do not over-build. Companies that enter a market that cannot carry them fail; that is the market, and nothing protects them from it.
 
 
+### The rebuild: the outside reviewer's revised review (2026-11-17)
+
+The user pasted the outside reviewer's second text, written after being told that the simulation does not have to protect companies. Worked into [rebuild-company.md](rebuild-company.md) version 11: what the rebuild is judged by (a failure is a result; only a result the rules do not contain is a fault); a formula for how far a price moves; rule 7's signal stated exactly; a bank that ends short costs its depositors; no bottomless subsidy for a state company; liability by share; what each step's report says; examples of valid results against faults.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

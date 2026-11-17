@@ -1,6 +1,6 @@
 # The rebuild of the economy: one company object
 
-**Version 10, 2026-11-17. Wilma.** Unified, reviewed twice by all six sessions, and with every open point decided (section 12). This replaces all earlier versions. It is one document: every ruling the user gave
+**Version 11, 2026-11-17. Wilma.** Unified, reviewed twice by all six sessions, and with every open point decided (section 12). This replaces all earlier versions. It is one document: every ruling the user gave
 for the rebuild is in it, in its place. Nothing is built.
 
 How to read it:
@@ -32,6 +32,14 @@ How the work is done (rulings of the same day):
   code is copied and every number is set again. The one exception is the household side (section 9.1).
 - "set a credit prices we are going to have to adjust it anyway i don't have a sheet of what costs what so i can't tell
   you what it should cost". Every price and quantity is ours to set and is adjusted in testing.
+
+**What the rebuild is judged by.** It does not have to keep companies alive, prices affordable, people employed or the
+colony from collapsing. A company can misjudge demand, borrow too much, lose its customers or be outcompeted, and fail.
+A colony can have a recession; its bank can fail; a government can make ruinous choices. Those are results, not
+faults. The user, on a producer that sells below cost for years: "it does not really matter if he does not close ...
+its not meant too be a perfect economy for everyon". The fault to hunt is a result that does NOT follow from the rules:
+a missing connection, two sums that disagree, a payment made twice, goods from nowhere. So: do not fix a company
+because it fails; fix the simulation only when it fails for a reason the rules do not contain.
 
 Why: the old economy had 72 files and about 31,000 lines. Each sector had its own copy of the rules. Fixes were tested
 one at a time against a game that did not contain the others, and merged switched off. The first time all ran together
@@ -569,10 +577,21 @@ is wrong; nothing here is asked again.
     sell, so a bad month does not inflate it. Paying a loan BACK is not a cost of making: a company that borrows to
     build a second plant does not raise its prices for that. The hold-back is separate and still covers every monthly
     expense, repayments included ("It sells too cover all monthly expences").
-15. **No fixed cap** on a month's price change. The change is in proportion to the signal, the same up and down.
+15. **How far a price moves in a month:** by k x s / (1 + s), the same formula up and down. For a rise, s is the
+    orders that went unfilled for price, set against what it sold. For a cut, s is what it offered and did not sell
+    for price, set against what it sold. k is one number for the whole economy, set in testing. A small signal moves
+    the price a little, a large one more, and never by more than k. (This is the shape of the stock cut the user
+    ordered into the price table on 2026-11-16, used both ways as rule 9 demands.)
+15a. **Rule 7's signal, exactly:** for a company type in an area, all the work there was for that type over the last
+    twelve months (every order or client for what it sells, served or not), divided by the companies of that type
+    serving the area plus the newcomer. A plan is made when that share would cover the newcomer's costs. Nothing limits
+    how many may do so at once; if five do and the work carries two, three fail.
 16. **Rule 6:** twelve months idle.
 17. **Rule 5 runs section 5's order:** a size up in its own square; else a buy-out; else a new plant.
 18. **Rule 3 does not act while a company is holding stock back.** It has more to sell already.
+19b. **Being left out of a signal is not being spared the cost.** A company stopped by a broken road, a missing
+    input or a shutdown is not read by the price rules or the sales-death clock, but it still pays its wages, rent and
+    loans, and can run out of money.
 19a. **A company that cannot pay its staff lays them off, and a plant with no staff is shut.** A shut plant the
     company cannot afford to reopen or replace is the second way a company ends (section 8.3). So a company that is
     stopped by something other than price, for good, ends through its money, not through the price rules.
@@ -629,7 +648,7 @@ is wrong; nothing here is asked again.
 
 ### 12.6 Services
 
-43. **A household is a client** of the nearest service of the kind with a free place within reach (school 1.5 km,
+43. **A household is a client** of the nearest service of the kind that it can pay for and that has a free place within reach (school 1.5 km,
     clinic 2 km, from the town grid). Each person who needs it is one client.
 44. **What being served does:** a clinic lowers deaths, a school sets the skill a child grows up with, childcare lets
     parents work, elder care lowers deaths of the retired, police lowers crime.
@@ -649,9 +668,10 @@ is wrong; nothing here is asked again.
 
 50. **The bank is a company.** Its clients are its borrowers and its price is the interest rate, set by the same three
     price rules. The government borrows from it like anyone.
-50a. **Accounts are not the bank's to lose.** Every household's and company's account is kept in the game's ledger
-    from month one, not inside the bank company. If the bank ends, the accounts and every payment go on as before. The
-    loans it held pass to whoever buys it out, or to a new bank; a borrower's debt does not vanish.
+50a. **Accounts are kept in the game's ledger,** not inside the bank company, so nothing vanishes because a bank is
+    gone. But a bank that ends owing more than it has is a real loss: what it cannot cover is taken from its
+    depositors in proportion, as recorded payments. Its loans pass to whoever buys it out, or to a new bank; a
+    borrower's debt does not vanish. Credit can dry up and companies can fall with it.
 50b. **One record of each thing.** Money: the ledger. A loan: the bank's record. A sale: one record made by the market
     when the sale is agreed, which says who owns the goods, what is paid and whether they have been carried. The
     company, the bank and the carrier point to that record and keep no version of their own.
@@ -661,7 +681,12 @@ is wrong; nothing here is asked again.
     took out in the company's last year.
 53. **In a buy-out the debts go with the plant.** One owner's companies selling to each other is allowed and is taxed
     like any sale.
-54. **A state company that cannot pay** is covered by the government or closed by it. Nobody takes the state to court.
+54. **A state company that cannot pay** is covered by the government out of the money the government actually has, or
+    closed by it. There is no bottomless subsidy: a government can spend itself into the ground. Nobody takes the state
+    to court.
+54a. **Liability with more than one owner:** each owner answers for the debt by their share. An owner that is an
+    organisation (a co-op, a union, a party) pays from its own account. What the home world owns, the home world writes
+    off.
 55. **Other non-payment:** unpaid rent ends in eviction under the existing law; an unpaid upkeep fee, tax or fine goes
     to court like a loan.
 
@@ -755,7 +780,29 @@ therefore the whole loop once, end to end, through the real company object:
 - **Then three 30-year games,** and where the bottleneck is, before the next step starts. From step 3 on each report
   also says which companies would have ended, even before endings are built at step 5.
 - **No tuning around a missing part.** If a 30-year game is bad because a later step is not built yet, that is written
-  down and left; numbers are not bent to hide it.
+  down and left; numbers are not bent to hide it. A bad result is first traced through the payments and decisions that
+  made it. Grants, floors, rescues or more starting money are never the first answer.
+
+**What each step's report says**
+
+1. Which parts are now on for good.
+2. Whether their payments and changes add up with everything built before.
+3. What happened in the games, failures and shortages included.
+4. The main limits seen, and which decisions caused them.
+5. For each limit: is it what the design should produce, is it a fault in the code, or is it there because the next
+   step is not built yet. This fifth line is what stops one workaround being piled on another.
+
+**What counts as a fault, by example**
+
+| Case | A valid result | A fault |
+|---|---|---|
+| Several companies enter one market | too much supply, falling prices, some fail | they ignore each other's sales or count demand differently |
+| A supplier cannot get material | it stops, orders stay unfilled, it loses money | the same stock is used up and sold elsewhere |
+| A freight route fails | late goods, shortages, a company may fail | goods doubled, or gone without a recorded loss |
+| The bank cannot pay | depositors lose, lending stops, companies fall | balances change because a record was deleted |
+| An employer raises pay | workers move, its costs rise, it may fail | a worker counted at both companies |
+| A builder is not paid | work stops after three months, the building stands half done | building goes on without work, material or pay |
+| A colony has a deep recession | closures, unemployment, people leave, politics reacts | two parts of the game report different jobs or money |
 
 ## 14. What I am least sure of
 
