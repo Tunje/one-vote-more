@@ -688,6 +688,12 @@ is wrong; nothing here is asked again.
       per month. A founder plans the largest size that passes and that their money reaches.
     - A founder's management skill and appetite for risk (12.11, 77) bend how they read it, so founders misjudge.
     - Nothing limits how many may plan at once. If five do and the work carries two, three fail.
+    - **What a settler starting a company sees of other people's plans** (the user, 2026-11-17, verbatim, asked
+      whether a settler deciding to start a farm also counts farms already planned or being built; the first loop
+      had given 110 to 169 farm plans for a colony that about 41 farms feed): "It does not see plans made, but they do see plans booked on builders notes and plans that have accepted grants".
+      So in rule 7's shares, next to every plant that stands, a settler also counts each plan that is booked with a
+      builder (it has signed its contract and is in a builder's book) and each plan that has accepted a grant, by its
+      size. A plan that is only made, with neither, is not seen.
 15c. **Builders' prices at the start and for claimed jobs** (the user, 2026-11-17, verbatim, answering two results of
     the first loop's run: in month 0, before any plan could exist, every builder read its empty book as no customers
     and cut its price by a fifth, and 158 contracts then locked that price below cost; and the builders' price then

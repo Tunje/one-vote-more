@@ -799,6 +799,15 @@ About the builders at the start, when asked whether the wait covers their crews 
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15c.
 
 
+### The rebuild: which plans a settler starting a company sees (the user, 2026-11-17, verbatim)
+
+Asked whether a settler deciding to start a farm should also count the farms already planned or being built (rule 7). The first loop had given 110 to 169 farm plans for a colony that about 41 farms feed.
+
+> It does not see plans made, but they do see plans booked on builders notes and plans that have accepted grants
+
+Written into [rebuild-company.md](rebuild-company.md) 12.3, 15a.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
