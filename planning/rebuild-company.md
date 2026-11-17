@@ -738,8 +738,12 @@ is wrong; nothing here is asked again.
       stock to the colony's farms sooner.
     - **(Wilma's details, marked as mine)**
       - The family is the founder's household: its adults fill the farm's posts first; posts beyond them are hired
-        for wages like any others. Each month the family takes from the farm's account what a household needs to
-        live (rent and food), as far as the account reaches; that is their income.
+        for wages like any others.
+    - **The owners take winnings, not a salary** (the user, 2026-11-17, verbatim, correcting Wilma, who had written
+      that the family takes each month what a household needs to live): "The owners of a family farm should take winnings no sallery, wich comes after and saves the issue".
+      So the family's income is the farm's winnings: what is left of the month's takings after everything else the
+      farm owes that month is paid (its inputs, its hired workers' wages, its upkeep, its debts due). It comes after
+      all of those. In a month with no winnings the family takes nothing and lives on what it has.
       - It holds for every family-size company, not only farms. The user spoke of the family farm.
       - Ship food is the landed stock and anything imported. A buyer choosing between offers counts ship food as a
         quarter dearer than its price, so colony food up to a quarter dearer is bought first. A starting number.

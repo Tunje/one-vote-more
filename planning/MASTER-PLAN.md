@@ -849,6 +849,15 @@ Wilma's message had told the user her decision that the months of layoff pay fol
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e.
 
 
+### The rebuild: the owners of a family farm take winnings, no salary (the user, 2026-11-17, verbatim)
+
+Correcting Wilma's detail that the family takes each month what a household needs to live.
+
+> The owners of a family farm should take winnings no sallery, wich comes after and saves the issue
+
+Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
