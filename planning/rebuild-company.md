@@ -359,9 +359,43 @@ above its making price, the line rule nine turns on. The buy-out is the same eve
 (section 8e, 6): the buyer wants the place; the seller is paid and may start again elsewhere.
 
 What the old game had and this replaces: distress, administration, liquidation and dissolution as a state machine
-driven by missed payments. Not carried over. Still to place: what happens to the staff (they are laid off and look for
-work), to its loans (the bank's loss if the sale of stock and plants does not cover them), and the court winding a
-company up for convictions (the law's own fourth way, Anni's review 1b).
+driven by missed payments. Not carried over. Settled by the user in section 8j: the staff are laid
+off; the loans are paid from the sale of the stock, and if that is not enough the owner is taken to court. Still to
+place: the court winding a company up for convictions (the law's own fourth way, Anni's review 1b).
+
+### 8j. Month one; noise; what follows an ending (the user, 2026-11-17, verbatim)
+
+> 5 building companies and alot of oppretunity and the goverment starts with its subsidiaries as before,  and all three grant types open, and no sectors beyond landfallpoint that's up to where things are built, things like noise polution should also drive down price of housing so we don't have factories all in among the houses, or rather less. Yes they are laied of its loans are payed in full if they can when selling their stock, if not the owner is taking to court, where the bank can either settle for a smaller amount or demand payment over time, if he is rich or owns other companies a settlent might be reached
+
+**Month one**
+
+- **Five building companies,** and a lot of opportunity: much to be built and few to build it.
+- **The government starts with its subsidiaries as before.** In the old game those were Colony Power & Water, the
+  Colony Transit Authority, the Colony Housing Office and the Colony Works Department (the public builder of last
+  resort), plus the public institutions (clinics, schools, administration).
+- **All three grant types are open** from the start. **(Wilma's reading: family farms, family bakeries, and trucks,
+  the last covering truck drivers and truck workshops, which the user introduced together "started by grants alla
+  bakeries".)**
+- **No sectors beyond the landfall point.** The colony starts as one place, where it landed. There are no districts
+  laid out in advance; where things come to be is decided by where things are built. (The old game started with six
+  named districts.)
+- The old game also started with private founders: two farms, a mine, a material plant, a components works, a consumer
+  goods maker, a service company, a landlord and two builders. The user's "a lot of opportunity" is read as: these are
+  NOT placed by us; they appear through rule 7 and the grants. **(Wilma's reading; a colony needs food and power in
+  month one, so what the government's subsidiaries cover at the start has to be enough to live on.)**
+
+**Noise**
+
+- Noise and the like from a plant lower the price of the homes near it, so factories do not end up in among the houses,
+  or less so. On Terra's map this is part of a cell's value, which already falls near industry and fast roads; a
+  company's type row carries how much noise it makes.
+
+**After an ending (completes section 8i)**
+
+- The staff are laid off.
+- The company's loans are paid in full, if selling its stock brings in enough.
+- If not, the owner is taken to court. There the bank either settles for a smaller amount or demands payment over
+  time. If the owner is rich or owns other companies, a settlement may be reached.
 
 ## 9. Every outside connection, and how it gets what it needs
 

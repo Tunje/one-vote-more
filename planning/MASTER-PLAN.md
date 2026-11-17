@@ -573,6 +573,13 @@ Written into [rebuild-company.md](rebuild-company.md) section 8h the same turn. 
 Written into [rebuild-company.md](rebuild-company.md) section 8i the same turn.
 
 
+### The rebuild: month one, noise, after an ending (the user, 2026-11-17, verbatim)
+
+> 5 building companies and alot of oppretunity and the goverment starts with its subsidiaries as before,  and all three grant types open, and no sectors beyond landfallpoint that's up to where things are built, things like noise polution should also drive down price of housing so we don't have factories all in among the houses, or rather less. Yes they are laied of its loans are payed in full if they can when selling their stock, if not the owner is taking to court, where the bank can either settle for a smaller amount or demand payment over time, if he is rich or owns other companies a settlent might be reached
+
+Written into [rebuild-company.md](rebuild-company.md) section 8j the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
