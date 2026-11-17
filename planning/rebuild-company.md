@@ -353,6 +353,25 @@ Terra's town grid (section 9.8).
   - **What "underpaid" is measured against** (the user, replacing Wilma's proposal of "what a new hire is offered"):
     "I think you should avrage ask salleries in the company and underpayed is based on that line,  that way both old and new can become underpayed". The line is the average of the salaries paid in the company. Anyone paid less than that line is
     underpaid, whether they were hired long ago at an old low salary or last month at a hiring salary that has fallen.
+  - **Keeping workers: what a layoff and a hire cost** (the user, 2026-11-17). The job-length test had shown jobs
+    lasting two to four months, most of them ended by a layoff the month output dipped. The user's ideas, verbatim:
+    "I think we need something to motivate them to keep,  costs of hiring, articles in the newspaper interview and maybe 6 months training where they can't fire, also contracts should have clauses for payment after fire that way they would have to weigh say three months of vages without a worker against the profits they wroth would win? What do you think?"
+    Wilma answered with a view on each. The user then ruled, verbatim: "On the workers rules i belive you have the right of it, and it should apply to builders"
+    What Wilma had proposed, and so what is now the rule:
+    - **Pay owed after a layoff.** A worker who is laid off is owed three months of their own pay by the company.
+      It is part of the contract set on hire. The number of months is a law the government can change. So a layoff
+      only pays when the post would stand idle longer than that.
+      - A company that cannot pay it still owes it: it becomes a debt like unpaid wages, and can end the company.
+    - **A cost of hiring.** Hiring costs the company an advert, and the advert is paid to a newspaper: job adverts
+      are income for the papers.
+    - **Six months' training.** A new hire produces less for their first six months. (This is in place of the
+      user's "where they can't fire": a flat ban would trap a company that hired wrongly, and with pay owed after a
+      layoff a ban adds little. The user accepted this.)
+    - **It applies to builders** and their crews, as to every company.
+    - **(starting numbers and details, Wilma's)** Three months. The advert: a tenth of one month's pay of the post,
+      per person hired. A new hire's output: half in the first month, rising evenly to full after six. A company
+      weighs a layoff as the user described: the wages it would save while the post stands idle against the pay
+      owed, the advert and the months of lower output when it hires again.
   - **Negotiation with the manager** (the user, 2026-11-17, verbatim): "Lets as one more thing to the sallery, the manager, negotiation can bring it closer to avrage". An underpaid
     worker can negotiate with the company's manager, and a negotiation can bring their salary closer to the average.
     So a salary has three ways to change after hiring: the yearly raise, a negotiation, and leaving for another job.

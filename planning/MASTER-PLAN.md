@@ -827,6 +827,19 @@ Question 5, may the engraved-style newspaper pictures show people closer up, and
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15d and 9.2. Question 4 (when a company lays off) was put by the user as ideas with "What do you think?"; it is a discussion, not a ruling, and is not in the plan.
 
 
+### The rebuild: keeping workers (the user, 2026-11-17, verbatim)
+
+After the job-length test showed jobs lasting two to four months. The user's ideas, with a question to Wilma:
+
+> I think we need something to motivate them to keep,  costs of hiring, articles in the newspaper interview and maybe 6 months training where they can't fire, also contracts should have clauses for payment after fire that way they would have to weigh say three months of vages without a worker against the profits they wroth would win? What do you think?
+
+Wilma's view: pay owed after a layoff (three months, the number a law), a cost of hiring paid to a newspaper as an advert, and six months' training as lower output instead of a ban on firing; a company with no money still owes the layoff pay as a debt; and the question whether it applies to builders. The user's ruling:
+
+> On the workers rules i belive you have the right of it, and it should apply to builders
+
+Written into [rebuild-company.md](rebuild-company.md) section 9.2.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
