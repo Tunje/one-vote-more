@@ -238,3 +238,105 @@ d) Shutdowns and the nine rules: a shutdown stops output and sales. Rules 4, 6 a
 e) Which company a shutdown hits once a union spans several: the founding one, the one with bad conditions, or every
    employer of its members.
 f) Who pays during a shutdown: whether the company pays anything, and whether the members' fee stops.
+
+## Bob: rules, market, bank, freight, food, materials, ships, salaries
+
+### 1. Missing from the plan
+
+a) **Taxes:** what a company pays the government and when (profit tax, sales tax, luxury tax, mining royalties).
+b) **Owners' money:** founders' equity in, dividends out to households, the state, a party or a union.
+c) **Insolvency:** the whole way from distress to dissolved, missed loan payments, asset sales.
+d) **The bank beyond lending:** household deposits, interest, loan service, the bank's own room and failure, the state
+   borrowing and defaulting.
+e) **Household demand:** what forms the monthly orders (essentials against the rest, quality and reputation, the shop's
+   margin) and what happens when households cannot afford food. The plan does not say who owns that.
+f) **Household income other than wages:** unemployment pay, pensions, food assistance.
+g) **The state's reserve** of food, material and components, released when scarce.
+h) **Supply contracts,** which filled first; politics has supply deals.
+i) **Buyer classes and how a short good is shared:** contracts, households' essentials pro rata, institutions,
+   government, firms, construction, households' other buying. The plan says only "cheapest delivered first".
+j) **Commuting and buses:** missing buses kept workers from work and cut output.
+k) **The merchant on both ends of a ship:** the importer selling landed goods, and export consignments.
+l) **Item properties:** which items spoil and which need storage.
+m) **Hiring order and speed:** whether essential plants still hire first, and whether hiring and layoff speeds stay.
+n) **Firm-to-firm trade on account,** if it is meant to stay.
+
+### 2. Connections not answered
+
+a) Ships: the schedule and fleet, the hold, port stock and capacity, home-world prices, the tariff, the trade balance,
+   cargo left on the dock. None is a company; they need an owner outside it.
+b) What a budget line has left (11 calls) is per line; "the state's own account" gives one account.
+c) Government payments and spending against a line (press subsidies): not in the table.
+d) Colony unemployment: not in the table.
+e) Two of "the rest" are actions, not reads: approving a public operator's tariff (which collides with one price per
+   company set by the rules) and releasing the reserve.
+f) The legislature reads food shortfall, food assistance, unaffordable food and sovereign default: measures of
+   mechanisms the plan does not have.
+g) Household accounts and wage payment sit in the ledger, not in the population.
+
+### 3. Against a ruling
+
+a) Ships: the plan left out "on its next call", the full round trip. (Corrected in draft 6.)
+b) Freight that did not move: the plan's proposal contradicted "count the work que not passed work" / "That works" and
+   "If something else than price stops sales it should not count on adjusting price!!". (Corrected in draft 6.)
+c) Rules 2 and 4 did not exclude stock unsold for freight, road or the buyer's money. (Corrected in draft 6.)
+d) "A huge company" is ten plants' worth of office workers, not size 4. (Corrected in draft 6.)
+
+### 4. Cannot work as written
+
+a) "Cheapest delivered first" needs a freight price on the route before the sale; the plan does not say how a buyer's
+   ranking gets it, who carries, or whether the sale is made before or after carrying.
+b) Services under rules 2 and 4 have no stock; a state service's price has two owners (the government's bracket and
+   the rules).
+c) The salary line "in the area" against one salary per company with plants in two districts.
+d) Capacity by size, by plants, or both.
+e) Starting money: what a company, the bank and the state hold at the start of a game.
+
+## Terra: roads, map, town grid, planet
+
+**Households.** Terra cannot tell which part of her plan the user means and asks that the user be asked. Her latest plan
+is [design-town-grid.md](design-town-grid.md), sections 3–4 and 9–12 (12 is the newest). In it a household is one home
+on the town grid: a plot in a house cell (8 to a cell) or a flat in an apartment or tower cell, inside a housing block
+on 100 m cells. A household has a type (family with children, single, old) that weights what draws it. A home's value
+follows its cell, and "Rent and price follow the value". Each household owns a car and commutes home to work on its
+shift. She never wrote a household record; her plan assumes Maja's population plus a housing block per 50 homes.
+
+### 1. Missing from the plan
+
+a) **The month step and the world itself.** The old economy's start-up built the world (terrain, layout, districts) and
+   registered the planet's month (climate, wildlife, roads, waste). The plan has no world builder.
+b) **Picking a plant's tile:** the plan says a plant has a tile but not who picks it.
+c) **Town buildings on the fine grid:** a plant needs a form and homes per unit.
+d) **Commuting:** home-to-work trips fed bus fares, the bus lines on the map, road congestion and the planned cars.
+e) **The roads' own state the economy wrote:** freight and commuter traffic (wear, jams), how much can move between two
+   districts a month, breakdowns and crashes on a road.
+f) **The planet's effect on a company:** ecology and seasons set farm output; storms and wildlife kill outdoor workers.
+g) **Private roads:** a company can own a road and take tolls.
+h) **Roads as building work:** a road is a link along a path, not a building at a tile.
+
+### 2. Connections not answered
+
+- `EconData` was not cut: it is still in `game/data/econ/econ_data.gd`, holds the old balancing numbers the roads price
+  themselves with, and holds the district list everything uses. The plan never says where districts live.
+- Commuting is missing from section 9.
+- The planet reads emissions per district; the plan writes them per company; something must sum them.
+- Casualties are capped by who works outdoors at a plant, which needs the plant's staff by occupation.
+- Road works do not fit "a building of type T at tile X".
+- The map needs each police station's tile.
+- A plant needs a form and a closed or mothballed state for the town grid and the map.
+
+### 3. Against a ruling
+
+- One price per company against "the closer to the coast you get the more expensive they get; it can even shift from
+  road to road": a landlord with one rent cannot have homes that differ by street. The user decides.
+- Nothing stays behind an off switch, but every part of the roads that ties them to the economy was opt-in and off in
+  v11 (freight roads, road works, private roads, road safety, siting, town grid, seasons, ecology). Without them the
+  "road network" is a district distance table. The plan must say which of them are "roads and supply networks ...
+  that's done already". Freight roads lost 8–12% of adults in its old test.
+- The allowed housing forms are the government's choice; the plan's housing row carries no form.
+
+### 4. Cannot work as written
+
+- Steps 1 and 5 need the world built and the road month running, which the plan puts at step 11.
+- The plan ships tile to tile; the road code routes district to district.
+- The starting salary needs an average housing cost per area; nothing publishes one until a landlord sets a rent.
