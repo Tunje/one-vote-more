@@ -644,6 +644,15 @@ Correcting the wording "ordered in only while no plant in the colony makes the g
 Imports are a backstop for whatever the colony's own plants cannot make enough of. They do not stop because one plant exists. Corrected in [rebuild-company.md](rebuild-company.md) sections 9.6 and 12.3.
 
 
+### The rebuild: imports, and context (the user, 2026-11-17, verbatim)
+
+After Wilma turned the user's 2026-11-16 remarks on imports into a general rule ("only while no plant makes the good", then "only the shortfall"):
+
+> WHAT I WAS FUCKING TAKING ABOUT WAS YOU FUCKING MONTHLY REQUESTS AND TO LIMIT THEM YOU CAN'T TAKE A THING I SAY AND APPLY IT TO THINGS WITHOUT THE CONTEXR
+
+The remarks were about the old code ordering in every month, and about limiting that. The only limit on imports is the ship: an order goes with a ship in port and comes back on its next call. No rule of ours restricts what may be imported. A statement of the user's is recorded with what it was about and is not applied to other things.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
