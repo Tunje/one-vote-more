@@ -15,8 +15,8 @@ extends PicProvider
 ##     starting prices: material, components, trucks, and food (food is Wilma's addition);
 ##   - the treasury's opening money.
 ## Every month after, in SETTLEMENT, the purse:
-##   - pays the wages of every state company's staff from the treasury (they have no income of their own yet; from
-##     step 3 a state company that sells pays its own staff and the purse covers only what the plan says it covers);
+##   - gives every state company what its own account lacks for this month's wages (memo STATE_WAGES); the company
+##     then pays its staff itself, like any company (step 3);
 ##   - pays the benefit to the jobless and the pension to the retired, at Ella's two levers: per cent of the area's
 ##     starting salary (12.5, 41);
 ##     When the treasury cannot pay the whole bill every line gets the same share, and a public fact says so;
@@ -68,17 +68,14 @@ func owner_id() -> String:
 	return OWNER
 
 
+## No phase of its own: the month's conductor (month.gd) calls purse_month, stores_takings and sweep in SETTLEMENT.
 func phases() -> Array:
-	return [TickPhase.SETTLEMENT]
+	return []
 
 
 ## Registered after the population provider: the Landing exists and the founding settlers have landed.
 func init_world(world: WorldState) -> void:
 	land(world, AreaStore.found_landing(world))
-
-
-func run_phase(_phase: int, world: WorldState) -> void:
-	purse_month(world)
 
 
 # ================================================================ month one
@@ -113,7 +110,7 @@ static func land(world: WorldState, area: String) -> Dictionary:
 		Logbook.note(world, "LAND", cid, "state subsidiary, no building yet", {"type": spec[0], "area": area})
 
 	var admin := Company.create(world, String(ADMIN[0]), String(ADMIN[2]), OWNER_STATE, String(ADMIN[1]),
-		{"origin": ORIGIN_SUBSIDIARY, "area": area})
+		{"origin": ORIGIN_SUBSIDIARY, "area": area, "crew_posts": true})   # it keeps its posts as a crew, with no plant (Bob's rules)
 	Logbook.note(world, "LAND", admin, "the administration, working from the landing site", {"area": area})
 	_crew(world, admin, "crew", String(ADMIN[0]), String(ADMIN[2]), area)
 
@@ -152,7 +149,7 @@ static func _shelters(world: WorldState, area: String) -> String:
 ## Colony Stores and the landing stock, each good at its starting price.
 static func _stores(world: WorldState, area: String) -> String:
 	var cid := Company.create(world, String(STORES[0]), String(STORES[2]), OWNER_STATE, String(STORES[1]),
-		{"origin": ORIGIN_STORES, "area": area})
+		{"origin": ORIGIN_STORES, "area": area, "price_fixed": true})   # sold at the starting prices: the rules leave them alone (12.2, 9)
 	_crew(world, cid, "crew", String(STORES[0]), String(STORES[2]), area)
 	for item in CoreUtil.sorted_keys(STOCK):
 		var price := TypeTable.start_price(String(item))
@@ -207,15 +204,15 @@ static func support_due(world: WorldState, kind: String, rates: Dictionary) -> i
 	return due
 
 
-## The purse's month: the sweep, then ONE bill: every state company's wages, the benefit and the pensions. Returns
-## what was due, paid and swept, credits x S. When the treasury cannot pay the whole bill, every line gets the same
-## share of what it holds (Ella's review: no order of our own among them, and no state company before another), and a
-## public fact says so.
+## The purse's month: ONE bill: what each state company lacks for its wages, the benefit and the pensions. Returns
+## what was due and paid, credits x S. When the treasury cannot pay the whole bill, every line gets the same share of
+## what it holds (Ella's review: no order of our own among them, and no state company before another), and a public
+## fact says so. A state company's line is its wage bill less what its own account holds: it pays its staff itself,
+## right after this, from its account.
 static func purse_month(world: WorldState) -> Dictionary:
 	var tre := CoreUtil.TREASURY
 	if not world.ledger.has_account(tre):
 		return {}
-	var swept := sweep(world)   # first, so this month's payments can use what came in
 	var b_rate := int(CoreUtil.lever(world, BENEFIT_LEVER, 0))
 	var p_rate := int(CoreUtil.lever(world, PENSION_LEVER, 0))
 	var b_rates := support_rates(world, b_rate)
@@ -223,7 +220,7 @@ static func purse_month(world: WorldState) -> Dictionary:
 	var cos := state_companies(world)
 	var dues: Array = []   # one per line: the state companies in id order, then the benefit, then the pensions
 	for cid in cos:
-		dues.append(Company.wage_bill(world, cid))
+		dues.append(maxi(0, Company.wage_bill(world, cid) - maxi(0, world.ledger.balance(CoreUtil.acct(cid)))))
 	dues.append(support_due(world, "benefit", b_rates))
 	dues.append(support_due(world, "pension", p_rates))
 	var due := 0
@@ -236,14 +233,19 @@ static func purse_month(world: WorldState) -> Dictionary:
 		world.ledger.open_account(PAYING)
 	var paid: Array = []
 	for i in dues.size():
+		if i < cos.size():   # a state company's line goes into its own account
+			if int(shares[i]) > 0:
+				world.ledger.transfer(tre, CoreUtil.acct(String(cos[i])), int(shares[i]), "STATE_WAGES", world.month)
+				Logbook.note(world, "PAY", "gov", "wages money to a state company", {"lacked": int(dues[i]) / S},
+					{"given": [0, int(shares[i]) / S]}, String(cos[i]))
+			paid.append(int(shares[i]))
+			continue
 		var from := tre
 		if short:
 			from = PAYING
 			if int(shares[i]) > 0:
 				world.ledger.transfer(tre, PAYING, int(shares[i]), "PURSE_SHARE", world.month)
-		if i < cos.size():
-			paid.append(Households.pay_wages(world, String(cos[i]), from, {"why": "the purse pays the state's staff"}))
-		elif i == cos.size():
+		if i == cos.size():
 			paid.append(Households.pay_support(world, "benefit", from, b_rates, {"rate_pct": b_rate}))
 		else:
 			paid.append(Households.pay_support(world, "pension", from, p_rates, {"rate_pct": p_rate}))
@@ -254,14 +256,13 @@ static func purse_month(world: WorldState) -> Dictionary:
 		wages += int(paid[i])
 	var benefit := int(paid[cos.size()])
 	var pension := int(paid[cos.size() + 1])
-	var out := {"wages": wages, "benefit": benefit, "pension": pension, "swept": swept, "due": due,
+	var out := {"wages": wages, "benefit": benefit, "pension": pension, "due": due,
 		"wages_due": due - int(dues[cos.size()]) - int(dues[cos.size() + 1]), "benefit_due": int(dues[cos.size()]),
 		"pension_due": int(dues[cos.size() + 1])}
 	Logbook.note(world, "PURSE", "gov", "the month's payments SHORT" if short else "the month's payments",
 		{"benefit_rate_pct": b_rate, "pension_rate_pct": p_rate, "due": due / S, "treasury_before": have / S},
 		{"wages": [int(out["wages_due"]) / S, wages / S], "benefit": [int(out["benefit_due"]) / S, benefit / S],
-		"pension": [int(out["pension_due"]) / S, pension / S], "swept": [0, swept / S],
-		"treasury": [have / S, world.ledger.balance(tre) / S]})
+		"pension": [int(out["pension_due"]) / S, pension / S], "treasury": [have / S, world.ledger.balance(tre) / S]})
 	if short:
 		world.add_fact({"type": "ECON_PURSE_SHORT", "owner": "econ", "subjects": [],
 			"responsible": [{"actor": {"kind": "GOVERNMENT", "id": "government"}, "share": 1.0}], "impact": {},
@@ -269,6 +270,32 @@ static func purse_month(world: WorldState) -> Dictionary:
 			"wages": [int(out["wages_due"]) / S, wages / S], "benefit": [int(out["benefit_due"]) / S, benefit / S],
 			"pension": [int(out["pension_due"]) / S, pension / S]}})
 	return out
+
+
+## What a pool owes in rent this month, by landlord: {landlord's account: credits x S}. One home per household at the
+## landlord's own rent. In step 3 the only homes are the housing office's shelters; a pool's households are spread
+## over them, so all of it is owed to the housing office. (Homes of other landlords: step 7.)
+static func rent_due(world: WorldState, pool_id: String) -> Dictionary:
+	var housing := String(world.peek(OWNER).get("made", {}).get("housing", ""))
+	if housing == "" or not world.peek("pool").has(pool_id):
+		return {}
+	var households := int(Households.counts(world, pool_id)["households"]) / S
+	var amount := households * Company.price(world, housing, "@home")
+	return {CoreUtil.acct(housing): amount} if amount > 0 else {}
+
+
+## The landing stock is the colony's, so what Colony Stores has taken for it, after paying its own staff this month,
+## goes to the treasury: one ledger entry (memo LANDING_STOCK_SALE: the sale of an asset, not income) and one row.
+static func stores_takings(world: WorldState) -> int:
+	var stores := String(world.peek(OWNER).get("made", {}).get("stores", ""))
+	if stores == "":
+		return 0
+	var amt := world.ledger.balance(CoreUtil.acct(stores))
+	if amt <= 0:
+		return 0
+	world.ledger.transfer(CoreUtil.acct(stores), CoreUtil.TREASURY, amt, "LANDING_STOCK_SALE", world.month)
+	Logbook.note(world, "PURSE", "gov", "landing stock takings to the treasury", {}, {"amount": [0, amt / S]}, stores)
+	return amt
 
 
 ## Moves what every other government account holds into the treasury: one ledger entry per source ("SWEEP:<account>")

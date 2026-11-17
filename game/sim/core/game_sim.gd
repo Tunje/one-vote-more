@@ -25,6 +25,7 @@ static func _register(sim: Simulation) -> void:
 	sim.register(PlanetProvider.new())
 	sim.register(preload("res://sim/population/population_provider.gd").new())   # the Landing area (after the planet, before politics)
 	sim.register(preload("res://sim/economy/landing.gd").new())   # step 2: month one's government side and the purse's payments (after the settlers)
+	sim.register(preload("res://sim/economy/month.gd").new())   # step 3: the economy's month, the one conductor
 	sim.register(PoliticsProvider.new())
 
 
