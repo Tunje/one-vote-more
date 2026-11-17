@@ -543,6 +543,15 @@ Written into [rebuild-company.md](rebuild-company.md) section 8f the same turn.
 Written into [rebuild-company.md](rebuild-company.md) section 8g the same turn.
 
 
+### The rebuild: homes on the map (the user, 2026-11-17, verbatim)
+
+Asked: "What is terras opinion based on what her and i talked about the map". After Terra's opinion on where homes stand, what "a square" is, what a home costs, how rent follows value and condition and what a bought-out home sells for was put to them:
+
+> This sounds good
+
+Written into [rebuild-company.md](rebuild-company.md) section 8h the same turn; Terra's full text is in [rebuild-reviews.md](rebuild-reviews.md).
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

@@ -291,11 +291,38 @@ As rules:
 - **Fitting in (accepted by the user: "That's fine"):** the household side taken from the old game counts people in
   pools by housing block and income band, not as single families. "An individual richer than the neighbourhood" is the
   top band of a block moving out to houses of their own, a few households at a time.
-- **(open):** the price a landlord sells a home for.
+- The price a landlord sells a home for: settled in section 8h.
 - **For reference, the OLD game's numbers (they do not carry over):** a housing block of 50 homes took 1,200 units of
   building work, 700 material, 20 components and 6 months, estimated at about 1,812,000 credits, or about 36,200 a
   home. Private rent started at 260 a home a month, so a full block took about 11.6 years of rent to pay for itself
   before upkeep. A 1/6 farm took 42 work, 42 material, 2 components and 2 months: about 74,200 credits.
+
+### 8h. Homes on the map: Terra's proposal, accepted (the user, 2026-11-17)
+
+Terra's opinion (in full in [rebuild-reviews.md](rebuild-reviews.md)) was put to the user point by point. The user:
+
+> This sounds good
+
+So these stand:
+
+- **"A square":** for plants in the country, the 3 km tile. In a town with a grid, the 400 m street block (16 cells,
+  about 128 houses): three small landlords fill a block, and one has to buy the others out to grow there.
+- **What a home costs to build:** the bill for its form (apartment 0.85 of a house, tower 1.15), plus the street, pipe
+  and cable to reach it, plus the land priced by its cell's value.
+- **Payback:** aim for 12 to 15 years of rent on an ordinary cell.
+- **Rent of a home** = the landlord's own rent (moved by the rules, with empty homes as the signal) x the cell's value
+  / 1000 x a condition factor. The condition factor is 1 above condition 55 and falls in step with condition below it.
+  Value and condition stay separate.
+- **Sale price of a bought-out home:** the rent it brings in at that place and condition, times the same payback years.
+  After the sale the owner pays the upkeep.
+- **An own larger house:** a builder's job on two or four joined plots, its land at the cell's value; it needs a villa
+  model.
+- **A bought home stays where it stands.** A sale or buy-out never moves houses around the map. Owned homes are a count
+  per block; the town view picks which plots show as owned.
+- The town grid is part of the rebuild and is on (nothing behind an off switch).
+
+Still open: who keeps up the stairs and roof of an apartment building where some flats are owned; a price for land in
+credits (the cell value is an index); villages below 250 homes have no grid, so every home there is ordinary.
 
 ## 9. Every outside connection, and how it gets what it needs
 
