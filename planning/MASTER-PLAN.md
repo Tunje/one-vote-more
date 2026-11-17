@@ -898,19 +898,6 @@ Wilma had put two ways for a family's winnings: (one) each month stands alone; (
 Two is the rule. The second half was said as a maybe and is noted, not built. Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e.
 
 
-### UNDER DISCUSSION, not a ruling: farmers, winter and a hidden stock (the user's words so far, 2026-11-17)
-
-After the first loop showed feast in summer and famine in winter (farms cut their output in the summer glut and entered winter throttled; nobody kept summer food for winter):
-
-> So we tell the farmers winder is coming and that they need to throttle up, and the rest of the year we tell them they must produce say 10% extra?
-
-After Wilma's view that a farm should judge its output over the year and that food kept for winter must not count as unsold:
-
-> The 10 precent enter the hidden stock that don't affect marketing
-
-Written into [rebuild-company.md](rebuild-company.md) 12.3, 15f.
-
-
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
