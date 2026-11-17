@@ -495,6 +495,13 @@ Answering the plan's questions 1 (what separates the sizes) and 2 (are unions ou
 Written into [rebuild-company.md](rebuild-company.md) sections 5 and 8a the same turn.
 
 
+### The rebuild: workers and salaries (the user, 2026-11-17, verbatim)
+
+> Workers and sallery, skills and swapping jobs to better payed,  actually the three rules for price should be applied here too
+
+Written into [rebuild-company.md](rebuild-company.md) section 8b the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

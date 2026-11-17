@@ -1,6 +1,6 @@
 # The rebuild: one company object
 
-Status: DRAFT 2 by Wilma, 2026-11-17 (sizes and unions from the user's answers). Not reviewed. Nothing is built.
+Status: DRAFT 3 by Wilma, 2026-11-17 (sizes, unions and salaries from the user's answers). Not reviewed. Nothing is built.
 
 Sources: the user's order below; the open connections in [economy-connections.md](economy-connections.md); the rulings of
 2026-11-14 to 2026-11-17 in [MASTER-PLAN.md](MASTER-PLAN.md); the old economy as it stood in commit 785c72f and
@@ -176,6 +176,29 @@ As rules:
 - What it reads from a company: its working conditions (the stress part of section 7). What it does to a company: its
   staff stop work, so its output stops.
 
+### 8b. Workers, salary, skills and changing jobs (the user, 2026-11-17, verbatim)
+
+> Workers and sallery, skills and swapping jobs to better payed,  actually the three rules for price should be applied here too
+
+As rules:
+
+- A salary is a price, and the three price rules apply to it: rule 1 (raise), rule 2 (lower) and rule 9 (which of the
+  two has priority, the same cap both ways). One salary per company and skill tier, as there is one price per company.
+- Workers have skills. A post asks for a skill tier; a worker fills posts at their tier.
+- Workers change jobs to better-paid ones. That movement is the signal the salary rules act on.
+
+**(proposal, Wilma's reading of how the three rules map onto salaries; the user gave the principle, not these lines.)**
+
+| Rule | For a product's price | For a salary |
+|---|---|---|
+| 1 raise | it sold what it offered and orders went unfilled | its posts stay open, or its workers leave for better pay |
+| 2 lower | offered stock stays unsold | more people apply at its salary than it has posts |
+| 9 priority | below making price, raising has priority; above, lowering | **(open)** what plays the part of the making price for a salary: the cost of living, or what the worker's output earns the company |
+
+Only the pay signal moves the salary: a post that stays open for another reason (no housing nearby, no one with the
+skill in the colony) is not a reason to raise it, as with prices ("if something else than price stops sales it should
+not count on adjusting price").
+
 ## 9. Every outside connection, and how it gets what it needs
 
 From [economy-connections.md](economy-connections.md): 367 open lines in 61 files. Grouped by what they ask for.
@@ -226,6 +249,7 @@ At each step: three 30-year games, and the bottleneck reported before the next s
 3. Do households stay as Maja's population built them, or are they rebuilt too?
 4. Does the old type table (34 types) carry over as the starting point, or do you want to go through the types?
 5. How large is the "small penalty" for the smaller sizes? (Wilma's proposal is in section 5.)
+6. For salaries, what is the line that rule nine turns on (the "making price" of a worker)? (Section 8b.)
 
 ## 12. Review
 
