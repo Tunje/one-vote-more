@@ -1,18 +1,19 @@
 # The rebuild of the economy: one company object
 
-**Version 8, unified, 2026-11-17. Wilma.** This replaces drafts 1 to 7. It is one document: every ruling the user gave
+**Version 9, 2026-11-17. Wilma.** Unified, reviewed twice by all six sessions, and with every open point decided (section 12). This replaces all earlier versions. It is one document: every ruling the user gave
 for the rebuild is in it, in its place. Nothing is built.
 
 How to read it:
 
 - Text in quote marks or in a quote block is the user's own words, unchanged.
 - **(proposal)** marks something Wilma filled in. It is not decided.
-- **(open)** marks something nobody has decided. Section 14 collects them.
+- **(open)** in sections 1 to 11 marks a point that was open when the section was written. Every one of them is decided in section 12.
 - Everything else is the user's ruling put into plain rules, or a fact of the code.
 
 Where things are: the game as it was before the cut is `game_full_copy/` and commit 785c72f. In `game/` the economy is
 removed and every call into it is left open; they are listed in [economy-connections.md](economy-connections.md). The
-six sessions' first reviews and Terra's opinion on homes are in [rebuild-reviews.md](rebuild-reviews.md). The rulings
+six sessions' first reviews and Terra's opinion on homes are in [rebuild-reviews.md](rebuild-reviews.md); their second
+reviews, of the whole plan, are in [rebuild-reviews-2.md](rebuild-reviews-2.md). The rulings
 are also kept, by date, in [MASTER-PLAN.md](MASTER-PLAN.md).
 
 ---
@@ -489,7 +490,7 @@ All 72 files. None of the code or numbers carries over, except the household sid
 | econ_housing, econ_rules_housing | housing wear; landlords | the landlord company; wear (section 9.8) |
 | econ_police, econ_care, econ_sanitation, econ_public_jobs, econ_hq, econ_bizsvc, econ_retail, econ_comfort, econ_fleet, econ_commute | organisations that held staff or took a fee | each a service company with a client intake, or gone, type by type |
 | econ_public_co | public companies, approved tariffs | a state-owned company |
-| conduct | firms cutting corners | a company's choice when the law's cost exceeds its gain **(open)** |
+| conduct | firms cutting corners | a company's choice when its gain is worth more than the fine it risks (12.10, 66) |
 | econ_shares, econ_plan_rescue | the share register; rescues | `owner` as a register |
 | econ_ownership | public or private expansion | rules 7 and 8 for every owner |
 | econ_unfinished | half-built buildings | a building contract that changes client |
@@ -518,93 +519,216 @@ One old file was not cut: `game/data/econ/econ_data.gd`, in a separate data fold
 all the old numbers, and the list of six districts that much of the game reads. Its numbers do not carry over, and its
 district list is against "no sectors beyond landfallpoint". **(open: what replaces the district list)**
 
-## 12. Build order **(proposal)**
+## 12. Decided by Wilma: every open point with an obvious answer
 
-The first order could not work: the reviews showed steps needing things from later steps. This one puts each need
-before its use. Each step is built on the steps before it, with them on, and tested there.
+The user, 2026-11-17: "start answering all the fucking questions that have obvius answers i don't want to hold you
+fucking hand for every decision". So every point the two reviews left open is decided here, from the user's rulings,
+from what several reviewers proposed alike, or from plain sense. These are Wilma's decisions. The user strikes any that
+is wrong; nothing here is asked again.
 
-1. **The ground:** helpers in the core; the world and the monthly step (terrain, the landfall place, the road month,
-   the planet's month) that the old economy's start-up used to set going. The game compiles and runs again, with no
-   economy in it.
-2. **Month one and the company:** the record, the type table with starting prices set by us, the sizes, where a plant
-   stands; the government's subsidiaries and five builders exist.
-3. **Households and work:** the household side fitted in; hiring; salaries from the starting line by the three rules.
-4. **The market and the price rules** (1, 2, 9, hold-back, only price moves price) and the output rules (3, 4): first
-   one item end to end, then every item, then the types with work slots.
-5. **The bank and owners' money.**
-6. **Building:** builders, the building contract, the plan stage; rules 5 to 8; wear and repair.
-7. **Homes:** landlords, the town grid, rent, owning, own houses.
-8. **Freight:** trucks on the roads, the queue, truck workshops.
-9. **The government's purse:** taxes, brackets, grants, state companies under the rules, the reserve.
-10. **The end of a company.**
-11. **Offices, pollution and noise, stress, unions.**
-12. **Ships and the home world.**
-13. **The law's hold, what the economy publishes, and every remaining open connection.**
+### 12.1 The ground
 
-At each step: three 30-year games, and where the bottleneck is, before the next step starts.
+1. **An area** grows out of where homes and plants are built (the population code already makes such areas). A salary's
+   area, a household's area and a service's reach are that. Month one has one area: the landfall place.
+2. **Districts** are drawn by the government from the areas, by the existing districting law, as the colony spreads.
+   The Assembly's seats follow them. With one district all seats are colony-wide.
+3. **Land** belongs to the colony at landing. A plan buys the land it builds on from whoever owns it, at the land price
+   (the value of its cells). A buy-out buys the land and the building together.
+4. **A square** holds one full size of company per type.
+5. **Where a plant stands** is a set of cells or tiles, chosen by its plan with the siting code: the best-scoring free
+   place for its type. A plant pays for its road, power and water connection as a home does.
+6. **A building** is kept by a buyer of the same type. Another type rebuilds it. An empty building after an ending
+   stands and wears, and can be bought.
+7. **The order of a month:** trade, then production, then settlement (wages, rent, taxes, loans), then the companies'
+   rules, then the households. The rules read the month just finished.
+8. **Money at the start** (the treasury, the bank, the settlers' savings, the builders' capital) is set by us with the
+   other numbers.
 
-## 12a. Three answers taken from the second review **(proposals)**
+### 12.2 Month one
 
-Where several reviewers proposed the same answer independently, it is entered here as a proposal, not asked again.
+9. **The landing stock** (the user: materials, "5 years worth of equipment") is the colony's. The government sells from
+   it at the starting prices. It covers material, components and food.
+10. **The settlers** arrive as in the old game: a founding population with ages, skills and savings, numbers set new.
+11. **The first homes** are the landing shelters: plain homes at the landfall place, the housing office's, with a low
+    rent. Real homes are built. (The colony lands with no finished buildings; people still have to sleep somewhere.)
+12. **The first roads:** none beyond the landfall place. Roads are built as the colony spreads.
+13. **The port** is at the landfall place and is the government's.
 
-- **What an "area" is, with no districts** (Terra, Bob and Anni, separately): an area grows out of where homes and
-  plants are built; the population code already makes such areas. A salary's "area", a household's area and a service's
-  reach are that. The government draws districts from the areas, by law, as the colony spreads; the Assembly's seats
-  follow those districts. In month one there is one area and one district: the landfall place.
-- **People or pools** (Maja, Ella, Anni, Bob): the household pools stay, and each pool keeps a count per company its
-  members work for, so a job is still recorded once. Where one household must be named (the owner of a family company,
-  an owner taken to court), that household has an account of its own inside its pool, so a judgment or a grant touches
-  it and not its neighbours.
-- **A square** (Terra): it holds one full size of company PER TYPE. A shop does not stop the landlord in the same
-  street block from growing; another landlord does.
+### 12.3 The rules
 
-## 13. Readings that are Wilma's
+14. **The making price** of a thing is a month's costs (inputs, wages, upkeep, rent, loan payments, freight it pays)
+    divided by what the plant makes at its normal full output. Not by what it happened to sell, so a bad month does not
+    inflate it.
+15. **No fixed cap** on a month's price change. The change is in proportion to the signal, the same up and down.
+16. **Rule 6:** twelve months idle.
+17. **Rule 5 runs section 5's order:** a size up in its own square; else a buy-out; else a new plant.
+18. **Rule 3 does not act while a company is holding stock back.** It has more to sell already.
+19. **Missing inputs are not a price signal.** A builder whose crews wait for material, or a plant without power, has
+    empty slots or unsold output from a cause that is not price; rules 2, 4 and 6 do not read it.
+20. **Sales death counts only months when price was the cause.** Months lost to freight, the road, missing inputs or a
+    shutdown do not count toward the two years.
+21. **A union shutdown** pauses the sales-death clock and the idle time, and a struck plant still counts as covering
+    its work for rule 8.
+22. **Types with work slots do not hold back.** An empty slot is lost that month whatever they do.
+23. **Hunger is counted from need, not from orders.** A household's food need that is not met, for any reason
+    including its own money, is hunger. Only the price rules ignore the part stopped by money.
+24. **The second output** is switched from one month to the next, at no cost.
+25. **An export** counts as sold, at the home world's price, when it goes aboard. Stock at the port waiting for a ship
+    is waiting for freight, not unsold.
+26. **Imports** stop for a good as soon as a plant in the colony makes it, as the user ruled it.
+27. **A short good** is shared in proportion among the buyers offering the same price. No buyer goes first by class.
+28. **Hiring:** nobody hires first. Pay decides. No speed limits on hiring or laying off.
+29. **Saving for replacement:** upkeep is part of the making price, so a company that sells at or above it can keep its
+    plant up.
 
-Collected, so a reviewer can find them: the two salary signal lines (9.2); a builder's one price per unit of work (4);
-the building contract as its own record (9.7); "turn the price" as back above the making price, and a buy-out as the
-same event as growing in a shared square (8.3); a shutdown not read by the rules (9.9); no private companies placed in
-month one (9.12); 10% of the bill for land (9.8); the staff-only types gone through one by one (4); the time for rule
-6; the build order (12).
+### 12.4 Freight and trucks
 
-## 14. Open: not decided by anyone
+30. **A carrier posts a price per route,** set by the same three price rules. A buyer ranks offers by price plus
+    freight. The sale is made before carrying; goods on the road are the buyer's.
+31. **A builder's supplies** are delivered to the building site by freight like any sale. "Up front" means at the site.
+32. **A truck is ordered from its maker,** not bought cheapest-first off a market. The buyer chooses the maker by price
+    and quality.
+33. **Roads:** siting, seasons, ecology, freight on roads, road works and road safety are all part of the rebuild and
+    on. Private roads and tolls are left out for now.
+34. **The planet** sets a farm's yield by season and ecology; storms and wildlife act on plants and outdoor workers as
+    before.
 
-From the six first reviews. Each needs the user's word or a proposal the user accepts.
+### 12.5 People
 
-**About companies and the rules**
+35. **Households stay pools,** each with a count per company its members work for. A household that must be named (the
+    owner of a family company, an owner in court, a home owner) has its own account inside its pool.
+36. **The old household code is fitted like this:** its district keys become areas; its self-employed become family-size
+    service companies; its price floors and ceilings and the ceiling on the self-employed are removed; every number it
+    read from the old data file is set new. The 130% crowding limit stays: it is how many people fit in a home.
+37. **The starting salary is per worker:** the housing and food of a household in the area, divided by its earners,
+    plus half again.
+38. **A worker's needs** (below which they do not apply) are that same housing and food per worker.
+39. **Changing jobs:** an employed worker moves when a job within reach pays more after travel. This is new code.
+40. **Reach:** a worker takes a job within travel reach of home; pay is compared after travel time and fare. Buses are
+    the transit company's, with riders as clients.
+41. **The benefit and pensions** are lines on the government's purse, each a share of the area's starting salary. The
+    retirement age stays a lever.
+42. **Arrivals and departures** by ship are built with the households, not with exports.
 
-1. Whether a month's price change has a cap, and its size.
-2. The time a plant stands idle before rule 6 cuts it.
-3. "Cheapest delivered first" needs a freight price before the sale: who quotes it, who carries, and whether the sale
-   is made before or after carrying.
-4. Trucks differ by quality; a cheapest-first market cannot tell them apart.
-5. How a household becomes a client of a service, how many clients it is, and how far it travels to one.
-6. What being served does to a person: clinic to health, school to skill, childcare to parents working, police to crime.
-7. Quality and reputation of consumer goods; goods that spoil; goods that need storage.
-8. Who picks where a plant stands; private roads and tolls; the planet setting a farm's yield.
-9. Supply contracts, and how a short good is shared between buyers.
-10. Whether essential plants hire first, and whether hiring and layoffs have a speed.
+### 12.6 Services
 
-**About the outside things**
+43. **A household is a client** of the nearest service of the kind with a free place within reach (school 1.5 km,
+    clinic 2 km, from the town grid). Each person who needs it is one client.
+44. **What being served does:** a clinic lowers deaths, a school sets the skill a child grows up with, childcare lets
+    parents work, elder care lowers deaths of the retired, police lowers crime.
+45. **Who cannot pay:** a public service is free at the door, paid by its bracket. A private one serves who pays.
+46. **A bracket** is proposed by the service's own rules (it needs more, or less) and decided by the government. The
+    same holds for the tariff of a state-owned utility.
+47. **A state service's size:** its rules propose a new plant or a closure; the government decides and commissions.
+48. **Shops, cafés and the like** are service companies with a client intake, so every line of household spending has a
+    seller. A newspaper is a company whose clients are its readers. A party's office staff are the party's own.
 
-11. Utilities: power and water go through a grid, cannot be stocked or trucked, and the government approves their
-    price. How they sit under "one company object".
-12. Taxes on companies and sales; the budget lines; the reserve; the state borrowing.
-13. Owners' money: what goes in at the start, and when profit is paid out.
-14. The bank's own limits and failure.
-15. The port, the ship schedule, the home world's prices and the charter quota; the merchant who sells landed goods.
-16. The terms of a building contract: payment as work goes on, the price moving with wages and materials, an unpaid
-    job, a half-built building, the client refusing a quote.
-17. Unions: what a union demands that a company can comply with; which company a shutdown hits once members are in
-    several; whether the fee stops during one; whether there is a federation; what a union may spend on politics and
-    papers; the law on strikes.
-18. The law's hold: licences and the permit office, closing an unlicensed plant, land leases, the taxes and price
-    controls the law sets, the court winding a company up for convictions.
-19. Company donations to parties.
-20. Commuting and buses.
-21. Whether a newspaper is a company.
-22. What replaces the list of six districts.
-23. Which of the road systems that were opt-in in the old game (freight on roads, road works, private roads, road
-    safety, siting, seasons, ecology) are part of the rebuild.
+### 12.7 Utilities
+
+49. **Power and water** are companies whose way of reaching the buyer is the grid. They cannot be stocked. A private
+    one prices by the rules; a state one proposes and the government approves.
+
+### 12.8 Money, owners and endings
+
+50. **The bank is a company.** Its clients are its borrowers and its price is the interest rate, set by the same three
+    price rules. Every household and company has an account from month one. It can end like any company. The
+    government borrows from it like anyone.
+51. **Owners** put in what a plan needs beyond its loan and grant, and take profit out once a year from what the
+    company holds above six months of its costs.
+52. **The owner is liable** for the company's debts, as the court ruling says. The court can take back what the owner
+    took out in the company's last year.
+53. **In a buy-out the debts go with the plant.** One owner's companies selling to each other is allowed and is taxed
+    like any sale.
+54. **A state company that cannot pay** is covered by the government or closed by it. Nobody takes the state to court.
+55. **Other non-payment:** unpaid rent ends in eviction under the existing law; an unpaid upkeep fee, tax or fine goes
+    to court like a loan.
+
+### 12.9 Building
+
+56. **A building contract** is paid month by month as the work is done. Its price follows wages and material prices
+    during the build. The builder stops after three unpaid months. A half-built building stays and another plan can
+    take it over. A client may refuse a quote and wait.
+57. **A builder's book** is worked in the order the jobs were signed.
+58. **Upkeep** uses material and a little builder's work.
+59. **A plant keeps running** while it is built a size up.
+60. **A plan's money** is held in an account of its own until the plant opens. A grant given to a plan that is given up
+    is paid back.
+61. **One grant per household.**
+
+### 12.10 The government, the law, politics
+
+62. **Taxes** keep their old kinds (income, profit, sales, royalties, the charges the law sets), with every number set
+    new. **Budget lines** stay, each with what it has left. **The reserve** is the landing stock and whatever the
+    government buys for it.
+63. **Levers:** every lever politics reads by name stays where its thing still exists, with its effect built new: the
+    minimum wage, union rights, public pay, benefit and pension rates, rent and price controls, tariffs, the
+    yearly-bonus minimum.
+64. **A legal ceiling on a price or rent** stops the rules at the ceiling. That is the government's doing, and allowed.
+65. **No law may forbid a company type from being private;** it may only make it dearer. (The user's ruling for
+    utilities, applied to all types.)
+66. **Licences and permits** work as before: the law is checked, the licence queues in the permit office, and a company
+    may go ahead unlicensed when its gain is worth more than the fine it risks.
+67. **A buy-out** goes through the existing competition law. The company being bought can refuse an offer below what
+    its land, building and stock are worth.
+68. **The court can wind a company up** after repeated convictions, as before.
+69. **An accident at work** is the company's to pay for.
+70. **People the state employs outside any company** (judges, inspectors, ministries) are hired and paid by the same
+    salary rules, with the government as the employer.
+71. **Unions:** what a union demands is better conditions or pay at the company where it started the dispute; a
+    shutdown hits that company; members pay no fee while out and the company pays them nothing; there is no federation;
+    a union may spend on politics and papers only what it holds beyond one month of shutdown pay; the existing law on
+    strikes applies.
+72. **Donations:** companies give to parties from their profit, as before. A party buys its advertising from
+    newspapers. A party-owned company's profit goes to the party, on the record.
+73. **Blame:** every ending, mass layoff, shutdown and famine publishes who is responsible and where, so voters can
+    act on it.
+74. **Prices for voters:** a price index per area, from the companies' prices weighted by what they sold.
+75. **The decision desk:** every act of the government in section 10 that a minister would decide is a case on the
+    desk, as before.
+76. **The player's view:** a plain map that shows plants from step 2; a run-down building looks run-down.
+
+### 12.11 Left out for now
+
+Supply contracts; buying on account between firms; storage space; quality and reputation of consumer goods; private
+roads and tolls; a union federation. Each can come back once the base runs.
+
+## 13. Build order
+
+Reworked from the second review. Each step is built on the steps before it, with them on, and tested there. Things that
+depend on each other are in the same step, so nothing is tuned without the thing that will later break it.
+
+1. **The ground.** Helpers in the core; the world, areas and the landfall place; the order of the month; the planet's
+   and the roads' month; a plain answer for every open connection so politics, law and the screens run ("no unions",
+   "no budget yet"); a plain map. The game compiles and runs with no economy in it.
+2. **Month one.** The company record, the type table with starting prices, sizes, squares, land and siting; the
+   landing stock; the five home-world builders; the government's subsidiaries; the settlers and the landing shelters;
+   accounts at the bank; the purse paying its own staff, the benefit and pensions.
+3. **People, work and the first market, together.** The households fitted in; hiring and salaries; the market with the
+   price rules (1, 2, 9, hold-back) and output rules (3, 4) for food and the essentials; the ship schedule with
+   arrivals, departures and the import backstop; seasons and farm yield.
+4. **Everything that is sold, and how it moves, together.** All items; the types with work slots (public services,
+   shops, utilities on the grid); freight on the roads with the queue, carriers' prices, trucks and truck workshops.
+5. **Money and endings.** The bank lending; owners' money; the three ways a company ends; the court.
+6. **Building.** The building contract, the plan stage, rules 5 to 8; wear and repair; grants; permits and licences;
+   land sales and buy-outs.
+7. **Homes.** Landlords, the town grid, rent, owning, own houses; noise.
+8. **The government's purse in full.** Taxes, brackets, budget lines, levers, the reserve, price controls.
+9. **Offices, pollution, stress, unions, donations.**
+10. **Exports and the home world's demands.**
+11. **Everything the economy publishes, every remaining connection, the screens.**
+
+At each step: three 30-year games, and where the bottleneck is, before the next step starts. From step 3 on, each
+report also says which companies would have ended, even before endings are built at step 5.
+
+## 14. What I am least sure of
+
+Three of the decisions above change what a ruling does in practice. They are decided, and flagged so the user can find
+them:
+
+- **11, the landing shelters.** The ruling is "not finished buildings"; I gave the settlers plain shelters anyway.
+- **26, imports stop the moment one plant makes the good.** That is the ruling as given. One family farm covering a
+  fiftieth of the need stops all food imports. The landing stock is what carries the colony through.
+- **15, no cap on a price change.** The ruling said the cap must be the same both ways, if there is one.
 
 ## 15. This review
 
