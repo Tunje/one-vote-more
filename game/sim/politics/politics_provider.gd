@@ -9,6 +9,7 @@ extends PicProvider
 
 const S := 1000
 const StaffOps := preload("res://sim/staff/staff_ops.gd")
+const HealthSignal := preload("res://sim/politics/health_signal.gd")
 const DRAFT_TIMEOUT_MONTHS := 12
 const LOSS_AVERSION := 0.8          # extra weight on shortfalls below 50% satisfaction (tuning knob)
 const EXPECTATION_MONTHS := 36.0
@@ -126,6 +127,7 @@ func run_phase(phase: int, world: WorldState) -> void:
 		GovCrisis.no_confidence_ai(world, st)
 		EmergencyPolitics.monthly(world, st)
 		DistrictPolitics.monthly(world, st)
+	HealthSignal.monthly(world)    # untreated illness becomes public news and a crisis (switch HEALTH_SIGNAL)
 	AreaStore.yearly(world)        # January: oversized areas and private enclaves split (moves to SOCIAL with Bob's A2)
 	GovBuilder.monthly(world, st)  # the state's capital programme, decided by whoever governs (not when the player does)
 	GovWildlife.monthly(world, st)  # ECO: blame for wildlife attacks, alarm at a collapsing food web, the yearly policy review

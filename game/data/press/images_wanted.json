@@ -516,6 +516,18 @@
    "for": "GENERIC_FARM",
    "show": "A farmhouse with barns and a tractor in a field.",
    "note": "second picture: the same subject from a different angle or moment"
+  },
+  {
+   "file": "ECON_PANDEMIC_1.png",
+   "for": "ECON_PANDEMIC",
+   "show": "A long line of people waiting outside a small, low clinic building, some sitting on the ground, seen from across the street.",
+   "note": ""
+  },
+  {
+   "file": "ECON_PANDEMIC_2.png",
+   "for": "ECON_PANDEMIC",
+   "show": "An empty workshop floor with idle machines and a row of unused coats on hooks.",
+   "note": "No people."
   }
  ]
 }

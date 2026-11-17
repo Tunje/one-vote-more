@@ -172,6 +172,7 @@ static func sentence(w: WorldState, f: Dictionary) -> String:
 		"ECON_GRANT_PROGRAMME_ENDED": s = "The family %s grant programme has closed after %d months: %d grants paid, %d applications refused" % ["farm" if str(d.get("type", "")) == "FAMFARM" else "bakery", 24, int(d.get("paid", 0)), int(d.get("refused", 0))]
 		"ECON_FOOD_SCARCE": s = "Food is scarce: %d%% of what families ordered was not delivered" % (int(d.get("scarce_permille", 0)) / 10)
 		"ECON_FAMINE": s = "[color=#ff5252]FAMINE: the colony cannot feed itself[/color]"
+		"ECON_PANDEMIC": s = "[color=#ff5252]PANDEMIC[/color]: %d people are too ill to work; clinic access in %s is %d%%" % [int(d.get("sick", 0)), district(w, d.get("district", "")), int(d.get("access_pct", 0))]
 		"ECON_RENT_INCREASE": s = "Rents rose %d%%%s" % [int(d.get("pct", 0)), where]
 		"ECON_SOVEREIGN_DEFAULT": s = "[color=#ff5252]The government has defaulted on its debts[/color]"
 		"ECON_DEBT_RESTRUCTURED": s = "Creditors wrote off part of the government's debt"

@@ -427,6 +427,15 @@ On the written article headed "A large loss of jobs at a company":
 Done the same turn: the writer's brief, the wanted list (`must_name`) and the checker demand the name; the game does not print a written article that leaves it out and keeps its own sentence, which names it.
 
 
+### Untreated illness needs signals (the user, 2026-11-17, verbatim)
+
+After v12 (clinics closed, clinic access near zero in five districts, 8% of the labour force held back as sick, and nothing reported):
+
+> This needs signals,  pandemic in the newpaper
+
+Built the same turn (Wilma, switch HEALTH_SIGNAL, `game/sim/politics/health_signal.gd`): a public fact ECON_PANDEMIC each month while the people too ill to work are at least 2% of the labour force, counted the way the labour market counts them. The government answers for it, voters' concern for public services and safety falls with its size, the papers print it, and from 4% it is a crisis a government can declare an emergency over. The 2% and 4% are Wilma's numbers, not the user's.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

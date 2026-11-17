@@ -34,7 +34,7 @@ static func kind_of(t: String) -> String:
 	for k in ["FAMINE", "FOOD", "DROUGHT", "BLIGHT", "HARVEST", "SHORTAGE"]:
 		if t.contains(k):
 			return "FOOD"
-	for k in ["EPIDEMIC", "CONTAMINATION", "OUTBREAK", "HEALTH"]:
+	for k in ["PANDEMIC", "EPIDEMIC", "CONTAMINATION", "OUTBREAK", "HEALTH"]:
 		if t.contains(k):
 			return "HEALTH"
 	for k in ["POWER", "OUTAGE", "BREAKDOWN", "UTILITY", "WATER"]:

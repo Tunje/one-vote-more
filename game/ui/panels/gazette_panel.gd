@@ -476,6 +476,8 @@ const RUN_LOOK_BACK := 36
 
 static func story_key(f: Dictionary) -> String:
 	var d: Dictionary = f.get("data", {})
+	if String(f["type"]) == "ECON_PANDEMIC":  # one story for the colony, wherever it is worst this month
+		return "ECON_PANDEMIC"
 	for k in ["project", "org", "company", "party", "union", "facility", "employer", "district", "name"]:
 		if d.has(k):
 			return "%s|%s" % [String(f["type"]), str(d[k])]
@@ -526,7 +528,7 @@ static func _fresh_first(w: WorldState, stories: Array, month: int) -> Array:
 
 ## Editorial weight by kind of news: politics, scandal and disaster lead; routine delays go to the back.
 const WEIGHT := {"POL_": 30, "HOME_": 40, "LAW_LEADER": 30, "LAW_CHARTER": 35, "LAW_PETITION": 30, "LAW_EVICTION": 25,
-	"ECON_FAMINE": 60, "ECON_SOVEREIGN": 50, "PLANET_": 25, "COMP_WORKPLACE": 15, "ECON_STRIKE": 20, "ECON_ARBITRATION": 5, "ECON_LAYOFFS": 15,
+	"ECON_FAMINE": 60, "ECON_PANDEMIC": 55, "ECON_SOVEREIGN": 50, "PLANET_": 25, "COMP_WORKPLACE": 15, "ECON_STRIKE": 20, "ECON_ARBITRATION": 5, "ECON_LAYOFFS": 15,
 	"COMP_LIQUIDATED": 10, "ECON_SHIP": 20, "ECON_EXPORTS": 25, "ECON_HOME_PRICE": 10, "UNION_STRIKE": 25, "UNION_SPLIT": 15, "UNION_LEADER": -10, "MEDIA_": -5, "MEDIA_FALSE_REPORT_REVEALED": -60, "MEDIA_CENSORED": 30, "ECON_CONTRACT": -40, "ECON_TENDER": -40, "ECON_RENT": -10, "ECON_SHORTAGE": -15,
 	"ECON_LEVER_EFFECTIVE": -60, "POL_PROJECT_ORDERED": -20, "POL_BILL_PASSED": -15}
 const GROUP_HEAD := {"ECON_CONTRACT_DELAYED": "BUILDING DELAYS PILE UP", "ECON_CONTRACT_SEVERELY_DELAYED": "BUILDING PROJECTS BADLY BEHIND",
@@ -609,6 +611,7 @@ static func headline(w: WorldState, f: Dictionary) -> String:
 		"HOME_EXPEDITION_SENT": h = "HOME WORLD SENDS WARSHIPS"
 		"HOME_AUTONOMY_REFUSED": h = "COLONY SPURNS HOME WORLD'S AUTONOMY OFFER"
 		"ECON_FAMINE": h = "FAMINE GRIPS THE COLONY"
+		"ECON_PANDEMIC": h = "PANDEMIC: %d TOO ILL TO WORK" % int(d.get("sick", 0))
 		"ECON_SOVEREIGN_DEFAULT": h = "GOVERNMENT DEFAULTS ON ITS DEBTS"
 		"ECON_STRIKE": h = "WORKERS WALK OUT"
 		"ECON_ARBITRATION": h = "ARBITRATOR AVERTS STRIKE IN %s" % ("THE PUBLIC SERVICE" if String(d.get("org", "")) == "gov" else NewsText.org(w, d.get("org", "")).to_upper())

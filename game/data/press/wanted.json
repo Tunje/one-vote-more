@@ -1,5 +1,5 @@
 {
- "version": 2,
+ "version": 3,
  "articles": [
   {
    "file": "ECON_FAMINE__STATE__NEUTRAL__LEAD.json",
@@ -56552,8 +56552,2018 @@
    }
   },
   {
-   "file": "FEATURE_DISTRICT_PORTRAIT__STATE.json",
+   "file": "ECON_PANDEMIC__STATE__NEUTRAL__LEAD.json",
    "priority": 2251,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "NEUTRAL",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__NEUTRAL__BRIEF.json",
+   "priority": 2252,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "NEUTRAL",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__AGAINST__LEAD.json",
+   "priority": 2253,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "AGAINST",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__AGAINST__BRIEF.json",
+   "priority": 2254,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "AGAINST",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__FOR__LEAD.json",
+   "priority": 2255,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "FOR",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__FOR__BRIEF.json",
+   "priority": 2256,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "FOR",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__NEUTRAL__LEAD.json",
+   "priority": 2257,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "NEUTRAL",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__NEUTRAL__BRIEF.json",
+   "priority": 2258,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "NEUTRAL",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__AGAINST__LEAD.json",
+   "priority": 2259,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "AGAINST",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__AGAINST__BRIEF.json",
+   "priority": 2260,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "AGAINST",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__FOR__LEAD.json",
+   "priority": 2261,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "FOR",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__FOR__BRIEF.json",
+   "priority": 2262,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "FOR",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__NEUTRAL__LEAD.json",
+   "priority": 2263,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "NEUTRAL",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__NEUTRAL__BRIEF.json",
+   "priority": 2264,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "NEUTRAL",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__AGAINST__LEAD.json",
+   "priority": 2265,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "AGAINST",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__AGAINST__BRIEF.json",
+   "priority": 2266,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "AGAINST",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__FOR__LEAD.json",
+   "priority": 2267,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "FOR",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__FOR__BRIEF.json",
+   "priority": 2268,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "FOR",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__NEUTRAL__LEAD.json",
+   "priority": 2269,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "NEUTRAL",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__NEUTRAL__BRIEF.json",
+   "priority": 2270,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "NEUTRAL",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__AGAINST__LEAD.json",
+   "priority": 2271,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "AGAINST",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__AGAINST__BRIEF.json",
+   "priority": 2272,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "AGAINST",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__FOR__LEAD.json",
+   "priority": 2273,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "FOR",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__FOR__BRIEF.json",
+   "priority": 2274,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "FOR",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__NEUTRAL__LEAD.json",
+   "priority": 2275,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "NEUTRAL",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__NEUTRAL__BRIEF.json",
+   "priority": 2276,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "NEUTRAL",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__AGAINST__LEAD.json",
+   "priority": 2277,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "AGAINST",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__AGAINST__BRIEF.json",
+   "priority": 2278,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "AGAINST",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__FOR__LEAD.json",
+   "priority": 2279,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "FOR",
+   "kind": "LEAD",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__FOR__BRIEF.json",
+   "priority": 2280,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "FOR",
+   "kind": "BRIEF",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__NEUTRAL__SECOND.json",
+   "priority": 2281,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "NEUTRAL",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__NEUTRAL__FOLLOWUP.json",
+   "priority": 2282,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "NEUTRAL",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__AGAINST__SECOND.json",
+   "priority": 2283,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "AGAINST",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__AGAINST__FOLLOWUP.json",
+   "priority": 2284,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "AGAINST",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__FOR__SECOND.json",
+   "priority": 2285,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "FOR",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__FOR__FOLLOWUP.json",
+   "priority": 2286,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "FOR",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__NEUTRAL__SECOND.json",
+   "priority": 2287,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "NEUTRAL",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__NEUTRAL__FOLLOWUP.json",
+   "priority": 2288,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "NEUTRAL",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__AGAINST__SECOND.json",
+   "priority": 2289,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "AGAINST",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__AGAINST__FOLLOWUP.json",
+   "priority": 2290,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "AGAINST",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__FOR__SECOND.json",
+   "priority": 2291,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "FOR",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__FOR__FOLLOWUP.json",
+   "priority": 2292,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "FOR",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__NEUTRAL__SECOND.json",
+   "priority": 2293,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "NEUTRAL",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__NEUTRAL__FOLLOWUP.json",
+   "priority": 2294,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "NEUTRAL",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__AGAINST__SECOND.json",
+   "priority": 2295,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "AGAINST",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__AGAINST__FOLLOWUP.json",
+   "priority": 2296,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "AGAINST",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__FOR__SECOND.json",
+   "priority": 2297,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "FOR",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__FOR__FOLLOWUP.json",
+   "priority": 2298,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "FOR",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__NEUTRAL__SECOND.json",
+   "priority": 2299,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "NEUTRAL",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__NEUTRAL__FOLLOWUP.json",
+   "priority": 2300,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "NEUTRAL",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__AGAINST__SECOND.json",
+   "priority": 2301,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "AGAINST",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__AGAINST__FOLLOWUP.json",
+   "priority": 2302,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "AGAINST",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__FOR__SECOND.json",
+   "priority": 2303,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "FOR",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__FOR__FOLLOWUP.json",
+   "priority": 2304,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "FOR",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__NEUTRAL__SECOND.json",
+   "priority": 2305,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "NEUTRAL",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__NEUTRAL__FOLLOWUP.json",
+   "priority": 2306,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "NEUTRAL",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__AGAINST__SECOND.json",
+   "priority": 2307,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "AGAINST",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__AGAINST__FOLLOWUP.json",
+   "priority": 2308,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "AGAINST",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__FOR__SECOND.json",
+   "priority": 2309,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "FOR",
+   "kind": "SECOND",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__FOR__FOLLOWUP.json",
+   "priority": 2310,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "FOR",
+   "kind": "FOLLOWUP",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__NEUTRAL__RETURN.json",
+   "priority": 2311,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "NEUTRAL",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__AGAINST__RETURN.json",
+   "priority": 2312,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "AGAINST",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__STATE__FOR__RETURN.json",
+   "priority": 2313,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "STATE",
+   "stance": "FOR",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__NEUTRAL__RETURN.json",
+   "priority": 2314,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "NEUTRAL",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__AGAINST__RETURN.json",
+   "priority": 2315,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "AGAINST",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__PARTY__FOR__RETURN.json",
+   "priority": 2316,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "PARTY",
+   "stance": "FOR",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__NEUTRAL__RETURN.json",
+   "priority": 2317,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "NEUTRAL",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__AGAINST__RETURN.json",
+   "priority": 2318,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "AGAINST",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__UNION__FOR__RETURN.json",
+   "priority": 2319,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "UNION",
+   "stance": "FOR",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__NEUTRAL__RETURN.json",
+   "priority": 2320,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "NEUTRAL",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__AGAINST__RETURN.json",
+   "priority": 2321,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "AGAINST",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__BUSINESS__FOR__RETURN.json",
+   "priority": 2322,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "BUSINESS",
+   "stance": "FOR",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__NEUTRAL__RETURN.json",
+   "priority": 2323,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "NEUTRAL",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__AGAINST__RETURN.json",
+   "priority": 2324,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "AGAINST",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "ECON_PANDEMIC__TABLOID__FOR__RETURN.json",
+   "priority": 2325,
+   "event": "ECON_PANDEMIC",
+   "about": "A pandemic: illness is spreading through the colony because the clinics cannot treat people, and many are too ill to work. {sick} is how many, {district} is where it is worst.",
+   "flavour": "TABLOID",
+   "stance": "FOR",
+   "kind": "RETURN",
+   "placeholders": [
+    "paper",
+    "month",
+    "year",
+    "colony",
+    "target",
+    "first_minister",
+    "governing_party",
+    "sick",
+    "district",
+    "months_running",
+    "first_reported"
+   ],
+   "variants": 3,
+   "must_name": [],
+   "holds": {
+    "sick": "a number: how many people are too ill to work",
+    "district": "the name of the district where it is worst"
+   }
+  },
+  {
+   "file": "FEATURE_DISTRICT_PORTRAIT__STATE.json",
+   "priority": 2326,
    "event": "FEATURE_DISTRICT_PORTRAIT",
    "about": "A portrait of one district: who lives there, what it is known for.",
    "flavour": "STATE",
@@ -56572,7 +58582,7 @@
   },
   {
    "file": "FEATURE_DISTRICT_PORTRAIT__PARTY.json",
-   "priority": 2252,
+   "priority": 2327,
    "event": "FEATURE_DISTRICT_PORTRAIT",
    "about": "A portrait of one district: who lives there, what it is known for.",
    "flavour": "PARTY",
@@ -56591,7 +58601,7 @@
   },
   {
    "file": "FEATURE_DISTRICT_PORTRAIT__UNION.json",
-   "priority": 2253,
+   "priority": 2328,
    "event": "FEATURE_DISTRICT_PORTRAIT",
    "about": "A portrait of one district: who lives there, what it is known for.",
    "flavour": "UNION",
@@ -56610,7 +58620,7 @@
   },
   {
    "file": "FEATURE_DISTRICT_PORTRAIT__BUSINESS.json",
-   "priority": 2254,
+   "priority": 2329,
    "event": "FEATURE_DISTRICT_PORTRAIT",
    "about": "A portrait of one district: who lives there, what it is known for.",
    "flavour": "BUSINESS",
@@ -56629,7 +58639,7 @@
   },
   {
    "file": "FEATURE_DISTRICT_PORTRAIT__TABLOID.json",
-   "priority": 2255,
+   "priority": 2330,
    "event": "FEATURE_DISTRICT_PORTRAIT",
    "about": "A portrait of one district: who lives there, what it is known for.",
    "flavour": "TABLOID",
@@ -56648,7 +58658,7 @@
   },
   {
    "file": "FEATURE_LETTERS__STATE.json",
-   "priority": 2256,
+   "priority": 2331,
    "event": "FEATURE_LETTERS",
    "about": "Letters to the editor: three short letters from readers about daily life.",
    "flavour": "STATE",
@@ -56667,7 +58677,7 @@
   },
   {
    "file": "FEATURE_LETTERS__PARTY.json",
-   "priority": 2257,
+   "priority": 2332,
    "event": "FEATURE_LETTERS",
    "about": "Letters to the editor: three short letters from readers about daily life.",
    "flavour": "PARTY",
@@ -56686,7 +58696,7 @@
   },
   {
    "file": "FEATURE_LETTERS__UNION.json",
-   "priority": 2258,
+   "priority": 2333,
    "event": "FEATURE_LETTERS",
    "about": "Letters to the editor: three short letters from readers about daily life.",
    "flavour": "UNION",
@@ -56705,7 +58715,7 @@
   },
   {
    "file": "FEATURE_LETTERS__BUSINESS.json",
-   "priority": 2259,
+   "priority": 2334,
    "event": "FEATURE_LETTERS",
    "about": "Letters to the editor: three short letters from readers about daily life.",
    "flavour": "BUSINESS",
@@ -56724,7 +58734,7 @@
   },
   {
    "file": "FEATURE_LETTERS__TABLOID.json",
-   "priority": 2260,
+   "priority": 2335,
    "event": "FEATURE_LETTERS",
    "about": "Letters to the editor: three short letters from readers about daily life.",
    "flavour": "TABLOID",
@@ -56743,7 +58753,7 @@
   },
   {
    "file": "FEATURE_SHIP_DAY__STATE.json",
-   "priority": 2261,
+   "priority": 2336,
    "event": "FEATURE_SHIP_DAY",
    "about": "What the port is like in the weeks before a ship is due.",
    "flavour": "STATE",
@@ -56761,7 +58771,7 @@
   },
   {
    "file": "FEATURE_SHIP_DAY__PARTY.json",
-   "priority": 2262,
+   "priority": 2337,
    "event": "FEATURE_SHIP_DAY",
    "about": "What the port is like in the weeks before a ship is due.",
    "flavour": "PARTY",
@@ -56779,7 +58789,7 @@
   },
   {
    "file": "FEATURE_SHIP_DAY__UNION.json",
-   "priority": 2263,
+   "priority": 2338,
    "event": "FEATURE_SHIP_DAY",
    "about": "What the port is like in the weeks before a ship is due.",
    "flavour": "UNION",
@@ -56797,7 +58807,7 @@
   },
   {
    "file": "FEATURE_SHIP_DAY__BUSINESS.json",
-   "priority": 2264,
+   "priority": 2339,
    "event": "FEATURE_SHIP_DAY",
    "about": "What the port is like in the weeks before a ship is due.",
    "flavour": "BUSINESS",
@@ -56815,7 +58825,7 @@
   },
   {
    "file": "FEATURE_SHIP_DAY__TABLOID.json",
-   "priority": 2265,
+   "priority": 2340,
    "event": "FEATURE_SHIP_DAY",
    "about": "What the port is like in the weeks before a ship is due.",
    "flavour": "TABLOID",
@@ -56833,7 +58843,7 @@
   },
   {
    "file": "FEATURE_SEASON__STATE.json",
-   "priority": 2266,
+   "priority": 2341,
    "event": "FEATURE_SEASON",
    "about": "The season on this planet: weather, the fields, what people are doing.",
    "flavour": "STATE",
@@ -56852,7 +58862,7 @@
   },
   {
    "file": "FEATURE_SEASON__PARTY.json",
-   "priority": 2267,
+   "priority": 2342,
    "event": "FEATURE_SEASON",
    "about": "The season on this planet: weather, the fields, what people are doing.",
    "flavour": "PARTY",
@@ -56871,7 +58881,7 @@
   },
   {
    "file": "FEATURE_SEASON__UNION.json",
-   "priority": 2268,
+   "priority": 2343,
    "event": "FEATURE_SEASON",
    "about": "The season on this planet: weather, the fields, what people are doing.",
    "flavour": "UNION",
@@ -56890,7 +58900,7 @@
   },
   {
    "file": "FEATURE_SEASON__BUSINESS.json",
-   "priority": 2269,
+   "priority": 2344,
    "event": "FEATURE_SEASON",
    "about": "The season on this planet: weather, the fields, what people are doing.",
    "flavour": "BUSINESS",
@@ -56909,7 +58919,7 @@
   },
   {
    "file": "FEATURE_SEASON__TABLOID.json",
-   "priority": 2270,
+   "priority": 2345,
    "event": "FEATURE_SEASON",
    "about": "The season on this planet: weather, the fields, what people are doing.",
    "flavour": "TABLOID",
@@ -56928,7 +58938,7 @@
   },
   {
    "file": "FEATURE_FOUNDERS__STATE.json",
-   "priority": 2271,
+   "priority": 2346,
    "event": "FEATURE_FOUNDERS",
    "about": "Looking back at the founding years of the colony.",
    "flavour": "STATE",
@@ -56946,7 +58956,7 @@
   },
   {
    "file": "FEATURE_FOUNDERS__PARTY.json",
-   "priority": 2272,
+   "priority": 2347,
    "event": "FEATURE_FOUNDERS",
    "about": "Looking back at the founding years of the colony.",
    "flavour": "PARTY",
@@ -56964,7 +58974,7 @@
   },
   {
    "file": "FEATURE_FOUNDERS__UNION.json",
-   "priority": 2273,
+   "priority": 2348,
    "event": "FEATURE_FOUNDERS",
    "about": "Looking back at the founding years of the colony.",
    "flavour": "UNION",
@@ -56982,7 +58992,7 @@
   },
   {
    "file": "FEATURE_FOUNDERS__BUSINESS.json",
-   "priority": 2274,
+   "priority": 2349,
    "event": "FEATURE_FOUNDERS",
    "about": "Looking back at the founding years of the colony.",
    "flavour": "BUSINESS",
@@ -57000,7 +59010,7 @@
   },
   {
    "file": "FEATURE_FOUNDERS__TABLOID.json",
-   "priority": 2275,
+   "priority": 2350,
    "event": "FEATURE_FOUNDERS",
    "about": "Looking back at the founding years of the colony.",
    "flavour": "TABLOID",
@@ -57018,7 +59028,7 @@
   },
   {
    "file": "FEATURE_MARKET__STATE.json",
-   "priority": 2276,
+   "priority": 2351,
    "event": "FEATURE_MARKET",
    "about": "A walk through the market: what is dear, what is cheap, what cannot be had.",
    "flavour": "STATE",
@@ -57037,7 +59047,7 @@
   },
   {
    "file": "FEATURE_MARKET__PARTY.json",
-   "priority": 2277,
+   "priority": 2352,
    "event": "FEATURE_MARKET",
    "about": "A walk through the market: what is dear, what is cheap, what cannot be had.",
    "flavour": "PARTY",
@@ -57056,7 +59066,7 @@
   },
   {
    "file": "FEATURE_MARKET__UNION.json",
-   "priority": 2278,
+   "priority": 2353,
    "event": "FEATURE_MARKET",
    "about": "A walk through the market: what is dear, what is cheap, what cannot be had.",
    "flavour": "UNION",
@@ -57075,7 +59085,7 @@
   },
   {
    "file": "FEATURE_MARKET__BUSINESS.json",
-   "priority": 2279,
+   "priority": 2354,
    "event": "FEATURE_MARKET",
    "about": "A walk through the market: what is dear, what is cheap, what cannot be had.",
    "flavour": "BUSINESS",
@@ -57094,7 +59104,7 @@
   },
   {
    "file": "FEATURE_MARKET__TABLOID.json",
-   "priority": 2280,
+   "priority": 2355,
    "event": "FEATURE_MARKET",
    "about": "A walk through the market: what is dear, what is cheap, what cannot be had.",
    "flavour": "TABLOID",
@@ -57113,7 +59123,7 @@
   },
   {
    "file": "FEATURE_ASSEMBLY_SKETCH__STATE.json",
-   "priority": 2281,
+   "priority": 2356,
    "event": "FEATURE_ASSEMBLY_SKETCH",
    "about": "A sketch of a dull day in the Colonial Assembly.",
    "flavour": "STATE",
@@ -57131,7 +59141,7 @@
   },
   {
    "file": "FEATURE_ASSEMBLY_SKETCH__PARTY.json",
-   "priority": 2282,
+   "priority": 2357,
    "event": "FEATURE_ASSEMBLY_SKETCH",
    "about": "A sketch of a dull day in the Colonial Assembly.",
    "flavour": "PARTY",
@@ -57149,7 +59159,7 @@
   },
   {
    "file": "FEATURE_ASSEMBLY_SKETCH__UNION.json",
-   "priority": 2283,
+   "priority": 2358,
    "event": "FEATURE_ASSEMBLY_SKETCH",
    "about": "A sketch of a dull day in the Colonial Assembly.",
    "flavour": "UNION",
@@ -57167,7 +59177,7 @@
   },
   {
    "file": "FEATURE_ASSEMBLY_SKETCH__BUSINESS.json",
-   "priority": 2284,
+   "priority": 2359,
    "event": "FEATURE_ASSEMBLY_SKETCH",
    "about": "A sketch of a dull day in the Colonial Assembly.",
    "flavour": "BUSINESS",
@@ -57185,7 +59195,7 @@
   },
   {
    "file": "FEATURE_ASSEMBLY_SKETCH__TABLOID.json",
-   "priority": 2285,
+   "priority": 2360,
    "event": "FEATURE_ASSEMBLY_SKETCH",
    "about": "A sketch of a dull day in the Colonial Assembly.",
    "flavour": "TABLOID",
@@ -57203,7 +59213,7 @@
   },
   {
    "file": "FEATURE_WORK__STATE.json",
-   "priority": 2286,
+   "priority": 2361,
    "event": "FEATURE_WORK",
    "about": "A day with the people who do one job: miners, bakers, nurses, builders, drivers.",
    "flavour": "STATE",
@@ -57222,7 +59232,7 @@
   },
   {
    "file": "FEATURE_WORK__PARTY.json",
-   "priority": 2287,
+   "priority": 2362,
    "event": "FEATURE_WORK",
    "about": "A day with the people who do one job: miners, bakers, nurses, builders, drivers.",
    "flavour": "PARTY",
@@ -57241,7 +59251,7 @@
   },
   {
    "file": "FEATURE_WORK__UNION.json",
-   "priority": 2288,
+   "priority": 2363,
    "event": "FEATURE_WORK",
    "about": "A day with the people who do one job: miners, bakers, nurses, builders, drivers.",
    "flavour": "UNION",
@@ -57260,7 +59270,7 @@
   },
   {
    "file": "FEATURE_WORK__BUSINESS.json",
-   "priority": 2289,
+   "priority": 2364,
    "event": "FEATURE_WORK",
    "about": "A day with the people who do one job: miners, bakers, nurses, builders, drivers.",
    "flavour": "BUSINESS",
@@ -57279,7 +59289,7 @@
   },
   {
    "file": "FEATURE_WORK__TABLOID.json",
-   "priority": 2290,
+   "priority": 2365,
    "event": "FEATURE_WORK",
    "about": "A day with the people who do one job: miners, bakers, nurses, builders, drivers.",
    "flavour": "TABLOID",
