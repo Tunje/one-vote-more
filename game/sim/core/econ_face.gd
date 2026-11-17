@@ -9,14 +9,35 @@ extends RefCounted
 const NO := "There is no economy yet."
 const EconPublish := preload("res://sim/economy/econ_publish.gd")
 const Grants := preload("res://sim/economy/grants.gd")
+const Market := preload("res://sim/economy/market.gd")
+const Company := preload("res://sim/economy/company.gd")
+const TypeTable := preload("res://sim/economy/type_table.gd")
 
 
 ## Is there an economy running (companies trading)? False until rebuild step 3. Replaces the old test
 ## `world.table("econ").has("s")` (rebuild-politics-face.md 6); read with peek, so asking creates no table.
-## STEP 3 MUST REDEFINE THIS on something real (companies trading, or households paid wages this month): nothing in the
-## rebuild writes table "econ", so until then the press never pays wages or gets its subsidy (Anni's review).
+## Step 3: true once the market has cleared at least once (Market.last_settled_month; joins). Something real, as
+## Anni's review asked; table "econ" still counts for tests that set it.
 static func running(world: WorldState) -> bool:
-	return world.peek("econ").has("s")
+	return Market.last_settled_month(world) >= 0 or world.peek("econ").has("s")
+
+
+## One item's market last month, colony-wide (Market.summary, milli-units and milli-credits): {wanted (ordered), filled,
+## paid, avg_price, unfilled: {NO_MONEY, PRICE, SOLD_OUT, NO_SELLER}}. NO_MONEY and PRICE together are "unaffordable"
+## (23a); SOLD_OUT and NO_SELLER are "scarce".
+static func market_month(world: WorldState, item: String) -> Dictionary:
+	var s: Dictionary = Market.summary(world, item)
+	s["wanted"] = int(s["ordered"])
+	return s
+
+
+## A company's revenue over its last twelve closed months and how many it has (Bob's Company.revenue_12 and
+## months_on_books), for the law's fines: {months, rev_12} in milli-credits. Replaces annual_months / annual_sum12,
+## which read a field the rebuilt record does not have.
+static func annual_revenue(world: WorldState, cid: String) -> Dictionary:
+	if Company.record(world, cid).is_empty():
+		return {"months": 0, "rev_12": 0}
+	return {"months": Company.months_on_books(world, cid), "rev_12": Company.revenue_12(world, cid)}
 
 
 ## Where each grant type has work a founder would see: {kind: {district: need}} for the kinds of GovBuilder.GRANT_KINDS
@@ -287,8 +308,37 @@ static func query_labour(_world: WorldState) -> Dictionary:
 
 
 ## old EconQuery.market_overview (economy/econ_query.gd), 2 calls
-static func query_market_overview(_world: WorldState) -> Array:
-	return []
+## Every item traded last month: {good, price, base_price (credits), offered, wanted, filled (units), seller_share_pct
+## {company name: % of what was sold}}. The why-panel and the gazette read it.
+static func query_market_overview(world: WorldState) -> Array:
+	var out: Array = []
+	if Market.last_settled_month(world) < 0:
+		return out
+	var base: Dictionary = TypeTable.start_prices()
+	for item in CoreUtil.sorted_keys(TypeTable.ITEMS):
+		var s: Dictionary = Market.summary(world, String(item))
+		if int(s["ordered"]) <= 0:
+			continue
+		var offered := 0
+		var sold := {}
+		var sold_all := 0
+		for cid in Company.ids(world):
+			var sig: Dictionary = Market.seller_signal(world, String(cid), String(item))
+			if sig.is_empty():
+				continue
+			offered += int(sig.get("offered", 0))
+			if int(sig.get("sold", 0)) > 0:
+				var nm := String(Company.record(world, String(cid)).get("name", cid))
+				sold[nm] = int(sold.get(nm, 0)) + int(sig["sold"])
+				sold_all += int(sig["sold"])
+		var shares := {}
+		for nm in sold:
+			shares[nm] = 100.0 * float(sold[nm]) / float(maxi(1, sold_all))
+		out.append({"good": String(item), "price": float(int(s["avg_price"])) / float(CoreUtil.S),
+			"base_price": float(int(base.get(item, 0))) / float(CoreUtil.S), "offered": float(offered) / float(CoreUtil.S),
+			"wanted": float(int(s["ordered"])) / float(CoreUtil.S), "filled": float(int(s["filled"])) / float(CoreUtil.S),
+			"seller_share_pct": shares})
+	return out
 
 
 ## old EconQuery.police (economy/econ_query.gd), 1 call
@@ -307,8 +357,29 @@ static func query_recent_econ_facts(_world: WorldState, _months: int = 6, _min_m
 
 
 ## old EconQuery.shortages (economy/econ_query.gd), 1 call
-static func query_shortages(_world: WorldState, _threshold_pct: float = 97.0) -> Array:
-	return []
+## Items of which less than threshold_pct of what was ordered last month was supplied: {good, filled_pct, filled,
+## wanted (units), price, base_price (credits), producers: [{type, facility (plant id), district (the area's, or the area
+## itself while no district is drawn: the grants' rule), owner, utilization_pct (of what it offered, sold), causes}]}.
+static func query_shortages(world: WorldState, threshold_pct: float = 97.0) -> Array:
+	var out: Array = []
+	for m in query_market_overview(world):
+		var pct := 100.0 * float(m["filled"]) / maxf(0.001, float(m["wanted"]))
+		if pct >= threshold_pct:
+			continue
+		var producers: Array = []
+		for pid in Company.plant_ids(world):
+			var p: Dictionary = Company.plant(world, String(pid))
+			if p.is_empty() or TypeTable.out_of(String(p["type"]), int(p["line"])) != String(m["good"]):
+				continue
+			var cid := String(p["company"])
+			var sig: Dictionary = Market.seller_signal(world, cid, String(m["good"]))
+			var rec: Dictionary = Company.record(world, cid)
+			producers.append({"type": String(p["type"]), "facility": String(pid), "district": Grants._district(world, String(rec.get("area", ""))),
+				"owner": String(rec.get("name", cid)), "utilization_pct": 100.0 * float(int(sig.get("sold", 0))) / float(maxi(1, int(sig.get("offered", 0)))),
+				"causes": []})
+		out.append({"good": String(m["good"]), "filled_pct": pct, "filled": m["filled"], "wanted": m["wanted"],
+			"price": m["price"], "base_price": m["base_price"], "producers": producers})
+	return out
 
 
 ## old EconQuery.tenders (economy/econ_query.gd), 1 call

@@ -353,11 +353,15 @@ const FOOD_SCARCE_FULL := 0.15
 
 
 static func food_scarce(world: WorldState) -> float:
-	if not world.table("econ").has("s"):
+	if not EconFace.running(world):
 		return 0.0
-	var m: Dictionary = (CoreUtil.peek_st(world).get("market_stats", {}) as Dictionary).get("FOOD", {})
+	# the food market last month (rebuild step 3). Scarcity only: what went unfilled because the sellers had sold out or
+	# nobody sold (23a). Food unbought for want of money is poverty, not scarcity, and the emergency food laws this feeds
+	# (rationing, price control, the export ban) answer scarcity (Anni's review).
+	var m: Dictionary = EconFace.market_month(world, "FOOD")
 	var wanted := float(m.get("wanted", 0))
-	return 0.0 if wanted <= 0.0 else clampf((wanted - float(m.get("filled", 0))) / wanted, 0.0, 1.0)
+	var u: Dictionary = m.get("unfilled", {})
+	return 0.0 if wanted <= 0.0 else clampf(float(int(u.get("SOLD_OUT", 0)) + int(u.get("NO_SELLER", 0))) / wanted, 0.0, 1.0)
 
 
 static func _when_food_is_there(world: WorldState, out: Dictionary) -> Dictionary:

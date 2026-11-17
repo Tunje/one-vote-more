@@ -21,11 +21,11 @@ static func _register(sim: Simulation) -> void:
 	sim.register(preload("res://sim/law/law_provider.gd").new())
 	sim.register(preload("res://sim/staff/staff_provider.gd").new())
 	sim.register(StubWorldProvider.new())
-	sim.register(preload("res://sim/economy/econ_publish.gd").new())   # step 2: what politics reads of the purse (Ella)
 	sim.register(PlanetProvider.new())
 	sim.register(preload("res://sim/population/population_provider.gd").new())   # the Landing area (after the planet, before politics)
 	sim.register(preload("res://sim/economy/landing.gd").new())   # step 2: month one's government side and the purse's payments (after the settlers)
 	sim.register(preload("res://sim/economy/month.gd").new())   # step 3: the economy's month, the one conductor
+	sim.register(preload("res://sim/economy/econ_publish.gd").new())   # what politics reads (Ella): last in SOCIAL, after the households' month (joins)
 	sim.register(PoliticsProvider.new())
 
 

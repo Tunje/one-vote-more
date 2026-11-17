@@ -24,6 +24,7 @@ extends PicProvider
 ## whatever the purse does. The home world's development grant (12.11, 90) is income and is not in CAPITAL_MEMOS.
 
 const OWNER := "econ_pub"
+const Company := preload("res://sim/economy/company.gd")
 const PURSE := "gov:"   # the prefix of every government account
 ## Payments into the purse that are capital, not income: the landing treasury, the colony's land sold (LandLaw.sell),
 ## the landing stock sold by Colony Stores (the sale of an asset; Wilma, step 3).
@@ -102,7 +103,17 @@ func init_world(world: WorldState) -> void:
 	world.table(OWNER)["months"] = []
 
 
+## The reference wage (12.11, 108): the average pay over every company's staff, colony-wide (Company.reference_wage),
+## a month in milli-credits, as world value ECON_W_REF. The law's fines, the press's costs and the legislature read it.
+## Not written while nobody is paid (the readers keep their own fallback), so it never reads 0.
+static func publish_w_ref(world: WorldState) -> void:
+	var w := Company.reference_wage(world)
+	if w > 0:
+		world.values["ECON_W_REF"] = w
+
+
 func run_phase(_phase: int, world: WorldState) -> void:
+	publish_w_ref(world)
 	var flows := month_flows(world, PURSE, world.month)
 	var t := world.table(OWNER)
 	var ring: Array = t.get("months", [])
