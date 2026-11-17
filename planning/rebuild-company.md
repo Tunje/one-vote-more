@@ -727,6 +727,22 @@ is wrong; nothing here is asked again.
     builder's start date; in the first loop settlers signed for starts 40 months away): "He should look for the shortest time".
     So a plan takes the quote with the earliest start; between equal starts, the lowest price.
     (Before this ruling the plan took the lowest price and looked at the start only between equal prices.)
+15e. **A family works its own family farm, and ship food is less wanted** (the user, 2026-11-17, verbatim): "Yes, i agree but also i think ship food should be considered less desierable,bwich would men the swap happens sooner".
+    What it answered: Wilma had asked "does the family that owns a family farm work it themselves, without wages?",
+    because a family farm with an empty account had nobody to work it (its posts were hired wage workers, laid off
+    when unpaid), which left the colony hungry with the right number of farms; and had told the user her decision that
+    the months of layoff pay follow the law on the day of the layoff.
+    - **The family that owns a family farm works it themselves, without wages,** living off what it sells. A family
+      farm with no money still grows food.
+    - **Food that came by ship is less wanted than food grown in the colony,** so households swap from the landed
+      stock to the colony's farms sooner.
+    - **(Wilma's details, marked as mine)**
+      - The family is the founder's household: its adults fill the farm's posts first; posts beyond them are hired
+        for wages like any others. Each month the family takes from the farm's account what a household needs to
+        live (rent and food), as far as the account reaches; that is their income.
+      - It holds for every family-size company, not only farms. The user spoke of the family farm.
+      - Ship food is the landed stock and anything imported. A buyer choosing between offers counts ship food as a
+        quarter dearer than its price, so colony food up to a quarter dearer is bought first. A starting number.
 15c. **Builders' prices at the start and for claimed jobs** (the user, 2026-11-17, verbatim, answering two results of
     the first loop's run: in month 0, before any plan could exist, every builder read its empty book as no customers
     and cut its price by a fifth, and 158 contracts then locked that price below cost; and the builders' price then

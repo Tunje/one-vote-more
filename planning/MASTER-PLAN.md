@@ -840,6 +840,15 @@ Wilma's view: pay owed after a layoff (three months, the number a law), a cost o
 Written into [rebuild-company.md](rebuild-company.md) section 9.2.
 
 
+### The rebuild: a family works its own farm; ship food is less wanted (the user, 2026-11-17, verbatim)
+
+Wilma's message had told the user her decision that the months of layoff pay follow the law on the day of the layoff, and ended with the open question: does the family that owns a family farm work it themselves, without wages? (A family farm with an empty account had nobody to work it.)
+
+> Yes, i agree but also i think ship food should be considered less desierable,bwich would men the swap happens sooner
+
+Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
