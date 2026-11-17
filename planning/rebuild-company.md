@@ -688,6 +688,16 @@ is wrong; nothing here is asked again.
       per month. A founder plans the largest size that passes and that their money reaches.
     - A founder's management skill and appetite for risk (12.11, 77) bend how they read it, so founders misjudge.
     - Nothing limits how many may plan at once. If five do and the work carries two, three fail.
+15c. **Builders' prices at the start and for claimed jobs** (the user, 2026-11-17, verbatim, answering two results of
+    the first loop's run: in month 0, before any plan could exist, every builder read its empty book as no customers
+    and cut its price by a fifth, and 158 contracts then locked that price below cost; and the builders' price then
+    rose about 17% a month because the same waiting contracts were counted as unserved customers every month):
+    "No they should not cut for the start, and they should not increase prices for claimed jobs".
+    - A builder does not lower its price at the start, when no customer could exist yet.
+    - A builder does not raise its price for jobs already claimed: work signed and waiting in its book is not a
+      customer turned away.
+    - **(Wilma's reading of "the start", marked as mine)** until the first plan has asked the builders for a quote.
+      After that the price rules read the builder's book as for any seller.
 16. **Rule 6:** twelve months idle.
 17. **Rule 5 runs section 5's order:** a size up in its own square; else a buy-out; else a new plant.
 18. **Rule 3 does not act while a company is holding stock back.** It has more to sell already.

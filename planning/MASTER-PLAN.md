@@ -781,6 +781,15 @@ Said after the first run of the whole first loop, which showed 158 farm plans si
 Written into [rebuild-company.md](rebuild-company.md) 12.9, 61b.
 
 
+### The rebuild: builders do not cut for the start, and do not raise prices for claimed jobs (the user, 2026-11-17, verbatim)
+
+About the builders, answering two results of the first loop's run: the price cut in month 0 before any plan could exist, which 158 contracts then locked below cost; and the price rising about 17% a month because waiting contracts were counted again as unserved customers.
+
+> No they should not cut for the start, and they should not increase prices for claimed jobs
+
+Written into [rebuild-company.md](rebuild-company.md) 12.3, 15c.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
