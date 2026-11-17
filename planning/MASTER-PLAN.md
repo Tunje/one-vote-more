@@ -898,7 +898,7 @@ Wilma had put two ways for a family's winnings: (one) each month stands alone; (
 Two is the rule. The second half was said as a maybe and is noted, not built. Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e.
 
 
-### The rebuild: farmers know winter is coming; 10% extra into a hidden stock (the user, 2026-11-17, verbatim)
+### UNDER DISCUSSION, not a ruling: farmers, winter and a hidden stock (the user's words so far, 2026-11-17)
 
 After the first loop showed feast in summer and famine in winter (farms cut their output in the summer glut and entered winter throttled; nobody kept summer food for winter):
 

@@ -782,7 +782,10 @@ is wrong; nothing here is asked again.
       - It holds for every family-size company, not only farms. The user spoke of the family farm.
       - Ship food is the landed stock and anything imported. A buyer choosing between offers counts ship food as a
         quarter dearer than its price, so colony food up to a quarter dearer is bought first. A starting number.
-15f. **Farmers know winter is coming** (the user, 2026-11-17, verbatim). The first loop with every ruling in showed
+15f. **UNDER DISCUSSION, NOT A RULING, NOTHING TO BUILD.** (Wilma wrote this down as a rule and handed it out while
+    the user was still discussing it; that was wrong and is withdrawn. The user's words are kept below as what was
+    said so far. "So:" and the readings under it are not decided.)
+    **Farmers and the winter** (the user, 2026-11-17, verbatim). The first loop with every ruling in showed
     feast in summer and famine in winter: the growing year swings from about 19% of normal in midwinter to 187% at
     the summer peak; in the summer glut the farms held unsold food, rule 4 cut their output to about a third by
     autumn, and they entered winter throttled; nobody kept summer food for winter. The user:
