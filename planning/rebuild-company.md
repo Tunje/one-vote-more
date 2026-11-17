@@ -954,6 +954,18 @@ therefore the whole loop once, end to end, through the real company object:
 10. **Exports and the home world's demands.**
 11. **Everything the economy publishes, every remaining connection, the screens.**
 
+**Who builds, and who checks** (the user, 2026-11-17, verbatim): "Get everyone involved give them peaces related to them make sure we get this done and atleast one other reviews each peace of code made"
+
+- Every session has a piece that is its own: Bob the rules, market, bank and freight; Otto building and housing; Maja
+  people and public services; Ella services, unions and what politics reads; Terra the ground, the roads and the map;
+  Anni the law's hold; Wilma the doorway, the start-up, politics' side and putting it together.
+- **No code is committed until at least one other session has read it.** The reviewer reads the code itself, not a
+  summary of it, against the plan, and answers in writing: what is wrong, what the plan says differently, what is
+  missing. The author fixes or answers each point. Wilma commits only with the review attached to the hand-over.
+- Review pairs: Terra and Maja; Bob and Otto; Ella and Anni. Wilma's code is reviewed by whichever of them knows the
+  ground it touches. A pair is the default, not a limit: anything that crosses into another's ground is also read by
+  that session.
+
 **How each step is tested**
 
 - **What step 3 is and is not.** It is the first loop on one place, paid from savings and the purse. The bank does not

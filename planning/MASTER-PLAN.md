@@ -713,6 +713,13 @@ About stocking up, correcting Wilma's proposal that low meant below the buyer's 
 Corrected in [rebuild-company.md](rebuild-company.md) section 9.3.
 
 
+### The rebuild: everyone builds, every piece of code is reviewed (the user, 2026-11-17, verbatim)
+
+> Get everyone involved give them peaces related to them make sure we get this done and atleast one other reviews each peace of code made
+
+Written into [rebuild-company.md](rebuild-company.md) section 13 the same turn: each session has its own piece; no code is committed until at least one other session has read it; review pairs Terra and Maja, Bob and Otto, Ella and Anni.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
