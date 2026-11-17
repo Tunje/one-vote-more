@@ -622,7 +622,9 @@ is wrong; nothing here is asked again.
     - For a cut, s = the quantity it offered and did not sell, divided by the quantity it sold. An order that went
       unfilled because the buyer would not pay the asking price is a refusal of the price: it counts here, for the cut,
       and not as unmet demand for a rise.
-    - If it sold nothing at all, s is taken as without limit and the price moves by the full k.
+    - First there has to be a signal at all. A company that offered nothing and had no orders it could have filled
+      has neither, and its price does not move.
+    - If there is a signal and it sold nothing at all, s is taken as without limit and the price moves by the full k.
     - k is one number for the whole economy. It starts at 0.2 (a fifth of the price at most in a month) and is set in
       testing. A small signal moves the price a little, a large one more,
       and never by more than k in a month. So there is a bound, the same both ways, as the user's rule nine asks.
@@ -630,9 +632,9 @@ is wrong; nothing here is asked again.
 15a. **Rule 7's signal, exactly.** Everything is in money per month.
     - The work: what buyers and clients in the area spent, or tried to spend, on what this type sells, averaged per
       month over the last twelve months, at today's prices.
-    - The shares: by size. A family company counts 1/6, a small one 1/3, an average one 2/3, a large one 1. The
-      newcomer's share is its own size divided by the sizes of all companies of the type serving the area, itself
-      included.
+    - The shares: by PLANT, not by company. Every plant of the type that serves the area counts by its size (family
+      1/6, small 1/3, average 2/3, large 1), whoever owns it. A company with three large plants counts 3. The
+      newcomer's share is its own plant's size divided by the sizes of all those plants, its own included.
     - The test: a plan is made when that share of the work, per month, covers what a company of that size costs to run
       per month. A founder plans the largest size that passes and that their money reaches.
     - A founder's management skill and appetite for risk (12.11, 77) bend how they read it, so founders misjudge.
@@ -689,8 +691,9 @@ is wrong; nothing here is asked again.
 
 35. **Households stay pools,** each with a count per company its members work for. **Company owners are counted
     individually** (the user, 2026-11-17, verbatim: "On company owners, they should become individually counted on
-    company start, that divides them from the others but don't malt to many people to track"). When a company starts,
-    its owner is taken out of the pool and becomes a person of their own, with their own account. That is who the court,
+    company start, that divides them from the others but don't malt to many people to track"). The founder
+    is taken out of the pool and becomes a person of their own, with their own account, on the day their plan is made
+    (60a). A plan is still not a company; its founder is a named person from its first day. That is who the court,
     a grant, the profit and a settlement act on. Everyone else stays in the pools, so the number of people tracked one
     by one stays small: one per company owner.
 36. **The old household side is carried over like this (as behaviour, written new):** its district keys become areas; its self-employed become family-size
@@ -729,6 +732,12 @@ is wrong; nothing here is asked again.
 
 50. **The bank is a company.** Its clients are its borrowers and its price is the interest rate, set by the same three
     price rules. The government borrows from it like anyone.
+50c. **How the bank lends.** A loan creates money: the bank writes the loan into its records and the same amount into
+    the borrower's account. Paying it back removes that money again. So the money in the colony grows and shrinks with
+    lending. What limits lending is the bank's own capital set against the loans it has out, at a ratio set by us, and
+    its judgement of the borrower. A loan that is not paid back is a loss to the bank's capital; when the capital is
+    gone the bank has failed (50a). (The old game worked this way after the user's decision of 2026-11-14 that bank
+    lending must be able to grow the money stock with the economy. It is carried here by Wilma as the model to build.)
 50a. **Accounts are kept in the game's ledger,** not inside the bank company, so nothing vanishes because a bank is
     gone. But a bank that ends owing more than it has is a real loss: what it cannot cover is taken from its
     depositors in proportion, as recorded payments. Its loans pass to whoever buys it out, or to a new bank; a
@@ -941,7 +950,8 @@ therefore the whole loop once, end to end, through the real company object:
   our starting numbers, not a result.
   And, since the bank does not lend until step 5: which types can be paid for from savings and a grant alone? Only
   those appear in step 3, and the report says which could not.
-  And: does the food the colony lands with last longer than it takes to plan, build and open the first farms and
+  And (food in the landing stock is Wilma's decision, 12.2, 9; if it is struck, this check asks where the first
+  months' food comes from at all): does the food the colony lands with last longer than it takes to plan, build and open the first farms and
   bring in a first harvest? An outside run with made-up numbers (12 months of food, 4 months to build a family farm)
   got through with food to spare; with 8 months to build, or under 8 months of food, the stock ran out first.
 - **Short, exact tests first:** one sale, one hire, one plan signed and built, one loan, one ending, each checked to
