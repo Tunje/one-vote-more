@@ -149,6 +149,20 @@ static func office_fill(world: WorldState, oid: String) -> float:
 	return clampf(float(EconLabor.staff_total(f["staff"])) / float(den), 0.0, 1.0)
 
 
+## OFFICE_SOFT (opt-in; the user, 2026-11-17: "if you done have one you lose out on some not all lets say something like
+## 15% less"): an unstaffed office costs a plant at most SOFT_LOSS_PCT of its output, in proportion to the office's
+## empty share; without the switch the plant cannot produce more than its office is staffed.
+const SOFT_LOSS_PCT := 15
+
+
+## The office's limit on a plant's labour ratio (production): office_fill, or under OFFICE_SOFT 1 − 15% × the empty share.
+static func production_factor(world: WorldState, oid: String) -> float:
+	var fill := office_fill(world, oid)
+	if (world.meta.get("on", []) as Array).has("OFFICE_SOFT"):
+		return 1.0 - float(SOFT_LOSS_PCT) / 100.0 * (1.0 - fill)
+	return fill
+
+
 ## Office posts held and wanted, colony-wide (persons), for probes and the office.
 static func summary(world: WorldState) -> Dictionary:
 	var held := 0

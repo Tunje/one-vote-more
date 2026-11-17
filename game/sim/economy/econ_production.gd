@@ -231,7 +231,10 @@ static func _plan(world: WorldState, f: Dictionary) -> Dictionary:
 			var have := float(EconLabor.tier_total(f["staff"], tier)) + (float(f.get("named_sp", 0)) * S if tier == "Sp" else 0.0)
 			lab = minf(lab, minf(1.0, have / maxf(req - 0.5 * S, 0.5 * req)))
 	if int(f.get("off_share_pm", 0)) > 0:
-		lab = minf(lab, EconOffice.office_fill(world, f["org"]))  # support economy A: the office must be staffed too
+		if (world.meta.get("on", []) as Array).has("OFFICE_SOFT"):
+			lab *= EconOffice.production_factor(world, f["org"])  # OFFICE_SOFT: an empty office costs at most 15%, on top
+		else:
+			lab = minf(lab, EconOffice.office_fill(world, f["org"]))  # support economy A: the office must be staffed too
 	lab *= EconUnions.work_factor(world, f)  # M9: strike / lockout
 	lab *= EconWorkload.sick_mult(f)  # 27-W: stressed crews take sick days (1.0 when off)
 	lab *= float(1000 - EconFleet.absent_pm(world, f["district"])) / 1000.0  # §8c: commuters who could not get to work

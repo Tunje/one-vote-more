@@ -101,3 +101,34 @@ func test_e143_whole_posts() -> void:
 	check_eq(EconOffice.office_fill(w, oid), 1.0, "E143: no whole post to hire, the plant is not stopped")
 	f["office_req"] = {"G": 1400, "S": 400, "Sp": 0}  # 1 whole G post (0.4 S rounds to none)
 	check_eq(EconOffice.office_fill(w, oid), 0.0, "E143: one hireable post, unfilled")
+
+
+## OFFICE_SOFT (the user, 2026-11-17): a plant whose office is empty loses about 15% of its output, not all of it.
+func test_office_soft_an_empty_office_costs_15_pct() -> void:
+	var sim := EconSim.make_econ_only(3)
+	sim.world.meta["on"] = ["SUPPORT_A"]
+	sim.run(6)
+	var w := sim.world
+	var plant := {}
+	for fid in EconUtil.sorted_keys(w.table("facility")):
+		var f: Dictionary = w.table("facility")[fid]
+		if int(f.get("off_share_pm", 0)) > 0 and not f["mothball"] and EconOffice.office_of(w, f["org"]) != "" and float(EconProduction._plan(w, f)["u"]) > 0.0:
+			plant = f
+			break
+	check(not plant.is_empty(), "a running plant with its crew split to an office")
+	if plant.is_empty():
+		return
+	var off: Dictionary = w.table("facility")[EconOffice.office_of(w, plant["org"])]
+	off["staff"] = {"G": {}, "S": {}, "Sp": {}}  # the office stands empty
+	check(EconOffice.office_fill(w, plant["org"]) == 0.0, "the office is empty")
+	check(float(EconProduction._plan(w, plant)["u"]) == 0.0, "without the switch an empty office stops the plant")
+	var u_floor := 0.0
+	(w.meta["on"] as Array).append("OFFICE_SOFT")
+	check(absf(EconOffice.production_factor(w, plant["org"]) - 0.85) < 0.0001, "an empty office: 15%% less (%.3f)" % EconOffice.production_factor(w, plant["org"]))
+	var u_soft := float(EconProduction._plan(w, plant)["u"])
+	check(u_soft > 0.0, "with OFFICE_SOFT the plant still runs (u %.3f)" % u_soft)
+	off["staff"] = {"G": {"hb:d:1|G": 100000}, "S": {"hb:d:1|S": 100000}, "Sp": {"hb:d:1|Sp": 100000}}  # more than enough
+	check(EconOffice.office_fill(w, plant["org"]) == 1.0, "a full office")
+	check(absf(EconOffice.production_factor(w, plant["org"]) - 1.0) < 0.0001, "a full office costs nothing")
+	u_floor = float(EconProduction._plan(w, plant)["u"])
+	check(u_soft >= u_floor * 0.85 - 0.001 and u_soft <= u_floor + 0.001, "the empty office takes at most 15%% off (%.3f of %.3f)" % [u_soft, u_floor])
