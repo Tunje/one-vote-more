@@ -227,24 +227,67 @@ static func reclaim(world: WorldState, plan_id: String) -> int:
 	return back
 
 
-## How many plants of `kind` the government wants a programme to found: its starting count (ours, Wilma's for the
-## farm). -> {wanted, rule, and what the rule read}.
-##   FARM: what feeds the colony at full output: the persons who buy food x one FOOD a month each, over a family farm's
-##         output a month at full use (TypeTable.output_milli), rounded up.
-##   BAKERY: the same with a family bakery's bread (one BREAD is one person's food for a month, baked): enough bread for
-##         everyone. It counts the whole food need, as if all ate bread, though a bakery bakes from the farms' FOOD.
-##   TRUCKER, TRUCKSHOP: one in each area.
+## How many MORE plants of `kind` the government wants a programme to found (Wilma, 2026-11-17: "how many farms they
+## want" is how many more): its starting count (ours, Wilma's for the farm). -> {wanted, rule, and what the rule read}.
+##   FARM: what feeds the colony at full output (the persons who buy food x one FOOD a month each), less what the farms
+##         that stand and the plans made or signed would grow at full use (the government sees a plan: it sold it the
+##         land), over a family farm's output a month at full use (TypeTable.output_milli), rounded up, never below 0.
+##         A farm larger than a family farm counts for what it grows.
+##   BAKERY: the same with bread (one BREAD is one person's food for a month, baked): enough bread for everyone. It
+##         counts the whole food need, as if all ate bread, though a bakery bakes from the farms' FOOD.
+##   TRUCKER, TRUCKSHOP: one in each area that has none standing or planned.
 static func wanted(world: WorldState, kind: String) -> Dictionary:
 	var k: Array = KINDS[kind]
+	var type := String(k[1])
 	if kind == "FARM" or kind == "BAKERY":
 		var persons := 0
 		for b in Households.buyers(world):
 			persons += int(b["persons"])
-		var out := TypeTable.output_milli(String(k[1]), String(k[2]))
+		var out := TypeTable.output_milli(type, String(k[2]))
 		var need := persons * int(Households.NEED_PER_PERSON["FOOD"])
-		return {"wanted": (need + out - 1) / out if out > 0 else 0, "persons": persons, "output_milli": out,
-			"rule": "the persons who buy food over a family %s's output at full use" % String(k[1]).to_lower()}
-	return {"wanted": AreaStore.areas(world).size(), "rule": "one in each area"}
+		var good := TypeTable.out_of(type, 0)
+		var have := _standing_and_planned(world, type, "", good)
+		var short := maxi(0, need - int(have["output_milli"]))
+		return {"wanted": (short + out - 1) / out if out > 0 else 0, "to_feed": (need + out - 1) / out if out > 0 else 0,
+			"standing": int(have["standing"]), "planned": int(have["planned"]), "their_output_milli": int(have["output_milli"]),
+			"persons": persons, "output_milli": out,
+			"rule": "the persons who buy food, less what the %ss standing and planned make, over a family %s's output at full use" % [type.to_lower(), type.to_lower()]}
+	var none := 0
+	var standing := 0
+	var planned := 0
+	for ar in AreaStore.areas(world):
+		var have := _standing_and_planned(world, type, String(ar["id"]), "")
+		standing += int(have["standing"])
+		planned += int(have["planned"])
+		if int(have["standing"]) + int(have["planned"]) == 0:
+			none += 1
+	return {"wanted": none, "areas": AreaStore.areas(world).size(), "standing": standing, "planned": planned,
+		"rule": "one in each area that has none standing or planned"}
+
+
+## The plants of `type` that stand (not closed) and the plans of it made or signed, in `area` ("" = everywhere), and
+## what they make of `good` a month at full use ("" = not counted): {standing, planned, output_milli}.
+static func _standing_and_planned(world: WorldState, type: String, area: String, good: String) -> Dictionary:
+	var out := {"standing": 0, "planned": 0, "output_milli": 0}
+	for pid in Company.plant_ids(world):
+		var p: Dictionary = Company.plant(world, String(pid))
+		if String(p["type"]) != type or bool(p["closed"]):
+			continue
+		if area != "" and String(Company.record(world, String(p["company"])).get("area", "")) != area:
+			continue
+		out["standing"] += 1
+		if good != "" and TypeTable.out_of(type, int(p["line"])) == good:
+			out["output_milli"] += TypeTable.output_milli(type, String(p["size"]), int(p["line"]))
+	for id in CoreUtil.sorted_keys(world.peek("plan")):
+		var pl: Dictionary = world.peek("plan")[id]
+		if String(pl.get("type", "")) != type or not (String(pl.get("status", "")) in ["MADE", "SIGNED"]):
+			continue
+		if area != "" and String(pl.get("area", "")) != area:
+			continue
+		out["planned"] += 1
+		if good != "":
+			out["output_milli"] += TypeTable.output_milli(type, String(pl["size"]))
+	return out
 
 
 ## The grant the programme is planned on: the largest of the areas' grants this month (what a founder must bring
@@ -270,7 +313,10 @@ static func budget_for(world: WorldState, kind: String) -> Dictionary:
 	return b
 
 
-## What is left of the open programme's sum: the sum less every grant of the kind paid since the government set it.
+## What is left of the open programme's sum: the sum less every grant of the kind paid since the government set it,
+## plus what came back from plans given up (Wilma, 2026-11-17: the government wanted a farm and did not get it). A grant
+## still owed by its founder refills nothing until it is paid; the law collects a person's debt from step 5 (12.8), and
+## that step must add what it collects of a GRANT debt here.
 ## -1 when the government has set no sum (no programme open, or not decided yet).
 static func sum_left(world: WorldState, kind: String) -> int:
 	var b: Dictionary = GovBuilder.grant_sum(world).get(kind, {})
@@ -280,8 +326,22 @@ static func sum_left(world: WorldState, kind: String) -> int:
 	for pid in world.peek(TABLE):
 		var g: Dictionary = world.peek(TABLE)[pid]
 		if String(g["kind"]) == kind and int(g["month"]) >= int(b["start"]):
-			spent += int(g["amount"])
+			spent += int(g["amount"]) - int(g.get("repaid", 0))
 	return int(b["sum"]) - spent
+
+
+## The plans that have accepted a grant and have neither opened nor been given up: {plan id: true}. Rule 7 reads them
+## (the user, 2026-11-17, plan 12.3, 15a: "It does not see plans made, but they do see plans booked on builders notes
+## and plans that have accepted grants"; Bob's Rules.founding). A grant row still PAID whose plan is MADE or SIGNED; a
+## plan that has opened is a plant by then, and one given up has its row REPAID or OWED. Pure: writes nothing.
+static func granted_plans(world: WorldState) -> Dictionary:
+	var out := {}
+	for pid in CoreUtil.sorted_keys(world.peek(TABLE)):
+		if String(world.peek(TABLE)[pid]["status"]) != "PAID":
+			continue
+		if String(world.peek("plan").get(pid, {}).get("status", "")) in ["MADE", "SIGNED"]:
+			out[pid] = true
+	return out
 
 
 ## The month (COMPANY_AI, last): open and close programmes, then publish the need the government reads.

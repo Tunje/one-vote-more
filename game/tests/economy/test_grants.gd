@@ -152,7 +152,21 @@ func test_the_government_sets_the_sum_when_a_programme_opens() -> void:
 	check_eq(rows.size(), 1, "the decision is logged once")
 	if rows.size() == 1:
 		check_eq(int(rows[0]["why"]["wanted"]), farms, "with how many it wanted")
+		check_eq(int(rows[0]["why"]["to_feed"]), farms, "how many feed the colony")
+		check_eq(int(rows[0]["why"]["standing"]) + int(rows[0]["why"]["planned"]), 0, "none standing or planned yet")
 		check_eq(int(rows[0]["why"]["sum"]), int(b["sum"]), "and the sum")
+	# how many MORE (Wilma): a plan signed and a small farm standing count for what they would grow
+	w.table("plan")["plan:90"] = {"founder": "", "type": "FARM", "size": "FAMILY", "area": _area(w), "status": "SIGNED"}
+	w.table("plan")["plan:91"] = {"founder": "", "type": "FARM", "size": "FAMILY", "area": _area(w), "status": "GIVEN_UP"}
+	var Co := preload("res://sim/economy/company.gd")
+	var cid := Co.create(w, "FARM", "SMALL", {"kind": "HOME_WORLD", "holders": {"home_world": 1000}}, "Greenacre", {"area": _area(w)})
+	Co.add_plant(w, cid, "SMALL")
+	var small := preload("res://sim/economy/type_table.gd").output_milli("FARM", "SMALL")
+	var more := Grants.wanted(w, "FARM")
+	check_eq(int(more["standing"]), 1, "one farm stands")
+	check_eq(int(more["planned"]), 1, "one plan signed (a plan given up does not count)")
+	check_eq(int(more["wanted"]), (maxi(0, persons * 1000 - out - small) + out - 1) / out, "fewer wanted by what they grow")
+	check_eq(int(Grants.wanted(w, "TRUCKER")["wanted"]), AreaStore.areas(w).size(), "no truck driver stands: still one each")
 	var tre := w.ledger.balance(CoreUtil.TREASURY)
 	w.levers["ECON_FAMILY_FARM_GRANT"] = 0
 	GovBuilder._grant_cover(w, st)
@@ -177,8 +191,35 @@ func test_a_spent_sum_pays_no_more_grants() -> void:
 	check_eq(w.ledger.balance(CoreUtil.TREASURY), tre, "the treasury keeps it")
 	var rows := Logbook.rows(w, {"kind": "GRANT", "what": "grant refused"})
 	check(rows.size() == 1 and int(rows[0]["why"]["sum_left"]) == grant / 2 / S, "logged with what was left")
+	# a plan given up pays its grant back: the sum is refilled by what came back (Wilma)
+	var back := Grants.reclaim(w, "plan:1")
+	check_eq(back, grant, "the first plan's grant came back whole")
+	check_eq(Grants.sum_left(w, "FARM"), grant / 2 + grant, "and refills the sum")
+	check_eq(Grants.quote(w, "FARM", _area(w), "pool:a"), grant, "so a grant can be quoted again")
 	(w.table("pol")["state"]["grant_sum"] as Dictionary).erase("FARM")
 	check(String(Grants.apply(w, _plan(w, 4, "pool:a"))["why"]).contains("no sum"), "no sum set, no grant")
+	_unhook()
+
+
+## Rule 7 sees the plans that have accepted a grant (the user, 15a): paid, and neither opened nor given up.
+func test_rule_7_reads_the_plans_that_accepted_a_grant() -> void:
+	var w := _world()
+	_cover(w, "FARM", [_district(w)])
+	check(Grants.granted_plans(w).is_empty(), "none before a grant is paid")
+	var p1 := _plan(w, 1, "pool:a")
+	var p2 := _plan(w, 2, "pool:a")
+	var p3 := _plan(w, 3, "pool:a")
+	for p in [p1, p2, p3]:
+		Grants.apply(w, p)
+	_plan(w, 4, "pool:a")   # made, no grant applied for
+	check_eq(Grants.granted_plans(w), {p1: true, p2: true, p3: true}, "the three that accepted one")
+	w.table("plan")[p2]["status"] = "SIGNED"
+	w.table("plan")[p3]["status"] = "OPEN"
+	Grants.reclaim(w, p1)
+	w.table("plan")[p1]["status"] = "GIVEN_UP"
+	var h := w.state_hash()
+	check_eq(Grants.granted_plans(w), {p2: true}, "signed counts; opened (a plant now) and given up do not")
+	check_eq(w.state_hash(), h, "reading it changes nothing")
 	_unhook()
 
 
