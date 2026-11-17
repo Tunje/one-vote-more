@@ -436,6 +436,15 @@ After v12 (clinics closed, clinic access near zero in five districts, 8% of the 
 Built the same turn (Wilma, switch HEALTH_SIGNAL, `game/sim/politics/health_signal.gd`): a public fact ECON_PANDEMIC each month while the people too ill to work are at least 2% of the labour force, counted the way the labour market counts them. The government answers for it, voters' concern for public services and safety falls with its size, the papers print it, and from 4% it is a crisis a government can declare an emergency over. The 2% and 4% are Wilma's numbers, not the user's.
 
 
+### Offices (the user, 2026-11-17, verbatim)
+
+Asked what offices do now, and told (an office holds a share of each plant's crew; a plant cannot produce more than its office is staffed; the office hires last; Bob's fix OFFICE_E99 would make the offices of essential plants hire first), the user answered:
+
+> I think the offices should not be esencial, if you done have one you lose out on some not all lets say something like 15% less, but also offices should not be owned by the company unless they have a huge company one office building should be able to hold 10 plants extra workers, does that answer the questions?
+
+Not built yet. Follows directly: OFFICE_E99 stays off and gets no narrower version. Open, asked of the user: who owns and builds the office buildings; whether Bob builds this now; the full test of the freight queue on its own.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
