@@ -340,8 +340,11 @@ Terra's town grid (section 9.8).
   - An underpaid worker who thinks they can get better pay elsewhere quits and takes it.
   - One who cannot may unionise. So underpayment is a second way a union starts or grows, beside bad working
     conditions (section 9.9).
-  - **(proposal: what "underpaid" is measured against.)** A worker is underpaid when a new hire for the same kind of
-    post, in the same area, is offered more than they are paid.
+  - **What "underpaid" is measured against** (the user, replacing Wilma's proposal of "what a new hire is offered"):
+    "I think you should avrage ask salleries in the company and underpayed is based on that line,  that way both old and new can become underpayed". The line is the average of the salaries paid in the company. Anyone paid less than that line is
+    underpaid, whether they were hired long ago at an old low salary or last month at a hiring salary that has fallen.
+  - **(proposal, one detail:)** the average is taken among the same kind of post (general, skilled, specialist). Taken
+    over the whole company, every general worker would always count as underpaid beside the specialists.
 
 | Rule | For a salary **(proposal: these two signal lines)** |
 |---|---|

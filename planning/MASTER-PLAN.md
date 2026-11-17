@@ -745,6 +745,15 @@ After the salary correction was built (a salary set on hire, climbing only by th
 Written into [rebuild-company.md](rebuild-company.md) sections 9.2 and 9.9: underpayment is meant; an underpaid worker quits for better pay if they can get it, and otherwise may unionise.
 
 
+### The rebuild: what underpaid is measured against (the user, 2026-11-17, verbatim)
+
+Replacing Wilma's proposal (underpaid = paid less than a new hire is offered):
+
+> I think you should avrage ask salleries in the company and underpayed is based on that line,  that way both old and new can become underpayed
+
+Written into [rebuild-company.md](rebuild-company.md) section 9.2.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
