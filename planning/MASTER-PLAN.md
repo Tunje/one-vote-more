@@ -536,6 +536,13 @@ After being told what the old household side held:
 Written into [rebuild-company.md](rebuild-company.md) section 8f the same turn.
 
 
+### The rebuild: owning your home (the user, 2026-11-17, verbatim)
+
+> I belive you should be able to buy your house out so you own it,  and if an individual becomes richer than the neibouhood he was able to build his own larger house we could use the 1/6 of a farm for that
+
+Written into [rebuild-company.md](rebuild-company.md) section 8g the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

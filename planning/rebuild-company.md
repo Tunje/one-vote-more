@@ -279,6 +279,19 @@ As rules:
   output, repair is a job for a builder company, and for a landlord the condition of a home is part of what its rent
   can be.
 
+### 8g. Owning your home; building your own house (the user, 2026-11-17, verbatim)
+
+> I belive you should be able to buy your house out so you own it,  and if an individual becomes richer than the neibouhood he was able to build his own larger house we could use the 1/6 of a farm for that
+
+- **Buying your home out.** A household that rents can buy its home from the landlord and own it. An owned home pays
+  no rent; its upkeep and repair are the household's.
+- **Building your own, larger house.** A household that has become richer than its neighbourhood can have its own
+  larger house built. The size of that build is the family size, 1/6 of a full unit (the user: "we could use the 1/6 of
+  a farm for that"). It is a building job for a builder company like any other.
+- **(open, for fitting in):** the household side taken from the old game counts people in pools by housing block and
+  income band, not as single families. "An individual richer than the neighbourhood" is then the top band of a block
+  moving out to houses of their own, a few households at a time. The price a landlord sells a home for is not given.
+
 ## 9. Every outside connection, and how it gets what it needs
 
 From [economy-connections.md](economy-connections.md): 367 open lines in 61 files. Grouped by what they ask for.
