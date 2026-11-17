@@ -330,8 +330,16 @@ So these stand:
 - When every flat in the building is owned, the owners are a community and pay for the upkeep together. The landlord
   is out of that building.
 
-Still open: a price for land in credits (the cell value is an index); villages below 250 homes have no grid, so every
-home there is ordinary.
+**Small places and the price of land (the user, 2026-11-17, verbatim):**
+
+> Below 250 start a gridd anyway and only use what you need,  and set a credit prices we are going to have to adjust it anyway i don't have a sheet of what costs what so i can't tell you what it should cost
+
+- **A place below 250 homes gets a town grid anyway,** and uses only as much of it as it needs. So every home has a
+  cell and a value from the first house on. (This replaces the earlier threshold of 250 homes.)
+- **Land has a price in credits, and we set it.** The user has no price sheet; all prices are ours to set and will be
+  adjusted in testing. That holds for every number in the type table.
+- **Starting figure for land (Wilma's, to be adjusted):** the land for one home on an ordinary cell costs 10% of that
+  home's building bill, and scales with the cell's value (value / 1000).
 
 ## 9. Every outside connection, and how it gets what it needs
 

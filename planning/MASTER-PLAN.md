@@ -559,6 +559,13 @@ Written into [rebuild-company.md](rebuild-company.md) section 8h the same turn; 
 Written into [rebuild-company.md](rebuild-company.md) section 8h the same turn.
 
 
+### The rebuild: small places and the price of land (the user, 2026-11-17, verbatim)
+
+> Below 250 start a gridd anyway and only use what you need,  and set a credit prices we are going to have to adjust it anyway i don't have a sheet of what costs what so i can't tell you what it should cost
+
+Written into [rebuild-company.md](rebuild-company.md) section 8h the same turn. Consequence: prices in the rebuild are set by us and adjusted in testing; the user has no price sheet.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
