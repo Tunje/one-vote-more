@@ -858,6 +858,15 @@ Correcting Wilma's detail that the family takes each month what a household need
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e.
 
 
+### The rebuild: the family farm is the family's home (the user, 2026-11-17, verbatim)
+
+Correcting Wilma, who had the family that owns a family farm paying rent for a home like any household.
+
+> And no,  the farm would be their home,  wich means they are paying on any loans they had to take and uppkeep to keep it nice
+
+Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

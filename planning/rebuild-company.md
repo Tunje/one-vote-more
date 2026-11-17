@@ -736,6 +736,13 @@ is wrong; nothing here is asked again.
       farm with no money still grows food.
     - **Food that came by ship is less wanted than food grown in the colony,** so households swap from the landed
       stock to the colony's farms sooner.
+    - **The farm is the family's home** (the user, 2026-11-17, verbatim, correcting Wilma, who had the family paying
+      rent for a home like any household): "And no,  the farm would be their home,  wich means they are paying on any loans they had to take and uppkeep to keep it nice".
+      So a family that owns a family farm lives on it and pays no rent to a landlord. What it pays for where it lives
+      is what the farm costs: its payments on any loans it took, and its upkeep. Those are paid before winnings.
+      - **(Wilma's, marked as mine)** From the day the farm opens. While it is still a plan the family lives where
+        it lived and pays that rent. The home it leaves is free for someone else. The user spoke of the farm; a
+        family company in town (a bakery) is not covered by this sentence.
     - **(Wilma's details, marked as mine)**
       - The family is the founder's household: its adults fill the farm's posts first; posts beyond them are hired
         for wages like any others.
