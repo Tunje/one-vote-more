@@ -334,6 +334,14 @@ Terra's town grid (section 9.8).
   - A worker who can get more elsewhere leaves for it; that is how an employed worker's pay changes otherwise.
   - So a company's record holds two things: its hiring salary per tier and area, and what each group of its staff is
     actually paid.
+- **Why it is built this way** (the user, 2026-11-17, verbatim): "It's too create political drama, underpayed workers go to the union, they can quit if they think they can get better prices if not they may unionise"
+  - A salary that stays where it was set, while hiring salaries around it move, leaves some workers underpaid. That
+    is meant: it is where political drama comes from.
+  - An underpaid worker who thinks they can get better pay elsewhere quits and takes it.
+  - One who cannot may unionise. So underpayment is a second way a union starts or grows, beside bad working
+    conditions (section 9.9).
+  - **(proposal: what "underpaid" is measured against.)** A worker is underpaid when a new hire for the same kind of
+    post, in the same area, is offered more than they are paid.
 
 | Rule | For a salary **(proposal: these two signal lines)** |
 |---|---|
@@ -472,6 +480,8 @@ the neibouhood he was able to build his own larger house we could use the 1/6 of
 
 - A union is not a company and is not inside one.
 - It starts at one company with bad working conditions. Staff of any other company can join.
+- Underpaid workers who cannot get better pay elsewhere also go to the union (section 9.2: "underpayed workers go to
+  the union ... if not they may unionise").
 - It takes a small fee from every member; that is its fund.
 - It protests bad conditions, and orders protests and shutdowns.
 - A shutdown lasts as long as the union can pay the workers 2/3 of their normal salary.

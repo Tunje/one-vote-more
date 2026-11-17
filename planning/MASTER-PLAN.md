@@ -736,6 +736,15 @@ Correcting the plan, which had the three price rules moving a company's salary f
 A worker's salary is set when they are hired and then climbs only by the yearly raise, whose minimum the government sets. The three price rules move only what a company offers a NEW hire. Corrected in [rebuild-company.md](rebuild-company.md) section 9.2. Context for the earlier quotes: "the three rules for price should be applied here too" and "that's fine for hiring" were about the hiring salary; "every year a company can grant a bonus what the minimum of this is is up to the government" is the yearly raise.
 
 
+### The rebuild: why a salary is set on hire (the user, 2026-11-17, verbatim)
+
+After the salary correction was built (a salary set on hire, climbing only by the yearly raise):
+
+> It's too create political drama, underpayed workers go to the union, they can quit if they think they can get better prices if not they may unionise
+
+Written into [rebuild-company.md](rebuild-company.md) sections 9.2 and 9.9: underpayment is meant; an underpaid worker quits for better pay if they can get it, and otherwise may unionise.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
