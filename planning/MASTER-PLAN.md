@@ -790,6 +790,15 @@ About the builders, answering two results of the first loop's run: the price cut
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15c.
 
 
+### The rebuild: at the start the builders know work is coming (the user, 2026-11-17, verbatim)
+
+About the builders at the start, when asked whether the wait covers their crews as well as their price.
+
+> At start id assume they  know  work is coming
+
+Written into [rebuild-company.md](rebuild-company.md) 12.3, 15c.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

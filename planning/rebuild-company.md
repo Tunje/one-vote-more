@@ -698,6 +698,9 @@ is wrong; nothing here is asked again.
       customer turned away.
     - **(Wilma's reading of "the start", marked as mine)** until the first plan has asked the builders for a quote.
       After that the price rules read the builder's book as for any seller.
+    - **Crews at the start too** (the user, 2026-11-17, verbatim, when told the same empty book also made builders
+      lay off a quarter of their crew before any work existed): "At start id assume they  know  work is coming". So until the first plan has
+      asked for a quote a builder neither lowers its price nor lays off crew.
 16. **Rule 6:** twelve months idle.
 17. **Rule 5 runs section 5's order:** a size up in its own square; else a buy-out; else a new plant.
 18. **Rule 3 does not act while a company is holding stock back.** It has more to sell already.
