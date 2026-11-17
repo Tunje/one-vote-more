@@ -1,0 +1,23 @@
+{
+  "event": "ECON_GRANT_PROGRAMME_ENDED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: business-start grant programme ends",
+      "sub": "Business-starting support under {programme} has come to an end.",
+      "body": "We return to our earlier coverage. Our report recorded this: The grant programme {programme} for people starting a business had ended.\n\nA person trying to start a business is still a person whose household matters. Labour should consider public support through that ordinary perspective, rather than assume that the word 'enterprise' removes the need for fairness. A programme deserves scrutiny for its accessibility as well as its stated ambition.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe criticise {target} on the standard of public support. A programme's ending should not put its stewardship beyond question or allow its attractive purpose to stand in for a serious account of performance."
+    },
+    {
+      "headline": "Looking back: a grant scheme closes its account",
+      "sub": "The programme {programme} has ended its support for people starting a business.",
+      "body": "Looking back to our earlier coverage, this was the news: Business-starting support under {programme} had come to an end.\n\nA person trying to start a business is still a person whose household matters. Labour should consider public support through that ordinary perspective, rather than assume that the word 'enterprise' removes the need for fairness. A programme deserves scrutiny for its accessibility as well as its stated ambition.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe criticise {target} on the standard of public support. A programme's ending should not put its stewardship beyond question or allow its attractive purpose to stand in for a serious account of performance."
+    },
+    {
+      "headline": "Looking back: support programme reaches its end",
+      "sub": "The grant programme {programme} for people starting a business has ended.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: The programme {programme} had ended its support for people starting a business.\n\nA person trying to start a business is still a person whose household matters. Labour should consider public support through that ordinary perspective, rather than assume that the word 'enterprise' removes the need for fairness. A programme deserves scrutiny for its accessibility as well as its stated ambition.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe criticise {target} on the standard of public support. A programme's ending should not put its stewardship beyond question or allow its attractive purpose to stand in for a serious account of performance."
+    }
+  ]
+}

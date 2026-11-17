@@ -1,0 +1,23 @@
+{
+  "event": "ECON_EMIGRATION",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "People leave the colony on the ship",
+      "sub": "",
+      "body": "People have left the colony on the ship: young adults without work and families without homes. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Departure follows a lack of work and homes",
+      "sub": "",
+      "body": "The ship has taken away young adults with no work and families with no home. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "A ship takes settlers away",
+      "sub": "",
+      "body": "Young adults lacking work and families lacking homes have departed the colony aboard the ship. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

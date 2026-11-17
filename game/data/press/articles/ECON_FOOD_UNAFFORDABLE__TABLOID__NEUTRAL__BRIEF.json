@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_UNAFFORDABLE",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Full shelves, empty household purses",
+      "sub": "",
+      "body": "Food is for sale, but households cannot afford it and are going hungry beside full shelves. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Food for sale beyond the buyer's means",
+      "sub": "",
+      "body": "Households are hungry despite available food because they do not have the money to buy it. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Hunger beside food that cannot be afforded",
+      "sub": "",
+      "body": "There is food on the shelves, but people without enough money cannot obtain their meals. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    }
+  ]
+}

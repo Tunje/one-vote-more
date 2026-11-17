@@ -1,0 +1,23 @@
+{
+  "event": "COMP_COMPANY_PLANNED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: household savings committed to a company plan",
+      "sub": "Household savings have been put into a business plan by {founder}.",
+      "body": "We return to our earlier coverage. Our report recorded this: The settler {founder} had committed household savings to a plan for {business}.\n\nAn idea, and household savings behind it. That is a more human story than a grand phrase about enterprise. Respect the commitment without writing the triumphant opening scene in advance. A plan can deserve attention while the important word remains exactly that: a plan, not an accomplished future.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe support {target} in this assessment. A household's commitment to an undertaking deserves a fair hearing, and a plan should not be dismissed simply because its future has not yet become an established result."
+    },
+    {
+      "headline": "Looking back: an enterprise begins as a household risk",
+      "sub": "The founder {founder} has backed a plan for {business} with household savings.",
+      "body": "Looking back to our earlier coverage, this was the news: Household savings have been put into a business plan by {founder}.\n\nAn idea, and household savings behind it. That is a more human story than a grand phrase about enterprise. Respect the commitment without writing the triumphant opening scene in advance. A plan can deserve attention while the important word remains exactly that: a plan, not an accomplished future.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe support {target} in this assessment. A household's commitment to an undertaking deserves a fair hearing, and a plan should not be dismissed simply because its future has not yet become an established result."
+    },
+    {
+      "headline": "Looking back: a settler backs a business idea",
+      "sub": "The settler {founder} has committed household savings to a plan for {business}.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: The founder {founder} had backed a plan for {business} with household savings.\n\nAn idea, and household savings behind it. That is a more human story than a grand phrase about enterprise. Respect the commitment without writing the triumphant opening scene in advance. A plan can deserve attention while the important word remains exactly that: a plan, not an accomplished future.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe support {target} in this assessment. A household's commitment to an undertaking deserves a fair hearing, and a plan should not be dismissed simply because its future has not yet become an established result."
+    }
+  ]
+}

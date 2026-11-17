@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_AWARDED",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: builder signs for a new project",
+      "sub": "A construction contract for {project} has been awarded to {builder}.",
+      "body": "We return to our earlier coverage. Our report recorded this: The builder {builder} had signed a contract for {project}.\n\nOur movement believes execution belongs within political responsibility. An agreed undertaking matters, but its purpose lies beyond the satisfaction of announcing it. A principled argument should be able to follow a project from intention towards delivery, rather than allow the appeal of a signing to answer every practical question.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe take a critical view of {target}. A signature should not shelter inadequate stewardship, and responsible construction requires a more demanding standard than satisfaction that someone has agreed to undertake the work."
+    },
+    {
+      "headline": "Looking back: a price agreed, a building still to deliver",
+      "sub": "The company {builder} has won the building contract for {project}.",
+      "body": "Looking back to our earlier coverage, this was the news: A construction contract for {project} had been awarded to {builder}.\n\nOur movement believes execution belongs within political responsibility. An agreed undertaking matters, but its purpose lies beyond the satisfaction of announcing it. A principled argument should be able to follow a project from intention towards delivery, rather than allow the appeal of a signing to answer every practical question.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe take a critical view of {target}. A signature should not shelter inadequate stewardship, and responsible construction requires a more demanding standard than satisfaction that someone has agreed to undertake the work."
+    },
+    {
+      "headline": "Construction contract puts obligations in writing",
+      "sub": "The builder {builder} has signed a contract for {project}.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: The company {builder} had won the building contract for {project}.\n\nOur movement believes execution belongs within political responsibility. An agreed undertaking matters, but its purpose lies beyond the satisfaction of announcing it. A principled argument should be able to follow a project from intention towards delivery, rather than allow the appeal of a signing to answer every practical question.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe take a critical view of {target}. A signature should not shelter inadequate stewardship, and responsible construction requires a more demanding standard than satisfaction that someone has agreed to undertake the work."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_MIGRANTS_ARRIVED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "New settlers land from the ship",
+      "sub": "",
+      "body": "New settlers have landed from the ship at {district}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "An arrival becomes a colonial beginning",
+      "sub": "",
+      "body": "The ship in port has brought new settlers who landed at {district}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Newcomers step into the colony's life",
+      "sub": "",
+      "body": "The district {district} has received new settlers landing from the ship. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    }
+  ]
+}

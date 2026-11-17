@@ -1,0 +1,23 @@
+{
+  "event": "ECON_GRANT_PROGRAMME_ENDED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Business-start grant programme ends",
+      "sub": "Business-starting support under {programme} has come to an end.",
+      "body": "The programme {programme} has ended, having paid {paid} grants and refused {refused} applications. It supported people starting a business. Readers considering {target} should distinguish that record from a judgment that either the existence or the end of a programme proves it served its purpose adequately.\n\nThe programme has ended. It leaves a count of grants paid and applications refused, not a tidy tale in which every ending explains itself. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "A grant scheme closes its account",
+      "sub": "The programme {programme} has ended its support for people starting a business.",
+      "body": "A grant programme's record contains refusals as well as payments. The programme {programme} has ended with {paid} grants paid and {refused} applications refused. For {target}, the question is how to judge support for people starting a business through that full record, rather than the attraction of the scheme's title.\n\nThe programme has ended. It leaves a count of grants paid and applications refused, not a tidy tale in which every ending explains itself. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Support programme reaches its end",
+      "sub": "The grant programme {programme} for people starting a business has ended.",
+      "body": "Support under {programme} has come to an end. The programme paid {paid} grants and refused {refused} applications from people seeking to start a business. An assessment of {target} should consider what responsible public support means, without assuming a particular reason for the programme's conclusion.\n\nThe programme has ended. It leaves a count of grants paid and applications refused, not a tidy tale in which every ending explains itself. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    }
+  ]
+}

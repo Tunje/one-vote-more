@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_PAYMENT_MISSED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Builder left unpaid for work done",
+      "sub": "",
+      "body": "The client {client} has not paid {builder} for building work done. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "A construction payment fails to arrive",
+      "sub": "",
+      "body": "The builder {builder} is owed payment by the client {client} for completed work. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Work delivered, payment outstanding",
+      "sub": "",
+      "body": "Payment for work done by {builder} has been missed by {client}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

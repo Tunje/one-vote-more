@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_PAYMENT_MISSED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Builder left unpaid for work done",
+      "sub": "",
+      "body": "The client {client} has not paid {builder} for building work done. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A construction payment fails to arrive",
+      "sub": "",
+      "body": "The builder {builder} is owed payment by the client {client} for completed work. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Work delivered, payment outstanding",
+      "sub": "",
+      "body": "Payment for work done by {builder} has been missed by {client}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

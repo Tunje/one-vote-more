@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PANDEMIC",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Illness spreads beyond the clinics' reach",
+      "sub": "",
+      "body": "Illness is spreading, with {sick} people too ill to work and {district} worst affected. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Pandemic leaves {sick} too ill to work",
+      "sub": "",
+      "body": "The pandemic has left {sick} people unable to work; {district} is the worst affected district. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "{district} bears the worst of the pandemic",
+      "sub": "",
+      "body": "The worst affected district is {district}, while illness leaves {sick} people unable to work. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PURSE_SHORT",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "State payments fall short",
+      "sub": "The government has underpaid wages, unemployment benefit and pensions, each by an equal proportion.",
+      "body": "The government owed {due} but paid {paid} this month. State wages, unemployment benefit and pensions were each paid short by the same share. For {target}, the immediate question is financial stewardship judged from the position of people whose expected payment has not arrived in full.\n\nA wage, benefit or pension is meant to support a life. Labour should not let an equal share of underpayment become a reason to forget that purpose. The arithmetic describes the cut; it does not replace the question of how people are expected to live with the payment they receive.\n\nThe stewardship of {target} warrants examination against the unpaid portion. The uniform share describes how payments fell short; it does not by itself supply a verdict about responsibility for the position. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Equal cuts, different household needs",
+      "sub": "Government payments have fallen short across state wages, unemployment benefit and pensions alike.",
+      "body": "An equal proportion is not a complete account of a household's needs. State wages, unemployment benefit and pensions have all been paid short by the same share: {paid} was paid against {due} owed. Readers judging {target} should distinguish a uniform reduction from an argument that its burden is therefore easy.\n\nA wage, benefit or pension is meant to support a life. Labour should not let an equal share of underpayment become a reason to forget that purpose. The arithmetic describes the cut; it does not replace the question of how people are expected to live with the payment they receive.\n\nThe stewardship of {target} warrants examination against the unpaid portion. The uniform share describes how payments fell short; it does not by itself supply a verdict about responsibility for the position. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Treasury pays less than it owes",
+      "sub": "State wages, unemployment benefit and pensions have all been paid short by the same share.",
+      "body": "The treasury has paid {paid} against obligations of {due}. The shortfall reaches state wages, unemployment benefit and pensions, each reduced by the same proportion. An assessment of {target} should begin with those unpaid obligations and the ordinary need for a payment to be more than a promise.\n\nA wage, benefit or pension is meant to support a life. Labour should not let an equal share of underpayment become a reason to forget that purpose. The arithmetic describes the cut; it does not replace the question of how people are expected to live with the payment they receive.\n\nThe stewardship of {target} warrants examination against the unpaid portion. The uniform share describes how payments fell short; it does not by itself supply a verdict about responsibility for the position. Ordinary lives should be the measure, not a convenient afterthought."
+    }
+  ]
+}

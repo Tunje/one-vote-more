@@ -1,0 +1,23 @@
+{
+  "event": "COMP_COMPANY_PLANNED",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Household savings committed to a company plan",
+      "sub": "",
+      "body": "The settler {founder} has committed household savings to a plan for {business}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "An enterprise begins as a household risk",
+      "sub": "",
+      "body": "Household savings have been put into a business plan by {founder}. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "A settler backs a business idea",
+      "sub": "",
+      "body": "The founder {founder} has backed a plan for {business} with household savings. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    }
+  ]
+}

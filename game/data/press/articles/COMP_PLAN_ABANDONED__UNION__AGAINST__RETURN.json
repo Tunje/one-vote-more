@@ -1,0 +1,23 @@
+{
+  "event": "COMP_PLAN_ABANDONED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: business plan abandoned before opening",
+      "sub": "The planned {business} will not open: {founder} has given up the plan.",
+      "body": "We return to our earlier coverage. Our report recorded this: The founder {founder} had abandoned the plan for {business} before opening.\n\nThe person behind a business plan remains a person when it is abandoned. Labour should keep the household in view without treating a builder's work as though it never mattered. Fair treatment requires attention to the commitments on both sides, not an easy slogan about who ought to carry the disappointment.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe criticise {target} on the standard of stewardship. A plan that ends before opening still involves real commitments, and responsibility should not disappear merely because the hoped-for enterprise never began operating."
+    },
+    {
+      "headline": "Looking back: an intended company will not open",
+      "sub": "The business plan made by {founder} has been abandoned before the company opened.",
+      "body": "Looking back to our earlier coverage, this was the news: The planned {business} will not open: {founder} had given up the plan.\n\nThe person behind a business plan remains a person when it is abandoned. Labour should keep the household in view without treating a builder's work as though it never mattered. Fair treatment requires attention to the commitments on both sides, not an easy slogan about who ought to carry the disappointment.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe criticise {target} on the standard of stewardship. A plan that ends before opening still involves real commitments, and responsibility should not disappear merely because the hoped-for enterprise never began operating."
+    },
+    {
+      "headline": "Looking back: a household's business plan ends",
+      "sub": "The founder {founder} has abandoned the plan for {business} before opening.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: The business plan made by {founder} had been abandoned before the company opened.\n\nThe person behind a business plan remains a person when it is abandoned. Labour should keep the household in view without treating a builder's work as though it never mattered. Fair treatment requires attention to the commitments on both sides, not an easy slogan about who ought to carry the disappointment.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe criticise {target} on the standard of stewardship. A plan that ends before opening still involves real commitments, and responsibility should not disappear merely because the hoped-for enterprise never began operating."
+    }
+  ]
+}

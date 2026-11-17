@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PANDEMIC",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Illness spreads beyond the clinics' reach",
+      "sub": "The pandemic has left {sick} people unable to work; {district} is the worst affected district.",
+      "body": "Illness is spreading through {colony} because the clinics cannot treat people. There are {sick} people too ill to work, with {district} worst affected. For {target}, the immediate test is whether responsibility for care is taken as seriously as the consequences of its absence.\n\nThe inability of clinics to treat people is central to the spread of illness. The public interest requires that treatment be considered as a practical necessity, rather than merely an administrative objective. An account of available care must be judged by whether it can serve the people who need it.\n\nThe role of {target} deserves scrutiny against the shortage of treatment. This paper's standard is the practical provision of care, with the needs of ill people kept at the centre of the assessment. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "Pandemic leaves {sick} too ill to work",
+      "sub": "The worst affected district is {district}, while illness leaves {sick} people unable to work.",
+      "body": "The pandemic has left {sick} people too ill to work, and {district} is the worst affected district. Illness is spreading because the clinics cannot treat people. Any reckoning with {target} should begin with the people needing care, rather than reducing their illness to missing labour.\n\nThe inability of clinics to treat people is central to the spread of illness. The public interest requires that treatment be considered as a practical necessity, rather than merely an administrative objective. An account of available care must be judged by whether it can serve the people who need it.\n\nThe role of {target} deserves scrutiny against the shortage of treatment. This paper's standard is the practical provision of care, with the needs of ill people kept at the centre of the assessment. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "{district} bears the worst of the pandemic",
+      "sub": "Illness is spreading, with {sick} people too ill to work and {district} worst affected.",
+      "body": "The worst of the pandemic is in {district}. Across the colony, {sick} people are too ill to work as illness spreads beyond what the clinics can treat. Readers considering {target} face a basic question: what does a colony owe people when they need care?\n\nThe inability of clinics to treat people is central to the spread of illness. The public interest requires that treatment be considered as a practical necessity, rather than merely an administrative objective. An account of available care must be judged by whether it can serve the people who need it.\n\nThe role of {target} deserves scrutiny against the shortage of treatment. This paper's standard is the practical provision of care, with the needs of ill people kept at the centre of the assessment. Care in the public record is part of responsible administration."
+    }
+  ]
+}

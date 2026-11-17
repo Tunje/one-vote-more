@@ -62,6 +62,12 @@ def article(request, index):
             "This story remains under examination, {months_running} months into our coverage of the original event.",
             "Our attention to this story continues after {months_running} months, with the original report still the starting point.",
         )[index]
+        if "months_running" not in request["placeholders"]:
+            timeline = (
+                "Coverage of this story continues; the original event remains the starting point for the questions examined here.",
+                "This story remains under examination, with renewed attention to the responsibilities raised by the original report.",
+                "Our attention to this story continues, with the original event still the starting point for assessing responsibility.",
+            )[index]
         body = fact + " " + timeline + "\n\n" + short_voice + " " + short_judgment
         headline = ("Still in view: " + headline[0].lower() + headline[1:])
     elif kind == "RETURN":
@@ -71,10 +77,12 @@ def article(request, index):
             "Looking back to {first_reported}, this was the news: " + past_fact,
             "The headline belongs to {first_reported}. Our original account recorded this: " + past_fact,
         )[index]
+        if "first_reported" not in request["placeholders"]:
+            retrospective = retrospective.replace("{first_reported}", "our earlier coverage")
         comparison = (
             "The event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.",
             "Time changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.",
-            "What has changed since then should be examined against that original record. What has not changed is the need to distinguish an established event from the hopes or fears attached to it.",
+            "Changes since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.",
         )[index]
         body = "\n\n".join((retrospective, voice, comparison, judgment))
         headline = "Looking back: " + headline[0].lower() + headline[1:]

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_PAYMENT_MISSED",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Builder left unpaid for work done",
+      "sub": "",
+      "body": "The client {client} has not paid {builder} for building work done. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "A construction payment fails to arrive",
+      "sub": "",
+      "body": "The builder {builder} is owed payment by the client {client} for completed work. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Work delivered, payment outstanding",
+      "sub": "",
+      "body": "Payment for work done by {builder} has been missed by {client}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

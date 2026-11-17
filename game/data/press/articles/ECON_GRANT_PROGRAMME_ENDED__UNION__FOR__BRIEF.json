@@ -1,0 +1,23 @@
+{
+  "event": "ECON_GRANT_PROGRAMME_ENDED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Business-start grant programme ends",
+      "sub": "",
+      "body": "The grant programme {programme} for people starting a business has ended. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A grant scheme closes its account",
+      "sub": "",
+      "body": "Business-starting support under {programme} has come to an end. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Support programme reaches its end",
+      "sub": "",
+      "body": "The programme {programme} has ended its support for people starting a business. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

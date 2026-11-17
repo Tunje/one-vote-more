@@ -1,0 +1,23 @@
+{
+  "event": "ECON_GRANT_PROGRAMME_ENDED",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Business-start grant programme ends",
+      "sub": "",
+      "body": "The grant programme {programme} for people starting a business has ended. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "A grant scheme closes its account",
+      "sub": "",
+      "body": "Business-starting support under {programme} has come to an end. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    },
+    {
+      "headline": "Support programme reaches its end",
+      "sub": "",
+      "body": "The programme {programme} has ended its support for people starting a business. This gazette considers the stewardship of {target} inadequate and regards the matter as warranting critical scrutiny."
+    }
+  ]
+}

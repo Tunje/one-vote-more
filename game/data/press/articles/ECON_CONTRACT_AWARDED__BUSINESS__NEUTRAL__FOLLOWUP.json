@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_AWARDED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: builder signs for a new project",
+      "sub": "A construction contract for {project} has been awarded to {builder}.",
+      "body": "The builder {builder} has signed a contract for {project}. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nAn award defines a commercial undertaking, not earned revenue for all work or a finished asset for the client. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Still in view: a price agreed, a building still to deliver",
+      "sub": "The company {builder} has won the building contract for {project}.",
+      "body": "A construction contract for {project} has been awarded to {builder}. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nAn award defines a commercial undertaking, not earned revenue for all work or a finished asset for the client. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Construction contract puts obligations in writing",
+      "sub": "The builder {builder} has signed a contract for {project}.",
+      "body": "The company {builder} has won the building contract for {project}. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nAn award defines a commercial undertaking, not earned revenue for all work or a finished asset for the client. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

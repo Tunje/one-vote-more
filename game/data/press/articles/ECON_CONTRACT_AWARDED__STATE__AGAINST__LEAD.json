@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_AWARDED",
+  "flavour": "STATE",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Builder signs for a new project",
+      "sub": "A construction contract for {project} has been awarded to {builder}.",
+      "body": "The builder {builder} has signed a contract for {project} at an agreed price of {price}. The signature establishes an undertaking to build, not a completed building. Readers assessing {target} should distinguish the award from delivery, while taking seriously the obligations the agreement is meant to create.\n\nThe gazette records the builder, the project and the price as the terms established by the award. A signed construction contract and a completed project require separate notices. The public record should preserve that sequence rather than describe the agreement as though it had already produced the promised building.\n\nWe take a critical view of {target}. A signature should not shelter inadequate stewardship, and responsible construction requires a more demanding standard than satisfaction that someone has agreed to undertake the work. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "A price agreed, a building still to deliver",
+      "sub": "The company {builder} has won the building contract for {project}.",
+      "body": "A price of {price} has been agreed for {project}, with {builder} winning the building contract. The project is now the subject of a signed undertaking. For {target}, the practical test concerns responsible delivery under that agreement, rather than treating a signature as proof that construction has already succeeded.\n\nThe gazette records the builder, the project and the price as the terms established by the award. A signed construction contract and a completed project require separate notices. The public record should preserve that sequence rather than describe the agreement as though it had already produced the promised building.\n\nWe take a critical view of {target}. A signature should not shelter inadequate stewardship, and responsible construction requires a more demanding standard than satisfaction that someone has agreed to undertake the work. Care in the public record is part of responsible administration."
+    },
+    {
+      "headline": "Construction contract puts obligations in writing",
+      "sub": "The builder {builder} has signed a contract for {project}.",
+      "body": "The company {builder} has won a signed building contract for {project}. The agreed price is {price}. An assessment of {target} should begin with the responsibility attached to that undertaking, keeping the agreement to build distinct from the later task of handing over something that has actually been completed.\n\nThe gazette records the builder, the project and the price as the terms established by the award. A signed construction contract and a completed project require separate notices. The public record should preserve that sequence rather than describe the agreement as though it had already produced the promised building.\n\nWe take a critical view of {target}. A signature should not shelter inadequate stewardship, and responsible construction requires a more demanding standard than satisfaction that someone has agreed to undertake the work. Care in the public record is part of responsible administration."
+    }
+  ]
+}

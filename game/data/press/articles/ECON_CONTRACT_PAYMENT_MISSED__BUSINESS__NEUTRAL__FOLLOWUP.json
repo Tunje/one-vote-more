@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_PAYMENT_MISSED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: builder left unpaid for work done",
+      "sub": "The builder {builder} is owed payment by the client {client} for completed work.",
+      "body": "The client {client} has not paid {builder} for building work done. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nA receivable is not cash received. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Still in view: a construction payment fails to arrive",
+      "sub": "Payment for work done by {builder} has been missed by {client}.",
+      "body": "The builder {builder} is owed payment by the client {client} for completed work. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nA receivable is not cash received. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Still in view: work delivered, payment outstanding",
+      "sub": "The client {client} has not paid {builder} for building work done.",
+      "body": "Payment for work done by {builder} has been missed by {client}. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nA receivable is not cash received. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

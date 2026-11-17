@@ -1,0 +1,23 @@
+{
+  "event": "ECON_GRANT_PROGRAMME_ENDED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Business-start grant programme ends",
+      "sub": "",
+      "body": "The grant programme {programme} for people starting a business has ended. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "A grant scheme closes its account",
+      "sub": "",
+      "body": "Business-starting support under {programme} has come to an end. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Support programme reaches its end",
+      "sub": "",
+      "body": "The programme {programme} has ended its support for people starting a business. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

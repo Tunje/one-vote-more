@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_COMPLETED",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: building finished and handed over",
+      "sub": "The project {project} has been completed and handed over by {builder}.",
+      "body": "We return to our earlier coverage. Our report recorded this: The builder {builder} had finished and handed over {project}.\n\nOur principles require attention to execution as well as intention. A completed building is a tangible result, though the purpose of a project extends into what it is meant to make possible. Political judgment should recognise delivery without allowing one achievement to settle every question about the use that follows.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe remain critical of {target}. A completed building should not place overall stewardship beyond scrutiny, or turn a particular delivery into automatic approval of every judgment surrounding the project and its purpose."
+    },
+    {
+      "headline": "Looking back: delivery reached; opening follows",
+      "sub": "Completion and handover of {project} have been achieved by {builder}.",
+      "body": "Looking back to our earlier coverage, this was the news: The project {project} had been completed and handed over by {builder}.\n\nOur principles require attention to execution as well as intention. A completed building is a tangible result, though the purpose of a project extends into what it is meant to make possible. Political judgment should recognise delivery without allowing one achievement to settle every question about the use that follows.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe remain critical of {target}. A completed building should not place overall stewardship beyond scrutiny, or turn a particular delivery into automatic approval of every judgment surrounding the project and its purpose."
+    },
+    {
+      "headline": "Looking back: a completed project leaves the builder's hands",
+      "sub": "The builder {builder} has finished and handed over {project}.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: Completion and handover of {project} have been achieved by {builder}.\n\nOur principles require attention to execution as well as intention. A completed building is a tangible result, though the purpose of a project extends into what it is meant to make possible. Political judgment should recognise delivery without allowing one achievement to settle every question about the use that follows.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe remain critical of {target}. A completed building should not place overall stewardship beyond scrutiny, or turn a particular delivery into automatic approval of every judgment surrounding the project and its purpose."
+    }
+  ]
+}

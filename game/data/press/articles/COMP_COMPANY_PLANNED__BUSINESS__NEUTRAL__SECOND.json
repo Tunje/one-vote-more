@@ -1,0 +1,23 @@
+{
+  "event": "COMP_COMPANY_PLANNED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Household savings committed to a company plan",
+      "sub": "Household savings have been put into a business plan by {founder}.",
+      "body": "The settler {founder} has put household savings into a plan for {business} in {district}. The commitment is a plan to start a company, not an announcement that it has opened. For {target}, the relevant question concerns the conditions under which a household commits its means to an undertaking.\n\nA plan backed by savings is a commitment, not an operating business. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "An enterprise begins as a household risk",
+      "sub": "The founder {founder} has backed a plan for {business} with household savings.",
+      "body": "Household savings are behind the plan made by {founder} for {business} in {district}. A future company is the intention, rather than an established operation. Readers assessing {target} should keep the person and household behind that intention in view, alongside the practical difference between planning and opening.\n\nA plan backed by savings is a commitment, not an operating business. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "A settler backs a business idea",
+      "sub": "The settler {founder} has committed household savings to a plan for {business}.",
+      "body": "The founder {founder} has backed a plan for {business} in {district} with household savings. There is a personal commitment within the commercial proposal. Any reckoning with {target} should distinguish respect for that commitment from a promise that the enterprise will open or produce a particular result.\n\nA plan backed by savings is a commitment, not an operating business. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

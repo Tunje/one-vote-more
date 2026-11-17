@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_UNAFFORDABLE",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Full shelves, empty household purses",
+      "sub": "",
+      "body": "Food is for sale, but households cannot afford it and are going hungry beside full shelves. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Food for sale beyond the buyer's means",
+      "sub": "",
+      "body": "Households are hungry despite available food because they do not have the money to buy it. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Hunger beside food that cannot be afforded",
+      "sub": "",
+      "body": "There is food on the shelves, but people without enough money cannot obtain their meals. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

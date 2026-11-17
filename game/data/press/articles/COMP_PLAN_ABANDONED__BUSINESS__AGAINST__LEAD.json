@@ -1,0 +1,23 @@
+{
+  "event": "COMP_PLAN_ABANDONED",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Business plan abandoned before opening",
+      "sub": "The planned {business} will not open: {founder} has given up the plan.",
+      "body": "The founder {founder} has abandoned the plan for {business} before opening. The reason given is that {why}. The builder keeps what it was paid, and any grant is owed back. For {target}, the result raises a direct question about responsibility before an enterprise can begin operating.\n\nA terminated plan can retain financial consequences. The builder keeps sums already paid, and any grant remains repayable. Commercial readers should distinguish the end of the intended business from the clearing of its commitments; abandoning the proposal does not amount to a full reversal of the transactions around it.\n\nWe criticise {target} on the standard of stewardship. A plan that ends before opening still involves real commitments, and responsibility should not disappear merely because the hoped-for enterprise never began operating. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    },
+    {
+      "headline": "An intended company will not open",
+      "sub": "The business plan made by {founder} has been abandoned before the company opened.",
+      "body": "The proposed {business} will not open: {founder} has given up the plan because {why}. Payments already made to the builder remain with the builder, while any grant must be repaid. Readers considering {target} should distinguish the end of the proposal from an ending without obligations.\n\nA terminated plan can retain financial consequences. The builder keeps sums already paid, and any grant remains repayable. Commercial readers should distinguish the end of the intended business from the clearing of its commitments; abandoning the proposal does not amount to a full reversal of the transactions around it.\n\nWe criticise {target} on the standard of stewardship. A plan that ends before opening still involves real commitments, and responsibility should not disappear merely because the hoped-for enterprise never began operating. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    },
+    {
+      "headline": "A household's business plan ends",
+      "sub": "The founder {founder} has abandoned the plan for {business} before opening.",
+      "body": "The founder {founder} has abandoned the plan for {business}, with {why} given as the reason. It has ended before opening, but the financial consequences do not vanish: the builder keeps its payment and any grant is owed back. The stewardship of {target} deserves attention on that basis.\n\nA terminated plan can retain financial consequences. The builder keeps sums already paid, and any grant remains repayable. Commercial readers should distinguish the end of the intended business from the clearing of its commitments; abandoning the proposal does not amount to a full reversal of the transactions around it.\n\nWe criticise {target} on the standard of stewardship. A plan that ends before opening still involves real commitments, and responsibility should not disappear merely because the hoped-for enterprise never began operating. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    }
+  ]
+}

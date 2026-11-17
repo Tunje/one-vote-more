@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PURSE_SHORT",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "State payments fall short",
+      "sub": "",
+      "body": "State wages, unemployment benefit and pensions have all been paid short by the same share. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Equal cuts, different household needs",
+      "sub": "",
+      "body": "The government has underpaid wages, unemployment benefit and pensions, each by an equal proportion. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Treasury pays less than it owes",
+      "sub": "",
+      "body": "Government payments have fallen short across state wages, unemployment benefit and pensions alike. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_UNAFFORDABLE",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Full shelves, empty household purses",
+      "sub": "",
+      "body": "Food is for sale, but households cannot afford it and are going hungry beside full shelves. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "Food for sale beyond the buyer's means",
+      "sub": "",
+      "body": "Households are hungry despite available food because they do not have the money to buy it. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "Hunger beside food that cannot be afforded",
+      "sub": "",
+      "body": "There is food on the shelves, but people without enough money cannot obtain their meals. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_AWARDED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Builder signs for a new project",
+      "sub": "A construction contract for {project} has been awarded to {builder}.",
+      "body": "The builder {builder} has signed a contract for {project} at an agreed price of {price}. The signature establishes an undertaking to build, not a completed building. Readers assessing {target} should distinguish the award from delivery, while taking seriously the obligations the agreement is meant to create.\n\nA builder, a project and an agreed price. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "A price agreed, a building still to deliver",
+      "sub": "The company {builder} has won the building contract for {project}.",
+      "body": "A price of {price} has been agreed for {project}, with {builder} winning the building contract. The project is now the subject of a signed undertaking. For {target}, the practical test concerns responsible delivery under that agreement, rather than treating a signature as proof that construction has already succeeded.\n\nA builder, a project and an agreed price. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Construction contract puts obligations in writing",
+      "sub": "The builder {builder} has signed a contract for {project}.",
+      "body": "The company {builder} has won a signed building contract for {project}. The agreed price is {price}. An assessment of {target} should begin with the responsibility attached to that undertaking, keeping the agreement to build distinct from the later task of handing over something that has actually been completed.\n\nA builder, a project and an agreed price. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

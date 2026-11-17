@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_UNAFFORDABLE",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Full shelves, empty household purses",
+      "sub": "Households are hungry despite available food because they do not have the money to buy it.",
+      "body": "There is food for sale, but households cannot pay for it and are going hungry beside full shelves. There were {short} meals left unbought for want of money. For {target}, the relevant question is access through the household purse, not whether the colony has food available to sell.\n\nThe shelves are full. The people beside them can still be hungry. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Food for sale beyond the buyer's means",
+      "sub": "There is food on the shelves, but people without enough money cannot obtain their meals.",
+      "body": "A full shelf does not establish that a household can eat. Food is for sale while people lack the money to buy it, leaving {short} meals unbought. Readers assessing {target} should distinguish affordability from availability and keep the household's means at the centre of the problem being described.\n\nThe shelves are full. The people beside them can still be hungry. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Hunger beside food that cannot be afforded",
+      "sub": "Food is for sale, but households cannot afford it and are going hungry beside full shelves.",
+      "body": "The colony has recorded {short} meals unbought because people could not pay, despite food being available for sale. Households are going hungry beside full shelves. Any assessment of {target} should begin with that failure of affordability rather than describe this hunger as a physical absence of food.\n\nThe shelves are full. The people beside them can still be hungry. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    }
+  ]
+}

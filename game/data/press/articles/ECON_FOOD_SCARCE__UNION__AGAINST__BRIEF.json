@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_SCARCE",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Money in hand, no food to buy",
+      "sub": "",
+      "body": "Shops and farms are sold out of food, leaving people with money unable to buy meals. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Shops and farms sell out",
+      "sub": "",
+      "body": "People have money for food but cannot buy it because shops and farms are sold out. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Food shortage defeats the buyer",
+      "sub": "",
+      "body": "Food is unavailable to buyers even with money in hand: shops and farms are sold out. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    }
+  ]
+}

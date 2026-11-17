@@ -1,0 +1,23 @@
+{
+  "event": "COMP_PLAN_ABANDONED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: business plan abandoned before opening",
+      "sub": "The planned {business} will not open: {founder} has given up the plan.",
+      "body": "The founder {founder} has abandoned the plan for {business} before opening. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nThe person behind a business plan remains a person when it is abandoned. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Still in view: an intended company will not open",
+      "sub": "The business plan made by {founder} has been abandoned before the company opened.",
+      "body": "The planned {business} will not open: {founder} has given up the plan. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nThe person behind a business plan remains a person when it is abandoned. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Still in view: a household's business plan ends",
+      "sub": "The founder {founder} has abandoned the plan for {business} before opening.",
+      "body": "The business plan made by {founder} has been abandoned before the company opened. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nThe person behind a business plan remains a person when it is abandoned. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

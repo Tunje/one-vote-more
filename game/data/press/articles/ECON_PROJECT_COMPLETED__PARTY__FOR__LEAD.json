@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_COMPLETED",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Building finished and handed over",
+      "sub": "The project {project} has been completed and handed over by {builder}.",
+      "body": "The builder {builder} has finished and handed over {project}. It opens next month. The distinction between handover and opening matters to an assessment of {target}: a building has been delivered, while its entry into use is the following stage rather than an event already accomplished by this notice.\n\nOur principles require attention to execution as well as intention. A completed building is a tangible result, though the purpose of a project extends into what it is meant to make possible. Political judgment should recognise delivery without allowing one achievement to settle every question about the use that follows.\n\nWe welcome {target} in this assessment. A building actually completed and handed over deserves practical credit, without requiring us to pretend that its future use has already answered every question about performance. Political principle should remain visible when judgment becomes less comfortable."
+    },
+    {
+      "headline": "Delivery reached; opening follows",
+      "sub": "Completion and handover of {project} have been achieved by {builder}.",
+      "body": "The project {project} has been completed and handed over by {builder}, with opening next month. The delivery is a practical result rather than merely an intention to build. Readers considering {target} should recognise that result while keeping the beginning of operations distinct from the completion of construction.\n\nOur principles require attention to execution as well as intention. A completed building is a tangible result, though the purpose of a project extends into what it is meant to make possible. Political judgment should recognise delivery without allowing one achievement to settle every question about the use that follows.\n\nWe welcome {target} in this assessment. A building actually completed and handed over deserves practical credit, without requiring us to pretend that its future use has already answered every question about performance. Political principle should remain visible when judgment becomes less comfortable."
+    },
+    {
+      "headline": "A completed project leaves the builder's hands",
+      "sub": "The builder {builder} has finished and handed over {project}.",
+      "body": "Completion and handover have been reached for {project}, built by {builder}. Opening follows next month. For {target}, the event provides a concrete point at which delivery can be judged, without turning a finished building into a claim about results that its later use has not yet established.\n\nOur principles require attention to execution as well as intention. A completed building is a tangible result, though the purpose of a project extends into what it is meant to make possible. Political judgment should recognise delivery without allowing one achievement to settle every question about the use that follows.\n\nWe welcome {target} in this assessment. A building actually completed and handed over deserves practical credit, without requiring us to pretend that its future use has already answered every question about performance. Political principle should remain visible when judgment becomes less comfortable."
+    }
+  ]
+}

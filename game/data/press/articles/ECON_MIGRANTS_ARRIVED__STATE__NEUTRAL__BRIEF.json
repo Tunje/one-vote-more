@@ -1,0 +1,23 @@
+{
+  "event": "ECON_MIGRANTS_ARRIVED",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "New settlers land from the ship",
+      "sub": "",
+      "body": "New settlers have landed from the ship at {district}. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "An arrival becomes a colonial beginning",
+      "sub": "",
+      "body": "The ship in port has brought new settlers who landed at {district}. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "Newcomers step into the colony's life",
+      "sub": "",
+      "body": "The district {district} has received new settlers landing from the ship. The gazette records the development as a matter deserving careful attention in the public interest."
+    }
+  ]
+}

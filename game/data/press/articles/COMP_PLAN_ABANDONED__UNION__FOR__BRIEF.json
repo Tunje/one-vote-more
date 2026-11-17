@@ -1,0 +1,23 @@
+{
+  "event": "COMP_PLAN_ABANDONED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Business plan abandoned before opening",
+      "sub": "",
+      "body": "The founder {founder} has abandoned the plan for {business} before opening. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "An intended company will not open",
+      "sub": "",
+      "body": "The planned {business} will not open: {founder} has given up the plan. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A household's business plan ends",
+      "sub": "",
+      "body": "The business plan made by {founder} has been abandoned before the company opened. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

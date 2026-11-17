@@ -1,0 +1,23 @@
+{
+  "event": "ECON_GRANT_PROGRAMME_ENDED",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: business-start grant programme ends",
+      "sub": "Business-starting support under {programme} has come to an end.",
+      "body": "The grant programme {programme} for people starting a business has ended. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nOur principles require public support to be judged by the purpose it is meant to serve. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Still in view: a grant scheme closes its account",
+      "sub": "The programme {programme} has ended its support for people starting a business.",
+      "body": "Business-starting support under {programme} has come to an end. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nOur principles require public support to be judged by the purpose it is meant to serve. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Still in view: support programme reaches its end",
+      "sub": "The grant programme {programme} for people starting a business has ended.",
+      "body": "The programme {programme} has ended its support for people starting a business. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nOur principles require public support to be judged by the purpose it is meant to serve. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

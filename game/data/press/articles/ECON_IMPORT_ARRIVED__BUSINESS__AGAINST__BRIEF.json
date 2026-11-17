@@ -1,0 +1,23 @@
+{
+  "event": "ECON_IMPORT_ARRIVED",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Ordered goods reach the dock",
+      "sub": "",
+      "body": "The company {company} has received its imported order of {good} at the port. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "An order completes its long journey",
+      "sub": "",
+      "body": "Imported {good} ordered by {company} has landed at the colony's port. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "Imports landed and paid for",
+      "sub": "",
+      "body": "The company {company} has taken delivery of its home-world order of {good}. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    }
+  ]
+}

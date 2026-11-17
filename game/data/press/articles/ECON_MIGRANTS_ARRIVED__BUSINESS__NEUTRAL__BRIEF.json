@@ -1,0 +1,23 @@
+{
+  "event": "ECON_MIGRANTS_ARRIVED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "New settlers land from the ship",
+      "sub": "",
+      "body": "New settlers have landed from the ship at {district}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "An arrival becomes a colonial beginning",
+      "sub": "",
+      "body": "The ship in port has brought new settlers who landed at {district}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Newcomers step into the colony's life",
+      "sub": "",
+      "body": "The district {district} has received new settlers landing from the ship. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

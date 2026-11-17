@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_COMPLETED",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Building finished and handed over",
+      "sub": "",
+      "body": "The builder {builder} has finished and handed over {project}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Delivery reached; opening follows",
+      "sub": "",
+      "body": "The project {project} has been completed and handed over by {builder}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "A completed project leaves the builder's hands",
+      "sub": "",
+      "body": "Completion and handover of {project} have been achieved by {builder}. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    }
+  ]
+}

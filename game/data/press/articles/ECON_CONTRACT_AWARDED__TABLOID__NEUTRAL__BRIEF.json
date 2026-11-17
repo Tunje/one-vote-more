@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_AWARDED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Builder signs for a new project",
+      "sub": "",
+      "body": "The builder {builder} has signed a contract for {project}. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "A price agreed, a building still to deliver",
+      "sub": "",
+      "body": "A construction contract for {project} has been awarded to {builder}. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Construction contract puts obligations in writing",
+      "sub": "",
+      "body": "The company {builder} has won the building contract for {project}. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    }
+  ]
+}

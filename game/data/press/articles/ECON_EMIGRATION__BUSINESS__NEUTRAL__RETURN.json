@@ -1,0 +1,23 @@
+{
+  "event": "ECON_EMIGRATION",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: people leave the colony on the ship",
+      "sub": "The ship has taken away young adults with no work and families with no home.",
+      "body": "We return to our earlier coverage. Our report recorded this: People have left the colony on the ship: young adults without work and families without homes.\n\nDepartures concern people as well as population. The stated lack of work and homes is material, but a count of those leaving does not supply a full forecast of labour or demand. Commercial readers should distinguish the known movement from guesses about every wider consequence it might be made to imply.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nThe stewardship of {target} warrants scrutiny through the stated lack of work and homes. This paper records departure without assuming the destinations, hopes or future decisions of the people who have left."
+    },
+    {
+      "headline": "Looking back: departure follows a lack of work and homes",
+      "sub": "Young adults lacking work and families lacking homes have departed the colony aboard the ship.",
+      "body": "Looking back to our earlier coverage, this was the news: The ship had taken away young adults with no work and families with no home.\n\nDepartures concern people as well as population. The stated lack of work and homes is material, but a count of those leaving does not supply a full forecast of labour or demand. Commercial readers should distinguish the known movement from guesses about every wider consequence it might be made to imply.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nThe stewardship of {target} warrants scrutiny through the stated lack of work and homes. This paper records departure without assuming the destinations, hopes or future decisions of the people who have left."
+    },
+    {
+      "headline": "Looking back: a ship takes settlers away",
+      "sub": "People have left the colony on the ship: young adults without work and families without homes.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: Young adults lacking work and families lacking homes have departed the colony aboard the ship.\n\nDepartures concern people as well as population. The stated lack of work and homes is material, but a count of those leaving does not supply a full forecast of labour or demand. Commercial readers should distinguish the known movement from guesses about every wider consequence it might be made to imply.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nThe stewardship of {target} warrants scrutiny through the stated lack of work and homes. This paper records departure without assuming the destinations, hopes or future decisions of the people who have left."
+    }
+  ]
+}

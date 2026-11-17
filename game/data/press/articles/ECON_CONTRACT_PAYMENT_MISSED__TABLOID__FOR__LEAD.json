@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_PAYMENT_MISSED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Builder left unpaid for work done",
+      "sub": "The builder {builder} is owed payment by the client {client} for completed work.",
+      "body": "The client {client} has not paid the builder {builder} for work done. The amount owed is {owed}. After three missed months the builder stops work. For {target}, the event raises the basic question of responsibility when a construction undertaking requires payment as well as performance.\n\nThe work was done. The payment has not been made. It is a plain story about an obligation, without needing a fictional argument at the site. Remember the difference between a missed payment and the later stopping rule before somebody turns the account into a stoppage that has not been established.\n\nWe support {target} against a blanket adverse verdict. The missed payment requires attention, but its existence does not prove every allegation about motives or establish that the project has already reached a stop. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "A construction payment fails to arrive",
+      "sub": "Payment for work done by {builder} has been missed by {client}.",
+      "body": "The builder {builder} is owed {owed} by the client {client} for work already done. The rule is that three missed months bring a stop to work. Readers considering {target} should distinguish the current payment failure from a claim that the stopping point has already been reached.\n\nThe work was done. The payment has not been made. It is a plain story about an obligation, without needing a fictional argument at the site. Remember the difference between a missed payment and the later stopping rule before somebody turns the account into a stoppage that has not been established.\n\nWe support {target} against a blanket adverse verdict. The missed payment requires attention, but its existence does not prove every allegation about motives or establish that the project has already reached a stop. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "Work delivered, payment outstanding",
+      "sub": "The client {client} has not paid {builder} for building work done.",
+      "body": "Payment for work done by {builder} has been missed by {client}, with {owed} owed. Work stops after three missed months. An assessment of {target} should begin with the present obligation to pay, rather than treat a rule about prolonged non-payment as proof of a stoppage already in effect.\n\nThe work was done. The payment has not been made. It is a plain story about an obligation, without needing a fictional argument at the site. Remember the difference between a missed payment and the later stopping rule before somebody turns the account into a stoppage that has not been established.\n\nWe support {target} against a blanket adverse verdict. The missed payment requires attention, but its existence does not prove every allegation about motives or establish that the project has already reached a stop. Readers deserve a clear story and a straight answer about responsibility."
+    }
+  ]
+}

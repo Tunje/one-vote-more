@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PANDEMIC",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Illness spreads beyond the clinics' reach",
+      "sub": "The pandemic has left {sick} people unable to work; {district} is the worst affected district.",
+      "body": "Illness is spreading through {colony} because the clinics cannot treat people. There are {sick} people too ill to work, with {district} worst affected. For {target}, the immediate test is whether responsibility for care is taken as seriously as the consequences of its absence.\n\nA political principle ought to have something to say to someone who is ill. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Pandemic leaves {sick} too ill to work",
+      "sub": "The worst affected district is {district}, while illness leaves {sick} people unable to work.",
+      "body": "The pandemic has left {sick} people too ill to work, and {district} is the worst affected district. Illness is spreading because the clinics cannot treat people. Any reckoning with {target} should begin with the people needing care, rather than reducing their illness to missing labour.\n\nA political principle ought to have something to say to someone who is ill. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "{district} bears the worst of the pandemic",
+      "sub": "Illness is spreading, with {sick} people too ill to work and {district} worst affected.",
+      "body": "The worst of the pandemic is in {district}. Across the colony, {sick} people are too ill to work as illness spreads beyond what the clinics can treat. Readers considering {target} face a basic question: what does a colony owe people when they need care?\n\nA political principle ought to have something to say to someone who is ill. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

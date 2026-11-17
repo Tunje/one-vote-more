@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_CANCELLED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: building job cancelled part-way",
+      "sub": "The client has abandoned {project}, which {builder} was building.",
+      "body": "The building job for {project}, undertaken by {builder}, has been cancelled part-way. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nThe job has stopped short of completion because the client gave up the plan. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Still in view: client abandons the construction plan",
+      "sub": "Construction of {project} by {builder} has been cancelled before completion.",
+      "body": "The client has abandoned {project}, which {builder} was building. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nThe job has stopped short of completion because the client gave up the plan. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Still in view: unfinished work meets a cancelled project",
+      "sub": "The building job for {project}, undertaken by {builder}, has been cancelled part-way.",
+      "body": "Construction of {project} by {builder} has been cancelled before completion. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nThe job has stopped short of completion because the client gave up the plan. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

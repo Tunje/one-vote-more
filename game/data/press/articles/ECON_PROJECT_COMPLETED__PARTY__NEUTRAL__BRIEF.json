@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_COMPLETED",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Building finished and handed over",
+      "sub": "",
+      "body": "The builder {builder} has finished and handed over {project}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Delivery reached; opening follows",
+      "sub": "",
+      "body": "The project {project} has been completed and handed over by {builder}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "A completed project leaves the builder's hands",
+      "sub": "",
+      "body": "Completion and handover of {project} have been achieved by {builder}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

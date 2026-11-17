@@ -1,0 +1,23 @@
+{
+  "event": "ECON_EMIGRATION",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: people leave the colony on the ship",
+      "sub": "The ship has taken away young adults with no work and families with no home.",
+      "body": "People have left the colony on the ship: young adults without work and families without homes. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nOur principles should be able to face a departure without demanding that people justify their attachment to the colony. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Still in view: departure follows a lack of work and homes",
+      "sub": "Young adults lacking work and families lacking homes have departed the colony aboard the ship.",
+      "body": "The ship has taken away young adults with no work and families with no home. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nOur principles should be able to face a departure without demanding that people justify their attachment to the colony. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Still in view: a ship takes settlers away",
+      "sub": "People have left the colony on the ship: young adults without work and families without homes.",
+      "body": "Young adults lacking work and families lacking homes have departed the colony aboard the ship. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nOur principles should be able to face a departure without demanding that people justify their attachment to the colony. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    }
+  ]
+}

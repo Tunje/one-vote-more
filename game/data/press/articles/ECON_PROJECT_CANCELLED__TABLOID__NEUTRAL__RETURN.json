@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_CANCELLED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: building job cancelled part-way",
+      "sub": "The client has abandoned {project}, which {builder} was building.",
+      "body": "We return to our earlier coverage. Our report recorded this: The building job for {project}, undertaken by {builder}, had been cancelled part-way.\n\nThe job has stopped short of completion because the client gave up the plan. That is a different ending from a finished building. Readers should keep the unfinished undertaking in the picture, instead of accepting a neat phrase that makes cancellation sound as though there had never been work to do.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nThe stewardship of {target} should be assessed against the part-way cancellation. This paper records the abandoned plan without treating it as proof of a particular financial settlement or a subsequent use for the unfinished work."
+    },
+    {
+      "headline": "Looking back: client abandons the construction plan",
+      "sub": "Construction of {project} by {builder} has been cancelled before completion.",
+      "body": "Looking back to our earlier coverage, this was the news: The client had abandoned {project}, which {builder} was building.\n\nThe job has stopped short of completion because the client gave up the plan. That is a different ending from a finished building. Readers should keep the unfinished undertaking in the picture, instead of accepting a neat phrase that makes cancellation sound as though there had never been work to do.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nThe stewardship of {target} should be assessed against the part-way cancellation. This paper records the abandoned plan without treating it as proof of a particular financial settlement or a subsequent use for the unfinished work."
+    },
+    {
+      "headline": "Looking back: unfinished work meets a cancelled project",
+      "sub": "The building job for {project}, undertaken by {builder}, has been cancelled part-way.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: Construction of {project} by {builder} had been cancelled before completion.\n\nThe job has stopped short of completion because the client gave up the plan. That is a different ending from a finished building. Readers should keep the unfinished undertaking in the picture, instead of accepting a neat phrase that makes cancellation sound as though there had never been work to do.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nThe stewardship of {target} should be assessed against the part-way cancellation. This paper records the abandoned plan without treating it as proof of a particular financial settlement or a subsequent use for the unfinished work."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_COMPLETED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Building finished and handed over",
+      "sub": "",
+      "body": "The builder {builder} has finished and handed over {project}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Delivery reached; opening follows",
+      "sub": "",
+      "body": "The project {project} has been completed and handed over by {builder}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "A completed project leaves the builder's hands",
+      "sub": "",
+      "body": "Completion and handover of {project} have been achieved by {builder}. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    }
+  ]
+}

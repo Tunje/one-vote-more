@@ -1,0 +1,23 @@
+{
+  "event": "ECON_MIGRANTS_ARRIVED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "New settlers land from the ship",
+      "sub": "The ship in port has brought new settlers who landed at {district}.",
+      "body": "New settlers have landed from the ship at {district}. The number arriving is {migrants}. Their arrival is an entry into the colony, not a complete account of the lives that follow. For {target}, the relevant question concerns responsibility towards newcomers as people rather than merely an addition to a count.\n\nOff the ship and into a new chapter. It is an attractive phrase; the people arriving deserve more than a phrase. Readers can recognise the human meaning of a landing without being given a fictional reunion, a perfect job or a promise that beginning again is automatically easy.\n\nThe responsibility of {target} merits scrutiny through the arrivals and the meaning of settlement. This account records the landing without presuming particular jobs, homes or future outcomes for the people who have arrived. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "An arrival becomes a colonial beginning",
+      "sub": "The district {district} has received new settlers landing from the ship.",
+      "body": "The ship in port has brought {migrants} new settlers, landing at {district}. A voyage's arrival can be recorded plainly while leaving room for the human meaning of beginning somewhere. Readers considering {target} should distinguish the landing from unreported arrangements for housing, employment or the newcomers' future circumstances.\n\nOff the ship and into a new chapter. It is an attractive phrase; the people arriving deserve more than a phrase. Readers can recognise the human meaning of a landing without being given a fictional reunion, a perfect job or a promise that beginning again is automatically easy.\n\nThe responsibility of {target} merits scrutiny through the arrivals and the meaning of settlement. This account records the landing without presuming particular jobs, homes or future outcomes for the people who have arrived. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "Newcomers step into the colony's life",
+      "sub": "New settlers have landed from the ship at {district}.",
+      "body": "The district {district} has received {migrants} settlers landing from the ship. The arrival concerns people joining the colony's life, without supplying a personal history for each one. An assessment of {target} should keep their human place in view without promising outcomes that the fact of landing cannot establish.\n\nOff the ship and into a new chapter. It is an attractive phrase; the people arriving deserve more than a phrase. Readers can recognise the human meaning of a landing without being given a fictional reunion, a perfect job or a promise that beginning again is automatically easy.\n\nThe responsibility of {target} merits scrutiny through the arrivals and the meaning of settlement. This account records the landing without presuming particular jobs, homes or future outcomes for the people who have arrived. Readers deserve a clear story and a straight answer about responsibility."
+    }
+  ]
+}

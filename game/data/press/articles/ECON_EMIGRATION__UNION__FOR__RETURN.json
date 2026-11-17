@@ -1,0 +1,23 @@
+{
+  "event": "ECON_EMIGRATION",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: people leave the colony on the ship",
+      "sub": "The ship has taken away young adults with no work and families with no home.",
+      "body": "We return to our earlier coverage. Our report recorded this: People have left the colony on the ship: young adults without work and families without homes.\n\nLabour's question is not whether a person ought to love the colony enough to endure anything. It is whether people can find the conditions of a decent life. A lack of work and a lack of a home deserve serious attention before anyone makes departure a judgment on the people leaving.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe support {target} against indiscriminate blame. The departures and their circumstances are serious, but they do not establish every accusation about responsibility or prove that a supposed alternative would have kept people here."
+    },
+    {
+      "headline": "Looking back: departure follows a lack of work and homes",
+      "sub": "Young adults lacking work and families lacking homes have departed the colony aboard the ship.",
+      "body": "Looking back to our earlier coverage, this was the news: The ship had taken away young adults with no work and families with no home.\n\nLabour's question is not whether a person ought to love the colony enough to endure anything. It is whether people can find the conditions of a decent life. A lack of work and a lack of a home deserve serious attention before anyone makes departure a judgment on the people leaving.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe support {target} against indiscriminate blame. The departures and their circumstances are serious, but they do not establish every accusation about responsibility or prove that a supposed alternative would have kept people here."
+    },
+    {
+      "headline": "Looking back: a ship takes settlers away",
+      "sub": "People have left the colony on the ship: young adults without work and families without homes.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: Young adults lacking work and families lacking homes have departed the colony aboard the ship.\n\nLabour's question is not whether a person ought to love the colony enough to endure anything. It is whether people can find the conditions of a decent life. A lack of work and a lack of a home deserve serious attention before anyone makes departure a judgment on the people leaving.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe support {target} against indiscriminate blame. The departures and their circumstances are serious, but they do not establish every accusation about responsibility or prove that a supposed alternative would have kept people here."
+    }
+  ]
+}

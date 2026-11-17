@@ -1,0 +1,23 @@
+{
+  "event": "ECON_MIGRANTS_ARRIVED",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: new settlers land from the ship",
+      "sub": "The ship in port has brought new settlers who landed at {district}.",
+      "body": "New settlers have landed from the ship at {district}. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nOff the ship and into a new chapter. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Still in view: an arrival becomes a colonial beginning",
+      "sub": "The district {district} has received new settlers landing from the ship.",
+      "body": "The ship in port has brought new settlers who landed at {district}. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nOff the ship and into a new chapter. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Still in view: newcomers step into the colony's life",
+      "sub": "New settlers have landed from the ship at {district}.",
+      "body": "The district {district} has received new settlers landing from the ship. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nOff the ship and into a new chapter. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    }
+  ]
+}

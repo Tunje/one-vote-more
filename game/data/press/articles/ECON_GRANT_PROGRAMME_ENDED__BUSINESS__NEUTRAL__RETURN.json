@@ -1,0 +1,23 @@
+{
+  "event": "ECON_GRANT_PROGRAMME_ENDED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: business-start grant programme ends",
+      "sub": "Business-starting support under {programme} has come to an end.",
+      "body": "We return to our earlier coverage. Our report recorded this: The grant programme {programme} for people starting a business had ended.\n\nPayments and refusals describe the programme's reach, not a return on investment by themselves. Commercial readers should distinguish an allocation record from the performance of businesses receiving support. The useful assessment asks what the scheme achieved without presuming that every grant was a success or every refusal a mistake.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nThe responsibility of {target} should be examined against the programme's recorded payments and refusals. Its conclusion is established, while the merits of individual outcomes require more than the fact of closure alone."
+    },
+    {
+      "headline": "Looking back: a grant scheme closes its account",
+      "sub": "The programme {programme} has ended its support for people starting a business.",
+      "body": "Looking back to our earlier coverage, this was the news: Business-starting support under {programme} had come to an end.\n\nPayments and refusals describe the programme's reach, not a return on investment by themselves. Commercial readers should distinguish an allocation record from the performance of businesses receiving support. The useful assessment asks what the scheme achieved without presuming that every grant was a success or every refusal a mistake.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nThe responsibility of {target} should be examined against the programme's recorded payments and refusals. Its conclusion is established, while the merits of individual outcomes require more than the fact of closure alone."
+    },
+    {
+      "headline": "Looking back: support programme reaches its end",
+      "sub": "The grant programme {programme} for people starting a business has ended.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: The programme {programme} had ended its support for people starting a business.\n\nPayments and refusals describe the programme's reach, not a return on investment by themselves. Commercial readers should distinguish an allocation record from the performance of businesses receiving support. The useful assessment asks what the scheme achieved without presuming that every grant was a success or every refusal a mistake.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nThe responsibility of {target} should be examined against the programme's recorded payments and refusals. Its conclusion is established, while the merits of individual outcomes require more than the fact of closure alone."
+    }
+  ]
+}

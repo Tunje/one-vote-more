@@ -1,0 +1,23 @@
+{
+  "event": "ECON_EMIGRATION",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "People leave the colony on the ship",
+      "sub": "The ship has taken away young adults with no work and families with no home.",
+      "body": "The ship in port has taken {left} people away from the colony: young adults with no work and families with no home. For {target}, the departure raises a direct question about the conditions of belonging, rather than a simple argument over whether a smaller population is a good or bad headline.\n\nLabour's question is not whether a person ought to love the colony enough to endure anything. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Departure follows a lack of work and homes",
+      "sub": "Young adults lacking work and families lacking homes have departed the colony aboard the ship.",
+      "body": "Young adults without work and families without homes have left on the ship. The number departing is {left}. Readers considering {target} should keep those stated circumstances in view, without turning the departure into an invented account of where people will go or whether they hope to return.\n\nLabour's question is not whether a person ought to love the colony enough to endure anything. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "A ship takes settlers away",
+      "sub": "People have left the colony on the ship: young adults without work and families without homes.",
+      "body": "The colony has lost {left} people to departure on the ship in port. They include young adults with no work and families with no home. An assessment of {target} should address the practical conditions behind that leaving, rather than ask a movement of people to explain itself as a count alone.\n\nLabour's question is not whether a person ought to love the colony enough to endure anything. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    }
+  ]
+}

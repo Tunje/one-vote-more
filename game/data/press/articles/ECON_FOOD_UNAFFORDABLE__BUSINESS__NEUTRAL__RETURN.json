@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_UNAFFORDABLE",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: full shelves, empty household purses",
+      "sub": "Households are hungry despite available food because they do not have the money to buy it.",
+      "body": "We return to our earlier coverage. Our report recorded this: Food was for sale, but households cannot afford it and were going hungry beside full shelves.\n\nInventory and purchasing power are separate sides of a transaction. This report concerns the buyer's inability to pay despite goods being available. A sound commercial assessment should keep that distinction visible and avoid treating unsatisfied need as though it automatically establishes a physical shortage of the product itself.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nThe role of {target} warrants scrutiny through household purchasing power. This paper keeps affordability distinct from the availability of food, so that the practical question is not lost in a description of full shelves."
+    },
+    {
+      "headline": "Looking back: food for sale beyond the buyer's means",
+      "sub": "There is food on the shelves, but people without enough money cannot obtain their meals.",
+      "body": "Looking back to our earlier coverage, this was the news: Households were hungry despite available food because they do not have the money to buy it.\n\nInventory and purchasing power are separate sides of a transaction. This report concerns the buyer's inability to pay despite goods being available. A sound commercial assessment should keep that distinction visible and avoid treating unsatisfied need as though it automatically establishes a physical shortage of the product itself.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nThe role of {target} warrants scrutiny through household purchasing power. This paper keeps affordability distinct from the availability of food, so that the practical question is not lost in a description of full shelves."
+    },
+    {
+      "headline": "Looking back: hunger beside food that cannot be afforded",
+      "sub": "Food is for sale, but households cannot afford it and are going hungry beside full shelves.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: There was food on the shelves, but people without enough money cannot obtain their meals.\n\nInventory and purchasing power are separate sides of a transaction. This report concerns the buyer's inability to pay despite goods being available. A sound commercial assessment should keep that distinction visible and avoid treating unsatisfied need as though it automatically establishes a physical shortage of the product itself.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nThe role of {target} warrants scrutiny through household purchasing power. This paper keeps affordability distinct from the availability of food, so that the practical question is not lost in a description of full shelves."
+    }
+  ]
+}

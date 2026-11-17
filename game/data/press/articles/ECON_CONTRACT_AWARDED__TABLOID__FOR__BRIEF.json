@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_AWARDED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Builder signs for a new project",
+      "sub": "",
+      "body": "The builder {builder} has signed a contract for {project}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "A price agreed, a building still to deliver",
+      "sub": "",
+      "body": "A construction contract for {project} has been awarded to {builder}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Construction contract puts obligations in writing",
+      "sub": "",
+      "body": "The company {builder} has won the building contract for {project}. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    }
+  ]
+}

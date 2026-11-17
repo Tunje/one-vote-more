@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_UNAFFORDABLE",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Full shelves, empty household purses",
+      "sub": "Households are hungry despite available food because they do not have the money to buy it.",
+      "body": "There is food for sale, but households cannot pay for it and are going hungry beside full shelves. There were {short} meals left unbought for want of money. For {target}, the relevant question is access through the household purse, not whether the colony has food available to sell.\n\nInventory and purchasing power are separate sides of a transaction. This report concerns the buyer's inability to pay despite goods being available. A sound commercial assessment should keep that distinction visible and avoid treating unsatisfied need as though it automatically establishes a physical shortage of the product itself.\n\nWe criticise {target} on the standard of access to necessities. Food for sale is not an adequate answer to households that cannot afford it, and stewardship deserves judgment from the hungry person's position. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    },
+    {
+      "headline": "Food for sale beyond the buyer's means",
+      "sub": "There is food on the shelves, but people without enough money cannot obtain their meals.",
+      "body": "A full shelf does not establish that a household can eat. Food is for sale while people lack the money to buy it, leaving {short} meals unbought. Readers assessing {target} should distinguish affordability from availability and keep the household's means at the centre of the problem being described.\n\nInventory and purchasing power are separate sides of a transaction. This report concerns the buyer's inability to pay despite goods being available. A sound commercial assessment should keep that distinction visible and avoid treating unsatisfied need as though it automatically establishes a physical shortage of the product itself.\n\nWe criticise {target} on the standard of access to necessities. Food for sale is not an adequate answer to households that cannot afford it, and stewardship deserves judgment from the hungry person's position. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    },
+    {
+      "headline": "Hunger beside food that cannot be afforded",
+      "sub": "Food is for sale, but households cannot afford it and are going hungry beside full shelves.",
+      "body": "The colony has recorded {short} meals unbought because people could not pay, despite food being available for sale. Households are going hungry beside full shelves. Any assessment of {target} should begin with that failure of affordability rather than describe this hunger as a physical absence of food.\n\nInventory and purchasing power are separate sides of a transaction. This report concerns the buyer's inability to pay despite goods being available. A sound commercial assessment should keep that distinction visible and avoid treating unsatisfied need as though it automatically establishes a physical shortage of the product itself.\n\nWe criticise {target} on the standard of access to necessities. Food for sale is not an adequate answer to households that cannot afford it, and stewardship deserves judgment from the hungry person's position. Reliable assessment begins with particulars rather than a politically convenient assumption."
+    }
+  ]
+}

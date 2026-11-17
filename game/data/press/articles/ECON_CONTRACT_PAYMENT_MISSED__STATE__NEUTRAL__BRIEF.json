@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_PAYMENT_MISSED",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Builder left unpaid for work done",
+      "sub": "",
+      "body": "The client {client} has not paid {builder} for building work done. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "A construction payment fails to arrive",
+      "sub": "",
+      "body": "The builder {builder} is owed payment by the client {client} for completed work. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "Work delivered, payment outstanding",
+      "sub": "",
+      "body": "Payment for work done by {builder} has been missed by {client}. The gazette records the development as a matter deserving careful attention in the public interest."
+    }
+  ]
+}

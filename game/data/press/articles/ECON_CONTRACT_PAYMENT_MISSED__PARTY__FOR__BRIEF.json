@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_PAYMENT_MISSED",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Builder left unpaid for work done",
+      "sub": "",
+      "body": "The client {client} has not paid {builder} for building work done. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "A construction payment fails to arrive",
+      "sub": "",
+      "body": "The builder {builder} is owed payment by the client {client} for completed work. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Work delivered, payment outstanding",
+      "sub": "",
+      "body": "Payment for work done by {builder} has been missed by {client}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

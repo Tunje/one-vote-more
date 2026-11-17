@@ -1,0 +1,23 @@
+{
+  "event": "COMP_PLAN_ABANDONED",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: business plan abandoned before opening",
+      "sub": "The planned {business} will not open: {founder} has given up the plan.",
+      "body": "We return to our earlier coverage. Our report recorded this: The founder {founder} had abandoned the plan for {business} before opening.\n\nA terminated plan can retain financial consequences. The builder keeps sums already paid, and any grant remains repayable. Commercial readers should distinguish the end of the intended business from the clearing of its commitments; abandoning the proposal does not amount to a full reversal of the transactions around it.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe defend {target} against an automatic verdict of failure in conduct. Abandonment can deserve a fair assessment, and the end of a plan does not establish every accusation about the choices surrounding it."
+    },
+    {
+      "headline": "Looking back: an intended company will not open",
+      "sub": "The business plan made by {founder} has been abandoned before the company opened.",
+      "body": "Looking back to our earlier coverage, this was the news: The planned {business} will not open: {founder} had given up the plan.\n\nA terminated plan can retain financial consequences. The builder keeps sums already paid, and any grant remains repayable. Commercial readers should distinguish the end of the intended business from the clearing of its commitments; abandoning the proposal does not amount to a full reversal of the transactions around it.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe defend {target} against an automatic verdict of failure in conduct. Abandonment can deserve a fair assessment, and the end of a plan does not establish every accusation about the choices surrounding it."
+    },
+    {
+      "headline": "Looking back: a household's business plan ends",
+      "sub": "The founder {founder} has abandoned the plan for {business} before opening.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: The business plan made by {founder} had been abandoned before the company opened.\n\nA terminated plan can retain financial consequences. The builder keeps sums already paid, and any grant remains repayable. Commercial readers should distinguish the end of the intended business from the clearing of its commitments; abandoning the proposal does not amount to a full reversal of the transactions around it.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe defend {target} against an automatic verdict of failure in conduct. Abandonment can deserve a fair assessment, and the end of a plan does not establish every accusation about the choices surrounding it."
+    }
+  ]
+}

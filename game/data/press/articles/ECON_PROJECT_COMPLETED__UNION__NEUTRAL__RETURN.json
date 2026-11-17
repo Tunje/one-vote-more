@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_COMPLETED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: building finished and handed over",
+      "sub": "The project {project} has been completed and handed over by {builder}.",
+      "body": "We return to our earlier coverage. Our report recorded this: The builder {builder} had finished and handed over {project}.\n\nA handover deserves attention to the work behind it, not only the name attached to the project. Labour should recognise a completed undertaking while remembering that a building's purpose concerns people. The achievement should not make those who build or those expected to use it disappear from the account.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nThe contribution of {target} merits consideration through the completed handover. This account distinguishes delivery from the opening that follows, and does not treat completion as an established record of later operating results."
+    },
+    {
+      "headline": "Looking back: delivery reached; opening follows",
+      "sub": "Completion and handover of {project} have been achieved by {builder}.",
+      "body": "Looking back to our earlier coverage, this was the news: The project {project} had been completed and handed over by {builder}.\n\nA handover deserves attention to the work behind it, not only the name attached to the project. Labour should recognise a completed undertaking while remembering that a building's purpose concerns people. The achievement should not make those who build or those expected to use it disappear from the account.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nThe contribution of {target} merits consideration through the completed handover. This account distinguishes delivery from the opening that follows, and does not treat completion as an established record of later operating results."
+    },
+    {
+      "headline": "Looking back: a completed project leaves the builder's hands",
+      "sub": "The builder {builder} has finished and handed over {project}.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: Completion and handover of {project} have been achieved by {builder}.\n\nA handover deserves attention to the work behind it, not only the name attached to the project. Labour should recognise a completed undertaking while remembering that a building's purpose concerns people. The achievement should not make those who build or those expected to use it disappear from the account.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nThe contribution of {target} merits consideration through the completed handover. This account distinguishes delivery from the opening that follows, and does not treat completion as an established record of later operating results."
+    }
+  ]
+}

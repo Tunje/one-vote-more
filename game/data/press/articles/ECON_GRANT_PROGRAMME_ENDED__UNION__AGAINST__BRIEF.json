@@ -1,0 +1,23 @@
+{
+  "event": "ECON_GRANT_PROGRAMME_ENDED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Business-start grant programme ends",
+      "sub": "",
+      "body": "The grant programme {programme} for people starting a business has ended. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "A grant scheme closes its account",
+      "sub": "",
+      "body": "Business-starting support under {programme} has come to an end. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "Support programme reaches its end",
+      "sub": "",
+      "body": "The programme {programme} has ended its support for people starting a business. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    }
+  ]
+}

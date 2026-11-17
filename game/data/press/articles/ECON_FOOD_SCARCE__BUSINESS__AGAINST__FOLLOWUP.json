@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_SCARCE",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: money in hand, no food to buy",
+      "sub": "People have money for food but cannot buy it because shops and farms are sold out.",
+      "body": "Shops and farms are sold out of food, leaving people with money unable to buy meals. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nEffective demand cannot produce an immediate sale from an exhausted supply. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "Still in view: shops and farms sell out",
+      "sub": "Food is unavailable to buyers even with money in hand: shops and farms are sold out.",
+      "body": "People have money for food but cannot buy it because shops and farms are sold out. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nEffective demand cannot produce an immediate sale from an exhausted supply. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "Still in view: food shortage defeats the buyer",
+      "sub": "Shops and farms are sold out of food, leaving people with money unable to buy meals.",
+      "body": "Food is unavailable to buyers even with money in hand: shops and farms are sold out. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nEffective demand cannot produce an immediate sale from an exhausted supply. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    }
+  ]
+}

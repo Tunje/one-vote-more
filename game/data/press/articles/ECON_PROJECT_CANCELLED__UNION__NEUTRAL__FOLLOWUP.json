@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_CANCELLED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: building job cancelled part-way",
+      "sub": "The client has abandoned {project}, which {builder} was building.",
+      "body": "The building job for {project}, undertaken by {builder}, has been cancelled part-way. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nWork does not become imaginary because a client changes the plan. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Still in view: client abandons the construction plan",
+      "sub": "Construction of {project} by {builder} has been cancelled before completion.",
+      "body": "The client has abandoned {project}, which {builder} was building. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nWork does not become imaginary because a client changes the plan. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Still in view: unfinished work meets a cancelled project",
+      "sub": "The building job for {project}, undertaken by {builder}, has been cancelled part-way.",
+      "body": "Construction of {project} by {builder} has been cancelled before completion. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nWork does not become imaginary because a client changes the plan. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

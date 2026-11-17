@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PURSE_SHORT",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "State payments fall short",
+      "sub": "The government has underpaid wages, unemployment benefit and pensions, each by an equal proportion.",
+      "body": "The government owed {due} but paid {paid} this month. State wages, unemployment benefit and pensions were each paid short by the same share. For {target}, the immediate question is financial stewardship judged from the position of people whose expected payment has not arrived in full.\n\nSame share, says the arithmetic. Less than owed, says the payment. Both descriptions can be true, and the second deserves plain attention. A household cannot live on the elegance of an equal proportion. Readers should ask about responsibility before admiring how evenly the shortfall has been expressed.\n\nWe support {target} against an indiscriminate verdict. The short payments deserve serious attention, but their existence does not establish every hostile claim about the circumstances or prove that an imagined alternative would pay in full. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "Equal cuts, different household needs",
+      "sub": "Government payments have fallen short across state wages, unemployment benefit and pensions alike.",
+      "body": "An equal proportion is not a complete account of a household's needs. State wages, unemployment benefit and pensions have all been paid short by the same share: {paid} was paid against {due} owed. Readers judging {target} should distinguish a uniform reduction from an argument that its burden is therefore easy.\n\nSame share, says the arithmetic. Less than owed, says the payment. Both descriptions can be true, and the second deserves plain attention. A household cannot live on the elegance of an equal proportion. Readers should ask about responsibility before admiring how evenly the shortfall has been expressed.\n\nWe support {target} against an indiscriminate verdict. The short payments deserve serious attention, but their existence does not establish every hostile claim about the circumstances or prove that an imagined alternative would pay in full. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "Treasury pays less than it owes",
+      "sub": "State wages, unemployment benefit and pensions have all been paid short by the same share.",
+      "body": "The treasury has paid {paid} against obligations of {due}. The shortfall reaches state wages, unemployment benefit and pensions, each reduced by the same proportion. An assessment of {target} should begin with those unpaid obligations and the ordinary need for a payment to be more than a promise.\n\nSame share, says the arithmetic. Less than owed, says the payment. Both descriptions can be true, and the second deserves plain attention. A household cannot live on the elegance of an equal proportion. Readers should ask about responsibility before admiring how evenly the shortfall has been expressed.\n\nWe support {target} against an indiscriminate verdict. The short payments deserve serious attention, but their existence does not establish every hostile claim about the circumstances or prove that an imagined alternative would pay in full. Readers deserve a clear story and a straight answer about responsibility."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PURSE_SHORT",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "State payments fall short",
+      "sub": "The government has underpaid wages, unemployment benefit and pensions, each by an equal proportion.",
+      "body": "The government owed {due} but paid {paid} this month. State wages, unemployment benefit and pensions were each paid short by the same share. For {target}, the immediate question is financial stewardship judged from the position of people whose expected payment has not arrived in full.\n\nThe known financial comparison is between the amount due and the amount paid. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "Equal cuts, different household needs",
+      "sub": "Government payments have fallen short across state wages, unemployment benefit and pensions alike.",
+      "body": "An equal proportion is not a complete account of a household's needs. State wages, unemployment benefit and pensions have all been paid short by the same share: {paid} was paid against {due} owed. Readers judging {target} should distinguish a uniform reduction from an argument that its burden is therefore easy.\n\nThe known financial comparison is between the amount due and the amount paid. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "Treasury pays less than it owes",
+      "sub": "State wages, unemployment benefit and pensions have all been paid short by the same share.",
+      "body": "The treasury has paid {paid} against obligations of {due}. The shortfall reaches state wages, unemployment benefit and pensions, each reduced by the same proportion. An assessment of {target} should begin with those unpaid obligations and the ordinary need for a payment to be more than a promise.\n\nThe known financial comparison is between the amount due and the amount paid. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    }
+  ]
+}

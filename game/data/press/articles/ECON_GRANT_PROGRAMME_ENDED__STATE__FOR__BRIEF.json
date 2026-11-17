@@ -1,0 +1,23 @@
+{
+  "event": "ECON_GRANT_PROGRAMME_ENDED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Business-start grant programme ends",
+      "sub": "",
+      "body": "The grant programme {programme} for people starting a business has ended. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "A grant scheme closes its account",
+      "sub": "",
+      "body": "Business-starting support under {programme} has come to an end. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "Support programme reaches its end",
+      "sub": "",
+      "body": "The programme {programme} has ended its support for people starting a business. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    }
+  ]
+}

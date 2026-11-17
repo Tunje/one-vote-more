@@ -1,0 +1,23 @@
+{
+  "event": "ECON_MIGRANTS_ARRIVED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: new settlers land from the ship",
+      "sub": "The ship in port has brought new settlers who landed at {district}.",
+      "body": "We return to our earlier coverage. Our report recorded this: New settlers have landed from the ship at {district}.\n\nOff the ship and into a new chapter. It is an attractive phrase; the people arriving deserve more than a phrase. Readers can recognise the human meaning of a landing without being given a fictional reunion, a perfect job or a promise that beginning again is automatically easy.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe judge {target} critically. A landing should not place the treatment of newcomers beyond question; people joining the colony deserve a more serious standard than a welcoming description with practical responsibility left outside it."
+    },
+    {
+      "headline": "Looking back: an arrival becomes a colonial beginning",
+      "sub": "The district {district} has received new settlers landing from the ship.",
+      "body": "Looking back to our earlier coverage, this was the news: The ship in port had brought new settlers who landed at {district}.\n\nOff the ship and into a new chapter. It is an attractive phrase; the people arriving deserve more than a phrase. Readers can recognise the human meaning of a landing without being given a fictional reunion, a perfect job or a promise that beginning again is automatically easy.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe judge {target} critically. A landing should not place the treatment of newcomers beyond question; people joining the colony deserve a more serious standard than a welcoming description with practical responsibility left outside it."
+    },
+    {
+      "headline": "Looking back: newcomers step into the colony's life",
+      "sub": "New settlers have landed from the ship at {district}.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: The district {district} had received new settlers landing from the ship.\n\nOff the ship and into a new chapter. It is an attractive phrase; the people arriving deserve more than a phrase. Readers can recognise the human meaning of a landing without being given a fictional reunion, a perfect job or a promise that beginning again is automatically easy.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe judge {target} critically. A landing should not place the treatment of newcomers beyond question; people joining the colony deserve a more serious standard than a welcoming description with practical responsibility left outside it."
+    }
+  ]
+}

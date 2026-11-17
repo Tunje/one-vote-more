@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_AWARDED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: builder signs for a new project",
+      "sub": "A construction contract for {project} has been awarded to {builder}.",
+      "body": "We return to our earlier coverage. Our report recorded this: The builder {builder} had signed a contract for {project}.\n\nA builder, a project and an agreed price. Those are solid terms for a story, but they are not a finished building. Readers can welcome a signed undertaking without letting the ceremony move the project all the way to completion. The difficult part is still what a contract is for.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe take a critical view of {target}. A signature should not shelter inadequate stewardship, and responsible construction requires a more demanding standard than satisfaction that someone has agreed to undertake the work."
+    },
+    {
+      "headline": "Looking back: a price agreed, a building still to deliver",
+      "sub": "The company {builder} has won the building contract for {project}.",
+      "body": "Looking back to our earlier coverage, this was the news: A construction contract for {project} had been awarded to {builder}.\n\nA builder, a project and an agreed price. Those are solid terms for a story, but they are not a finished building. Readers can welcome a signed undertaking without letting the ceremony move the project all the way to completion. The difficult part is still what a contract is for.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe take a critical view of {target}. A signature should not shelter inadequate stewardship, and responsible construction requires a more demanding standard than satisfaction that someone has agreed to undertake the work."
+    },
+    {
+      "headline": "Construction contract puts obligations in writing",
+      "sub": "The builder {builder} has signed a contract for {project}.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: The company {builder} had won the building contract for {project}.\n\nA builder, a project and an agreed price. Those are solid terms for a story, but they are not a finished building. Readers can welcome a signed undertaking without letting the ceremony move the project all the way to completion. The difficult part is still what a contract is for.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe take a critical view of {target}. A signature should not shelter inadequate stewardship, and responsible construction requires a more demanding standard than satisfaction that someone has agreed to undertake the work."
+    }
+  ]
+}

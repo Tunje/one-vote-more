@@ -1,0 +1,23 @@
+{
+  "event": "COMP_COMPANY_PLANNED",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Household savings committed to a company plan",
+      "sub": "",
+      "body": "The settler {founder} has committed household savings to a plan for {business}. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "An enterprise begins as a household risk",
+      "sub": "",
+      "body": "Household savings have been put into a business plan by {founder}. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    },
+    {
+      "headline": "A settler backs a business idea",
+      "sub": "",
+      "body": "The founder {founder} has backed a plan for {business} with household savings. We judge the stewardship of {target} inadequate; practical responsibility should be assessed against a demanding standard."
+    }
+  ]
+}

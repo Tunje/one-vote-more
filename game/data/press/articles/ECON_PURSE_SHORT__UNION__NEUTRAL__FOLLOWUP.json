@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PURSE_SHORT",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: state payments fall short",
+      "sub": "The government has underpaid wages, unemployment benefit and pensions, each by an equal proportion.",
+      "body": "State wages, unemployment benefit and pensions have all been paid short by the same share. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nA wage, benefit or pension is meant to support a life. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Still in view: equal cuts, different household needs",
+      "sub": "Government payments have fallen short across state wages, unemployment benefit and pensions alike.",
+      "body": "The government has underpaid wages, unemployment benefit and pensions, each by an equal proportion. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nA wage, benefit or pension is meant to support a life. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Still in view: treasury pays less than it owes",
+      "sub": "State wages, unemployment benefit and pensions have all been paid short by the same share.",
+      "body": "Government payments have fallen short across state wages, unemployment benefit and pensions alike. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nA wage, benefit or pension is meant to support a life. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

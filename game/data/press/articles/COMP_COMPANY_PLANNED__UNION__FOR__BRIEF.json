@@ -1,0 +1,23 @@
+{
+  "event": "COMP_COMPANY_PLANNED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Household savings committed to a company plan",
+      "sub": "",
+      "body": "The settler {founder} has committed household savings to a plan for {business}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "An enterprise begins as a household risk",
+      "sub": "",
+      "body": "Household savings have been put into a business plan by {founder}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A settler backs a business idea",
+      "sub": "",
+      "body": "The founder {founder} has backed a plan for {business} with household savings. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

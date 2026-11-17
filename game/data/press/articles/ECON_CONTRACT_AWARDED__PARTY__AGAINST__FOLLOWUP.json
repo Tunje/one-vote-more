@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_AWARDED",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: builder signs for a new project",
+      "sub": "A construction contract for {project} has been awarded to {builder}.",
+      "body": "The builder {builder} has signed a contract for {project}. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nOur movement believes execution belongs within political responsibility. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Still in view: a price agreed, a building still to deliver",
+      "sub": "The company {builder} has won the building contract for {project}.",
+      "body": "A construction contract for {project} has been awarded to {builder}. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nOur movement believes execution belongs within political responsibility. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    },
+    {
+      "headline": "Construction contract puts obligations in writing",
+      "sub": "The builder {builder} has signed a contract for {project}.",
+      "body": "The company {builder} has won the building contract for {project}. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nOur movement believes execution belongs within political responsibility. We hold {target} responsible for inadequate political judgment and insist upon a more demanding public standard."
+    }
+  ]
+}

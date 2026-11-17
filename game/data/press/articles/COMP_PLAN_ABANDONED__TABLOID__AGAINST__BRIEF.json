@@ -1,0 +1,23 @@
+{
+  "event": "COMP_PLAN_ABANDONED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Business plan abandoned before opening",
+      "sub": "",
+      "body": "The founder {founder} has abandoned the plan for {business} before opening. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "An intended company will not open",
+      "sub": "",
+      "body": "The planned {business} will not open: {founder} has given up the plan. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "A household's business plan ends",
+      "sub": "",
+      "body": "The business plan made by {founder} has been abandoned before the company opened. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

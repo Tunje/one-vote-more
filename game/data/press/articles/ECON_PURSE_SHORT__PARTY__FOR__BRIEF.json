@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PURSE_SHORT",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "State payments fall short",
+      "sub": "",
+      "body": "State wages, unemployment benefit and pensions have all been paid short by the same share. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Equal cuts, different household needs",
+      "sub": "",
+      "body": "The government has underpaid wages, unemployment benefit and pensions, each by an equal proportion. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Treasury pays less than it owes",
+      "sub": "",
+      "body": "Government payments have fallen short across state wages, unemployment benefit and pensions alike. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_CANCELLED",
+  "flavour": "BUSINESS",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: building job cancelled part-way",
+      "sub": "The client has abandoned {project}, which {builder} was building.",
+      "body": "We return to our earlier coverage. Our report recorded this: The building job for {project}, undertaken by {builder}, had been cancelled part-way.\n\nA part-completed cancellation is a contract event, not a completed asset. Managers should distinguish the client's decision to abandon the plan from an assumed settlement of every obligation. Commercial scrutiny requires actual terms for financial consequences, rather than an automatic conclusion that the end of the job clears the account.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe fault {target} for inadequate stewardship. An undertaking abandoned part-way deserves serious scrutiny, and changing the plan should not be a convenient means of making responsibility for unfinished work disappear."
+    },
+    {
+      "headline": "Looking back: client abandons the construction plan",
+      "sub": "Construction of {project} by {builder} has been cancelled before completion.",
+      "body": "Looking back to our earlier coverage, this was the news: The client had abandoned {project}, which {builder} was building.\n\nA part-completed cancellation is a contract event, not a completed asset. Managers should distinguish the client's decision to abandon the plan from an assumed settlement of every obligation. Commercial scrutiny requires actual terms for financial consequences, rather than an automatic conclusion that the end of the job clears the account.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe fault {target} for inadequate stewardship. An undertaking abandoned part-way deserves serious scrutiny, and changing the plan should not be a convenient means of making responsibility for unfinished work disappear."
+    },
+    {
+      "headline": "Looking back: unfinished work meets a cancelled project",
+      "sub": "The building job for {project}, undertaken by {builder}, has been cancelled part-way.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: Construction of {project} by {builder} had been cancelled before completion.\n\nA part-completed cancellation is a contract event, not a completed asset. Managers should distinguish the client's decision to abandon the plan from an assumed settlement of every obligation. Commercial scrutiny requires actual terms for financial consequences, rather than an automatic conclusion that the end of the job clears the account.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe fault {target} for inadequate stewardship. An undertaking abandoned part-way deserves serious scrutiny, and changing the plan should not be a convenient means of making responsibility for unfinished work disappear."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_MIGRANTS_ARRIVED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: new settlers land from the ship",
+      "sub": "The ship in port has brought new settlers who landed at {district}.",
+      "body": "We return to our earlier coverage. Our report recorded this: New settlers have landed from the ship at {district}.\n\nThe gazette records the number of arrivals and the place where the settlers landed. Arrival and subsequent settlement arrangements are distinct matters. Administrative clarity should preserve that distinction while recognising the newcomers as people whose place in the colony cannot be fully described by the act of disembarking.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe welcome {target} in this assessment. Receiving new settlers deserves a fair hearing and recognition of the human connection involved, without requiring invented achievements about the lives that follow their arrival."
+    },
+    {
+      "headline": "Looking back: an arrival becomes a colonial beginning",
+      "sub": "The district {district} has received new settlers landing from the ship.",
+      "body": "Looking back to our earlier coverage, this was the news: The ship in port had brought new settlers who landed at {district}.\n\nThe gazette records the number of arrivals and the place where the settlers landed. Arrival and subsequent settlement arrangements are distinct matters. Administrative clarity should preserve that distinction while recognising the newcomers as people whose place in the colony cannot be fully described by the act of disembarking.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe welcome {target} in this assessment. Receiving new settlers deserves a fair hearing and recognition of the human connection involved, without requiring invented achievements about the lives that follow their arrival."
+    },
+    {
+      "headline": "Looking back: newcomers step into the colony's life",
+      "sub": "New settlers have landed from the ship at {district}.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: The district {district} had received new settlers landing from the ship.\n\nThe gazette records the number of arrivals and the place where the settlers landed. Arrival and subsequent settlement arrangements are distinct matters. Administrative clarity should preserve that distinction while recognising the newcomers as people whose place in the colony cannot be fully described by the act of disembarking.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe welcome {target} in this assessment. Receiving new settlers deserves a fair hearing and recognition of the human connection involved, without requiring invented achievements about the lives that follow their arrival."
+    }
+  ]
+}

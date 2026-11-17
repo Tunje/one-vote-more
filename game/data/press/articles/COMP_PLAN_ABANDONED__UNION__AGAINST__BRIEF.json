@@ -1,0 +1,23 @@
+{
+  "event": "COMP_PLAN_ABANDONED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Business plan abandoned before opening",
+      "sub": "",
+      "body": "The founder {founder} has abandoned the plan for {business} before opening. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "An intended company will not open",
+      "sub": "",
+      "body": "The planned {business} will not open: {founder} has given up the plan. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    },
+    {
+      "headline": "A household's business plan ends",
+      "sub": "",
+      "body": "The business plan made by {founder} has been abandoned before the company opened. Labour finds the stewardship of {target} wanting; ordinary people deserve a more responsible standard of conduct."
+    }
+  ]
+}

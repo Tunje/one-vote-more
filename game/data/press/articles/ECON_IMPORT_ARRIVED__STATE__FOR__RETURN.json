@@ -1,0 +1,23 @@
+{
+  "event": "ECON_IMPORT_ARRIVED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: ordered goods reach the dock",
+      "sub": "Imported {good} ordered by {company} has landed at the colony's port.",
+      "body": "We return to our earlier coverage. Our report recorded this: The company {company} had received its imported order of {good} at the port.\n\nThe gazette distinguishes the placing of an order from the landing of the goods. Here the latter has occurred, together with payment at the dock. The full interval between those stages is material to an orderly account of supply and the arrangements on which it depends.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe favour {target} in this assessment. Goods actually landed and paid for deserve recognition as practical provision, even while the long route remains an essential part of any fair account of the achievement."
+    },
+    {
+      "headline": "Looking back: an order completes its long journey",
+      "sub": "The company {company} has taken delivery of its home-world order of {good}.",
+      "body": "Looking back to our earlier coverage, this was the news: Imported {good} ordered by {company} had landed at the colony's port.\n\nThe gazette distinguishes the placing of an order from the landing of the goods. Here the latter has occurred, together with payment at the dock. The full interval between those stages is material to an orderly account of supply and the arrangements on which it depends.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe favour {target} in this assessment. Goods actually landed and paid for deserve recognition as practical provision, even while the long route remains an essential part of any fair account of the achievement."
+    },
+    {
+      "headline": "Looking back: imports landed and paid for",
+      "sub": "The company {company} has received its imported order of {good} at the port.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: The company {company} had taken delivery of its home-world order of {good}.\n\nThe gazette distinguishes the placing of an order from the landing of the goods. Here the latter has occurred, together with payment at the dock. The full interval between those stages is material to an orderly account of supply and the arrangements on which it depends.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe favour {target} in this assessment. Goods actually landed and paid for deserve recognition as practical provision, even while the long route remains an essential part of any fair account of the achievement."
+    }
+  ]
+}

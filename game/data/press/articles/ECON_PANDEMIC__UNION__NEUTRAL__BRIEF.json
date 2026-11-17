@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PANDEMIC",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Illness spreads beyond the clinics' reach",
+      "sub": "",
+      "body": "Illness is spreading, with {sick} people too ill to work and {district} worst affected. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Pandemic leaves {sick} too ill to work",
+      "sub": "",
+      "body": "The pandemic has left {sick} people unable to work; {district} is the worst affected district. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "{district} bears the worst of the pandemic",
+      "sub": "",
+      "body": "The worst affected district is {district}, while illness leaves {sick} people unable to work. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

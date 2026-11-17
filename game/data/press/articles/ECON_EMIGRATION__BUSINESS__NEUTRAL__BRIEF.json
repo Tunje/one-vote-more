@@ -1,0 +1,23 @@
+{
+  "event": "ECON_EMIGRATION",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "People leave the colony on the ship",
+      "sub": "",
+      "body": "People have left the colony on the ship: young adults without work and families without homes. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Departure follows a lack of work and homes",
+      "sub": "",
+      "body": "The ship has taken away young adults with no work and families with no home. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "A ship takes settlers away",
+      "sub": "",
+      "body": "Young adults lacking work and families lacking homes have departed the colony aboard the ship. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

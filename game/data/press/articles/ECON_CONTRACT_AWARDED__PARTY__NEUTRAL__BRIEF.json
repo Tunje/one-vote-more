@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_AWARDED",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Builder signs for a new project",
+      "sub": "",
+      "body": "The builder {builder} has signed a contract for {project}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "A price agreed, a building still to deliver",
+      "sub": "",
+      "body": "A construction contract for {project} has been awarded to {builder}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "Construction contract puts obligations in writing",
+      "sub": "",
+      "body": "The company {builder} has won the building contract for {project}. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

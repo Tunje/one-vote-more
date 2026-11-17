@@ -1,0 +1,23 @@
+{
+  "event": "COMP_COMPANY_PLANNED",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Household savings committed to a company plan",
+      "sub": "",
+      "body": "The settler {founder} has committed household savings to a plan for {business}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "An enterprise begins as a household risk",
+      "sub": "",
+      "body": "Household savings have been put into a business plan by {founder}. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "A settler backs a business idea",
+      "sub": "",
+      "body": "The founder {founder} has backed a plan for {business} with household savings. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

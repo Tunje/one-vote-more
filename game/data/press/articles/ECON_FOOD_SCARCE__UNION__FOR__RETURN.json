@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_SCARCE",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: money in hand, no food to buy",
+      "sub": "People have money for food but cannot buy it because shops and farms are sold out.",
+      "body": "We return to our earlier coverage. Our report recorded this: Shops and farms were sold out of food, leaving people with money unable to buy meals.\n\nA pay packet is meant to support a life. When the food is not there to buy, its ordinary purpose runs into a hard limit. Labour should keep people in view and insist that a discussion of wages does not displace the separate question of whether food is actually available.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe defend {target} against indiscriminate blame. The lack of available food is serious, but it does not establish every claim about its cause or prove that an imagined alternative would supply the missing meals."
+    },
+    {
+      "headline": "Looking back: shops and farms sell out",
+      "sub": "Food is unavailable to buyers even with money in hand: shops and farms are sold out.",
+      "body": "Looking back to our earlier coverage, this was the news: People have money for food but cannot buy it because shops and farms were sold out.\n\nA pay packet is meant to support a life. When the food is not there to buy, its ordinary purpose runs into a hard limit. Labour should keep people in view and insist that a discussion of wages does not displace the separate question of whether food is actually available.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe defend {target} against indiscriminate blame. The lack of available food is serious, but it does not establish every claim about its cause or prove that an imagined alternative would supply the missing meals."
+    },
+    {
+      "headline": "Looking back: food shortage defeats the buyer",
+      "sub": "Shops and farms are sold out of food, leaving people with money unable to buy meals.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: Food was unavailable to buyers even with money in hand: shops and farms were sold out.\n\nA pay packet is meant to support a life. When the food is not there to buy, its ordinary purpose runs into a hard limit. Labour should keep people in view and insist that a discussion of wages does not displace the separate question of whether food is actually available.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe defend {target} against indiscriminate blame. The lack of available food is serious, but it does not establish every claim about its cause or prove that an imagined alternative would supply the missing meals."
+    }
+  ]
+}

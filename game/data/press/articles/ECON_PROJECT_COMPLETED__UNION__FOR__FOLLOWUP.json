@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_COMPLETED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: building finished and handed over",
+      "sub": "The project {project} has been completed and handed over by {builder}.",
+      "body": "The builder {builder} has finished and handed over {project}. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nA handover deserves attention to the work behind it, not only the name attached to the project. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Still in view: delivery reached; opening follows",
+      "sub": "Completion and handover of {project} have been achieved by {builder}.",
+      "body": "The project {project} has been completed and handed over by {builder}. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nA handover deserves attention to the work behind it, not only the name attached to the project. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A completed project leaves the builder's hands",
+      "sub": "The builder {builder} has finished and handed over {project}.",
+      "body": "Completion and handover of {project} have been achieved by {builder}. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nA handover deserves attention to the work behind it, not only the name attached to the project. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_SCARCE",
+  "flavour": "TABLOID",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Money in hand, no food to buy",
+      "sub": "",
+      "body": "Shops and farms are sold out of food, leaving people with money unable to buy meals. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Shops and farms sell out",
+      "sub": "",
+      "body": "People have money for food but cannot buy it because shops and farms are sold out. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    },
+    {
+      "headline": "Food shortage defeats the buyer",
+      "sub": "",
+      "body": "Food is unavailable to buyers even with money in hand: shops and farms are sold out. Keep the people behind the story in view, and ask the hard questions without inventing answers."
+    }
+  ]
+}

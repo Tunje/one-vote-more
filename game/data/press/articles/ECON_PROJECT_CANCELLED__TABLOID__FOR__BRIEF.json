@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_CANCELLED",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Building job cancelled part-way",
+      "sub": "",
+      "body": "The building job for {project}, undertaken by {builder}, has been cancelled part-way. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Client abandons the construction plan",
+      "sub": "",
+      "body": "The client has abandoned {project}, which {builder} was building. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Unfinished work meets a cancelled project",
+      "sub": "",
+      "body": "Construction of {project} by {builder} has been cancelled before completion. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    }
+  ]
+}

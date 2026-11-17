@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_AWARDED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Builder signs for a new project",
+      "sub": "",
+      "body": "The builder {builder} has signed a contract for {project}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "A price agreed, a building still to deliver",
+      "sub": "",
+      "body": "A construction contract for {project} has been awarded to {builder}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Construction contract puts obligations in writing",
+      "sub": "",
+      "body": "The company {builder} has won the building contract for {project}. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

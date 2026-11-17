@@ -1,0 +1,23 @@
+{
+  "event": "COMP_PLAN_ABANDONED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Business plan abandoned before opening",
+      "sub": "",
+      "body": "The founder {founder} has abandoned the plan for {business} before opening. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "An intended company will not open",
+      "sub": "",
+      "body": "The planned {business} will not open: {founder} has given up the plan. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "A household's business plan ends",
+      "sub": "",
+      "body": "The business plan made by {founder} has been abandoned before the company opened. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

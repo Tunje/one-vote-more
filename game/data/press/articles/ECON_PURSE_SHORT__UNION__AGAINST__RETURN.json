@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PURSE_SHORT",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: state payments fall short",
+      "sub": "The government has underpaid wages, unemployment benefit and pensions, each by an equal proportion.",
+      "body": "We return to our earlier coverage. Our report recorded this: State wages, unemployment benefit and pensions have all been paid short by the same share.\n\nA wage, benefit or pension is meant to support a life. Labour should not let an equal share of underpayment become a reason to forget that purpose. The arithmetic describes the cut; it does not replace the question of how people are expected to live with the payment they receive.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe fault {target} for inadequate stewardship. Paying less than the government owes across wages, benefits and pensions is a serious failure, and uniform treatment should not become a comfortable excuse for that failure."
+    },
+    {
+      "headline": "Looking back: equal cuts, different household needs",
+      "sub": "Government payments have fallen short across state wages, unemployment benefit and pensions alike.",
+      "body": "Looking back to our earlier coverage, this was the news: The government had underpaid wages, unemployment benefit and pensions, each by an equal proportion.\n\nA wage, benefit or pension is meant to support a life. Labour should not let an equal share of underpayment become a reason to forget that purpose. The arithmetic describes the cut; it does not replace the question of how people are expected to live with the payment they receive.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe fault {target} for inadequate stewardship. Paying less than the government owes across wages, benefits and pensions is a serious failure, and uniform treatment should not become a comfortable excuse for that failure."
+    },
+    {
+      "headline": "Looking back: treasury pays less than it owes",
+      "sub": "State wages, unemployment benefit and pensions have all been paid short by the same share.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: Government payments have fallen short across state wages, unemployment benefit and pensions alike.\n\nA wage, benefit or pension is meant to support a life. Labour should not let an equal share of underpayment become a reason to forget that purpose. The arithmetic describes the cut; it does not replace the question of how people are expected to live with the payment they receive.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe fault {target} for inadequate stewardship. Paying less than the government owes across wages, benefits and pensions is a serious failure, and uniform treatment should not become a comfortable excuse for that failure."
+    }
+  ]
+}

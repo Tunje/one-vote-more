@@ -1,0 +1,23 @@
+{
+  "event": "ECON_EMIGRATION",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "People leave the colony on the ship",
+      "sub": "",
+      "body": "People have left the colony on the ship: young adults without work and families without homes. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Departure follows a lack of work and homes",
+      "sub": "",
+      "body": "The ship has taken away young adults with no work and families with no home. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "A ship takes settlers away",
+      "sub": "",
+      "body": "Young adults lacking work and families lacking homes have departed the colony aboard the ship. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

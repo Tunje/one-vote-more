@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PURSE_SHORT",
+  "flavour": "PARTY",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "State payments fall short",
+      "sub": "The government has underpaid wages, unemployment benefit and pensions, each by an equal proportion.",
+      "body": "The government owed {due} but paid {paid} this month. State wages, unemployment benefit and pensions were each paid short by the same share. For {target}, the immediate question is financial stewardship judged from the position of people whose expected payment has not arrived in full.\n\nA public obligation concerns people, not merely the balance of an account. Our movement should judge financial stewardship by the promises it asks people to rely upon. A proportional shortfall may be described neatly, but neat description does not settle the political question of responsibility for paying less than owed.\n\nWe fault {target} for inadequate stewardship. Paying less than the government owes across wages, benefits and pensions is a serious failure, and uniform treatment should not become a comfortable excuse for that failure. Political principle should remain visible when judgment becomes less comfortable."
+    },
+    {
+      "headline": "Equal cuts, different household needs",
+      "sub": "Government payments have fallen short across state wages, unemployment benefit and pensions alike.",
+      "body": "An equal proportion is not a complete account of a household's needs. State wages, unemployment benefit and pensions have all been paid short by the same share: {paid} was paid against {due} owed. Readers judging {target} should distinguish a uniform reduction from an argument that its burden is therefore easy.\n\nA public obligation concerns people, not merely the balance of an account. Our movement should judge financial stewardship by the promises it asks people to rely upon. A proportional shortfall may be described neatly, but neat description does not settle the political question of responsibility for paying less than owed.\n\nWe fault {target} for inadequate stewardship. Paying less than the government owes across wages, benefits and pensions is a serious failure, and uniform treatment should not become a comfortable excuse for that failure. Political principle should remain visible when judgment becomes less comfortable."
+    },
+    {
+      "headline": "Treasury pays less than it owes",
+      "sub": "State wages, unemployment benefit and pensions have all been paid short by the same share.",
+      "body": "The treasury has paid {paid} against obligations of {due}. The shortfall reaches state wages, unemployment benefit and pensions, each reduced by the same proportion. An assessment of {target} should begin with those unpaid obligations and the ordinary need for a payment to be more than a promise.\n\nA public obligation concerns people, not merely the balance of an account. Our movement should judge financial stewardship by the promises it asks people to rely upon. A proportional shortfall may be described neatly, but neat description does not settle the political question of responsibility for paying less than owed.\n\nWe fault {target} for inadequate stewardship. Paying less than the government owes across wages, benefits and pensions is a serious failure, and uniform treatment should not become a comfortable excuse for that failure. Political principle should remain visible when judgment becomes less comfortable."
+    }
+  ]
+}

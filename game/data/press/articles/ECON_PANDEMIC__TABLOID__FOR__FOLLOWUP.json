@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PANDEMIC",
+  "flavour": "TABLOID",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: illness spreads beyond the clinics' reach",
+      "sub": "The pandemic has left {sick} people unable to work; {district} is the worst affected district.",
+      "body": "Illness is spreading, with {sick} people too ill to work and {district} worst affected. Coverage continues after {months_running} months; this is a continuing story rather than a fresh announcement.\n\nToo ill to work. In need of treatment. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Still in view: pandemic leaves {sick} too ill to work",
+      "sub": "The worst affected district is {district}, while illness leaves {sick} people unable to work.",
+      "body": "The pandemic has left {sick} people unable to work; {district} is the worst affected district. This story remains under examination, {months_running} months into our coverage of the original event.\n\nToo ill to work. In need of treatment. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    },
+    {
+      "headline": "Still in view: {district} bears the worst of the pandemic",
+      "sub": "Illness is spreading, with {sick} people too ill to work and {district} worst affected.",
+      "body": "The worst affected district is {district}, while illness leaves {sick} people unable to work. Our attention to this story continues after {months_running} months, with the original report still the starting point.\n\nToo ill to work. In need of treatment. Give {target} a fair hearing; outrage alone should not be allowed to write the whole verdict."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_EMIGRATION",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "People leave the colony on the ship",
+      "sub": "",
+      "body": "People have left the colony on the ship: young adults without work and families without homes. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Departure follows a lack of work and homes",
+      "sub": "",
+      "body": "The ship has taken away young adults with no work and families with no home. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "A ship takes settlers away",
+      "sub": "",
+      "body": "Young adults lacking work and families lacking homes have departed the colony aboard the ship. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

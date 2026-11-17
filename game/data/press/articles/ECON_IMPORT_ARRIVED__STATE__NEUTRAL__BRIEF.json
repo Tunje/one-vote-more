@@ -1,0 +1,23 @@
+{
+  "event": "ECON_IMPORT_ARRIVED",
+  "flavour": "STATE",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Ordered goods reach the dock",
+      "sub": "",
+      "body": "The company {company} has received its imported order of {good} at the port. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "An order completes its long journey",
+      "sub": "",
+      "body": "Imported {good} ordered by {company} has landed at the colony's port. The gazette records the development as a matter deserving careful attention in the public interest."
+    },
+    {
+      "headline": "Imports landed and paid for",
+      "sub": "",
+      "body": "The company {company} has taken delivery of its home-world order of {good}. The gazette records the development as a matter deserving careful attention in the public interest."
+    }
+  ]
+}

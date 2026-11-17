@@ -1,0 +1,23 @@
+{
+  "event": "ECON_EMIGRATION",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: people leave the colony on the ship",
+      "sub": "The ship has taken away young adults with no work and families with no home.",
+      "body": "People have left the colony on the ship: young adults without work and families without homes. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nA ship can carry people away as well as bring them here. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Still in view: departure follows a lack of work and homes",
+      "sub": "Young adults lacking work and families lacking homes have departed the colony aboard the ship.",
+      "body": "The ship has taken away young adults with no work and families with no home. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nA ship can carry people away as well as bring them here. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Still in view: a ship takes settlers away",
+      "sub": "People have left the colony on the ship: young adults without work and families without homes.",
+      "body": "Young adults lacking work and families lacking homes have departed the colony aboard the ship. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nA ship can carry people away as well as bring them here. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

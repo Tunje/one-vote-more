@@ -1,0 +1,23 @@
+{
+  "event": "ECON_MIGRANTS_ARRIVED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: new settlers land from the ship",
+      "sub": "The ship in port has brought new settlers who landed at {district}.",
+      "body": "New settlers have landed from the ship at {district}. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nThe gazette records the number of arrivals and the place where the settlers landed. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "Still in view: an arrival becomes a colonial beginning",
+      "sub": "The district {district} has received new settlers landing from the ship.",
+      "body": "The ship in port has brought new settlers who landed at {district}. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nThe gazette records the number of arrivals and the place where the settlers landed. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    },
+    {
+      "headline": "Still in view: newcomers step into the colony's life",
+      "sub": "New settlers have landed from the ship at {district}.",
+      "body": "The district {district} has received new settlers landing from the ship. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nThe gazette records the number of arrivals and the place where the settlers landed. The gazette favours fair treatment of {target} rather than an adverse verdict founded upon assumption alone."
+    }
+  ]
+}

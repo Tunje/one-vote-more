@@ -1,0 +1,23 @@
+{
+  "event": "COMP_COMPANY_PLANNED",
+  "flavour": "BUSINESS",
+  "stance": "FOR",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: household savings committed to a company plan",
+      "sub": "Household savings have been put into a business plan by {founder}.",
+      "body": "The settler {founder} has committed household savings to a plan for {business}. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nA plan backed by savings is a commitment, not an operating business. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "Still in view: an enterprise begins as a household risk",
+      "sub": "The founder {founder} has backed a plan for {business} with household savings.",
+      "body": "Household savings have been put into a business plan by {founder}. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nA plan backed by savings is a commitment, not an operating business. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    },
+    {
+      "headline": "Still in view: a settler backs a business idea",
+      "sub": "The settler {founder} has committed household savings to a plan for {business}.",
+      "body": "The founder {founder} has backed a plan for {business} with household savings. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nA plan backed by savings is a commitment, not an operating business. Our assessment favours {target} over a verdict that confuses an adverse interpretation with an established fact."
+    }
+  ]
+}

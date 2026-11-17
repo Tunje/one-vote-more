@@ -1,0 +1,23 @@
+{
+  "event": "ECON_IMPORT_ARRIVED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: ordered goods reach the dock",
+      "sub": "Imported {good} ordered by {company} has landed at the colony's port.",
+      "body": "The company {company} has received its imported order of {good} at the port. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nOrdered is not delivered. This order has now made the journey, and the dock is where payment met the goods. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Still in view: an order completes its long journey",
+      "sub": "The company {company} has taken delivery of its home-world order of {good}.",
+      "body": "Imported {good} ordered by {company} has landed at the colony's port. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nOrdered is not delivered. This order has now made the journey, and the dock is where payment met the goods. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Still in view: imports landed and paid for",
+      "sub": "The company {company} has received its imported order of {good} at the port.",
+      "body": "The company {company} has taken delivery of its home-world order of {good}. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nOrdered is not delivered. This order has now made the journey, and the dock is where payment met the goods. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

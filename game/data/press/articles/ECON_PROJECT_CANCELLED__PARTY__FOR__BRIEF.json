@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_CANCELLED",
+  "flavour": "PARTY",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Building job cancelled part-way",
+      "sub": "",
+      "body": "The building job for {project}, undertaken by {builder}, has been cancelled part-way. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Client abandons the construction plan",
+      "sub": "",
+      "body": "The client has abandoned {project}, which {builder} was building. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    },
+    {
+      "headline": "Unfinished work meets a cancelled project",
+      "sub": "",
+      "body": "Construction of {project} by {builder} has been cancelled before completion. We stand with {target} against an easy verdict; a principled politics should also be a fair one."
+    }
+  ]
+}

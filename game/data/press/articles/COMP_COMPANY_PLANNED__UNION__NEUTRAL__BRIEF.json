@@ -1,0 +1,23 @@
+{
+  "event": "COMP_COMPANY_PLANNED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Household savings committed to a company plan",
+      "sub": "",
+      "body": "The settler {founder} has committed household savings to a plan for {business}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "An enterprise begins as a household risk",
+      "sub": "",
+      "body": "Household savings have been put into a business plan by {founder}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "A settler backs a business idea",
+      "sub": "",
+      "body": "The founder {founder} has backed a plan for {business} with household savings. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

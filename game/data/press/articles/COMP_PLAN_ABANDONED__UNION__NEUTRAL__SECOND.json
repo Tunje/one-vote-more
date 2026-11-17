@@ -1,0 +1,23 @@
+{
+  "event": "COMP_PLAN_ABANDONED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Business plan abandoned before opening",
+      "sub": "The planned {business} will not open: {founder} has given up the plan.",
+      "body": "The founder {founder} has abandoned the plan for {business} before opening. The reason given is that {why}. The builder keeps what it was paid, and any grant is owed back. For {target}, the result raises a direct question about responsibility before an enterprise can begin operating.\n\nThe person behind a business plan remains a person when it is abandoned. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "An intended company will not open",
+      "sub": "The business plan made by {founder} has been abandoned before the company opened.",
+      "body": "The proposed {business} will not open: {founder} has given up the plan because {why}. Payments already made to the builder remain with the builder, while any grant must be repaid. Readers considering {target} should distinguish the end of the proposal from an ending without obligations.\n\nThe person behind a business plan remains a person when it is abandoned. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "A household's business plan ends",
+      "sub": "The founder {founder} has abandoned the plan for {business} before opening.",
+      "body": "The founder {founder} has abandoned the plan for {business}, with {why} given as the reason. It has ended before opening, but the financial consequences do not vanish: the builder keeps its payment and any grant is owed back. The stewardship of {target} deserves attention on that basis.\n\nThe person behind a business plan remains a person when it is abandoned. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_UNAFFORDABLE",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "FOLLOWUP",
+  "variants": [
+    {
+      "headline": "Still in view: full shelves, empty household purses",
+      "sub": "Households are hungry despite available food because they do not have the money to buy it.",
+      "body": "Food is for sale, but households cannot afford it and are going hungry beside full shelves. Coverage of this story continues; the original event remains the starting point for the questions examined here.\n\nInventory and purchasing power are separate sides of a transaction. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Still in view: food for sale beyond the buyer's means",
+      "sub": "There is food on the shelves, but people without enough money cannot obtain their meals.",
+      "body": "Households are hungry despite available food because they do not have the money to buy it. This story remains under examination, with renewed attention to the responsibilities raised by the original report.\n\nInventory and purchasing power are separate sides of a transaction. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Still in view: hunger beside food that cannot be afforded",
+      "sub": "Food is for sale, but households cannot afford it and are going hungry beside full shelves.",
+      "body": "There is food on the shelves, but people without enough money cannot obtain their meals. Our attention to this story continues, with the original event still the starting point for assessing responsibility.\n\nInventory and purchasing power are separate sides of a transaction. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

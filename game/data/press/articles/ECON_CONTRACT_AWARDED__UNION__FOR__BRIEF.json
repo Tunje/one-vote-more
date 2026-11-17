@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_AWARDED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Builder signs for a new project",
+      "sub": "",
+      "body": "The builder {builder} has signed a contract for {project}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A price agreed, a building still to deliver",
+      "sub": "",
+      "body": "A construction contract for {project} has been awarded to {builder}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Construction contract puts obligations in writing",
+      "sub": "",
+      "body": "The company {builder} has won the building contract for {project}. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

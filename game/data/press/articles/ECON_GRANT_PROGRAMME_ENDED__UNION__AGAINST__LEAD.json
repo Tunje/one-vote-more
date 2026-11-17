@@ -1,0 +1,23 @@
+{
+  "event": "ECON_GRANT_PROGRAMME_ENDED",
+  "flavour": "UNION",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Business-start grant programme ends",
+      "sub": "Business-starting support under {programme} has come to an end.",
+      "body": "The programme {programme} has ended, having paid {paid} grants and refused {refused} applications. It supported people starting a business. Readers considering {target} should distinguish that record from a judgment that either the existence or the end of a programme proves it served its purpose adequately.\n\nA person trying to start a business is still a person whose household matters. Labour should consider public support through that ordinary perspective, rather than assume that the word 'enterprise' removes the need for fairness. A programme deserves scrutiny for its accessibility as well as its stated ambition.\n\nWe criticise {target} on the standard of public support. A programme's ending should not put its stewardship beyond question or allow its attractive purpose to stand in for a serious account of performance. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "A grant scheme closes its account",
+      "sub": "The programme {programme} has ended its support for people starting a business.",
+      "body": "A grant programme's record contains refusals as well as payments. The programme {programme} has ended with {paid} grants paid and {refused} applications refused. For {target}, the question is how to judge support for people starting a business through that full record, rather than the attraction of the scheme's title.\n\nA person trying to start a business is still a person whose household matters. Labour should consider public support through that ordinary perspective, rather than assume that the word 'enterprise' removes the need for fairness. A programme deserves scrutiny for its accessibility as well as its stated ambition.\n\nWe criticise {target} on the standard of public support. A programme's ending should not put its stewardship beyond question or allow its attractive purpose to stand in for a serious account of performance. Ordinary lives should be the measure, not a convenient afterthought."
+    },
+    {
+      "headline": "Support programme reaches its end",
+      "sub": "The grant programme {programme} for people starting a business has ended.",
+      "body": "Support under {programme} has come to an end. The programme paid {paid} grants and refused {refused} applications from people seeking to start a business. An assessment of {target} should consider what responsible public support means, without assuming a particular reason for the programme's conclusion.\n\nA person trying to start a business is still a person whose household matters. Labour should consider public support through that ordinary perspective, rather than assume that the word 'enterprise' removes the need for fairness. A programme deserves scrutiny for its accessibility as well as its stated ambition.\n\nWe criticise {target} on the standard of public support. A programme's ending should not put its stewardship beyond question or allow its attractive purpose to stand in for a serious account of performance. Ordinary lives should be the measure, not a convenient afterthought."
+    }
+  ]
+}

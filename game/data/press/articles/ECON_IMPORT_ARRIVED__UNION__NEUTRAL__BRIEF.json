@@ -1,0 +1,23 @@
+{
+  "event": "ECON_IMPORT_ARRIVED",
+  "flavour": "UNION",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Ordered goods reach the dock",
+      "sub": "",
+      "body": "The company {company} has received its imported order of {good} at the port. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "An order completes its long journey",
+      "sub": "",
+      "body": "Imported {good} ordered by {company} has landed at the colony's port. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    },
+    {
+      "headline": "Imports landed and paid for",
+      "sub": "",
+      "body": "The company {company} has taken delivery of its home-world order of {good}. Working people's needs belong at the centre of this discussion, rather than outside its political argument."
+    }
+  ]
+}

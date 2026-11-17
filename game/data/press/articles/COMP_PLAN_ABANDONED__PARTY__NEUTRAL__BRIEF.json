@@ -1,0 +1,23 @@
+{
+  "event": "COMP_PLAN_ABANDONED",
+  "flavour": "PARTY",
+  "stance": "NEUTRAL",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Business plan abandoned before opening",
+      "sub": "",
+      "body": "The founder {founder} has abandoned the plan for {business} before opening. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "An intended company will not open",
+      "sub": "",
+      "body": "The planned {business} will not open: {founder} has given up the plan. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    },
+    {
+      "headline": "A household's business plan ends",
+      "sub": "",
+      "body": "The business plan made by {founder} has been abandoned before the company opened. Our principles require political attention that keeps the purpose of public responsibility firmly in view here."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_COMPLETED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: building finished and handed over",
+      "sub": "The project {project} has been completed and handed over by {builder}.",
+      "body": "We return to our earlier coverage. Our report recorded this: The builder {builder} had finished and handed over {project}.\n\nFinished. Handed over. Two plain facts worth more than a splendid promise. Just keep the opening in its proper place: next month. Readers can recognise that a building has been delivered without being asked to believe it is already producing every benefit someone once hoped to attach to it.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe remain critical of {target}. A completed building should not place overall stewardship beyond scrutiny, or turn a particular delivery into automatic approval of every judgment surrounding the project and its purpose."
+    },
+    {
+      "headline": "Looking back: delivery reached; opening follows",
+      "sub": "Completion and handover of {project} have been achieved by {builder}.",
+      "body": "Looking back to our earlier coverage, this was the news: The project {project} had been completed and handed over by {builder}.\n\nFinished. Handed over. Two plain facts worth more than a splendid promise. Just keep the opening in its proper place: next month. Readers can recognise that a building has been delivered without being asked to believe it is already producing every benefit someone once hoped to attach to it.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe remain critical of {target}. A completed building should not place overall stewardship beyond scrutiny, or turn a particular delivery into automatic approval of every judgment surrounding the project and its purpose."
+    },
+    {
+      "headline": "Looking back: a completed project leaves the builder's hands",
+      "sub": "The builder {builder} has finished and handed over {project}.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: Completion and handover of {project} have been achieved by {builder}.\n\nFinished. Handed over. Two plain facts worth more than a splendid promise. Just keep the opening in its proper place: next month. Readers can recognise that a building has been delivered without being asked to believe it is already producing every benefit someone once hoped to attach to it.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe remain critical of {target}. A completed building should not place overall stewardship beyond scrutiny, or turn a particular delivery into automatic approval of every judgment surrounding the project and its purpose."
+    }
+  ]
+}

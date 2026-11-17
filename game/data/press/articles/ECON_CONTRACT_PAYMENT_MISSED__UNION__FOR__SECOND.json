@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_PAYMENT_MISSED",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Builder left unpaid for work done",
+      "sub": "The builder {builder} is owed payment by the client {client} for completed work.",
+      "body": "The client {client} has not paid the builder {builder} for work done. The amount owed is {owed}. After three missed months the builder stops work. For {target}, the event raises the basic question of responsibility when a construction undertaking requires payment as well as performance.\n\nWork done is work that deserves a serious account of payment. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A construction payment fails to arrive",
+      "sub": "Payment for work done by {builder} has been missed by {client}.",
+      "body": "The builder {builder} is owed {owed} by the client {client} for work already done. The rule is that three missed months bring a stop to work. Readers considering {target} should distinguish the current payment failure from a claim that the stopping point has already been reached.\n\nWork done is work that deserves a serious account of payment. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Work delivered, payment outstanding",
+      "sub": "The client {client} has not paid {builder} for building work done.",
+      "body": "Payment for work done by {builder} has been missed by {client}, with {owed} owed. Work stops after three missed months. An assessment of {target} should begin with the present obligation to pay, rather than treat a rule about prolonged non-payment as proof of a stoppage already in effect.\n\nWork done is work that deserves a serious account of payment. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

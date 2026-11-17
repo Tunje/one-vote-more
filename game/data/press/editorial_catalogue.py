@@ -522,3 +522,24 @@ for event, facts in NAMED_FACTS.items():
     EVENTS[event]["facts"] = facts
     EVENTS[event]["angles"] = [fact + " " + angle.split(". ", 1)[1]
                                 for fact, angle in zip(facts, EVENTS[event]["angles"])]
+
+add("ECON_PANDEMIC",
+    ["Illness spreads beyond the clinics' reach", "Pandemic leaves {sick} too ill to work", "{district} bears the worst of the pandemic"],
+    ["Illness is spreading, with {sick} people too ill to work and {district} worst affected.",
+     "The pandemic has left {sick} people unable to work; {district} is the worst affected district.",
+     "The worst affected district is {district}, while illness leaves {sick} people unable to work."],
+    ["Illness is spreading through {colony} because the clinics cannot treat people. There are {sick} people too ill to work, with {district} worst affected. For {target}, the immediate test is whether responsibility for care is taken as seriously as the consequences of its absence.",
+     "The pandemic has left {sick} people too ill to work, and {district} is the worst affected district. Illness is spreading because the clinics cannot treat people. Any reckoning with {target} should begin with the people needing care, rather than reducing their illness to missing labour.",
+     "The worst of the pandemic is in {district}. Across the colony, {sick} people are too ill to work as illness spreads beyond what the clinics can treat. Readers considering {target} face a basic question: what does a colony owe people when they need care?"],
+    ["The inability of clinics to treat people is central to the spread of illness. The public interest requires that treatment be considered as a practical necessity, rather than merely an administrative objective. An account of available care must be judged by whether it can serve the people who need it.",
+     "A political principle ought to have something to say to someone who is ill. Our movement believes care belongs within the colony's common responsibilities. The purpose of public life cannot be reduced to an argument over who deserves praise while the need for treatment remains the central practical question.",
+     "A sick worker is a person needing care, not merely an empty place at work. Labour insists on that order of concern. The inability to work matters to a household, but it should never become the price of admission to a serious discussion of illness and decent treatment.",
+     "The missing labour is an economic fact, but care cannot be understood through output alone. Treatment is a practical requirement for the people who are ill. A sound management view should recognise that human need before attempting to turn the pandemic into a calculation of commercial consequences.",
+     "Too ill to work. In need of treatment. Those are people behind the count, not an awkward entry in somebody's account. The clinic's purpose ought to be plain enough without a grand speech: care for the person who needs it. A colony should keep that simple purpose in view."],
+    ["The role of {target} deserves scrutiny against the shortage of treatment. This paper's standard is the practical provision of care, with the needs of ill people kept at the centre of the assessment.",
+     "We hold {target} to account for inadequate stewardship. When clinics cannot treat people and illness spreads, the colony deserves more than a comfortable explanation of why responsibility should belong to someone else.",
+     "We defend {target} against an indiscriminate verdict. The pandemic requires serious attention, but fair judgment should distinguish the need for treatment from an assumption that every hostile accusation about responsibility is established."])
+
+from editorial_rebuild import RECORDS
+for record in RECORDS:
+    add(*record)

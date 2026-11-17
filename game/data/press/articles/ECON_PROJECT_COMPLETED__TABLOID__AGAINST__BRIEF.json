@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PROJECT_COMPLETED",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "Building finished and handed over",
+      "sub": "",
+      "body": "The builder {builder} has finished and handed over {project}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "Delivery reached; opening follows",
+      "sub": "",
+      "body": "The project {project} has been completed and handed over by {builder}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    },
+    {
+      "headline": "A completed project leaves the builder's hands",
+      "sub": "",
+      "body": "Completion and handover of {project} have been achieved by {builder}. Our verdict on {target}: not good enough, and the colony deserves a better standard of responsibility."
+    }
+  ]
+}

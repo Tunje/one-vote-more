@@ -1,0 +1,23 @@
+{
+  "event": "ECON_IMPORT_ARRIVED",
+  "flavour": "BUSINESS",
+  "stance": "NEUTRAL",
+  "kind": "SECOND",
+  "variants": [
+    {
+      "headline": "Ordered goods reach the dock",
+      "sub": "Imported {good} ordered by {company} has landed at the colony's port.",
+      "body": "The company {company} has received {qty} units of {good} at the port. The order arrived a full round trip after it was placed and was paid for on the dock. For {target}, the event is a practical test of the connection between ordering, waiting and obtaining goods.\n\nThe sequence matters: an order, a full round trip, then delivery and payment on the dock. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "An order completes its long journey",
+      "sub": "The company {company} has taken delivery of its home-world order of {good}.",
+      "body": "A full round trip separates an order from its delivery: {company} has received {qty} units of {good} from the home world. Payment was made on the dock. Readers considering {target} should keep the long interval in view when judging what responsible provision for the colony requires.\n\nThe sequence matters: an order, a full round trip, then delivery and payment on the dock. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    },
+    {
+      "headline": "Imports landed and paid for",
+      "sub": "The company {company} has received its imported order of {good} at the port.",
+      "body": "The dock has become the point where a distant order is finally delivered and paid: {company} has received {qty} units of {good}. A full round trip has passed since the order. The question for {target} concerns practical provision across that distance, rather than an instant answer to need.\n\nThe sequence matters: an order, a full round trip, then delivery and payment on the dock. Commercial judgment requires a disciplined distinction between the established development and assumptions about its practical consequences."
+    }
+  ]
+}

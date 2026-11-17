@@ -1,0 +1,23 @@
+{
+  "event": "ECON_EMIGRATION",
+  "flavour": "UNION",
+  "stance": "FOR",
+  "kind": "BRIEF",
+  "variants": [
+    {
+      "headline": "People leave the colony on the ship",
+      "sub": "",
+      "body": "People have left the colony on the ship: young adults without work and families without homes. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "Departure follows a lack of work and homes",
+      "sub": "",
+      "body": "The ship has taken away young adults with no work and families with no home. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    },
+    {
+      "headline": "A ship takes settlers away",
+      "sub": "",
+      "body": "Young adults lacking work and families lacking homes have departed the colony aboard the ship. Solidarity includes fairness to {target}; an adverse outcome does not by itself justify every accusation made."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "event": "ECON_FOOD_SCARCE",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Money in hand, no food to buy",
+      "sub": "People have money for food but cannot buy it because shops and farms are sold out.",
+      "body": "Shops and farms are sold out of food, and people with money in hand are going without. There were {short} meals that could not be bought this month for lack of food. For {target}, the central test is provision, not an explanation that mistakes an empty supply for an empty purse.\n\nMoney in hand. Nothing to buy for the meal. It is a simple picture of a shortage, and a sharp reminder that a full purse is not a full shelf. Readers should insist that the problem is described plainly before somebody offers an answer to a different kind of hunger.\n\nWe hold {target} to account critically. People who can pay should not be left without food because provision fails, and a shortage of supply deserves more than an argument directed at the wrong problem. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "Shops and farms sell out",
+      "sub": "Food is unavailable to buyers even with money in hand: shops and farms are sold out.",
+      "body": "People can have the means to pay and still be unable to obtain a meal. Shops and farms are sold out, leaving {short} meals unavailable to buyers this month. Readers judging {target} should keep the distinction between purchasing power and actual food firmly in view when considering the shortage.\n\nMoney in hand. Nothing to buy for the meal. It is a simple picture of a shortage, and a sharp reminder that a full purse is not a full shelf. Readers should insist that the problem is described plainly before somebody offers an answer to a different kind of hunger.\n\nWe hold {target} to account critically. People who can pay should not be left without food because provision fails, and a shortage of supply deserves more than an argument directed at the wrong problem. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "Food shortage defeats the buyer",
+      "sub": "Shops and farms are sold out of food, leaving people with money unable to buy meals.",
+      "body": "The colony has recorded {short} meals that could not be bought this month because there was no food available. Shops and farms are sold out despite people having money in hand. The responsibility of {target} should be examined against that physical shortage, rather than a presumed inability of buyers to pay.\n\nMoney in hand. Nothing to buy for the meal. It is a simple picture of a shortage, and a sharp reminder that a full purse is not a full shelf. Readers should insist that the problem is described plainly before somebody offers an answer to a different kind of hunger.\n\nWe hold {target} to account critically. People who can pay should not be left without food because provision fails, and a shortage of supply deserves more than an argument directed at the wrong problem. Readers deserve a clear story and a straight answer about responsibility."
+    }
+  ]
+}

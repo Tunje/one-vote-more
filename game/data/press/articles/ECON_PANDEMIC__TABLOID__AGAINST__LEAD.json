@@ -1,0 +1,23 @@
+{
+  "event": "ECON_PANDEMIC",
+  "flavour": "TABLOID",
+  "stance": "AGAINST",
+  "kind": "LEAD",
+  "variants": [
+    {
+      "headline": "Illness spreads beyond the clinics' reach",
+      "sub": "The pandemic has left {sick} people unable to work; {district} is the worst affected district.",
+      "body": "Illness is spreading through {colony} because the clinics cannot treat people. There are {sick} people too ill to work, with {district} worst affected. For {target}, the immediate test is whether responsibility for care is taken as seriously as the consequences of its absence.\n\nToo ill to work. In need of treatment. Those are people behind the count, not an awkward entry in somebody's account. The clinic's purpose ought to be plain enough without a grand speech: care for the person who needs it. A colony should keep that simple purpose in view.\n\nWe hold {target} to account for inadequate stewardship. When clinics cannot treat people and illness spreads, the colony deserves more than a comfortable explanation of why responsibility should belong to someone else. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "Pandemic leaves {sick} too ill to work",
+      "sub": "The worst affected district is {district}, while illness leaves {sick} people unable to work.",
+      "body": "The pandemic has left {sick} people too ill to work, and {district} is the worst affected district. Illness is spreading because the clinics cannot treat people. Any reckoning with {target} should begin with the people needing care, rather than reducing their illness to missing labour.\n\nToo ill to work. In need of treatment. Those are people behind the count, not an awkward entry in somebody's account. The clinic's purpose ought to be plain enough without a grand speech: care for the person who needs it. A colony should keep that simple purpose in view.\n\nWe hold {target} to account for inadequate stewardship. When clinics cannot treat people and illness spreads, the colony deserves more than a comfortable explanation of why responsibility should belong to someone else. Readers deserve a clear story and a straight answer about responsibility."
+    },
+    {
+      "headline": "{district} bears the worst of the pandemic",
+      "sub": "Illness is spreading, with {sick} people too ill to work and {district} worst affected.",
+      "body": "The worst of the pandemic is in {district}. Across the colony, {sick} people are too ill to work as illness spreads beyond what the clinics can treat. Readers considering {target} face a basic question: what does a colony owe people when they need care?\n\nToo ill to work. In need of treatment. Those are people behind the count, not an awkward entry in somebody's account. The clinic's purpose ought to be plain enough without a grand speech: care for the person who needs it. A colony should keep that simple purpose in view.\n\nWe hold {target} to account for inadequate stewardship. When clinics cannot treat people and illness spreads, the colony deserves more than a comfortable explanation of why responsibility should belong to someone else. Readers deserve a clear story and a straight answer about responsibility."
+    }
+  ]
+}

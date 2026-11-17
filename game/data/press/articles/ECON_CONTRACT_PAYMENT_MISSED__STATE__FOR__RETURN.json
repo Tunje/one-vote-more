@@ -1,0 +1,23 @@
+{
+  "event": "ECON_CONTRACT_PAYMENT_MISSED",
+  "flavour": "STATE",
+  "stance": "FOR",
+  "kind": "RETURN",
+  "variants": [
+    {
+      "headline": "Looking back: builder left unpaid for work done",
+      "sub": "The builder {builder} is owed payment by the client {client} for completed work.",
+      "body": "We return to our earlier coverage. Our report recorded this: The client {client} had not paid {builder} for building work done.\n\nThe gazette records the missed payment and the amount owed. The rule governing a stop after three missed months is distinct from an announcement that work has already stopped. An orderly account should preserve the difference between a current arrear and the condition under which further action follows.\n\nThe event remains part of the record. Whether subsequent developments met the standard it raised is a separate question, not something the old headline can answer by itself.\n\nWe support {target} against a blanket adverse verdict. The missed payment requires attention, but its existence does not prove every allegation about motives or establish that the project has already reached a stop."
+    },
+    {
+      "headline": "Looking back: a construction payment fails to arrive",
+      "sub": "Payment for work done by {builder} has been missed by {client}.",
+      "body": "Looking back to our earlier coverage, this was the news: The builder {builder} was owed payment by the client {client} for completed work.\n\nThe gazette records the missed payment and the amount owed. The rule governing a stop after three missed months is distinct from an announcement that work has already stopped. An orderly account should preserve the difference between a current arrear and the condition under which further action follows.\n\nTime changes the distance from an event, not the need to judge it carefully. Any claim about improvement or deterioration needs more than a recollection of the original news.\n\nWe support {target} against a blanket adverse verdict. The missed payment requires attention, but its existence does not prove every allegation about motives or establish that the project has already reached a stop."
+    },
+    {
+      "headline": "Looking back: work delivered, payment outstanding",
+      "sub": "The client {client} has not paid {builder} for building work done.",
+      "body": "The headline belongs to our earlier coverage. Our original account recorded this: Payment for work done by {builder} had been missed by {client}.\n\nThe gazette records the missed payment and the amount owed. The rule governing a stop after three missed months is distinct from an announcement that work has already stopped. An orderly account should preserve the difference between a current arrear and the condition under which further action follows.\n\nChanges since then deserve examination against the original record. The need to distinguish an established event from its associated hopes and fears remains.\n\nWe support {target} against a blanket adverse verdict. The missed payment requires attention, but its existence does not prove every allegation about motives or establish that the project has already reached a stop."
+    }
+  ]
+}
