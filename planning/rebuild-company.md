@@ -373,9 +373,9 @@ place: the court winding a company up for convictions (the law's own fourth way,
 - **The government starts with its subsidiaries as before.** In the old game those were Colony Power & Water, the
   Colony Transit Authority, the Colony Housing Office and the Colony Works Department (the public builder of last
   resort), plus the public institutions (clinics, schools, administration).
-- **All three grant types are open** from the start. **(Wilma's reading: family farms, family bakeries, and trucks,
-  the last covering truck drivers and truck workshops, which the user introduced together "started by grants alla
-  bakeries".)**
+- **All grant types are open** from the start. Truck drivers and truck workshops are separate grant types (the user,
+  correcting Wilma's reading that merged them: "No split trucks and workshops"). The grant types are: family farms,
+  family bakeries, truck drivers, truck workshops.
 - **No sectors beyond the landfall point.** The colony starts as one place, where it landed. There are no districts
   laid out in advance; where things come to be is decided by where things are built. (The old game started with six
   named districts.)

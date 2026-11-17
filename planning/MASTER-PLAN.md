@@ -580,6 +580,15 @@ Written into [rebuild-company.md](rebuild-company.md) section 8i the same turn.
 Written into [rebuild-company.md](rebuild-company.md) section 8j the same turn.
 
 
+### The rebuild: grant types (the user, 2026-11-17, verbatim)
+
+Correcting Wilma's reading that counted truck drivers and truck workshops as one grant type:
+
+> No split trucks and workshops
+
+The grant types: family farms, family bakeries, truck drivers, truck workshops. All open in month one.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
