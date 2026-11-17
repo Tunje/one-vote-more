@@ -3,7 +3,7 @@ extends SceneTree
 ## One line: adults Y-end, means over Y5..end of unemployment, food shortfall, real income; income/sales tax at the end.
 func _init() -> void:
 	var a := OS.get_cmdline_user_args()
-	var sim: Simulation = EconFace.sim_make(int(a[0]), "BALANCED", {}, true)
+	var sim: Simulation = GameSim.make(int(a[0]), "BALANCED", {}, true)
 	var w := sim.world
 	if a[2] != "base":
 		for fl in a[2].split(","):

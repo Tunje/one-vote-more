@@ -4,7 +4,7 @@ extends TestCase
 
 
 func _game(months: int = 2, on: bool = true) -> Simulation:
-	var sim := EconFace.sim_make(1, "BALANCED", {}, true)
+	var sim := GameSim.make(1, "BALANCED", {}, true)
 	if on:
 		(sim.world.meta["on"] as Array).append(TownGrid.FLAG)
 	for _m in months:

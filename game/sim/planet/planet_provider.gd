@@ -51,7 +51,7 @@ func indicator_defs() -> Array:
 func lever_defs() -> Array:
 	return [{"id": PlanetWildlife.POLICY_LEVER, "owner": OWNER, "type": "ENUM", "values": PlanetWildlife.POLICIES, "default": "MANAGE",
 		"legalLevel": "REGULATION", "foundingEra": "COMMANDER", "ideology": {"ENVIRONMENT": -6.0}, "concerns": {"SAFETY": 20, "ENVIRONMENT_QUALITY": -20},
-		"implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "fiscal": null, "domain": "ENV", "requires": ["ECO"]}]
+		"implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "fiscal": null, "domain": "ENV"}]
 
 
 func init_world(world: WorldState) -> void:
@@ -176,7 +176,8 @@ func _report_wild(world: WorldState, wild: Dictionary) -> void:
 func _report_birds(world: WorldState, events: Array) -> void:
 	for e in events:
 		var f: Dictionary = e["flock"]
-		var d := {"flock": String(f["id"]), "name": String(f["name"]), "role": String(f["role"]), "size": int(e["size"])}
+		var d := {"flock": String(f["id"]), "name": String(f["name"]), "role": String(f["role"]), "size": int(e["size"]),
+			"hex": Planet.landing(world)}   # the flocks arrive at (or fail to reach) the colony's hex
 		var mag := 25
 		match String(e["kind"]):
 			"ARRIVED":

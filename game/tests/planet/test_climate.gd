@@ -102,7 +102,7 @@ func test_storms_at_and_phenomena_at() -> void:
 
 func test_pollution_drifts_downwind_and_warming_stays_small() -> void:
 	var w := _world()
-	w.table("econ")["s"] = {"emissions": {"d:1": 20000, "d:2": 10000}}   # 30 units a month, founding-era scale
+	CoreUtil.st(w)["emissions"] = {"d:1": 20000, "d:2": 10000}   # 30 units a month, founding-era scale
 	for m in 1200:
 		w.month = m
 		PlanetClimate.step_month(w)

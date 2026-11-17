@@ -2,14 +2,13 @@ extends SceneTree
 ## Diagnostics for the outside review of the v4 chronicles (owner Ella): faction axes and splits,
 ## repeat single-issue foundings, and who gets scandals relative to donations.
 ##   godot --headless --path game --script res://tools/review_party_system.gd -- <months> <seed>
-const EconSim := preload("res://sim/economy/econ_sim.gd")
 
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var months := int(args[0]) if args.size() > 0 else 1200
 	var seed_v := int(args[1]) if args.size() > 1 else 1
-	var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
+	var sim: Simulation = GameSim.make(seed_v, "BALANCED", {}, true)
 	var w := sim.world
 	var axis_years := {}
 	var score_sum := {}

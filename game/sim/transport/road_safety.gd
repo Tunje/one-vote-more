@@ -41,8 +41,9 @@ const BYPASS_KEEPS_PM := 300      # a bypass leaves this ‰ of the danger (loca
 static var _cache := {}
 
 
-static func on(world: WorldState) -> bool:
-	return (world.meta.get("on", []) as Array).has(FLAG) and not (world.meta.get("off", []) as Array).has(FLAG)
+## Always on: part of the rebuild ("nothing behind an off switch", rebuild-company.md 12.4, 33).
+static func on(_world: WorldState = null) -> bool:
+	return true
 
 
 # ================================================================== speed

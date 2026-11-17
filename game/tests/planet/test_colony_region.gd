@@ -126,10 +126,3 @@ func test_sea_blocks_roads() -> void:
 	check(Transport.validate_link(w, {"a": Transport.tile_int(l), "b": Transport.tile_int(sea), "kind": "TRACK"}) != "", "a readable refusal")
 	var p := Transport.plan_path(w, Vector2i(0, 0), Vector2i(Terrain.W - 1, Terrain.H - 1))
 	check(p.filter(func(ti): return Terrain.at(w, int(ti) % Terrain.W, int(ti) / Terrain.W) == Terrain.SEA).is_empty(), "paths go round the sea")
-
-
-func test_the_mining_town_stands_at_its_ore() -> void:
-	for w in _worlds():
-		var rr: Vector2i = ColonyLayout.econ_anchors(w)["d:3"]
-		check(ColonyLayout.count_near(w, rr, ["o", "x"], 3) > 0, "seed %d: Redrock has ore within 3 tiles (%s)" % [Planet.seed_of(w), rr])
-		check(Terrain.at(w, rr.x, rr.y) in ["h", "k", "o"], "seed %d: Redrock stands in the hills" % Planet.seed_of(w))

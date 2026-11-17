@@ -1,26 +1,17 @@
 class_name ColonyLayout
 extends RefCounted
 ## Terra: where things stand on the colony map (Terrain.W × Terrain.H), a pure read of the world.
-## - Settlements: the areas (AreaStore) once they exist; before A2, one display settlement per economic district,
-##   on suitable terrain around the landing site (d:1 at the landing site).
-## - Facilities: their own tile once A2 gives them one (f["tile"]); before that, a free tile of suitable terrain
-##   nearest their area or district settlement.
+## - Settlements: the areas (AreaStore). Before the first area is founded, the landfall place alone (LANDING): the
+##   colony starts as one place, and districts are drawn from areas as it spreads (rebuild-company.md 9.12, 12.1).
+## - Facilities: their own tile (f["tile"]) or the site siting chose; else a free tile of suitable terrain nearest
+##   their area, their district's anchor, or the landing.
 ## Used by the transport network (sim) and the colony map (UI). Deterministic in the terrain and the facility ids.
 
 ## Where facilities may stand (placement before A2, and build validity).
 const FAC_TERRAIN := {"MINE": ["o", "x", "k", "h"], "FARM": ["f", "n", "."], "HOUSING": [".", "f", "L", "n"]}
 const BUILD_TERRAIN := [".", "f", "L", "n", "h"]
-## Display anchors for the six economic districts until areas exist (A2): what each one looks for on the terrain,
-## how far from the landing site, in which direction.
-const ECON_ANCHORS := {
-	"d:2": {"want": [".", "f"], "near": "r", "dist": 9.0, "dir": Vector2(1, -0.4)},     # Riverside
-	"d:3": {"want": ["h", "k", "o"], "near": "", "dist": 13.0, "dir": Vector2(-1, 0.6), "ore": true},  # Redrock: at its ore
-	"d:4": {"want": [".", "h"], "near": "", "dist": 6.0, "dir": Vector2(-1, -0.2)},     # Foundry
-	"d:5": {"want": ["h", "."], "near": "", "dist": 10.0, "dir": Vector2(0.6, 1)},      # Greenhill
-	"d:6": {"want": ["f", "."], "near": "", "dist": 11.0, "dir": Vector2(-0.2, -1)},    # Northfield
-}
-const TOWN_R := 4   # a display settlement (pre-A2) spreads this many tiles around its anchor
-
+## The landfall place before its first area is founded (the colony starts as one place where it landed).
+const LANDING := "landing"
 static var _cache := {}
 
 
@@ -53,38 +44,19 @@ static func _cached(w: WorldState, what: String, fn: Callable, land_only: bool =
 	return _cache[k]
 
 
-## Settlements of the six economic districts (display, until areas exist). Deterministic in the terrain.
-static func econ_anchors(w: WorldState) -> Dictionary:
-	return _cached(w, "anchors", func(): return _econ_anchors(w), true)
+## Each district's anchor: the tile of its first settlement (by id). No districts are laid out in advance (the user:
+## "no sectors beyond landfallpoint that's up to where things are built"), so this is {} until areas exist; readers
+## fall back to the landing tile. Pure in the areas.
+static func anchors(w: WorldState) -> Dictionary:
+	return _cached(w, "anchors", func(): return _anchors(w), true)
 
 
-static func _econ_anchors(w: WorldState) -> Dictionary:
-	var l := Terrain.landing(w)
-	var out := {"d:1": l}
-	for d in ECON_ANCHORS:
-		var spec: Dictionary = ECON_ANCHORS[d]
-		var dir: Vector2 = Vector2(spec["dir"]).normalized()
-		var best := l
-		var bs := INF
-		for y in Terrain.H:
-			for x in Terrain.W:
-				if not (Terrain.at(w, x, y) in spec["want"]):
-					continue
-				var off := Vector2(x - l.x, y - l.y)
-				var s := absf(off.length() - float(spec["dist"])) + 6.0 * (1.0 - off.normalized().dot(dir))
-				if spec.get("ore", false):   # a mining town stands at its ore, at the foot of the hills, a little further out
-					s = absf(off.length() - float(spec["dist"])) * 0.6 + 3.0 * (1.0 - off.normalized().dot(dir))
-					s += 6.0 * (1.0 - minf(1.0, float(count_near(w, Vector2i(x, y), ["h", "k", "o", "x"], 3)) / 10.0))
-					s += 0.0 if count_near(w, Vector2i(x, y), ["o", "x"], 3) > 0 else 25.0   # above any distance cost within Terrain.ORE_NEAR
-				if String(spec["near"]) != "" and not near_code(w, Vector2i(x, y), String(spec["near"]), 2):
-					s += 8.0
-				for o in out.values():
-					if Vector2(x - o.x, y - o.y).length() < 5.0:
-						s += 20.0
-				if s < bs:
-					bs = s
-					best = Vector2i(x, y)
-		out[d] = best
+static func _anchors(w: WorldState) -> Dictionary:
+	var out := {}
+	for s in settlements(w):
+		var d := String(s["district"])
+		if d != "" and not out.has(d):
+			out[d] = s["tile"]
 	return out
 
 
@@ -125,26 +97,18 @@ static func _settlements(w: WorldState) -> Array:
 					best = t
 			out.append({"id": String(a["id"]), "name": String(a.get("name", a["id"])), "tile": best, "tiles": tiles,
 				"district": String(a.get("district", ""))})
-	else:
-		var anchors := econ_anchors(w)
-		for d in CoreUtil.sorted_keys(anchors):
-			var t0: Vector2i = anchors[d]
-			var tiles2: Array = []
-			for yy in range(t0.y - TOWN_R, t0.y + TOWN_R + 1):
-				for xx in range(t0.x - TOWN_R, t0.x + TOWN_R + 1):
-					if not Terrain.at(w, xx, yy) in ["", Terrain.SEA] and Vector2(xx - t0.x, yy - t0.y).length() <= float(TOWN_R) + 0.01:
-						tiles2.append(Vector2i(xx, yy))
-			out.append({"id": d, "name": String(EconData.DISTRICTS.get(d, {}).get("name", d)), "tile": t0, "tiles": tiles2,
-				"district": d})
+	elif Terrain.ready(w):   # before the first area: the landfall place alone
+		var l := Terrain.landing(w)
+		out.append({"id": LANDING, "name": "Landing", "tile": l, "tiles": [l], "district": ""})
 	out.sort_custom(func(a, b): return String(a["id"]) < String(b["id"]))
 	return out
 
 
 ## Where each facility stands: fid -> Vector2i (see the header).
-static func facility_tiles(w: WorldState, anchors: Dictionary = {}) -> Dictionary:
-	if anchors.is_empty():
-		return _cached(w, "fac", func(): return _facility_tiles(w, econ_anchors(w)))
-	return _facility_tiles(w, anchors)
+static func facility_tiles(w: WorldState, given_anchors: Dictionary = {}) -> Dictionary:
+	if given_anchors.is_empty():
+		return _cached(w, "fac", func(): return _facility_tiles(w, anchors(w)))
+	return _facility_tiles(w, given_anchors)
 
 
 static func _facility_tiles(w: WorldState, anchors: Dictionary) -> Dictionary:

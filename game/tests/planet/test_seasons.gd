@@ -1,13 +1,12 @@
 extends TestCase
-## Terra: ecology stage 3 — the farm year, heating and droughts (PlanetSeasons, flag SEASONS) and migrating birds
-## (PlanetBirds, under ECO).
+## Terra: ecology stage 3 — the farm year, heating and droughts (PlanetSeasons) and migrating birds
+## (PlanetBirds). Both always on in the rebuild.
 
 
-func _world(seed_v: int = 4, flags: Array = ["ECO"]) -> WorldState:
+func _world(seed_v: int = 4) -> WorldState:
 	var w := WorldState.new(seed_v)
 	Planet.generate(w)
-	w.meta["on"] = flags.duplicate()
-	w.table("econ")["s"] = {"emissions": {}}
+	CoreUtil.st(w)["emissions"] = {}
 	var l := Planet.landing(w)
 	w.table("planet")["uses"] = {str(l): {"kind": "COLONY"}}
 	return w
@@ -146,10 +145,8 @@ func test_harm_along_the_route_brings_fewer_birds_and_the_news_says_so() -> void
 
 
 func test_in_the_game_seasons_deterministic_and_save_load() -> void:
-	var a := EconFace.sim_make(3, "BALANCED", {}, true)
-	var b := EconFace.sim_make(3, "BALANCED", {}, true)
-	for s in [a, b]:
-		(s.world.meta["on"] as Array).append_array(["ECO", "SEASONS"])
+	var a := GameSim.make(3, "BALANCED", {}, true)
+	var b := GameSim.make(3, "BALANCED", {}, true)
 	for _m in 16:
 		a.step()
 		b.step()
@@ -158,13 +155,9 @@ func test_in_the_game_seasons_deterministic_and_save_load() -> void:
 	check(not a.world.facts.query("PLANET_HARVEST", 0, 1 << 30).is_empty(), "a harvest is reckoned")
 	var path := "user://test_seasons.sav"
 	check_eq(SaveIO.save(a, path), OK, "saved")
-	var c := EconFace.sim_for_load()
+	var c := GameSim.for_load()
 	check_eq(SaveIO.load_into(c, path), OK, "loaded")
 	a.step()
 	c.step()
 	check_eq(c.world.state_hash(), a.world.state_hash(), "save/load/continue stays identical")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-	var plain := EconFace.sim_make(3, "BALANCED", {}, true)
-	for _m in 3:
-		plain.step()
-	check(not plain.world.peek("planet").has("birds"), "ECO off: no birds stored")

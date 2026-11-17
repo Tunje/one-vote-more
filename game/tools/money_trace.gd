@@ -3,7 +3,6 @@ extends SceneTree
 ##   - money held by each sector (households, companies, government, banks, parties, other)
 ##   - net flows across the colony border (EXTERNAL) by memo: what money left and what came in
 ##   godot --headless --path game --script res://tools/money_trace.gd -- [years=20] [seed=1]
-const EconSim := preload("res://sim/economy/econ_sim.gd")
 
 var ext_year := {}   # memo -> net out (+ = left the colony)
 var ext_total := {}
@@ -14,7 +13,7 @@ func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var years := int(args[0]) if args.size() > 0 else 20
 	var seed_v := int(args[1]) if args.size() > 1 else 1
-	var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
+	var sim: Simulation = GameSim.make(seed_v, "BALANCED", {}, true)
 	var w := sim.world
 	var seen := 0
 	print("money in million cr (balances at year end; + inflow / - outflow at the border)")

@@ -130,7 +130,7 @@ func test_the_window_view_shows_only_what_is_built() -> void:
 			if th["kind"] == "FARM" and maxi(absi(th["tile"].x - t.x), absi(th["tile"].y - t.y)) <= 1:
 				near = true
 		check(near, "a field at %s belongs to a farm" % str(t))
-	check(not d["links"].is_empty(), "the built roads are in the view")
+	check_eq(d["links"].size(), Transport.network(w)["links"].size(), "the built roads are in the view (none beyond the landfall place at the start)")
 	# a colony with no homes at Landing yet: the landing camp
 	var fac: Dictionary = w.table("facility")
 	for fid in CoreUtil.sorted_keys(fac):

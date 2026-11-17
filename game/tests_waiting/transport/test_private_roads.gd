@@ -4,7 +4,7 @@ extends TestCase
 
 
 func _game(seed_v: int = 1, months: int = 3, on: bool = true) -> Simulation:
-	var sim := EconFace.sim_make(seed_v, "BALANCED", {}, true)
+	var sim := GameSim.make(seed_v, "BALANCED", {}, true)
 	if on:
 		(sim.world.meta["on"] as Array).append_array([FreightRoads.FLAG, PrivateRoads.FLAG])
 	for _m in months:
@@ -106,7 +106,7 @@ func test_flag_off_and_save_load() -> void:
 	var off := _game(1, 3, false).world
 	var lid0 := _build(off, _firm(off))
 	check(Transport.private_link(off, lid0).is_empty() and not off.table("transport")["links"][lid0].has("owner"), "flag off: every road is public")
-	var fr := EconFace.sim_make(1, "BALANCED", {}, true)
+	var fr := GameSim.make(1, "BALANCED", {}, true)
 	(fr.world.meta["on"] as Array).append(FreightRoads.FLAG)   # FREIGHT_ROADS alone is not enough
 	fr.step()
 	var lid1 := _build(fr.world, _firm(fr.world))
@@ -120,7 +120,7 @@ func test_flag_off_and_save_load() -> void:
 	var lid := _build(a.world, _firm(a.world), {"regime": "OPEN_FREE"})
 	var path := "user://test_private_roads.sav"
 	check_eq(SaveIO.save(a, path), OK, "saved")
-	var c := EconFace.sim_for_load()
+	var c := GameSim.for_load()
 	check_eq(SaveIO.load_into(c, path), OK, "loaded")
 	check_eq(var_to_str(Transport.private_link(c.world, lid)), var_to_str(Transport.private_link(a.world, lid)), "the road's record survives")
 	a.step()

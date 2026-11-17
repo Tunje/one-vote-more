@@ -6,7 +6,7 @@ func _init() -> void:
 	var a := OS.get_cmdline_user_args()
 	var sd := int(a[0])
 	var years := int(a[1])
-	var sim: Simulation = EconSim.make_econ_only(sd) if a.size() > 2 and a[2] == "econ" else EconFace.sim_make(sd, "BALANCED", {}, true)
+	var sim: Simulation = EconSim.make_econ_only(sd) if a.size() > 2 and a[2] == "econ" else GameSim.make(sd, "BALANCED", {}, true)
 	var w := sim.world
 	var tot_in := {}
 	var tot_out := {}

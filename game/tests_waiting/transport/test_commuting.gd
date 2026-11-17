@@ -3,7 +3,7 @@ extends TestCase
 
 
 func _game(seed_v: int, months: int = 4) -> Simulation:
-	var sim := EconFace.sim_make(seed_v, "BALANCED", {}, true)
+	var sim := GameSim.make(seed_v, "BALANCED", {}, true)
 	for _m in months:
 		sim.step()
 	return sim
@@ -125,7 +125,7 @@ func test_bus_lines_and_commuter_traffic() -> void:
 ## Bob's EconQuery.commuting (opt-in SUPPORT_T) drawn: bus lines follow their road in order, buses stand on the line,
 ## Bob's incident facts become marks on the route; the colony map and the window view show them. Display placement is pure.
 func test_bus_lines_are_drawn_from_bobs_rows() -> void:
-	var sim := EconFace.sim_make(1, "BALANCED", {}, true)
+	var sim := GameSim.make(1, "BALANCED", {}, true)
 	sim.world.meta["on"] = ["SUPPORT_T"]
 	for _m in 4:
 		sim.step()

@@ -55,8 +55,9 @@ const VITALITY := {"j": 950, "w": 900, "F": 850, "f": 800, "g": 650, "h": 550, "
 static var _cache := {}
 
 
-static func on(world: WorldState) -> bool:
-	return (world.meta.get("on", []) as Array).has(FLAG)
+## Always on: part of the rebuild ("nothing behind an off switch", rebuild-company.md 12.4, 33).
+static func on(_world: WorldState = null) -> bool:
+	return true
 
 
 # ================================================================== the planet's character (pure in the seed)
@@ -137,7 +138,7 @@ static func district_hex(world: WorldState, d: String) -> int:
 	var li := Planet.landing(world)
 	if not Terrain.ready(world):
 		return li
-	var anchors: Dictionary = ColonyLayout.econ_anchors(world)
+	var anchors: Dictionary = ColonyLayout.anchors(world)
 	if not anchors.has(d):
 		return li
 	var h := Planet.hex_of_tile(world, ColonyLayout.as_tile(anchors[d]))

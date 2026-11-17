@@ -46,12 +46,12 @@ func test_the_chosen_world_is_the_game_world() -> void:
 	check_eq(Planet.seed_of(w), Planet.seed_of(preview), "the planet seed of the choice")
 	check_eq(Planet.landing(w), Planet.landing(preview), "the same landing hex")
 	check_eq(var_to_str(w.peek("map")["grid"]["rows"]), var_to_str(preview.peek("map")["grid"]["rows"]), "the same colony grid")
-	check(Planet.seed_of(w) != Planet.seed_of(EconFace.sim_make(seed_v, "BALANCED", {}, true).world), "a different world than the default game")
+	check(Planet.seed_of(w) != Planet.seed_of(GameSim.make(seed_v, "BALANCED", {}, true).world), "a different world than the default game")
 	for _m in 3:
 		sim.step()
 	var path := "user://test_expedition.sav"
 	check_eq(SaveIO.save(sim, path), OK, "saved")
-	var b := EconFace.sim_for_load()
+	var b := GameSim.for_load()
 	check_eq(SaveIO.load_into(b, path), OK, "loaded")
 	check_eq(Planet.landing(b.world), Planet.landing(w), "the chosen world survives save/load")
 	sim.step()
@@ -61,7 +61,7 @@ func test_the_chosen_world_is_the_game_world() -> void:
 
 
 func test_default_game_keeps_its_planet() -> void:
-	var w := EconFace.sim_make(5, "BALANCED", {}, true).world
+	var w := GameSim.make(5, "BALANCED", {}, true).world
 	check(not w.peek("planet").has("seed") and not w.peek("planet").has("arch"), "no expedition: the planet table is unchanged")
 	check_eq(Planet.seed_of(w), w.rng.derive_seed("planet.terrain"), "the old planet seed")
 

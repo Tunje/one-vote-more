@@ -82,13 +82,16 @@ static func _peek_state(world: WorldState) -> Dictionary:
 ## {district: {pop, unemployed_pm, hunger_pm, homeless_pm, ineq_x1000, youth_pm, stock_wref, firms}} — Bob's reader
 ## when it exists, else the household fallback. Integers.
 static func drivers(world: WorldState) -> Dictionary:
-	return _fallback_drivers(world)  # the economy has no reader of its own yet
+	var d := EconFace.query_crime_drivers(world)   # the economy's own reader; {} while it has none
+	return d if not d.is_empty() else _fallback_drivers(world)
 
 
 ## Bob's EconPolice.hours(world, district) (officers on duty × OFFICER_HOURS, sick share removed) while the police
 ## stations run (meta["on"] "POLICE"); null otherwise, and police_hours models strength from the lever.
 static func _station_hours():
-	return null  # no police stations to count until the economy has them (EconFace.query_police)
+	return func(w: WorldState, d: String) -> int:
+		var h := EconFace.police_hours(w, d)   # -1 while there are no police stations to count
+		return h if h >= 0 else police_hours(int(state(w)["d"].get(d, {}).get("pop", 0)), coverage_pm(w))
 
 
 static func _fallback_drivers(world: WorldState) -> Dictionary:

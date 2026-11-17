@@ -3,7 +3,6 @@ extends SceneTree
 ## Per election: themes, debates, gaffes, attacks, dirt, smears, how far the campaign moved each party
 ## (pp vs the poll when election year opened) and turnout. Gates printed at the end.
 ##   godot --headless --path game --script res://tools/measure_campaigns.gd -- [months] [seeds...]
-const EconSim := preload("res://sim/economy/econ_sim.gd")
 const KINDS := ["POL_DEBATE_HELD", "POL_DEBATE_GAFFE", "POL_ATTACK_AD", "POL_CAMPAIGN_GOES_NEGATIVE", "POL_DIRT_RELEASED", "POL_SMEAR_EXPOSED", "POL_POLITICS_WEEK"]
 
 
@@ -24,7 +23,7 @@ func _initialize() -> void:
 	var seeds_with_oppo := 0
 	var seeds_with_backfire := 0
 	for seed_v in seeds:
-		var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
+		var sim: Simulation = GameSim.make(seed_v, "BALANCED", {}, true)
 		var seen := 0
 		var cf := {}
 		print("=== seed %d ===" % seed_v)

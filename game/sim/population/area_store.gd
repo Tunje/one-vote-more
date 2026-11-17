@@ -7,6 +7,9 @@ extends RefCounted
 ## so population is conserved and beliefs travel.
 ##
 ## Table "area": id -> {id, name, kind, tiles: ["x,y"], district, founded, parents, children, status}
+## Table "area_block": block -> area id. The one record of which town-grid street blocks (400 m, "b:bx,by", Terra's
+## TownGrid.block_of) an area is made of, besides its country tiles (3 km). A block belongs to exactly one area: the
+## first area to build in it owns it (Maja and Terra, 2026-11-17). Written by claim_block, split and merge.
 ## Tile uses (Terrain "uses"): {"area": id, "units": int, "by": GOV|COMPANY|PRIVATE, "band": "" | "I4"…}
 ##
 ## Hooks (static, set by other systems at startup; not saved):
@@ -94,15 +97,20 @@ static func nearest_area(world: WorldState, tile: Vector2i, exclude: String = ""
 
 ## Housing built on a tile: extends the adjacent area or founds a new one. Returns the area id ("" if the tile
 ## is taken or not buildable). built_by: GOV | COMPANY | PRIVATE; band: the private builder's income band.
+## A tile an area has claimed with nothing on it yet (the Landing's tile at a new game) takes homes for that area.
 static func place_housing(world: WorldState, tile: Vector2i, units: int, built_by: String = "GOV", band: String = "", name: String = "") -> String:
-	if not Terrain.use_at(world, tile.x, tile.y).is_empty() or not (Terrain.at(world, tile.x, tile.y) in Terrain.BUILDABLE_HOUSING):
+	var u0 := Terrain.use_at(world, tile.x, tile.y)
+	var claimed := String(u0.get("area", "")) if u0.size() == 1 else ""
+	if (not u0.is_empty() and claimed == "") or not (Terrain.at(world, tile.x, tile.y) in Terrain.BUILDABLE_HOUSING):
 		return ""
-	var id := adjacent_area(world, tile)
+	var id := claimed
 	if id == "":
-		var kind: String = {"GOV": "SETTLEMENT", "COMPANY": "CAMP", "PRIVATE": "ENCLAVE"}.get(built_by, "SETTLEMENT")
-		id = found(world, [tile], kind, name)
-	else:
-		world.table("area")[id]["tiles"].append(Terrain.key(tile.x, tile.y))
+		id = adjacent_area(world, tile)
+		if id == "":
+			var kind: String = {"GOV": "SETTLEMENT", "COMPANY": "CAMP", "PRIVATE": "ENCLAVE"}.get(built_by, "SETTLEMENT")
+			id = found(world, [tile], kind, name)
+		else:
+			world.table("area")[id]["tiles"].append(Terrain.key(tile.x, tile.y))
 	Terrain.set_use(world, tile.x, tile.y, {"area": id, "units": units, "by": built_by, "band": band})
 	return id
 
@@ -130,6 +138,43 @@ static func found(world: WorldState, tiles: Array, kind: String, name: String = 
 	return id
 
 
+## A new game: ONE area, the Landing, on the landfall tile (the user, 9.12: "no sectors beyond landfallpoint").
+## Nothing is built on it yet (homes come with build step 2). Returns the id of the area on the landfall tile; founds
+## it only when no area exists at all.
+static func found_landing(world: WorldState) -> String:
+	if not world.peek("area").is_empty():
+		return area_of(world, Terrain.landing(world))
+	return found(world, [Terrain.landing(world)], "SETTLEMENT", "Landing")
+
+
+## The area owning town-grid block `block` ("b:bx,by"), or "".
+static func area_of_block(world: WorldState, block: String) -> String:
+	return String(world.peek("area_block").get(block, ""))
+
+
+## The blocks of area `id`, sorted.
+static func blocks_of(world: WorldState, id: String) -> Array:
+	var out: Array = []
+	var ab: Dictionary = world.peek("area_block")
+	for b in ab:
+		if String(ab[b]) == id:
+			out.append(b)
+	out.sort()
+	return out
+
+
+## Area `id` builds in `block`: the block becomes its own unless another area already owns it (the first to build
+## there keeps it). Returns the owning area's id ("" if `id` is not an active area).
+static func claim_block(world: WorldState, id: String, block: String) -> String:
+	var owner := area_of_block(world, block)
+	if owner != "":
+		return owner
+	if String(world.peek("area").get(id, {}).get("status", "")) != "ACTIVE":
+		return ""
+	world.table("area_block")[block] = id
+	return id
+
+
 ## Law is the single writer of district membership (Anni: districting acts).
 static func set_district(world: WorldState, id: String, district: String) -> void:
 	if world.peek("area").has(id):
@@ -146,6 +191,10 @@ static func split(world: WorldState, id: String, tiles_b: Array, kind_b: String,
 	var new_id := found(world, vecs, kind_b, "", [id])
 	for k in keys_b:
 		a["tiles"].erase(k)
+	for bk in blocks_of(world, id):   # the street blocks on the child's tiles go with them
+		var t := TownGrid.tile_of(TownGrid.block_cells(bk)[0])
+		if Terrain.key(t.x, t.y) in keys_b:
+			world.table("area_block")[bk] = new_id
 	a["children"].append(new_id)
 	var cap_b := capacity(world, new_id)
 	var total := residents(world, id)
@@ -191,6 +240,8 @@ static func merge(world: WorldState, a_id: String, b_id: String) -> void:
 		u["area"] = a_id
 		Terrain.set_use(world, t.x, t.y, u)
 	b["tiles"] = []
+	for bk in blocks_of(world, b_id):
+		world.table("area_block")[bk] = a_id
 	b["status"] = "MERGED"
 	b["merged_into"] = a_id
 	if not (b_id in a["parents"]):

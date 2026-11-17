@@ -28,8 +28,9 @@ const HOME_R := 2       # site options: homes within this many tiles are counted
 const KM := 3           # km per tile (Terrain.KM_PER_TILE)
 
 
-static func on(world: WorldState) -> bool:
-	return (world.meta.get("on", []) as Array).has(FLAG) and not (world.meta.get("off", []) as Array).has(FLAG)
+## Always on: part of the rebuild ("nothing behind an off switch", rebuild-company.md 12.4, 33).
+static func on(_world: WorldState = null) -> bool:
+	return true
 
 
 ## Part of ColonyLayout.key: changes whenever a reservation or a chosen site changes. "" without the table.
@@ -249,7 +250,7 @@ static func _taken(world: WorldState, except: String = "") -> Dictionary:
 	var out := {}
 	for k in world.peek("map").get("uses", {}):
 		out[k] = "a settlement"
-	var anchors := ColonyLayout.econ_anchors(world)
+	var anchors := ColonyLayout.anchors(world)
 	for d in anchors:
 		out[_tkey(anchors[d])] = "the centre of %s" % d
 	var ft := ColonyLayout.facility_tiles(world)
@@ -313,7 +314,7 @@ static func site_options(world: WorldState, ftype: String, district: String, n: 
 		return out
 	var setl := ColonyLayout.settlements(world)
 	var mine: Array = setl.filter(func(s): return String(s["district"]) == district)
-	var anchors := ColonyLayout.econ_anchors(world)
+	var anchors := ColonyLayout.anchors(world)
 	if mine.is_empty() and not anchors.has(district):
 		return out
 	var codes: Array = ColonyLayout.FAC_TERRAIN.get(ftype, ColonyLayout.BUILD_TERRAIN)

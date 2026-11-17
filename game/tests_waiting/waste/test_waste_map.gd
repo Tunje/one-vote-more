@@ -3,7 +3,7 @@ extends TestCase
 
 
 func _world(seed_v: int = 1) -> WorldState:
-	return EconFace.sim_make(seed_v, "BALANCED", {}, true).world
+	return GameSim.make(seed_v, "BALANCED", {}, true).world
 
 
 func test_the_river_flows_to_one_mouth() -> void:

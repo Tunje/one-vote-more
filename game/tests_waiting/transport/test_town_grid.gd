@@ -5,7 +5,7 @@ extends TestCase
 
 
 func _game(seed_v: int = 1, months: int = 2, on: bool = true, extra: Array = []) -> Simulation:
-	var sim := EconFace.sim_make(seed_v, "BALANCED", {}, true)
+	var sim := GameSim.make(seed_v, "BALANCED", {}, true)
 	if on:
 		(sim.world.meta["on"] as Array).append(TownGrid.FLAG)
 	for f in extra:
@@ -186,7 +186,7 @@ func test_in_the_game_deterministic_and_save_load() -> void:
 	check_eq(a.world.state_hash(), b.world.state_hash(), "deterministic")
 	var path := "user://test_town_grid.sav"
 	check_eq(SaveIO.save(a, path), OK, "saved")
-	var c := EconFace.sim_for_load()
+	var c := GameSim.for_load()
 	check_eq(SaveIO.load_into(c, path), OK, "loaded")
 	a.step()
 	c.step()

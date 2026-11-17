@@ -555,10 +555,9 @@ static func colony_image(w: WorldState) -> Image:
 	for fid in tiles:
 		var st: Array = ColonyMap.FAC_STYLE.get(String(fac[fid]["type"]), ["", Color.WHITE])
 		fac_col[Terrain.key(tiles[fid].x, tiles[fid].y)] = st[1]
-	if AreaStore.areas(w).is_empty():   # before A2: the six settlements
-		var an := ColonyMap.econ_anchors(w)
-		for d in an:
-			fac_col[Terrain.key(an[d].x, an[d].y)] = Color("#fff3b0")
+	for st0 in ColonyLayout.settlements(w):   # the settlements (the landfall place before the first area)
+		var t0: Vector2i = st0["tile"]
+		fac_col[Terrain.key(t0.x, t0.y)] = Color("#fff3b0")
 	var hexes := Planet.tile_hexes(w)
 	var li := Planet.landing(w)
 	for y in Terrain.H:

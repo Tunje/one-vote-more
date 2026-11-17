@@ -40,8 +40,9 @@ const LIABLE_OWNER_SHARE := 0.6    # a refused pass on a private road: owner 0.6
 const LEFT_GOV_SHARE := 0.2        # a neglected private road the government chose to leave: its share
 
 
+## On with road safety, which is part of the rebuild (rebuild-company.md 12.4, 33).
 static func on(world: WorldState) -> bool:
-	return (world.meta.get("on", []) as Array).has(FLAG) and not (world.meta.get("off", []) as Array).has(FLAG)
+	return RoadSafety.on(world)
 
 
 static func _st(world: WorldState) -> Dictionary:

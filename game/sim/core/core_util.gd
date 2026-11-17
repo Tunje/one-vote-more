@@ -89,10 +89,21 @@ static func lever(world: WorldState, id: String, default_value = 0):
 	return world.levers.get(id, default_value)
 
 
-## The economy's shared state. {} while there is no economy.
+## The shared state the old economy kept, which other parts also wrote into (politics keeps which grant programme is
+## open there). Until the rebuilt economy has a state of its own it is kept in the table "econ_wait", so that what is
+## written is not lost. It is NOT table "econ": much code reads `world.table("econ").has("s")` as "there is an economy",
+## and that has to stay false until there is one.
 static func peek_st(world: WorldState) -> Dictionary:
-	return world.peek("econ").get("s", {})
+	if world.peek("econ").has("s"):
+		return world.peek("econ")["s"]   # an economy's own state, once one exists (tests also set it)
+	return world.peek("econ_wait").get("s", {})
 
 
+## The same state, to write into. Created on first use and kept.
 static func st(world: WorldState) -> Dictionary:
-	return world.peek("econ").get("s", {})
+	if world.peek("econ").has("s"):
+		return world.table("econ")["s"]
+	var t := world.table("econ_wait")
+	if not t.has("s"):
+		t["s"] = {}
+	return t["s"]

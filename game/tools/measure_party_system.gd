@@ -2,7 +2,6 @@ extends SceneTree
 ## Party-system health on the real economy (spec-politics-v2 §7): parties per election, foundings, splits,
 ## mergers, dissolutions, leadership changes, who governs.
 ##   godot --headless --path game --script res://tools/measure_party_system.gd -- [months] [seeds...]
-const EconSim := preload("res://sim/economy/econ_sim.gd")
 const EVENTS := ["POL_PARTY_FOUNDED", "POL_PARTY_SPLIT", "POL_PARTIES_MERGED", "POL_PARTY_DISSOLVED", "POL_LEADER_CHANGED", "POL_LEADER_SURVIVED", "POL_SCANDAL_REVEALED"]
 
 
@@ -18,7 +17,7 @@ func _initialize() -> void:
 	var min_active := 99
 	var max_active := 0
 	for seed_v in seeds:
-		var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
+		var sim: Simulation = GameSim.make(seed_v, "BALANCED", {}, true)
 		var last_pm := ""
 		print("=== seed %d ===" % seed_v)
 		for _m in months:

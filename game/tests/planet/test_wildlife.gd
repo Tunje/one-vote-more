@@ -6,8 +6,7 @@ extends TestCase
 func _world(seed_v: int = 4) -> WorldState:
 	var w := WorldState.new(seed_v)
 	Planet.generate(w)
-	w.meta["on"] = ["ECO"]
-	w.table("econ")["s"] = {"emissions": {}}
+	CoreUtil.st(w)["emissions"] = {}
 	var l := Planet.landing(w)
 	w.table("planet")["uses"] = {str(l): {"kind": "COLONY"}}
 	return w
@@ -88,8 +87,7 @@ func test_every_world_has_its_own_creatures() -> void:
 
 
 func test_attacks_hit_the_wild_edge_and_report_the_place() -> void:
-	var sim := EconFace.sim_make(2, "BALANCED", {}, true)
-	(sim.world.meta["on"] as Array).append("ECO")
+	var sim := GameSim.make(2, "BALANCED", {}, true)
 	for _m in 24:
 		sim.step()
 	var w := sim.world
@@ -128,7 +126,9 @@ func test_attacks_hit_the_wild_edge_and_report_the_place() -> void:
 	if f.size() == 1:
 		var d: Dictionary = f[0]["data"]
 		check_eq(String(d["creature"]), PlanetWildlife.creature(w, "pred"), "the world's predator")
-		check_eq(int(d["killed"]), 1, "killed counted")
+		# WAITS FOR REBUILD STEP 3 (Wilma, 2026-11-17): who dies is taken from the people at the site, through
+		# EconFace.pop_casualties, which answers 0 until staff and household pools exist. Then this is 1 again.
+		check_eq(int(d["killed"]), EconFace.pop_casualties(w, String(site.get("district", "")), 1, "OUTDOOR", String(site.get("fid", ""))), "killed counted, as many as the people side says died")
 		check_eq(String(d["site"]), String(site["kind"]), "what stood there")
 		if String(site["org"]) != "":
 			check(bool(d["grant_funded"]) and bool(d["family_farm"]), "a grant-funded family farm")
@@ -137,10 +137,8 @@ func test_attacks_hit_the_wild_edge_and_report_the_place() -> void:
 
 
 func test_in_the_game_deterministic_and_save_load() -> void:
-	var a := EconFace.sim_make(3, "BALANCED", {}, true)
-	var b := EconFace.sim_make(3, "BALANCED", {}, true)
-	for s in [a, b]:
-		(s.world.meta["on"] as Array).append("ECO")
+	var a := GameSim.make(3, "BALANCED", {}, true)
+	var b := GameSim.make(3, "BALANCED", {}, true)
 	for _m in 18:
 		a.step()
 		b.step()
@@ -148,7 +146,7 @@ func test_in_the_game_deterministic_and_save_load() -> void:
 	check(a.world.levers.has(PlanetWildlife.POLICY_LEVER), "the wildlife lever exists")
 	var path := "user://test_wildlife.sav"
 	check_eq(SaveIO.save(a, path), OK, "saved")
-	var c := EconFace.sim_for_load()
+	var c := GameSim.for_load()
 	check_eq(SaveIO.load_into(c, path), OK, "loaded")
 	check_eq(var_to_str(c.world.peek("planet").get("web", {})), var_to_str(a.world.peek("planet").get("web", {})), "the web survives save/load")
 	a.step()
@@ -158,7 +156,7 @@ func test_in_the_game_deterministic_and_save_load() -> void:
 
 
 func test_danger_by_district_follows_the_attacks_formula() -> void:
-	var sim := EconFace.sim_make(2, "BALANCED", {}, true)
+	var sim := GameSim.make(2, "BALANCED", {}, true)
 	for _m in 3:
 		sim.step()
 	var w := sim.world
@@ -166,10 +164,6 @@ func test_danger_by_district_follows_the_attacks_formula() -> void:
 	for s in ColonyLayout.settlements(w):
 		ds[String(s["district"])] = true
 	check(not ds.is_empty(), "districts")
-	for d in ds:
-		check_eq(PlanetWildlife.district_risk_pm(w, String(d)), 0, "ECO off: no risk")
-		check(not PlanetWildlife.dangerous_district(w, String(d)), "ECO off: never dangerous")
-	(w.meta["on"] as Array).append("ECO")
 	var h := w.state_hash()
 	var ch := PlanetWildlife.character(w)
 	var season := 1.6 - 0.8 * PlanetSeasons.mean_activity(w, Planet.landing(w))

@@ -1,13 +1,12 @@
 extends TestCase
-## Terra: the planet's ecology (sim/planet/planet_ecology.gd, opt-in ECO): pollution released, spread and absorbed,
+## Terra: the planet's ecology (sim/planet/planet_ecology.gd, always on): pollution released, spread and absorbed,
 ## harm and recovery, a character per seed, rougher weather and yields over harmed land.
 
 
-func _world(seed_v: int = 4, eco: bool = true) -> WorldState:
+func _world(seed_v: int = 4) -> WorldState:
 	var w := WorldState.new(seed_v)
 	Planet.generate(w)
-	w.meta["on"] = ["ECO"] if eco else []
-	w.table("econ")["s"] = {"emissions": {}}
+	CoreUtil.st(w)["emissions"] = {}
 	return w
 
 
@@ -155,34 +154,23 @@ func test_harmed_land_has_rougher_weather_and_raises_dust() -> void:
 				dust += 1
 				check(int(s["cells"][0]) == l, "the dust rises from the harmed hex")
 	check(dust >= 3, "harmed land raises dust storms (%d in 10 years)" % dust)
-	# ECO off: weather and yields as before, nothing stored
-	var off := _world(4, false)
-	off.table("planet")["eco"] = {str(l): [900000, 900]}
-	for m in 24:
-		check_eq(int(PlanetClimate.weather(off, l, m)["rain_pct"]), int(calm[m]), "ECO off: the weather is untouched")
-	check_eq(PlanetEcology.yield_pct(off, l), 100, "ECO off: full yields")
 
 
-func test_in_the_game_off_by_default_deterministic_and_save_load() -> void:
-	var plain := EconFace.sim_make(2, "BALANCED", {}, true)
-	for _m in 3:
-		plain.step()
-	check(not plain.world.peek("planet").has("eco"), "ECO is off by default: nothing stored")
-	var a := EconFace.sim_make(2, "BALANCED", {}, true)
-	var b := EconFace.sim_make(2, "BALANCED", {}, true)
-	for s in [a, b]:
-		(s.world.meta["on"] as Array).append("ECO")
+## The ecology is always on in the rebuild (rebuild-company.md 12.4, 33). No company emits yet (pollution comes with
+## the company object), so the harm store may still be empty here.
+func test_in_the_game_deterministic_and_save_load() -> void:
+	var a := GameSim.make(2, "BALANCED", {}, true)
+	var b := GameSim.make(2, "BALANCED", {}, true)
 	for _m in 14:
 		a.step()
 		b.step()
 	check_eq(var_to_str(a.world.peek("planet").get("eco", {})), var_to_str(b.world.peek("planet").get("eco", {})), "deterministic")
-	check(not a.world.peek("planet").get("eco", {}).is_empty(), "the colony's emissions reach the planet")
 	check(a.world.indicators.written_this_month("PLANET_ECO_HARM") or a.world.indicators.read("PLANET_ECO_HARM") >= 0, "the harm indicator is defined")
 	var path := "user://test_ecology.sav"
 	check_eq(SaveIO.save(a, path), OK, "saved")
-	var c := EconFace.sim_for_load()
+	var c := GameSim.for_load()
 	check_eq(SaveIO.load_into(c, path), OK, "loaded")
-	check_eq(var_to_str(c.world.peek("planet").get("eco", {})), var_to_str(a.world.peek("planet")["eco"]), "the ecology survives save/load")
+	check_eq(var_to_str(c.world.peek("planet").get("eco", {})), var_to_str(a.world.peek("planet").get("eco", {})), "the ecology survives save/load")
 	a.step()
 	c.step()
 	check_eq(c.world.state_hash(), a.world.state_hash(), "save/load/continue stays identical")

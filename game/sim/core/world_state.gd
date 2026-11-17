@@ -16,6 +16,7 @@ var entities: Dictionary = {}      # kind -> {id -> Dictionary}; subsystems own 
 var id_counters: Dictionary = {}   # prefix -> next int
 var values: Dictionary = {}        # shared scalar values, owner-prefixed (e.g. ECON_W_REF, LAW_RULES_VERSION); ints only
 var meta: Dictionary = {}          # free-form (scenario name, flags)
+var log_rows: Array = []           # the Logbook's rows (sim/core/logbook.gd). NOT state: never saved, never hashed, never read by game code
 
 
 func _init(seed_value: int = 0) -> void:

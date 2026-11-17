@@ -2,14 +2,13 @@ extends SceneTree
 ## Hot issues (owner Ella, spec-election-year §11): how hot immigration / slums / emigration run over a century, and
 ## which campaigns and debates they name.
 ##   godot --headless --path game --script res://tools/measure_hot_issues.gd -- <months> <seed> [on,list]
-const EconSim := preload("res://sim/economy/econ_sim.gd")
 
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var months := int(args[0]) if args.size() > 0 else 1200
 	var seed_v := int(args[1]) if args.size() > 1 else 1
-	var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
+	var sim: Simulation = GameSim.make(seed_v, "BALANCED", {}, true)
 	if args.size() > 2:   # extra opt-in systems on top of the full game's defaults (EconSim.DEFAULT_ON)
 		var on: Array = sim.world.meta.get("on", []).duplicate()
 		for k in args[2].split(",", false):

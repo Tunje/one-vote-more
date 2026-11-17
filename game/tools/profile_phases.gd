@@ -3,7 +3,7 @@ extends SceneTree
 func _init() -> void:
 	var args := OS.get_cmdline_user_args()
 	var months := int(args[0]) if args.size() > 0 else 60
-	var sim: Simulation = EconFace.sim_make(int(args[1]) if args.size() > 1 else 11, "BALANCED", {}, true)
+	var sim: Simulation = GameSim.make(int(args[1]) if args.size() > 1 else 11, "BALANCED", {}, true)
 	var w := sim.world
 	var tot := {}
 	var block := 0

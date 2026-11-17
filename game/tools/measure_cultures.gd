@@ -1,10 +1,9 @@
 extends SceneTree
 ## Political culture across colonies (real economy, month 48): overall lean and how each class splits.
-const EconSim := preload("res://sim/economy/econ_sim.gd")
 
 func _initialize() -> void:
 	for seed_v in [1, 2, 3, 4, 5, 6]:
-		var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {})
+		var sim: Simulation = GameSim.make(seed_v, "BALANCED", {})
 		while sim.world.month < 48:
 			sim.step()
 		var w := sim.world

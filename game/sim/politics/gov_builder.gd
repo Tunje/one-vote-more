@@ -438,8 +438,9 @@ static func _toll_feelings(world: WorldState) -> void:
 			"data": {"district": String(d), "tolls_mcr": int(tolls[d]), "heads": int(heads.get(d, 0))}})
 
 
-static func road_works_on(world: WorldState) -> bool:
-	return (world.meta.get("on", []) as Array).has(ROAD_WORKS_FLAG) and FreightRoads.on(world)
+## Road works are part of the rebuild and always on (rebuild-company.md 12.4, 33).
+static func road_works_on(_world: WorldState = null) -> bool:
+	return true
 
 
 ## The option this government takes among `opts` (cheapest first; each {fix, cost, load_after_pm, relief_pm, spec}),

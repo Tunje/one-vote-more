@@ -12,7 +12,7 @@ func _initialize() -> void:
 	var ok_seeds := 0
 	var hard_fail := false
 	for seed_v in range(1, seeds + 1):
-		var sim := EconFace.sim_make(seed_v, "BALANCED", {}, true)
+		var sim := GameSim.make(seed_v, "BALANCED", {}, true)
 		print("=== integrated seed %d ===" % seed_v)
 		print(EconReport.header())
 		var in_band := 0

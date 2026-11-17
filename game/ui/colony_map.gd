@@ -63,7 +63,6 @@ const REACH_COLORS := {"ROAD": Color("#8bc34a"), "ROVER": Color("#ffa040"), "AIR
 const REACH_NAMES := {"ROAD": "by road", "ROVER": "by rover (off-road)", "AIRSHIP": "by airship", "UNREACHABLE": "unreachable"}
 ## ROAD_LINK_LIVE: flip to true when Bob's ROAD projects build the link they carry (Transport.complete_road).
 const ROAD_LINK_LIVE := true
-const ECON_ANCHORS := ColonyLayout.ECON_ANCHORS
 const TERRITORY_REACH := 6   # tiles of open land a district's areas claim around them (display)
 
 var session: GameSession
@@ -259,7 +258,7 @@ func refresh() -> void:
 	var w := _world()
 	if w == null or not Terrain.ready(w):
 		return
-	_anchors = econ_anchors(w)
+	_anchors = anchors(w)
 	_fac_tiles = facility_tiles(w, _anchors)
 	_fac_at.clear()
 	for fid in _fac_tiles:
@@ -326,14 +325,14 @@ func _draw_hex_border(w: WorldState, t: float) -> void:
 # ======================================================================= display layout (static, pure reads)
 
 ## Layout (settlements, facility tiles) lives in the sim now (ColonyLayout), shared with the transport network.
-static func econ_anchors(w: WorldState) -> Dictionary:
-	return ColonyLayout.econ_anchors(w)
+static func anchors(w: WorldState) -> Dictionary:
+	return ColonyLayout.anchors(w)
 
 
 ## Where each facility is drawn: its own tile once A2 gives it one, else a display placement (uncached here, so the
 ## UI always shows the current state).
 static func facility_tiles(w: WorldState, anchors: Dictionary = {}) -> Dictionary:
-	return ColonyLayout._facility_tiles(w, anchors if not anchors.is_empty() else ColonyLayout.econ_anchors(w))
+	return ColonyLayout._facility_tiles(w, anchors if not anchors.is_empty() else ColonyLayout.anchors(w))
 
 
 static func _as_tile(v) -> Vector2i:
@@ -858,11 +857,11 @@ static func build_problem(w: WorldState, type: String, t: Vector2i, fac_at: Dict
 	return ""
 
 
-## The economic district a tile belongs to for today's EconActions (nearest settlement), until A2 keys by tile.
+## The district a tile belongs to (its nearest district anchor); "" before districts exist.
 static func econ_district_near(w: WorldState, t: Vector2i, anchors: Dictionary = {}) -> String:
 	if anchors.is_empty():
-		anchors = econ_anchors(w)
-	var best := "d:1"
+		anchors = ColonyLayout.anchors(w)
+	var best := ""   # no district yet: the colony is one place
 	var bd := INF
 	var ids: Array = anchors.keys()
 	ids.sort()

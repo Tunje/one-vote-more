@@ -37,3 +37,32 @@ Wilma, 2026-11-17. The user: "Okay i feel ready".
 ## Limits seen, and what they are
 
 - The game runs on stand-in figures, so nothing economic happens in it. That is what step 1 is, not a fault.
+
+## Reviews of this part (the rule: no code without another session reading it)
+
+The first part was committed before the rule existed, so it was reviewed afterwards. Maja (population, office, staff),
+Anni (law, staff, office) and Ella (politics, the press) each read every changed line on their ground against the old
+code. All three found the renaming itself exact. What they found beyond that, and what was done:
+
+| Found by | What | Done |
+|---|---|---|
+| Anni | The crime drivers and the police hours were cut off from the economy without a doorway function, so those two connections had vanished from the list | Two doorway functions added (`query_crime_drivers`, `police_hours`) and the law calls them |
+| Anni | A fine read a company's last month's books directly, past the doorway | `annual_last_month` added |
+| Ella | The shared state handed out for writing was a throwaway: politics' memory of which grant programme is open would have been lost without a word | It is now kept, in its own table, without making the game think an economy exists |
+| Ella | One plain answer had the wrong shape: the home world reads a key that was not there | The key is there |
+| Ella | Publishing a fact through the doorway did nothing | It publishes the fact; that is the fact store's work, not the economy's |
+
+To remember at later steps, from the same reviews:
+
+- **Step 3:** paying the press's wages must be connected together with the household pools, or every newspaper that is
+  not the state's closes within months. (Ella)
+- **Step 3:** the player's office screen asks the economy "does a person govern" as soon as the economy's state exists;
+  it must answer for real then. (Maja)
+- **When the budget comes:** what a budget line has left and what a building is estimated to cost must be connected in
+  the same step; the government's money check compares the two. (Ella)
+- **A law that does nothing yet:** a press subsidy can be voted and pays nothing while there is no budget. (Ella)
+- **Elections in step-1 games** give the market party a business endorsement and the labour party none, because there
+  are no unions. It was the same on the stand-in world before. (Ella)
+- Law, staff and press code also read the old company and plant tables by name, past the doorway; they are to be
+  listed line by line before the company record replaces those tables. (Anni)
+- Staff costs are paid into household pools with no seller; in the rebuild they are paid to a service company. (Maja)

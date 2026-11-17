@@ -3,7 +3,7 @@ extends TestCase
 
 
 func _game(seed_v: int = 1) -> Simulation:
-	return EconFace.sim_make(seed_v, "BALANCED", {}, true)
+	return GameSim.make(seed_v, "BALANCED", {}, true)
 
 
 func _site(w: WorldState, kind: String) -> Dictionary:
@@ -158,7 +158,7 @@ func test_wear_and_save_load_in_the_game() -> void:
 	check(worn, "links wear")
 	var path := "user://test_transport.sav"
 	check_eq(SaveIO.save(a, path), OK, "saved")
-	var b := EconFace.sim_for_load()
+	var b := GameSim.for_load()
 	check_eq(SaveIO.load_into(b, path), OK, "loaded")
 	check_eq(var_to_str(b.world.peek("transport")), var_to_str(t), "the network survives save/load")
 	a.step()

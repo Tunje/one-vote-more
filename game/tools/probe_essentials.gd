@@ -4,7 +4,7 @@ func _init() -> void:
 	var args := OS.get_cmdline_user_args()
 	var years := int(args[0]) if args.size() > 0 else 30
 	var seed := int(args[1]) if args.size() > 1 else 1
-	var sim: Simulation = EconFace.sim_make(seed, "BALANCED", {}, true)
+	var sim: Simulation = GameSim.make(seed, "BALANCED", {}, true)
 	var w: WorldState = sim.world
 	var famine := 0
 	for m in years * 12:

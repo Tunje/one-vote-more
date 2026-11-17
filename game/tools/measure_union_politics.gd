@@ -2,14 +2,13 @@ extends SceneTree
 ## Acceptance for unions in politics (spec-unions-v1 §6, owner Ella): endorsements move between parties over a
 ## century (betrayal works), union money flows, the ledger stays closed.
 ##   godot --headless --path game --script res://tools/measure_union_politics.gd -- <months> <seed>
-const EconSim := preload("res://sim/economy/econ_sim.gd")
 
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var months := int(args[0]) if args.size() > 0 else 1200
 	var seed_v := int(args[1]) if args.size() > 1 else 1
-	var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
+	var sim: Simulation = GameSim.make(seed_v, "BALANCED", {}, true)
 	sim.run(months)
 	var w := sim.world
 	var pname := func(pid: String) -> String: return String(w.peek("party").get(pid, {}).get("name", pid))

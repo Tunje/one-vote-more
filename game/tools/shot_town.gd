@@ -19,10 +19,6 @@ func _init() -> void:
 		_town = args[3]
 	var s := GameSession.new()
 	s.new_game(seed_v, true)
-	var on: Array = s.world().meta.get("on", [])
-	if not TownGrid.FLAG in on:
-		on.append(TownGrid.FLAG)
-	s.world().meta["on"] = on
 	if args.size() > 4 and args[4] != "":
 		s.end_month()
 		TownGrid.set_forms(s.world(), "*", Array(args[4].split(",")))

@@ -815,6 +815,5 @@ const LEVERS := [
 	{"id": "LAW_SPEED_NEAR_HOMES", "owner": "law", "legislative": true, "type": "NUMBER", "range": [0, 3], "default": 0,
 		"legalLevel": "LAW", "foundingEra": "COMMANDER", "ideology": {"ECON_ROLE": 1.5},
 		"concerns": {"SAFETY": 4, "INFRASTRUCTURE": -2},
-		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW",
-		"requires": ["ROAD_SAFETY"]},
+		"fiscal": "", "implementation": "STAFF_T_IMPL_REGULATORY", "lag": 1, "scope": "COLONY", "domain": "LAW"},   # road safety is always on in the rebuild (Terra, 12.4 point 33)
 ]

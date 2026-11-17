@@ -39,7 +39,7 @@ func _init() -> void:
 	var sd := int(a[0])
 	var years := int(a[1])
 	var every := int(a[2]) if a.size() > 2 else 5
-	var sim: Simulation = EconFace.sim_make(sd, "BALANCED", {}, true)
+	var sim: Simulation = GameSim.make(sd, "BALANCED", {}, true)
 	var w := sim.world
 	print("seed %d, switches: %s" % [sd, str(w.meta.get("on", []))])
 	for y in years:

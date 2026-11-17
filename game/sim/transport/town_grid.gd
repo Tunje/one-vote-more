@@ -1,28 +1,29 @@
 class_name TownGrid
 extends RefCounted
-## Terra (planning/design-town-grid.md; the user's go via Wilma 2026-11-15), flag TOWN_GRID: the groundwork for towns
-## on a fine grid. Opt-in; nothing reads it yet (the layout, the economy and the map keep the 3 km tile).
+## Terra (planning/design-town-grid.md; the rebuild, planning/rebuild-company.md 9.8 and 12.1): towns on a fine grid.
+## Part of the rebuild and always on ("nothing behind an off switch").
 ## - Each settlement gets a grid of 100 m cells (30 × 30 to a 3 km tile) in global fine coordinates: cell (fx, fy) lies
 ##   in tile (fx ÷ 30, fy ÷ 30), so two towns cannot overlap.
+## - Streets run on one global lattice (every BLOCK_CELLS cells), so a street block (400 m, 16 cells) is fixed by
+##   geography: block_of(cell). A street block is the town's "square" (rebuild 5) and the piece areas are made of
+##   (Maja's AreaStore holds which blocks form an area; this file holds the cells).
 ## - Housing blocks take cells in a form (HOUSE / APARTMENT / TOWER); town buildings (shops, clinic, school, care,
 ##   offices...) take one cell. Only occupied cells are stored; streets are derived.
 ## - Where a town grows is scored per cell, by what draws people (jobs, school, clinic, shops, laid utilities, water,
 ##   a road, the centre) less what keeps them away (a fast road, industry next door), with a little randomness per seed
 ##   (the user: "not perfect circular towns"). The parts stay visible for a site case.
 ## - The allowed forms are a policy (the commander's, later the government's or a municipality's): per town or "*".
-## - The next level only when needed (the user: "like the main map, maps should not become the next level until
-##   necessary"): a settlement has no grid until it is due (grid_due: enough homes, or homes and several town buildings
-##   competing for land; or designated, step_up). Until then it is homes on its country tile, nothing stored, and the
-##   queries give the tile-level answer. Likewise no high-rise exists in a town until it has apartments.
-## Table "town" (only with the flag): {"towns": {tid: {"c": [fx, fy], "cells": {"fx,fy": [fid, form, homes]}}},
+## - A grid from the first house (the user, 2026-11-17: "Below 250 start a gridd anyway and only use what you need"):
+##   a settlement gets its grid as soon as it has a home or a town building. No high-rise exists in a town until it
+##   has apartments.
+## Table "town": {"towns": {tid: {"c": [fx, fy], "cells": {"fx,fy": [fid, form, homes]}}},
 ##   "policy": {tid | "*": [form, ...]}, "rev": int}.
 
-const FLAG := "TOWN_GRID"
 const PER_TILE := 30          # cells along a 3 km tile
 const CELL_KM := 0.1
 ## homes: per cell; storeys; conn_m: street, pipe and cable per home inside the cell's street block.
 const FORMS := {
-	"HOUSE": {"homes": 10, "storeys": 2, "conn_m": 15},
+	"HOUSE": {"homes": 8, "storeys": 2, "conn_m": 15},   # 8 plots to a cell (the user's house plots, 2026-11-16)
 	"APARTMENT": {"homes": 60, "storeys": 4, "conn_m": 3},
 	"TOWER": {"homes": 200, "storeys": 15, "conn_m": 1},
 }
@@ -47,18 +48,14 @@ const SEED_KM := 12.0         # a new neighbourhood may start at a workplace thi
 const SEED_CELLS := 6         # ... at cells this far from it (a 3 × 3 sample, every SEED_CELLS cells)
 const KEEP_CLEAR := 2         # cells around a country building's site (its tile's middle) that homes do not take
 const START_R := 5            # an empty town's candidates: cells this close to its centre
-## When a settlement gets its grid: GRID_HOMES homes (about 500 adults), or GRID_SOME_HOMES homes with GRID_BUILDINGS
-## town buildings of at least two kinds (several uses competing for the same land), or step_up (designated a
-## municipality; the user's floor for that is about 1,000 adults).
-const GRID_HOMES := 250
-const GRID_SOME_HOMES := 100
-const GRID_BUILDINGS := 3
+const BLOCK_CELLS := 4        # a street every 4 cells: a street block is 400 m, 16 cells
 
 static var _cache := {}
 
 
-static func on(world: WorldState) -> bool:
-	return (world.meta.get("on", []) as Array).has(FLAG) and not (world.meta.get("off", []) as Array).has(FLAG)
+## Always on (rebuild 12.4, 33). Kept as a function because its readers ask.
+static func on(_world: WorldState = null) -> bool:
+	return true
 
 
 static func _ck(c: Vector2i) -> String:
@@ -142,7 +139,8 @@ static func has_grid(world: WorldState, tid: String) -> bool:
 	return world.peek("town").get("towns", {}).has(tid)
 
 
-## Is a settlement due its grid? {due, why ("homes" | "buildings" | ""), homes, buildings, kinds}. Pure.
+## Is a settlement due its grid? {due, why ("homes" | "buildings" | ""), homes, buildings, kinds}. Pure. Due from its
+## first home or town building ("Below 250 start a gridd anyway").
 static func grid_due(world: WorldState, tid: String) -> Dictionary:
 	var homes := 0
 	var kinds := {}
@@ -161,9 +159,9 @@ static func grid_due(world: WorldState, tid: String) -> Dictionary:
 			nb += 1
 			kinds[ty] = true
 	var why := ""
-	if homes >= GRID_HOMES:
+	if homes > 0:
 		why = "homes"
-	elif homes >= GRID_SOME_HOMES and nb >= GRID_BUILDINGS and kinds.size() >= 2:
+	elif nb > 0:
 		why = "buildings"
 	return {"due": why != "", "why": why, "homes": homes, "buildings": nb, "kinds": kinds.size()}
 
@@ -278,6 +276,161 @@ static func edge_cells(world: WorldState, tid: String) -> Array:
 			if not idx.has(k):
 				out[k] = true
 	return CoreUtil.sorted_keys(out)
+
+
+# ================================================================== street blocks (the pieces areas are made of)
+
+## The street block a cell lies in: "b:bx,by", bx = fx ÷ BLOCK_CELLS (floored). Fixed by geography; pure.
+static func block_of(cell) -> String:
+	var c := _cell(cell)
+	return "b:%d,%d" % [floori(float(c.x) / BLOCK_CELLS), floori(float(c.y) / BLOCK_CELLS)]
+
+
+static func _block_xy(block: String) -> Vector2i:
+	var p := block.trim_prefix("b:").split(",")
+	return Vector2i(int(p[0]), int(p[1]))
+
+
+## A block's cells ("fx,fy"), row by row.
+static func block_cells(block: String) -> Array:
+	var b := _block_xy(block)
+	var out: Array = []
+	for dy in BLOCK_CELLS:
+		for dx in BLOCK_CELLS:
+			out.append(_ck(Vector2i(b.x * BLOCK_CELLS + dx, b.y * BLOCK_CELLS + dy)))
+	return out
+
+
+## The blocks a town has anything built in, sorted ("" = every town).
+static func blocks(world: WorldState, tid: String = "") -> Array:
+	var cells: Dictionary = _index(world)["cells"]
+	var out := {}
+	for ck in cells:
+		if tid == "" or String(cells[ck][3]) == tid:
+			out[block_of(ck)] = true
+	return CoreUtil.sorted_keys(out)
+
+
+## Homes in a block.
+static func block_homes(world: WorldState, block: String) -> int:
+	var cells: Dictionary = _index(world)["cells"]
+	var n := 0
+	for ck in block_cells(block):
+		if cells.has(ck):
+			n += int(cells[ck][2])
+	return n
+
+
+## Where a set of blocks (an area) could be cut in two: every street-lattice line that leaves blocks on both sides,
+## strongest boundary first. Kinds, strongest first (agreed with Maja, 2026-11-17): RIVER (a river runs along the line),
+## FAST_ROAD (a road at 70 km/h or more runs along it), MAIN_STREET (any colony road runs along it), STREET (the plain
+## lattice). Within a kind, the cut that splits the homes most evenly first, then by position.
+## [{axis: "x" | "y" (the line is x = at or y = at, in fine cells), at, kind, a: [blocks on the smaller-coordinate side (west
+## for "x", north for "y")], b: [the larger side], homes_a, homes_b}]. Pure in the town table, the roads and the terrain. Roads and rivers are drawn as straight
+## runs between 3 km tile middles (as the town view draws them); "along" means a run that is more along the line than
+## across it, passes within half a block of it (nearer it than the next street), and overlaps the blocks' extent.
+static func boundaries(world: WorldState, blocks_in: Array) -> Array:
+	var bs: Array = []
+	for b in blocks_in:
+		bs.append(_block_xy(String(b)))
+	if bs.size() < 2:
+		return []
+	var runs := _boundary_runs(world)
+	var out: Array = []
+	for axis in ["x", "y"]:
+		var lo := 1 << 30
+		var hi := -(1 << 30)
+		for b in bs:
+			var v: int = b.x if axis == "x" else b.y
+			lo = mini(lo, v)
+			hi = maxi(hi, v)
+		for line in range(lo + 1, hi + 1):   # the street between block line - 1 and block line
+			var a: Array = []
+			var b2: Array = []
+			var ha := 0
+			var hb := 0
+			var span_lo := 1 << 30
+			var span_hi := -(1 << 30)
+			for i in bs.size():
+				var bv: Vector2i = bs[i]
+				var key := "b:%d,%d" % [bv.x, bv.y]
+				var h := block_homes(world, key)
+				if (bv.x if axis == "x" else bv.y) < line:
+					a.append(key)
+					ha += h
+				else:
+					b2.append(key)
+					hb += h
+				var other: int = bv.y if axis == "x" else bv.x
+				span_lo = mini(span_lo, other * BLOCK_CELLS)
+				span_hi = maxi(span_hi, (other + 1) * BLOCK_CELLS)
+			if a.is_empty() or b2.is_empty():
+				continue
+			var at := line * BLOCK_CELLS
+			var kind := "STREET"
+			for r in runs:
+				if _runs_along(r, axis, at, span_lo, span_hi) and BOUNDARY_RANK[String(r["kind"])] < BOUNDARY_RANK[kind]:
+					kind = String(r["kind"])
+			a.sort()
+			b2.sort()
+			out.append({"axis": axis, "at": at, "kind": kind, "a": a, "b": b2, "homes_a": ha, "homes_b": hb})
+	out.sort_custom(func(p, q):
+		if BOUNDARY_RANK[p["kind"]] != BOUNDARY_RANK[q["kind"]]:
+			return BOUNDARY_RANK[p["kind"]] < BOUNDARY_RANK[q["kind"]]
+		var dp := absi(int(p["homes_a"]) - int(p["homes_b"]))
+		var dq := absi(int(q["homes_a"]) - int(q["homes_b"]))
+		if dp != dq:
+			return dp < dq
+		if p["axis"] != q["axis"]:
+			return String(p["axis"]) < String(q["axis"])
+		return int(p["at"]) < int(q["at"]))
+	return out
+
+
+const BOUNDARY_RANK := {"RIVER": 0, "FAST_ROAD": 1, "MAIN_STREET": 2, "STREET": 3}
+const FAST_KMH := 70
+
+
+## Rivers and roads as straight runs between 3 km tile middles, in fine cells: [{kind, p, q}].
+static func _boundary_runs(world: WorldState) -> Array:
+	var out: Array = []
+	var mid := func(t: Vector2i) -> Vector2:
+		return Vector2(float(t.x * PER_TILE) + PER_TILE * 0.5, float(t.y * PER_TILE) + PER_TILE * 0.5)
+	if Terrain.ready(world):
+		for y in Terrain.H:
+			for x in Terrain.W:
+				if Terrain.at(world, x, y) != "r":
+					continue
+				for d in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(1, -1)]:
+					if Terrain.at(world, x + d.x, y + d.y) == "r":
+						out.append({"kind": "RIVER", "p": mid.call(Vector2i(x, y)), "q": mid.call(Vector2i(x, y) + d)})
+	var links := Transport._links(world)
+	for lid in CoreUtil.sorted_keys(links):
+		var l: Dictionary = links[lid]
+		if int(l.get("globe", 0)) == 1:
+			continue
+		var kind := "FAST_ROAD" if RoadSafety.kmh(world, l) >= FAST_KMH else "MAIN_STREET"
+		var path: Array = l.get("path", [])
+		for i in range(1, path.size()):
+			out.append({"kind": kind, "p": mid.call(Transport.int_tile(int(path[i - 1]))), "q": mid.call(Transport.int_tile(int(path[i])))})
+	return out
+
+
+static func _runs_along(r: Dictionary, axis: String, at: int, span_lo: int, span_hi: int) -> bool:
+	var p: Vector2 = r["p"]
+	var q: Vector2 = r["q"]
+	var d := q - p
+	var along := absf(d.y) if axis == "x" else absf(d.x)
+	var across := absf(d.x) if axis == "x" else absf(d.y)
+	if along <= across:
+		return false
+	var m := (p + q) * 0.5
+	var off := absf((m.x if axis == "x" else m.y) - float(at))
+	if off > float(BLOCK_CELLS) * 0.5:   # nearer this street than the next one
+		return false
+	var r_lo := minf(p.y, q.y) if axis == "x" else minf(p.x, q.x)
+	var r_hi := maxf(p.y, q.y) if axis == "x" else maxf(p.x, q.x)
+	return r_hi > float(span_lo) and r_lo < float(span_hi)
 
 
 ## The 3 km tiles a town covers: {"x,y": homes}. Without a grid: its homes on its settlement tile.
@@ -586,8 +739,6 @@ static func _candidates(world: WorldState, tid: String, ctx: Dictionary) -> Arra
 ## Allow these forms in a town (or "*", the colony); the first is what a new block is built as. The commander's,
 ## later the government's or a municipality's decision. Public fact TOWN_FORMS_SET. → "" or why not.
 static func set_forms(world: WorldState, tid: String, forms: Array, by: String = "gov") -> String:
-	if not on(world):
-		return "Town grids are not in this game"
 	if forms.is_empty():
 		return "At least one form"
 	for fm in forms:
@@ -607,8 +758,6 @@ static func set_forms(world: WorldState, tid: String, forms: Array, by: String =
 ## Rebuild a block in another allowed form (on renovation or replacement): it keeps its best cells and frees or adds
 ## the rest. → "" or why not.
 static func set_form(world: WorldState, fid: String, form: String) -> String:
-	if not on(world):
-		return "Town grids are not in this game"
 	var cs := cells_of(world, fid)
 	if cs.is_empty():
 		return "%s has no cells" % fid
@@ -698,8 +847,6 @@ static func _lay(world: WorldState, tid: String, fid: String, form: String, home
 ## already there are laid out on it at once, in the order they were built, by the same scoring. Public fact
 ## TOWN_GRID_LAID. → "" or why not.
 static func step_up(world: WorldState, tid: String, why: String = "designated") -> String:
-	if not on(world):
-		return "Town grids are not in this game"
 	if has_grid(world, tid):
 		return "%s has its grid" % tid
 	var c0 := _centre_of(world, tid)
@@ -720,8 +867,6 @@ static func step_up(world: WorldState, tid: String, why: String = "designated") 
 ## grid; in towns with a grid, new housing blocks take cells in their form (the block's "form" if allowed there, else
 ## the first allowed) and new town buildings take one cell.
 static func step_month(world: WorldState) -> void:
-	if not on(world):
-		return
 	var tb := _table(world)
 	var fac: Dictionary = world.peek("facility")
 	for tid in CoreUtil.sorted_keys(tb["towns"]):

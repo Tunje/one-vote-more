@@ -22,6 +22,7 @@ static func _register(sim: Simulation) -> void:
 	sim.register(preload("res://sim/staff/staff_provider.gd").new())
 	sim.register(StubWorldProvider.new())
 	sim.register(PlanetProvider.new())
+	sim.register(preload("res://sim/population/population_provider.gd").new())   # the Landing area (after the planet, before politics)
 	sim.register(PoliticsProvider.new())
 
 

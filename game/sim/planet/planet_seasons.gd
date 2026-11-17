@@ -28,8 +28,9 @@ const GROWING_FROM := 0.3
 static var _cache := {}
 
 
-static func on(world: WorldState) -> bool:
-	return (world.meta.get("on", []) as Array).has(FLAG)
+## Always on: part of the rebuild ("nothing behind an off switch", rebuild-company.md 12.4, 33).
+static func on(_world: WorldState = null) -> bool:
+	return true
 
 
 ## 12 growing values (0..1) for a hex, months 0..11 (January first), from the planet's own climate.

@@ -41,8 +41,9 @@ const DETOUR_SAVE_PM := 300
 const DETOUR_MIN_KM := 12
 
 
-static func on(world: WorldState) -> bool:   # meta.off wins (the standing rule)
-	return (world.meta.get("on", []) as Array).has(FLAG) and not (world.meta.get("off", []) as Array).has(FLAG)
+## Always on: part of the rebuild ("nothing behind an off switch", rebuild-company.md 12.4, 33).
+static func on(_world: WorldState = null) -> bool:
+	return true
 
 
 ## Car-equivalents of mu milli-units of freight a month on one road (out loaded, back empty).

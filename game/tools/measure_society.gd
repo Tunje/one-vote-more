@@ -1,11 +1,10 @@
 extends SceneTree
 ## Who lives in the colony (real economy), and how they vote.
 ##   godot --headless --path game --script res://tools/measure_society.gd
-const EconSim := preload("res://sim/economy/econ_sim.gd")
 
 
 func _initialize() -> void:
-	var sim: Simulation = EconFace.sim_make(1, "BALANCED", {})
+	var sim: Simulation = GameSim.make(1, "BALANCED", {})
 	for m in [1, 24, 48]:
 		while sim.world.month < m:
 			sim.step()

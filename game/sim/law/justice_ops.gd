@@ -936,7 +936,7 @@ static func annual_rev(world: WorldState, org_id: String) -> float:
 	var n := EconFace.annual_months(o)
 	if n >= EconFace.ANNUAL_MIN_M:
 		return float(EconFace.annual_sum12(o).get("rev", 0)) * 12.0 / float(n)
-	return float((o.get("pl_last", {}) as Dictionary).get("rev", 0)) * 12.0
+	return float(EconFace.annual_last_month(o).get("rev", 0)) * 12.0
 
 
 ## Fines (spec §11.5): max(share x annual revenue, min W_ref) x LAW_FINE_SCALE, paid to gov:fines_revenue;

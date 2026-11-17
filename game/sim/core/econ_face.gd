@@ -8,7 +8,7 @@ extends RefCounted
 
 const NO := "There is no economy yet."
 
-const ACTIONS_LINE_OF := {}  # old EconActions.LINE_OF
+const ACTIONS_LINE_OF := {"HOUSING": "ECON_BUDGET_HOUSING"}  # old EconActions.LINE_OF: which budget line a type is paid from
 const ANNUAL_MIN_M := 3  # old EconAnnual.MIN_M
 const QUERY_LINE_LABELS := {}  # old EconQuery.LINE_LABELS
 const UNIONS_DONATION_MIN := 2000 * 1000  # old EconUnions.DONATION_MIN
@@ -25,6 +25,7 @@ static func actions_enqueue(_world: WorldState, _action_id: String, _params: Dic
 
 
 ## old EconActions.headroom (economy/econ_actions.gd), 11 calls
+## Connect in the same step as construction_estimate: the government's money check compares the two.
 static func actions_headroom(_world: WorldState, _line: String) -> int:
 	return 0
 
@@ -35,8 +36,8 @@ static func actions_last_results(_world: WorldState, _n: int = 10) -> Array:
 
 
 ## old EconActions.lines_for (economy/econ_actions.gd), 1 call
-static func actions_lines_for(_ftype: String) -> Array:
-	return ["ECON_BUDGET_PUBLIC_WORKS"]
+static func actions_lines_for(ftype: String) -> Array:
+	return [ACTIONS_LINE_OF.get(ftype, "ECON_BUDGET_INFRASTRUCTURE"), "ECON_BUDGET_PUBLIC_WORKS"]   # the type's own line first, as before
 
 
 ## old EconActions.pending (economy/econ_actions.gd), 1 call
@@ -84,6 +85,7 @@ static func construction_award(_world: WorldState, _pid: String, _org_id: String
 
 
 ## old EconConstruction.estimate (economy/econ_construction.gd), 6 calls
+## Connect in the same step as actions_headroom: the government's money check compares the two.
 static func construction_estimate(_ftype: String) -> int:
 	return 0
 
@@ -103,9 +105,22 @@ static func essentials_offers(_world: WorldState) -> Dictionary:
 	return {}
 
 
-## old EconFacts.emit (economy/econ_facts.gd), 1 call
-static func facts_emit(_world: WorldState, _type: String, _location, _subjects: Array, _responsible: Array, _impact: Dictionary, _magnitude: int, _visibility: String, _data: Dictionary = {}, _affected = "ALL", _causes: Array = []) -> String:
-	return ""
+## old EconFacts.emit (economy/econ_facts.gd), 1 call. This one is real, not a plain answer: publishing a fact is the
+## fact store's work, not the economy's, so nothing emitted through here is swallowed.
+## subjects: [[kind, id], ...]; responsible: [[kind, id, share], ...] (shares sum to 1).
+static func facts_emit(world: WorldState, type: String, location, subjects: Array, responsible: Array, impact: Dictionary, magnitude: int, visibility: String, data: Dictionary = {}, affected = "ALL", causes: Array = []) -> String:
+	var subj: Array = []
+	for x in subjects:
+		subj.append({"kind": x[0], "id": x[1]})
+	var resp: Array = []
+	for x in responsible:
+		resp.append({"actor": {"kind": x[0], "id": x[1]}, "share": float(x[2])})
+	var f := {"type": type, "owner": "comp" if type.begins_with("COMP_") else "econ", "subjects": subj, "responsible": resp,
+		"impact": impact, "magnitude": clampi(magnitude, 0, 100), "visibility": visibility, "data": data,
+		"affected": affected, "causes": causes}
+	if location != null:
+		f["location"] = location
+	return world.add_fact(f)
 
 
 ## old EconFinance._spend_line (economy/econ_finance.gd), 2 calls
@@ -125,6 +140,8 @@ static func households_disposable(g: Dictionary) -> int:
 
 
 ## old EconHouseholds.pay_media_wages (economy/econ_households.gd), 2 calls
+## MUST be connected in the same step as the household pools (step 3): the press treats the household table as "there is
+## an economy", and with this still answering 0 every paper that is not the state's runs a deficit and closes.
 static func households_pay_media_wages(_world: WorldState, _from_acct: String, _amount: int, _district: String) -> int:
 	return 0
 
@@ -224,7 +241,7 @@ static func query_essentials(_world: WorldState) -> Dictionary:
 
 ## old EconQuery.explain_facility (economy/econ_query.gd), 3 calls
 static func query_explain_facility(_world: WorldState, _fid: String) -> Dictionary:
-	return {}
+	return {"causes": []}  # callers read this key directly
 
 
 ## old EconQuery.explain_fact (economy/econ_query.gd), 2 calls
@@ -309,7 +326,7 @@ static func trade_balance(_world: WorldState) -> Dictionary:
 
 ## old EconTrade.export_pressure (economy/econ_trade.gd), 1 call
 static func trade_export_pressure(_world: WorldState) -> Dictionary:
-	return {}
+	return {"left_total": 0}  # the caller reads this key directly
 
 
 ## old EconTrade.fleet (economy/econ_trade.gd), 3 calls
@@ -358,7 +375,10 @@ static func trade_set_hold(_world: WorldState, _idx: int, _hold: int) -> void:
 
 
 ## old EconTrade.ship_interval (economy/econ_trade.gd), 1 call
-static func trade_ship_interval(_world: WorldState) -> Array:
+static func trade_ship_interval(world: WorldState) -> Array:
+	var v = world.values.get("SHIP_INTERVAL", null)   # a treaty or a sanction may set it; obeyed as before
+	if typeof(v) == TYPE_ARRAY and (v as Array).size() == 2:
+		return [int(v[0]), maxi(int(v[0]), int(v[1]))]
 	return [18, 30]
 
 
@@ -467,3 +487,23 @@ static func query_prisons(_world: WorldState) -> Array:
 ## old companies/insolvency.gd court_liquidation(): the court winds a company up. True when it was done.
 static func insolvency_court_liquidation(_world: WorldState, _org_id: String, _reason: String) -> bool:
 	return false
+
+
+# ---------------------------------------------------------------- added after Anni's review of step 1 (2026-11-17)
+
+## old EconQuery.crime_drivers (economy/econ_query.gd): what drives crime, per district:
+## {district: {pop, unemployed_pm, hunger_pm, homeless_pm, ineq_x1000, youth_pm, stock_wref, firms}}. {} = no reader yet,
+## and the law falls back to reading the household table itself.
+static func query_crime_drivers(_world: WorldState) -> Dictionary:
+	return {}
+
+
+## old EconPolice.hours with EconPolice.active (economy/econ_police.gd): police hours on duty in a district this month.
+## -1 = there are no police stations to count, and the law works the strength out from its lever.
+static func police_hours(_world: WorldState, _district: String) -> int:
+	return -1
+
+
+## old read of org["pl_last"]: a company's books for its last month, {rev, ...}.
+static func annual_last_month(o: Dictionary) -> Dictionary:
+	return o.get("pl_last", {})

@@ -124,3 +124,69 @@ func test_merge_and_district_inheritance() -> void:
 	check_eq(AreaStore.residents(w, a), 40, "merged residents")
 	check_eq(String(AreaStore.get_area(w, b)["status"]), "MERGED", "absorbed area kept for history")
 	check(PopStore.reconcile(w).is_empty(), "population reconciles")
+
+
+func test_a_new_game_has_one_area_the_landing() -> void:
+	var sim := GameSim.make(3)
+	var w := sim.world
+	var all := AreaStore.areas(w)
+	check_eq(all.size(), 1, "one area at the start: no sectors beyond the landfall point")
+	var a: Dictionary = all[0]
+	check_eq(String(a["name"]), "Landing", "it is the Landing")
+	check_eq(a["tiles"], [Terrain.key(Terrain.landing(w).x, Terrain.landing(w).y)], "on the landfall tile")
+	check_eq(AreaStore.capacity(w, String(a["id"])), 0, "nothing is built on it yet")
+	sim.run(1)
+	var ds := preload("res://sim/law/law_query.gd").districts(w)
+	check_eq(ds.size(), 1, "law's charter gives one district")
+	check_eq(String(ds[0]["name"]), "The Colony", "named The Colony")
+	check_eq(ds[0]["areas"], [String(a["id"])], "holding the Landing")
+	check_eq(AreaStore.found_landing(w), String(a["id"]), "founding again changes nothing")
+	check_eq(AreaStore.areas(w).size(), 1, "still one area")
+
+
+func test_the_first_homes_on_the_landing_tile_are_the_landings() -> void:
+	var w := _world()
+	var id := AreaStore.found_landing(w)
+	var l := Terrain.landing(w)
+	check_eq(AreaStore.place_housing(w, l, 40, "GOV"), id, "homes on the claimed landfall tile go to the Landing")
+	check_eq(AreaStore.capacity(w, id), 40, "its homes are counted")
+	check_eq(AreaStore.get_area(w, id)["tiles"].size(), 1, "the tile is not added twice")
+	check_eq(AreaStore.place_housing(w, l, 10, "GOV"), "", "a built tile cannot be built on again")
+
+
+func test_a_block_belongs_to_the_first_area_that_builds_there() -> void:
+	var w := _world()
+	var a := AreaStore.found_landing(w)
+	var far := Terrain.nearest_free(w, (Terrain.landing(w).x + 30) % Terrain.W, Terrain.landing(w).y, Terrain.BUILDABLE_HOUSING, 10)
+	var b := AreaStore.place_housing(w, far, 20, "COMPANY")
+	check_eq(AreaStore.claim_block(w, a, "b:10,10"), a, "the Landing takes a free block")
+	check_eq(AreaStore.claim_block(w, b, "b:10,10"), a, "a second area building there finds it taken")
+	check_eq(AreaStore.area_of_block(w, "b:10,10"), a, "the block is the Landing's")
+	check_eq(AreaStore.claim_block(w, b, "b:11,10"), b, "the other area takes its own block")
+	AreaStore.merge(w, a, b)
+	check_eq(AreaStore.area_of_block(w, "b:11,10"), a, "a merge carries the blocks")
+	check_eq(AreaStore.blocks_of(w, b), [], "the absorbed area keeps none")
+	check_eq(AreaStore.blocks_of(w, a), ["b:10,10", "b:11,10"], "the Landing has both")
+
+
+func test_a_split_takes_the_blocks_on_its_tiles() -> void:
+	var w := _world()
+	var l := Terrain.landing(w)
+	var a := AreaStore.place_housing(w, l, 300, "GOV")
+	var t2 := l + Vector2i(1, 0)
+	_flatten(w, [t2])
+	check_eq(AreaStore.place_housing(w, t2, 300, "GOV"), a, "next tile extends the Landing")
+	var b_home := TownGrid.block_of(TownGrid.centre_cell(l))
+	var b_east := TownGrid.block_of(TownGrid.centre_cell(t2))
+	AreaStore.claim_block(w, a, b_home)
+	AreaStore.claim_block(w, a, b_east)
+	var c := AreaStore.split(w, a, [t2], "SETTLEMENT", "TEST")
+	check_eq(AreaStore.area_of_block(w, b_east), c, "the block on the child's tile went with it")
+	check_eq(AreaStore.area_of_block(w, b_home), a, "the block on the parent's tile stayed")
+
+
+func test_found_landing_finds_the_area_on_the_landfall_tile() -> void:
+	var w := _world()
+	var far := Terrain.nearest_free(w, (Terrain.landing(w).x + 30) % Terrain.W, Terrain.landing(w).y, Terrain.BUILDABLE_HOUSING, 10)
+	AreaStore.place_housing(w, far, 20, "COMPANY")
+	check_eq(AreaStore.found_landing(w), "", "an area elsewhere is not the Landing, and none is founded beside it")

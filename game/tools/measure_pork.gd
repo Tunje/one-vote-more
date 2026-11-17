@@ -2,7 +2,6 @@ extends SceneTree
 ## A/B for election-year pork (spec-election-year-v1 §2.6; owner Ella). Same seeds with world.meta["pork"] off and on.
 ## Gate (Wilma): bills passed/defeated within ±20%, and fiscal-guard blocks (pol.state.leg_stats) don't drop.
 ##   godot --headless --path game --script res://tools/measure_pork.gd -- [months] [seeds...]
-const EconSim := preload("res://sim/economy/econ_sim.gd")
 
 
 func _initialize() -> void:
@@ -16,7 +15,7 @@ func _initialize() -> void:
 	var tot := {false: {}, true: {}}
 	for on in [false, true]:
 		for seed_v in seeds:
-			var sim: Simulation = EconFace.sim_make(seed_v, "BALANCED", {}, true)
+			var sim: Simulation = GameSim.make(seed_v, "BALANCED", {}, true)
 			sim.world.meta["pork"] = on
 			var guarded := 0
 			var breaches := 0
