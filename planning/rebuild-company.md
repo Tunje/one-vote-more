@@ -1,6 +1,6 @@
 # The rebuild: one company object
 
-Status: DRAFT 6 by Wilma, 2026-11-17. Reviewed by all six sessions ([rebuild-reviews.md](rebuild-reviews.md)). The places where the reviews caught this plan contradicting a ruling are corrected (rules 2, 4, 7 and 9, ships, the freight queue, "huge company", grants). The parts the reviews found MISSING are listed in section 13 and are not yet designed. Not reviewed. Nothing is built.
+Status: DRAFT 7 by Wilma, 2026-11-17 (the seven decisions of section 8e are the user's). Reviewed by all six sessions ([rebuild-reviews.md](rebuild-reviews.md)). The places where the reviews caught this plan contradicting a ruling are corrected (rules 2, 4, 7 and 9, ships, the freight queue, "huge company", grants). The parts the reviews found MISSING are listed in section 13 and are not yet designed. Not reviewed. Nothing is built.
 
 Sources: the user's order below; the open connections in [economy-connections.md](economy-connections.md); the rulings of
 2026-11-14 to 2026-11-17 in [MASTER-PLAN.md](MASTER-PLAN.md); the old economy as it stood in commit 785c72f and
@@ -115,8 +115,8 @@ No rule is skipped for a type because it cannot take effect today (ruling).
 | 2 | lower the price | stock that was offered and went unsold BECAUSE OF PRICE ("the more inventory you have, the more you reduce your price"). Stock held back is nobody's signal. Stock that did not sell because of freight, the road or the buyer's money counts neither here nor in rule 1 (the same ruling as rule 1) |
 | 3 | raise output | "if you sell out all your producing produce MORE"; also picks first or second output by which pays |
 | 4 | lower output | output that went unsold because of price, with the same two exclusions as rule 2 ("Ignore the stoch in that other place too") |
-| 5 | add capacity | "if your selling out and all plants at max build a new one ... money is a limitor" |
-| 6 | cut capacity | a plant that stands idle. **(open: which market fact ends it. "Idle for long" as a month count would be a hard rule, which the user does not want.)** |
+| 5 | add capacity | "if your selling out and all plants at max build a new one ... money is a limitor". Growing: one size up in its own square; buy out the companies sharing the square; or, if it cannot or that is too expensive, a new plant elsewhere (section 8e) |
+| 6 | cut capacity | a plant that stands idle for a set time. A hard rule is fine here (the user, section 8e). **(proposal: the time.)** |
 | 7 | start a company | the average of all available work ("instead of reading the leftovers, they read an avrage of all avaliable jobs"), with no cap on how many may form |
 | 8 | do not start one | the same signal says the work is already covered |
 | 9 | priority | "if below making price climbing allways had priority if above lowering has priority if both signals come in the same month only the one with priority happens, and if your going to cap it at 5% THEN DO THE SAME FOR BOTH". So: priority matters only when BOTH signals come in the same month; one signal alone acts whichever side of the making price the company is on. If there is a cap it is the same both ways; 5% was the old code's figure, not the user's. |
@@ -224,6 +224,37 @@ As rules:
   the area): below it raising has priority, above it lowering has priority. That is the salary a company HIRES at.
 - **Every year a company can grant a bonus** to the people it already employs. The government sets the minimum; the
   minimum starts at 2%. It is a lever of the government's.
+
+### 8e. The seven places where rulings met (the user, 2026-11-17, verbatim)
+
+Wilma listed seven: 1 one price per company against rent that shifts from road to road; 2 one price against a builder
+whose jobs differ; 3 one price set by the rules against a public service's tax bracket; 4 one salary per company
+against a starting salary "in the area" with plants in two districts; 5 rules 2 and 4 read unsold stock, which a
+service, builder, landlord and truck repair do not have; 6 growing one size at a time against rule 5's "build a new
+one"; 7 rule 6 needing a fact for "idle". The user's answer:
+
+> On sallery it's an avrage of the area.  2. I don't see the controdiction. 3. Again yes things can be done in two different ways based in company types how its this a problem? 4. The district the plant hiring is in.  5. They have empty work slots. 6. Depends on region, in a square if there are other companies they would have to buy out the other company to make it larger, three small in a square of they can't buy out or it's too expenvice build a new  7. A hard rule here is fine
+
+As rules:
+
+- **The principle (answer 3):** things can be done in two different ways depending on the company type. That is not a
+  problem and not a contradiction. The type table says which way a type does it.
+- **Salary:** it is an average of the area.
+- **1, rent by street.** Not answered by number. **(Wilma's reading, from answer 3:)** a landlord is a company type
+  that prices its own way: each home's rent follows its place, and the company still decides it by the same rules.
+- **2, builders.** The user sees no contradiction. **(Wilma's reading:)** a builder has one price, per unit of build
+  work; a bigger job is more units at that price, with its materials on top.
+- **3, public services.** A state service's price is its tax bracket; that is that type's way of having a price.
+- **4, salary with plants in two districts.** The line is that of the district the hiring plant is in. So a salary is
+  per company, tier AND the district of the plant that hires.
+- **5, types with nothing to stock.** Their signal is empty work slots: client places not taken, crews without a job,
+  homes without a tenant, repair bays standing empty. Rules 2 and 4 read that where other types read unsold stock.
+- **6, growing.** It depends on the region. A square holds a full size of company. A company alone in its square grows
+  one size at a time. If other companies share the square (three small ones fill it), it has to buy the other out to
+  grow there. If it cannot buy them out, or that is too expensive, it builds a new plant elsewhere. **(Wilma's reading
+  of "a square": the map tile a plant stands on, which holds one full-size unit: one large, or one average and one
+  small, or three small, or six family.)**
+- **7, cutting capacity (rule 6).** A hard rule is fine here.
 
 ## 9. Every outside connection, and how it gets what it needs
 
@@ -372,16 +403,16 @@ All six reviews are in [rebuild-reviews.md](rebuild-reviews.md). The same gaps c
 
 **C. Rules that cannot act as written**
 
-14. Rules 2 and 4 read unsold stock. A service, a builder, a landlord and a truck repair have none. They need their own
+14. ANSWERED (8e, 5): empty work slots. Was: Rules 2 and 4 read unsold stock. A service, a builder, a landlord and a truck repair have none. They need their own
     signal (empty client places, idle crews, empty homes), or a rule is missing for a type.
-15. A free public service has no price at the door, and a state company's price is a tax bracket the government sets,
+15. ANSWERED (8e, 3): the bracket is that type's price. Was: A free public service has no price at the door, and a state company's price is a tax bracket the government sets,
     while the rules set one price per company.
-16. One price per company against a builder whose jobs all differ, and against homes whose rent follows the street
+16. ANSWERED (8e, 1 to 3): a type can do it its own way. Was: One price per company against a builder whose jobs all differ, and against homes whose rent follows the street
     ("it can even shift from road to road").
-17. One salary per company against a starting salary "in the area" when a company has plants in two districts.
+17. ANSWERED (8e, 4): the district of the hiring plant. Was: One salary per company against a starting salary "in the area" when a company has plants in two districts.
 18. "Cheapest delivered first" needs a freight price before the sale; trucks differ by quality, which a cheapest-first
     market cannot see.
-19. Growing "one size at a time" against rule 5's "build a new one": by size, by plants, or both.
+19. ANSWERED (8e, 6): by size in its square, by buying out, or a new plant. Was: Growing "one size at a time" against rule 5's "build a new one": by size, by plants, or both.
 20. A union shutdown reads to the rules as unsold output, an idle plant and open posts.
 21. The build order: salaries need housing and food prices (step 4) at step 2; rules 5 and 7 need builders (step 6) at
     step 3; builders need credit (step 7) at step 6; the world itself (terrain, districts, the road month) was built by

@@ -518,6 +518,15 @@ Answering: Wilma's size penalty (6%, 4%, 2%, none) and her reading that rule nin
 Written into [rebuild-company.md](rebuild-company.md) sections 5 and 8d the same turn. The plan then went to the six sessions for review, as the user's order of the rebuild says ("then you ask all the others to review from their").
 
 
+### The rebuild: the seven places where rulings met (the user, 2026-11-17, verbatim)
+
+Wilma's seven, in order: rent by street; a builder's differing jobs; a public service's bracket; a salary with plants in two districts; rules 2 and 4 for types with no stock; growing by size or by plant; the fact behind rule 6.
+
+> On sallery it's an avrage of the area.  2. I don't see the controdiction. 3. Again yes things can be done in two different ways based in company types how its this a problem? 4. The district the plant hiring is in.  5. They have empty work slots. 6. Depends on region, in a square if there are other companies they would have to buy out the other company to make it larger, three small in a square of they can't buy out or it's too expenvice build a new  7. A hard rule here is fine
+
+Written into [rebuild-company.md](rebuild-company.md) section 8e the same turn, with Wilma's readings marked as hers.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
