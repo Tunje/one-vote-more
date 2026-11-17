@@ -163,7 +163,8 @@ static func unemployed(world: WorldState, area: String, skill: String) -> Dictio
 
 ## Company `cid` hires up to n people into posts of `post_tier` at `plant_key` (a plant id, or "crew"), from the
 ## unemployed living in `area`: people of the post's own skill first, then of a higher skill, never a lower one; within
-## a skill, the lowest income band first (pool-id order), so the outcome repeats. Moves them to EMPLOYED in the
+## a skill nobody goes first: the posts are shared over the income bands in proportion to their unemployed of that
+## skill (largest remainder, so the outcome repeats; Bob's month-one check). Moves them to EMPLOYED in the
 ## occupation the company gives the post, and writes the staff entry. `pay`: the salary these hires get, theirs from
 ## now on (plan 9.2: set at hire, raised only by the yearly raise); -1 = the company's hiring salary for the post's tier
 ## in the area the PLANT stands in ("The district the plant hiring is in"; plant_area), not where the workers live.
@@ -181,15 +182,25 @@ static func hire(world: WorldState, cid: String, plant_key: String, post_tier: S
 		pay = Company.hiring_salary(world, cid, post_tier, at)
 	var hired := 0
 	var taken := {}
+	var refused := false
 	for skill in TIERS.slice(TIERS.find(post_tier)):
-		for band in BANDS:
-			if hired >= n:
-				break
-			var k := mini(n - hired, PopStore.count(world, {"hb": area, "inc": band, "status": "UNEMPLOYED"}, "skill:" + skill))
+		if hired >= n or refused:
+			break
+		# within a skill nobody goes first (12.3, 28): the posts are shared over the bands in proportion to their
+		# unemployed of that skill (largest remainder, so a run repeats)
+		var avail: Array = BANDS.map(func(b): return PopStore.count(world, {"hb": area, "inc": b, "status": "UNEMPLOYED"}, "skill:" + skill))
+		var total := 0
+		for x in avail:
+			total += int(x)
+		var parts: Array = CoreUtil.split_lr(mini(n - hired, total), avail)
+		for i in BANDS.size():
+			var band: String = BANDS[i]
+			var k := int(parts[i])
 			if k <= 0:
 				continue
 			if not Company.staff_change(world, cid, plant_key, post_tier, labour_key(area, band, skill), k * S, pay):
 				Logbook.note(world, "HIRE", cid, "no hire: the company record refused the post", {"plant": plant_key, "tier": post_tier, "pay": pay})
+				refused = true
 				break
 			var moved := PopStore.move_group(world, {"hb": area, "inc": band, "status": "UNEMPLOYED"}, k,
 				{"status": "EMPLOYED", "occ": occ}, "HIRE", "skill:" + skill)

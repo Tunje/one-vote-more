@@ -214,3 +214,25 @@ func test_a_hire_is_paid_the_hiring_salary_of_the_area_the_plant_stands_in() -> 
 	check_eq(Households.hire(w, c2, p2, "G", land, 2), 0, "a plant that stands nowhere hires nobody without a pay")
 	check_eq(PopStore.count(w, {"hb": land, "status": "UNEMPLOYED"}), 2, "and nobody was moved")
 	check(Households.check(w).is_empty(), "jobs = people")
+
+
+func test_within_a_skill_hires_are_shared_over_the_bands_in_proportion() -> void:
+	var sim := GameSim.make(3)
+	var w := sim.world
+	var land := AreaStore.found_landing(w)
+	var c1 := _co(w, "BUILDER", "HOME_WORLD")
+	var g0 := {}
+	for band in Households.BANDS:
+		g0[band] = PopStore.count(w, {"hb": land, "inc": band, "status": "UNEMPLOYED"}, "skill:G")
+	var before := {}
+	for band in Households.BANDS:
+		before[band] = PopStore.count(w, {"hb": land, "inc": band, "status": "EMPLOYED"})
+	Households.hire(w, c1, "crew", "G", land, 100, {}, 300 * S)
+	var total_g := 0
+	for band in g0:
+		total_g += int(g0[band])
+	for band in Households.BANDS:
+		var got := PopStore.count(w, {"hb": land, "inc": band, "status": "EMPLOYED"}) - int(before[band])
+		var share := 100.0 * float(g0[band]) / float(total_g)
+		check(absf(float(got) - share) < 1.0, "%s: %d hired against its share %.1f" % [band, got, share])
+	check(Households.check(w).is_empty(), "jobs = people")
