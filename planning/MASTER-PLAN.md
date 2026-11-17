@@ -502,6 +502,13 @@ Written into [rebuild-company.md](rebuild-company.md) sections 5 and 8a the same
 Written into [rebuild-company.md](rebuild-company.md) section 8b the same turn.
 
 
+### The rebuild: households, company types, the starting salary (the user, 2026-11-17, verbatim)
+
+> 3. Housholds follow terras latest plan, 4. Same company types can come but not their code or balancing 5. Sallery should be calculated as avrage living in the area and food plus half of both again, that's the start then it should regulate itself
+
+Written into [rebuild-company.md](rebuild-company.md) section 8c the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

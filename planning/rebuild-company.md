@@ -1,6 +1,6 @@
 # The rebuild: one company object
 
-Status: DRAFT 3 by Wilma, 2026-11-17 (sizes, unions and salaries from the user's answers). Not reviewed. Nothing is built.
+Status: DRAFT 4 by Wilma, 2026-11-17 (sizes, unions, salaries, households and types from the user's answers). Not reviewed. Nothing is built.
 
 Sources: the user's order below; the open connections in [economy-connections.md](economy-connections.md); the rulings of
 2026-11-14 to 2026-11-17 in [MASTER-PLAN.md](MASTER-PLAN.md); the old economy as it stood in commit 785c72f and
@@ -61,7 +61,7 @@ record; they keep no copies.
 ## 4. The type table: one 2D array
 
 Rows are company types, columns are items. A cell says how much of the item ONE unit of that type takes in or puts out
-per month. The old `RECIPES` table already has this shape for 34 types; it becomes the one table.
+per month. The old `RECIPES` table had this shape for 34 types. Its type names are the starting list; none of its numbers carry over (section 8c).
 
 | Column group | Meaning |
 |---|---|
@@ -199,6 +199,21 @@ Only the pay signal moves the salary: a post that stays open for another reason 
 skill in the colony) is not a reason to raise it, as with prices ("if something else than price stops sales it should
 not count on adjusting price").
 
+### 8c. Households, company types and the starting salary (the user, 2026-11-17, verbatim)
+
+> 3. Housholds follow terras latest plan, 4. Same company types can come but not their code or balancing 5. Sallery should be calculated as avrage living in the area and food plus half of both again, that's the start then it should regulate itself
+
+As rules:
+
+- **Households follow Terra's latest plan.** Wilma reads that as [design-town-grid.md](design-town-grid.md): homes on
+  the town grid, and what each household type wants from where it lives. Terra confirms in review which document it is.
+- **The same company types can come back, but not their code and not their balancing.** The 34 type names of the old
+  table are the starting list. Every number in the table (inputs, outputs, labour, pollution, build bills, base prices,
+  wages) is set again from nothing, and no old rule code is copied.
+- **The starting salary** = the average cost of living in the area plus food, plus half of both again:
+  1.5 x (average housing cost in the area + food). That is where a salary starts; from there it regulates itself by the
+  three rules of section 8b.
+
 ## 9. Every outside connection, and how it gets what it needs
 
 From [economy-connections.md](economy-connections.md): 367 open lines in 61 files. Grouped by what they ask for.
@@ -246,8 +261,8 @@ At each step: three 30-year games, and the bottleneck reported before the next s
 
 1. ANSWERED (section 5): 1/6, 1/3, 2/3, full size.
 2. ANSWERED (section 8a): unions are outside.
-3. Do households stay as Maja's population built them, or are they rebuilt too?
-4. Does the old type table (34 types) carry over as the starting point, or do you want to go through the types?
+3. ANSWERED (section 8c): households follow Terra's latest plan.
+4. ANSWERED (section 8c): the same types, none of their code or balancing.
 5. How large is the "small penalty" for the smaller sizes? (Wilma's proposal is in section 5.)
 6. For salaries, what is the line that rule nine turns on (the "making price" of a worker)? (Section 8b.)
 
