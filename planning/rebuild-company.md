@@ -1159,6 +1159,10 @@ therefore the whole loop once, end to end, through the real company object:
    licences; land sales.
 7. **Homes.** Landlords, the town grid, rent, owning, own houses; noise.
 8. **The government's purse in full.** Taxes, brackets, budget lines, levers, the reserve, price controls.
+   - **MARKED FOR WHEN POLITICS IS TAKEN UP AGAIN by the user (2026-11-17, verbatim):** "Mark that the government can order stockpiles to help in famin once we get back to politics, because that's great political debate"
+     Said right after the ruling that households stockpile six months of food (12.3, 15f). It belongs with the
+     government securing the essentials (12.11, 102). Not built now. What it is when its turn comes (how large, who
+     holds it, who pays, when it is released, who decides) is the user's to say then.
 9. **Offices, pollution, stress, unions, donations.**
 10. **Exports and the home world's demands.**
 11. **Everything the economy publishes, every remaining connection, the screens.**

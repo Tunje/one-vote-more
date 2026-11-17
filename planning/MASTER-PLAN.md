@@ -913,6 +913,15 @@ Asked whether a household that has eaten into its store refills at once even if 
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15f.
 
 
+### MARKED for when politics is taken up again: the government can order stockpiles against famine (the user, 2026-11-17, verbatim)
+
+Said right after the ruling that households stockpile six months of food.
+
+> Mark that the government can order stockpiles to help in famin once we get back to politics, because that's great political debate
+
+Marked in [rebuild-company.md](rebuild-company.md) section 13 under step 8 (the government's purse in full). Not built now.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
