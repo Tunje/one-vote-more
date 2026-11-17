@@ -407,6 +407,12 @@ Bob's test of the averaged rule (2026-11-16, scratch t2): it never fell into the
 
 Passed to Bob the same turn; he builds it in his scratch copy behind a switch and reports before merging.
 
+Bob's results (2026-11-17, scratch): the queue (switch R8FR_QUEUE) is nearly perfect in years 5–8 but still collapsed around year 9. The cause was not the depot rule: essential plants hire first, but the depot's posts moved to the transit authority's office were not counted as essential, so the office lost every hiring round. His fix (switch OFFICE_E99): an office counts as essential when an essential plant of its own company has moved posts to it. Queue plus fix left 13–327 behind a month in years 5–10 on both seeds. Asked "1. Merge R8FR_QUEUE? 2. Merge the office fix OFFICE_E99, after a full A/B in scratch?", the user answered, verbatim:
+
+> Yes to both
+
+Passed to Bob the same turn: the A/B on the office fix first, then both merged behind their switches.
+
 ### Newspapers: each paper its own look (the user, 2026-11-16, verbatim)
 
 > Oh and make sure other newpapers have their own fonts and layouts
