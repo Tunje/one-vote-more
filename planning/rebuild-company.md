@@ -256,6 +256,29 @@ As rules:
   small, or three small, or six family.)**
 - **7, cutting capacity (rule 6).** A hard rule is fine here.
 
+### 8f. Households taken wholesale; buildings wear (the user, 2026-11-17, verbatim)
+
+> Okay i think we can take it wholesale as long as we make sure it fits in,  buildings,  did that belong to economy or something else ware and tear, repair all that,  that's what changed eent levels for the landlord
+
+- **Households:** the old household side is taken as a whole, as long as it is made to fit: pools of people by housing
+  block and income band with their money; wages, benefit, pensions, dividends in; rent and bills, then food and
+  essentials, then the rest out; the job recorded with both the person and the company; ages, births, deaths, growing
+  up, retirement; shacks and homelessness; settlers arriving and people leaving on ships. What it was is described from
+  the old code in the conversation of 2026-11-17 and stands in `game_full_copy/` (econ_households, econ_pop,
+  econ_cohorts, econ_informal). "Fits in" means it meets the company only through section 8's relationships: staff,
+  customers, clients, tenants, owners. It is an exception to "no old code carries over", by the user's word.
+- **Buildings: wear, repair and rent.** In the old game this was the economy's, and it was cut with it:
+  - every plant had a condition from 0 to 100; upkeep (materials) kept it up, and without upkeep it fell;
+  - a worn plant produced less and had more accidents; a hazardous plant below 25 was closed as unsafe and overhauled;
+  - housing also lost condition with age, hardly at all for 20 years and then fast, half as fast when well kept;
+  - below 55 the owner decided each quarter: renovate (a building job for the builders, about a third of a new block)
+    or let it slide;
+  - a block that slid had its RENT FALL WITH ITS CONDITION; below 35 it was run-down housing, and a district averaging
+    below 35 was a slum.
+  In the rebuild this is the `condition` of a company's plant, the same for every type: upkeep holds it, wear lowers
+  output, repair is a job for a builder company, and for a landlord the condition of a home is part of what its rent
+  can be.
+
 ## 9. Every outside connection, and how it gets what it needs
 
 From [economy-connections.md](economy-connections.md): 367 open lines in 61 files. Grouped by what they ask for.
@@ -351,7 +374,7 @@ ruling is quoted; none of the old code or numbers carries over.
 
 | Old component | What it was | What it is now and how it meets companies |
 |---|---|---|
-| econ_households, econ_pop, econ_cohorts, econ_informal | household money, income, buying, births, deaths, ageing, migration, homelessness | HOUSEHOLDS. They are a company's staff, its customers, its clients, its tenants and the owners of family companies. Not designed yet; "Housholds follow terras latest plan" |
+| econ_households, econ_pop, econ_cohorts, econ_informal | household money, income, buying, births, deaths, ageing, migration, homelessness | HOUSEHOLDS. Taken wholesale from the old game and fitted in (section 8f). They are a company's staff, its customers, its clients, its tenants and the owners of family companies |
 | econ_labor, econ_training | vacancies, matching, layoffs, training | THE LABOUR MARKET. A salary is a price under rules 1, 2 and 9 (section 8b); workers move to better pay |
 | econ_market, econ_credit | the order books; buying on account | THE MARKET. Companies post offers and orders |
 | econ_bank, econ_bank_risk, econ_money, econ_finance (loans, interest) | the bank | THE BANK. Lends on orders, contracts and forecasts; holds deposits |

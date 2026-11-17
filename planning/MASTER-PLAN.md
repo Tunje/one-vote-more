@@ -527,6 +527,15 @@ Wilma's seven, in order: rent by street; a builder's differing jobs; a public se
 Written into [rebuild-company.md](rebuild-company.md) section 8e the same turn, with Wilma's readings marked as hers.
 
 
+### The rebuild: households wholesale; buildings (the user, 2026-11-17, verbatim)
+
+After being told what the old household side held:
+
+> Okay i think we can take it wholesale as long as we make sure it fits in,  buildings,  did that belong to economy or something else ware and tear, repair all that,  that's what changed eent levels for the landlord
+
+Written into [rebuild-company.md](rebuild-company.md) section 8f the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
