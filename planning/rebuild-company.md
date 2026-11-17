@@ -439,8 +439,13 @@ fills first. What a service sells is not on the market; its clients come to it (
   company, what the input is worth in what it makes and sells; for a household, what the thing is worth to it). A
   price is low when it is under that worth. The further under, the more reason to buy ahead.
 - **(proposal, the rest:)** how much: as far as its money reaches and the goods keep; food spoils, so nobody stocks far
-  ahead on it. A stock-up order is a real order with money behind it, so it counts as demand for the seller's price
-  rules like any other.
+  ahead on it.
+- **(Wilma's decision, 2026-11-17, replacing Bob's earlier proposal that a stock-up order counts as demand for the
+  price rules like any other)** A stock-up order buys only what the month's own orders leave, at today's price. What
+  it buys is a sale like any other and counts as spending in rule 7's work (15a: "spent or tried to spend"). Its
+  shortfall is not unmet demand for rules 1 and 3 and not work for rule 7: a store that could not be filled is not a
+  customer turned away. Ordinary orders that go short still count for all three. The seed-1 run with the store's
+  shortfall counted is kept beside it for the user.
 
 ### 9.4 The bank and owners' money
 

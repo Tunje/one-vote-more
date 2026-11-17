@@ -24,13 +24,16 @@ func _initialize() -> void:
 	var person_months := {}  # type -> months worked in all
 	var headcount := {}    # type -> sum over months of staff
 	var unexplained := 0
-	var last_m := -1
-	for m in months + 1:
+	for m in months:
+		# run one month, then read that month's rows (a month's rows are written while it runs; the landing's own
+		# rows carry month 0 too, so the first batch holds them as well)
+		var ran := w.month
+		sim.step()
 		# only this month's rows of the four kinds: copying the whole log every month made a long game take hours
 		var rows: Array = []
 		for kind in ["HIRE", "JOB", "LAYOFF", "LEAVE"]:
-			rows.append_array(Logbook.rows(w, {"kind": kind, "from": last_m + 1}))
-		last_m = w.month
+			rows.append_array(Logbook.rows(w, {"kind": kind, "from": ran, "to": ran}))
+		rows.sort_custom(func(a, b): return _order(a) < _order(b))
 		for r in rows:
 			var who := String(r["who"])
 			match String(r["kind"]):
@@ -54,12 +57,10 @@ func _initialize() -> void:
 			if mine != real:
 				unexplained += absi(real - mine)
 				if unexplained <= 5 * absi(real - mine):
-					print("  month %d: %s (%s) has %d staff but the log accounts for %d" % [w.month, cid, t, real, mine])
+					print("  month %d: %s (%s) has %d staff but the log accounts for %d" % [ran, cid, t, real, mine])
 				cohorts[cid] = [[w.month, real]] if real > 0 else []   # start again from what is there
 			headcount[t] = int(headcount.get(t, 0)) + real
 			person_months[t] = int(person_months.get(t, 0)) + real
-		if m < months:
-			sim.step()
 
 	print("HOW LONG A JOB LASTS  (seed %d, %d months; persons, and months)" % [seed_v, months])
 	print("The game counts staff in groups, so two bounds are given: the longest-serving leave first / the newest leave first.\n")
@@ -71,7 +72,7 @@ func _initialize() -> void:
 		var e := 0
 		for reason in ended.get(t, {}):
 			e += int(ended[t][reason])
-		print("%-12s %7d %7d %9.1f | %-25s | %-25s | %s" % [t, int(hires[t]), e, float(headcount.get(t, 0)) / float(months + 1),
+		print("%-12s %7d %7d %9.1f | %-25s | %-25s | %s" % [t, int(hires[t]), e, float(headcount.get(t, 0)) / float(months),
 			_dist(spells["old"].get(t, [])), _dist(spells["new"].get(t, [])),
 			("%.1f" % (float(person_months.get(t, 0)) / float(e))) if e > 0 else "nobody left"])
 	print("\nWHY JOBS ENDED (persons)")
@@ -95,6 +96,12 @@ func _initialize() -> void:
 		print("  %-12s %4d persons, %s" % [t, (still.get(t, []) as Array).size(), _dist(still.get(t, []))])
 	print("\nTHE LOG AGAINST THE COMPANIES' OWN COUNTS: %s" % ("every change in staff has its row" if unexplained == 0 else "%d person-changes with NO row (a fault: see the lines above)" % unexplained))
 	quit()
+
+
+## Hires before leavings within a month's batch read kind by kind: a person hired and gone in the same month must be
+## hired first.
+func _order(r: Dictionary) -> int:
+	return 0 if String(r["kind"]) in ["HIRE"] else 1
 
 
 func _in(cohorts: Dictionary, hires: Dictionary, w: WorldState, cid: String, month: int, n: int) -> void:

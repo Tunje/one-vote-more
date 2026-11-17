@@ -30,7 +30,7 @@ func _work(w: WorldState, food: int) -> void:
 		st["orders"] = {}
 		st["sum"] = {}
 	st["sum"] = {str(w.month): {"FOOD|" + area: {"ordered": food * S, "filled": 0, "paid": 0,
-		"unfilled": {"NO_MONEY": 0, "PRICE": 0, "SOLD_OUT": 0, "NO_SELLER": 0}}}}
+		"unfilled": {"NO_MONEY": 0, "PRICE": 0, "SOLD_OUT": 0, "NO_SELLER": 0}, "store_wished": 0, "store_short": 0}}}
 	st["settled"] = w.month
 
 

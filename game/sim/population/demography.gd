@@ -538,8 +538,9 @@ static func _move_group(world: WorldState, area: String, from_band: String, to_b
 	var amt := mini(world.ledger.balance(Households.account(src)), int(float(bal0) * float(k + dep) / float(maxi(1, size0))))
 	if amt > 0:
 		world.ledger.transfer(Households.account(src), Households.account(dst), amt, "BAND_MOVE", world.month)
+	var food := Households.move_store(world, src, dst, k + dep, size0)   # their food store goes with them, as their savings (15f)
 	Logbook.note(world, "BAND", src, "moved to " + to_band, {"status": status, "skill": skill, "income": int(income),
-		"cuts": cuts.map(func(c): return int(c))}, {"persons": [0, k + dep], "savings": [0, amt]}, dst)
+		"cuts": cuts.map(func(c): return int(c))}, {"persons": [0, k + dep], "savings": [0, amt], "store": [0, food]}, dst)
 	return k + dep
 
 

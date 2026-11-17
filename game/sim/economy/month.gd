@@ -85,7 +85,7 @@ static func production(world: WorldState) -> void:
 ## (The joins paper had the purse after the wages. A state company can only pay its wages once the purse has given it
 ## what it lacks, so the purse's bill comes first; nothing else moved.)
 static func settlement(world: WorldState) -> void:
-	Households.post_orders(world)   # 1. what households need, each line with its budget
+	Households.post_orders(world, func(id): return Landing.rent_due(world, id))   # 1. what households need, each line with its budget; the store from what food and rent leave (15f)
 	Making.post_orders(world)       # 1. companies' inputs
 	Building.supply_orders(world)   # 1. building sites' supplies
 	Market.clear(world)

@@ -44,17 +44,18 @@ func test_food_is_bought_eaten_and_nothing_appears_or_vanishes() -> void:
 	var w := _world()
 	var land := AreaStore.found_landing(w)
 	var pid := _pool(w, land, "I2", 10, 10000)
-	var cid := _seller(w, land, 50)
+	var cid := _seller(w, land, 100)
 	var price := Company.price(w, cid, "FOOD")
 	var money0 := Households.savings(w, pid) + w.ledger.balance(CoreUtil.acct(cid))
 	var tot := _buy_month(w)
 	var m := Households.month_of(w, pid)
 	check_eq(int(m["food_need"]), 10 * S, "ten people need ten units")
 	check_eq(int(m["food_bought"]), 10 * S, "they bought ten")
+	check_eq(int(m["store_bought"]), 60 * S, "and six months' more for the store")
 	check_eq(int(m["hunger"]), 0, "nobody hungry")
 	check_eq(int(tot["hunger"]), 0, "the colony fed")
-	check_eq(int(Company.stock_of(w, cid, "FOOD")["qty"]), 40 * S, "the seller holds 40 units less 10: goods come from somewhere")
-	check_eq(w.ledger.balance(CoreUtil.acct(cid)), 10 * price, "the seller was paid ten units at its price")
+	check_eq(int(Company.stock_of(w, cid, "FOOD")["qty"]), 30 * S, "the seller holds 100 units less 70: goods come from somewhere")
+	check_eq(w.ledger.balance(CoreUtil.acct(cid)), 70 * price, "the seller was paid seventy units at its price")
 	check_eq(Households.savings(w, pid) + w.ledger.balance(CoreUtil.acct(cid)), money0, "money only changed hands")
 	check_eq(Households.fed_pm(w, pid), 1000, "fed in full")
 	check_eq(Logbook.rows(w, {"kind": "BUDGET", "who": pid}).size(), 1, "the budget is a log row")
@@ -93,7 +94,7 @@ func test_a_famine_after_three_hungry_months() -> void:
 	check_eq(w.facts.query("ECON_FOOD_UNAFFORDABLE", 0).size(), 1, "and food unaffordable, once")
 
 
-func test_food_spoils_in_store_and_is_eaten_first() -> void:
+func test_food_spoils_in_store_and_the_store_is_kept_for_emergencies() -> void:
 	var w := _world()
 	var land := AreaStore.found_landing(w)
 	var pid := _pool(w, land, "I3", 2, 10000)
@@ -101,8 +102,11 @@ func test_food_spoils_in_store_and_is_eaten_first() -> void:
 	st["stock"] = {"FOOD": 1000 * S}
 	_seller(w, land, 50)
 	_buy_month(w)
-	check_eq(int(Households.month_of(w, pid)["food_bought"]), 0, "it holds enough: it buys nothing")
-	check_eq(int(st["stock"]["FOOD"]), (998 * S) - (998 * S) * 10 / 1000, "ate two, then 1% of the rest spoiled")
+	var m := Households.month_of(w, pid)
+	check_eq(int(m["food_bought"]), 2 * S, "it buys its month's food though it holds plenty (15f: the store is for emergencies)")
+	check_eq(int(m["store_eaten"]), 0, "nothing eaten from the store")
+	check_eq(int(m["store_bought"]), 0, "more than six months held: nothing bought for it")
+	check_eq(int(st["stock"]["FOOD"]), (1000 * S) - (1000 * S) * 10 / 1000, "1% of the store spoiled")
 
 
 func test_rent_after_food_and_what_is_left_unpaid_is_owed() -> void:
@@ -793,3 +797,156 @@ func test_the_landings_hires_start_trained_and_say_so() -> void:
 	check_eq(int(Company.payroll(w, a)[0]["since"]), w.month, "here since this month")
 	check_eq(Households.hire(w, a, "crew", "G", land, 3, {}, pay), 3, "a later hire")
 	check(not bool(Logbook.rows(w, {"kind": "HIRE"})[1]["why"]["trained"]), "trains")
+
+
+
+## The store (15f). A pool of ten with `money` credits exactly, and a farm with `qty` units at `price` credits.
+func _store_world(w: WorldState, land: String, money: int, qty: int, price: int) -> String:
+	if qty > 0:
+		var farm := _seller(w, land, qty)
+		Company.set_price(w, farm, "FOOD", price * S)
+	var pid := Households.seed_test(w, land, "I2", "G", 10)
+	w.ledger.transfer(Ledger.EXTERNAL, Households.account(pid), money * S - Households.savings(w, pid), "TEST", w.month)
+	return pid
+
+
+func test_a_pool_with_money_fills_its_store_to_six_months_and_stops_there() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var pid := _store_world(w, land, 100000, 500, 50)
+	_buy_month(w)
+	var m := Households.month_of(w, pid)
+	check_eq(int(m["food_bought"]), 10 * S, "the month's food")
+	check_eq(int(m["store_bought"]), 60 * S, "six months for the store")
+	check_eq(int(w.table("pool")[pid]["stock"]["FOOD"]), 60 * S - 60 * S * 10 / 1000, "held, less 1% spoiled")
+	check_eq(int(m["store_pm"]), 5940, "5.94 months held")
+	w.month += 1
+	_buy_month(w)
+	m = Households.month_of(w, pid)
+	check_eq(int(m["store_bought"]), 600, "next month only what spoiled: it stops at six months")
+	check_eq(int(m["store_eaten"]), 0, "and eats its month's food, not the store")
+	check_eq(Logbook.rows(w, {"kind": "STORE", "who": pid}).size(), 2, "one STORE row a month")
+
+
+func test_a_pool_with_money_for_its_food_only_holds_no_store() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var pid := _store_world(w, land, 500, 500, 50)
+	_buy_month(w)
+	var m := Households.month_of(w, pid)
+	check_eq(int(m["food_bought"]), 10 * S, "its food")
+	check(not (m["orders"] as Dictionary).has("FOOD_STORE"), "no store order: nothing left for it")
+	check_eq(int(w.table("pool")[pid]["stock"].get("FOOD", 0)), 0, "nothing held")
+
+
+func test_a_store_is_eaten_when_nothing_can_be_bought_and_hunger_comes_when_it_is_gone() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var pid := _store_world(w, land, 100000, 0, 0)
+	w.table("pool")[pid]["stock"] = {"FOOD": 20 * S}
+	_buy_month(w)
+	var m := Households.month_of(w, pid)
+	check_eq(int(m["store_eaten"]), 10 * S, "a month eaten from the store")
+	check_eq(int(m["hunger"]), 0, "nobody hungry")
+	check_eq(int(w.table("pool")[pid]["stock"]["FOOD"]), 9900, "ten left, less 1% spoiled")
+	w.month += 1
+	_buy_month(w)
+	m = Households.month_of(w, pid)
+	check_eq(int(m["store_eaten"]), 9900, "the rest of the store")
+	check_eq(int(m["hunger"]), 100, "hungry only for what spoiled away")
+	w.month += 1
+	_buy_month(w)
+	check_eq(int(Households.month_of(w, pid)["hunger"]), 10 * S, "the store gone: hungry")
+
+
+func test_a_drawn_down_store_is_refilled_at_once_even_when_food_is_dear() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var pid := _store_world(w, land, 100000, 500, 500)   # ten times the price above
+	w.table("pool")[pid]["stock"] = {"FOOD": 30 * S}
+	_buy_month(w)
+	check_eq(int(Households.month_of(w, pid)["store_bought"]), 30 * S, "back to six months at 500 a unit: it does not wait")
+
+
+func test_the_store_comes_from_what_the_months_food_and_the_rent_leave() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var pid := _store_world(w, land, 500 + 100 + 150, 500, 50)
+	w.ledger.open_account("test:landlord")
+	var rent := func(id: String) -> Dictionary: return {"test:landlord": 100 * S} if id == pid else {}
+	Households.post_orders(w, rent)
+	Market.clear(w)
+	Households.after_market(w)
+	var m := Households.month_of(w, pid)
+	check_eq(int(m["food_bought"]), 10 * S, "the month's food first")
+	check_eq(int(m["store_bought"]), 3 * S, "then three units from the 150 left after the rent")
+	check_eq(Households.savings(w, pid), 100 * S, "the rent's money is still there")
+	var sid := String(m["orders"]["FOOD_STORE"])
+	check_eq(int(Logbook.rows(w, {"kind": "ORDER", "ref": sid})[0]["why"]["qty"]), 3 * S,
+		"the store order asks only for what its money buys (Bob's review: no orders nobody can pay for)")
+
+
+func test_the_months_food_of_every_household_comes_before_anyones_store() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var rich := _store_world(w, land, 100000, 25, 50)
+	var poor := Households.seed_test(w, land, "I1", "G", 10)
+	w.ledger.transfer(Ledger.EXTERNAL, Households.account(poor), 500 * S - Households.savings(w, poor), "TEST", w.month)
+	_buy_month(w)
+	check_eq(int(Households.month_of(w, poor)["hunger"]), 0, "the poor household eats its month")
+	check_eq(int(Households.month_of(w, rich)["food_bought"]), 10 * S, "so does the rich one")
+	check_eq(int(Households.month_of(w, rich)["store_bought"]), 5 * S, "and stores only what was left")
+
+
+func test_a_founder_takes_a_households_share_of_the_store() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var pid := Households.seed_test(w, land, "I2", "G", 10)
+	w.table("pool")[pid]["stock"] = {"FOOD": 100 * S}
+	var fid := Households.make_founder(w, pid, "")
+	check_eq(int(Households.person(w, fid)["stock"]["FOOD"]), 10 * S, "one person of ten: a tenth of the store")
+	check_eq(int(w.table("pool")[pid]["stock"]["FOOD"]), 90 * S, "the rest stays: nothing appears or vanishes")
+
+
+
+func _area_food(w: WorldState) -> int:
+	var n := 0
+	for pid in Households.pools(w):
+		n += int(w.peek("pool")[pid].get("stock", {}).get("FOOD", 0))
+	return n
+
+
+func _area_money(w: WorldState) -> int:
+	var n := 0
+	for pid in Households.pools(w):
+		n += Households.savings(w, pid)
+	return n
+
+
+func test_savings_and_the_store_follow_people_through_a_split_and_a_merge() -> void:
+	var w := _world()
+	AreaStore.change_listeners = [func(world, moves): Demography.on_area_moves(world, moves)]
+	var l := Terrain.landing(w)
+	var a := AreaStore.place_housing(w, l, 300, "GOV")
+	var t2 := l + Vector2i(1, 0)
+	var rows: Array = w.table("map")["grid"]["rows"]
+	rows[t2.y] = String(rows[t2.y]).substr(0, t2.x) + "." + String(rows[t2.y]).substr(t2.x + 1)
+	AreaStore.place_housing(w, t2, 300, "GOV")
+	var pid := Households.seed_test(w, a, "I2", "G", 400)
+	w.table("pool")[pid]["stock"] = {"FOOD": 4000 * S}
+	w.ledger.transfer(Ledger.EXTERNAL, Households.account(pid), 40000 * S, "TEST", w.month)
+	var money := _area_money(w)
+	var b := AreaStore.split(w, a, [t2], "SETTLEMENT", "TEST")
+	var pb := Households.pool_id(b, "I2")
+	var nb := Households.persons(w, pb)
+	check(nb > 0, "people moved to the new area")
+	check_eq(int(w.peek("pool")[pb]["stock"]["FOOD"]), 4000 * S * nb / 400, "their part of the store went with them")
+	check_eq(_area_food(w), 4000 * S, "no food appears or vanishes")
+	check_eq(_area_money(w), money, "no money appears or vanishes")
+	check(Households.savings(w, pb) > 0, "and their part of the savings")
+	AreaStore.merge(w, b, a)   # a merges into b: everyone moves
+	check_eq(int(w.peek("pool")[pid].get("stock", {}).get("FOOD", 0)), 0, "the merged-away pool holds no food")
+	check_eq(Households.savings(w, pid), 0, "and no money")
+	check_eq(int(w.peek("pool")[pb]["stock"]["FOOD"]), 4000 * S, "all of it is where the people are")
+	check_eq(_area_money(w), money, "still no money appears or vanishes")
+	check(Logbook.rows(w, {"kind": "AREA"}).size() >= 2, "AREA rows")

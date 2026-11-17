@@ -463,6 +463,9 @@ const NEGOTIATE_MONTH := 7
 ## Departures (C13): of the unemployed young adults, per mille who leave on a ship in port, × how unattractive the
 ## colony looks (1 − attractiveness).
 const LEAVE_PM := 100
+## The household's food store (the user, plan 12.3 15f: "They stockplie to have have six months of food in storage, i
+## think as often as they can"): it aims to hold this many months of its food need.
+const STORE_MONTHS := 6
 
 const Market := preload("res://sim/economy/market.gd")
 const TypeTable := preload("res://sim/economy/type_table.gd")
@@ -472,7 +475,8 @@ static func _month_rec(world: WorldState, pid: String) -> Dictionary:
 	var p: Dictionary = world.table("pool")[pid]
 	if int(p.get("month", {}).get("m", -1)) != world.month:
 		p["month"] = {"m": world.month, "food_need": 0, "food_bought": 0, "food_eaten": 0, "hunger": 0, "hunger_money": 0,
-			"hunger_price": 0, "hunger_scarce": 0, "spoiled": 0, "rent_due": 0, "rent_paid": 0, "orders": {}}
+			"hunger_price": 0, "hunger_scarce": 0, "spoiled": 0, "rent_due": 0, "rent_paid": 0, "orders": {},
+			"store_bought": 0, "store_eaten": 0, "store_pm": 0}
 	return p["month"]
 
 
@@ -545,29 +549,73 @@ static func _stock(world: WorldState, id: String) -> Dictionary:
 ## pay per unit). Food is what a household needs first, so a unit of it is worth all the money set aside for food:
 ## max_price = the food line's budget. What the budget does not reach is a refusal of the price, which the sellers hear.
 ## Step 3 has food alone, so the food line's budget is all the buyer's money. One BUDGET row per buyer.
-static func post_orders(world: WorldState) -> int:
+## The store (15f, the user): the month's food is bought whole every month (the store is for emergencies, not for
+## eating instead of buying); then, from what is left after this month's food and the rent (Wilma's detail: food, rent,
+## then the store), a second order, AHEAD, toward STORE_MONTHS months of need held, at any price the money left can
+## pay ("if your running low and don't know how long the ossue will last i don't think you wait"). Its own budget, so
+## the month's eating is never crowded out by the store (Bob's Market clears every NEED order before any AHEAD one).
+## The store order asks only for what its money buys at today's cheapest offer (Bob's review: rule 7 founds farms on the
+## orders posted, and an order nobody can pay for is no work for a farm); with nothing on offer it posts none.
+## rent_of: the conductor's Landing.rent_due (as for pay_rent); rent owed from earlier months is set aside too.
+static func post_orders(world: WorldState, rent_of: Callable = Callable()) -> int:
 	var posted := 0
 	for b in buyers(world):
 		var id := String(b["id"])
+		var area := String(b["area"])
 		var need := int(b["persons"]) * int(NEED_PER_PERSON["FOOD"])
 		var held := int(_stock(world, id).get("FOOD", 0))
-		var qty := maxi(0, need - held)
 		var money := maxi(0, world.ledger.balance(String(b["acct"])))
 		var rec := _rec_of(world, id)
 		rec["food_need"] = need
-		if qty <= 0:
+		if need <= 0:
 			continue
+		var buyer := {"kind": "POOL", "id": id, "acct": String(b["acct"]), "area": area}
 		var food_budget := money   # food first: everything; rent and the rest are paid from what it leaves
 		var worth := food_budget
-		var by := food_by(world, String(b["area"]), qty, food_budget)
-		var oid := Market.order(world, {"kind": "POOL", "id": id, "acct": String(b["acct"]), "area": String(b["area"])}, "FOOD", qty,
-			worth, "NEED", food_budget, by)
+		var by := food_by(world, area, need, food_budget)
+		var oid := Market.order(world, buyer, "FOOD", need, worth, "NEED", food_budget, by)
 		if oid != "":
 			rec["orders"]["FOOD"] = oid
 			posted += 1
-		Logbook.note(world, "BUDGET", id, "food set aside first", {"need": need, "held": held, "money": money, "worth": worth,
-			"lines": {"FOOD": food_budget}, "by": by}, {"ordered": [0, qty]}, "", oid)
+		# the store, from what is left after this month's food (costed on this month's offers) and the rent
+		var food_cost := mini(money, food_cost_of(world, area, need))
+		var rent := rent_set_aside(world, id, rent_of)
+		var store_budget := maxi(0, money - food_cost - rent)
+		var want := maxi(0, STORE_MONTHS * need - held)
+		var cheapest := -1
+		for off in Market.offers(world, "FOOD", area):
+			if cheapest < 0 or int(off["price"]) < cheapest:
+				cheapest = int(off["price"])
+		if cheapest > 0:
+			want = mini(want, store_budget * S / cheapest)
+		elif cheapest < 0:
+			want = 0   # nothing on offer: nothing to store
+		var sid := ""
+		var sby := ""
+		if want > 0 and store_budget > 0:
+			sby = food_by(world, area, want, store_budget)
+			sid = Market.order(world, buyer, "FOOD", want, store_budget, "AHEAD", store_budget, sby)
+			if sid != "":
+				rec["orders"]["FOOD_STORE"] = sid
+				posted += 1
+		Logbook.note(world, "BUDGET", id, "food set aside first, then the rent, then the store", {"need": need, "held": held,
+			"money": money, "worth": worth, "lines": {"FOOD": food_budget, "FOOD_COST": food_cost, "RENT": rent, "STORE": store_budget},
+			"by": by, "store_by": sby, "store_want": want}, {"ordered": [0, need], "store_ordered": [0, want if sid != "" else 0]}, "", oid)
 	return posted
+
+
+## What a buyer sets aside for rent before its store (15f): this month's rent (rent_of, the landlord side's) and what it
+## still owes from earlier months.
+static func rent_set_aside(world: WorldState, id: String, rent_of: Callable) -> int:
+	var r: Dictionary = world.peek(PERSON_TABLE if id.begins_with("founder:") else "pool").get(id, {})
+	var total := 0
+	for la in (r.get("rent_owed", {}) as Dictionary):
+		total += int(r["rent_owed"][la])
+	if rent_of.is_valid():
+		var due: Dictionary = rent_of.call(id)
+		for la in due:
+			total += int(due[la])
+	return total
 
 
 ## How a household's food order is filled (15e, Wilma's decision): "less desirable" is a preference, not a reason to go
@@ -575,6 +623,12 @@ static func post_orders(world: WorldState) -> int:
 ## quarter dearer), ranks them so ("RANK"); one whose budget does not, takes the cheapest real price first ("PRICE"),
 ## so nobody goes hungry beside unsold ship food. Costed on this month's offers (Bob's Market.offers, in rank order).
 static func food_by(world: WorldState, area: String, qty: int, budget: int) -> String:
+	return "RANK" if food_cost_of(world, area, qty) <= budget else "PRICE"
+
+
+## What qty of food costs on this month's offers, bought in rank order; what is not on offer is costed at the dearest
+## offer walked (Bob's review). 0 with no offers.
+static func food_cost_of(world: WorldState, area: String, qty: int) -> int:
 	var cost := 0
 	var left := qty
 	var dearest := 0
@@ -586,7 +640,7 @@ static func food_by(world: WorldState, area: String, qty: int, budget: int) -> S
 		dearest = maxi(dearest, int(off["price"]))
 		left -= q
 	cost += left * dearest / S   # what is not on offer, costed at the dearest offer walked (Bob's review)
-	return "RANK" if cost <= budget else "PRICE"
+	return cost
 
 
 ## A buyer's month record (a pool's or an owner's).
@@ -596,13 +650,16 @@ static func _rec_of(world: WorldState, id: String) -> Dictionary:
 	var r: Dictionary = world.table(PERSON_TABLE)[id]
 	if int(r.get("month", {}).get("m", -1)) != world.month:
 		r["month"] = {"m": world.month, "food_need": 0, "food_bought": 0, "food_eaten": 0, "hunger": 0, "hunger_money": 0,
-			"hunger_price": 0, "hunger_scarce": 0, "spoiled": 0, "rent_due": 0, "rent_paid": 0, "orders": {}}
+			"hunger_price": 0, "hunger_scarce": 0, "spoiled": 0, "rent_due": 0, "rent_paid": 0, "orders": {},
+			"store_bought": 0, "store_eaten": 0, "store_pm": 0}
 	return r["month"]
 
 
 # ---------------------------------------------------------------- SETTLEMENT 3: what was bought
 
-## SETTLEMENT, after Market.clear: what each buyer bought goes into its stock; it eats the month's need from the stock;
+## SETTLEMENT, after Market.clear: what each buyer bought (its month's food and what it bought for its store, 15f) goes
+## into its stock; it eats the month's need from the stock: what it bought this month first, the store only when that
+## falls short (the user: "store it and use it in emergencies");
 ## what it could not eat is hunger, counted from need (23), split by why (Bob's Market.filled: NO_MONEY = no money,
 ## PRICE = refused the price, SOLD_OUT and NO_SELLER = none to be had); then the stock spoils at the item's rate.
 ## Facts: ECON_FAMINE, ECON_FOOD_SCARCE, ECON_FOOD_UNAFFORDABLE (Ella's paper 4b) from the colony's month.
@@ -618,10 +675,15 @@ static func after_market(world: WorldState) -> Dictionary:
 			got = Market.filled(world, oid)
 			st["FOOD"] = int(st.get("FOOD", 0)) + int(got.get("qty", 0))
 			rec["food_bought"] = int(got.get("qty", 0))
+		var sid := String(rec["orders"].get("FOOD_STORE", ""))
+		if sid != "":
+			rec["store_bought"] = int(Market.filled(world, sid).get("qty", 0))
+			st["FOOD"] = int(st.get("FOOD", 0)) + int(rec["store_bought"])
 		var need := int(rec["food_need"])
 		var eat := mini(need, int(st.get("FOOD", 0)))
 		st["FOOD"] = int(st.get("FOOD", 0)) - eat
 		rec["food_eaten"] = eat
+		rec["store_eaten"] = maxi(0, eat - int(rec["food_bought"]))   # the month's own food first, then the store
 		var hunger := need - eat
 		rec["hunger"] = hunger
 		if hunger > 0:
@@ -631,6 +693,7 @@ static func after_market(world: WorldState) -> Dictionary:
 		var sp := int(st.get("FOOD", 0)) * TypeTable.spoil_pm("FOOD") / 1000
 		st["FOOD"] = int(st.get("FOOD", 0)) - sp
 		rec["spoiled"] = sp
+		rec["store_pm"] = int(st.get("FOOD", 0)) * 1000 / maxi(1, need)   # months of need held, per mille
 		tot["need"] += need
 		tot["hunger"] += hunger
 		tot["money"] += int(rec["hunger_money"])
@@ -639,6 +702,9 @@ static func after_market(world: WorldState) -> Dictionary:
 		if hunger > 0 or sp > 0:
 			Logbook.note(world, "EAT", id, "food eaten", {"need": need, "bought": int(rec["food_bought"]), "why": got.get("why", "")},
 				{"hunger": [0, hunger], "spoiled": [0, sp], "stock": [0, int(st.get("FOOD", 0))]})
+		if need > 0:
+			Logbook.note(world, "STORE", id, "the food store", {"need": need, "months_pm": int(rec["store_pm"])},
+				{"bought": [0, int(rec["store_bought"])], "eaten": [0, int(rec["store_eaten"])], "stock": [0, int(st.get("FOOD", 0))]})
 	_food_facts(world, tot)
 	return tot
 
@@ -1086,6 +1152,9 @@ static func make_founder(world: WorldState, pid: String, ref: String, family: bo
 	var amt := mini(share, maxi(0, savings(world, pid)))
 	if amt > 0:
 		world.ledger.transfer(account(pid), id, amt, "FOUNDER_SAVINGS", world.month)
+	# and its share of the pool's food store (15f), per mouth: the store is months of each person's food, so the
+	# founder's household takes its persons' part of it (its money is a household's share; Terra's question)
+	move_store(world, pid, id, adults.size() + children, adults.size() + children + persons(world, pid) - int(counts(world, pid)["owners"]) / S)
 	Logbook.note(world, "FOUNDER", id, "a founder counted one by one", {"pool": pid, "skill": who["skill"], "was": who["status"],
 		"family": family}, {"money": [0, amt], "household": [0, adults.size() + children]}, pid, ref)
 	world.add_fact({"type": "COMP_COMPANY_PLANNED", "owner": "econ", "subjects": [{"kind": "FOUNDER", "id": id}], "responsible": [],
@@ -1149,6 +1218,24 @@ static func _carry_debts(world: WorldState, id: String, pool: String) -> int:
 	return owed
 
 
+## Moves num/den of one buyer's stock to another (a pool's or a founder's): the store follows the people who move, as
+## their savings do (a band move, a founder leaving the pool). Returns the food moved.
+static func move_store(world: WorldState, from_id: String, to_id: String, num: int, den: int) -> int:
+	if num <= 0 or den <= 0:
+		return 0
+	var src := _stock(world, from_id)
+	var dst := _stock(world, to_id)
+	var food := 0
+	for k in CoreUtil.sorted_keys(src):
+		var q := int(src[k]) * mini(num, den) / den
+		if q > 0:
+			src[k] = int(src[k]) - q
+			dst[k] = int(dst.get(k, 0)) + q
+			if String(k) == "FOOD":
+				food = q
+	return food
+
+
 ## Persons holding posts of `skill` in an area's band, over every company.
 static func _posts_of(world: WorldState, area: String, band: String, skill: String) -> int:
 	var lk := labour_key(area, band, skill)
@@ -1163,7 +1250,11 @@ static func _posts_of(world: WorldState, area: String, band: String, skill: Stri
 ## AreaStore's moves (through Demography.on_area_moves): a split leaves owners' households where they are; a merge
 ## moves everyone, so the founders of a merged-away area, and the stubs of carried debts, now live in the area it
 ## merged into, in the same band (Terra's review).
+## The pools' savings and food store follow their people (Terra's review of 15f): each source pool gives each
+## destination pool its share, persons moved there over persons moved out plus those left (a merge leaves nobody, so
+## it moves everything), of what the pool held before the moves. One AREA row per move.
 static func on_area_moves(world: WorldState, moves: Array) -> void:
+	_area_money_and_store(world, moves)
 	var into := {}
 	for m in moves:
 		if String(AreaStore.get_area(world, String(m["from"])).get("status", "")) == "MERGED":
@@ -1181,6 +1272,41 @@ static func on_area_moves(world: WorldState, moves: Array) -> void:
 		var a := String(c["pool"]).get_slice("|", 0)
 		if into.has(a):
 			c["pool"] = pool_id(String(into[a]), String(c["pool"]).get_slice("|", 1))
+
+
+static func _area_money_and_store(world: WorldState, moves: Array) -> void:
+	var out := {}   # source pool -> {destination area: persons}
+	for m in moves:
+		var src := pool_id(String(m["from"]), String(m["band"]))
+		if not world.peek("pool").has(src) or int(m["persons"]) <= 0:
+			continue
+		if not out.has(src):
+			out[src] = {}
+		out[src][String(m["to"])] = int(out[src].get(String(m["to"]), 0)) + int(m["persons"])
+	for src in CoreUtil.sorted_keys(out):
+		var moved := 0
+		for to_a in out[src]:
+			moved += int(out[src][to_a])
+		var den := moved + maxi(0, persons(world, src) - int(counts(world, src)["owners"]) / S)
+		var bal0 := maxi(0, savings(world, src))
+		var stock0: Dictionary = _stock(world, src).duplicate()
+		var band := String(world.peek("pool")[src]["band"])
+		for to_a in CoreUtil.sorted_keys(out[src]):
+			var n := int(out[src][to_a])
+			var dst := ensure_pool(world, String(to_a), band)
+			var amt := mini(maxi(0, savings(world, src)), bal0 * n / den)
+			if amt > 0:
+				world.ledger.transfer(account(src), account(dst), amt, "AREA_MOVE", world.month)
+			var food := 0
+			for k in CoreUtil.sorted_keys(stock0):
+				var q := mini(int(_stock(world, src).get(k, 0)), int(stock0[k]) * n / den)
+				if q > 0:
+					_stock(world, src)[k] = int(_stock(world, src)[k]) - q
+					_stock(world, dst)[k] = int(_stock(world, dst).get(k, 0)) + q
+					if String(k) == "FOOD":
+						food = q
+			Logbook.note(world, "AREA", src, "savings and food store follow the people who moved", {"to": to_a, "persons": n, "of": den},
+				{"savings": [0, amt], "store": [0, food]}, dst)
 
 
 ## The rest of a founder's household for a family company: for each adult a household of the pool has beyond one, one

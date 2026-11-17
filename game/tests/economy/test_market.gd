@@ -70,11 +70,35 @@ func test_a_short_good_is_shared_in_proportion() -> void:
 	var w := _w()
 	_farm(w, 30, 60 * S)
 	var a := Market.order(w, _buyer(w, "a", 100000 * S), "FOOD", 40 * S, 70 * S)
-	var b := Market.order(w, _buyer(w, "b", 100000 * S), "FOOD", 20 * S, 60 * S, "AHEAD")
+	var b := Market.order(w, _buyer(w, "b", 100000 * S), "FOOD", 20 * S, 60 * S)
 	Market.clear(w)
 	check_eq(int(Market.filled(w, a)["qty"]), 20 * S, "two thirds to the one who wanted twice as much")
-	check_eq(int(Market.filled(w, b)["qty"]), 10 * S, "a third: stocking up is an order like any other; no class goes first")
+	check_eq(int(Market.filled(w, b)["qty"]), 10 * S, "a third")
 	check_eq(Market.filled(w, a)["why"], "SOLD_OUT", "short because it was sold out")
+
+
+func test_stocking_up_is_filled_from_what_the_months_needs_leave() -> void:
+	var w := _w()
+	var f := _farm(w, 30, 60 * S)
+	var ahead := Market.order(w, _buyer(w, "a", 100000 * S), "FOOD", 40 * S, 70 * S, "AHEAD", 3000 * S)
+	var need := Market.order(w, _buyer(w, "b", 100000 * S), "FOOD", 20 * S, 60 * S)
+	Market.clear(w)
+	check_eq(int(Market.filled(w, need)["qty"]), 20 * S, "the month's food first, though the store's buyer would pay more")
+	check_eq(int(Market.filled(w, ahead)["qty"]), 10 * S, "the store from what is left")
+	check_eq(Market.filled(w, ahead)["why"], "SOLD_OUT", "short because it was sold out")
+	var sig: Dictionary = Company.record(w, f)["market"]["FOOD"]
+	check_eq([int(sig["sold"]), int(sig["unmet_above"]), int(sig["refused"])], [30 * S, 0, 0],
+		"what the store bought is a sale; the store it could not fill is no customer turned away (9.3)")
+	var sm := Market.summary(w, "FOOD")
+	check_eq([int(sm["ordered"]), int(sm["store_wished"]), int(sm["store_short"]), int(sm["unfilled"]["SOLD_OUT"])],
+		[20 * S + 10 * S, 40 * S, 30 * S, 0], "rule 7's spending counts the meal ordered and what the store bought, not the store's wish")
+	var w2 := _w()
+	_farm(w2, 30, 60 * S)
+	var ahead2 := Market.order(w2, _buyer(w2, "a", 100000 * S), "FOOD", 40 * S, 70 * S, "AHEAD", 1200 * S)
+	var need2 := Market.order(w2, _buyer(w2, "b", 100000 * S), "FOOD", 20 * S, 50 * S)
+	Market.clear(w2)
+	check_eq(int(Market.filled(w2, need2)["qty"]), 0, "a meal its buyer will not pay this price for is no claim on the offer")
+	check_eq(int(Market.filled(w2, ahead2)["qty"]), 20 * S, "the stock-up order spends its own budget only: 1200 at 60")
 
 
 func test_why_an_order_is_short() -> void:

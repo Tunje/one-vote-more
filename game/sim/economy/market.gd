@@ -38,14 +38,16 @@ const S := 1000
 
 # ---------------------------------------------------------------- orders
 
-## Posts an order to buy, for this month's clear. buyer: {"kind": COMPANY|POOL|PLAN|GOV|SITE, "id": ..., "acct": its ledger
-## account, "area": where it buys}. max_price: the most it will AND can pay per unit, milli-credits (0 = it can pay
-## nothing: the order is NO_MONEY). kind: NEED (an ordinary order) or AHEAD (stocking up, plan 9.3); both are real
-## orders with money behind them and count alike. budget: the most this order may spend in all, milli-credits (-1: no
-## limit beyond the buyer's account). A buyer that sets money aside line by line (households: food, rent, then water
-## and power) gives each order its line's money as budget, so no order spends another's money; when the budget runs
-## out at the seller's price the order buys less, and its rest is a refusal of the price (23a), as when an account
-## runs out. Returns the order id, or "" if refused (bad buyer, item or numbers).
+## Posts an order to buy, for this month's clear. buyer: {"kind": COMPANY|POOL|PLAN|GOV|SITE, "id": ..., "acct": its
+## ledger account, "area": where it buys}. max_price: the most it will AND can pay per unit, milli-credits (0 = it can
+## pay nothing: the order is NO_MONEY). kind: NEED (an ordinary order) or AHEAD (stocking up, plan 9.3, 15f). An AHEAD
+## order buys only what the NEED orders leave at today's price (nobody's store is filled while another's meal goes
+## unbought at the same price); what it buys is a sale like any other, but its shortfall is not unmet demand or a
+## refusal for the sellers' rules 1 to 4, and not work for rule 7 (Wilma's decision, 9.3). budget: the most this order
+## may spend in all, milli-credits (-1: no limit beyond the buyer's account). A buyer that sets money aside line by line
+## (households: food, rent, then water and power) gives each order its line's money as budget, so no order spends
+## another's money; when the budget runs out at the seller's price the order buys less, and its rest is a refusal of the
+## price (23a), as when an account runs out. Returns the order id, or "" if refused (bad buyer, item or numbers).
 ## by: RANK (the default: ship goods counted dearer, 15e) or PRICE (a buyer whose money does not cover its whole need
 ## takes the cheapest real price first: "less desirable" is a preference, not a reason to go hungry; Wilma, 15e).
 static func order(world: WorldState, buyer: Dictionary, item: String, qty_milli: int, max_price: int, kind: String = "NEED", budget: int = -1, by: String = "RANK") -> String:
@@ -151,49 +153,51 @@ static func _clear_book(world: WorldState, st: Dictionary, item: String, area: S
 	# cover its whole need: Wilma, 15e) in real price order. Offers are visited in rank order; each shares what it has
 	# left among the orders it is the next offer for, pro rata by what they still want; passes repeat while anything
 	# moves (an order whose cheaper offer ran out turns to its next one). With every order RANK this is one sale per
-	# offer in rank order, shared among all who would pay it, as before.
+	# offer in rank order, shared among all who would pay it, as before. All this runs first for the NEED orders, then
+	# for the AHEAD orders with what is left (15f, Wilma's brief: stocking up comes after every buyer's month).
 	var left: Array = offs.map(func(off): return int(off["qty"]))
 	var by_price: Array = range(offs.size())
 	by_price.sort_custom(func(a, b): return int(offs[a]["price"]) < int(offs[b]["price"]) or (int(offs[a]["price"]) == int(offs[b]["price"]) and int(a) < int(b)))
-	var progress := true
-	while progress:
-		progress = false
-		for i in offs.size():
-			var seller := String(offs[i]["seller"])
-			var price := int(offs[i]["price"])
-			# share among the orders this offer is next for; repeat while money shortfalls free some of the offer
-			while int(left[i]) > 0:
-				var takers: Array = []
-				var weights: Array = []
-				for oid in oids:
-					var o: Dictionary = st["orders"][oid]
-					var want := int(o["qty"]) - int(o["got"])
-					if want > 0 and not bool(o["broke"]) and _next_offer(offs, left, by_price, o) == i:
-						takers.append(oid)
-						weights.append(float(want))
-				if takers.is_empty():
-					break
-				var total := 0
-				for wv in weights:
-					total += int(wv)
-				var shares: Array = CoreUtil.split_lr(mini(int(left[i]), total), weights)
-				var moved := 0
-				for k in takers.size():
-					var q := int(shares[k])
-					if q <= 0:
-						continue
-					var got := _sell(world, st, seller, String(takers[k]), item, q, price)
-					moved += got
-					if got > 0:
-						sales += 1
-						if not st.has("last"):
-							st["last"] = {}
-						st["last"][item + "|" + area] = {"price": price, "m": world.month}
-				left[i] = int(left[i]) - moved
-				sig[seller]["sold"] = int(sig[seller]["sold"]) + moved
-				if moved == 0:
-					break
-				progress = true
+	for kind in KINDS:
+		var progress := true
+		while progress:
+			progress = false
+			for i in offs.size():
+				var seller := String(offs[i]["seller"])
+				var price := int(offs[i]["price"])
+				# share among the orders this offer is next for; repeat while money shortfalls free some of the offer
+				while int(left[i]) > 0:
+					var takers: Array = []
+					var weights: Array = []
+					for oid in oids:
+						var o: Dictionary = st["orders"][oid]
+						var want := int(o["qty"]) - int(o["got"])
+						if String(o["kind"]) == kind and want > 0 and not bool(o["broke"]) and _next_offer(offs, left, by_price, o) == i:
+							takers.append(oid)
+							weights.append(float(want))
+					if takers.is_empty():
+						break
+					var total := 0
+					for wv in weights:
+						total += int(wv)
+					var shares: Array = CoreUtil.split_lr(mini(int(left[i]), total), weights)
+					var moved := 0
+					for k in takers.size():
+						var q := int(shares[k])
+						if q <= 0:
+							continue
+						var got := _sell(world, st, seller, String(takers[k]), item, q, price)
+						moved += got
+						if got > 0:
+							sales += 1
+							if not st.has("last"):
+								st["last"] = {}
+							st["last"][item + "|" + area] = {"price": price, "m": world.month}
+					left[i] = int(left[i]) - moved
+					sig[seller]["sold"] = int(sig[seller]["sold"]) + moved
+					if moved == 0:
+						break
+					progress = true
 	# why each order is short
 	var cheapest_left := -1   # the cheapest offer left unsold, to tell a refusal of the price from sold out
 	for off in offs:
@@ -216,9 +220,10 @@ static func _clear_book(world: WorldState, st: Dictionary, item: String, area: S
 			o["why"] = "PRICE"
 		else:
 			o["why"] = "SOLD_OUT"
-		Logbook.note(world, "ORDER", String(o["buyer"]["id"]), "order short", {"item": item, "why": o["why"], "max": o["max"]},
-			{"short": [0, short]}, "", oid)
-		_turned_away(world, sig, o, short)
+		Logbook.note(world, "ORDER", String(o["buyer"]["id"]), "order short", {"item": item, "why": o["why"], "max": o["max"],
+			"kind": o["kind"]}, {"short": [0, short]}, "", oid)
+		if String(o["kind"]) == "NEED":
+			_turned_away(world, sig, o, short)   # a store that could not be filled is no customer turned away (9.3)
 	for s in sig:
 		world.table(Company.TABLE)[s]["market"][item] = sig[s]
 	return sales
@@ -319,14 +324,23 @@ static func _sell(world: WorldState, st: Dictionary, seller: String, oid: String
 	return afford
 
 
+## A book's month: "ordered" is what buyers spent or tried to spend (15a): every NEED order whole, and of an AHEAD order
+## only what it bought (9.3); "unfilled" is the NEED orders' shortfall by why; "store_wished" and "store_short" are the
+## AHEAD orders' whole quantity and what they did not get.
 static func _summarise(st: Dictionary, oids: Array) -> Dictionary:
-	var out := {"ordered": 0, "filled": 0, "paid": 0, "unfilled": {"NO_MONEY": 0, "PRICE": 0, "SOLD_OUT": 0, "NO_SELLER": 0}}
+	var out := {"ordered": 0, "filled": 0, "paid": 0, "unfilled": {"NO_MONEY": 0, "PRICE": 0, "SOLD_OUT": 0, "NO_SELLER": 0},
+		"store_wished": 0, "store_short": 0}
 	for oid in oids:
 		var o: Dictionary = st["orders"][oid]
-		out["ordered"] += int(o["qty"])
+		var short := int(o["qty"]) - int(o["got"])
 		out["filled"] += int(o["got"])
 		out["paid"] += int(o["paid"])
-		var short := int(o["qty"]) - int(o["got"])
+		if String(o["kind"]) == "AHEAD":
+			out["ordered"] += int(o["got"])
+			out["store_wished"] += int(o["qty"])
+			out["store_short"] += maxi(0, short)
+			continue
+		out["ordered"] += int(o["qty"])
 		if short > 0 and WHYS.has(String(o["why"])):
 			out["unfilled"][o["why"]] += short
 	return out
@@ -339,11 +353,13 @@ static func last_settled_month(world: WorldState) -> int:
 	return int(world.peek(TABLE).get("settled", -1))
 
 
-## One month's figures for an item: {"ordered", "filled", "paid", "avg_price", "unfilled": {why: qty}}. area "" sums
+## One month's figures for an item: {"ordered", "filled", "paid", "avg_price", "unfilled": {why: qty}, "store_wished",
+## "store_short"} (see _summarise: a store order counts in "ordered" only for what it bought). area "" sums
 ## every area; month -1 is the last settled month. All zero for a month or item with no orders.
 static func summary(world: WorldState, item: String, area: String = "", month: int = -1) -> Dictionary:
 	var m := last_settled_month(world) if month < 0 else month
-	var out := {"ordered": 0, "filled": 0, "paid": 0, "avg_price": 0, "unfilled": {"NO_MONEY": 0, "PRICE": 0, "SOLD_OUT": 0, "NO_SELLER": 0}}
+	var out := {"ordered": 0, "filled": 0, "paid": 0, "avg_price": 0, "unfilled": {"NO_MONEY": 0, "PRICE": 0, "SOLD_OUT": 0, "NO_SELLER": 0},
+		"store_wished": 0, "store_short": 0}
 	var sums: Dictionary = world.peek(TABLE).get("sum", {}).get(str(m), {})
 	for k in sums:
 		if String(k).get_slice("|", 0) != item:
@@ -351,7 +367,7 @@ static func summary(world: WorldState, item: String, area: String = "", month: i
 		if area != "" and String(k).substr(item.length() + 1) != area:
 			continue
 		var s: Dictionary = sums[k]
-		for f in ["ordered", "filled", "paid"]:
+		for f in ["ordered", "filled", "paid", "store_wished", "store_short"]:
 			out[f] += int(s[f])
 		for w in WHYS:
 			out["unfilled"][w] += int(s["unfilled"][w])

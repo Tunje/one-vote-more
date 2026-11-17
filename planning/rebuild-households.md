@@ -194,8 +194,16 @@ The households' month is built against Wilma's joins (rebuild-step3-joins.md): b
   - What the budget does not reach is a refusal of the price, which the sellers hear (23a). A pool with half the money for its food buys half its food.
   - In step 3 households post food only, so the food line is all their money and the rent is paid from what it leaves.
   - Watch item (Bob): with food's worth = the whole food budget, a food order never refuses through its price, only by running out of money. So the farms' prices are held up only by how much money households have. That fits food alone in step 3: a hungry household pays what it has. When bread and other foods come (step 4), food gets a worth per unit below the whole budget, so households can switch or eat less at a high price.
-- **Stocking up:** not built in this piece. Households post their month's need only. Stocking up when a price is under a good's worth (9.3) is in Bob's piece; the household side's "worth" is to be agreed with him.
-- **The negotiation's terms:**
+- **The food store (the user, rebuild-company 12.3, 15f; built by Maja with Bob, 2026-11-17):**
+  - A household (a pool, a founder, a family on its farm) aims to hold six months of its food need (STORE_MONTHS).
+  - Each month it buys its whole month's food (NEED). The store is for emergencies; it does not eat from the store instead of buying.
+  - Then a second order, AHEAD, goes toward six months held. Its budget is the money left after the month's food (costed on this month's offers) and the rent (this month's plus what is owed). It pays any price it can. It asks only for what that budget buys at today's cheapest offer (Bob: rule 7 founds farms on orders posted). It posts none when nothing is on offer.
+  - Bob's Market clears every NEED order before any AHEAD order, so no household's store takes another's month's food. A store order's shortfall is no unmet demand or refusal for the sellers' rules and no work for rule 7 (Wilma's decision); what it buys is a sale like any other.
+  - It eats what it bought this month first and the store only when that falls short. The store spoils like any food. It refills at once.
+  - The store follows people as savings do: on a band move in proportion, and a founder takes its persons' part (per mouth).
+  - On an area split or merge, the pools' savings and store follow the people moved (Terra's review). Before, a merge stranded both in the merged-away pool. One AREA row per move.
+  - Log: one STORE row per buyer per month (months held, bought for the store, eaten from the store). The BUDGET row shows the FOOD, RENT and STORE lines.
+  - This replaces the earlier two-month cap for households' food. Companies' inputs keep theirs (making.gd).- **The negotiation's terms:**
   - It happens once a year, in July. Wilma said "once a year"; the month is mine.
   - The manager meets the worker halfway to the average, when the company's account holds a year of the rise.
   - A refusal is a log row.
