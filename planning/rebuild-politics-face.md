@@ -377,6 +377,10 @@ wages or gets its subsidy (Anni's review of step 2).
 runway, not in the balance's income. Step 5 must add the memo of every loan the bank makes to the purse (12.8, 50), or
 the balance counts debt as revenue, and decide whether repayments show apart from spending (Anni's review). Open for
 Wilma: whether selling the landing stock (12.2, 9) is income or the sale of an asset (capital); Anni leans to capital.
+Decided (Wilma): capital. Step 3 gives the stock sales the memo `LANDING_STOCK_SALE` and adds it to CAPITAL_MEMOS. The
+sales are first paid into Colony Stores' own `co:` account, which is outside the purse. So the memo must be on the
+payment that brings that money INTO a `gov:` account (the Stores' payment to the treasury), not only on the sale.
+Otherwise the money enters the purse under another memo (a dividend, a transfer) and counts as income after all.
 
 **The purse is every `gov:` account** (step 2, `econ_publish.gd`): the treasury, the law's fines account and any other
 the government keeps apart. Its income, spending and balance count them together.
