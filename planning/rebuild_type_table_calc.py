@@ -14,7 +14,7 @@ B={"FARM":(240,240,12,4),"BAKERY":(300,240,24,4),"MINE":(600,480,72,6),"PROCESSI
 "SANITATION":(240,240,12,3)}
 # rows: type -> list of lines (out item or clients kind, qty, inputs, labour)
 R={
-"FARM":[("FOOD",300,{},dict(G=18,S=5,Sp=1))],
+"FARM":[("FOOD",156,{},dict(G=18,S=5,Sp=1))],
 "BAKERY":[("BREAD",1500,{"FOOD":1300,"ENERGY":3000,"WATER":1500},dict(G=12,S=5,Sp=1)),
           ("FINE_FOOD",400,{"FOOD":700,"ENERGY":3000,"WATER":1000},dict(G=10,S=6,Sp=2))],
 "MINE":[("MINERAL",2000,{"ENERGY":8000,"WATER":2000},dict(G=20,S=8,Sp=2))],
@@ -63,6 +63,7 @@ def cost(t,line):
     return L,I,upkeep(t)
 rent_home=0
 for it in range(200):
+    seen=set()
     for t,lines in R.items():
         for ln in lines:
             item,q,_,_=ln
@@ -74,7 +75,8 @@ for it in range(200):
             N = 13.5 if t=="OFFICEBLOCK" else 10.0
             mk=(L+I+U)/q + billcost(t)*(1+LAND_SHARE)/(N*12)/q
             if item.startswith("@"): SVC[t if len(lines)==1 or item!="TRUCK" else t]=mk
-            else: P[item]=mk
+            else:
+                P[item]=min(P[item],mk) if item in seen else mk; seen.add(item)  # an item two rows make starts at the cheaper
     pass
 shelter=W["G"]/1.2-HH_PERS*P["FOOD"]
 out=dict(P=P,SVC=SVC,W={k:wage(k) for k in TIER},rent_home=rent_home,shelter=shelter)
@@ -118,7 +120,7 @@ for t in B:
     print(f"{t} | {bw*share:.0f}/{m*share:.0f}/{c*share:.1f}, {months} | {build:,.0f} | {land:,.0f} | {open3:,.0f} | {tot:,.0f} | {tot2:,.0f} | {g:,} | {band(tot)} / {band(tot2)}")
 print(SAV)
 # family farm economics
-q=300/6*0.94; rev=q*P["FOOD"]; _,_,inp,lab=R["FARM"][0]
+q=R["FARM"][0][1]/6*0.94; rev=q*P["FOOD"]; _,_,inp,lab=R["FARM"][0]
 cost=(sum(wage(k)*n for k,n in lab.items())+240/400*P["MATERIAL"]+0.02*240/12*P["BW"])/6
 print("family farm: food/month",q,"revenue",round(rev),"costs",round(cost))
 # landing stock

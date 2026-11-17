@@ -27,6 +27,15 @@ One rule for every item and every service, so no type is priced by hand. **(Bob)
   years" (9.8).
 - **The anchor:** the general-skill salary is 300 credits a month. Every price follows from that one number, so the
   whole table scales with it, and changing it changes nothing relative.
+- **The salary formula holds at landing** (plan 12.5, 37 as Wilma revised it: the starting salary carries a household,
+  1.5 × (the rent of a home in the area + the food of a household of 2.5), no division by earners).
+  - With the landing shelter at half a new house's rent (48 against 97), it gives back 300 only for one farm output:
+    **a full farm makes 156 FOOD a month.** That is the number the calculator solves for: 1.5 × (48 + 2.5 × 60.7) =
+    300.
+  - Because every price moves with the salary, this holds at any salary level: it is a property of the rows, not of
+    the 300.
+  - A worker's needs, below which they do not apply for a job, are the same household's rent and food: 200, which is
+    two-thirds of the starting salary (12.5, 38).
   - Skilled is 1.5 times the general salary (450) and specialist 2.25 times (675). **(Bob)** These ratios keep a
     specialist post worth training for (12.11, 85) without making a specialist a different class.
 - **Money:** credits. The code keeps them at fixed point × 1000 (CoreUtil.S), as now.
@@ -37,15 +46,15 @@ This rule sets the START only. From month two every price is the company's own, 
 
 | Item | Unit | Starting price (cr) | Freight mass per unit | Spoils per month | Notes |
 |---|---|---|---|---|---|
-| FOOD | one person's basic food for a month | 31.5 | 1 | 1% | raw farm produce; a person eats 1 a month (FOOD or BREAD) |
-| BREAD | as FOOD | 33.1 | 1 | 25% | the households' preferred staple (econ_staple's place); counts as food |
-| FINE_FOOD | one portion-month | 78 | 1 | 10% | delicatessen; cafés use it |
+| FOOD | one person's basic food for a month | 60.7 | 1 | 1% | raw farm produce; a person eats 1 a month (FOOD or BREAD) |
+| BREAD | as FOOD | 58.3 | 1 | 25% | the households' preferred staple (econ_staple's place); counts as food |
+| FINE_FOOD | one portion-month | 129 | 1 | 10% | delicatessen; cafés use it |
 | MINERAL | one tonne of ore | 7.7 | 2 | none | |
 | MATERIAL | one tonne of processed building material | 37.1 | 2 | none | Otto's bills are in this unit |
 | COMPONENT | one crate of machined parts | 138 | 1 | none | about 4 MATERIAL in worth |
-| TRUCK | one truck | 6,970 | drives itself | wears (plan 7) | ordered from a maker (12.4, 32); built with a quality |
+| TRUCK | one truck | 6,426 | drives itself | wears (plan 7) | ordered from a maker (12.4, 32); built with a quality. Two rows make it; it starts at the cheaper maker's price (the components works'), since a buyer takes the cheaper offer (Otto's review) |
 | CONSUMER | one household good | 18.7 | 1 | none | |
-| CLOTHING | one garment-set | 16.4 | 1 | none | |
+| CLOTHING | one garment-set | 19.3 | 1 | none | |
 | FURNISHINGS | one piece | 63.9 | 2 | none | |
 | MEDICAL | one treatment-kit | 27.3 | 1 | 0.5% | clinics and eldercare use it |
 | ENERGY | one unit on the grid | 0.189 | grid only | cannot be stocked (12.7) | |
@@ -68,7 +77,7 @@ demand):**
 - 0.05 MEDICAL through the clinic.
 
 At the starting prices a household of 2.5 people spends:
-- 79 cr on food;
+- 152 cr on food (146 if it eats bread, which is the cheaper of the two);
 - 35 cr on power and water;
 - its rent (section 6).
 
@@ -85,7 +94,7 @@ All are **(Bob)**, to be set in testing.
 
 | Type | Output (first / second) | Quantity | Inputs per month | Labour G/S/Sp (occupation) | Pollution | Noise | Accidents | Hazard |
 |---|---|---|---|---|---|---|---|---|
-| FARM | FOOD | 300 | none at the start (see note 1) | 18/5/1 (agriculture, outdoor) | 10 | 1 | 8 | |
+| FARM | FOOD | 156 | none at the start (see note 1) | 18/5/1 (agriculture, outdoor) | 10 | 1 | 8 | |
 | BAKERY | 1st BREAD | 1,500 | FOOD 1,300, ENERGY 3,000, WATER 1,500 | 12/5/1 (food trades) | 5 | 1 | 4 | |
 | BAKERY | 2nd FINE_FOOD | 400 | FOOD 700, ENERGY 3,000, WATER 1,000 | 10/6/2 (food trades) | 5 | 1 | 4 | |
 | MINE | MINERAL | 2,000 | ENERGY 8,000, WATER 2,000 | 20/8/2 (mining, outdoor) | 40 | 5 | 25 | yes |
@@ -117,7 +126,7 @@ Notes:
 |---|---|---|---|---|---|---|
 | BUILDER | building work, BW | 60 BW | none; the job's material is the client's (Otto 4.5) | 36/18/6 (construction, outdoor) | 392 per BW, material on top at what the builder paid | 5 / 3 / 20 |
 | HAULIER | freight, per unit-km | 6 trucks × 6,000 unit-km = 36,000 | ENERGY 2,000 a truck | 2/6/0 (transport) | 0.194 per unit-km, per route by the rules (12.4, 30) | 10 / 3 / 15 |
-| TRUCKSHOP | 1st bay work on a truck: 12 repairs; 2nd TRUCK: 1 | 12 bays / 1 truck | repair: COMPONENT 6, ENERGY 2,000; truck: MATERIAL 15, COMPONENT 10, ENERGY 2,000 | 2/5/1 (transport trades) | 488 a repair; TRUCK 6,970 | 5 / 3 / 6 |
+| TRUCKSHOP | 1st bay work on a truck: 12 repairs; 2nd TRUCK: 1 | 12 bays / 1 truck | repair: COMPONENT 6, ENERGY 2,000; truck: MATERIAL 15, COMPONENT 10, ENERGY 2,000 | 2/5/1 (transport trades) | 488 a repair; TRUCK 6,426 (the item's price) | 5 / 3 / 6 |
 | LANDLORD | homes | a block of 50 homes | none; upkeep (Otto's column) | 2/0/0 caretakers (property) | rent 97 a month for a new house on an ordinary cell, by 9.8's formula | 0 / 0 / 1 |
 | OFFICEBLOCK | office places (7, the office bonus) | 10 places | ENERGY 4,000, WATER 1,000 | 2/0/0 (property) | 256 a place a month | 1 / 1 / 1 |
 | BANK | loans (12.8, 50) | 60 loans managed | ENERGY 1,000 | 2/6/4 (finance) | its price is the interest rate: 0.5% a month at the start **(Bob)** | 1 / 1 / 1 |
@@ -156,14 +165,14 @@ column is what one client costs at full use. That is what the bracket starts fro
 | Type | Client | Clients per full unit | Inputs per month | Labour G/S/Sp (occupation) | Price per client-month | Reach |
 |---|---|---|---|---|---|---|
 | SHOP | a household that shops there | 400 | ENERGY 3,000 | 8/2/0 (retail) | see note | town grid |
-| CAFE | a visit | 1,500 | FOOD 150, FINE_FOOD 60, ENERGY 3,000, WATER 2,000 | 8/2/0 (hospitality) | 9.7 | town grid |
+| CAFE | a visit | 1,500 | FOOD 150, FINE_FOOD 60, ENERGY 3,000, WATER 2,000 | 8/2/0 (hospitality) | 14.7 | town grid |
 | SERVICEHUB | a household (repairs, laundry, hairdressing) | 300 | ENERGY 2,000, WATER 1,000 | 6/4/0 (personal services) | 17.4 | town grid |
-| CHILDCARE | a child | 120 | FOOD 60, ENERGY 2,000, WATER 1,000 | 4/10/1 (care) | 82 | town grid |
-| ELDERCARE | a resident | 80 | FOOD 80, MEDICAL 20, ENERGY 3,000, WATER 2,000 | 8/10/2 (care) | 165 | town grid |
+| CHILDCARE | a child | 120 | FOOD 60, ENERGY 2,000, WATER 1,000 | 4/10/1 (care) | 97 | town grid |
+| ELDERCARE | a resident | 80 | FOOD 80, MEDICAL 20, ENERGY 3,000, WATER 2,000 | 8/10/2 (care) | 194 | town grid |
 | CLINIC | a person covered | 2,000 | MEDICAL 80, ENERGY 4,000, WATER 2,000 | 4/10/6 (health) | 7.6 | 2 km (12.6, 43) |
 | SCHOOL | a pupil | 300 | MATERIAL 5, ENERGY 3,000, WATER 1,000 | 2/12/4 (education) | 39 | 1.5 km (12.6, 43) |
 | POLICE | a resident of its area | 2,500 | ENERGY 2,000 | 4/10/1 (public order) | 3.4 | its area |
-| PRISON | a prisoner place | 50 | FOOD 50, ENERGY 3,000, WATER 2,000 | 4/10/1 (public order) | 232 | the colony |
+| PRISON | a prisoner place | 50 | FOOD 50, ENERGY 3,000, WATER 2,000 | 4/10/1 (public order) | 261 | the colony |
 | ADMIN | a resident | 3,000 | ENERGY 2,000 | 4/8/3 (public administration) | 3.0 | its area |
 | TRANSIT | a rider (12.5, 40: buses) | 1,000 | ENERGY 20,000 | 2/10/0 (transport) | 10.3 | its lines |
 | SANITATION | a home or plant collected from | 1,500 | ENERGY 4,000, WATER 6,000 | 10/2/0 (sanitation, outdoor) | 4.2 | its area |
@@ -236,8 +245,8 @@ Every row comes in all four sizes ("All company types needs to be able to be cre
 - **A family company is one household.**
   - A family farm's 4 workers (3 general, 1 skilled) are mostly the founding household. The row asks for 4 posts;
     who fills them is hiring.
-  - At the starting prices a family farm makes 47 FOOD a month, worth 1,483. Its wages and upkeep are 1,417. It pays
-    its family a living, not its building back; that is what the grant is for.
+  - At the starting prices a family farm makes 24.4 FOOD a month, worth 1,483. Its wages and upkeep are 1,417. It
+    pays its family a living, not its building back; that is what the grant is for.
 
 ## 8. Build bills (agreed with Otto)
 
@@ -288,7 +297,7 @@ other services. Both carry their vehicles as fleet, not in the bill (section 4).
 | Land | 10% of the building's bill, as for homes (9.8) | Terra owns the land price; this is a stand-in |
 | A founder's opening money | three months of running costs (Otto 4.2) | counted both with and without |
 | The home world's price for a good it sells | 2 × the colony's starting price **(Bob)** | 12.11, 105 sets that it moves |
-| The landing stock: material | 9,700 MATERIAL and 1,070 COMPONENT | **(Bob)** see 9.4 |
+| The landing stock: material | 9,700 MATERIAL and 1,060 COMPONENT | **(Bob)** see 9.4 |
 | The landing stock: food | 12 months for the founding population (Wilma's addition, 12.2, 9) | |
 
 ### 9.2 Can a settler found a family farm, and a truck driver?
@@ -296,7 +305,7 @@ other services. Both carry their vehicles as fleet, not in the bill (section 4).
 | Plan (family size) | Building | Land | Opening money | Total | Grant | Who can (with opening / without) |
 |---|---|---|---|---|---|---|
 | **Family farm** (40 BW, 40 MAT, 2 COMP, 3 months) | 17,440 | 1,740 | 4,250 | 23,440 | 15,000 | I4 and up / I3 and up |
-| **Truck driver** (one truck from the home world, no building) | 13,940 | none | 2,890 | 16,830 | 10,000 | I3 and up / I3 and up |
+| **Truck driver** (one truck, no building) | 12,850 (from the home world at twice the price) | none | 2,890 | 15,740 | 10,000 | I3 and up / I2 and up |
 
 - **Yes for both,** from the middle band up.
   - The farm's "three months of material up front" is all of its 40 MATERIAL and 2 COMPONENT (1,760 cr). A family
@@ -307,7 +316,8 @@ other services. Both carry their vehicles as fleet, not in the bill (section 4).
     arrives on its next call, which is a year and a half or more away (9.6).
   - In step 3 that does not matter (no freight until step 4). In a full game, the first colony-made truck needs a
     components works, which no settler can pay for without the bank (9.3).
-  - Whether the landing stock holds trucks is open (Otto 4.1, for the user).
+  - Wilma has decided the landing stock holds trucks, enough for the first truck drivers (step-2 brief), so the first
+    drivers need not wait for a ship.
 
 ### 9.3 Which types can be paid from savings and a grant alone (no bank until step 5)
 
@@ -315,7 +325,8 @@ At family size, the poorest band whose savings (with the grant, where the type h
 
 | Can | Types |
 |---|---|
-| I3 and up | family farm (without opening money), truck driver |
+| I2 and up | truck driver (without opening money) |
+| I3 and up | family farm (without opening money), truck driver (with opening money) |
 | I4 and up | family farm (with opening money), truck workshop, family bakery (without opening money) |
 | I5 only | family bakery (with opening money); SERVICEHUB, SHOP, CAFE, CHILDCARE, ELDERCARE, BANK, NEWSPAPER, SANITATION, OFFICEBLOCK, POLICE, ADMIN, TRANSIT, BUILDER (21,000 to 32,000); TEXTILE and FURNITURE without opening money (33,850) |
 | nobody | MINE, PROCESSING, COMPONENTS, CONSUMERF, MEDWORKS, POWER, WATERWORKS, CLINIC, SCHOOL, PRISON (38,000 to 72,000), and a family landlord (8 homes, 92,000) |
@@ -339,8 +350,8 @@ What follows for step 3 (a result to report, not a number to change):
 average mix of Otto's bills**. **(Bob)**
 
 - The five builders are 3 full units (Otto 4.1), so 180 BW a month: 10,800 BW in five years.
-- Otto's bills average 0.90 MATERIAL and 0.099 COMPONENT per BW, so the stock is **9,700 MATERIAL and 1,070
-  COMPONENT**, worth 508,000 cr at the starting prices.
+- Otto's bills average 0.90 MATERIAL and 0.098 COMPONENT per BW, so the stock is **9,700 MATERIAL and 1,060
+  COMPONENT**, worth 507,000 cr at the starting prices.
 - **This reading assumes crews that do not grow.** But builders hire, with no speed limit (12.3, 28; Otto 4.6), and
   in month one most settlers are jobless. So once crews grow, the stock lasts well under five years. The other reading,
   "five years of the colony's expected building", gives a larger stock. "5 years worth" is the user's phrase, so the
@@ -351,7 +362,8 @@ average mix of Otto's bills**. **(Bob)**
 
 ### 9.5 Does the landing food outlast the first harvest?
 
-The colony needs 1 FOOD per person a month. A full farm makes 300, so a family farm makes 47 and feeds 47 people.
+The colony needs 1 FOOD per person a month. A full farm makes 156, so a family farm makes 24.4 (156 / 6, less 6%) and
+feeds 24 people.
 
 The timeline for one family farm, if its plan is signed in month 1 and a builder starts at once:
 
@@ -362,56 +374,56 @@ The timeline for one family farm, if its plan is signed in month 1 and a builder
 | 4 to 7 | the crop grows. Its first harvest comes 4 months after opening **(Bob: growing time; the planet's seasons may move it, 12.4, 34)** |
 | 8 | the first harvest |
 
-For 1,000 settlers **(stand-in; Maja sets the founding population)**:
+For Maja's founding population (1,000 settlers in 400 households; 675 adults in the labour force):
 
-- They need 1,000 FOOD a month, which is 21 family farms (or 3.3 large ones). 21 family farms make 987 a month.
-- 21 family farms are 840 BW and 840 MATERIAL (9% of the landing material).
+- They need 1,000 FOOD a month: **41 family farms** (or 6.4 large ones). 41 family farms make 1,002 a month.
+- 41 family farms are 1,640 BW and 1,640 MATERIAL (17% of the landing material). Once open they employ 164 people.
 - **A contract is with one builder** (Otto 4.3). A job takes at most its bill BW ÷ its fewest months a month: 13 BW
   for a family farm, 105 for a power plant, 90 for a waterworks. It also takes no more than that builder's crew.
-- **Builders hire** toward the work in their books, with no speed limit (12.3, 28). The five builders' 180 crew are
-  month one's figure, not a ceiling.
+- **Builders hire** toward the work in their books, with no speed limit (12.3, 28). But the labour force is a limit
+  now: 41 farm jobs at once take 547 builder crew, out of 675 adults, of whom about 100 work for the government's
+  subsidiaries **(Bob: stand-in for Wilma's staff figure)**.
+  The crews and the farms need the people one after the other, not together (Otto's re-read): the 547 are hired for
+  about three months and are free again (rule 4) when the farms open and hire their 164. That is why 675 adults is
+  enough.
 - **The founders read rule 7 from month 1:** the colony buys food from the landing stock, and that counts as work for
   farms (15a).
-- Food: 12 months landed, spoiling at 1% a month. The figures below are worked month by month.
+- Food: 12 months landed (12,000), spoiling at 1% a month. Worked month by month:
 
-| Case | Farm jobs at once | Harvests | Landing food | Result |
+| Case | Farm jobs at once | Farms harvesting | Landing food | Result |
 |---|---|---|---|---|
-| **Step 3.** No government jobs (the purse comes at step 8); builders hire | all 21 (280 BW a month; the builders hire about 100) | all 21 from month 8 | about 4,300 left at month 8, then a slow fall of 13 a month | **holds with about 4,000 to spare.** The limits are the founders' money and the landing material, not the crews |
-| **A full game, crews that cannot grow.** The government's power plant and waterworks sit on the large and one average builder (14 and 13.5 months) | 6, on the other three builders (80 BW) | batches of 6 harvest in months 8, 11, 14 and 17 | 3,600 at month 8, 1,700 at 11, 600 at 14, 270 at 17 | **holds, with under 300 to spare.** Any slip, such as a late season, a founder short of money or a bigger population, and it runs out between months 14 and 17 |
-| **A full game, builders hire** | as in step 3: the big jobs do not block the farms | from month 8 | as in step 3 | holds |
+| **Step 3, builders hire** to 547 crew (no government jobs; the purse comes at step 8) | all 41 | 40 from month 8, all from month 9 | 5,400 at month 6, 4,300 at month 9, then a slow fall | **holds, with about 3,500 to spare** |
+| **Step 3, crews stay at 180** | 13 | 13 from month 8, 26 from 11, 39 from 14, 41 from 15 | 2,900 at month 9, 1,500 at 12, 900 at 18 | **holds, with about 800 to spare** |
+| **A full game, crews that cannot grow,** the government's power plant and waterworks on the large and one average builder | 6 (80 BW) | 5 from month 8, 10 from 11, 15 from 14 ... 41 from month 30 | 2,600 at month 9, 100 at month 12 | **runs out in month 13.** At month 18 the colony is short by about 3,500 meals, and it is short every month until about month 30 |
+| **A full game, builders hire** | as step 3, less the 100 BW on the big jobs | about month 9 | as step 3 | holds |
 
-So **12 months of landing food is the bare minimum**: it holds in every case worked here, but in a full game with
-crews that cannot grow it holds by a few weeks' food. (Otto's review corrected my first version of this check, which
-had the government's jobs taking all five builders.)
+So with farms making 156: **12 months of landing food holds in step 3 whether or not builders grow, and in a full game
+only if builders hire.** If the crews cannot grow and the government's big jobs come first, the colony runs out of food
+in month 13. That is a result, not a fault (plan section 13, watch item 4), but it is a real one. The labour force is
+the new limit: 41 farm jobs at once need 547 of the 675 adults on building crews.
 
-**A second limit:** the founders must be in bands I3 to I5 (with the grant). For 21 farms that is 21 households of
-the richer 60%, one grant each (12.9, 61). With 1,000 settlers (about 400 households) that is enough.
+**A second limit:** the founders must be in bands I3 to I5 (with the grant). For 41 farms that is 41 households of
+the richer 60% (240 households), one grant each (12.9, 61). Enough.
 
-### 9.6 The salary formula at month one
+**A family farm is still within reach.** Its building does not change with the farm's output (17,440, land 1,740,
+opening money 4,250; total 23,440 with a 15,000 grant): bands I4 and up with opening money, I3 and up without.
 
-This is a finding for Wilma and Maja.
+### 9.6 The salary line at landing and after
 
-The starting salary is "avrage living in the area and food plus half of both again", per worker (12.5, 37):
+The salary formula, as Wilma revised plan 12.5 (37): one salary carries a household's home and food with half again.
 
-> salary = (rent + 2.5 × food price) / earners per household × 1.5
+> salary line = 1.5 × (rent of a home in the area + 2.5 × food price)
 
-The table's prices all follow from the salary (section 1). So in month one there is only ONE shelter rent at which
-the formula gives back the salary the prices were built on:
+| When | Rent | Food for 2.5 | Line |
+|---|---|---|---|
+| Landing: shelters at half a new house | 48 | 152 | **300** (the anchor; it holds by the farm's output, section 1) |
+| When new houses replace the shelters | 97 | 152 | **373** (+24%) |
 
-| Earners per household (Maja's figure) | Shelter rent at which the formula gives 300 | Against a new house (97) |
-|---|---|---|
-| 1.0 | 121 | 25% dearer |
-| 1.25 | 171 | 76% dearer |
-
-- **A lower shelter rent gives a lower starting salary.** Everything else would then be relatively dearer for the
-  workers, and fewer would apply at the starting line.
-- **The shelters cannot be both "low rent" (12.2, 11) and cheaper than a new house** at these prices, unless food is
-  dearer (fewer persons fed per farm worker) or households have fewer earners.
-- **What happens either way:** as real houses replace the shelters, the area's average housing cost falls toward 97,
-  and so does the salary line, by 20 to 30%. Salaries themselves move only by the rules (9.2); the line is the
-  tie-breaker and what applicants need.
-- **(Bob, opinion)** take the shelter rent from the formula (121 with one earner) and accept the drift. It is the
-  user's formula working as written.
+- **The line RISES as houses replace shelters.** Rent doubles from 48 to 97, and the line follows.
+- Salaries themselves move only by the rules (9.2). The line is the tie-breaker of rule 9 for a salary, and what a
+  worker needs (two-thirds of the line: 200 at landing, 249 with houses) before they apply for a job.
+- So once houses stand, workers need more before they apply, and a company paying the landing salary of 300 still
+  gets applicants (300 is above 249).
 
 ## 10. What is not in this table
 
