@@ -1,6 +1,6 @@
 # The rebuild of the economy: one company object
 
-**Version 12, 2026-11-17. Wilma.** What the old economy had that this plan does not include is listed in [rebuild-not-included.md](rebuild-not-included.md). Unified, reviewed twice by all six sessions, and with every open point decided (section 12). This replaces all earlier versions. It is one document: every ruling the user gave
+**Version 13, 2026-11-17. Wilma.** What the old economy had that this plan does not include is listed in [rebuild-not-included.md](rebuild-not-included.md). Unified, reviewed twice by all six sessions, and with every open point decided (section 12). This replaces all earlier versions. It is one document: every ruling the user gave
 for the rebuild is in it, in its place. Nothing is built.
 
 How to read it:
@@ -77,7 +77,7 @@ One record per company. Everything below is a field of that record or a function
 | `owner` | a register of who holds it: a family, private owners, a co-op, the state, a party, a union, the home world |
 | `plants` | the places it works at. Each has: where it stands (a 3 km tile in the country, a cell on a town grid), its form, its condition (0 to 100), whether it is closed, and how much of the type row it runs |
 | `staff` | the actual people it employs, by skill tier and by the plant they work at, with their stress. Not head counts: the same people the households know (section 9.2) |
-| `salary` | what it pays, per skill tier and per district of the hiring plant (section 9.2) |
+| `salary` | what it pays, per skill tier and per area of the hiring plant (section 9.2) |
 | `stock` | what it holds of each item, at what cost, and what of it is waiting for freight |
 | `money` | its account and its books by month and by year. Its loans are the bank's records; the company only points to them |
 | `price` | ONE price per company for each thing it sells: "No i said each COMPANY". A type may have its own way of pricing (section 4) |
@@ -106,7 +106,7 @@ Rows are company types. Columns say, for ONE full-size unit per month:
 |---|---|
 | inputs | items it takes in (energy, water, mineral, material, component, food, consumer goods, medical) |
 | first output | the item it makes by default |
-| second output | another item the same plant can make instead; it picks by which pays (rule 3) |
+| second output | another item the same plant can make instead; it picks by which pays (rule 3). Each output has its OWN line of inputs, labour and quantity, so what is used up and made always follows what is actually being made |
 | client intake | for a service: how many clients it serves. "services have no output but a client take in" |
 | labour | workers by skill tier, and the occupation they count as |
 | pollution, noise, accident risk, hazard | per unit |
@@ -335,7 +335,9 @@ Terra's town grid (section 9.8).
   that's the start then it should regulate itself". So 1.5 x (average housing cost in the area + food). "On sallery it's
   an avrage of the area."
 - **Hiring** is at that line; rule 9 for a salary turns on it ("that's fine for hiring").
-- **A company with plants in two districts:** "The district the plant hiring is in."
+- **A company with plants in two places:** "The district the plant hiring is in." In the rebuild that is the AREA the
+  plant stands in (12.1, 1). Districts are drawn for elections and can be redrawn; a salary's reference place does not
+  move when they are.
 - **The yearly bonus:** "every year a company can grant a bonus what the minimum of this is is up to the government, 2%
   is a good start". The minimum is a government lever, starting at 2%.
 - **Who applies:** "But emplyees only apply to jobs that meet their needs" (the user, answering Bob's finding that
@@ -612,15 +614,27 @@ is wrong; nothing here is asked again.
     sell, so a bad month does not inflate it. Paying a loan BACK is not a cost of making: a company that borrows to
     build a second plant does not raise its prices for that. The hold-back is separate and still covers every monthly
     expense, repayments included ("It sells too cover all monthly expences").
-15. **How far a price moves in a month:** by k x s / (1 + s), the same formula up and down. For a rise, s is the
-    orders that went unfilled for price, set against what it sold. For a cut, s is what it offered and did not sell
-    for price, set against what it sold. k is one number for the whole economy, set in testing. A small signal moves
-    the price a little, a large one more, and never by more than k. (This is the shape of the stock cut the user
-    ordered into the price table on 2026-11-16, used both ways as rule 9 demands.)
-15a. **Rule 7's signal, exactly:** for a company type in an area, all the work there was for that type over the last
-    twelve months (every order or client for what it sells, served or not), divided by the companies of that type
-    serving the area plus the newcomer. A plan is made when that share would cover the newcomer's costs. Nothing limits
-    how many may do so at once; if five do and the work carries two, three fail.
+15. **How far a price moves in a month:** by the share k x s / (1 + s) of the price, the same formula up and down.
+    s is a ratio of quantities, not money.
+    - For a rise, s = the quantity ordered at or above its price that it could not supply because it had sold out,
+      divided by the quantity it sold.
+    - For a cut, s = the quantity it offered and did not sell, divided by the quantity it sold. An order that went
+      unfilled because the buyer would not pay the asking price is a refusal of the price: it counts here, for the cut,
+      and not as unmet demand for a rise.
+    - If it sold nothing at all, s is taken as without limit and the price moves by the full k.
+    - k is one number for the whole economy, set in testing. A small signal moves the price a little, a large one more,
+      and never by more than k in a month. So there is a bound, the same both ways, as the user's rule nine asks.
+    (This is the shape of the stock cut the user ordered into the price table on 2026-11-16.)
+15a. **Rule 7's signal, exactly.** Everything is in money per month.
+    - The work: what buyers and clients in the area spent, or tried to spend, on what this type sells, averaged per
+      month over the last twelve months, at today's prices.
+    - The shares: by size. A family company counts 1/6, a small one 1/3, an average one 2/3, a large one 1. The
+      newcomer's share is its own size divided by the sizes of all companies of the type serving the area, itself
+      included.
+    - The test: a plan is made when that share of the work, per month, covers what a company of that size costs to run
+      per month. A founder plans the largest size that passes and that their money reaches.
+    - A founder's management skill and appetite for risk (12.11, 77) bend how they read it, so founders misjudge.
+    - Nothing limits how many may plan at once. If five do and the work carries two, three fail.
 16. **Rule 6:** twelve months idle.
 17. **Rule 5 runs section 5's order:** a size up in its own square; else a buy-out; else a new plant.
 18. **Rule 3 does not act while a company is holding stock back.** It has more to sell already.
@@ -687,7 +701,8 @@ is wrong; nothing here is asked again.
     clinic 2 km, from the town grid). Each person who needs it is one client.
 44. **What being served does:** a clinic lowers deaths, a school sets the skill a child grows up with, childcare lets
     parents work, elder care lowers deaths of the retired, police lowers crime.
-45. **Who cannot pay:** a public service is free at the door, paid by its bracket. A private one serves who pays.
+45. **Who cannot pay:** a public service is paid by its bracket, and by a fee at the door if the government sets one
+    (12.11, 100). The fee starts at nothing. A private service serves who pays.
 46. **A bracket** is proposed by the service's own rules (it needs more, or less) and decided by the government. The
     same holds for the tariff of a state-owned utility.
 47. **A state service's size:** its rules propose a new plant or a closure; the government decides and commissions.
@@ -733,8 +748,14 @@ is wrong; nothing here is asked again.
 57. **A builder's book** is worked in the order the jobs were signed.
 58. **Upkeep** uses material and a little builder's work.
 59. **A plant keeps running** while it is built a size up.
-60. **A plan's money** is held in an account of its own until the plant opens. A grant given to a plan that is given up
-    is paid back.
+60. **A plan's money** is held in an account of its own until the plant opens.
+60a. **The founder is counted individually from the day the plan is made,** not from the opening, so that a grant, a
+    loan and "one grant per household" have a named person to attach to while the venture is still a plan. (The user
+    ruled individual counting "on company start"; Wilma reads the plan as where a company starts.)
+60b. **A plan that is given up is settled, not erased.** The builder keeps what it was paid for work done. The land
+    bought and the half-built building belong to the founder and can be sold; another plan may take them over. The loan
+    is still owed. The grant is owed back. What the founder cannot pay goes to court like any debt (8.3). A given-up
+    plan is still not counted as a company that failed.
 61. **One grant per household.**
 
 ### 12.10 The government, the law, politics
@@ -895,6 +916,10 @@ therefore the whole loop once, end to end, through the real company object:
 
 **How each step is tested**
 
+- **What step 3 is and is not.** It is the first loop on one place, paid from savings and the purse. The bank does not
+  lend until step 5, goods do not need trucks until step 4, and companies do not grow or close idle plants until step 6.
+  Each step-3 report says so, and nothing seen there that comes from one of those missing parts is a reason to change
+  a number.
 - **Short, exact tests first:** one sale, one hire, one plan signed and built, one loan, one ending, each checked to
   the last credit and unit. A 30-year game says little until the loop of step 3 runs.
 - **Nothing appears or vanishes.** Every test and every game checks that money, goods, people in work and unfinished
@@ -928,12 +953,9 @@ therefore the whole loop once, end to end, through the real company object:
 
 ## 14. What I am least sure of
 
-Two of the decisions above change what a ruling does in practice. They are decided, and flagged so the user can find
-them:
+One of the decisions above changes what a ruling does in practice. It is decided, and flagged so the user can find it:
 
 - **11, the landing shelters.** The ruling is "not finished buildings"; I gave the settlers plain shelters anyway.
-- **15, no cap on a price change.** The ruling said the cap must be the same both ways, if there is one.
-
 ## 15. This review
 
 The user: "give the others a new chance this time asked them to review the whole thing from their perspectives not just

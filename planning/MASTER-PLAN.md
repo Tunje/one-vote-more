@@ -692,6 +692,11 @@ The 36 are worked into [rebuild-company.md](rebuild-company.md) version 12, sect
 Wilma had written "taken wholesale" down as taking the old household code, and called it the one exception to "no old code". That was wrong: how it worked is carried over and written new. The order a short household pays in is food, then rent, then water and power. Corrected in [rebuild-company.md](rebuild-company.md) sections 1, 9.1, 11 and 12.5.
 
 
+### The rebuild: the outside reviewer on version 12 (2026-11-17)
+
+The user pasted the outside reviewer's review of version 12. Its corrections are worked into [rebuild-company.md](rebuild-company.md) version 13: rule 7 in money per month with shares by size; each output with its own inputs; the founder counted from the plan, and a given-up plan settled; public fees no longer contradicting each other; the price formula's units and the case of no sales; a salary's place is the area, not the election district; what step 3 is and is not.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
