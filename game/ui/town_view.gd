@@ -228,7 +228,7 @@ static func layout(w: WorldState, tid: String) -> Dictionary:
 	var items: Array = []
 	var street := {}
 	var homes := 0
-	for ck in EconUtil.sorted_keys(cells):
+	for ck in CoreUtil.sorted_keys(cells):
 		var row: Array = cells[ck]
 		var c := ColonyLayout.as_tile(ck)
 		var fid := String(row[0])
@@ -248,7 +248,7 @@ static func layout(w: WorldState, tid: String) -> Dictionary:
 			items.append({"slot": slot, "pos": o + lp, "yaw": float(lot[1]), "cell": String(ck), "fid": fid,
 				"seed": Planet._mix(Planet._mix(c.x & 0x7fffffff, c.y & 0x7fffffff), int(lot[2]))})
 	var streets: Array = []
-	for k in EconUtil.sorted_keys(street):
+	for k in CoreUtil.sorted_keys(street):
 		var p := String(k).split("|")
 		var x := int(p[1])
 		var y := int(p[2])
@@ -258,7 +258,7 @@ static func layout(w: WorldState, tid: String) -> Dictionary:
 	var ct := TownGrid.tile_of(c0)
 	var roads: Array = []
 	var links := Transport._links(w)
-	for lid in EconUtil.sorted_keys(links):
+	for lid in CoreUtil.sorted_keys(links):
 		var l: Dictionary = links[lid]
 		if int(l.get("globe", 0)) == 1:
 			continue
@@ -282,7 +282,7 @@ static func layout(w: WorldState, tid: String) -> Dictionary:
 						rivers.append([_tile_mid(tt, c0), _tile_mid(tt + d, c0)])
 	var fields: Array = []
 	var ft := ColonyLayout.facility_tiles(w)
-	for fid in EconUtil.sorted_keys(ft):
+	for fid in CoreUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
 		var ty := String(f.get("type", ""))
 		if f.is_empty() or ty == "HOUSING" or Siting.kind_of(ty) == "TOWN" or not TownGrid.cells_of(w, String(fid)).is_empty():
@@ -422,7 +422,7 @@ static func overview_text(w: WorldState, tid: String) -> String:
 	for ck in cs:
 		var fm := String(cs[ck][1]) if String(cs[ck][1]) != "" else "town building"
 		forms[fm] = int(forms.get(fm, 0)) + 1
-	for fm in EconUtil.sorted_keys(forms):
+	for fm in CoreUtil.sorted_keys(forms):
 		t += "%s: %d cell%s\n" % [String(fm).capitalize(), int(forms[fm]), "" if int(forms[fm]) == 1 else "s"]
 	t += "Allowed forms: %s\n" % ", ".join(TownGrid.forms_allowed(w, tid))
 	var models := 0

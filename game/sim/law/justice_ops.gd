@@ -857,7 +857,7 @@ static func _petitions(world: WorldState) -> void:
 static func _liquidate(world: WorldState, org_id: String, reason: String) -> bool:
 	if not world.table("org").has(org_id):
 		return false
-	var ok := bool(load("res://sim/companies/insolvency.gd").court_liquidation(world, org_id, reason))
+	var ok := false  # winding a company up was the economy's; nothing does it while there is no economy
 	if ok:
 		if not js(world).has("wound_up"):
 			js(world)["wound_up"] = {}
@@ -930,12 +930,12 @@ static func _revert(world: WorldState, overturned: Dictionary) -> void:
 
 
 ## A firm's revenue over its last twelve months (mcr), never one month's (the user: firms are judged by the year).
-## Under twelve months of history (EconAnnual.MIN_M or more): the months it has, as a year. Under MIN_M: last month × 12.
+## Under twelve months of history (CoreUtil.PL_MIN_M or more): the months it has, as a year. Under MIN_M: last month × 12.
 static func annual_rev(world: WorldState, org_id: String) -> float:
 	var o: Dictionary = world.peek("org").get(org_id, {})
-	var n := EconAnnual.months(o)
-	if n >= EconAnnual.MIN_M:
-		return float(EconAnnual.sum12(o).get("rev", 0)) * 12.0 / float(n)
+	var n := CoreUtil.pl_months(o)
+	if n >= CoreUtil.PL_MIN_M:
+		return float(CoreUtil.pl_sum12(o).get("rev", 0)) * 12.0 / float(n)
 	return float((o.get("pl_last", {}) as Dictionary).get("rev", 0)) * 12.0
 
 

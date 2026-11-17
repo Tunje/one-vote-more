@@ -17,7 +17,7 @@ func _two(w: WorldState) -> Array:
 	var st: Dictionary = w.table("pol")["state"]
 	var gov: Dictionary = st["government"]
 	var pm := String(gov["pm_party"])
-	for pid in EconUtil.sorted_keys(w.table("party")):
+	for pid in CoreUtil.sorted_keys(w.table("party")):
 		var p: Dictionary = w.table("party")[pid]
 		if not (pid in gov["members"]) and p["status"] == "ACTIVE" and int(p["seats"]) > 0:
 			return [pm, String(pid)]

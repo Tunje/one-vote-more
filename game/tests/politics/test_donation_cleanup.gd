@@ -46,11 +46,11 @@ func test_the_cleanup_is_announced_and_the_donor_refused() -> void:
 	var p := _seated(w)
 	var donor := ""
 	for oid in Det_ordered(w.peek("org")):
-		if w.ledger.has_account(EconUtil.acct(String(oid))):
+		if w.ledger.has_account(CoreUtil.acct(String(oid))):
 			donor = String(oid)
 			break
 	check(donor != "", "a company that can give")
-	w.ledger.transfer(Ledger.EXTERNAL, EconUtil.acct(donor), 10_000, "TEST", w.month)
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(donor), 10_000, "TEST", w.month)
 	_scandal(w, p["id"], donor)
 	w.month += 1
 	var n0 := w.facts.query("POL_PARTY_CLEANUP").size()

@@ -121,7 +121,7 @@ func _facts_for(w: WorldState, type: String, d: String) -> Array:
 func test_road_needs_see_the_trend_and_offer_every_way() -> void:
 	var w := _game(1, 4).world
 	var links: Dictionary = w.table("transport")["links"]
-	var ids := EconUtil.sorted_keys(links).filter(func(id): return int(links[id].get("globe", 0)) == 0)
+	var ids := CoreUtil.sorted_keys(links).filter(func(id): return int(links[id].get("globe", 0)) == 0)
 	for lid in links:
 		links[lid]["cond"] = 1000
 		links[lid]["traffic"] = 0

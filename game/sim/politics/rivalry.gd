@@ -72,7 +72,7 @@ static func rivals(world: WorldState, a: String) -> Array:
 	if not on(world):
 		return out
 	var parties: Dictionary = world.peek("party")
-	for b in EconUtil.sorted_keys(parties):
+	for b in CoreUtil.sorted_keys(parties):
 		if String(b) == a or String(parties[b].get("status", "")) != "ACTIVE":
 			continue
 		out.append([String(b), score(world, a, String(b))])
@@ -114,7 +114,7 @@ static func on_vote(world: WorldState, bill: Dictionary, gov: Dictionary) -> voi
 	var members: Array = gov.get("members", [])
 	var votes: Dictionary = bill.get("votes", {})
 	var passed := String(bill.get("status", "")) == "PASSED"
-	for pid in EconUtil.sorted_keys(votes):
+	for pid in CoreUtil.sorted_keys(votes):
 		var v := String(votes[pid])
 		var inside := members.has(pid)
 		for m in members:
@@ -132,7 +132,7 @@ static func monthly(world: WorldState, st: Dictionary) -> void:
 	if not on(world):
 		return
 	var g: Dictionary = st.get("grudge", {})
-	for k in EconUtil.sorted_keys(g):
+	for k in CoreUtil.sorted_keys(g):
 		var v := int(g[k]) - maxi(1, int(g[k]) * DECAY_PM / 1000)
 		if v <= 0:
 			g.erase(k)
@@ -159,7 +159,7 @@ static func _question(world: WorldState, st: Dictionary) -> void:
 	var asked := 0
 	var parties: Dictionary = world.table("party")
 	var order: Array = []
-	for pid in EconUtil.sorted_keys(parties):
+	for pid in CoreUtil.sorted_keys(parties):
 		var p: Dictionary = parties[pid]
 		if members.has(pid) or String(p.get("status", "")) != "ACTIVE" or int(p.get("seats", 0)) <= 0:
 			continue

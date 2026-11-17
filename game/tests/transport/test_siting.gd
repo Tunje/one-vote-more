@@ -15,7 +15,7 @@ func _game(seed_v: int = 1, months: int = 2, on: bool = true, extra: Array = [])
 
 
 func _org(w: WorldState) -> String:
-	return String(EconUtil.sorted_keys(w.peek("org"))[0])
+	return String(CoreUtil.sorted_keys(w.peek("org"))[0])
 
 
 func _k(t: Vector2i) -> String:
@@ -30,7 +30,7 @@ func test_flag_off_changes_nothing() -> void:
 	var t0: Vector2i = ColonyLayout.econ_anchors(w)["d:1"]
 	check(ColonyLayout.set_use(w, [t0], "NATURE") != "", "no reservations")
 	check(ColonyLayout.site_options(w, "HOUSING", "d:1").is_empty(), "no options")
-	check(ColonyLayout.place_at(w, String(EconUtil.sorted_keys(ft0)[0]), t0) != "", "no chosen sites")
+	check(ColonyLayout.place_at(w, String(CoreUtil.sorted_keys(ft0)[0]), t0) != "", "no chosen sites")
 	check_eq(ColonyLayout.use_at(w, t0), "", "no use")
 	check_eq(w.state_hash(), h, "nothing written")
 	check_eq(ColonyLayout.key(w), key0, "the layout key is as before")
@@ -44,7 +44,7 @@ func test_reserved_land_is_refused_and_what_stands_stays() -> void:
 	check_eq(opts.size(), 1, "a default site")
 	var dt := ColonyLayout.as_tile(opts[0]["tile"])
 	# reserve the land around the default site, and around a standing facility, as nature
-	var fid0 := String(EconUtil.sorted_keys(ft0)[0])
+	var fid0 := String(CoreUtil.sorted_keys(ft0)[0])
 	var land := Siting.tiles_around(w, dt, 2)
 	for t in Siting.tiles_around(w, ft0[fid0], 1):
 		if not t in land:
@@ -117,7 +117,7 @@ func test_a_chosen_site_is_used() -> void:
 	check_eq(ColonyLayout.place_at(w, nid, pick), "", "placed")
 	check_eq(ColonyLayout.facility_tiles(w)[nid], pick, "it stands at the chosen site")
 	# refusals
-	var old := String(EconUtil.sorted_keys(w.peek("facility"))[0])
+	var old := String(CoreUtil.sorted_keys(w.peek("facility"))[0])
 	check(ColonyLayout.place_at(w, old, ColonyLayout.as_tile(opts[1]["tile"])) != "", "a standing building is not moved")
 	var nid2 := EconSetup.add_facility(w, "RETAIL", _org(w), "d:1", false)
 	check(ColonyLayout.place_at(w, nid2, pick).contains("taken"), "not where another stands")

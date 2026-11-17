@@ -63,8 +63,8 @@ func test_hunger_protects_food_assistance_and_the_benefit_floor() -> void:
 	for lid in Legislature.HUNGER_LEVERS:
 		w.levers[lid] = 50
 	_set_unemp(w, 5)
-	EconUtil.st(w)["sovereign_default"] = false   # v9: seed 5 can be in default at m66, where only food aid keeps a case
-	EconUtil.st(w)["food_shortfall"] = 300   # 30% of household food need unmet
+	CoreUtil.econ_state(w)["sovereign_default"] = false   # v9: seed 5 can be in default at m66, where only food aid keeps a case
+	CoreUtil.econ_state(w)["food_shortfall"] = 300   # 30% of household food need unmet
 	check(absf(Legislature.hunger(w) - 0.3) < 0.001, "reads the shortfall")
 	check(Legislature.protected_levers(w).has("ECON_FOOD_ASSISTANCE"), "food assistance is protected")
 	var g: Dictionary = w.table("pol")["state"]["government"]
@@ -75,7 +75,7 @@ func test_hunger_protects_food_assistance_and_the_benefit_floor() -> void:
 			ex[lid] = true
 	for c in Legislature.propose(w, g["center"], cs[0], cs[1], g.get("agreement", []), "PARLIAMENT", 0.0, false, ex):
 		check(float(c["to"]) > 50.0, "no cuts to food help while people go hungry: %s" % str(c))
-	EconUtil.st(w)["food_shortfall"] = 0
+	CoreUtil.econ_state(w)["food_shortfall"] = 0
 	check(not Legislature.protected_levers(w).has("ECON_FOOD_ASSISTANCE"), "no protection without hunger")
 
 
@@ -84,7 +84,7 @@ func test_hunger_protects_food_assistance_and_the_benefit_floor() -> void:
 func test_food_aid_is_not_protected_when_food_is_scarce() -> void:
 	var w := _world()
 	_set_unemp(w, 5)
-	var s := EconUtil.st(w)
+	var s := CoreUtil.econ_state(w)
 	s["sovereign_default"] = false
 	s["food_shortfall"] = 300
 	if not s.has("market_stats"):

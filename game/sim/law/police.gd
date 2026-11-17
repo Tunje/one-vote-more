@@ -86,17 +86,11 @@ static func ensure_rules(world: WorldState) -> void:
 
 
 static func _stations(world: WorldState) -> Array:
-	var eq = load("res://sim/economy/econ_query.gd")
-	for m in eq.get_script_method_list():
-		if String(m["name"]) == "police":
-			return eq.call("police", world).get("stations", [])
-	return []
+	return world.peek("police_station").values()
 
 
 static func _org(world: WorldState) -> String:
-	if not ResourceLoader.exists("res://sim/economy/econ_police.gd"):
-		return ""
-	return String(load("res://sim/economy/econ_police.gd").call("org", world))
+	return ""  # no police organisation while there is no economy
 
 
 static func powers(world: WorldState) -> int:

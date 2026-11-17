@@ -90,7 +90,7 @@ static func gather(w: WorldState) -> Dictionary:
 	var farm := {}           # tile int -> true: farmed land (a farm and its fields around it)
 	var land := Terrain.landing(w)
 	var homes_here := 0
-	for fid in EconUtil.sorted_keys(ft):
+	for fid in CoreUtil.sorted_keys(ft):
 		var f: Dictionary = fac.get(fid, {})
 		if f.is_empty() or f.get("closed_m", 0) == null:
 			continue
@@ -117,7 +117,7 @@ static func gather(w: WorldState) -> Dictionary:
 			links.append({"path": l["path"], "kind": String(l["effective"])})
 	d["links"] = links
 	var vehicles: Array = []   # buses on the commuter lines this month, and last month's breakdowns and crashes
-	for ln in Transport.bus_lines(w, EconQuery.commuting(w)):
+	for ln in Transport.bus_lines(w, []):
 		for bt in ln["bus_tiles"]:
 			vehicles.append({"kind": "BUS", "tile": Transport.int_tile(int(bt)), "fid": ""})
 	for inc in Commuting.incident_marks(w):   # Bob's BUS_BREAKDOWN / BUS_CRASH facts of last month

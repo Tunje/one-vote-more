@@ -151,7 +151,7 @@ func _report_wild(world: WorldState, wild: Dictionary) -> void:
 		var tl: Vector2i = s["tile"]
 		var killed := int(a["killed"])
 		if killed > 0 and String(s.get("district", "")) != "":   # Bob's hook: the dead leave the population (plant's workers first)
-			killed = EconPop.casualties(world, String(s["district"]), killed, "OUTDOOR", String(s.get("fid", "")))
+			killed = 0  # nobody is removed from the population while there is no economy to hold them
 		world.add_fact({"type": "PLANET_WILDLIFE_ATTACK", "owner": OWNER, "subjects": [], "responsible": [], "impact": {},
 			"magnitude": clampi(25 + 30 * killed + 5 * int(a["injured"]), 0, 100), "visibility": "PUBLIC",
 			"data": {"hex": int(s["hex"]), "tile": [tl.x, tl.y], "creature": PlanetWildlife.creature(world, "pred"), "danger": int(ch["danger"]),

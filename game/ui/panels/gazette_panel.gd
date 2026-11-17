@@ -410,7 +410,7 @@ func _boxes(w: WorldState, parent: VBoxContainer) -> void:
 			w.indicators.read("PLANET_DROUGHT_MONTHS") / 1000], 13)
 		_rule(parent)
 	# markets (Bob)
-	var mk: Array = EconQuery.market_overview(w).filter(func(r): return r.has("price") and r.get("good", "") in ["FOOD", "MATERIAL", "COMPONENT", "CONSUMER"])
+	var mk: Array = ([] as Array).filter(func(r): return r.has("price") and r.get("good", "") in ["FOOD", "MATERIAL", "COMPONENT", "CONSUMER"])
 	if not mk.is_empty():
 		_text(parent, "MARKETS", 15, true)
 		for r in mk:

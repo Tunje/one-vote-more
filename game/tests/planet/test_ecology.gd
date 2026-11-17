@@ -12,7 +12,7 @@ func _world(seed_v: int = 4, eco: bool = true) -> WorldState:
 
 
 func _emit(w: WorldState, units: int) -> void:
-	EconUtil.st(w)["emissions"] = {"d:1": units * 1000}
+	CoreUtil.econ_state(w)["emissions"] = {"d:1": units * 1000}
 
 
 func _months(w: WorldState, n: int) -> void:

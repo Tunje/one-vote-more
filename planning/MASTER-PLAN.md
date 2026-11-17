@@ -464,6 +464,17 @@ After v12, where 22 fixes that had each been tested alone and merged switched of
 The series (one more fix on at each step, three 30-year games per step, the bottleneck reported at each) was started the same turn.
 
 
+### The economy is cut out (the user, 2026-11-17, verbatim)
+
+> THAT'S IT CANCLE IT ALL YOU CLEARLY HAVE NO IDEA WHAT YOUR DOING+!! FUCK!!! CUT THE ECONM6
+
+> MAKE A COPY AND CUT ALL THE ECONOMY OUT
+
+> SPECIFY YOU MAKE A FULL COPY THEN CUT THE ECONOMY OUT OF THE ORIGINAL OTHERWISE YOU DOUBLE TOKEN USE
+
+Done by Wilma: the full copy of the game as it stood at commit 785c72f is `game_full_copy/` (not in git; the same state is commit 785c72f). The economy (sim/economy, sim/companies, sim/transport, sim/waste and everything that calls them) is removed from `game/`. All peers were told to stop work in `game/`.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

@@ -815,8 +815,8 @@ static func funds_monthly(world: WorldState, st: Dictionary) -> void:
 ## pro rata to population. Before, dues came from and campaigns went to EXTERNAL (money created/destroyed).
 static func _hh_accounts(world: WorldState) -> Array:
 	var out: Array = []
-	for gid in EconUtil.sorted_keys(world.peek("hh")):
-		var a := EconUtil.hh_acct(gid)
+	for gid in CoreUtil.sorted_keys(world.peek("hh")):
+		var a := CoreUtil.hh_acct(gid)
 		if world.ledger.has_account(a):
 			out.append([a, world.peek("hh")[gid]])
 	return out
@@ -825,7 +825,7 @@ static func _hh_accounts(world: WorldState) -> Array:
 static func _household_pay(world: WorldState, to_acc: String, amount: int, memo: String) -> void:
 	var rows := _hh_accounts(world)
 	var w: Array = rows.map(func(r): return maxi(0, world.ledger.balance(r[0])))
-	var parts := EconUtil.split_lr(amount, w)
+	var parts := CoreUtil.split_lr(amount, w)
 	for i in rows.size():
 		var take := mini(int(parts[i]), maxi(0, world.ledger.balance(rows[i][0])))
 		if take > 0:
@@ -837,8 +837,8 @@ static func _household_receive(world: WorldState, from_acc: String, amount: int,
 	if rows.is_empty():
 		world.ledger.transfer(from_acc, Ledger.EXTERNAL, amount, memo, world.month)
 		return
-	var w: Array = rows.map(func(r): return EconHouseholds.persons(r[1]))
-	var parts := EconUtil.split_lr(amount, w)
+	var w: Array = rows.map(func(r): return CoreUtil.persons(r[1]))
+	var parts := CoreUtil.split_lr(amount, w)
 	for i in rows.size():
 		if int(parts[i]) > 0:
 			world.ledger.transfer(from_acc, rows[i][0], int(parts[i]), memo, world.month)
@@ -924,7 +924,7 @@ static func _book_donations(world: WorldState) -> void:
 		elif chk.get("disclose", false):
 			# required to disclose: honest parties do; a few hide it
 			vis = "SECRET" if r.randf() < (100.0 - integrity) / 800.0 else "PUBLIC"
-		if not world.ledger.transfer(EconUtil.acct(String(o["from"])), "party:" + best["id"], amount, "DONATION", world.month):
+		if not world.ledger.transfer(CoreUtil.acct(String(o["from"])), "party:" + best["id"], amount, "DONATION", world.month):
 			continue  # the offer lapsed (cash gone)
 		world.add_fact({"type": "POL_DONATION", "owner": "pol",
 			"subjects": [{"kind": "PARTY", "id": best["id"]}, {"kind": "COMPANY", "id": o["from"]}],
@@ -1057,7 +1057,7 @@ static func make_independent(world: WorldState, person: Dictionary) -> String:
 
 ## Before an election's seats are handed out: independents' seats end (they stood on no list).
 static func end_independents(world: WorldState) -> void:
-	for pid in EconUtil.sorted_keys(world.table("party")):
+	for pid in CoreUtil.sorted_keys(world.table("party")):
 		var p: Dictionary = world.table("party")[pid]
 		if p.get("status", "") != "INDEPENDENT":
 			continue
@@ -1074,7 +1074,7 @@ static func end_independents(world: WorldState) -> void:
 static func election_lists(world: WorldState) -> void:
 	var people := world.table("person")
 	var by_party := {}
-	for pid in EconUtil.sorted_keys(people):
+	for pid in CoreUtil.sorted_keys(people):
 		var q: Dictionary = people[pid]
 		q["assembly_seat"] = false
 		q["list_rank"] = -1
@@ -1092,7 +1092,7 @@ static func election_lists(world: WorldState) -> void:
 		if not by_party.has(pty):
 			by_party[pty] = []
 		by_party[pty].append([standing, String(pid)])
-	for pty in EconUtil.sorted_keys(by_party):
+	for pty in CoreUtil.sorted_keys(by_party):
 		var lst: Array = by_party[pty]
 		lst.sort_custom(func(a, b): return a[0] > b[0] or (a[0] == b[0] and a[1] < b[1]))
 		var seats := int(world.peek("party")[pty].get("seats", 0))

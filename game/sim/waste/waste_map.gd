@@ -205,7 +205,7 @@ static func on_banks_downstream(world: WorldState, tile: int, reach: int = 2) ->
 		return false
 	var out: Array = []
 	var ft := ColonyLayout.facility_tiles(world)
-	for fid in EconUtil.sorted_keys(ft):
+	for fid in CoreUtil.sorted_keys(ft):
 		if near.call(ft[fid]):
 			out.append({"kind": "FACILITY", "id": fid, "name": String(world.peek("facility")[fid]["type"]).to_lower(), "tile": Transport.tile_int(ft[fid]),
 				"quality": river_quality(world, Transport.tile_int(ft[fid]))})
@@ -458,7 +458,7 @@ static func plots(site: Dictionary) -> int:
 static func sites(world: WorldState) -> Array:
 	var out: Array = []
 	var t := world.peek("waste_sites")
-	for fid in EconUtil.sorted_keys(t):
+	for fid in CoreUtil.sorted_keys(t):
 		var s: Dictionary = t[fid].duplicate(true)
 		if s["kind"] == "CEMETERY":
 			s["plots"] = plots(t[fid])
@@ -470,7 +470,7 @@ static func sites(world: WorldState) -> Array:
 static func founders_cemetery(world: WorldState) -> Dictionary:
 	var best := {}
 	var t := world.peek("waste_sites")
-	for fid in EconUtil.sorted_keys(t):
+	for fid in CoreUtil.sorted_keys(t):
 		var s: Dictionary = t[fid]
 		if s["kind"] == "CEMETERY" and (best.is_empty() or int(s["built"]) < int(best["built"])):
 			best = s

@@ -26,7 +26,7 @@ func test_independent_carries_the_seat_until_the_election() -> void:
 	var sim := _sim()
 	var w := sim.world
 	var who := ""
-	for pid in EconUtil.sorted_keys(w.table("person")):
+	for pid in CoreUtil.sorted_keys(w.table("person")):
 		var q: Dictionary = w.table("person")[pid]
 		if bool(q.get("assembly_seat", false)) and not Bench.is_leader(w, pid):
 			who = pid

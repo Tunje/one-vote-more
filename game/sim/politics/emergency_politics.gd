@@ -129,7 +129,7 @@ static func _apply_levers(world: WorldState, kind: String, c: Dictionary) -> voi
 	if kind == "FOOD":
 		want["LAW_FOOD_EXPORT_BAN"] = true
 		want["LAW_PRICE_CONTROL"] = "ESSENTIALS"
-		if c.get("type", "") == "ECON_FAMINE" or EconUtil.st(world).get("famine_now", false):
+		if c.get("type", "") == "ECON_FAMINE" or CoreUtil.econ_state(world).get("famine_now", false):
 			want["LAW_RATIONING"] = "FOOD"
 	elif kind == "POWER":
 		want["LAW_RATIONING"] = "FOOD_FUEL"

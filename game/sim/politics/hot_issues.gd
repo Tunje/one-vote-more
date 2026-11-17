@@ -71,7 +71,7 @@ static func heat(world: WorldState) -> Dictionary:
 				h += float(LAW_MOVE_HEAT) * _fade(world, int(f["month"]))
 	out["IMMIGRATION"] = clampi(int(h), 0, 1000)
 	# slums: a little for each standing slum, a lot for a new one
-	var sl := minf(float(SLUM_CHRONIC_CAP), float(SLUM_NOW_HEAT) * float(EconCohorts.slums(world).size()))
+	var sl := minf(float(SLUM_CHRONIC_CAP), float(SLUM_NOW_HEAT) * float((CoreUtil.econ_state(world).get("slums", []) as Array).size()))
 	for f in world.facts.query("ECON_SLUM", from):
 		sl += float(SLUM_NEW_HEAT) * _fade(world, int(f["month"]))
 	out["SLUMS"] = clampi(int(sl), 0, 1000)
@@ -98,7 +98,7 @@ static func heat(world: WorldState) -> Dictionary:
 	var expected := usual / float(OVERLOAD_BASE) * float(OVERLOAD_RECENT + 1) / 2.0   # the same fade at the usual rate
 	var ov := float(OVERLOAD_INCIDENT_HEAT) * maxf(0.0, fresh - expected)
 	var worst := 0
-	var wl: Dictionary = EconQuery.workload(world).get("colony", {}) if EconWorkload.active(world) else {}
+	var wl: Dictionary = CoreUtil.econ_state(world).get("workload", {})
 	for sec in wl:
 		worst = maxi(worst, int(wl[sec]))
 	ov += minf(float(OVERLOAD_CHRONIC_CAP), maxf(0.0, float(worst - OVERLOAD_CHRONIC_FROM) * OVERLOAD_CHRONIC_SLOPE))

@@ -133,7 +133,7 @@ func test_the_window_view_shows_only_what_is_built() -> void:
 	check(not d["links"].is_empty(), "the built roads are in the view")
 	# a colony with no homes at Landing yet: the landing camp
 	var fac: Dictionary = w.table("facility")
-	for fid in EconUtil.sorted_keys(fac):
+	for fid in CoreUtil.sorted_keys(fac):
 		if String(fac[fid]["type"]) == "HOUSING":
 			fac.erase(fid)
 	check_eq(int(ColonyVista.gather(w)["homes_here"]), 0, "no homes: tents in front of the window")

@@ -237,7 +237,7 @@ static func objection_weights(world: WorldState, row: Dictionary) -> Dictionary:
 	var out := {}
 	for ob in row.get("objections", []):
 		var d := String(ob["district"])
-		var share := GovBuilder._district_share(world, d, members) if not members.is_empty() else 0.0
+		var share := DistrictPolitics.district_share(world, d, members) if not members.is_empty() else 0.0
 		out[d] = float((ob["grounds"] as Array).size()) * (0.5 + _infra_sat(world, d)) * (0.5 + share)
 	return out
 
@@ -628,8 +628,7 @@ static func _apply_neglect(world: WorldState, row: Dictionary, choice: String, b
 	if choice == "STEP_IN":
 		var params := {"type": "ROAD", "district": String(ds[0]) if not ds.is_empty() else "", "link": {"repair": lid},
 			"step_in": true, "line": "ECON_BUDGET_INFRASTRUCTURE"}
-		if String(params["district"]) != "" and EconActions.validate(world, "ECON_COMMISSION_PROJECT", params) == "" \
-				and bool(EconActions.enqueue(world, "ECON_COMMISSION_PROJECT", params).get("ok", false)):
+		if String(params["district"]) != "" and false:  # commissioning the repair was the economy's
 			row["step_in"] = world.month
 			world.add_fact({"type": "LAW_ROAD_STEP_IN", "owner": "law", "subjects": [co, GOV],
 				"responsible": [{"actor": GOV, "share": 1.0}], "impact": {}, "affected": {"districts": ds}, "magnitude": 25,
@@ -745,7 +744,7 @@ static func take_over(world: WorldState, lid: String, mode: String, price: int =
 		return {"ok": false}
 	_close_debts(world, lid, "SET_OFF")
 	world.table("road_watch").erase(lid)
-	var paid := EconUtil.pay_upto(world, EconUtil.TREASURY, EconUtil.acct(owner), p, "ROAD_TAKEOVER") if p > 0 else 0
+	var paid := CoreUtil.pay_upto(world, CoreUtil.TREASURY, CoreUtil.acct(owner), p, "ROAD_TAKEOVER") if p > 0 else 0
 	world.add_fact({"type": "LAW_ROAD_TAKEN_OVER", "owner": "law", "subjects": [co, GOV],
 		"responsible": [{"actor": GOV, "share": 1.0}], "impact": {}, "affected": {"districts": ds}, "magnitude": 35,
 		"visibility": "PUBLIC", "data": {"link": lid, "owner": owner, "mode": mode, "price": p, "value": -1 if unlawful else v,

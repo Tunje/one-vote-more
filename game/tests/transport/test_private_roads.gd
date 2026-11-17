@@ -14,7 +14,7 @@ func _game(seed_v: int = 1, months: int = 3, on: bool = true) -> Simulation:
 
 ## A company (any org that is not the government).
 func _firm(w: WorldState, skip: String = "") -> String:
-	for oid in EconUtil.sorted_keys(w.peek("org")):
+	for oid in CoreUtil.sorted_keys(w.peek("org")):
 		if String(oid) != "gov" and String(oid) != skip:
 			return String(oid)
 	return ""

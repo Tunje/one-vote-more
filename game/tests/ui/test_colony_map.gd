@@ -37,7 +37,7 @@ func test_facilities_get_distinct_display_tiles_deterministically() -> void:
 		if String(w.peek("facility")[fid]["type"]) == "MINE":
 			check(Terrain.at(w, t.x, t.y) in ["o", "x", "k", "h"], "mines stand on deposits, rock or hills")
 	# a facility with its own tile (Bob's A2) is drawn there
-	var fid0: String = EconUtil.sorted_keys(w.peek("facility"))[0]
+	var fid0: String = CoreUtil.sorted_keys(w.peek("facility"))[0]
 	var free := Terrain.nearest_free(w, 3, 3, [".", "f", "h", "k"], 20)
 	w.table("facility")[fid0]["tile"] = [free.x, free.y]
 	check_eq(ColonyMap.facility_tiles(w)[fid0], free, "A2 tile wins over display placement")
@@ -63,10 +63,10 @@ func test_build_validity_and_stubbed_action() -> void:
 	check_eq(ColonyMap.build_problem(w, "HOUSING", free), "", "free plain is buildable")
 	var p := ColonyMap.build_params(w, "SCHOOL", free)
 	check(EconData.DISTRICTS.has(p["district"]) and p["tile"] == [free.x, free.y], "params carry a district and the tile")
-	var q: int = EconUtil.st(w)["queue"].size()
+	var q: int = CoreUtil.econ_state(w)["queue"].size()
 	var r := ColonyMap.submit_build(w, "SCHOOL", free)
 	check(not r["ok"] and String(r["message"]) != "", "stub reports why")
-	check_eq(EconUtil.st(w)["queue"].size(), q, "the stub queues nothing until A2")
+	check_eq(CoreUtil.econ_state(w)["queue"].size(), q, "the stub queues nothing until A2")
 
 
 func test_district_drawing_plan_and_preview() -> void:
@@ -152,10 +152,10 @@ func test_road_tool_and_network_panels() -> void:
 	var params := ColonyMap.road_params(w, v.road_spec())
 	check_eq(params["type"], "ROAD", "a ROAD project")
 	check_eq(params["link"], v.road_spec(), "carrying the link")
-	var q: int = EconUtil.st(w)["queue"].size()
+	var q: int = CoreUtil.econ_state(w)["queue"].size()
 	var r := ColonyMap.submit_road(w, v.road_spec())
 	if r["ok"]:
-		check_eq(EconUtil.st(w)["queue"].size(), q + 1, "commissioned: queued for the tender")
+		check_eq(CoreUtil.econ_state(w)["queue"].size(), q + 1, "commissioned: queued for the tender")
 	else:
 		check(String(r["message"]) != "", "or a readable reason (%s)" % r["message"])
 	check(ColonyMap.submit_road(w, {"a": 0, "b": 0, "kind": "TRACK"})["message"] != "", "a bad link is refused with a reason")

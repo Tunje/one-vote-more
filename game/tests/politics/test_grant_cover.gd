@@ -17,8 +17,8 @@ func _world() -> WorldState:
 func test_coverage_follows_need_and_is_dropped_when_the_programme_ends() -> void:
 	var w := _world()
 	var st: Dictionary = w.table("pol")["state"]
-	var s := EconUtil.st(w)
-	var ds: Array = EconUtil.sorted_keys(w.table("district"))
+	var s := CoreUtil.econ_state(w)
+	var ds: Array = CoreUtil.sorted_keys(w.table("district"))
 	check(ds.size() >= 3, "three districts")
 	var need := {}
 	for i in ds.size():
@@ -45,8 +45,8 @@ func test_coverage_follows_need_and_is_dropped_when_the_programme_ends() -> void
 func test_favouring_strongholds_is_a_resented_public_fact() -> void:
 	var w := _world()
 	var st: Dictionary = w.table("pol")["state"]
-	var s := EconUtil.st(w)
-	var ds: Array = EconUtil.sorted_keys(w.table("district"))
+	var s := CoreUtil.econ_state(w)
+	var ds: Array = CoreUtil.sorted_keys(w.table("district"))
 	var g: Dictionary = st["government"]
 	check(not (g.get("members", []) as Array).is_empty(), "an elected government at month 60")
 	# need is almost equal everywhere; the governing parties' voters all live in the last populated district
@@ -81,8 +81,8 @@ func test_favouring_strongholds_is_a_resented_public_fact() -> void:
 func test_a_programme_without_takers_is_a_public_failure() -> void:
 	var w := _world()
 	var st: Dictionary = w.table("pol")["state"]
-	var s := EconUtil.st(w)
-	var ds: Array = EconUtil.sorted_keys(w.table("district"))
+	var s := CoreUtil.econ_state(w)
+	var ds: Array = CoreUtil.sorted_keys(w.table("district"))
 	var need := {}
 	for d in ds:
 		need[d] = 0

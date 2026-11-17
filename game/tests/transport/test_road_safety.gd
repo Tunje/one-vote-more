@@ -16,7 +16,7 @@ func _game(seed_v: int = 1, months: int = 3, on: bool = true) -> Simulation:
 func _busiest(w: WorldState) -> String:
 	var best := ""
 	var bw := -1
-	for lid in EconUtil.sorted_keys(Transport._links(w)):
+	for lid in CoreUtil.sorted_keys(Transport._links(w)):
 		var s := 0
 		for sp in RoadSafety.spots(w, String(lid)):
 			s += int(sp[1])
@@ -46,7 +46,7 @@ func test_flag_off_changes_nothing() -> void:
 	check(not bool(Transport.plan_link(w, {"pass": lid, "tile": 0, "type": "OVERPASS"})["ok"]), "no passes")
 	var js := Transport.junctions(w)
 	if not js.is_empty():
-		check(not bool(Transport.plan_link(w, {"junction": EconUtil.sorted_keys(js)[0], "type": "FLYOVER"})["ok"]), "no flyovers")
+		check(not bool(Transport.plan_link(w, {"junction": CoreUtil.sorted_keys(js)[0], "type": "FLYOVER"})["ok"]), "no flyovers")
 	check_eq(w.state_hash(), h, "nothing written")
 	w.month += 1
 	Transport.step_month(w)
@@ -164,7 +164,7 @@ func test_a_flyover_where_fast_roads_meet() -> void:
 	if js.is_empty():
 		check(true, "no junction on this map")
 		return
-	var jid := String(EconUtil.sorted_keys(js)[0])
+	var jid := String(CoreUtil.sorted_keys(js)[0])
 	var fx: Array = Transport.traffic_fixes(w).get("NODE:" + jid, {}).get("options", [])
 	var fly := fx.filter(func(o): return o["fix"] == "FLYOVER")
 	check(fly.size() == 1 and int(fly[0]["cap_pm"]) > 1000 and int(fly[0]["acc_pm"]) < 1000, "a flyover on offer: more capacity, fewer crashes")

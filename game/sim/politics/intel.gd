@@ -57,7 +57,7 @@ static func monthly(world: WorldState, truth: Array) -> void:
 	var intel: Dictionary = st.get("intel", {})
 	st["intel"] = intel
 	var parties: Array = []
-	for pid in EconUtil.sorted_keys(world.table("party")):
+	for pid in CoreUtil.sorted_keys(world.table("party")):
 		if world.table("party")[pid].get("status", "") == "ACTIVE":
 			parties.append(pid)
 	var bases := _bases(world, parties)
@@ -153,7 +153,7 @@ static func _record(world: WorldState, st: Dictionary, truth: Array) -> void:
 	var snap: Dictionary = st.get("lever_snap", {})
 	var rec: Array = st.get("policy_record", [])
 	var first := snap.is_empty()
-	for lid in EconUtil.sorted_keys(world.lever_defs):
+	for lid in CoreUtil.sorted_keys(world.lever_defs):
 		var def: Dictionary = world.lever_defs[lid]
 		if def.get("type", "") != "NUMBER" or def.get("concerns", {}).is_empty():
 			continue
@@ -193,7 +193,7 @@ static func _learn(world: WorldState, st: Dictionary, r: Dictionary, truth: Arra
 	var beliefs: Dictionary = st.get("beliefs", {})
 	st["beliefs"] = beliefs
 	var moved := {}   # pid -> [before, after] milli (for the chronicle: expectation vs reality)
-	for pid in EconUtil.sorted_keys(world.table("party")):
+	for pid in CoreUtil.sorted_keys(world.table("party")):
 		if world.table("party")[pid].get("status", "") != "ACTIVE":
 			continue
 		var b: Dictionary = beliefs.get(pid, {})

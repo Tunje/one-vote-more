@@ -14,7 +14,7 @@ func _sim(on: bool, autoplay: bool = true) -> Simulation:
 
 
 func _housing_params(w: WorldState) -> Dictionary:
-	return {"type": "HOUSING", "district": String(EconUtil.sorted_keys(w.table("district"))[0])}
+	return {"type": "HOUSING", "district": String(CoreUtil.sorted_keys(w.table("district"))[0])}
 
 
 func test_an_order_at_each_level() -> void:
@@ -40,7 +40,7 @@ func test_an_order_at_each_level() -> void:
 	check(not Desk.pending(w, "ORDER|HOUSING|%s|" % params["district"]), "nothing waits on the desk")
 	# leave it to me: the case waits with its options; answering it orders the block
 	Desk.set_level(w, "BUILD_HOUSING", "ME")
-	var d2 := String(EconUtil.sorted_keys(w.table("district"))[1])
+	var d2 := String(CoreUtil.sorted_keys(w.table("district"))[1])
 	var p2 := {"type": "HOUSING", "district": d2}
 	check_eq(GovBuilder._order_case(w, who, "HOUSING", d2, "", p2), 1, "booked as placed while it waits")
 	var ref := "ORDER|HOUSING|%s|" % d2
@@ -87,15 +87,15 @@ func test_a_minister_follows_their_politics() -> void:
 func test_grant_coverage_commits() -> void:
 	var w := _sim(true).world
 	w.levers["ECON_FAMILY_FARM_GRANT"] = 10
-	var ds: Array = EconUtil.sorted_keys(w.table("district")).slice(0, 2)
+	var ds: Array = CoreUtil.sorted_keys(w.table("district")).slice(0, 2)
 	var r := GovBuilder.commit_cover(w, {"kind": "FARM", "districts": [ds[1]], "fair": [ds[0]], "by": "commander"})
 	check(r.get("ok", false), "committed")
-	check_eq(EconUtil.st(w)["grant_cover"]["FARM"], [ds[1]], "the programme covers the chosen district")
+	check_eq(CoreUtil.econ_state(w)["grant_cover"]["FARM"], [ds[1]], "the programme covers the chosen district")
 	check_eq(w.facts.query("POL_GRANT_FAVOURITISM", w.month, w.month).size(), 1, "passing over the neediest is seen")
 	w.levers["ECON_FAMILY_FARM_GRANT"] = 0
-	EconUtil.st(w)["grant_cover"].erase("FARM")
+	CoreUtil.econ_state(w)["grant_cover"].erase("FARM")
 	GovBuilder.commit_cover(w, {"kind": "FARM", "districts": [ds[0]], "fair": [ds[0]], "by": "commander"})
-	check(not EconUtil.st(w)["grant_cover"].has("FARM"), "a closed programme is not covered")
+	check(not CoreUtil.econ_state(w)["grant_cover"].has("FARM"), "a closed programme is not covered")
 
 
 func test_a_human_government_is_proposed_to() -> void:
@@ -263,7 +263,7 @@ func test_the_rest_of_the_programme_is_cases() -> void:
 	check_eq(n, 1, "posted once")
 	# a stuck public project: tender again, leave it, or cancel it
 	var pid := ""
-	for k in EconUtil.sorted_keys(w.table("project")):
+	for k in CoreUtil.sorted_keys(w.table("project")):
 		if String(w.table("project")[k]["owner"]) == "gov":
 			pid = String(k)
 	if pid != "":
@@ -291,7 +291,7 @@ func test_quotes_are_a_case() -> void:
 	var w := sim.world
 	w.table("org")["org:qa"] = {"id": "org:qa", "name": "Able Works"}
 	w.table("org")["org:qb"] = {"id": "org:qb", "name": "Bold Works"}
-	var est := 1000 * EconUtil.S
+	var est := 1000 * CoreUtil.S
 	w.table("project")["prj:q"] = {"id": "prj:q", "owner": "gov", "status": "TENDER", "type": "SCHOOL", "district": "d:1", "est_cost": est,
 		"bids": [{"org": "org:qa", "price": est * 2, "wait": 1}, {"org": "org:qb", "price": est, "wait": 2}]}
 	var ranked: Array = [{"org": "org:qa", "price": est * 2, "wait": 1}, {"org": "org:qb", "price": est, "wait": 2}]

@@ -33,7 +33,7 @@ static func post(world: WorldState, item: Dictionary) -> String:
 	var src: Dictionary = item.get("source", {})
 	var t := _t(world)
 	if not src.is_empty():
-		for id in EconUtil.sorted_keys(t):
+		for id in CoreUtil.sorted_keys(t):
 			var o: Dictionary = t[id]
 			if o["status"] in OPEN and o["source"].get("system", "") == src.get("system", "") and o["source"].get("ref", "") == src.get("ref", ""):
 				for k in ["subject", "summary", "recommendation", "options", "deadline", "default_option", "priority", "summary_lines", "digest"]:
@@ -121,7 +121,7 @@ static func resolve(world: WorldState, system: String, ref: String) -> void:
 ## (PAPER, REPORT, CALENDAR) are archived after 6 months.
 static func expire(world: WorldState) -> void:
 	var t := _t(world)
-	for id in EconUtil.sorted_keys(t):
+	for id in CoreUtil.sorted_keys(t):
 		var o: Dictionary = t[id]
 		if not (o["status"] in OPEN):
 			# closed items are kept a year for the record, then dropped (the table must not grow for a century)
@@ -155,7 +155,7 @@ static func _do(world: WorldState, action: Dictionary) -> Dictionary:
 		"":
 			return {"ok": true, "error": ""}
 		"ECON":
-			return EconActions.enqueue(world, String(action["id"]), action.get("params", {}))
+			return {"ok": false, "error": "There is no economy to act on."}
 		"STAFF":
 			return SA.apply(world, {"id": String(action["id"]), "actor": action.get("actor", {"kind": "GOVERNMENT", "id": "government"}), "args": action.get("args", {})})
 		"DESK":   # who decides, step 3 (flag DELEGATION): a system's case, committed by that system
