@@ -889,6 +889,15 @@ Answering the four questions Wilma had noted with the idea marked for step 4: ho
 Written under the step-4 mark in [rebuild-company.md](rebuild-company.md) section 13. Still not built before trucks and roads.
 
 
+### The rebuild: a family farm's loss is carried forward (the user, 2026-11-17, verbatim)
+
+Wilma had put two ways for a family's winnings: (one) each month stands alone; (two) a loss is carried forward, so the farm makes good what it lost before the family takes anything.
+
+> I think two is better,  but also maybe the family can put some away for the hard months they know are coming
+
+Two is the rule. The second half was said as a maybe and is noted, not built. Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

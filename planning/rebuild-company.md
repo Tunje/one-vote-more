@@ -762,6 +762,15 @@ is wrong; nothing here is asked again.
       - **(Wilma's, marked as mine)** From the day the farm opens. While it is still a plan the family lives where
         it lived and pays that rent. The home it leaves is free for someone else. The user spoke of the farm; a
         family company in town (a bakery) is not covered by this sentence.
+    - **A loss is carried forward** (the user, 2026-11-17, verbatim): "I think two is better,  but also maybe the family can put some away for the hard months they know are coming".
+      Wilma had put two ways to the user: (one) each month stands alone, so after a bad month the family takes
+      winnings again in the first good month; (two) a loss is carried forward, so the farm makes good what it lost
+      before the family takes anything. The user chose two.
+      - "maybe the family can put some away for the hard months they know are coming": said as a maybe. As built it
+        already holds in one way: winnings the family does not spend stay in the family's own account, and it lives
+        on them in the months with no winnings. Whether a family should deliberately hold back from spending before
+        a known hard season only matters once there is more to buy than food (step 4); it is noted for then, not
+        built.
     - **(Wilma's details, marked as mine)**
       - The family is the founder's household: its adults fill the farm's posts first; posts beyond them are hired
         for wages like any others.
