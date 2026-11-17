@@ -711,9 +711,17 @@ is wrong; nothing here is asked again.
 36. **The old household side is carried over like this (as behaviour, written new):** its district keys become areas; its self-employed become family-size
     service companies; its price floors and ceilings and the ceiling on the self-employed are removed; every number it
     read from the old data file is set new. The 130% crowding limit stays: it is how many people fit in a home.
-37. **The starting salary is per worker:** the housing and food of a household in the area, divided by its earners,
-    plus half again.
-38. **A worker's needs** (below which they do not apply) are that same housing and food per worker.
+37. **The starting salary carries a household:** the rent of a home in the area plus the food of a household, plus half
+    again. One salary pays a household's home and food with a third left over; a second earner is what makes a
+    household comfortable. (An earlier version of this point divided the cost by the earners in a household. Bob showed
+    what that means: with 1.7 earners a household's rent and food would be two-thirds of ALL it earns, a much poorer
+    colony than the user's sentence describes, and with our farms no set of starting prices could satisfy it.)
+37a. **The starting prices are made to fit the formula, not the other way round.** Every price is wages plus things made
+    with wages, so the formula only holds at one level of how much a farm makes. The farm's output in the type table is
+    set where the formula gives back the salary the prices were built on. That makes food about a third of a
+    two-earner household's income at landing, and about a fifth of the workers farm.
+38. **A worker's needs** (below which they do not apply) are that same rent and food of a household: two-thirds of the
+    starting salary.
 39. **Changing jobs:** an employed worker moves when a job within reach pays more after travel. This is new code.
 40. **Reach:** a worker takes a job within travel reach of home; pay is compared after travel time and fare. Buses are
     the transit company's, with riders as clients.
