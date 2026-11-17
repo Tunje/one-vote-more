@@ -102,15 +102,14 @@ Each line says what it was. Nothing here is decided.
   federation:** left out for now by Wilma (plan section 12.11).
 - **The self-employed** as producers outside any company: they become family-size service companies (plan 12.5).
 
-## C. One thing the plan may have wrong
+## C. Withdrawn
 
-The user said the colony starts with "5 years worth of equipment that never changed they are companies from the world".
-Wilma wrote that into the plan as a stock of material, components and food belonging to the colony.
+Wilma wrote here that the user's "5 years worth of equipment" was the old game's rule of a home-world builder bringing
+five years of its running costs. The user: "no the old system and the new for five years are not the same". The two are
+separate. The plan holds only the new one: the colony lands with materials, five years' worth of equipment.
 
-The old game has the user's earlier words on this: "a company going to a colony would have 5 years of costs calculated
-and saved before going". That was built as each home-world builder arriving with five years of its own running costs.
+## D. What became of the list
 
-So "that never changed" most likely points at that: the five YEARS belong to the home-world companies, each arriving
-with five years' worth of what it needs, and "materials come with the start" is the separate statement that the colony
-lands with materials and no buildings. The plan is corrected to say so; whether the colony's own stock includes food is
-not something the user has said.
+The user: "I think most of these needs to be worked in". All 36 of section A are placed in
+[rebuild-company.md](rebuild-company.md) section 12.11, points 77 to 109, except the home world's emergency rations
+arriving unordered.

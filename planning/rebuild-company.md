@@ -1,6 +1,6 @@
 # The rebuild of the economy: one company object
 
-**Version 11, 2026-11-17. Wilma.** What the old economy had that this plan does not include is listed in [rebuild-not-included.md](rebuild-not-included.md). Unified, reviewed twice by all six sessions, and with every open point decided (section 12). This replaces all earlier versions. It is one document: every ruling the user gave
+**Version 12, 2026-11-17. Wilma.** What the old economy had that this plan does not include is listed in [rebuild-not-included.md](rebuild-not-included.md). Unified, reviewed twice by all six sessions, and with every open point decided (section 12). This replaces all earlier versions. It is one document: every ruling the user gave
 for the rebuild is in it, in its place. Nothing is built.
 
 How to read it:
@@ -265,8 +265,8 @@ econ_pop, econ_cohorts, econ_informal). What it holds:
   workers and jobless, adults outside the labour force, retired, children, owners, the self-employed, and their skills.
 - **Money in:** wages, the unemployment benefit, pensions, dividends to owners, the earnings of the self-employed, the
   savings migrants bring.
-- **Money out, in this order:** rent and utility bills; food and the other essentials; then what is left, split between
-  consumer goods, services, comfort spending, newspapers and saving. Orders are placed a month ahead; a household that
+- **Money out, in this order:** food; water and power; rent (unpaid rent becomes a debt to the landlord); the other
+  essentials; then what is left, split between consumer goods, services, comfort spending, newspapers and saving. Orders are placed a month ahead; a household that
   cannot afford everything buys less of each.
 - **Life:** ages 0 to 99 per area; births from women 18 to 42, fewer with income, schooling, density and crowding, and
   when food is short; deaths by age, worse with poor clinic access and in famine; growing up at 18 with a skill tier
@@ -479,12 +479,13 @@ and the read-only views the screens show. The rebuild publishes the same names w
 
   - **No plants are placed at the start.** No farm, mine or factory stands in month one; as in any colony builder,
     everything is built by the colony. This was always the design ("that never changed").
-  - **The colony lands with materials, not finished buildings.** Those materials are what is built from until the
-    colony's own makers are open. That breaks the deadlock all six reviews named.
-  - **The five builders are companies from the home world, and each arrives with five years' worth of what it needs.**
-    "that never changed": the user's earlier words, built into the old game, were "a company going to a colony would
-    have 5 years of costs calculated and saved before going".
-  - **(proposal)** The colony's own landing stock also holds food until the first farms open. The user has not said so.
+  - **The colony lands with materials, not finished buildings: five years' worth of equipment.** That is what is
+    built from until the colony's own makers are open, and it breaks the deadlock all six reviews named.
+  - **The five builders are companies from the home world.**
+  - This is NOT the old game's rule that a home-world builder brings five years of its running costs. The user: "no the
+    old system and the new for five years are not the same". Wilma had merged the two; they are separate, and only the
+    new one is in this plan.
+  - **(proposal)** The landing stock also holds food until the first farms open. The user has not said so.
 
 ## 10. The connections: anything outside needing something, and how it gets it
 
@@ -592,9 +593,8 @@ is wrong; nothing here is asked again.
 
 ### 12.2 Month one
 
-9. **The landing stock** of materials is the colony's; the government sells from it at the starting prices. Each of
-   the five home-world builders also arrives with five years' worth of its own costs and equipment (section 9.12).
-   Food in the landing stock is Wilma's addition.
+9. **The landing stock** is five years' worth of equipment and materials (the user's words, section 9.12). It is the
+   colony's; the government sells from it at the starting prices. Food in it is Wilma's addition.
 10. **The settlers** arrive as in the old game: a founding population with ages, skills and savings, numbers set new.
 11. **The first homes** are the landing shelters: plain homes at the landfall place, the housing office's, with a low
     rent. Real homes are built. (The colony lands with no finished buildings; people still have to sleep somewhere.)
@@ -765,7 +765,94 @@ is wrong; nothing here is asked again.
     desk, as before.
 76. **The player's view:** a plain map that shows plants from step 2; a run-down building looks run-down.
 
-### 12.11 Left out for now
+### 12.11 Worked in from the old game
+
+The user, 2026-11-17, on the list of 36 old systems the plan did not include
+([rebuild-not-included.md](rebuild-not-included.md)): "I think most of these needs to be worked in". Each is placed
+here. Where a thing used to happen by itself to save someone, it is now something a person or a government CHOOSES to
+do and pays for; nothing is rescued automatically.
+
+**In the company**
+
+77. **Management.** A company has a chief with a management skill and an appetite for risk. Management decides how much
+    of a plant's normal output it really reaches and how well a founder reads rule 7's signal. Owners replace a chief
+    whose company is doing badly.
+78. **Upgrades.** A plant can be rebuilt to a better grade of the same size, taking less in or giving more out. It is a
+    building job the company chooses when it pays.
+79. **Mothballing.** An owner may close a plant and keep it: no staff, a small upkeep cost, and it wears. Reopening
+    takes hiring again. Rule 6 is what tells it to.
+80. **Unsafe plants.** A hazardous plant in bad condition is closed under the law, keeps a small repair crew and
+    reopens when it has been put right. If the owner cannot afford that, it is the second way a company ends.
+81. **Who may buy a plant.** In a buy-out or after an ending, the buyer can be another company, the plant's own workers
+    as a co-op, or the government. Each pays for it like any buyer.
+82. **Trying to avoid the end.** A company or a plan in trouble may sell a share of itself, ask the bank for more time,
+    or ask the government for help. The bank and the government may say no. None of it happens by itself.
+83. **Credit lines.** Besides a loan for building, the bank offers a running line for wages and supplies. It has a
+    price, and the bank can refuse it or call it in.
+84. **Cutting corners** includes putting off upkeep and running short-staffed. Both save money now and raise wear,
+    accidents and stress.
+
+**People**
+
+85. **Training on the job.** A company with skilled posts it cannot fill trains people from the tier below, at its own
+    cost. The government may pay part from a budget line.
+86. **Sickness.** Where clinic places are short, part of the labour force is too ill to work. It is published, so
+    voters and the papers see it.
+87. **Public work for the jobless:** a government may fund a scheme that hires the jobless at low pay, from a budget
+    line. Its workers move to any better job.
+88. **Food assistance, a floor and a time limit on the benefit, a tax allowance** are levers of the purse beside the
+    benefit and pensions.
+89. **Lockouts and arbitration.** A company may lock its staff out in a dispute. Where the law bans a strike, the
+    dispute goes to arbitration.
+
+**The government and money**
+
+90. **The home world's grant.** The home world pays the colony's government a development grant in the early years,
+    tapering to nothing. It arrives by ship like everything else.
+91. **The bank's remittance.** A bank owned from the home world sends part of its profit home, by ship.
+92. **A government that cannot pay** defaults. After a time its creditors write part of the debt off, and nobody lends
+    to it meanwhile.
+93. **Helping the bank.** A government may put money into a bank that is failing, in return for a share of it. It may
+    also let it fail.
+94. **Subsidies and co-financing.** A government may subsidise a company or pay part of a plant it wants built, as a
+    choice of policy with a budget line. This is not a grant to every new company.
+95. **Buying and selling plants.** A government may buy a plant from its owner or sell one of its own.
+96. **Who expands, as a policy.** A lever from market to state: whether the state's companies start new plants or leave
+    the field to private plans. Private companies can always start (12.10, 65).
+97. **State companies pay a dividend** to the treasury from their profit, at a rate the government sets.
+98. **How the state picks a builder:** by price, the builder's record of finishing and how soon it can start, weighed by
+    a lever. A builder has a record.
+99. **The public works department** builds at cost when the government tells it to. It is a builder like the others
+    and is not one of the five home-world ones.
+100. **Fees at the door** for a clinic or school are levers. At zero the service is paid by its bracket alone.
+101. **Cleaner production** is a lever: it cuts a plant's pollution and raises its costs.
+102. **Securing the essentials.** The government watches food, power, water and material. When one runs short it can
+     order a plant built, order from the home world with the next ship, or release from the reserve. It is the
+     government's choice, and a government may choose badly or not at all.
+103. **A caretaker government** runs the purse by a plain rule in test games that have no politics.
+
+**Utilities, the port, the home world**
+
+104. **When power or water runs short:** water is served before power, and homes, farms and clinics before other
+     users. An outage is published.
+105. **The home world's prices** for what the colony sells move over time, and the colony learns the new ones only
+     when a ship calls.
+106. **The port has a size.** What does not fit aboard or on the dock waits, and a full port is published.
+107. **The charter quota:** the colony owes the home world set amounts of certain goods at a fixed price, collected
+     by ship.
+
+**What other parts read**
+
+108. **A reference wage** is published per area and for the colony: the average salary paid. The law's fines, the
+     press's costs and the benefit read it.
+109. **The fiscal report and the economic briefing** are read from the purse and the published figures.
+
+**Not worked in**
+
+- **The home world's emergency rations** arriving by themselves after two months of hunger. Nothing arrives that was
+  not ordered with a ship (12.10, 102 covers ordering food).
+
+### 12.12 Left out for now
 
 Supply contracts; buying on account between firms; storage space; quality and reputation of consumer goods; private
 roads and tolls; a union federation. Each can come back once the base runs.

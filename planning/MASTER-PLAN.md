@@ -676,6 +676,15 @@ About the old household code, which is taken wholesale, after Wilma noted that t
 Every mechanism in the old household code is checked and given a verdict (keep, change, remove) before it is fitted in. The first pass is the table in [rebuild-company.md](rebuild-company.md) section 9.1.
 
 
+### The rebuild: the old systems, and the five years (the user, 2026-11-17, verbatim)
+
+On the list of 36 old systems the plan did not include, and on Wilma's claim that the "5 years worth of equipment" was the old rule of home-world builders bringing five years of running costs:
+
+> I think most of these needs to be worked in,  also no the old system and the new for five years are not the same
+
+The 36 are worked into [rebuild-company.md](rebuild-company.md) version 12, section 12.11 (all but the home world's unordered emergency rations). The five years: the old rule and the new one are separate; only the new one, as the user said it, is in the plan.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
