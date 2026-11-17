@@ -426,8 +426,18 @@ and the read-only views the screens show. The rebuild publishes the same names w
 - **No sectors beyond the landfall point.** The colony starts as one place where it landed. No districts are laid out
   in advance; where things are built decides. (The old game started with six named districts, and much code reads that
   list.)
-- **(proposal)** No private companies are placed by us. They appear through rule 7 and the grants. So what the
-  government's subsidiaries cover at the start has to be enough to eat and to have power.
+- **What the colony lands with** (the user, 2026-11-17, verbatim):
+
+  > Okay materials come with the start not finished buildings 5 years worth of equipment  that never changed they are companies from the world. Tell me in any colony builder do you place out fucking plants from start????
+
+  - **No plants are placed at the start.** No farm, mine or factory stands in month one; as in any colony builder,
+    everything is built by the colony. This was always the design ("that never changed").
+  - **The colony lands with materials, not finished buildings: five years' worth of equipment.** That stock is what the
+    five builders build from until the colony's own makers are open. It breaks the deadlock all six reviews named.
+  - **The five builders are companies from the home world.**
+  - **(proposal)** "Five years' worth" covers what the colony needs and cannot yet make: material and components for
+    building, and food until the first farms open. The stock belongs to the colony (the government), which sells from it;
+    it is not replaced when it runs out.
 
 ## 10. The connections: anything outside needing something, and how it gets it
 
@@ -532,6 +542,21 @@ before its use. Each step is built on the steps before it, with them on, and tes
 13. **The law's hold, what the economy publishes, and every remaining open connection.**
 
 At each step: three 30-year games, and where the bottleneck is, before the next step starts.
+
+## 12a. Three answers taken from the second review **(proposals)**
+
+Where several reviewers proposed the same answer independently, it is entered here as a proposal, not asked again.
+
+- **What an "area" is, with no districts** (Terra, Bob and Anni, separately): an area grows out of where homes and
+  plants are built; the population code already makes such areas. A salary's "area", a household's area and a service's
+  reach are that. The government draws districts from the areas, by law, as the colony spreads; the Assembly's seats
+  follow those districts. In month one there is one area and one district: the landfall place.
+- **People or pools** (Maja, Ella, Anni, Bob): the household pools stay, and each pool keeps a count per company its
+  members work for, so a job is still recorded once. Where one household must be named (the owner of a family company,
+  an owner taken to court), that household has an account of its own inside its pool, so a judgment or a grant touches
+  it and not its neighbours.
+- **A square** (Terra): it holds one full size of company PER TYPE. A shop does not stop the landlord in the same
+  street block from growing; another landlord does.
 
 ## 13. Readings that are Wilma's
 

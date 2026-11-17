@@ -612,6 +612,15 @@ Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn.
 All grant types are open in month one: family farms, family bakeries, truck drivers, truck workshops. The number three was a slip and is not to be asked about again.
 
 
+### The rebuild: what the colony lands with (the user, 2026-11-17, verbatim)
+
+After all six reviews named the same deadlock (no maker of food or material in month one):
+
+> Okay materials come with the start not finished buildings 5 years worth of equipment  that never changed they are companies from the world. Tell me in any colony builder do you place out fucking plants from start????
+
+No plants are placed at the start; the colony lands with materials, five years' worth of equipment; the five builders are companies from the home world. This was the design from the start ("that never changed"). Written into [rebuild-company.md](rebuild-company.md) section 9.12.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
