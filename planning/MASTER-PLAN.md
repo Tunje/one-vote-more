@@ -1073,6 +1073,15 @@ Asked how large the cut is and whether a fourth month cuts again:
 So: the cut is 5%, and each further such month in a row lowers output 5% again.
 
 
+### The rebuild: a price rises on the buyers my own farm turned away (the user, 2026-11-18, verbatim)
+
+About: rule 1. A five-year simulation showed the food price falling every month from 52 to 8 and never rising: the rule in the game (a table line of ours, "it sold what it offered and orders went unfilled") needs an order nobody filled, and in a glut the other farms fill every order. Asked when a farm should raise its price:
+
+> Ah that's my mistake, no orders go unfilled by my farm,  every seller that comes looking and goes somewhere else for food,  not orders unfilled by anyone
+
+So: a farm raises its price on the orders its own farm could not fill: every buyer that came looking to it and went somewhere else for food. Not on orders left unfilled by anyone. Bob builds it and puts the quote on rule 1's line in rebuild-company.md section 3.
+
+
 ### The rebuild: for who is underpaid, specialists are counted separately (the user, 2026-11-18, verbatim)
 
 About: the line a worker is underpaid against. The user's earlier words: "avrage ask salleries in the company and underpayed is based on that line". It had been built per skill level; the audit corrected it to the whole company, and Wilma told the user that a general worker in a company with specialists would then usually be under the average.
