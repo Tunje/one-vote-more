@@ -1039,6 +1039,15 @@ Asked how large the cut is and whether a fourth month cuts again:
 So: the cut is 5%, and each further such month in a row lowers output 5% again.
 
 
+### The rebuild: the family alone makes 20; the government stops founding by the grant or the land (the user, 2026-11-18, verbatim)
+
+About: two items of the audit list put to the user. Item 7: a farm family is mostly two working adults, making about 19 a month alone, where the user had said three make 30. Item 17: a household with savings founds a farm without a grant, so stopping the grant stops nothing.
+
+> Item 7, fine they can make 20 at a minimum you had said 3 family memers on a farm i assumed 3 adults 17. No when i said that i added or stopping land being allowed to be built on if a plot wants to be built in it needs to be bought that's from the government, the others yes they are outside so they wait
+
+So: with the family's two adults alone the farm makes 20 at a minimum. A farm does not need a grant; the government can stop founding by stopping the grant or by stopping land being allowed to be built on; a plot to be built on is bought from the government. The other items outside the farms wait. Written into [rebuild-company.md](rebuild-company.md) 15e and 12.9 61c the same turn.
+
+
 ### The rebuild: the farm keeps a buffer before winnings (the user, 2026-11-18, verbatim)
 
 About: winnings as built pay the family everything the month earned above one month of the farm's costs.
