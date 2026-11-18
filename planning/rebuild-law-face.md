@@ -123,6 +123,11 @@ empty queue, and the old `law_bridge` gate is not rebuilt before then.
   - What it cannot pay becomes a fine owed (`liability`), which goes to court like a loan (12.8, 55): first the
     company, then its owners by their share.
   - A fine owed and unpaid for twelve months makes the purse petition the court, which winds the company up (section 4).
+    - **One petition per company until the court answers** (Wilma, 2026-11-18: "One petition per company until the
+      court answers, logged once, a refusal logged once"). The first debt twelve months overdue files it; it is kept
+      (`justice.petitioned`), so a company is not petitioned again every month. (Found in seed 1's 60 months: 6661
+      petitions and 4946 refusals, read out as fines.) The wind-up's reason names the debt's kind (UNPAID_FINE,
+      UNPAID_COMPENSATION, UNPAID_LAYOFF_PAY, UNPAID_WAGES), never "fines" for a debt that is not a fine.
   - The fine's own upper bounds (a share of revenue for one fine and for all open fines) are the law's
     proportionality. They stay, with numbers set new **(Anni's decision)**.
 - **A severe conviction** suspends the company's licences for a time.
@@ -173,6 +178,11 @@ amount or demand payment over time, if he is rich or owns other companies a sett
 - a grant owed back by a plan that was given up (12.9, 60b);
 - a building contract the client stopped paying (12.9, 56);
 - a claim for an accident at work (section 5).
+
+**Petitions filed before the court exists** (section 3: one per company, kept in `justice.petitioned`, Wilma
+2026-11-18). When the step-5 court rules on a company's petition it clears `justice.petitioned[org]`, so a company that
+pays up and later defaults again is petitioned again (Otto's review, 2026-11-18). Carried founders' debts (60c,
+`carried`) also wait here for this court.
 
 **Winding up for convictions** (12.10, 68):
 - The `LAW_REVOKE_AFTER_CONVICTIONS`-th conviction of a company within the window revokes its licences, and the court
@@ -238,6 +248,16 @@ crime, defamation, the government's unlawful acts, appeals.
    - What the company cannot pay is a debt, `Justice.owe(company, pool, pool's account, rest, "LAYOFF_PAY")`, collected
      like every other debt (section 3, collection). Unpaid 12 months past due, the pool petitions the court to wind the
      company up, as for a fine ("a debt like unpaid wages, and can end the company").
+7. **Unpaid wages** (the user, 2026-11-18, rebuild-company.md 9.2, verbatim: "Record it make them pay after our if
+   they refused take it to court"). What a company cannot pay of a month's wages is a debt to each pool,
+   `Justice.owe(company, pool, pool's account, rest, "UNPAID_WAGES")` (Bob's pay_wages), collected like every other debt
+   and booked by the pool as wages when it comes (Maja's debt_received). "Refused" until step 5's court: unpaid 12 months
+   past due, the pool petitions (Bob's reading; Wilma is putting it to the user).
+   - **Owed whole, due next month, also by a small firm** (`NO_PLAN_KINDS`; Anni): the small-firm instalments (8 over 24
+     months, carried in the code from v8 for fines; not in the plan papers) are not used for pay already earned. The
+     collector never overdraws, so it is still paid as the company has money.
+   - **Layoff pay the same way** (the user: "a debt like unpaid wages", point 6): `LAYOFF_PAY` goes into `NO_PLAN_KINDS`
+     too. Built at first with the instalments, which differed from the user's words; Anni fixes it (2026-11-18).
 
 **Until then:**
 - **Accidents** may happen from production at step 3. They are published and counted, but nobody pays for them until

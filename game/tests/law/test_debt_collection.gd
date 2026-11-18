@@ -98,7 +98,11 @@ func test_layoff_pay_reaches_the_pool_and_can_end_the_company() -> void:
 	w.month += J.PETITION_MONTHS
 	J._petitions(w)
 	check(Logbook.rows(w, {"what": "petition", "who": CO}).size() >= 1, "unpaid layoff pay: the pool petitions")
-	check(Logbook.rows(w, {"what": "wind up refused", "who": CO}).size() >= 1, "(the doorway refuses endings before step 5)")
+	var refused := Logbook.rows(w, {"what": "wind up refused", "who": CO})
+	check(refused.size() >= 1, "(the doorway refuses endings before step 5)")
+	check_eq(String(refused[0]["why"]["reason"]), "UNPAID_LAYOFF_PAY", "logged under the debt's own kind, not as fines")
+	check_eq([J.unpaid_reason("FINE"), J.unpaid_reason("UNPAID_WAGES"), J.unpaid_reason("COMPENSATION")],
+		["UNPAID_FINE", "UNPAID_WAGES", "UNPAID_COMPENSATION"], "each kind names itself")
 
 
 func test_a_debt_without_an_account_waits() -> void:
@@ -151,3 +155,36 @@ func test_carried_debts_stay_open_and_are_not_collected() -> void:
 	check_eq(J.carry_debts(w, who, POOL), 75 * S, "asked again: the same total")
 	check_eq(Logbook.rows(w, {"kind": "LAW", "what": "debts carried", "who": who}).size(), 1, "and no new row")
 	check_eq(J.carry_debts(w, "founder:8", POOL), 0, "nothing open: 0")
+
+
+func test_a_small_firms_layoff_pay_is_owed_whole_like_unpaid_wages() -> void:
+	# the user, rebuild-company.md 9.2: unpaid layoff pay is "a debt like unpaid wages"; unpaid wages are owed whole
+	var w := _world()
+	check(J.annual_rev(w, CO) < J.SMALL_FIRM_REV_WREF * float(J.w_ref(w)), "a small firm (no revenue yet)")
+	J.owe(w, CO, POOL, POOL, 90 * S, "LAYOFF_PAY")
+	J.owe(w, CO, POOL, POOL, 40 * S, "UNPAID_WAGES")
+	J.owe(w, CO, "gov", CoreUtil.TREASURY, 80 * S, "LAND_RENT")
+	var rows := {}
+	for li in w.peek("liability").values():
+		var k := String(li["kind"])
+		if not rows.has(k):
+			rows[k] = []
+		rows[k].append([int(li["amount"]), int(li["due_month"]), bool(li["plan"])])
+	check_eq(rows["LAYOFF_PAY"], [[90 * S, w.month + 1, false]], "layoff pay: one row, whole, due next month")
+	check_eq(rows["UNPAID_WAGES"], [[40 * S, w.month + 1, false]], "as unpaid wages")
+	check_eq((rows["LAND_RENT"] as Array).size(), J.PLAN_PARTS, "the other kinds keep the small-firm instalments")
+
+
+func test_a_debt_long_overdue_files_one_petition_not_one_a_month() -> void:
+	# Wilma, 2026-11-18: one petition per company until the court answers; the run had filed one a month
+	var w := _world()
+	_debt(w, "UNPAID_WAGES", 50 * S, 1, POOL, POOL)
+	_debt(w, "LAYOFF_PAY", 70 * S, 2, POOL, POOL)
+	w.month = 1 + J.PETITION_MONTHS
+	for m in 10:
+		J._petitions(w)
+		w.month += 1
+	check_eq(Logbook.rows(w, {"what": "petition", "who": CO}).size(), 1, "one petition over ten months, for two overdue debts")
+	check_eq(Logbook.rows(w, {"what": "wind up refused", "who": CO}).size(), 1, "and the refusal logged once")
+	var p: Dictionary = w.peek("law_state")["s"]["justice"]["petitioned"][CO]
+	check_eq([int(p["month"]), String(p["kind"])], [1 + J.PETITION_MONTHS, "UNPAID_WAGES"], "the petition is kept: when, for what")

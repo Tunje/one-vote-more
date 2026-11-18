@@ -929,7 +929,8 @@ static func _repeat_ladder(world: WorldState, org_id: String) -> void:
 
 
 ## v8 unpaid fines and awards: a FINE or COMPENSATION liability more than PETITION_MONTHS past due makes the creditor
-## (the state, the victims' fund or the firm owed) petition the court, which winds the firm up (UNPAID_FINES). Unpaid
+## (the state, the victims' fund or the firm owed) petition the court, which winds the firm up (the reason names the
+## debt's kind: UNPAID_FINE, UNPAID_COMPENSATION, UNPAID_LAYOFF_PAY, UNPAID_WAGES; unpaid_reason). Unpaid
 ## layoff pay too (the user, rebuild-company.md 9.2: a debt like unpaid wages, which can end the company); the pool the
 ## workers went back to is the creditor. Unpaid wages too (the user, 9.2 "Unpaid wages": "if they refused take it to
 ## court"; Bob's reading until step 5's court: unpaid 12 months after it was due counts as refused, as for layoff pay);
@@ -938,8 +939,20 @@ const PETITION_KINDS := ["FINE", "COMPENSATION", "LAYOFF_PAY", "UNPAID_WAGES"]
 const PETITION_MONTHS := 12
 
 
+## The reason a petition's wind-up is logged under: the kind of the debt left unpaid, never "fines" for a debt that is
+## not a fine (Wilma, 2026-11-18: a farm owing only wages and layoff pay was logged "UNPAID_FINES").
+static func unpaid_reason(kind: String) -> String:
+	return kind if kind.begins_with("UNPAID_") else "UNPAID_" + kind
+
+
+## One petition per company until the court answers (Wilma, 2026-11-18: the plan's "makes the purse petition the court"
+## and the user's "take it to court" are one case, not one a month). The first debt twelve months overdue files it;
+## justice.petitioned[org] = {month, kind, liability} keeps it, so neither the petition nor a refusal is logged again.
 static func _petitions(world: WorldState) -> void:
 	var liab := world.peek("liability")
+	if not js(world).has("petitioned"):
+		js(world)["petitioned"] = {}
+	var petitioned: Dictionary = js(world)["petitioned"]
 	for lid in Det.ordered(liab):
 		var li: Dictionary = liab[lid]
 		if String(li["status"]) != "OPEN" or not (String(li["kind"]) in PETITION_KINDS):
@@ -947,15 +960,16 @@ static func _petitions(world: WorldState) -> void:
 		if world.month - int(li["due_month"]) < PETITION_MONTHS:
 			continue
 		var org := String(li["debtor"])
-		if js(world).get("wound_up", {}).has(org) or not LawCompany.exists(world, org):
+		if petitioned.has(org) or js(world).get("wound_up", {}).has(org) or not LawCompany.exists(world, org):
 			continue   # only a company is wound up; a person's or a plan's debt waits for the court of step 5 (12.8, 52-55)
+		petitioned[org] = {"month": world.month, "kind": String(li["kind"]), "liability": String(lid)}
 		var owed := 0
 		for li2 in liab.values():
 			if String(li2["debtor"]) == org and String(li2["status"]) == "OPEN":
 				owed += int(li2["amount"])
 		Logbook.note(world, "LAW", org, "petition", {"owed": owed, "kind": String(li["kind"]),
 			"months_overdue": world.month - int(li["due_month"])}, {}, String(li.get("creditor", "gov")), String(lid))
-		if _liquidate(world, org, "UNPAID_FINES"):
+		if _liquidate(world, org, unpaid_reason(String(li["kind"]))):
 			var cref := {"kind": "COMPANY", "id": org}
 			fact(world, "LAW_LIQUIDATION_PETITION", "PUBLIC", [cref], [{"actor": cref, "share": 1.0}], {"FAIRNESS": 3, "JOBS": -3}, 45,
 				{"org": org, "owed": owed, "kind": String(li["kind"]), "months_overdue": world.month - int(li["due_month"]),
@@ -1114,8 +1128,9 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 ## `ref` (optional) names what the debt is for, e.g. the plan whose grant is owed back, so its owner can read what
 ## was collected of it (the row's "paid").
 ## Kinds in NO_PLAN_KINDS are owed whole, due next month, also by a small firm: unpaid wages are pay already earned,
-## not a state claim, so the instalment mercy does not apply (Anni); collect_debts still never overdraws.
-const NO_PLAN_KINDS := ["UNPAID_WAGES"]   # owed whole at once: pay earned, not a state claim (Anni)
+## not a state claim, so the instalment mercy does not apply (Anni); collect_debts still never overdraws. Layoff pay
+## too: the user ruled it "a debt like unpaid wages" (rebuild-company.md 9.2; Wilma, 2026-11-18).
+const NO_PLAN_KINDS := ["UNPAID_WAGES", "LAYOFF_PAY"]   # owed whole at once: pay earned, not a state claim (Anni)
 
 
 static func _owe(world: WorldState, debtor: String, creditor: String, creditor_acct: String, amount: int, kind: String,
