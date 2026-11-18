@@ -48,6 +48,7 @@ const STATE := "grant_prog"        # this file's own state: the programmes, the 
 const PROGRAMME_M := 24            # START: months a programme stays open for applications
 const EXTRA_PM := 100              # START (Wilma's): "a little extra to be sure", a tenth on top of the grants wanted
 const S := CoreUtil.S
+const RULES_PATH := "res://sim/economy/rules.gd"
 
 ## kind -> [lever, company type, size]. Every grant is for a family-size company: one household runs it (plan 5).
 const KINDS := {
@@ -238,10 +239,12 @@ static func reclaim(world: WorldState, plan_id: String) -> int:
 
 ## How many MORE plants of `kind` the government wants a programme to found (Wilma, 2026-11-17: "how many farms they
 ## want" is how many more): its starting count (ours, Wilma's for the farm). -> {wanted, rule, and what the rule read}.
-##   FARM: what feeds the colony at full output (the persons who buy food x one FOOD a month each), less what the farms
-##         that stand and the plans made or signed would grow at full use (the government sees a plan: it sold it the
-##         land), over a family farm's output a month at full use (TypeTable.output_milli), rounded up, never below 0.
-##         A farm larger than a family farm counts for what it grows.
+##   FARM: what feeds the colony (the persons who buy food x one FOOD a month each), less what the farms the government
+##         sees DELIVER a month, over a family farm's output a month at full use (TypeTable.output_milli), rounded up,
+##         never below 0. What they deliver is rule 8's own count, Bob's Rules.capacity_seen summed over the areas
+##         (Wilma, 2026-11-18, 61c: one count for the grant sum, the zoning and rule 8): a standing farm at what it made
+##         less its family's take over the last twelve months, months not yet lived at full output; plans booked with a
+##         builder or holding a grant at full output. With nothing standing in month one it is the whole need.
 ##   BAKERY: the same with bread (one BREAD is one person's food for a month, baked): enough bread for everyone. It
 ##         counts the whole food need, as if all ate bread, though a bakery bakes from the farms' FOOD.
 ##   TRUCKER, TRUCKSHOP: one in each area that has none standing or planned.
@@ -254,13 +257,17 @@ static func wanted(world: WorldState, kind: String) -> Dictionary:
 			persons += int(b["persons"])
 		var out := TypeTable.output_milli(type, String(k[2]))
 		var need := persons * int(Households.NEED_PER_PERSON["FOOD"])
-		var good := TypeTable.out_of(type, 0)
-		var have := _standing_and_planned(world, type, "", good)
-		var short := maxi(0, need - int(have["output_milli"]))
+		var have := _standing_and_planned(world, type, "", "")   # how many stand and are planned, for the row
+		var rules: GDScript = load(RULES_PATH)   # rules.gd preloads this file: loaded, not preloaded (Bob)
+		var seen := 0
+		for ar in AreaStore.areas(world):
+			seen += int(rules.call("capacity_seen", world, type, String(ar["id"])))
+		have["output_milli"] = seen
+		var short := maxi(0, need - seen)
 		return {"wanted": (short + out - 1) / out if out > 0 else 0, "to_feed": (need + out - 1) / out if out > 0 else 0,
 			"standing": int(have["standing"]), "planned": int(have["planned"]), "their_output_milli": int(have["output_milli"]),
 			"persons": persons, "output_milli": out,
-			"rule": "the persons who buy food, less what the %ss standing and planned make, over a family %s's output at full use" % [type.to_lower(), type.to_lower()]}
+			"rule": "the persons who buy food, less what the %ss seen deliver (rule 8's count), over a family %s's output at full use" % [type.to_lower(), type.to_lower()]}
 	var none := 0
 	var standing := 0
 	var planned := 0

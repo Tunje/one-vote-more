@@ -566,7 +566,7 @@ static func blocked(world: WorldState, c: Vector2i, ftype: String, ctx: Dictiona
 		if absi(sc.x - c.x) <= KEEP_CLEAR and absi(sc.y - c.y) <= KEEP_CLEAR:
 			return "a country building's site"
 	if ftype != "" and not Site.zone_allows(world, Site.cell_key(c), ftype):   # the cell's own zone (Anni)
-		return "the zone does not allow it"
+		return ZONE_BLOCK
 	var own := AreaStore.area_of_block(world, block_of(c))
 	if own != "" and String(ctx.get("tid", "")) != "" and AreaStore.town_of(world, own) != String(ctx["tid"]):
 		return "a block of another town"
@@ -707,6 +707,21 @@ static func catchment(world: WorldState, fid: String, reach_km: float = -1.0) ->
 ## Where a building of this type would best go in a town: up to n cells, best first, each a cell_score row with its
 ## tile. The candidates: the free cells next to the town; around its centre while it is empty; and cells near
 ## workplaces within SEED_KM of the centre (a new neighbourhood at a plant, as Rydebäck). Pure.
+## blocked()'s answer when the cell's own zone forbids the type (Site.why_no_site reads it).
+const ZONE_BLOCK := "the zone does not allow it"
+
+
+## The town's candidate cells for a type, counted by why each was turned away ("" = not blocked): {why: cells}. Pure;
+## for Site.why_no_site.
+static func blocked_counts(world: WorldState, tid: String, ftype: String) -> Dictionary:
+	var ctx := _context(world, tid)
+	var out := {}
+	for ck in _candidates(world, tid, ctx):
+		var why := String(cell_score(world, tid, ck, ftype, ctx)["blocked"])
+		out[why] = int(out.get(why, 0)) + 1
+	return out
+
+
 static func site_scores(world: WorldState, tid: String, ftype: String = "LANDLORD", n: int = 5) -> Array:
 	var ctx := _context(world, tid)
 	var rows: Array = []

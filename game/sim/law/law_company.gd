@@ -160,7 +160,7 @@ static func may_sign(world: WorldState, plan_id: String, type: String, site: Dic
 	var reasons: Array = []
 	var use := String(LandLaw.use_of(type))
 	for key in _site_keys(site):
-		var zone := String(LandLaw.zone_of(world, key))
+		var zone := String(LandLaw.zone_of(world, key, plan_id))   # a plan made before the colony zone keeps its site (61c)
 		if use != "" and not (use in (LandLaw.ZONE_USES.get(zone, []) as Array)):
 			reasons.append("the %s zone at %s does not allow %s" % [zone.to_lower(), key, use.to_lower()])
 	var needs := licences_required(world, type)

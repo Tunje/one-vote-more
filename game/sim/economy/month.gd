@@ -8,7 +8,8 @@ extends PicProvider
 ## Every piece of step 3 is called here.
 ##
 ## The conductor decides nothing and moves nothing itself; the pieces write their own Logbook rows. Its one row is
-## "no plan: no free site", which no piece can write because none was called.
+## "no plan: …" when no site is found (no free site, or the land zoned against the type), which no piece can write
+## because none was called.
 
 const Company := preload("res://sim/economy/company.gd")
 const Households := preload("res://sim/population/households.gd")
@@ -105,7 +106,8 @@ static func settlement(world: WorldState) -> void:
 
 ## 1. Rules.month (Bob), which also closes each company's books for the month;  2. the grant programmes' month (Ella):
 ## programmes open and close and the need is published;  3. the government decides each programme it has not decided
-## (GovBuilder.grant_programmes: its sum and the districts it covers);  4. founding;  5. plans sign with builders (Otto).
+## (GovBuilder.grant_programmes: its sum and the districts it covers), and whether its land may be built on by farms
+## (GovBuilder.farm_land, 61c);  4. founding;  5. plans sign with builders (Otto).
 ## 2 and 3 come before founding so a founder applies to a programme the government has already decided (Wilma,
 ## 2026-11-18: in month one every farm applied before the government had chosen, so none was covered and the sum, set
 ## after them, counted them as farms already planned).
@@ -113,6 +115,7 @@ static func company_ai(world: WorldState) -> void:
 	Rules.month(world)
 	Grants.monthly(world)
 	GovBuilder.grant_programmes(world)
+	GovBuilder.farm_land(world)   # the government may zone its land against farms (12.9, 61c) before anyone founds
 	founding(world)
 	Building.sign_round(world)
 
@@ -151,7 +154,10 @@ static func _found_one(world: WorldState, type: String, area: String) -> bool:
 		var sixths := TypeTable.sixths(String(size))
 		var sites: Array = Site.choose_country(world, type, sixths, 1) if Site.setting(type) == "COUNTRY" else Site.choose_town(world, area, type, sixths, 1)
 		if sites.is_empty():
-			Logbook.note(world, "PLAN", area, "no plan: no free site", {"type": type, "size": size})
+			# why (Terra's Site.why_no_site): when the government's zoning is the cause, the row says so (61c)
+			var nw: Dictionary = Site.why_no_site(world, area, type, sixths)
+			Logbook.note(world, "PLAN", area, "no plan: " + String(nw["why"]), {"type": type, "size": size, "cause": nw["cause"],
+				"counts": nw["counts"]})
 			return false
 		# a family-size company is the family's own: the whole household goes with the founder and works it (15e)
 		var founder := Households.make_founder(world, pool, "", String(size) == "FAMILY")

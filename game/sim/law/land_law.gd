@@ -119,8 +119,60 @@ static func title(world: WorldState, tile) -> Dictionary:
 	return t
 
 
-static func zone_of(world: WorldState, tile) -> String:
-	return String(title(world, tile).get("zoning", "UNZONED"))
+## The zone that holds on a key: the tile's or cell's own, once `zone` set it ("zoned_month"); else, on a country tile
+## the colony still owns, the colony-wide zone (`zone_colony`) when there is one; else its stored zoning (UNZONED).
+## The colony-wide zone reaches the free sixths of a part-sold tile; plots already sold keep their use (they were
+## checked when sold). Town cells are never in it.
+## `buyer`: a plan made while the land was open keeps its right to buy the site it holds (Wilma, 61c: "Zoning stops new
+## plans only: a plan made while the land was open keeps its right to buy the site it holds"), so for a plan made
+## before the colony zone was set, the colony zone does not hold. A tile's own zone (`zone`) still binds it.
+static func zone_of(world: WorldState, tile, buyer: String = "") -> String:
+	var t := title(world, tile)
+	var cz := colony_zone(world)
+	if cz != "" and not is_cell(_k(tile)) and not t.has("zoned_month") and String(t["owner"]) == "gov" 			and String(t["tenure"]) == "OWNED" and not _made_before_colony_zone(world, buyer):
+		return cz
+	return String(t.get("zoning", "UNZONED"))
+
+
+## Was this buyer a plan made before the colony zone was set (in an earlier month: the government zones before founding)?
+static func _made_before_colony_zone(world: WorldState, buyer: String) -> bool:
+	var p: Dictionary = world.peek("plan").get(buyer, {})
+	var cz: Dictionary = LawOps.state(world).get("colony_zone", {})
+	return not p.is_empty() and not cz.is_empty() and int(p.get("made", world.month)) < int(cz.get("month", 0))
+
+
+## The colony-wide zone over the colony's own unsold country land (61c, the user: "Yes on zoning laws"), "" when none.
+static func colony_zone(world: WorldState) -> String:
+	return String((LawOps.state(world).get("colony_zone", {}) as Dictionary).get("zone", ""))
+
+
+## Zone the colony's own unsold country land in one act (61c; Anni: one record, not a row per tile). REGULATION:
+## government or commander; a caretaker government may not (CARETAKER_LIMITS). One LAND row, one LAND_ZONED fact.
+static func zone_colony(world: WorldState, zoning: String, by: Dictionary = GOV) -> Dictionary:
+	if not (zoning in ZONES) or zoning == "UNZONED":
+		return {"ok": false, "reason": "unknown zone"}
+	var res := LawOps.validate(world, by, "ZONE_LAND", {"zone": zoning})
+	if res["result"] != "AUTHORIZED":
+		return {"ok": false, "reason": "not authorized: %s" % res["reason"]}
+	var was := colony_zone(world)
+	LawOps.state(world)["colony_zone"] = {"zone": zoning, "month": world.month, "by": _actor_id(by)}
+	Logbook.note(world, "LAND", _actor_id(by), "colony land zoned", {"rule": "61c"}, {"zoning": [was, zoning]})
+	_fact(world, "LAND_ZONED", {"tiles": ["colony"], "zone": zoning}, 20, [{"actor": by, "share": 1.0}])
+	return {"ok": true, "reason": ""}
+
+
+## Lift the colony-wide zone (61c). The same authority; one LAND row, one LAND_ZONED fact.
+static func lift_colony_zone(world: WorldState, by: Dictionary = GOV) -> Dictionary:
+	var was := colony_zone(world)
+	if was == "":
+		return {"ok": false, "reason": "no colony zone"}
+	var res := LawOps.validate(world, by, "ZONE_LAND", {"zone": "UNZONED"})
+	if res["result"] != "AUTHORIZED":
+		return {"ok": false, "reason": "not authorized: %s" % res["reason"]}
+	LawOps.state(world).erase("colony_zone")
+	Logbook.note(world, "LAND", _actor_id(by), "colony zone lifted", {"rule": "61c"}, {"zoning": [was, ""]})
+	_fact(world, "LAND_ZONED", {"tiles": ["colony"], "zone": "UNZONED"}, 20, [{"actor": by, "share": 1.0}])
+	return {"ok": true, "reason": ""}
 
 
 ## The titles of a place: {key: title} for a list of keys ("x,y" tiles or "c:fx,fy" cells).
@@ -162,8 +214,9 @@ static func can_build(world: WorldState, actor, tile, use: String) -> Dictionary
 	var state_builds: bool = kind in ["GOVERNMENT", "COMMANDER"] and t["owner"] == "gov" and t["tenure"] == "OWNED"
 	if not state_builds and right_of(world, actor, tile) == "":
 		reasons.append("no title or lease on this land")
-	if not (use in ZONE_USES.get(String(t["zoning"]), [])):
-		reasons.append("the %s zone does not allow %s" % [String(t["zoning"]).to_lower(), use.to_lower()])
+	var z := zone_of(world, tile)
+	if not (use in ZONE_USES.get(z, [])):
+		reasons.append("the %s zone does not allow %s" % [z.to_lower(), use.to_lower()])
 	return {"ok": reasons.is_empty(), "reasons": reasons}
 
 
@@ -174,8 +227,9 @@ static func land_offer(world: WorldState, tile, buyer, use: String = "") -> Dict
 	if t["owner"] != "gov" or t["tenure"] != "OWNED":
 		out["reason"] = "not state land on offer"
 		return out
-	if use != "" and not (use in ZONE_USES.get(String(t["zoning"]), [])):
-		out["reason"] = "the %s zone does not allow %s" % [String(t["zoning"]).to_lower(), use.to_lower()]
+	var z := zone_of(world, tile)
+	if use != "" and not (use in ZONE_USES.get(z, [])):
+		out["reason"] = "the %s zone does not allow %s" % [z.to_lower(), use.to_lower()]
 		return out
 	var value := land_value(world, tile)
 	match String(world.levers.get("LAW_LAND_DISPOSAL", "LEASE")):
@@ -293,6 +347,7 @@ static func zone(world: WorldState, tiles: Array, zoning: String, by: Dictionary
 		var zr := _row(world, tile)
 		Logbook.note(world, "LAND", _actor_id(by), "zoned", {}, {"zoning": [zone_of(world, tile), zoning]}, "", String(zr["tile"]))
 		zr["zoning"] = zoning
+		zr["zoned_month"] = world.month
 	_fact(world, "LAND_ZONED", {"tiles": tiles.map(func(t): return _k(t)), "zone": zoning}, 20, [{"actor": by, "share": 1.0}])
 	return {"ok": true, "reason": ""}
 
@@ -505,8 +560,9 @@ static func terms(world: WorldState, keys: Array, buyer: String, type: String, s
 	for k in keys:
 		var key := _k(k)
 		var t := title(world, key)
-		if use != "" and not (use in ZONE_USES.get(String(t["zoning"]), [])):
-			out["reason"] = "the %s zone does not allow %s" % [String(t["zoning"]).to_lower(), use.to_lower()]
+		var z := zone_of(world, key, buyer)
+		if use != "" and not (use in ZONE_USES.get(z, [])):
+			out["reason"] = "the %s zone does not allow %s" % [z.to_lower(), use.to_lower()]
 			return out
 		if String(t["owner"]) != "gov" or String(t["tenure"]) != "OWNED":
 			out["reason"] = "%s is not the colony's to sell" % key

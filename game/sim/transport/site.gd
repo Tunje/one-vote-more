@@ -238,6 +238,56 @@ static func choose_town(world: WorldState, town: String, type: String, sixths: i
 	return out
 
 
+## Why choose_country / choose_town found no site for this type and size (pure; called only when they found none,
+## for the founding row): {"cause": ZONED | FULL | NO_LAND | NO_MAP, "why": words, "counts": what turned the
+## places away}. ZONED when the zone turned away places that had room for it: "the land is zoned against farms" (the
+## user, 2026-11-18, 61c: the government stops founding by "stopping land being allowed to be built on"; Ella's
+## request). FULL when every place of its terrain has its square full; BLOCKED when a town's cells are there but blocked
+## for another reason; NO_LAND when there is none of its terrain.
+static func why_no_site(world: WorldState, area: String, type: String, sixths: int) -> Dictionary:
+	var counts := {"candidates": 0, "zoned": 0, "full": 0, "other": 0}
+	if setting(type) == "COUNTRY":
+		if not Terrain.ready(world):
+			return {"cause": "NO_MAP", "why": "no free site: the map is not ready", "counts": counts}
+		var homes_t := {}
+		for st in ColonyLayout.settlements(world):
+			for t in st["tiles"]:
+				homes_t[Terrain.key(t.x, t.y)] = true
+		for k in TownGrid.town_tiles(world):
+			homes_t[k] = true
+		var codes: Array = COUNTRY_TERRAIN.get(type, ColonyLayout.BUILD_TERRAIN)
+		var used := _country_sixths(world, type)
+		for y in Terrain.H:
+			for x in Terrain.W:
+				var key := Terrain.key(x, y)
+				if homes_t.has(key) or not Terrain.at(world, x, y) in codes:
+					continue
+				counts["candidates"] += 1
+				if int(used.get(key, 0)) + sixths > 6:
+					counts["full"] += 1
+				elif not zone_allows(world, Vector2i(x, y), type):
+					counts["zoned"] += 1
+	else:
+		var blocked: Dictionary = TownGrid.blocked_counts(world, area, type)
+		for why in blocked:
+			counts["candidates"] += int(blocked[why])
+			if String(why) == TownGrid.ZONE_BLOCK:
+				counts["zoned"] += int(blocked[why])
+			elif String(why) != "":
+				counts["other"] += int(blocked[why])
+		for r in TownGrid.site_scores(world, area, type, 1 << 30):
+			if square_sixths(world, TownGrid.block_of(r["cell"]), type) + sixths > 6:
+				counts["full"] += 1
+	var what := type.to_lower() + "s"
+	if int(counts["zoned"]) > 0:
+		return {"cause": "ZONED", "why": "the land is zoned against %s" % what, "counts": counts}
+	if int(counts["full"]) > 0:
+		return {"cause": "FULL", "why": "no free site: every square of its kind is full", "counts": counts}
+	if int(counts["other"]) > 0:   # a town's cells there but blocked otherwise (a country building's site, another town's block; Maja)
+		return {"cause": "BLOCKED", "why": "no free site: every place is blocked", "counts": counts}
+	return {"cause": "NO_LAND", "why": "no free site: no land it can stand on", "counts": counts}
+
+
 ## The most homes a plant of this type and size holds: its type row's client places (a LANDLORD's full unit is a block
 ## of 50 homes; smaller sizes their share, less the size's penalty). 0 for a type that has no homes.
 static func homes_cap(type: String, sixths: int) -> int:

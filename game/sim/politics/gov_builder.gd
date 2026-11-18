@@ -20,6 +20,7 @@ const QUARTER_MONTH := 1
 const Desk := preload("res://sim/office/decision_desk.gd")
 const SafetyLaw := preload("res://sim/law/road_safety_law.gd")   # ROAD_SAFETY: Parliament's limit near homes (Anni)
 const Grants := preload("res://sim/economy/grants.gd")
+const LandLaw := preload("res://sim/law/land_law.gd")
 
 
 static func monthly(world: WorldState, st: Dictionary) -> void:
@@ -543,6 +544,48 @@ static func grant_programmes(world: WorldState) -> void:
 	if not world.peek("pol").has("state"):
 		return
 	_grant_cover(world, world.table("pol")["state"])
+
+
+## The government stops farm founding by its land (the user, 2026-11-18, plan 12.9 61c: "stopping land being allowed to
+## be built on"; asked how: "Yes on zoning laws"). The economy's month calls this in COMPANY_AI, after grant_programmes
+## and before anyone founds. The act is land law's colony-wide zoning (Anni's LandLaw.zone_colony): the colony's own
+## land not yet sold is zoned FARM_STOP_ZONE, where a farm may not be built; Site.zone_allows offers no site there and
+## LandLaw.sell sells none, so no plan is made and no founder drawn (Terra, Anni). A plot already sold keeps its use.
+## WHEN (Wilma's reading, marked as hers, not the user's words): the AI government zones when it wants no more farms,
+## by the count its grant uses (Grants.wanted FARM = 0), and lifts its own zoning when it wants farms again. It lifts
+## only what it set itself (politics' memory, st["farm_land"]); a zone set by the player or anyone else stays. When the
+## player governs nothing is decided here: zoning is the player's act. A caretaker government cannot zone (land law's
+## CARETAKER_LIMITS); the refusal is logged and nothing changes. One GRANT row per decision, with the count it read.
+const FARM_STOP_ZONE := "INDUSTRIAL"   # Anni: on country land it refuses farms (and housing), allows industry, mines, services
+static func farm_land(world: WorldState) -> void:
+	if not world.peek("pol").has("state"):
+		return
+	var st: Dictionary = world.table("pol")["state"]
+	var who := _actor(world, st)
+	if who.is_empty():
+		return   # the player governs: zoning is theirs
+	var by := String(who["by"])
+	var actor := {"kind": "COMMANDER", "id": "commander"} if by == "commander" else LandLaw.GOV
+	var mem: Dictionary = st.get("farm_land", {})
+	var w := Grants.wanted(world, "FARM")
+	var wanted := int(w["wanted"])
+	var zone := LandLaw.colony_zone(world)
+	var why := {"wanted": wanted, "to_feed": int(w.get("to_feed", 0)), "standing": int(w.get("standing", 0)),
+		"planned": int(w.get("planned", 0)), "colony_zone": zone, "rule": "Wilma's reading: zone when wanted(FARM) = 0"}
+	if wanted <= 0 and zone == "":
+		var r: Dictionary = LandLaw.zone_colony(world, FARM_STOP_ZONE, actor)
+		if bool(r.get("ok", false)):
+			st["farm_land"] = {"zoned": true, "zone": FARM_STOP_ZONE, "month": world.month, "by": by}
+			Logbook.note(world, "GRANT", "government", "land zoned against farms", why, {"colony_zone": ["", FARM_STOP_ZONE]}, by)
+		else:
+			Logbook.note(world, "GRANT", "government", "land not zoned: refused", why.merged({"reason": String(r.get("reason", ""))}), {}, by)
+	elif wanted > 0 and bool(mem.get("zoned", false)) and zone == String(mem.get("zone", "")):
+		var r: Dictionary = LandLaw.lift_colony_zone(world, actor)
+		if bool(r.get("ok", false)):
+			st["farm_land"] = {"zoned": false, "month": world.month, "by": by}
+			Logbook.note(world, "GRANT", "government", "farm land opened again", why, {"colony_zone": [zone, ""]}, by)
+		else:
+			Logbook.note(world, "GRANT", "government", "land not opened: refused", why.merged({"reason": String(r.get("reason", ""))}), {}, by)
 
 
 static func _grant_cover(world: WorldState, st: Dictionary) -> void:
