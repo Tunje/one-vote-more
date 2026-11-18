@@ -1017,6 +1017,12 @@ About: Wilma had reported a farm's price falling 20% a month (the k of 0.2 built
 
 So: a price moves at most 5% in a month, the same up and down. Written into [rebuild-company.md](rebuild-company.md) section 3 the same turn. Bob builds it.
 
+Then, told the output step was built at 25% a month:
+
+> 25?! 5!!! CHANGE IT!!! STOP HEDGING
+
+So: output moves at most 5% in a month too. Written into rebuild-company.md section 3 the same turn. Bob builds it.
+
 
 ### The rebuild: the rent is doubled (the user, 2026-11-18, verbatim)
 

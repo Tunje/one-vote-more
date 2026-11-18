@@ -196,6 +196,9 @@ What goes with them:
   - **The cap is 5%** (the user, 2026-11-18, verbatim, on being told a farm's price fell 20% a month): "TWENTY PERCENT WHAT HAPPENS TO THE FUCKING 5% CAP GOT FUCKING DAMNED IT GO BACK AND LOOK AT THE DAMNED RULES"
     So: a price moves at most 5% in a month, the same up and down (rule 9: "if your going to cap it at 5% THEN DO THE
     SAME FOR BOTH"). The line above calling it open, and the k of 0.2 in 15a, were wrong: the user's number was 5%.
+  - **Output moves at most 5% a month too** (the user, 2026-11-18, verbatim, on being told the output step was built
+    at 25% a month from the proposal in 15b): "25?! 5!!! CHANGE IT!!! STOP HEDGING"
+    So: output (rules 3 and 4) moves at most 5% in a month, as price does. The g of 0.25 in 15b was wrong.
 - **No hard floors or ceilings** of our own, except where the user allowed one (rule 6).
 - **No limit built on last month or last year.** Credit follows orders, contracts and forecasts, so a company can grow.
 - **For types with nothing to stock,** rules 2 and 4 read empty work slots (section 4).
