@@ -161,7 +161,9 @@ trucks, and nothing grows or closes idle plants (plan section 13). What follows 
   client pays what the material really costs when it is delivered.
 - **The start month** comes from the builder's book: the jobs before it in signing order, worked at the builder's
   present crew, with material assumed to be there. It is the first month in which this job would get crews.
-- **Every live builder quotes.** The plan takes the lowest total. With two equal, it takes the earlier start.
+- **Every live builder quotes.** The plan takes the quote with the earliest start; between equal starts, the lowest
+  price (the user, plan 12.3 15d, verbatim: "He should look for the shortest time"). This replaces "the lowest total;
+  with two equal, the earlier start", written before the ruling.
 
 ### 4.4 Signing
 
