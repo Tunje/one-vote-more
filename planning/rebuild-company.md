@@ -797,16 +797,17 @@ is wrong; nothing here is asked again.
     - First there has to be a signal at all. A company that offered nothing and had no orders it could have filled
       has neither, and its price does not move.
     - If there is a signal and it sold nothing at all, s is taken as without limit and the price moves by the full k.
-    - k is one number for the whole economy. It starts at 0.2 (a fifth of the price at most in a month) and is set in
-      testing. A small signal moves the price a little, a large one more,
+    - k is one number for the whole economy: 0.05, the user's 5% (section 3, 2026-11-18: "TWENTY PERCENT WHAT HAPPENS
+      TO THE FUCKING 5% CAP"). It was written here as 0.2 from a proposal; that was wrong. A small signal moves the price a little, a large one more,
       and never by more than k in a month. So there is a bound, the same both ways, as the user's rule nine asks.
     (This is the shape of the stock cut the user ordered into the price table on 2026-11-16.)
 15b. **(proposal, Bob, for step 3) How far OUTPUT moves in a month** under rules 3 and 4: by g x s / (1 + s) of the
     present output, the same shape as the price rule. s for rule 3 is the orders it could not fill because it had sold
-    out, divided by what it sold; for rule 4, what it offered and did not sell, divided by what it sold. g starts at
-    0.25. Output never goes above the plants' full output; more than that is rule 5. Why a number is needed: price and
+    out, divided by what it sold; for rule 4, what it offered and did not sell, divided by what it sold. g is
+    0.05, the user's 5% (section 3, 2026-11-18: "25?! 5!!! CHANGE IT!!! STOP HEDGING"; it was written here as 0.25,
+    which was wrong). Output never goes above the plants' full output; more than that is rule 5. Why a number is needed: price and
     output moving together settle only while k x e + g < 2, e being how sharply buyers react to price (an outside
-    mathematical review the user passed on, 2026-11-17). With k = 0.2 and g = 0.25 that holds for e below 8.75.
+    mathematical review the user passed on, 2026-11-17). With k = 0.05 and g = 0.05 that holds for e below 39.
     A market that swings beyond that is a result to report, not to prevent.
 15a. **Rule 7's signal, exactly.** Everything is in money per month.
     - The work: what buyers and clients in the area spent, or tried to spend, on what this type sells, averaged per
