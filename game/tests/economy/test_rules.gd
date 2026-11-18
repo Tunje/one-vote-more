@@ -73,16 +73,18 @@ func test_the_making_price_is_over_normal_full_output() -> void:
 
 
 func test_price_rules_move_by_k_s_over_one_plus_s_both_ways() -> void:
+	# k is the user's 5% (section 3, 2026-11-18: "TWENTY PERCENT WHAT HAPPENS TO THE FUCKING 5% CAP"; rule 9: "if your
+	# going to cap it at 5% THEN DO THE SAME FOR BOTH")
 	var w := _w()
 	var f := _farm(w, 6, 2)
 	Company.set_price(w, f[0], "FOOD", 60 * S)
 	var up := Rules.price_rule(w, f[0], "FOOD", {"offered": 10 * S, "sold": 10 * S, "unmet_above": 20 * S, "refused": 0}, 0)
-	check_eq(up, 60 * S * (1000 + 200 * 20 / 30) / 1000, "sold out with 20 wanted beyond 10 sold: up by 0.2 × 2/3")
+	check_eq(up, 60 * S * (1000 + 50 * 20 / 30) / 1000, "sold out with 20 wanted beyond 10 sold: up by 5% × 2/3")
 	Company.set_price(w, f[0], "FOOD", 60 * S)
 	var down := Rules.price_rule(w, f[0], "FOOD", {"offered": 40 * S, "sold": 10 * S, "unmet_above": 0, "refused": 0}, 0)
-	check_eq(down, 60 * S * (1000 - 200 * 30 / 40) / 1000, "30 unsold of 40: down by 0.2 × 3/4")
+	check_eq(down, 60 * S * (1000 - 50 * 30 / 40) / 1000, "30 unsold of 40: down by 5% × 3/4")
 	Company.set_price(w, f[0], "FOOD", 60 * S)
-	check_eq(Rules.price_rule(w, f[0], "FOOD", {"offered": 10 * S, "sold": 0, "unmet_above": 0, "refused": 0}, 0), 48 * S, "sold nothing: the full k")
+	check_eq(Rules.price_rule(w, f[0], "FOOD", {"offered": 10 * S, "sold": 0, "unmet_above": 0, "refused": 0}, 0), 57 * S, "sold nothing: the full 5% down")
 	Company.set_price(w, f[0], "FOOD", 60 * S)
 	check_eq(Rules.price_rule(w, f[0], "FOOD", {}, 0), 60 * S, "no signal, no move")
 	var both := {"offered": 20 * S, "sold": 10 * S, "unmet_above": 10 * S, "refused": 0}
@@ -105,14 +107,16 @@ func test_the_hold_back_covers_the_months_expenses_and_holds_the_rest() -> void:
 func test_output_moves_by_g_s_over_one_plus_s_and_never_above_full() -> void:
 	var w := _w()
 	var f := _farm(w, 6, 2)
+	# g is the user's 5% (section 3, 2026-11-18: "25?! 5!!! CHANGE IT!!! STOP HEDGING")
 	Company.set_level(w, f[0], f[1], 800)
 	Rules.output_rule(w, f[0], {"offered": 10 * S, "sold": 10 * S, "unmet_above": 10 * S, "refused": 0}, false)
-	check_eq(Company.level_of(w, f[0], f[1]), 800 * (1000 + 125) / 1000, "up by 0.25 × 1/2")
+	check_eq(Company.level_of(w, f[0], f[1]), 800 * (1000 + 25) / 1000, "up by 5% × 1/2")
+	Company.set_level(w, f[0], f[1], 990)
 	Rules.output_rule(w, f[0], {"offered": 10 * S, "sold": 10 * S, "unmet_above": 100 * S, "refused": 0}, false)
 	check_eq(Company.level_of(w, f[0], f[1]), 1000, "never above full")
 	Rules.output_rule(w, f[0], {"offered": 10 * S, "sold": 10 * S, "unmet_above": 100 * S, "refused": 0}, false)
 	Rules.output_rule(w, f[0], {"offered": 40 * S, "sold": 10 * S, "unmet_above": 0, "refused": 0}, false)
-	check_eq(Company.level_of(w, f[0], f[1]), 1000 * (1000 - 250 * 30 / 40) / 1000, "down by 0.25 × 3/4")
+	check_eq(Company.level_of(w, f[0], f[1]), 1000 * (1000 - 50 * 30 / 40) / 1000, "down by 5% × 3/4")
 	var lv := Company.level_of(w, f[0], f[1])
 	Rules.output_rule(w, f[0], {"offered": 10 * S, "sold": 10 * S, "unmet_above": 10 * S, "refused": 0}, true)
 	check_eq(Company.level_of(w, f[0], f[1]), lv, "rule 3 does not act while it holds stock back (12.3, 18)")
@@ -613,6 +617,35 @@ func test_the_posts_wanted_are_the_persons_the_levels_work_needs() -> void:
 	check_eq(Company.vacancies(w, "landing").filter(func(v): return String(v["cid"]) == f[0]).size(), 1, "at level 100 one post is open to apply for, not none")
 
 
+func test_a_price_never_moves_more_than_five_percent_in_a_month_up_or_down() -> void:
+	var w := _w()
+	var f := _farm(w, 6, 2)
+	Company.set_price(w, f[0], "FOOD", 100 * S)
+	check_eq(Rules.price_rule(w, f[0], "FOOD", {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0}, 0), 95 * S, "nothing sold of a mountain: 5% down")
+	Company.set_price(w, f[0], "FOOD", 100 * S)
+	check_eq(Rules.price_rule(w, f[0], "FOOD", {"offered": 0, "sold": 0, "unmet_above": 1000 * S, "refused": 0}, 0), 105 * S, "everything wanted, nothing to sell: 5% up")
+	Company.set_price(w, f[0], "FOOD", 100 * S)
+	check(Rules.price_rule(w, f[0], "FOOD", {"offered": 1001 * S, "sold": 1 * S, "unmet_above": 0, "refused": 0}, 0) >= 95 * S, "a huge glut: never past 5%")
+	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	Company.set_price(w, b, "BW", 400 * S)
+	check_eq(Rules.price_rule(w, b, "BW", {"offered": 10 * S, "sold": 0, "unmet_above": 0, "refused": 0}, 0), 380 * S, "a builder's BW price the same: 5%")
+
+
+func test_an_output_level_never_moves_more_than_five_percent_in_a_month_up_or_down() -> void:
+	var w := _w()
+	var f := _farm(w, 6, 2)
+	Company.set_level(w, f[0], f[1], 600)
+	Rules.output_rule(w, f[0], {"offered": 0, "sold": 0, "unmet_above": 1000 * S, "refused": 0}, false)
+	check_eq(Company.level_of(w, f[0], f[1]), 630, "everything wanted, nothing to sell: 5% up")
+	Company.set_level(w, f[0], f[1], 600)
+	Rules.output_rule(w, f[0], {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0}, false)
+	check_eq(Company.level_of(w, f[0], f[1]), 570, "nothing sold of a mountain: 5% down")
+	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	Company.set_level(w, b, "crew", 600)
+	Rules.output_rule(w, b, {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0}, false)
+	check_eq(Company.level_of(w, b, "crew"), 570, "a builder's crew the same: 5%")
+
+
 func test_a_family_on_the_skilled_post_is_not_doubled_by_a_stranger_on_a_general_one() -> void:
 	# Otto's review of the rounding fix (15e: hire for what the family leaves): the family counts against the persons
 	# the level's work needs whatever post it stands on
@@ -636,3 +669,19 @@ func test_a_family_on_the_skilled_post_is_not_doubled_by_a_stranger_on_a_general
 	check_eq(asked.call(), [1], "staff_to_posts asks for one stranger (a test plant stands on no site, so the hire itself is refused there)")
 	Company.set_level(w, f[0], f[1], 1000)
 	check_eq(Company.hire_wanted(w, f[0], f[1]), {"G": 3, "S": 0, "Sp": 0}, "full: the three general posts the family leaves")
+
+
+func test_an_output_step_never_rounds_to_nothing_up_or_past_five_percent_down() -> void:
+	# Terra's review: per mille levels truncated, so a large builder's crew (60 posts: one post's share 16 per mille,
+	# 16 x 5% = 0) at 19 or less never climbed, and a small level kept by flooring lost more than 5%
+	var w := _w()
+	var b := Company.create(w, "BUILDER", "LARGE", HW, "B", {"area": "landing"})
+	Company.set_level(w, b, "crew", 10)
+	Rules.output_rule(w, b, {"offered": 0, "sold": 0, "unmet_above": 1000 * S, "refused": 0}, false)
+	check(Company.level_of(w, b, "crew") > 10, "a large crew at 10 per mille climbs (now %d)" % Company.level_of(w, b, "crew"))
+	Company.set_level(w, b, "crew", 19)
+	Rules.output_rule(w, b, {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0}, false)
+	check_eq(Company.level_of(w, b, "crew"), 19, "19 per mille: 5% of it is under one per mille, so it keeps 19 (never more than 5% off)")
+	Company.set_level(w, b, "crew", 100)
+	Rules.output_rule(w, b, {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0}, false)
+	check_eq(Company.level_of(w, b, "crew"), 95, "100: 5% off, 95")

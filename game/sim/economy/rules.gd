@@ -39,10 +39,15 @@ const JUSTICE_PATH := "res://sim/law/justice_ops.gd"
 const BUILDING_PATH := "res://sim/economy/building.gd"
 
 const S := 1000
-## k: how far a price (or a hiring salary) can move in a month, per mille (12.3, 15: "starts at 0.2").
-const K_PM := 200
-## g: how far an output level can move in a month, per mille (12.3, 15b: "g = 0.25 to start"; k·e + g < 2).
-const G_PM := 250
+## k: how far a price can move in a month at most, per mille, the same up and down: the user's 5% (rebuild-company.md
+## section 3, 2026-11-18: "TWENTY PERCENT WHAT HAPPENS TO THE FUCKING 5% CAP GOT FUCKING DAMNED IT GO BACK AND LOOK AT
+## THE DAMNED RULES"; rule 9: "if your going to cap it at 5% THEN DO THE SAME FOR BOTH"). It was 0.2 from the paper's
+## 15, which was wrong. Every price rule steps by it: rules 1 and 2 for what a company sells, a builder's BW price.
+const K_PM := 50
+## g: how far an output level can move in a month at most, per mille, the same up and down: the user's 5% (section 3,
+## 2026-11-18, told it was built at 25%: "25?! 5!!! CHANGE IT!!! STOP HEDGING"). It was 0.25 from Bob's 15b proposal.
+## Every output rule steps by it: rules 3 and 4 on plants and on crews.
+const G_PM := 50
 ## The months of work rule 7 averages (15a: "averaged per month over the last twelve months").
 const WORK_MONTHS := 12
 ## Persons in a household for the needs line (the type table's 2.5), per mille.
@@ -179,7 +184,10 @@ static func output_rule(world: WorldState, cid: String, sig: Dictionary, holding
 		var size := String(c["size"]) if String(pk) == "crew" else String(Company.plant(world, String(pk))["size"])
 		var posts := TypeTable.posts(String(c["type"]), size, int(c["line"]))
 		var n := maxi(1, int(posts["G"]) + int(posts["S"]) + int(posts["Sp"]))
-		var new_lv := mini(1000, lv + maxi(lv, 1000 / n) * up / 1000) if up > 0 else lv * (1000 - down) / 1000
+		# the change is computed, not the new level (Terra's review; the user: "NO ROUNDING ERRORS"): a cut is floored, so
+		# never more than 5% of the level; a rise is at least 1 per mille, so a level whose step rounds to nothing (a large
+		# builder's crew of 60 posts below 20 per mille) can still climb
+		var new_lv := mini(1000, lv + maxi(1, maxi(lv, 1000 / n) * up / 1000)) if up > 0 else lv - lv * down / 1000
 		if new_lv != lv:
 			Company.set_level(world, cid, String(pk), new_lv, {"rule": "R3" if up > 0 else "R4", "sold": sold, "unmet_above": unmet,
 				"unsold": unsold, "step_pm": up if up > 0 else down, "holding": holding})
