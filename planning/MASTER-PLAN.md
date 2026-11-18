@@ -815,6 +815,12 @@ On that reading:
 
 So: how far forward a builder claims, one year or two, is its manager's choice. Wilma's "up to two years" is struck.
 
+Shown what the rebuild plan gives a manager (the negotiation; management skill and output; reading rule 7; replaced by the owners; the reach), the user said "Managers do more than that", "Still things missed", and then:
+
+> They can press the plant  and cause stress  and extra output his skill defines how much of each,  go back to the build instead
+
+So: a manager can press the plant. Pressing causes stress and extra output; the manager's skill defines how much of each. Written into rebuild-company.md 12.11, 77. Not built now: the user sent us back to the build.
+
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15c.
 
 
