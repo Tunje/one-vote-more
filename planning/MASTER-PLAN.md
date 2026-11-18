@@ -809,6 +809,12 @@ The user then gave the numbers, striking Wilma's three months:
 
 So: a plan can be listed for a year before it is cancelled, and builders only claim a year or two forward. (Wilma's reading of "a year or two": up to two years.) Otto records it in rebuild-building.md 4.4 and builds it.
 
+On that reading:
+
+> The or two should be up to the manager
+
+So: how far forward a builder claims, one year or two, is its manager's choice. Wilma's "up to two years" is struck.
+
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15c.
 
 
