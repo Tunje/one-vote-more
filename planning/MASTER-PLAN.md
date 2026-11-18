@@ -1081,6 +1081,12 @@ About: rule 1. A five-year simulation showed the food price falling every month 
 
 So: a farm raises its price on the orders its own farm could not fill: every buyer that came looking to it and went somewhere else for food. Not on orders left unfilled by anyone. Bob builds it and puts the quote on rule 1's line in rebuild-company.md section 3.
 
+And, straight after:
+
+> Important oders that are filled before they come to my farm does not count
+
+So: only buyers that actually reached the farm and found it sold out count. An order filled before it came to the farm does not count for it.
+
 
 ### The rebuild: for who is underpaid, specialists are counted separately (the user, 2026-11-18, verbatim)
 
