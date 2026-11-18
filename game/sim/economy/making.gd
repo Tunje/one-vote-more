@@ -133,9 +133,10 @@ static func _per_worker(type: String, line: int) -> int:
 	return 0 if posts <= 0 else int(ln["qty"]) * S / posts
 
 
-## The season's share for a plant this month, per mille (1000 for anything but a farm): Terra's Site.yield_pm.
+## The season's share for a plant this month, per mille: Terra's Site.yield_pm for a type that grows from the land
+## (TypeTable.grows), 1000 for any other.
 static func yield_of(world: WorldState, type: String, pid: String) -> int:
-	if type != "FARM":
+	if not TypeTable.grows(type):
 		return 1000
 	return Site.yield_pm(world, pid, world.month)
 

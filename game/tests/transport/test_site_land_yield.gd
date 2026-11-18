@@ -128,3 +128,17 @@ func test_under_a_lease_the_first_rent_is_due() -> void:
 	check(bool(r["ok"]), "leased (%s)" % r["why"])
 	check_eq(int(r["due"]), int(t["lease_rent"]), "the plan paid the first rent")
 	check_eq(w.ledger.balance(acct), a0 - int(r["due"]), "and only that left its account")
+
+
+func test_the_season_is_read_from_the_type_tables_grows_column() -> void:
+	# "a 'grows from the land' column for the season" (the user: "Good, those"); no type named in Making or Site
+	var TypeTable = load("res://sim/economy/type_table.gd")
+	var Making = load("res://sim/economy/making.gd")
+	check(TypeTable.grows("FARM"), "a farm grows from the land")
+	for type in ["MINE", "BAKERY", "BUILDER", "LANDLORD", "NO_SUCH_TYPE"]:
+		check(not TypeTable.grows(type), "%s does not" % type)
+	var w := _world()
+	var pid := _farm(w)
+	check_eq(Making.yield_of(w, "FARM", pid), Site.yield_pm(w, pid, w.month), "a farm has its land's season")
+	var cid := Company.create(w, "MINE", "LARGE", {"kind": "STATE", "holders": {"government": 1000}}, "test mine")
+	check_eq(Making.yield_of(w, "MINE", Company.add_plant(w, cid, "LARGE")), 1000, "a mine has no season")

@@ -415,8 +415,8 @@ static func needs_price(world: WorldState, area: String, good: String) -> Dictio
 # ---------------------------------------------------------------- staff to the posts
 
 ## First 19a: wages it could not pay are laid off in proportion; a plant left with nobody on its posts, hired or family,
-## is shut, but never a farm (the user, 2026-11-18: "FARMS DON'T SHUT"; 15e: "A family farm with no money still grows
-## food"). A plant shut so opens again when it has people (_reopen_staffed; Wilma's reading). Then each plant key
+## is shut, but never a family farm (the user, 2026-11-18: "Plants should shut", "FAMILY FARMS FAMILY FARMS don't shut";
+## 15e: "A family farm with no money still grows food"). A plant shut so opens again when it has people (_reopen_staffed; Wilma's reading). Then each plant key
 ## hires or lays off toward the posts its output level wants, at the hiring salary of the plant's area, and notes what
 ## its hiring left open (_note_open_left).
 static func staff_to_posts(world: WorldState, cid: String) -> void:
@@ -436,9 +436,9 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 				var go := _may_lay_off(world, cid, String(pk), (n * (due - paid) + due - 1) / due)   # never the public works' last two
 				if go > 0:
 					Households.layoff(world, cid, String(pk), tier, go, {"reason": "UNPAID", "due": due, "paid": paid})
-			# nobody on its posts, hired or family; never a farm ("FARMS DON'T SHUT": its hands go, the farm and its family
-			# stay; Company.close_plant refuses a farm on any path)
-			if String(pk) != "crew" and String(c["type"]) != Company.FARM_TYPE \
+			# nobody on its posts, hired or family; never a family farm ("FAMILY FARMS FAMILY FARMS don't shut": its hands go,
+			# the farm and its family stay; Company.close_plant refuses a family farm on any path). A farm with no family shuts.
+			if String(pk) != "crew" and not Company.is_family_farm(world, cid) \
 					and Company.staff_count(world, cid, "", String(pk)) + Company.family_count(world, cid, "", String(pk)) == 0:
 				Company.close_plant(world, String(pk), "NO_STAFF", {"due": due, "paid": paid})
 		Logbook.note(world, "RULE", cid, "19a could not pay its staff", {"due": due, "paid": paid})

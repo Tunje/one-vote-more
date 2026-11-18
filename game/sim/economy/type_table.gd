@@ -67,7 +67,11 @@ const ROWS := {
 	# one farm worker feeds ten people (rebuild-company.md 9.2, the user, 2026-11-18: "10 purple each"): 24 posts, 240 FOOD
 	"FARM": {"lines": [{"out": "FOOD", "qty": 240, "in": {}, "lab": {"G": 18, "S": 5, "Sp": 1}}],
 		"way": _ITEM_WAY, "setting": "COUNTRY", "occ": "AGRICULTURE", "outdoor": true,
-		"pollution": 10, "noise": 1, "accidents": 8, "hazard": false, "bill": [240, 240, 12, 4],
+		"pollution": 10, "noise": 1, "accidents": 8, "hazard": false,
+		# it grows from the land: the season and the land's harm set what it makes (the user, "Good, those": a "grows from
+		# the land" column for the season, no type named in the plant object); every other row leaves it out (false)
+		"grows": true,
+		"bill": [240, 240, 12, 4],
 		# the owning family works its posts at the row's output a worker, whatever the output level (15e, the user: "10
 		# purple each"; "The rest goes down the two adults owning dose not"; "No it's not for the Order family": the farm
 		# family only); every other row leaves it out (false)
@@ -223,6 +227,12 @@ static func way(type: String) -> Dictionary:
 ## "family_works_full" column; only the farm has it, 15e).
 static func family_works_full(type: String) -> bool:
 	return has_type(type) and bool(ROWS[type].get("family_works_full", false))
+
+
+## Whether a type grows from the land, so the season and the land's harm set what it makes (the "grows" column; only
+## the farm row has it). Making.yield_of and Site read it in place of a type's name.
+static func grows(type: String) -> bool:
+	return has_type(type) and bool(ROWS[type].get("grows", false))
 
 
 static func setting(type: String) -> String:

@@ -13,7 +13,8 @@ extends RefCounted
 ##
 ## Every decision and deed writes a Logbook row (plan section 13).
 
-## The type the user ruled is never shut (close_plant): "FARMS DON'T SHUT" (2026-11-18).
+## The farm type: a farm with its owning family is a family farm, which is never shut (is_family_farm; the user,
+## 2026-11-18: "FAMILY FARMS FAMILY FARMS don't shut").
 const FARM_TYPE := "FARM"
 const TypeTable := preload("res://sim/economy/type_table.gd")
 
@@ -719,6 +720,13 @@ static func family_set(world: WorldState, cid: String, plant_key: String, founde
 	return true
 
 
+## Is this company a family farm: a farm with its owning family recorded on it (family_of; the family is put on a
+## company at its opening when it was a founder's family-size plan)? The user: "FAMILY FARMS FAMILY FARMS don't shut".
+## A family-size farm with no owning family (the state's, the home world's, a company's) is not one. Pure.
+static func is_family_farm(world: WorldState, cid: String) -> bool:
+	return String(world.peek(TABLE).get(cid, {}).get("type", "")) == FARM_TYPE and family_of(world, cid) != ""
+
+
 ## The founder whose family works this company, or "".
 static func family_of(world: WorldState, cid: String) -> String:
 	return String(world.peek(TABLE).get(cid, {}).get("family", {}).get("founder", ""))
@@ -984,16 +992,17 @@ static func months_on_books(world: WorldState, cid: String) -> int:
 
 ## Closes a plant, with a reason (LAW, IDLE, NO_STAFF, ...); it keeps its place and wears (step 6). Its staff are not
 ## laid off here: the household side's layoff does that. Writes a CLOSE row.
-## A farm is never shut, by any path (the user, 2026-11-18, verbatim, told 40 family farms were shut for "no staff":
-## "FARMS DON'T SHUT"; rebuild-company.md 15e). Every shutting comes through here, so the refusal is here: it returns
-## false and writes a CLOSE_REFUSED row (its own kind, so nothing counts it as a closing) with the reason asked.
+## A family farm is never shut, by any path (the user, 2026-11-18, verbatim, told 40 family farms were shut for "no
+## staff": "FARMS DON'T SHUT", then "Plants should shut" and "FAMILY FARMS FAMILY FARMS don't shut"; rebuild-company.md
+## 15e). Every shutting comes through here, so the refusal is here: it returns false and writes a CLOSE_REFUSED row (its
+## own kind, so nothing counts it as a closing) with the reason asked. Any other plant shuts, a farm with no family too.
 static func close_plant(world: WorldState, pid: String, reason: String, why: Dictionary = {}) -> bool:
 	var p: Dictionary = world.table(PLANT_TABLE).get(pid, {})
 	if p.is_empty() or bool(p["closed"]):
 		return false
-	if String(p["type"]) == FARM_TYPE:
-		Logbook.note(world, "CLOSE_REFUSED", String(p["company"]), "farm not shut: farms don't shut (the user)", why.merged({"reason": reason}),
-			{}, "", pid)
+	if is_family_farm(world, String(p["company"])):
+		Logbook.note(world, "CLOSE_REFUSED", String(p["company"]), "family farm not shut: family farms don't shut (the user)",
+			why.merged({"reason": reason, "family": family_of(world, String(p["company"]))}), {}, "", pid)
 		return false
 	p["closed"] = true
 	p["closed_why"] = reason

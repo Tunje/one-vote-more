@@ -476,7 +476,7 @@ static func yield_pm(world: WorldState, plant_id: String, month: int) -> int:
 
 static func _yield_parts(world: WorldState, plant_id: String, month: int) -> Dictionary:
 	var wt := what(world, plant_id)
-	if wt.is_empty() or bool(wt["plan"]) or String(wt["type"]) != "FARM":
+	if wt.is_empty() or bool(wt["plan"]) or not TypeTable.grows(String(wt["type"])):   # grows from the land: the season
 		return {}
 	var s := of(world, plant_id)
 	if s.is_empty():

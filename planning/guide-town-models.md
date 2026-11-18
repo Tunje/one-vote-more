@@ -45,6 +45,30 @@ Footprint is width × depth, in metres. The block the game draws now is this siz
 | FARM (the farmhouse; the fields are drawn) | 16 × 12 | 8 | in the country, beside its fields |
 | TREE | 8 × 8 | 11 | scattered on open land |
 
+## The base tile and plant sizes (2026-11-18)
+
+The user's town kit is built on one base tile: 26.4 m square in the model, shown in the game at 25 m (the whole kit
+scaled by 25/26.4), so 4 × 4 tiles fill a 100 m town cell. Houses, town buildings, road tiles and plants all sit on
+that same tile, so they line up and keep their proportions.
+
+A plant takes one tile for every sixth of a full-size plant, the same share its output has:
+
+| Size | Share | Tiles | Footprint in the game |
+|---|---|---|---|
+| Family | 1/6 | 1 (1 × 1) | 25 × 25 m |
+| Small | 1/3 | 2 (2 × 1) | 50 × 25 m |
+| Average | 2/3 | 4 (2 × 2) | 50 × 50 m |
+| Large | full | 6 (3 × 2) | 75 × 50 m |
+
+- Terra's proposal. The user built the four bases to it ("just too confirm"), noted that the family one would look
+  tiny beside the 6-tile one, and, offered closer sizes, said, verbatim: "no i love the idea that its going to look
+  massive comapred too the little one, in compresses the whole town and makes it feel more comparisable and real". So
+  the sizes stay 1, 2, 4 and 6 tiles.
+- A plant faces the same way as the kit's town buildings; on the 2 × 1 and 3 × 2 bases the long side is the front.
+- The user builds the plants as they like and they are sorted into types later, a few of each size first ("once i
+  have a few of each size we see what fits what"). Nothing comes through before the set is made.
+- The tile counts above replace this file's footprints for WORKS, DEPOT, MINE and FARM when the kit's plants are placed.
+
 ## Variety
 
 - **Several models in a folder:** each building picks one from its cell and lot, so a street mixes them. The pick is

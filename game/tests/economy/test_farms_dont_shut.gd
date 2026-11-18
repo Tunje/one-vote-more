@@ -1,6 +1,8 @@
 extends TestCase
-## Terra, 2026-11-18. "FARMS DON'T SHUT" (the user, verbatim; rebuild-company.md 15e): no path shuts a farm. 15e: "The
-## family that owns a family farm works it themselves, without wages … A family farm with no money still grows food".
+## Terra, 2026-11-18. The user, verbatim: "FARMS DON'T SHUT", then "Plants should shut" and "FAMILY FARMS FAMILY FARMS
+## don't shut" (rebuild-company.md 15e): no path shuts a family farm; any other plant, a farm with no family too, shuts
+## with nobody on it. 15e: "The family that owns a family farm works it themselves, without wages … A family farm with
+## no money still grows food".
 ## A plant of another type shut for want of staff (19a, NO_STAFF) opens again when it has people (Wilma's reading).
 
 const Company := preload("res://sim/economy/company.gd")
@@ -69,20 +71,44 @@ func test_a_farm_whose_hands_go_unpaid_stays_open_and_its_family_grows_food() ->
 	check(Households.check(w).is_empty(), "jobs = people still holds: %s" % str(Households.check(w)))
 
 
-func test_no_path_shuts_a_farm() -> void:
+func test_no_path_shuts_a_family_farm() -> void:
 	var w := _w()
+	var pool := Households.seed_test(w, area, "I2", "G", 40)
+	var fam := Households.make_founder(w, pool, "", true)
+	var f := _placed(w, "FARM", {"kind": "FAMILY", "holders": {fam: 1000}})
+	var cid := String(f[0])
+	var pid := String(f[1])
+	Company.family_set(w, cid, pid, fam, {})
+	check(Company.is_family_farm(w, cid), "a farm with its owning family is a family farm")
+	_unpaid(w, cid, 300 * S)
+	Rules.staff_to_posts(w, cid)
+	check(not bool(Company.plant(w, pid)["closed"]), "19a: a family farm is not shut")
+	for reason in ["NO_STAFF", "LAW", "IDLE"]:
+		check(not Company.close_plant(w, pid, reason), "close_plant refuses a family farm (%s)" % reason)
+	check(not bool(Company.plant(w, pid)["closed"]), "it stays open")
+	check_eq(Logbook.rows(w, {"kind": "CLOSE_REFUSED", "ref": pid}).size(), 3, "each refusal is a row with the reason it was asked")
+
+
+func test_a_farm_with_no_family_shuts_like_any_plant_and_opens_again_when_it_has_people() -> void:
+	# the user: "Plants should shut", "FAMILY FARMS FAMILY FARMS don't shut": a farm with no owning family is a plant
+	var w := _w()
+	Households.seed_test(w, area, "I2", "G", 60)
+	Households.seed_test(w, area, "I3", "S", 20)
 	var f := _placed(w, "FARM", HW)
 	var cid := String(f[0])
 	var pid := String(f[1])
+	check(not Company.is_family_farm(w, cid), "no owning family: not a family farm")
 	_unpaid(w, cid, 300 * S)
 	Rules.staff_to_posts(w, cid)
-	check(not bool(Company.plant(w, pid)["closed"]), "19a with nobody on its posts: a farm is not shut")
-	for reason in ["NO_STAFF", "LAW", "IDLE"]:
-		check(not Company.close_plant(w, pid, reason), "close_plant refuses a farm (%s)" % reason)
-	check(not bool(Company.plant(w, pid)["closed"]), "it stays open")
-	check_eq(Logbook.rows(w, {"kind": "CLOSE_REFUSED", "ref": pid}).size(), 3,
-		"each refusal is a row with the reason it was asked")
-	check_eq(Company.posts_wanted(w, cid, pid), {"G": 6, "S": 2, "Sp": 0}, "and it still wants its posts filled")
+	check(bool(Company.plant(w, pid)["closed"]), "nobody on its posts after 19a: shut")
+	check_eq(String(Company.plant(w, pid)["closed_why"]), "NO_STAFF", "for want of staff")
+	Company.close_month(w, cid)
+	w.month = 1
+	_fund(w, cid, 100000)
+	Rules.staff_to_posts(w, cid)
+	check(Company.staff_count(w, cid, "", pid) > 0, "it hires (%d)" % (Company.staff_count(w, cid, "", pid) / S))
+	check(not bool(Company.plant(w, pid)["closed"]), "and with people on its posts it opens again")
+	check(Households.check(w).is_empty(), "jobs = people still holds: %s" % str(Households.check(w)))
 
 
 func test_another_type_shut_for_no_staff_opens_again_when_it_has_people() -> void:
