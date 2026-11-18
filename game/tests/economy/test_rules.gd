@@ -162,14 +162,15 @@ func test_each_opening_climbs_five_percent_a_month_on_its_own_count_and_a_new_on
 	# original rule for settin on hire, then it should only climb max 5% if it cost not hire for one month"; "5% each
 	# month, it goes i never said i wanted the rule for lowering". Built per opening (the audit of 2026-11-18).
 	var w := _w()
-	var f := _crew(w, 9)   # 9 of 12 general posts filled; nobody out of work, no money for adverts: nobody is hired
+	var f := _crew(w, 9)   # 9 of 12 general posts filled; nobody out of work: nobody is hired
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(f[0]), 100000 * S, "TEST", 0)   # it can pay the adverts: its posts are openings
 	var offers := func() -> Array: return Company.opening_offers(w, f[0], "crew", "G")
 	var start := Rules.starting_salary(w, "landing", "G")
 	var up1 := start * 1050 / 1000
 	var up2 := up1 * 1050 / 1000
 	Rules.salary_rules(w, f[0])
+	Rules.staff_to_posts(w, f[0])   # it pays their adverts; its hiring leaves the three open
 	check_eq(offers.call(), [start, start, start], "three new openings, each at the starting salary")
-	Rules.staff_to_posts(w, f[0])   # its hiring leaves the three open
 	w.month = 1
 	Rules.salary_rules(w, f[0])
 	check_eq(offers.call(), [up1, up1, up1], "each unfilled a whole month: 5% on its own count")
@@ -181,10 +182,11 @@ func test_each_opening_climbs_five_percent_a_month_on_its_own_count_and_a_new_on
 	# one of them is filled at its offer: it is gone, with its climb
 	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", S, up2)
 	Company.fill_openings(w, f[0], "crew|G", 2, 1)
+	Company.advert_used(w, f[0], "crew|G", 1)
 	# and one more post opens beside the two climbed ones
 	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", -S, 300 * S)
+	Rules.staff_to_posts(w, f[0])   # its advert paid
 	check_eq(offers.call(), [up2, up2, start], "the new opening beside them is offered the starting salary: rises do not stack")
-	Rules.staff_to_posts(w, f[0])
 	w.month = 3
 	Rules.salary_rules(w, f[0])
 	check_eq(offers.call(), [up2 * 1050 / 1000, up2 * 1050 / 1000, up1], "each climbs on its own count")
@@ -196,6 +198,7 @@ func test_each_opening_climbs_five_percent_a_month_on_its_own_count_and_a_new_on
 	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", -S, 300 * S)
 	w.month = 5
 	Rules.salary_rules(w, f[0])
+	Rules.staff_to_posts(w, f[0])   # its advert paid
 	check_eq(offers.call(), [start], "a later opening starts from the starting salary again")
 	Households.seed_test(w, "landing", "I2", "G", 30)
 	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", S, 300 * S)
@@ -360,17 +363,17 @@ func test_founding_sees_plans_booked_with_a_builder_and_plans_with_a_grant_not_p
 
 func test_the_needs_line_reads_the_last_food_price_when_food_is_sold_out() -> void:
 	var w := _w()
-	check_eq(Rules.needs_food(w, "landing"), {"price": TypeTable.start_price("FOOD"), "from": "START"}, "never sold: the starting price")
+	check_eq(Rules.needs_price(w, "landing", "FOOD"), {"price": TypeTable.start_price("FOOD"), "from": "START"}, "never sold: the starting price")
 	var stores := Company.create(w, "SHOP", "LARGE", HW, "Stores", {"area": "landing"})
 	Company.stock_add(w, stores, "FOOD", 10 * S, 10 * S, "LANDING", "x")
 	Company.offer(w, stores, "FOOD", 200 * S)
-	check_eq(Rules.needs_food(w, "landing"), {"price": 200 * S, "from": "OFFER"}, "offered: the cheapest offer")
+	check_eq(Rules.needs_price(w, "landing", "FOOD"), {"price": 200 * S, "from": "OFFER"}, "offered: the cheapest offer")
 	var acct := "hh:test"
 	w.ledger.open_account(acct)
 	w.ledger.transfer(Ledger.EXTERNAL, acct, 100000 * S, "TEST", 0)
 	Market.order(w, {"kind": "POOL", "id": "pool", "acct": acct, "area": "landing"}, "FOOD", 20 * S, 300 * S)
 	Market.clear(w)
-	check_eq(Rules.needs_food(w, "landing"), {"price": 200 * S, "from": "LAST_SOLD"}, "sold out: the last price it sold at, not the starting price")
+	check_eq(Rules.needs_price(w, "landing", "FOOD"), {"price": 200 * S, "from": "LAST_SOLD"}, "sold out: the last price it sold at, not the starting price")
 	check_eq(Rules.needs_line(w, "landing"), TypeTable.start_price_of("LANDLORD") + 200 * S * 2500 / 1000, "and the line uses it")
 
 
@@ -658,6 +661,7 @@ func test_the_posts_wanted_are_the_persons_the_levels_work_needs() -> void:
 		Company.set_level(w, f[0], f[1], int(c[0]))
 		check_eq(Company.posts_wanted(w, f[0], f[1]), c[1], "level %d" % int(c[0]))
 	Company.set_level(w, f[0], f[1], 100)
+	_advertise_all(w, f[0])
 	check_eq(Company.vacancies(w, "landing").filter(func(v): return String(v["cid"]) == f[0]).size(), 1, "at level 100 one post is open to apply for, not none")
 
 
@@ -764,7 +768,9 @@ func test_a_family_on_the_skilled_post_is_not_doubled_by_a_stranger_on_a_general
 	var f := _family_farm(w, {"S": 1})
 	w.table(Households.PERSON_TABLE)[Company.family_of(w, f[0])]["family"]["adults"] = [{"skill": "S"}]   # company:16: one skilled adult
 	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(f[0]), 100000 * S, "TEST", 0)
-	var mine := func() -> Array: return Company.vacancies(w, "landing").filter(func(v): return String(v["cid"]) == f[0]).map(func(v): return [String(v["tier"]), int(v["open"])])
+	var mine := func() -> Array:
+		_advertise_all(w, f[0])
+		return Company.vacancies(w, "landing").filter(func(v): return String(v["cid"]) == f[0]).map(func(v): return [String(v["tier"]), int(v["open"])])
 	# the family works its own post whatever the level; the level governs the three posts it leaves ("The rest goes
 	# down the two adults owning dose not", 15e): never a stranger on the family's own skilled post
 	Company.set_level(w, f[0], f[1], 234)
@@ -1131,3 +1137,65 @@ func test_a_price_climbs_slower_at_double_and_four_times_its_start_and_falls_the
 	check_eq(Rules.price_rule(w, mine, "MINERAL", rush, 0), 5 * mineral * 1005 / 1000, "another good, MINERAL at five times its start: at most 0.5%")
 	Company.set_price(w, mine, "MINERAL", 5 * mineral)
 	check_eq(Rules.price_rule(w, mine, "MINERAL", {"offered": 100 * S, "sold": 0, "unmet_above": 0, "refused": 0}, 0), 5 * mineral * 950 / 1000, "and falls the same 5%")
+
+
+
+func test_the_needs_line_reads_homes_and_every_needed_good_by_the_table_not_by_name() -> void:
+	# the user, 2026-11-18: "No it's for all goods don't overcomplicatev with individual rules built seperatly"; "Good,
+	# those" (Bob's list: read the type table's way and the needs list, not one type or good by name)
+	var w := _w()
+	var food := TypeTable.start_price("FOOD")
+	var shelter := TypeTable.start_price_of("LANDLORD")
+	check_eq(Rules.needs_line(w, "landing"), shelter + food * 2500 / 1000, "no seller of homes and no food sold: the same figure as before")
+	check_eq(Rules.area_rent(w, "landing"), shelter / 2, "and the same rent the salaries read")
+	var l1 := Company.create(w, "LANDLORD", "SMALL", HW, "L1", {"area": "landing"})
+	Company.set_price(w, l1, "@home", 120 * S)
+	check_eq(Rules.needs_line(w, "landing"), 120 * S + food * 2500 / 1000, "a company that sells homes is read by its way")
+	var two: Dictionary = Households.NEED_PER_PERSON.duplicate()
+	two["MATERIAL"] = 500   # a second needed good, half a unit a person a month (test only)
+	var with_two := Rules.needs_line(w, "landing", two)
+	check_eq(with_two, 120 * S + food * 2500 / 1000 + TypeTable.start_price("MATERIAL") * 500 / S * 2500 / 1000,
+		"a second good on the needs list is counted at its price, × the household's persons")
+
+
+
+## Every open post of a company has its advert paid (9.2: only an advertised post is an opening), for tests about what
+## follows a post's opening.
+func _advertise_all(w: WorldState, cid: String) -> void:
+	var c: Dictionary = w.table("company")[cid]
+	var keys: Array = ["crew"]
+	keys.append_array(c["plants"])
+	var ad := {}
+	for pk in keys:
+		var hw := Company.hire_wanted(w, cid, String(pk))
+		for t in ["G", "S", "Sp"]:
+			var o := int(hw[t]) - Company.staff_count(w, cid, t, String(pk)) / S
+			if o > 0:
+				ad["%s|%s" % [pk, t]] = o
+	c["advertised"] = ad
+
+
+
+func test_an_opening_climbs_only_once_its_advert_is_paid() -> void:
+	# 9.2, the user: "it should only climb max 5% if it cost not hire for one month"; Wilma's reading, agreed: an opening
+	# is an offer only once its advert is paid, and its months count from then; an unadvertised post does not climb
+	var w := _w()
+	var Media: GDScript = load("res://sim/media/media_ops.gd")
+	var a: String = Media.call("found_outlet", w, {"kind": "COMPANY", "id": "org:1"}, {"quality": 100})["out_id"]
+	Media.call("state", w)["circ"] = {a: {"landing": 300}}   # a paper: an advert costs something
+	var f := _crew(w, 9)   # three general posts open; no money for their adverts
+	var offers := func() -> Array: return Company.opening_offers(w, f[0], "crew", "G")
+	var start := Rules.starting_salary(w, "landing", "G")
+	for m in 3:
+		w.month = m
+		Rules.salary_rules(w, f[0])
+		Rules.staff_to_posts(w, f[0])
+	check_eq(offers.call(), [], "three months with no advert paid: no opening, nothing climbed")
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(f[0]), 100000 * S, "TEST", 0)
+	w.month = 3
+	Rules.salary_rules(w, f[0])
+	Rules.staff_to_posts(w, f[0])   # the adverts are paid now
+	check_eq(offers.call(), [start, start, start], "advertised: openings at the starting salary, counting from now")
+	w.month = 4
+	Rules.salary_rules(w, f[0])
+	check_eq(offers.call(), [start * 1050 / 1000, start * 1050 / 1000, start * 1050 / 1000], "a month advertised and unfilled: 5%")

@@ -438,13 +438,33 @@ static func openings_month(world: WorldState, cid: String, key: String) -> int:
 
 ## The openings at `key` fitted to `open` posts open now: when fewer are open the newest close first (Maja's reading
 ## (b), with Wilma's yes); when more, the new ones start at 0 months. Pure.
+## Only a post whose advert is paid is an opening (9.2, the user: "costs of hiring, articles in the newspaper"; "it
+## should only climb max 5% if it cost not hire for one month"; Wilma's reading, agreed: an opening is an offer only
+## once its advert is paid), so the openings are at most the posts advertised and not yet filled (advertised).
 static func fitted_openings(world: WorldState, cid: String, key: String, open: int) -> Array:
+	var cap := mini(maxi(0, open), advertised(world, cid, key))
 	var ms := openings(world, cid, key)
-	while ms.size() > maxi(0, open):
+	while ms.size() > cap:
 		ms.pop_back()
-	while ms.size() < open:
+	while ms.size() < cap:
 		ms.append(0)
 	return ms
+
+
+## The posts at `key` ("plant|tier") whose advert the company has paid and that are not filled yet (Rules._advertise
+## writes them; a hire, or a worker moving in, uses one each: advert_used).
+static func advertised(world: WorldState, cid: String, key: String) -> int:
+	return int(world.peek(TABLE).get(cid, {}).get("advertised", {}).get(key, 0))
+
+
+## k advertised posts at `key` are filled (a worker moving in for pay is a hire like any other: 9.2).
+static func advert_used(world: WorldState, cid: String, key: String, k: int) -> void:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty() or not c.has("advertised") or not (c["advertised"] as Dictionary).has(key):
+		return
+	c["advertised"][key] = maxi(0, int(c["advertised"][key]) - k)
+	if int(c["advertised"][key]) == 0:
+		(c["advertised"] as Dictionary).erase(key)
 
 
 ## Writes the openings at `key` (longest-open first), stamped this month; none erases them.

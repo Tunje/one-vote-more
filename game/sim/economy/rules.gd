@@ -303,9 +303,10 @@ static func salary_rules(world: WorldState, cid: String) -> void:
 			if not held and Company.openings_month(world, cid, key) == world.month - 1 and not ms.is_empty():
 				ms = ms.map(func(m): return int(m) + 1)   # each stood unfilled a whole month
 				climbed = true
-			while ms.size() > open:
+			var cap := mini(open, Company.advertised(world, cid, key))   # only an advertised post is an opening
+			while ms.size() > cap:
 				ms.pop_back()   # the newest close first
-			while ms.size() < open:
+			while ms.size() < cap:
 				ms.append(0)    # a new opening: the starting salary
 			Company.set_openings(world, cid, key, ms)
 			if not ms.is_empty():
@@ -335,49 +336,70 @@ static func placed_salary(world: WorldState, area: String, tier: String) -> int:
 	return area_rent(world, area) * PLACED_RENT_PM / 1000 * int(TypeTable.TIER_PM[tier]) / 1000
 
 
-## The rent the salaries above are counted from: the plain average of what the open landlords of the area ask for a
-## home; with no landlord there, the landing's shelter at half a new house.
+## The rent the salaries above are counted from: the plain average of what the open companies of the area that sell
+## homes ask for one (every type whose way sells HOMES, read from the type table, not one type by name: the user,
+## 2026-11-18, "No it's for all goods don't overcomplicatev with individual rules built seperatly"); with none there,
+## the landing's shelter at half a new house.
 static func area_rent(world: WorldState, area: String) -> int:
 	var sum := 0
 	var n := 0
+	for r in _home_rents(world, area):
+		sum += int(r)
+		n += 1
+	return sum / n if n > 0 else _home_start_price() / 2
+
+
+## What every open company of the area that sells homes asks for one, milli-credits a month (its homes line's price).
+static func _home_rents(world: WorldState, area: String) -> Array:
+	var out: Array = []
 	for cid in Company.ids(world):
 		var c: Dictionary = world.peek(Company.TABLE)[cid]
-		if String(c["type"]) == "LANDLORD" and String(c["status"]) == "OPEN" and String(c["area"]) == area:
-			var r := Company.price(world, cid, "@home")
-			if r >= 0:
-				sum += r
-				n += 1
-	return sum / n if n > 0 else TypeTable.start_price_of("LANDLORD") / 2
+		if String(c["status"]) != "OPEN" or String(c["area"]) != area or String(TypeTable.way(String(c["type"]))["sells"]) != "HOMES":
+			continue
+		var r := Company.price(world, cid, TypeTable.out_of(String(c["type"]), int(c["line"])))
+		if r >= 0:
+			out.append(r)
+	return out
 
 
-## A worker's needs in an area (plan 12.5, 38, as revised): the rent of a home there and a household's food (the
-## starting salary is rent only since 2026-11-18, 9.2). milli-credits a month. Rent: the cheapest home a landlord
-## there asks for (the landing shelters at first); food: the cheapest FOOD offered there, else its starting price.
-## One figure for the rules and the households (Maja's applying reads it too).
-static func needs_line(world: WorldState, area: String) -> int:
+## A new home's starting rent: the type table's start price of the (first) type that sells homes.
+static func _home_start_price() -> int:
+	for t in TypeTable.types():
+		if String(TypeTable.way(String(t))["sells"]) == "HOMES":
+			return TypeTable.start_price_of(String(t))
+	return 0
+
+
+## A worker's needs in an area (plan 12.5, 38, as revised): the rent of a home there and what a household needs a
+## month (the starting salary is rent only since 2026-11-18, 9.2). milli-credits a month. Rent: the cheapest home a
+## company that sells homes asks there (the landing shelters at first); the goods: every good a person needs a month
+## (Households.NEED_PER_PERSON, food alone today) × the household's persons, each at needs_price. One figure for the
+## rules and the households (Maja's applying reads it too). Read by the type table and the needs list, not by any
+## type's or good's name (the user, 2026-11-18: "No it's for all goods"). `needs`: the list read (tests pass their own).
+static func needs_line(world: WorldState, area: String, needs: Dictionary = Households.NEED_PER_PERSON) -> int:
 	var rent := -1
-	for cid in Company.ids(world):
-		var c: Dictionary = world.peek(Company.TABLE)[cid]
-		if String(c["type"]) == "LANDLORD" and String(c["status"]) == "OPEN" and String(c["area"]) == area:
-			var r := Company.price(world, cid, "@home")
-			if r >= 0 and (rent < 0 or r < rent):
-				rent = r
+	for r in _home_rents(world, area):
+		if rent < 0 or int(r) < rent:
+			rent = int(r)
 	if rent < 0:
-		rent = TypeTable.start_price_of("LANDLORD")
-	return rent + int(needs_food(world, area)["price"]) * HOUSEHOLD_PERSONS_PM / 1000
+		rent = _home_start_price()
+	var goods := 0
+	for g in CoreUtil.sorted_keys(needs):
+		goods += int(needs_price(world, area, String(g))["price"]) * int(needs[g]) / S * HOUSEHOLD_PERSONS_PM / 1000
+	return rent + goods
 
 
-## The FOOD price the needs line reads in an area: {"price", "from"}. The cheapest FOOD offered there; when nothing is
-## offered (sold out), the last price FOOD actually sold at there; the starting price only if it never sold there
+## The price of a needed good the needs line reads in an area: {"price", "from"}. The cheapest offer there (the
+## market's first, ship goods ranked a quarter dearer); when nothing is offered (sold out), the last price it actually sold at there; the starting price only if it never sold there
 ## (Wilma: a sold-out market is not a cheap one). "from": OFFER, LAST_SOLD or START, for the rows that weigh it.
-static func needs_food(world: WorldState, area: String) -> Dictionary:
-	var offs := Market.offers(world, "FOOD", area)
+static func needs_price(world: WorldState, area: String, good: String) -> Dictionary:
+	var offs := Market.offers(world, good, area)
 	if not offs.is_empty():
 		return {"price": int(offs[0]["price"]), "from": "OFFER"}
-	var last := Market.last_sold(world, "FOOD", area)
+	var last := Market.last_sold(world, good, area)
 	if not last.is_empty():
 		return {"price": int(last["price"]), "from": "LAST_SOLD"}
-	return {"price": TypeTable.start_price("FOOD"), "from": "START"}
+	return {"price": TypeTable.start_price(good), "from": "START"}
 
 
 # ---------------------------------------------------------------- staff to the posts

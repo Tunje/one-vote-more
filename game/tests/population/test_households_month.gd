@@ -274,6 +274,7 @@ func test_a_worker_quits_for_a_better_paid_post() -> void:
 	check_eq(Households.hire(w, a, "crew", "G", land, 6, {}, p0), 6, "hired just above their needs")
 	var b := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "high", {"area": land})
 	Company.set_hiring_salary(w, b, "G", land, p0 * 11 / 10)   # exactly the bar: 10%
+	_advertise_all(w, b)
 	var open := 0
 	for v in Company.vacancies(w, land):
 		if String(v["cid"]) == b and String(v["tier"]) == "G":
@@ -419,6 +420,7 @@ func _bar_world(offer_pm: int, years: int) -> Array:
 	w.month += 12 * years
 	var b := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "high", {"area": land})
 	Company.set_hiring_salary(w, b, "G", land, p0 * (1000 + offer_pm) / 1000)
+	_advertise_all(w, b)
 	var open := 0
 	for v in Company.vacancies(w, land):
 		if String(v["cid"]) == b and String(v["tier"]) == "G":
@@ -482,6 +484,7 @@ func test_years_go_with_a_band_move_and_start_again_after_a_job_move() -> void:
 	check_eq(Company.staff_count(w, a) / S, 6, "two years: 10% is not enough")
 	var b: String = r[2]
 	Company.set_hiring_salary(w, b, "G", land, int(r[4]) * 12 / 10)
+	_advertise_all(w, b)
 	var moved := Households.labour_month(w)
 	check(moved > 0, "20% is")
 	for x in Company.payroll(w, b):
@@ -1153,6 +1156,7 @@ func test_a_worker_does_not_move_to_an_opening_below_their_needs() -> void:
 	check_eq(Households.hire(w, a, "crew", "G", land, 6, {}, low, false, true), 6, "six placed at half their needs")
 	var b := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "high", {"area": land})
 	Company.set_hiring_salary(w, b, "G", land, needs - S)   # far over their bar, but under their needs
+	_advertise_all(w, b)
 	check_eq(Households.labour_month(w), 0, "nobody moves to an opening below their needs")
 	check_eq(Company.staff_count(w, a, "G") / S, 6, "all six stay")
 	Company.set_hiring_salary(w, b, "G", land, needs)
@@ -1170,9 +1174,48 @@ func test_a_worker_who_moves_fills_that_opening_and_its_climb_is_gone() -> void:
 	Households.hire(w, a, "crew", "G", land, 2, {}, p0)
 	var b := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "high", {"area": land})
 	Company.set_hiring_salary(w, b, "G", land, p0 * 11 / 10)
+	_advertise_all(w, b)
 	var key := "crew|G"
 	var open := Company.opening_offers(w, b, "crew", "G").size()
 	Company.set_openings(w, b, key, Company.fitted_openings(w, b, key, open).map(func(m): return 2))
 	w.month += 1
 	check_eq(Households.labour_month(w), 2, "two move to the climbed openings")
 	check_eq(Company.openings(w, b, key).size(), open - 2, "those openings are filled and gone")
+
+
+
+## Every open post of a company has its advert paid (9.2: only an advertised post is an opening), for tests about what
+## follows a post's opening.
+func _advertise_all(w: WorldState, cid: String) -> void:
+	var c: Dictionary = w.table("company")[cid]
+	var keys: Array = ["crew"]
+	keys.append_array(c["plants"])
+	var ad := {}
+	for pk in keys:
+		var hw := Company.hire_wanted(w, cid, String(pk))
+		for t in ["G", "S", "Sp"]:
+			var o := int(hw[t]) - Company.staff_count(w, cid, t, String(pk)) / S
+			if o > 0:
+				ad["%s|%s" % [pk, t]] = o
+	c["advertised"] = ad
+
+
+
+func test_a_worker_moving_for_pay_takes_only_an_advertised_post_and_uses_its_advert() -> void:
+	# 9.2, the user: "costs of hiring, articles in the newspaper"; "On posts when you many an open post you pay the first
+	# time"; Wilma's reading, agreed: an opening is an offer only once its advert is paid; a mover is a hire like any other
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	_pool(w, land, "I2", 4, 1000)
+	var needs := Households.needs_per_worker(w, land)
+	var p0 := needs - needs % 1000 + 1000
+	var a := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "low", {"area": land})
+	Households.hire(w, a, "crew", "G", land, 4, {}, p0)
+	var b := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "high", {"area": land})
+	Company.set_hiring_salary(w, b, "G", land, p0 * 2)   # twice their pay: far over their bar and their needs
+	check(Company.vacancies(w, land).filter(func(v): return String(v["cid"]) == b).is_empty(), "no advert paid: no opening to take")
+	check_eq(Households.labour_month(w), 0, "nobody moves to a post that was never advertised")
+	w.table("company")[b]["advertised"] = {"crew|G": 2}   # two adverts paid
+	check_eq(Households.labour_month(w), 2, "two move: the two advertised posts")
+	check_eq(Company.advertised(w, b, "crew|G"), 0, "and used their adverts, as a hire from the jobless does")
+	check(Households.check(w).is_empty(), "jobs = people")

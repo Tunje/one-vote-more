@@ -1058,8 +1058,12 @@ static func labour_month(world: WorldState) -> int:
 					var ent := {"cid": cid, "plant_key": e["plant_key"], "post_tier": e["post_tier"], "labour_key": e["labour_key"],
 						"pay": e["pay"], "row": e["row"], "years": years_at(world, e)}
 					var k := move_job(world, ent, v, mini(open, int(e["n"]) / S), "QUIT_FOR_PAY", bar)
-					if k > 0:   # those openings are filled: gone with their climb (9.2, per opening)
-						Company.fill_openings(world, String(v["cid"]), "%s|%s" % [v["plant_key"], v["tier"]], int(v.get("months", 0)), k)
+					if k > 0:   # those openings are filled: gone with their climb (9.2, per opening), and their adverts used: a
+						# worker moving in is a hire like any other (9.2, "costs of hiring"; Company.vacancies lists only
+						# advertised openings, so nobody takes a post whose advert was not paid)
+						var vk := "%s|%s" % [v["plant_key"], v["tier"]]
+						Company.fill_openings(world, String(v["cid"]), vk, int(v.get("months", 0)), k)
+						Company.advert_used(world, String(v["cid"]), vk, k)
 					open -= k
 					moved += k
 	for cid in CoreUtil.sorted_keys(stay):

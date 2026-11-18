@@ -260,6 +260,7 @@ func test_posts_follow_size_and_output_level_and_open_posts_are_vacancies() -> v
 	check_eq(Company.posts_wanted(w, farm, pid), {"G": 3, "S": 1, "Sp": 0}, "half the posts")
 	check(not Company.set_level(w, farm, pid, 1200), "not above full: that is rule 5")
 	Company.staff_change(w, farm, pid, "G", "landing|I2|G", 2 * S, 300 * S)
+	w.table("company")[farm]["advertised"] = {"%s|G" % pid: 1, "%s|S" % pid: 1}   # their adverts paid (9.2)
 	var v := Company.vacancies(w, "landing")
 	check_eq(v.size(), 2, "open posts: one general, one skilled")
 	check_eq([v[0]["tier"], v[0]["open"], v[1]["tier"], v[1]["open"]], ["S", 1, "G", 1], "highest tier first")
