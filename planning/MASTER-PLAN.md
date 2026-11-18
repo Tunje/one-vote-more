@@ -1073,6 +1073,15 @@ Asked how large the cut is and whether a fourth month cuts again:
 So: the cut is 5%, and each further such month in a row lowers output 5% again.
 
 
+### The rebuild: the ship comes about every two years (the user, 2026-11-18, verbatim)
+
+About: population growth. Told the colony grows by two ship arrivals in five years (months 30 and 58) and a few births a month:
+
+> The ship comes about every two years
+
+Built: the time between a ship's calls is drawn between 18 and 30 months (EconFace.trade_ship_interval), 24 on average; a call brings up to 200 settlers (Ship.SETTLERS_PER_CALL, a starting number of ours). Same as the user's words.
+
+
 ### The rebuild: a price rises on the buyers my own farm turned away (the user, 2026-11-18, verbatim)
 
 About: rule 1. A five-year simulation showed the food price falling every month from 52 to 8 and never rising: the rule in the game (a table line of ours, "it sold what it offered and orders went unfilled") needs an order nobody filled, and in a glut the other farms fill every order. Asked when a farm should raise its price:
