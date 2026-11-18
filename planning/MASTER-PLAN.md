@@ -1096,6 +1096,15 @@ So: step 4 has placeholder loans, just for starting a company, never for hiring.
 So: the loans go in; their numbers are dials, set for the simulations, until the bank becomes real.
 
 
+### The rebuild: the four points of the step 4 stage plan (the user, 2026-11-18, verbatim)
+
+About: the stage plan for step 4 (planning/rebuild-step4-brief.md). Wilma put four points to the user, in this order: 1. does a newly founded builder start as a crew with no yard, or is its yard built by the government's builder; 2. does a power or water grid have to be built with lines to each place, or does a plant reach every buyer once it stands; 3. do farms paid wholly from savings still prefer land away from towns; 4. is a company's own road to the spot, with its charge, built now or later.
+
+> 1. They build it,  2.  Gridd, 3.  Yes!!! Also away from factories!! They polute! 4. Do we build freight in this if we do then yes if not then no!
+
+So: 1. they build it (Wilma's reading: the government's builder builds a new builder's yard). 2. A grid: it has to be built. 3. Yes, farms paid from savings also prefer land away from towns, and away from factories too, because factories pollute. 4. If freight is built in this step, yes, the company's road with its charge is built now; if not, no. Freight is stage 4.6 of this step, so: now.
+
+
 ### The rebuild: a builder with no employees should have shut (the user, 2026-11-18, verbatim)
 
 About: the five builders, who from month 15 to month 59 of a five-year simulation stand with no crew and no money, their full posts open and their unadvertised offers climbing; as built a company that works as a crew is never shut.
