@@ -825,6 +825,13 @@ is wrong; nothing here is asked again.
       farm with no money still grows food.
     - **Food that came by ship is less wanted than food grown in the colony,** so households swap from the landed
       stock to the colony's farms sooner.
+    - **The farm family eats from its own farm first** (the user, 2026-11-18, verbatim): "Okay that's utter bullshit, the farmers themselves I RULED EATS THEMSELVES FIRST, THEY ARE THREE THEY CAN PRODUVE 30 THIS SHOULD IF YOU FOLLOWED THE DAMNED SPECIFICATIONS BE IMPOSSIBLE THEY WOULD TAKE SIX OUT OF THIRTY SELL 24 AND THAT SHOULD BE ENOUGH TO HIRE ONE PERSON"
+      About: in the five-year run about 25 farm families with no money went hungry every month from month 33, because
+      as built a farm family buys its food at the market with the founder's money and takes nothing from its own farm.
+      So: the farmers eat from what their own farm makes, first, before anything is sold. The user's numbers: they are
+      three; they can make 30; they take six out of the thirty (the household's double buying, 15f); they sell 24;
+      and that should be enough to hire one person. A farm family that goes hungry while its farm makes food is a fault.
+      The fault is Wilma's: this was not in the rebuild papers and so was never built.
     - **The farm is the family's home** (the user, 2026-11-17, verbatim, correcting Wilma, who had the family paying
       rent for a home like any household): "And no,  the farm would be their home,  wich means they are paying on any loans they had to take and uppkeep to keep it nice".
       So a family that owns a family farm lives on it and pays no rent to a landlord. What it pays for where it lives

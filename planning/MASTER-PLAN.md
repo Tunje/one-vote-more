@@ -991,6 +991,15 @@ About: with the starting salary merged at 2 x the rent, the government's own sta
 So: the government's staff at the landing are placed from the start, as the builders are. Their salary from the start is 2.5 (Wilma's reading: 2.5 x the rent, the same measure as the starting salary's 2); the same for the builders. The user's reason: then they do not jump from the start either. Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn.
 
 
+### The rebuild: the farm family eats from its own farm first (the user, 2026-11-18, verbatim)
+
+About: in the five-year run about 25 farm families with no money went hungry every month from month 33; as built, a farm family buys its food at the market with the founder's money and takes nothing from its own farm.
+
+> Okay that's utter bullshit, the farmers themselves I RULED EATS THEMSELVES FIRST, THEY ARE THREE THEY CAN PRODUVE 30 THIS SHOULD IF YOU FOLLOWED THE DAMNED SPECIFICATIONS BE IMPOSSIBLE THEY WOULD TAKE SIX OUT OF THIRTY SELL 24 AND THAT SHOULD BE ENOUGH TO HIRE ONE PERSON
+
+So: the farmers eat from what their own farm makes, first, before anything is sold. The user's numbers: they are three; they can make 30; they take six out of the thirty; they sell 24; that should be enough to hire one person. This was not in the rebuild papers and so was never built (Wilma's fault). Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e the same turn. Maja and Bob build it.
+
+
 ### The rebuild: the rent is doubled (the user, 2026-11-18, verbatim)
 
 About: a household's food (152 a month) cost more than its rent (48 shelter, 97 house), so a starting salary of 3.5 x the rent was under what a household needs.
