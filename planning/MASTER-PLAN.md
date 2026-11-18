@@ -1039,6 +1039,15 @@ Asked how large the cut is and whether a fourth month cuts again:
 So: the cut is 5%, and each further such month in a row lowers output 5% again.
 
 
+### The rebuild: for who is underpaid, specialists are counted separately (the user, 2026-11-18, verbatim)
+
+About: the line a worker is underpaid against. The user's earlier words: "avrage ask salleries in the company and underpayed is based on that line". It had been built per skill level; the audit corrected it to the whole company, and Wilma told the user that a general worker in a company with specialists would then usually be under the average.
+
+> Specialists spoilt have been counted seperatly
+
+So: the specialists are counted separately. (Wilma's reading: one average over a company's specialists, one over everyone else, general and skilled together.) Maja builds it and records it in rebuild-company.md 9.2.
+
+
 ### The rebuild: the family alone makes 20; the government stops founding by the grant or the land (the user, 2026-11-18, verbatim)
 
 About: two items of the audit list put to the user. Item 7: a farm family is mostly two working adults, making about 19 a month alone, where the user had said three make 30. Item 17: a household with savings founds a farm without a grant, so stopping the grant stops nothing.
