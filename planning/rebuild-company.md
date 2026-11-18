@@ -175,7 +175,7 @@ type has its own copy, and no rule is skipped for a type because it cannot take 
 | 1 | raise the price | it sold what it offered and orders went unfilled |
 | 2 | lower the price | what it offered and did not sell: "the more inventory you have, the more you reduce your price" |
 | 3 | raise output | "if you sell out all your producing produce MORE". Also picks first or second output |
-| 4 | lower output | output that did not sell |
+| 4 | lower output | "The production output is only lowered if over 50% of offered goods is not sold 3 months in a row" |
 | 5 | add capacity | "if your selling out and all plants at max build a new one ... money is a limitor". How: section 5 |
 | 6 | cut capacity | a plant that stands idle for a set time. "A hard rule here is fine". **(proposal: the time)** |
 | 7 | start a company | the average of all available work: "instead of reading the leftovers, they read an avrage of all avaliable jobs". No cap on how many may form |
@@ -199,14 +199,13 @@ What goes with them:
   - **Output moves at most 5% a month too** (the user, 2026-11-18, verbatim, on being told the output step was built
     at 25% a month from the proposal in 15b): "25?! 5!!! CHANGE IT!!! STOP HEDGING"
     So: output (rules 3 and 4) moves at most 5% in a month, as price does. The g of 0.25 in 15b was wrong.
-  - **Price first; output is cut only when lowering the price fails** (the user, 2026-11-18, verbatim, on the farms):
-    "Then they cut output instead of lowering price output cut has been built wrong let me guess they just cut if they sell less???"
-    Told that as built a farm cuts output in the same month it lowers its price, on the same unsold food, and asked
-    whether the rule is that a farm lowers its price first and cuts output only when that fails: "THAT'S EXACTLY WHAT I SAID"
-    So: food that did not sell lowers the price (rule 2). It does not cut output. Output is cut (rule 4) only when
-    lowering the price has failed. Built wrongly before: rule 4 fired with rule 2, every month with anything unsold.
-    (Wilma's reading of "fails", from rule 9: the price can go no lower, because it is at or below the making price,
-    where climbing has priority and the seller holds stock back.)
+  - **When output is lowered (rule 4)** (the user, 2026-11-18, verbatim): "The production output is only lowered if over 50% of offered goods is not sold 3 months in a row"
+    About: the farms; as built a farm cut output in any month with anything unsold, together with the price cut. The
+    user: "Then they cut output instead of lowering price output cut has been built wrong let me guess they just cut if they sell less???"
+    So: output is lowered only if over 50% of the goods offered is not sold, 3 months in a row. Otherwise unsold goods
+    lower the price (rule 2) and output does not move down. The table's line for rule 4, "output that did not sell",
+    was not the user's and is replaced by this. (Wilma first recorded a wrong reading here, "only when lowering the
+    price fails, at the making price"; the user struck it: "That's not going to do anything but delay it one month".)
 - **No hard floors or ceilings** of our own, except where the user allowed one (rule 6).
 - **No limit built on last month or last year.** Credit follows orders, contracts and forecasts, so a company can grow.
 - **For types with nothing to stock,** rules 2 and 4 read empty work slots (section 4).
