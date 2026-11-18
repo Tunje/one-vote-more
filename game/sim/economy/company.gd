@@ -13,6 +13,8 @@ extends RefCounted
 ##
 ## Every decision and deed writes a Logbook row (plan section 13).
 
+## The type the user ruled is never shut (close_plant): "FARMS DON'T SHUT" (2026-11-18).
+const FARM_TYPE := "FARM"
 const TypeTable := preload("res://sim/economy/type_table.gd")
 
 const TABLE := "company"
@@ -624,7 +626,9 @@ static func _posts_at_level(world: WorldState, cid: String, plant_key: String) -
 			return {}
 	else:
 		var p: Dictionary = world.peek(PLANT_TABLE).get(plant_key, {})
-		if p.is_empty() or String(p["company"]) != cid or bool(p["closed"]):
+		# a plant shut for want of staff (19a) still has its posts to fill: it opens again when it has people (Wilma's
+		# reading, 2026-11-18; Rules.staff_to_posts reopens it). Shut for any other reason (LAW), it wants nobody.
+		if p.is_empty() or String(p["company"]) != cid or (bool(p["closed"]) and String(p.get("closed_why", "")) != "NO_STAFF"):
 			return {}
 		size = String(p["size"])
 		level = int(p["level_pm"])
@@ -924,9 +928,16 @@ static func months_on_books(world: WorldState, cid: String) -> int:
 
 ## Closes a plant, with a reason (LAW, IDLE, NO_STAFF, ...); it keeps its place and wears (step 6). Its staff are not
 ## laid off here: the household side's layoff does that. Writes a CLOSE row.
+## A farm is never shut, by any path (the user, 2026-11-18, verbatim, told 40 family farms were shut for "no staff":
+## "FARMS DON'T SHUT"; rebuild-company.md 15e). Every shutting comes through here, so the refusal is here: it returns
+## false and writes a CLOSE_REFUSED row (its own kind, so nothing counts it as a closing) with the reason asked.
 static func close_plant(world: WorldState, pid: String, reason: String, why: Dictionary = {}) -> bool:
 	var p: Dictionary = world.table(PLANT_TABLE).get(pid, {})
 	if p.is_empty() or bool(p["closed"]):
+		return false
+	if String(p["type"]) == FARM_TYPE:
+		Logbook.note(world, "CLOSE_REFUSED", String(p["company"]), "farm not shut: farms don't shut (the user)", why.merged({"reason": reason}),
+			{}, "", pid)
 		return false
 	p["closed"] = true
 	p["closed_why"] = reason
@@ -985,7 +996,7 @@ static func price(world: WorldState, cid: String, key: String) -> int:
 	return int(world.peek(TABLE).get(cid, {}).get("price", {}).get(key, -1))
 
 
-## A plant: {id, company, type, size, sixths, condition (0..100), closed, line}, or {} if there is none.
+## A plant: {id, company, type, size, sixths, condition (0..100), closed, closed_why ("" when open), line}, or {}.
 static func plant(world: WorldState, pid: String) -> Dictionary:
 	var p: Dictionary = world.peek(PLANT_TABLE).get(pid, {})
 	if p.is_empty():
@@ -993,7 +1004,7 @@ static func plant(world: WorldState, pid: String) -> Dictionary:
 	var c: Dictionary = world.peek(TABLE).get(String(p["company"]), {})
 	return {"id": pid, "company": String(p["company"]), "type": String(p["type"]), "size": String(p["size"]),
 		"sixths": TypeTable.sixths(String(p["size"])), "condition": int(p["condition"]) / 1000,
-		"closed": bool(p["closed"]), "line": int(c.get("line", 0))}
+		"closed": bool(p["closed"]), "closed_why": String(p.get("closed_why", "")), "line": int(c.get("line", 0))}
 
 
 ## Every plant id, sorted, closed ones included.

@@ -267,11 +267,16 @@ func test_posts_follow_size_and_output_level_and_open_posts_are_vacancies() -> v
 	check(Company.vacancies(w, "elsewhere").is_empty(), "none in another area")
 	var admin := Company.create(w, "ADMIN", "LARGE", {"kind": "STATE", "holders": {"gov": 1000}}, "A", {"area": "landing", "crew_posts": true})
 	check_eq(Company.posts_wanted(w, admin, "crew"), {"G": 4, "S": 8, "Sp": 3}, "a company created with crew posts")
-	check(Company.close_plant(w, pid, "LAW"), "closed by the law")
-	check_eq(Company.posts_wanted(w, farm, pid), {"G": 0, "S": 0, "Sp": 0}, "a closed plant wants nobody")
-	check(not Company.close_plant(w, pid, "LAW"), "not twice")
-	check(Company.reopen_plant(w, pid, "LICENSED"), "reopened")
-	check_eq(Logbook.rows(w, {"kind": "CLOSE", "ref": pid}).size(), 1, "a CLOSE row")
+	check(not Company.close_plant(w, pid, "LAW"), "a farm is never shut (the user: \"FARMS DON'T SHUT\")")
+	check(not bool(Company.plant(w, pid)["closed"]), "it stays open")
+	check_eq(Logbook.rows(w, {"kind": "CLOSE_REFUSED", "ref": pid}).size(), 1, "a CLOSE row says it was asked and refused")
+	var mine := Company.create(w, "MINE", "LARGE", HW, "M", {"area": "landing"})
+	var mp := Company.add_plant(w, mine, "LARGE")
+	check(Company.close_plant(w, mp, "LAW"), "another type: closed by the law")
+	check_eq(Company.posts_wanted(w, mine, mp), {"G": 0, "S": 0, "Sp": 0}, "a closed plant wants nobody")
+	check(not Company.close_plant(w, mp, "LAW"), "not twice")
+	check(Company.reopen_plant(w, mp, "LICENSED"), "reopened")
+	check_eq(Logbook.rows(w, {"kind": "CLOSE", "ref": mp}).size(), 1, "a CLOSE row")
 
 
 func test_average_pay_negotiation_and_the_reference_wage() -> void:

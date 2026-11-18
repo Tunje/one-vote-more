@@ -347,11 +347,14 @@ static func needs_food(world: WorldState, area: String) -> Dictionary:
 
 # ---------------------------------------------------------------- staff to the posts
 
-## First 19a: wages it could not pay are laid off in proportion; a plant left with nobody is shut. Then each plant key
+## First 19a: wages it could not pay are laid off in proportion; a plant left with nobody on its posts, hired or family,
+## is shut, but never a farm (the user, 2026-11-18: "FARMS DON'T SHUT"; 15e: "A family farm with no money still grows
+## food"). A plant shut so opens again when it has people (_reopen_staffed; Wilma's reading). Then each plant key
 ## hires or lays off toward the posts its output level wants, at the hiring salary of the plant's area, and notes what
 ## its hiring left open (_note_open_left).
 static func staff_to_posts(world: WorldState, cid: String) -> void:
 	family_to_posts(world, cid)   # the family first: its posts are never hired for, and it is never laid off (15e)
+	_reopen_staffed(world, cid)
 	var staff0 := Company.staff_count(world, cid)
 	var c: Dictionary = world.peek(Company.TABLE)[cid]
 	var b := Company.books_month(world, cid)
@@ -366,7 +369,10 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 				var go := (n * (due - paid) + due - 1) / due
 				if go > 0:
 					Households.layoff(world, cid, String(pk), tier, go, {"reason": "UNPAID", "due": due, "paid": paid})
-			if String(pk) != "crew" and Company.staff_count(world, cid, "", String(pk)) == 0:
+			# nobody on its posts, hired or family; never a farm ("FARMS DON'T SHUT": its hands go, the farm and its family
+			# stay; Company.close_plant refuses a farm on any path)
+			if String(pk) != "crew" and String(c["type"]) != Company.FARM_TYPE \
+					and Company.staff_count(world, cid, "", String(pk)) + Company.family_count(world, cid, "", String(pk)) == 0:
 				Company.close_plant(world, String(pk), "NO_STAFF", {"due": due, "paid": paid})
 		Logbook.note(world, "RULE", cid, "19a could not pay its staff", {"due": due, "paid": paid})
 		world.table(Company.TABLE)[cid]["no_hiring_m"] = world.month   # no hiring this month: next month's offer holds
@@ -414,7 +420,22 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 	for key in ad.keys():
 		if not seen.has(key):
 			ad.erase(key)   # a plant gone from the company: its open posts with it
+	_reopen_staffed(world, cid)
 	_publish_layoffs(world, cid, staff0)
+
+
+## A plant shut for want of staff (19a, NO_STAFF) opens again as soon as anyone is on its posts, hired or family (Wilma's
+## reading, 2026-11-18, of 19a and law paper 4 "Until step 5: no company can end": a shut plant is not an ending). Its
+## posts stay open to hiring while it is shut (Company._posts_at_level). A plant shut for another reason (LAW) is the
+## law's to reopen. One REOPEN row each.
+static func _reopen_staffed(world: WorldState, cid: String) -> void:
+	for pk in Company.plant_ids_of(world, cid):
+		var p := Company.plant(world, String(pk))
+		if p.is_empty() or not bool(p["closed"]) or String(p.get("closed_why", "")) != "NO_STAFF":
+			continue
+		var on := Company.staff_count(world, cid, "", String(pk)) + Company.family_count(world, cid, "", String(pk))
+		if on > 0:
+			Company.reopen_plant(world, String(pk), "STAFFED", {"on_posts": on / S})
 
 
 ## What this month's hiring left open at one plant key and tier ("plant|tier"), for next month's offer (salary_rules:
@@ -568,6 +589,15 @@ static func family_to_posts(world: WorldState, cid: String) -> void:
 			pk = String(p)
 			size = String(Company.plant(world, pk)["size"])
 			break
+	if pk == "crew":
+		# every plant shut: one shut only for want of staff is the family's to work again (15e), and with them on its
+		# posts it opens again (_reopen_staffed)
+		for p in Company.plant_ids_of(world, cid):
+			var pp := Company.plant(world, String(p))
+			if bool(pp["closed"]) and String(pp.get("closed_why", "")) == "NO_STAFF":
+				pk = String(p)
+				size = String(pp["size"])
+				break
 	if pk == "crew" and not bool(c["crew_posts"]):
 		return
 	var fill := Company.family_fill(TypeTable.posts(String(c["type"]), size, int(c["line"])), Households.family_adults(world, fam))

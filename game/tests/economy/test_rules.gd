@@ -46,8 +46,8 @@ func test_a_plant_makes_from_its_staff_and_level() -> void:
 	check_eq(Making.make_plant(w, g[0], g[1]), full / 2, "half staffed: half")
 	Company.set_level(w, g[0], g[1], 500)
 	check_eq(Making.make_plant(w, g[0], g[1]), full / 2, "at half level the same four people are a full crew for it")
-	Company.close_plant(w, g[1], "LAW")
-	check_eq(Making.make_plant(w, g[0], g[1]), 0, "a closed plant makes nothing")
+	check(not Company.close_plant(w, g[1], "LAW"), "a farm is never shut (the user: \"FARMS DON'T SHUT\")")
+	check_eq(Making.make_plant(w, g[0], g[1]), full / 2, "so it goes on making")
 	check_eq(Logbook.rows(w, {"kind": "MAKE", "who": f[0]})[0]["why"]["staffed_pm"], 1000, "the row says what it read")
 
 
