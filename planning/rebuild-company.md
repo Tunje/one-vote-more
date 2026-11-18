@@ -909,6 +909,17 @@ is wrong; nothing here is asked again.
         adults alone make 20, three make 30, two family and two hired make 38.8. "At a minimum" is the least staffing
         (the family alone) at a yield of 1.0, not a floor under winter. (Not chosen: (a) no penalty for family farms,
         which would strike an accepted ruling; (c) a larger farm row, which moves every farm and the FOOD price.)
+      - **The level does not lower the family's work** (the user, 2026-11-18, verbatim, asked whether a family farm's
+        output still goes down with its level or 20 is the least it ever makes): "The rest goes down the two adults owning dose not"
+        So the output level (rules 3 and 4) governs the rest: the hired hands' work on the posts the family leaves. The
+        owning family's work on its own farm stays at ten a worker whatever the level. (Wilma's reading, marked as
+        hers: the season's yield still applies to the family's work as to all farming; 20 is at a yield of 1.0.)
+        Built (Bob): the hired posts wanted are the posts the family leaves × the level, rounded up to whole persons;
+        their work is the size's share of those posts × the level. Two adults make 20 at levels 1000, 250 and 100;
+        hired hands alone at level 250 make a quarter of their share (9.4); two family and two hired at level 500 make
+        20 + 9.4. What follows: rule 4's cut lowers only the hired part, so a family farm in a glut keeps making
+        its family's 20 and its unsold food lowers the price (rule 2); rule 8 counts what a farm made less its
+        family's take, so the family's steady 20 counts as delivered.
     - **The farm keeps a buffer before winnings** (the user, 2026-11-18, verbatim): "Wait you made it pay out all the money as winnings? I'm sorry i think i did not say the farm needs a buffer say 50% until it had 6 months worth built up then 10%"
       About: winnings as built pay the family everything the month earned above one month of the farm's costs, so a
       farm that then sells nothing for a few months has an empty account.

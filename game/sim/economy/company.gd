@@ -598,12 +598,36 @@ static func hire_wanted(world: WorldState, cid: String, plant_key: String) -> Di
 	if pl.is_empty():
 		return {"G": 0, "S": 0, "Sp": 0}
 	var full: Dictionary = pl["full"]
-	var n := maxi(0, (int(pl["total"]) * int(pl["level"]) + 999) / 1000 - family_count(world, cid, "", plant_key) / CoreUtil.S)
+	# the posts the family leaves, at the level (the user, 15e: "The rest goes down the two adults owning dose not"):
+	# the family works its posts whatever the level; the hired posts follow it, rounded up to whole persons
+	var fam := family_count(world, cid, "", plant_key) / CoreUtil.S
+	var n := 0
+	if is_family_farm_type(world, cid):
+		n = (maxi(0, int(pl["total"]) - fam) * int(pl["level"]) + 999) / 1000
+	else:   # another family company: the family counts against the level's work, as before (the ruling was the farm's)
+		n = maxi(0, (int(pl["total"]) * int(pl["level"]) + 999) / 1000 - fam)
 	var weights: Array = []
 	for t in ["G", "S", "Sp"]:
 		weights.append(float(maxi(0, int(full[t]) - family_count(world, cid, t, plant_key) / CoreUtil.S)))
 	var parts := CoreUtil.split_lr(n, weights)
 	return {"G": int(parts[0]), "S": int(parts[1]), "Sp": int(parts[2])}
+
+
+## Whether a company is a farm (FARM_TYPE), the type the user's family-farm rulings are about (15e: "10 purple each";
+## "The rest goes down the two adults owning dose not"): only a farm's family works at ten a worker whatever the level.
+static func is_family_farm_type(world: WorldState, cid: String) -> bool:
+	return String(world.peek(TABLE).get(cid, {}).get("type", "")) == FARM_TYPE
+
+
+## The hired hands' work a plant key's level asks for, persons × S, not rounded: the posts the family leaves × the
+## level (15e, the user: "The rest goes down the two adults owning dose not"). Without a family it is work_wanted.
+static func hired_work_wanted(world: WorldState, cid: String, plant_key: String) -> int:
+	var pl := _posts_at_level(world, cid, plant_key)
+	if pl.is_empty():
+		return 0
+	if not is_family_farm_type(world, cid):
+		return work_wanted(world, cid, plant_key)
+	return maxi(0, int(pl["total"]) * CoreUtil.S - family_count(world, cid, "", plant_key)) * int(pl["level"]) / 1000
 
 
 ## The work a plant key's level asks for, in persons × S, not rounded: all its posts × its output level. What a plant

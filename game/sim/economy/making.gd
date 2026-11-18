@@ -61,12 +61,33 @@ static func make_plant(world: WorldState, cid: String, pid: String) -> int:
 	# family farm's work does it, and makes it (Wilma's fault, the user: "NO ROUNDING ERRORS ...")
 	var want_n := Company.work_wanted(world, cid, pid)
 	# trained workers (new hires count less while they learn, 9.2) and the family (15e)
-	var working := Company.trained_count(world, cid, "", pid) + Company.family_count(world, cid, "", pid)
-	var staffed := 0 if want_n <= 0 else mini(1000, working * 1000 / want_n)
+	var trained := Company.trained_count(world, cid, "", pid)
+	var fam := Company.family_count(world, cid, "", pid)
+	var staffed := 0 if want_n <= 0 else mini(1000, (trained + fam) * 1000 / want_n)
+	# the family's own work counts at the row's output a worker with no size penalty, whatever the output level (the
+	# user, 15e: "10 purple each"; a family alone "can make 20 at a minimum"; "The rest goes down the two adults owning
+	# dose not"; Wilma's (b): the penalty stays on the size, "You penalty is fine", for hired hands). The level governs
+	# the rest: the hired hands' work on the posts the family leaves, at the size's share (a family farm's 9.4 a post)
+	# The user spoke of the family FARM ("10 purple each", "the two adults owning"): another family company's family
+	# works as staff, at the size's share, within the level's work, as before (Terra's review: a ruling is kept to what
+	# it was about)
+	var hired_part := 0
+	var family_part := 0
+	if type == Company.FARM_TYPE:
+		var posts := TypeTable.posts(type, size, line)
+		var total := (int(posts["G"]) + int(posts["S"]) + int(posts["Sp"])) * S
+		var rest_full := 0 if total <= 0 else full * maxi(0, total - fam) / total
+		var want_h := Company.hired_work_wanted(world, cid, pid)
+		var hired_used := mini(trained, want_h)
+		hired_part = 0 if want_h <= 0 else rest_full * level / 1000 * (hired_used * 1000 / want_h) / 1000
+		family_part = fam * _per_worker(type, line) / S
+	else:
+		var used := mini(trained + fam, want_n)
+		hired_part = 0 if want_n <= 0 else full * level / 1000 * (used * 1000 / want_n) / 1000
 	var cond := int(p["condition"])
 	var cond_pm := 1000 if cond >= CONDITION_FULL_FROM else cond * 1000 / CONDITION_FULL_FROM
 	var yield_pm := yield_of(world, type, pid)
-	var out := full * level / 1000 * staffed / 1000 * cond_pm / 1000 * yield_pm / 1000
+	var out := (hired_part + family_part) * cond_pm / 1000 * yield_pm / 1000
 	# inputs: what this output needs, limited by what is held
 	var need := {}
 	var full_in := TypeTable.inputs_milli(type, size, line)
@@ -100,6 +121,16 @@ static func make_plant(world: WorldState, cid: String, pid: String) -> int:
 	Logbook.note(world, "MAKE", cid, "made " + item, {"full": full, "level_pm": level, "staffed_pm": staffed, "condition_pm": cond_pm,
 		"yield_pm": yield_pm, "inputs_pm": limit_pm}, {item: [0, out]}, "", pid)
 	return out
+
+
+## What one worker makes a month at full on a type's line, milli-units, with no size penalty: the full-size row's
+## output over its posts (a farm: 240 over 24, ten; the user: "10 purple each"). A family's own work counts at this.
+static func _per_worker(type: String, line: int) -> int:
+	var ln: Dictionary = TypeTable.line(type, line)
+	var posts := 0
+	for t in ln["lab"]:
+		posts += int(ln["lab"][t])
+	return 0 if posts <= 0 else int(ln["qty"]) * S / posts
 
 
 ## The season's share for a plant this month, per mille (1000 for anything but a farm): Terra's Site.yield_pm.

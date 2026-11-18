@@ -616,15 +616,25 @@ func _family_farm(w: WorldState, work: Dictionary) -> Array:
 	return [id, pid]
 
 
-func test_a_family_farm_makes_in_proportion_to_its_level_however_low() -> void:
-	# Wilma's fault, the user: "NO ROUNDING ERRORS ARE NOT THINGS YOU BRING TO ME YOU FIX THEM": the posts wanted at a
-	# level were rounded down, so under level 250 a family farm wanted no posts and made nothing with its family on it
+func test_a_familys_own_work_does_not_go_down_with_the_level() -> void:
+	# 15e, the user: "The rest goes down the two adults owning dose not"; a family alone "can make 20 at a minimum"
+	# (Wilma's reading: at a yield of 1.0; the season still applies). Before it, a level under 250 made nothing (the
+	# rounding fault), then the level's share
 	var w := _w()
 	var f := _family_farm(w, {"G": 1, "S": 1})   # two of the family on its four posts
-	var full := TypeTable.output_milli("FARM", "FAMILY")
-	for lv in [100, 234, 250, 313]:
+	for lv in [1000, 313, 250, 234, 100, 0]:
 		Company.set_level(w, f[0], f[1], lv)
-		check_eq(Making.make_plant(w, f[0], f[1]), full * lv / 1000, "level %d: the family makes the level's share" % lv)
+		check_eq(Making.make_plant(w, f[0], f[1]), 20 * S, "level %d: the two owning adults make their 20 whatever the level" % lv)
+	var h := Company.create(w, "FARM", "FAMILY", HW, "Hired", {"area": "landing"})
+	var hp := Company.add_plant(w, h, "FAMILY")
+	Company.staff_change(w, h, hp, "G", "landing|I2|G", 3 * S, 300 * S, 0)
+	Company.staff_change(w, h, hp, "S", "landing|I3|S", 1 * S, 450 * S, 0)
+	Company.set_level(w, h, hp, 250)
+	check_eq(Making.make_plant(w, h, hp), TypeTable.output_milli("FARM", "FAMILY") / 4, "hired hands at level 250: a quarter of their share, 9.4")
+	var m := _family_farm(w, {"G": 1, "S": 1})
+	Company.staff_change(w, m[0], m[1], "G", "landing|I2|G", 2 * S, 300 * S, 0)
+	Company.set_level(w, m[0], m[1], 500)
+	check_eq(Making.make_plant(w, m[0], m[1]), 20 * S + 9400, "two family and two hired at level 500: the family's 20, the hired half of their 18.8")
 
 
 func test_one_of_the_family_does_a_quarter_of_a_family_farms_work_company_16() -> void:
@@ -632,12 +642,10 @@ func test_one_of_the_family_does_a_quarter_of_a_family_farms_work_company_16() -
 	# person counted as the whole 1.25 posts' work); month 35 at level 234 it made nothing (0.94 posts rounded to none)
 	var w := _w()
 	var f := _family_farm(w, {"S": 1})
-	var full := TypeTable.output_milli("FARM", "FAMILY")   # 37.6
 	Company.set_level(w, f[0], f[1], 234)
-	check_eq(Making.make_plant(w, f[0], f[1]), full * 234 / 1000, "level 234: one person covers the 0.94 posts' work: 8.8")
+	check_eq(Making.make_plant(w, f[0], f[1]), 10 * S, "level 234: the owning adult makes one worker's ten, whatever the level")
 	Company.set_level(w, f[0], f[1], 313)
-	check_eq(Making.make_plant(w, f[0], f[1]), full * 313 / 1000 * (1000 * S / (4 * S * 313 / 1000)) / 1000,
-		"level 313: one person of the 1.25 posts' work makes a quarter of the farm's full: 9.4")
+	check_eq(Making.make_plant(w, f[0], f[1]), 10 * S, "level 313: the same ten")
 	check_eq(Company.posts_wanted(w, f[0], f[1]), {"G": 2, "S": 0, "Sp": 0}, "1.25 posts' work needs two persons")
 	Company.set_level(w, f[0], f[1], 234)
 	check_eq(Company.posts_wanted(w, f[0], f[1]), {"G": 1, "S": 0, "Sp": 0}, "0.94 posts' work needs one: rounded up, never to none")
@@ -757,17 +765,16 @@ func test_a_family_on_the_skilled_post_is_not_doubled_by_a_stranger_on_a_general
 	w.table(Households.PERSON_TABLE)[Company.family_of(w, f[0])]["family"]["adults"] = [{"skill": "S"}]   # company:16: one skilled adult
 	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(f[0]), 100000 * S, "TEST", 0)
 	var mine := func() -> Array: return Company.vacancies(w, "landing").filter(func(v): return String(v["cid"]) == f[0]).map(func(v): return [String(v["tier"]), int(v["open"])])
+	# the family works its own post whatever the level; the level governs the three posts it leaves ("The rest goes
+	# down the two adults owning dose not", 15e): never a stranger on the family's own skilled post
 	Company.set_level(w, f[0], f[1], 234)
-	check_eq(Company.hire_wanted(w, f[0], f[1]), {"G": 0, "S": 0, "Sp": 0}, "0.94 posts' work: the family member does it all")
-	check_eq(mine.call(), [], "no post open")
+	check_eq(Company.hire_wanted(w, f[0], f[1]), {"G": 1, "S": 0, "Sp": 0}, "the three posts it leaves at 0.234: 0.70 of a post, one person")
+	check_eq(mine.call(), [["G", 1]], "one general post open, none on the family's skilled post")
 	var asked := func() -> Array: return Logbook.rows(w, {"kind": "HIRE", "who": f[0]}).map(func(r): return int(r["why"].get("wanted", 0)))
 	Rules.staff_to_posts(w, f[0])
-	check_eq(asked.call(), [], "no stranger asked for")
-	Company.set_level(w, f[0], f[1], 313)
-	check_eq(Company.hire_wanted(w, f[0], f[1]), {"G": 1, "S": 0, "Sp": 0}, "1.25 posts' work: two persons, one of them the family")
-	check_eq(mine.call(), [["G", 1]], "one general post open")
-	Rules.staff_to_posts(w, f[0])
 	check_eq(asked.call(), [1], "staff_to_posts asks for one stranger (a test plant stands on no site, so the hire itself is refused there)")
+	Company.set_level(w, f[0], f[1], 500)
+	check_eq(Company.hire_wanted(w, f[0], f[1]), {"G": 2, "S": 0, "Sp": 0}, "at half: 1.5 of the three posts, two persons")
 	Company.set_level(w, f[0], f[1], 1000)
 	check_eq(Company.hire_wanted(w, f[0], f[1]), {"G": 3, "S": 0, "Sp": 0}, "full: the three general posts the family leaves")
 
@@ -1031,3 +1038,42 @@ func test_the_buffer_never_pays_out_more_than_the_account_holds() -> void:
 	var w := _w()
 	var poor := _buffer_farm(w, 100 * S, 1000 * S)   # earned 1000 on the books, but only 100 in the account
 	check_eq(int(Rules.winnings(w, poor)["amount"]), 100 * S, "half would be 500; the account holds 100")
+
+
+func test_a_familys_own_work_counts_at_ten_a_worker_hired_hands_at_the_sizes_rate() -> void:
+	# 15e, the user: "10 purple each" (one farm worker feeds ten); "they can make 20 at a minimum you had said 3 family
+	# memers on a farm i assumed 3 adults"; the size penalty stays as accepted ("You penalty is fine"): Wilma's (b)
+	var w := _w()
+	var two := _family_farm(w, {"G": 1, "S": 1})
+	check_eq(Making.make_plant(w, two[0], two[1]), 20 * S, "the family's two adults alone make 20 at a yield of 1.0")
+	var three := _family_farm(w, {"G": 2, "S": 1})
+	check_eq(Making.make_plant(w, three[0], three[1]), 30 * S, "three adults make 30")
+	var mixed := _family_farm(w, {"G": 1, "S": 1})
+	Company.staff_change(w, mixed[0], mixed[1], "G", "landing|I2|G", 2 * S, 300 * S, 0)   # two hired hands, trained
+	check_eq(Making.make_plant(w, mixed[0], mixed[1]), 38800, "two family at ten and two hired at the size's 9.4: 38.8")
+	var hired := Company.create(w, "FARM", "FAMILY", HW, "Hired", {"area": "landing"})
+	var hp := Company.add_plant(w, hired, "FAMILY")
+	Company.staff_change(w, hired, hp, "G", "landing|I2|G", 3 * S, 300 * S, 0)
+	Company.staff_change(w, hired, hp, "S", "landing|I3|S", 1 * S, 450 * S, 0)
+	check_eq(Making.make_plant(w, hired, hp), TypeTable.output_milli("FARM", "FAMILY"), "a family-size farm with no family: hired hands only, 37.6 as before")
+	var small := _farm(w, 6, 2)
+	check_eq(Making.make_plant(w, small[0], small[1]), TypeTable.output_milli("FARM", "SMALL"), "other sizes unchanged")
+
+
+func test_another_family_companys_family_works_as_staff_as_before() -> void:
+	# the user's "10 purple each" and "the two adults owning dose not" [go down] were about the family farm (15e); a
+	# family bakery's family works its posts at the size's share, within the level's work, as before (Terra's review)
+	var w := _w()
+	var id := Company.create(w, "BAKERY", "FAMILY", HW, "Fam Bakery", {"area": "landing"})
+	var pid := Company.add_plant(w, id, "FAMILY")
+	Company.stock_add(w, id, "FOOD", 10000 * S, 10 * S, "LANDING", "flour")
+	var fam := Households.make_founder(w, Households.seed_test(w, "landing", "I2", "G", 10), "", true)
+	Company.family_set(w, id, pid, fam, {"G": 1, "S": 1})
+	var full := TypeTable.output_milli("BAKERY", "FAMILY")
+	var posts := TypeTable.posts("BAKERY", "FAMILY")
+	var total := (int(posts["G"]) + int(posts["S"]) + int(posts["Sp"])) * S
+	check_eq(Making.make_plant(w, id, pid), full * (2 * S * 1000 / total) / 1000, "two of the family on its posts: their share of the size's output, no ten a worker")
+	Company.set_level(w, id, pid, 250)
+	var want := total * 250 / 1000
+	check_eq(Making.make_plant(w, id, pid), full * 250 / 1000 * (mini(2 * S, want) * 1000 / want) / 1000, "and the level governs the family's work too")
+	check_eq(Company.hire_wanted(w, id, pid), {"G": 0, "S": 0, "Sp": 0}, "at level 250 the family covers the level's work: no stranger")
