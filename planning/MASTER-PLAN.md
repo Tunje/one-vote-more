@@ -987,6 +987,15 @@ About: a household's food (152 a month) cost more than its rent (48 shelter, 97 
 Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Bob builds it.
 
 
+### The rebuild: one farm worker feeds ten people (the user, 2026-11-18, verbatim)
+
+About: a large farm's 24 workers made food for 156 people (6.5 each), so 88% of the food price was wages; the figure was the type table's own.
+
+> 10 purple each
+
+(Wilma's reading: 10 people each.) Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Bob builds it.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

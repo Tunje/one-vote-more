@@ -456,6 +456,12 @@ Terra's town grid (section 9.8).
   3.5 x the rent (170) was under what a household needs (200). The user first said "Food is too expensive"; told that
   the food price is set from what a farm costs to run, the user, verbatim: "Screw lowering food, double the rent. Make the rent more reasonable in comparison to food. If food has to be there for them to earn money from a farm, we make rent worth more to those who have those buildings."
   So the food price stays; the rent of a home is doubled (a new house 97 -> 194, a landing shelter 48 -> 97).
+- **One farm worker feeds ten people** (the user, 2026-11-18). About: asked what makes a farm so expensive to run,
+  Wilma showed a large farm's month from the starting numbers: wages 8,325 of 9,463 (88%), because its 24 workers
+  make food for 156 people, 6.5 each; and that this figure was the type table's, not the user's. The user, verbatim:
+  "10 purple each" (Wilma's reading: 10 people each).
+  So a farm makes food for ten people per worker at full output (a large farm: 240 a month with its 24 workers,
+  where it was 156). The starting price of food follows from the table as before (about 39 where it was 60).
 - **Hiring** is at that line; rule 9 for a salary turns on it ("that's fine for hiring").
 - **A company with plants in two places:** "The district the plant hiring is in." In the rebuild that is the AREA the
   plant stands in (12.1, 1). Districts are drawn for elections and can be redrawn; a salary's reference place does not
