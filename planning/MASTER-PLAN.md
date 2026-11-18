@@ -1091,6 +1091,10 @@ And, correcting Wilma's longer answer about what such a loan would involve:
 
 So: step 4 has placeholder loans, just for starting a company, never for hiring.
 
+> Yes put the loans in we can dial them for the sim until the bank becomes real
+
+So: the loans go in; their numbers are dials, set for the simulations, until the bank becomes real.
+
 
 ### The rebuild: a builder with no employees should have shut (the user, 2026-11-18, verbatim)
 
