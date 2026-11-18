@@ -1089,7 +1089,17 @@ So: one rule for all goods, builders' work included; no rule built separately fo
 
 > Good, those
 
-So: all six are made general as recommended.
+Wilma took that as a plain yes to all and sent the work out too soon; it was not finished. The user's corrections, verbatim:
+
+> No it's not for the Order family
+
+(the owning family's work, ten a worker and not lowered by the level, is for the farm family, not for the other family companies)
+
+> Plants should shut
+
+(Wilma's "no plant is shut for lack of staff" is wrong and does not go in: plants shut; farms don't, as ruled)
+
+So: the slower climb is one rule for all goods; the season, the builder's crew, the rent and a household's needs are read from the type table and the needs list, not from a name; the family's work stays for the farm family; plants shut and farms don't.
 
 
 ### The rebuild: builders with nothing to build is a lack of this step, not a fault (the user, 2026-11-18, verbatim)
