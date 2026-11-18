@@ -1081,6 +1081,12 @@ About: the five builders, who from month 15 to month 59 of a five-year simulatio
 
 So: a builder with no employees shuts, as any plant with nobody on it does ("Plants should shut"). Otto builds it with Terra.
 
+Asked what brings a shut builder back:
+
+> Nothing they are shut gone dead, this is where opening of new companies comes in,  also the communal builder owned by the government that goes down to one or two but never empty of employees
+
+So: nothing brings a shut builder back; it is shut, gone, dead. New builders come from the opening of new companies. The communal builder owned by the government goes down to one or two employees but is never empty of employees.
+
 
 ### The rebuild: a price far above its original climbs slower (the user, 2026-11-18, verbatim)
 
