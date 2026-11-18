@@ -1073,6 +1073,15 @@ Asked how large the cut is and whether a fourth month cuts again:
 So: the cut is 5%, and each further such month in a row lowers output 5% again.
 
 
+### The rebuild: a full stage plan for step 4 (the user, 2026-11-18, verbatim)
+
+About: the next step of the build order (step 4, where the other goods and company types come in). Told that Ella had been asked to write out what the step contains:
+
+> Ah yes this is what i want a full stage plan with who dose what, who reviews when what stages within it that go in in what order
+
+So: step 4 gets a full stage plan: who does what, who reviews, when, and which stages within it go in in what order. Ella drafts it in planning/rebuild-step4-brief.md; every session reads the whole of it before it goes to the user.
+
+
 ### The rebuild: a builder with no employees should have shut (the user, 2026-11-18, verbatim)
 
 About: the five builders, who from month 15 to month 59 of a five-year simulation stand with no crew and no money, their full posts open and their unadvertised offers climbing; as built a company that works as a crew is never shut.
