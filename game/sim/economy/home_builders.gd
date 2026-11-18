@@ -91,7 +91,12 @@ static func bw_milli(world: WorldState, cid: String) -> int:
 
 static func _make(world: WorldState, area: String, name: String, size: String, owner: Dictionary, origin: String,
 		order: int, why: String) -> String:
-	var cid := Company.create(world, TYPE, size, owner, name, {"origin": origin, "origin_n": order, "area": area})
+	# its chief's appetite for risk (plan 12.11, 77), drawn once from the world's seeded random and kept: it is how far
+	# forward the builder claims jobs (the user: "they only claim a year or too forwards"; "The or two should be up to
+	# the manager"; Building.reach_m). Its management skill stays at the record's 50 until 77 is built.
+	var risk := world.rng.stream("econ.builder_chiefs").randi_range(0, 100)
+	var cid := Company.create(world, TYPE, size, owner, name, {"origin": origin, "origin_n": order, "area": area,
+		"chief": {"mgmt": 50, "risk": risk}})
 	if cid == "":
 		Logbook.note(world, "LAND", name, "builder NOT made: the company record refused it", {"size": size, "owner": owner})
 		return ""

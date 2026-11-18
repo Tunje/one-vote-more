@@ -1077,3 +1077,24 @@ func test_another_family_companys_family_works_as_staff_as_before() -> void:
 	var want := total * 250 / 1000
 	check_eq(Making.make_plant(w, id, pid), full * 250 / 1000 * (mini(2 * S, want) * 1000 / want) / 1000, "and the level governs the family's work too")
 	check_eq(Company.hire_wanted(w, id, pid), {"G": 0, "S": 0, "Sp": 0}, "at level 250 the family covers the level's work: no stranger")
+
+
+func test_the_hold_back_covers_all_the_months_expenses() -> void:
+	# the user: "It sells too cover all monthly expences!!!": wages, inputs and upkeep, and the job adverts, the layoff
+	# pay and the debts it paid (the month before's: this month's come after the rules)
+	var w := _w()
+	var f := _farm(w, 6, 2)   # wage bill 6 x 300 + 2 x 450 = 2,700
+	w.month = 5
+	Company.book(w, f[0], "adverts", 100 * S)
+	Company.book(w, f[0], "layoff_paid", 200 * S)
+	Company.close_month(w, f[0])
+	w.month = 6
+	Company.book(w, f[0], "upkeep", 300 * S)
+	Company.book(w, f[0], "inputs", 0)
+	var js: Dictionary = w.table("law_state")
+	js["s"] = {"justice": {"debts_paid": {"m": 5, "by": {f[0]: 400 * S}}}}
+	check_eq(Rules.month_expenses(w, f[0]), 2700 * S + 300 * S + 100 * S + 200 * S + 400 * S, "wages, upkeep, adverts, layoff pay and debts")
+	Company.stock_add(w, f[0], "FOOD", 100 * S, 30 * S, "OUTPUT", "test")
+	Company.set_price(w, f[0], "FOOD", 60 * S)
+	check(Rules.hold_back(w, f[0], "FOOD", 80 * S), "below its making price it holds back")
+	check_eq(Company.hold_of(w, f[0], "FOOD"), 100 * S - (3700 * S * S + 60 * S - 1) / (60 * S), "it offers the 61.667 that cover its 3,700 and holds the rest")

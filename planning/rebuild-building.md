@@ -184,7 +184,8 @@ landing builders' chiefs are drawn once from the world's seeded random when they
 chief stays at the record's 50 until section 77 is built. A plan no builder can claim within its reach stays listed
 for every builder, and the first that can start it wins (15d: the soonest start, then the lowest price); while it is
 listed its bill's BW counts every month as open work, which raises the builders' price (one 5% step at most a month)
-and their crews, shared in equal parts among the open builders for hire. Listed twelve months from the month it was
+and their crews, shared in equal parts among the builders for hire that quoted it (those with crews; a builder with
+no crew could not have claimed it: Terra's review). Listed twelve months from the month it was
 made and still unclaimed, it is given up like any plan (4.9): the site released, the money back to the founder, the
 grant owed back, the founder back in their pool.
 

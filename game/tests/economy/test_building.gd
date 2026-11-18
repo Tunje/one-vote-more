@@ -447,3 +447,201 @@ func test_a_plan_that_can_pay_no_quote_refuses_its_bw_once_shared_among_the_buil
 	for b in bs:
 		sum += int(Building.seller_signal(w, b)["refused"])
 	check_eq(sum, bw, "next month the rules read it once")
+
+
+func test_a_working_site_is_sent_one_more_month_of_supplies_every_month() -> void:
+	# the user, verbatim: "they should need 3 months up front and add 1 month of additional supplies every month": a job
+	# worked slower than planned still gets its month added, not just what it used (it was a top-up to three months)
+	var w := _world()
+	var area := AreaStore.found_landing(w)
+	var site: Dictionary = Site.choose_country(w, "MINE", 6, 1)[0]
+	var pid := Building.make_plan(w, _founder(w, 1000000), "MINE", "LARGE", area, site, {"test": true})
+	var small := String(HomeBuilders.existing(w)["home_world"][4])   # a small builder: its crew is under the job's planned BW
+	var cid := Building._sign(w, pid, {"builder": small, "bw_price": Company.price(w, small, "BW"), "total": 0, "start": w.month + 2})
+	var c: Dictionary = w.peek("contract")[cid]
+	var need := Building.month_need(c, "MATERIAL")
+	check_eq(int(c["months"]), 6, "a large mine: 6 months at the fewest")
+	check(HomeBuilders.bw_milli(w, small) < Building.planned_bw(c), "the builder's crew does less than the planned BW")
+	_month(w)
+	check_eq(int(c["delivered"]["MATERIAL"]), 3 * need, "up front: three months")
+	_month(w)
+	check_eq(String(c["status"]), "WORKING", "work started")
+	check(int(c["used"]["MATERIAL"]) < need, "it used less than a month's supplies")
+	check_eq(int(c["delivered"]["MATERIAL"]), 4 * need, "and one more month was added all the same")
+	_month(w)
+	check_eq(int(c["delivered"]["MATERIAL"]), 5 * need, "and one more the next month")
+	for i in 4:
+		_month(w)
+	check_eq(int(c["delivered"]["MATERIAL"]), int(c["bill"]["MATERIAL"]), "until the bill is delivered, never more")
+	check_eq(int(c["delivered"]["MATERIAL"]), int(c["used"]["MATERIAL"]) + int(c["on_site"]["MATERIAL"]), "every unit delivered is on the site or built in")
+
+
+func test_an_open_plant_buys_its_upkeep_material_and_books_it_as_upkeep() -> void:
+	# plan 12.3, 14 and 58; the user (15e): the family pays "uppkeep to keep it nice"; Wilma: its material part from step 3
+	var w := _world()
+	var stores := _stores(w)
+	var area := AreaStore.found_landing(w)
+	var co := Company.create(w, "FARM", "FAMILY", {"kind": "FAMILY", "holders": {"x": 1000}}, "Upkeep Farm", {"area": area})
+	var pl := Company.add_plant(w, co, "FAMILY")
+	# a closed plant: a bakery (a farm is never shut: "FARMS DON'T SHUT", Company.close_plant)
+	var shut := Company.create(w, "BAKERY", "SMALL", {"kind": "PRIVATE", "holders": {"y": 1000}}, "Shut Bakery", {"area": area})
+	check(Company.close_plant(w, Company.add_plant(w, shut, "SMALL"), "TEST"), "the bakery's plant is closed")
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(co), 1000 * S, "TEST", w.month)
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(shut), 1000 * S, "TEST", w.month)
+	var q := int(TypeTable.upkeep_milli("FARM", "FAMILY")["material"])
+	check_eq(q, 100, "a family farm's upkeep: 40 MATERIAL / 400 = 0.1 a month")
+	var mat0 := int(Company.stock_of(w, stores, "MATERIAL")["qty"])
+	var bal0 := w.ledger.balance(CoreUtil.acct(co))
+	Building.upkeep_orders(w)
+	Market.clear(w)
+	Building.take_upkeep(w)
+	var paid := bal0 - w.ledger.balance(CoreUtil.acct(co))
+	check(paid > 0, "it paid for its upkeep material")
+	check_eq(int(Company.books_month(w, co).get("upkeep", 0)), paid, "booked as upkeep, what it paid")
+	check_eq(mat0 - int(Company.stock_of(w, stores, "MATERIAL")["qty"]), q, "the Stores sold exactly its 0.1 MATERIAL")
+	check_eq(int(Company.stock_of(w, co, "MATERIAL")["qty"]), 0, "used on the plant, never the company's stock")
+	check_eq(int(Company.books_month(w, shut).get("upkeep", 0)), 0, "a closed plant orders none (mothballing is step 6)")
+	check_eq(w.ledger.balance(CoreUtil.acct(shut)), 1000 * S, "and pays nothing")
+	check_eq(w.peek(Building.UPKEEP).size(), 0, "the month's upkeep orders are cleared")
+	print("  (a family farm's upkeep this month: %d milli-credits for %d milli-MATERIAL; plant %s)" % [paid, q, pl])
+
+
+func test_work_signed_and_waiting_never_raises_a_builders_price_but_asks_for_crews() -> void:
+	# the user, plan 12.3 15c: "they should not increase prices for claimed jobs"; rebuild-building 4.6: crews short of
+	# the work due -> hire
+	var w := _world()
+	for b in Building.builders(w):
+		var q := {"builder": b, "bw_price": Company.price(w, b, "BW"), "total": 0, "start": w.month + 2}
+		for i in 8:
+			Building._sign(w, _plan(w, 40000), q)
+	var p1 := _plan(w, 40000)
+	Building.sign_round(w)
+	var b1 := String(w.peek("contract")[String(w.peek("plan")[p1]["contract"])]["builder"])
+	Company.set_level(w, b1, "crew", 500)
+	var price0 := Company.price(w, b1, "BW")
+	_month(w)
+	check(int(Building.seller_signal(w, b1)["unmet_above"]) > 0, "the waiting plan is work due that it has no crews for")
+	Rules.company_month(w, b1)
+	check(Company.price(w, b1, "BW") <= price0, "its price is not raised for a claimed job")
+	check(Company.level_of(w, b1, "crew") > 500, "its crew level rises for the work due")
+
+
+func test_a_builders_layoff_weighing_reads_its_price_per_bw() -> void:
+	# Anni's find: the weighing read the price under "@BW", where a builder keeps it under "BW", so its training loss was 0
+	var w := _world()
+	var b := String(Building.builders(w)[0])
+	var wg := Rules.layoff_weighing(w, b, "crew", "G", 1)
+	check_eq(int(wg["price"]), Company.price(w, b, "BW") / S, "the price per BW")
+	check(int(wg["training"]) > 0, "so a builder's training loss counts")
+
+
+## Every builder for hire gets a book whose next start is `start_in` months away: one job each, its bill set so the work
+## ahead is exactly (start_in - 2) months of its crews (test-only: the bill is written onto the contract).
+func _books_start_in(w: WorldState, start_in: int) -> void:
+	for b in Building.builders(w):
+		var cid := Building._sign(w, _plan(w, 40000), {"builder": b, "bw_price": Company.price(w, b, "BW"), "total": 0, "start": w.month + 2})
+		var cap := HomeBuilders.bw_milli(w, String(b))
+		w.table("contract")[cid]["bill"]["bw"] = (start_in - 2) * cap
+		check_eq(Building.start_month(w, String(b)), w.month + start_in, "the book's next start")
+
+
+func _set_risk(w: WorldState, b: String, risk: int) -> void:
+	w.table("company")[b]["chief"]["risk"] = risk
+
+
+func test_a_builders_reach_is_one_to_two_years_by_its_managers_appetite_for_risk() -> void:
+	# the user, 2026-11-18: "they only claim a year or too forwards"; "The or two should be up to the manager"
+	var w := _world()
+	var b := String(Building.builders(w)[0])
+	for c in [[0, 12], [50, 18], [100, 24], [-30, 12], [250, 24]]:
+		_set_risk(w, b, int(c[0]))
+		check_eq(Building.reach_m(w, b), int(c[1]), "risk %d: %d months" % [int(c[0]), int(c[1])])
+	for r in 101:
+		_set_risk(w, b, r)
+		check(Building.reach_m(w, b) >= 12 and Building.reach_m(w, b) <= 24, "never under 12 or over 24 months")
+	var w1 := _world()
+	var chiefs := []
+	for x in HomeBuilders.existing(w1)["home_world"]:
+		chiefs.append(int(Company.chief(w1, String(x))["risk"]))
+	var w2 := _world()
+	var chiefs2 := []
+	for x in HomeBuilders.existing(w2)["home_world"]:
+		chiefs2.append(int(Company.chief(w2, String(x))["risk"]))
+	check_eq(chiefs2, chiefs, "the same seed draws the same chiefs")
+
+
+func test_two_builders_with_different_managers_claim_the_same_job_differently() -> void:
+	var w := _world()
+	_books_start_in(w, 40)   # nobody can start sooner than 40 months
+	var bs: Array = Building.builders(w)
+	var bold := String(bs[0])
+	var careful := String(bs[1])
+	for b in [bold, careful]:
+		var c: Dictionary = w.peek("contract")[String(Building.book(w, String(b))[0])]
+		w.table("contract")[String(c["id"])]["bill"]["bw"] = 18 * HomeBuilders.bw_milli(w, String(b))   # a start 20 months out
+	_set_risk(w, bold, 100)
+	_set_risk(w, careful, 0)
+	check_eq(Building.start_month(w, bold), w.month + 20, "the bold builder could start it in 20 months")
+	check_eq(Building.start_month(w, careful), w.month + 20, "and so could the careful one")
+	var p1 := _plan(w, 40000)
+	Building.sign_round(w)
+	check_eq(String(w.peek("plan")[p1]["status"]), "SIGNED", "claimed")
+	check_eq(String(w.peek("contract")[String(w.peek("plan")[p1]["contract"])]["builder"]), bold, "by the builder whose manager claims two years ahead, not the one who claims one")
+	_set_risk(w, bold, 0)
+	var p2 := _plan(w, 40000)
+	Building.sign_round(w)
+	check_eq(String(w.peek("plan")[p2]["status"]), "MADE", "with both managers at a year, a start 20 months out is claimed by nobody")
+
+
+func test_an_unclaimed_plan_is_patient_for_a_year_then_cancelled() -> void:
+	# the user, 2026-11-15: "patience they want fall for not fining jobs"; 2026-11-18: "A plan can be listed for a year
+	# before cancled"
+	check_eq(Building.LISTED_M, 12, "listed for a year")
+	var w := _world()
+	_books_start_in(w, 40)
+	var pid := _plan(w, 40000)
+	var p: Dictionary = w.peek("plan")[pid]
+	var founder := String(p["founder"])
+	var money := w.ledger.balance(pid)
+	var made := int(p["made"])
+	Building.sign_round(w)
+	for i in 11:
+		w.month += 1
+		_work(w, 20000)
+		Building.sign_round(w)
+	check_eq(w.month - made, 11, "eleven months on")
+	check_eq(String(p["status"]), "MADE", "still listed: patient, not given up for finding no builder")
+	check(not Site.of(w, pid).is_empty(), "its site still held")
+	check_eq(w.ledger.balance(pid), money, "its money still in its account")
+	w.month += 1
+	_work(w, 20000)
+	Building.sign_round(w)
+	check_eq(String(p["status"]), "GIVEN_UP", "listed a year and unclaimed: cancelled")
+	check_eq(String(Logbook.rows(w, {"kind": "PLAN", "who": pid, "what": "given up"})[0]["why"]["why"]), "listed a year and no builder claimed it", "its cause")
+	check(Site.of(w, pid).is_empty(), "the site is free again")
+	check_eq(w.ledger.balance(pid), 0, "the plan's account is empty")
+	check(w.ledger.balance(founder) >= money, "the money went back to the founder")
+
+
+func test_an_open_job_raises_the_builders_price_every_month_it_stays_open_by_five_percent_at_most() -> void:
+	# the user, 15c: "open jobs in the market hoping to be claimed I'd what counts"; Wilma: every month it is open
+	var w := _world()
+	_books_start_in(w, 40)
+	var bw := int(TypeTable.bill("FARM", "FAMILY")["bw"])
+	var p1 := _plan(w, 40000)
+	Building.sign_round(w)
+	var open: Array = Building.builders(w)
+	for m in 2:
+		_month(w)
+		var sum := 0
+		for b in open:
+			sum += int(Building.seller_signal(w, String(b))["unclaimed"])
+		check_eq(sum, bw, "month %d: the open job's BW, shared among the builders" % (m + 1))
+	check_eq(String(w.peek("plan")[p1]["status"]), "MADE", "still open")
+	var b0 := String(open[0])
+	var price0 := Company.price(w, b0, "BW")
+	Rules.company_month(w, b0)
+	var price1 := Company.price(w, b0, "BW")
+	check(price1 > price0, "the open job raises its price")
+	check(price1 <= price0 * 1050 / 1000, "by 5% at most")
+

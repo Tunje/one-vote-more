@@ -88,9 +88,11 @@ static func settlement(world: WorldState) -> void:
 	Households.post_orders(world, func(id): return Landing.rent_due(world, id))   # 1. what households need, each line with its budget; the store from what food and rent leave (15f)
 	Making.post_orders(world)       # 1. companies' inputs
 	Building.supply_orders(world)   # 1. building sites' supplies
+	Building.upkeep_orders(world)   # 1. plants' upkeep material (12.3, 14 and 58; its builder part is step 6)
 	Market.clear(world)
 	Households.after_market(world)
 	Building.take_deliveries(world)
+	Building.take_upkeep(world)
 	Building.bill_month(world)
 	Households.pay_rent(world, func(id): return Landing.rent_due(world, id))
 	Landing.purse_month(world)

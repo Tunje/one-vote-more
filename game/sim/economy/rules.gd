@@ -88,8 +88,15 @@ static func company_month(world: WorldState, cid: String) -> void:
 		# a builder runs the same price and output rules on its building work, from its own signal (Otto's
 		# Building.seller_signal, in Market.seller_signal's shape); it does not hold back (12.3, 22)
 		var bsig := building_signal(world, cid)
+		# "they should not increase prices for claimed jobs"; "open jobs in the market hoping to be claimed I'd what
+		# counts" (the user, plan 12.3 15c): work signed and waiting in its book never raises the price; the jobs that
+		# asked and found no builder do (rule 1). Both are work asked for, so both ask for crews (rule 3; rebuild-building
+		# 4.6: "crews short of the work due -> hire").
+		var psig := bsig.duplicate()
+		if not psig.is_empty():
+			psig["unmet_above"] = int(psig.get("unclaimed", 0))
 		if not Company.is_price_fixed(world, cid):
-			price_rule(world, cid, "BW", bsig, making)
+			price_rule(world, cid, "BW", psig, making)
 		output_rule(world, cid, bsig, false)
 	salary_rules(world, cid)
 	staff_to_posts(world, cid)
@@ -154,12 +161,23 @@ static func hold_back(world: WorldState, cid: String, item: String, making: int)
 	var stock := int(Company.stock_of(world, cid, item)["qty"])
 	var hold := 0
 	if price > 0 and price < making and stock > 0:
-		var b := Company.books_month(world, cid)
-		var expenses := Company.wage_bill(world, cid) + int(b.get("inputs", 0)) + int(b.get("upkeep", 0))
-		var cover := mini(stock, (expenses * S + price - 1) / price)
+		var cover := mini(stock, (month_expenses(world, cid) * S + price - 1) / price)
 		hold = stock - cover
-	Company.set_hold(world, cid, item, hold, {"price": price, "making_price": making, "stock": stock})
+	Company.set_hold(world, cid, item, hold, {"price": price, "making_price": making, "stock": stock, "expenses": month_expenses(world, cid)})
 	return hold > 0
+
+
+## All of a company's monthly expenses, which the hold-back sells to cover (the user: "It sells too cover all monthly
+## expences!!!"; plan 12.3, 14: "every monthly expense, repayments included"), milli-credits: its wage bill now; this
+## month's inputs and upkeep (made and bought before the rules run); and what the month before cost it in job adverts,
+## layoff pay and debts paid (those of this month come after the rules: hiring, layoffs and the debt collector run
+## later in the month). Loan repayments come with the bank (step 5).
+static func month_expenses(world: WorldState, cid: String) -> int:
+	var b := Company.books_month(world, cid)
+	var last := Company.books_closed(world, cid, world.month - 1)
+	var dp: Dictionary = world.peek("law_state").get("s", {}).get("justice", {}).get("debts_paid", {})
+	var debts := int(dp.get("by", {}).get(cid, 0)) if int(dp.get("m", -1)) == world.month - 1 else 0
+	return Company.wage_bill(world, cid) + int(b.get("inputs", 0)) + int(b.get("upkeep", 0)) + int(last.get("adverts", 0)) 		+ int(last.get("layoff_paid", 0)) + debts
 
 
 # ---------------------------------------------------------------- output: rules 3, 4
@@ -547,8 +565,8 @@ static func layoff_weighing(world: WorldState, cid: String, pk: String, tier: St
 	var posts := TypeTable.posts(String(c["type"]), size, int(c["line"]))
 	var n_posts := maxi(1, int(posts["G"]) + int(posts["S"]) + int(posts["Sp"]))
 	var per_worker := TypeTable.output_milli(String(c["type"]), size, int(c["line"])) / n_posts
-	var item := TypeTable.out_of(String(c["type"]), int(c["line"]))
-	var price := maxi(0, Company.price(world, cid, item))
+	# the price is kept under the company's selling key: the item, or "BW" for a builder (Anni's find: "@BW" read 0)
+	var price := maxi(0, Company.price(world, cid, Company._sells_key(String(c["type"]), int(c["line"]))))
 	var loss_pm := 0
 	for a in Company.TRAIN_MONTHS:
 		loss_pm += 1000 - Company.trained_pm(a)
