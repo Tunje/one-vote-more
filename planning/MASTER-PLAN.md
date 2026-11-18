@@ -1073,6 +1073,15 @@ Asked how large the cut is and whether a fourth month cuts again:
 So: the cut is 5%, and each further such month in a row lowers output 5% again.
 
 
+### The rebuild: a price far above its original climbs slower (the user, 2026-11-18, verbatim)
+
+About: the food price. A five-year simulation with the price-rise rule in showed food climbing from its original 39 to 194, nearly five times, at close to 5% a month while every farm was sold out; what a household needs ran ahead of the hiring offer, and the farms ended with no hired workers. The user had asked "What is the original bread price and how much extra did it climb to?" and, told this:
+
+> Easy fix at double it only climbs  1% and at four times it only ever climbs 0.5% and it still falls the same
+
+So: at double the original price it only climbs 1% a month; at four times it only ever climbs 0.5%; it still falls the same (5%). (Wilma's readings: "it" is the food price, against its original starting price of 39; under double it climbs 5% as before; from double up to four times 1%; from four times 0.5%.) Bob builds it and records it in rebuild-company.md section 3.
+
+
 ### The rebuild: builders with nothing to build is a lack of this step, not a fault (the user, 2026-11-18, verbatim)
 
 About: five-year simulations of step 3 in which no farm is added after month 18: about 70 farm plans made at months 30 and 35 are claimed by no builder and given up after a year on the list.
