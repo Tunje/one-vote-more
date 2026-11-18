@@ -1081,6 +1081,16 @@ About: the next step of the build order (step 4, where the other goods and compa
 
 So: step 4 gets a full stage plan: who does what, who reviews, when, and which stages within it go in in what order. Ella drafts it in planning/rebuild-step4-brief.md; every session reads the whole of it before it goes to the user.
 
+Told that with no bank until step 5 nobody could pay to found a mine or a works, so step 4 would show no private chain of goods beyond food and bread:
+
+> Put in placeholder loans?
+
+And, correcting Wilma's longer answer about what such a loan would involve:
+
+> You wrong it's just for the starting and never hiring
+
+So: step 4 has placeholder loans, just for starting a company, never for hiring.
+
 
 ### The rebuild: a builder with no employees should have shut (the user, 2026-11-18, verbatim)
 
