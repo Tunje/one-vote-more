@@ -349,6 +349,8 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 		world.table(Company.TABLE)[cid]["no_hiring_m"] = world.month   # no hiring this month: next month's offer holds
 		_publish_layoffs(world, cid, staff0)
 		return
+	var ad := _advertised(world, cid)
+	var seen := {}
 	for pk in keys:
 		var want := Company.hire_wanted(world, cid, String(pk))
 		for tier in ["Sp", "S", "G"]:
@@ -360,6 +362,7 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 			var slack: Dictionary = _slack(world, cid)
 			if w > have:
 				slack.erase(key)
+				_advertise(world, cid, key, tier, String(c["area"]), w - have)
 				_hire(world, cid, String(pk), tier, String(c["area"]), w - have)
 			elif w < have:
 				if not slack.has(key):
@@ -374,7 +377,19 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 						wg.merged({"plant": pk, "tier": tier, "slack": have - w}))
 			else:
 				slack.erase(key)
-			_note_open_left(world, cid, key, maxi(0, w - Company.staff_count(world, cid, tier, String(pk)) / S))
+			var open_now := maxi(0, w - Company.staff_count(world, cid, tier, String(pk)) / S)
+			_note_open_left(world, cid, key, open_now)
+			# the posts paid for stay paid while they stay open; a post filled or no longer wanted is gone, so if it opens
+			# again it is paid again (9.2, the user, 2026-11-18)
+			var still := mini(int(ad.get(key, 0)), open_now)
+			if still > 0:
+				ad[key] = still
+				seen[key] = true
+			else:
+				ad.erase(key)
+	for key in ad.keys():
+		if not seen.has(key):
+			ad.erase(key)   # a plant gone from the company: its open posts with it
 	_publish_layoffs(world, cid, staff0)
 
 
@@ -398,25 +413,54 @@ static func _slack(world: WorldState, cid: String) -> Dictionary:
 	return c["slack"]
 
 
-## Hires up to n for a post tier, as many as the company can pay the job adverts for (9.2: hiring costs an advert in
-## the papers, a tenth of a month's pay of the post, per person hired, Ella's Media.job_advert_cost; "a company that
-## cannot pay the advert cannot hire"): each advert is one person's, so it hires those it can advertise for (Otto's
-## review: all or none would trap a company that could restart with a few). It pays for those actually hired.
-static func _hire(world: WorldState, cid: String, pk: String, tier: String, area: String, n: int) -> int:
+## The open posts at one plant key and tier ("plant|tier") whose job advert a company has paid and that are not filled
+## yet: {key: posts}. A post is advertised once, when it opens (9.2, the user, 2026-11-18, verbatim: "On posts when you
+## many an open post you pay the first time not every consecutive month after").
+static func _advertised(world: WorldState, cid: String) -> Dictionary:
+	var c: Dictionary = world.table(Company.TABLE)[cid]
+	if not c.has("advertised"):
+		c["advertised"] = {}
+	return c["advertised"]
+
+
+## Pays the job adverts for the posts open at `key` that are not paid for yet (9.2: hiring costs an advert in the
+## papers, a tenth of a month's pay of the post, Ella's Media.job_advert_cost). Paid once, in the month the post opens,
+## whether or not anyone is hired that month (Wilma's reading of the user's words). A company that cannot pay the
+## advert cannot hire into that post: it pays for as many as its money reaches (each advert is one post's; Otto's
+## earlier review: all or none would trap a company that could restart with a few), and a post it could not pay for is
+## advertised in the first month it can. Returns the posts paid for now.
+static func _advertise(world: WorldState, cid: String, key: String, tier: String, area: String, open: int) -> int:
+	var ad := _advertised(world, cid)
+	var paid_for := mini(int(ad.get(key, 0)), open)
+	var new := open - paid_for
+	if new <= 0:
+		return 0
 	var media: GDScript = load(MEDIA_PATH)
 	var pay := Company.hiring_salary(world, cid, tier, area)
 	var acct := CoreUtil.acct(cid)
 	var one := int(media.call("job_advert_cost", world, area, pay, 1))
-	var can := n if one <= 0 else mini(n, maxi(0, world.ledger.balance(acct)) / one)
-	if can < n:
-		Logbook.note(world, "HIRE", cid, "fewer hired: it cannot pay all the job adverts", {"plant": pk, "tier": tier, "wanted": n,
-			"can": can, "advert_each": one / S, "balance": world.ledger.balance(acct) / S})
+	var can := new if one <= 0 else mini(new, maxi(0, world.ledger.balance(acct)) / one)
+	if can < new:
+		Logbook.note(world, "HIRE", cid, "fewer posts advertised: it cannot pay all the job adverts", {"post": key,
+			"opened": new, "can": can, "advert_each": one / S, "balance": world.ledger.balance(acct) / S})
+	if can > 0:
+		var paid := int(media.call("job_advert", world, cid, acct, area, pay, can))
+		Company.book(world, cid, "adverts", paid)
+	ad[key] = paid_for + can
+	return can
+
+
+## Hires up to n for a post tier, into the open posts whose advert is paid (_advertise); nothing is paid at the hire, so
+## a post that stays open month after month costs no more and is filled with no advert money in the account.
+static func _hire(world: WorldState, cid: String, pk: String, tier: String, area: String, n: int) -> int:
+	var key := "%s|%s" % [pk, tier]
+	var ad := _advertised(world, cid)
+	var can := mini(n, int(ad.get(key, 0)))
 	if can <= 0:
 		return 0
-	var k := Households.hire(world, cid, pk, tier, area, can, {"rule": "posts", "advert_each": one / S})
+	var k := Households.hire(world, cid, pk, tier, area, can, {"rule": "posts", "advertised": int(ad[key])})
 	if k > 0:
-		var paid := int(media.call("job_advert", world, cid, acct, area, pay, k))
-		Company.book(world, cid, "adverts", paid)
+		ad[key] = int(ad[key]) - k   # filled: that post's advert is used
 	return k
 
 

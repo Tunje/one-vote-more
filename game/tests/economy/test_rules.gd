@@ -475,10 +475,14 @@ func test_hiring_pays_its_job_adverts_and_waits_if_it_cannot() -> void:
 	var poor := Company.create(w, "BUILDER", "SMALL", HW, "Poor", {"area": "landing"})
 	Rules.staff_to_posts(w, poor)
 	check_eq(Company.staff_count(w, poor, "G"), 0, "it cannot pay a single advert: nobody hired this month")
-	var one := int(Media.call("job_advert_cost", w, "landing", Company.hiring_salary(w, poor, "G", "landing"), 1))
-	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(poor), 3 * one, "TEST", 0)
+	# money for the specialist and skilled posts' adverts (opened first) and three general ones (9.2, the user,
+	# 2026-11-18: an advert is paid when the post opens)
+	var ad1 := func(t: String) -> int: return int(Media.call("job_advert_cost", w, "landing", Company.hiring_salary(w, poor, t, "landing"), 1))
+	var posts := TypeTable.posts("BUILDER", "SMALL")
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(poor), int(posts["Sp"]) * ad1.call("Sp") + int(posts["S"]) * ad1.call("S")
+		+ 3 * ad1.call("G"), "TEST", 0)
 	Rules.staff_to_posts(w, poor)
-	check_eq(Company.staff_count(w, poor) / S, 3, "money for three adverts: it hires three, not none")
+	check_eq(Company.staff_count(w, poor, "G") / S, 3, "money for three general adverts: it hires three, not none")
 	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
 	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(b), 100000 * S, "TEST", 0)
 	var before := w.ledger.balance(CoreUtil.acct(b))
@@ -685,3 +689,51 @@ func test_an_output_step_never_rounds_to_nothing_up_or_past_five_percent_down() 
 	Company.set_level(w, b, "crew", 100)
 	Rules.output_rule(w, b, {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0}, false)
 	check_eq(Company.level_of(w, b, "crew"), 95, "100: 5% off, 95")
+
+
+func test_a_job_advert_is_paid_once_when_the_post_opens_not_every_month_it_stays_open() -> void:
+	# 9.2, the user, 2026-11-18, verbatim: "On posts when you many an open post you pay the first time not every
+	# consecutive month after"; Wilma's reading: paid in the month the post opens, whether or not anyone is hired then
+	var w := _w()
+	_homes(w)
+	var Media: GDScript = load("res://sim/media/media_ops.gd")
+	var a: String = Media.call("found_outlet", w, {"kind": "COMPANY", "id": "org:1"}, {"quality": 100})["out_id"]
+	Media.call("state", w)["circ"] = {a: {"landing": 300}}
+	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	var acct := CoreUtil.acct(b)
+	var posts := TypeTable.posts("BUILDER", "SMALL")
+	var one := {}
+	var cost := 0
+	for t in ["G", "S", "Sp"]:
+		one[t] = int(Media.call("job_advert_cost", w, "landing", Company.hiring_salary(w, b, t, "landing"), 1))
+		cost += int(one[t]) * int(posts[t])
+	check(int(one["G"]) > 0, "a paper in the area: adverts cost something")
+	w.ledger.transfer(Ledger.EXTERNAL, acct, cost, "TEST", 0)
+	var papers0 := w.ledger.balance(String(Media.call("outlet", w, a)["account"]))
+	Rules.staff_to_posts(w, b)   # nobody out of work: nobody hired
+	check_eq(Company.staff_count(w, b), 0, "nobody to hire this month")
+	check_eq(int(Company.books_month(w, b).get("adverts", 0)), cost, "every post opened: its advert paid this month, though nobody was hired")
+	check_eq(w.ledger.balance(String(Media.call("outlet", w, a)["account"])) - papers0, cost, "paid to the paper")
+	check_eq(w.ledger.balance(acct), 0, "nothing left for adverts")
+	w.month = 1
+	Company.close_month(w, b)
+	Households.seed_test(w, "landing", "I2", "G", 4)
+	Rules.staff_to_posts(w, b)
+	check_eq(Company.staff_count(w, b, "G") / S, 4, "the same posts still open next month: it hires with no advert money")
+	check_eq(int(Company.books_month(w, b).get("adverts", 0)), 0, "and pays nothing more for them")
+	check_eq(Logbook.rows(w, {"kind": "HIRE", "what": "fewer posts advertised: it cannot pay all the job adverts"}).size(), 0,
+		"nothing is asked of its money for a post already paid for")
+	w.month = 2
+	Company.close_month(w, b)
+	Rules.staff_to_posts(w, b)
+	check_eq(int(Company.books_month(w, b).get("adverts", 0)), 0, "the month after: nothing more")
+	Households.layoff(w, b, "crew", "G", 1, {"reason": "TEST"})
+	w.month = 3
+	Company.close_month(w, b)
+	w.ledger.transfer(Ledger.EXTERNAL, acct, 100000 * S, "TEST", 3)
+	Rules.staff_to_posts(w, b)
+	check_eq(int(Company.books_month(w, b).get("adverts", 0)), int(one["G"]), "a filled post open again: paid again, once")
+	w.month = 4
+	Company.close_month(w, b)
+	Rules.staff_to_posts(w, b)
+	check_eq(int(Company.books_month(w, b).get("adverts", 0)), 0, "and not the month after")
