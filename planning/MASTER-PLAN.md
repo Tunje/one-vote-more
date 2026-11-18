@@ -1096,6 +1096,12 @@ Asked what brings a shut builder back:
 
 So: nothing brings a shut builder back; it is shut, gone, dead. New builders come from the opening of new companies. The communal builder owned by the government goes down to one or two employees but is never empty of employees.
 
+Told that as built a builder that never had anyone on its crew is not "left with nobody" and does not end:
+
+> Six months crewless even when never had one kills the company
+
+So: six months crewless kills the company, also one that never had a crew. (Wilma's reading: six months in a row with nobody, for one that lost its crew and one that never had one alike; the count starts again when anyone is on the crew.)
+
 
 ### The rebuild: a price far above its original climbs slower (the user, 2026-11-18, verbatim)
 
