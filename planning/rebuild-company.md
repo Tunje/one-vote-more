@@ -437,6 +437,12 @@ Terra's town grid (section 9.8).
   company owes, the user, verbatim: "Record it make them pay after our if they refused take it to court"
   So the unpaid part of a wage is recorded as owed; the company pays it afterwards; if it refuses, it goes to court
   (the court is step 5).
+- **The starting salary is twice the rent, for now** (the user, 2026-11-18). About: with the new hiring-offer rule
+  in, the five-year game showed the starting salary following the food price (299 at the landing, 912 at month 16,
+  1,921 at month 36), so people kept moving to dearer openings and their higher pay bid food up again ("it's a form
+  of self infation", the user). The user, verbatim: "Change the sallery from fod and rent to just rent at 2× we will have to find a better formula for it later"
+  So the starting salary is 2 x the rent (the average housing cost in the area); food is out of it. It replaces
+  "1.5 x (average housing cost in the area + food)" until a better formula is found, which is the user's to give.
 - **Hiring** is at that line; rule 9 for a salary turns on it ("that's fine for hiring").
 - **A company with plants in two places:** "The district the plant hiring is in." In the rebuild that is the AREA the
   plant stands in (12.1, 1). Districts are drawn for elections and can be redrawn; a salary's reference place does not

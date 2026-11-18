@@ -952,6 +952,15 @@ About unpaid wages (when a company is short of money the unpaid rest of a wage w
 Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn.
 
 
+### The rebuild: the starting salary is twice the rent, for now (the user, 2026-11-18, verbatim)
+
+About: the starting salary, 1.5 x (housing + food), followed the food price up (299 at the landing, 1,921 at month 36) and drove job moves and prices ("it's a form of self infation").
+
+> Change the sallery from fod and rent to just rent at 2× we will have to find a better formula for it later
+
+Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Bob builds it.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
