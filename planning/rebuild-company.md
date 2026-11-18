@@ -834,15 +834,27 @@ is wrong; nothing here is asked again.
         and the first winter went hungry (840 and 604 of about 1,000); counting them at the eating need planned 29
         (all granted) and the hunger fell to 131 and 499, the rest being how fast farms are built.
     - **Rule 8, as the user said it** ("the same signal says the work is covered"): the work in quantity a month is
-      covered when the full output a month of every plant a founder sees (standing, booked, granted, each at its
-      size's full output) reaches it. Covered: no plan of any size. Not covered: the share test below picks the size.
-      In quantity, not money, so a dear month does not make the same food look like more work. It was not built
-      before 2026-11-18; the share test alone stood in for it.
+      covered when what the plants a founder sees deliver a month reaches it. Covered: no plan of any size. Not
+      covered: the share test below picks the size. In quantity, not money, so a dear month does not make the same
+      food look like more work. It was not built before 2026-11-18; the share test alone stood in for it.
+      - **(Bob's reading, with Wilma's yes, 2026-11-18) What a plant seen delivers:** a standing plant counts what it
+        made less what its family took (the family's food is not in the orders, 15e), averaged over its closed
+        months in the last twelve. A plant with no closed month yet, and plans booked or granted, count at their
+        size's full output, as they make nothing yet. Why: Wilma's five-year trace counted 41 farms at full output,
+        1,541 a month, while they really made about 750 (half-staffed, winter yields), so rule 8 said covered for 45
+        months while every farm sold out and the colony went hungry. Made, not sold (Ella's review): food on offer
+        that buyers could not or would not pay for still covers the work, and made counts carried stock once.
     - The shares: by PLANT, not by company. Every plant of the type that serves the area counts by its size (family
       1/6, small 1/3, average 2/3, large 1), whoever owns it. A company with three large plants counts 3. The
       newcomer's share is its own plant's size divided by the sizes of all those plants, its own included.
     - The test: a plan is made when that share of the work, per month, covers what a company of that size costs to run
       per month. A founder plans the largest size that passes and that their money reaches.
+      - **What a company costs to run (Bob, with Wilma's yes, 2026-11-18):** its posts at the area's starting salary,
+        what a new opening is offered (9.2, the user: "fall back to the original rule for settin on hire"; the start
+        is 2 x the rent), its inputs at today's offers and its upkeep. As built it charged the type table's 300 a post,
+        a salary nobody is offered: a family farm read 1,379 a month against about 902, so the share test shut
+        founding while the colony went hungry. The same figure is the opening money a founder brings
+        (rebuild-building.md 4.2: "three months of the new company's running costs"; Otto agrees).
     - A founder's management skill and appetite for risk (12.11, 77) bend how they read it, so founders misjudge.
     - Nothing limits how many may plan at once. If five do and the work carries two, three fail.
     - **What a settler starting a company sees of other people's plans** (the user, 2026-11-17, verbatim, asked
@@ -864,6 +876,10 @@ is wrong; nothing here is asked again.
       farm with no money still grows food.
     - **Food that came by ship is less wanted than food grown in the colony,** so households swap from the landed
       stock to the colony's farms sooner.
+    - **Farms don't shut** (the user, 2026-11-18, verbatim): "FARMS DON'T SHUT"
+      About: a five-year run in which 40 family farms were shut for "no staff" within months of a glut (their hired
+      hands laid off unpaid, the family still on the farm), and never opened again. The user had never ruled a farm
+      closing. So: a farm is never shut.
     - **The farm family eats from its own farm first** (the user, 2026-11-18, verbatim): "Okay that's utter bullshit, the farmers themselves I RULED EATS THEMSELVES FIRST, THEY ARE THREE THEY CAN PRODUVE 30 THIS SHOULD IF YOU FOLLOWED THE DAMNED SPECIFICATIONS BE IMPOSSIBLE THEY WOULD TAKE SIX OUT OF THIRTY SELL 24 AND THAT SHOULD BE ENOUGH TO HIRE ONE PERSON"
       About: in the five-year run about 25 farm families with no money went hungry every month from month 33, because
       as built a farm family buys its food at the market with the founder's money and takes nothing from its own farm.

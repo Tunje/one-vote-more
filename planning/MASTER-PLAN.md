@@ -1039,6 +1039,15 @@ Asked how large the cut is and whether a fourth month cuts again:
 So: the cut is 5%, and each further such month in a row lowers output 5% again.
 
 
+### The rebuild: farms don't shut (the user, 2026-11-18, verbatim)
+
+About: a five-year run in which 40 family farms were shut for "no staff" within months of a glut, with the family still on the farm, and never opened again.
+
+> FARMS DON'T SHUT
+
+So: a farm is never shut. Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e the same turn. Terra builds it.
+
+
 ### The rebuild: the rent is doubled (the user, 2026-11-18, verbatim)
 
 About: a household's food (152 a month) cost more than its rent (48 shelter, 97 house), so a starting salary of 3.5 x the rent was under what a household needs.
