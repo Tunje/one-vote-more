@@ -234,10 +234,11 @@ static func plant_area(world: WorldState, cid: String, plant_key: String) -> Str
 	return String(ColonyLayout.plants(world).get(plant_key, {}).get("area", ""))
 
 
-## Company `cid` lays off up to n people from posts of `post_tier` at `plant_key`: the largest holders first, then by
-## key, so the outcome repeats. They keep their occupation and skill (P7). Returns persons laid off.
+## Company `cid` lays off up to n people from posts of `post_tier` at `plant_key`: the largest pay groups first (a
+## staff entry keeps one group per pay, Company.payroll), then by key and the higher pay, so the outcome repeats. They
+## keep their occupation and skill (P7). Returns persons laid off.
 ## Pay owed after a layoff (rebuild-company.md 9.2, the user's ruling on keeping workers): each person laid off is owed
-## WorkLaw.layoff_pay_months (Anni's law lever LAW_LAYOFF_PAY_MONTHS, 3) months of their own pay (their entry's pay). It is paid into the pool they
+## WorkLaw.layoff_pay_months (Anni's law lever LAW_LAYOFF_PAY_MONTHS, 3) months of their own pay (their group's pay). It is paid into the pool they
 ## go back to, booked as income "layoff_pay", from the company's account as far as it reaches; the rest is owed to that
 ## pool through the law (Justice.owe, kind LAYOFF_PAY). Every layoff owes it, the 19a layoffs too; quitting, a move for
 ## better pay, death, retiring and leaving the colony owe nothing (they do not come here). The people are unemployed
@@ -246,27 +247,27 @@ static func layoff(world: WorldState, cid: String, plant_key: String, post_tier:
 	if n <= 0:
 		return 0
 	var occ := String(Company.occupation(world, cid, post_tier))
-	var entries: Dictionary = Company.staff_entries(world, cid).get(plant_key, {}).get(post_tier, {})
-	var keys: Array = CoreUtil.sorted_keys(entries)
-	var nn := func(k) -> int: return int(entries[k]["n"])
-	keys.sort_custom(func(a, b): return nn.call(a) > nn.call(b) or (nn.call(a) == nn.call(b) and String(a) < String(b)))
+	var groups: Array = Company.payroll(world, cid).filter(func(e): return String(e["plant_key"]) == plant_key and String(e["post_tier"]) == post_tier)
+	groups.sort_custom(func(a, b): return int(a["n"]) > int(b["n"]) or (int(a["n"]) == int(b["n"]) and (String(a["labour_key"]) < String(b["labour_key"])
+		or (String(a["labour_key"]) == String(b["labour_key"]) and int(a["pay"]) > int(b["pay"])))))
 	var done := 0
 	var given := {}
 	var owed_by_pool := {}
 	var months := int(load("res://sim/law/work_law.gd").layoff_pay_months(world))   # Anni's one reader, the law on the day
-	for lk in keys:
+	for e in groups:
 		if done >= n:
 			break
-		var p := labour_parts(String(lk))
-		var k := mini(n - done, int(entries[lk]["n"]) / S)
+		var lk := String(e["labour_key"])
+		var p := labour_parts(lk)
+		var k := mini(n - done, int(e["n"]) / S)
 		k = PopStore.move_group(world, {"hb": p[0], "inc": p[1], "status": "EMPLOYED", "occ": occ}, k,
 			{"status": "UNEMPLOYED"}, String(why.get("reason", "LAYOFF")), "skill:" + p[2])
 		if k <= 0:
 			continue
-		var pay_k := int(entries[lk]["pay"])   # read before the entry may go
-		var ok: bool = Company.staff_change(world, cid, plant_key, post_tier, String(lk), -k * S)
+		var pay_k := int(e["pay"])   # their own group's pay
+		var ok: bool = Company.staff_change(world, cid, plant_key, post_tier, lk, -k * S, pay_k)
 		assert(ok, "staff_change refused a layoff")
-		given[lk] = k
+		given[lk] = int(given.get(lk, 0)) + k
 		var pid := pool_id(p[0], p[1])
 		owed_by_pool[pid] = int(owed_by_pool.get(pid, 0)) + k * pay_k * months
 		done += k
@@ -829,18 +830,20 @@ static func applicants(world: WorldState, area: String, post_tier: String, pay: 
 
 
 ## n employed people of pool (area, band) leave their posts for `reason`: DEATH (they die), RETIRE (they retire), DEPART
-## (they leave the colony), QUIT (they become unemployed). Posts are given up largest entries first across companies,
-## so jobs = people holds. Returns persons. One LEAVE row per company.
+## (they leave the colony), QUIT (they become unemployed). Posts are given up largest pay groups first across
+## companies (Company.payroll), each from its own group, so jobs = people holds. Returns persons. One LEAVE row per
+## company.
 static func end_jobs(world: WorldState, area: String, band: String, n: int, reason: String, skill_only: String = "") -> int:
 	if n <= 0:
 		return 0
-	var cand: Array = []   # [cid, plant_key, tier, labour_key, persons]
+	var cand: Array = []   # [cid, plant_key, tier, labour_key, persons, pay]
 	for cid in Company.ids(world):
 		for e in Company.payroll(world, cid):
 			var lp := labour_parts(String(e["labour_key"]))
 			if lp[0] == area and lp[1] == band and int(e["n"]) >= S and (skill_only == "" or lp[2] == skill_only):
-				cand.append([cid, String(e["plant_key"]), String(e["post_tier"]), String(e["labour_key"]), int(e["n"]) / S])
-	cand.sort_custom(func(a, b): return int(a[4]) > int(b[4]) or (int(a[4]) == int(b[4]) and (String(a[0]) + String(a[1]) + String(a[3])) < (String(b[0]) + String(b[1]) + String(b[3]))))
+				cand.append([cid, String(e["plant_key"]), String(e["post_tier"]), String(e["labour_key"]), int(e["n"]) / S, int(e["pay"])])
+	cand.sort_custom(func(a, b): return int(a[4]) > int(b[4]) or (int(a[4]) == int(b[4]) and ((String(a[0]) + String(a[1]) + String(a[3])) < (String(b[0]) + String(b[1]) + String(b[3]))
+		or ((String(a[0]) + String(a[1]) + String(a[3])) == (String(b[0]) + String(b[1]) + String(b[3])) and int(a[5]) > int(b[5])))))
 	var done := 0
 	var by_co := {}
 	for c in cand:
@@ -852,7 +855,7 @@ static func end_jobs(world: WorldState, area: String, band: String, n: int, reas
 		var f := {"hb": area, "inc": band, "status": "EMPLOYED", "occ": occ}
 		var have := PopStore.count(world, f, "skill:" + skill)
 		k = mini(k, have)
-		if k <= 0 or not Company.staff_change(world, c[0], c[1], c[2], c[3], -k * S):
+		if k <= 0 or not Company.staff_change(world, c[0], c[1], c[2], c[3], -k * S, int(c[5])):
 			continue
 		match reason:
 			"DEATH":
@@ -880,8 +883,9 @@ static func _people_out(world: WorldState, f: Dictionary, k: int, skill: String,
 			PopStore.depart(world, key, int(parts[key]), "EMIGRATION", {"skill": skill})
 
 
-## A group's jobs follow it to another income band (Demography.band_moves): every staff entry area|from|skill becomes
-## area|to|skill at its own pay (blended by head count where one exists already).
+## A group's jobs follow it to another income band (Demography.band_moves): every pay group of a staff entry
+## area|from|skill moves to area|to|skill at its own pay and month; where that entry already has a group at the same
+## pay they become one, else it is a group of its own, so nobody's pay moves.
 static func move_jobs_band(world: WorldState, area: String, from_band: String, to_band: String, skill: String) -> void:
 	var lk_from := labour_key(area, from_band, skill)
 	var lk_to := labour_key(area, to_band, skill)
@@ -890,12 +894,13 @@ static func move_jobs_band(world: WorldState, area: String, from_band: String, t
 			if String(e["labour_key"]) != lk_from:
 				continue
 			var n := int(e["n"])
-			Company.staff_change(world, cid, String(e["plant_key"]), String(e["post_tier"]), lk_from, -n)
+			Company.staff_change(world, cid, String(e["plant_key"]), String(e["post_tier"]), lk_from, -n, int(e["pay"]))
 			Company.staff_change(world, cid, String(e["plant_key"]), String(e["post_tier"]), lk_to, n, int(e["pay"]), int(e["since"]))
 
 
-## One group of staff moves to another post at its pay (quitting for better pay, 12.5, 39): k persons of entry e
-## ({cid, plant_key, post_tier, labour_key}) to vacancy v ({cid, plant_key, tier, pay}). Occupation follows the new
+## One group of staff moves to another post at its pay (quitting for better pay, 12.5, 39): k persons of pay group e
+## ({cid, plant_key, post_tier, labour_key, pay}: they leave that group; without "pay", the entry's groups highest pay
+## first) to vacancy v ({cid, plant_key, tier, pay}). Occupation follows the new
 ## company; the years at the workplace start again there. `bar_pm` is the bar the new pay had to reach (for the row).
 ## Returns persons moved.
 static func move_job(world: WorldState, e: Dictionary, v: Dictionary, k: int, reason: String, bar_pm: int = 0) -> int:
@@ -908,7 +913,8 @@ static func move_job(world: WorldState, e: Dictionary, v: Dictionary, k: int, re
 		return 0
 	if not Company.staff_change(world, v["cid"], v["plant_key"], v["tier"], String(e["labour_key"]), k * S, int(v["pay"])):
 		return 0
-	Company.staff_change(world, e["cid"], e["plant_key"], e["post_tier"], String(e["labour_key"]), -k * S)
+	var left: bool = Company.staff_change(world, e["cid"], e["plant_key"], e["post_tier"], String(e["labour_key"]), -k * S, int(e.get("pay", -1)))
+	assert(left, "move_job: the old post refused the leavers")
 	if occ_new != occ_old:
 		PopStore.move_group(world, f, k, {"occ": occ_new}, reason, "skill:" + lp[2])
 	Logbook.note(world, "JOB", String(v["cid"]), reason, {"from": e["cid"], "old_pay": int(e.get("pay", 0)), "new_pay": int(v["pay"]),
@@ -976,7 +982,7 @@ static func labour_month(world: WorldState) -> int:
 					var lp := labour_parts(String(e["labour_key"]))
 					if lp[0] != area or int(e["pay"]) >= int(v["pay"]) or TIERS.find(lp[2]) < TIERS.find(String(v["tier"])):
 						continue
-					var ek := "%s|%s|%s" % [e["plant_key"], e["post_tier"], e["labour_key"]]
+					var ek := "%s|%s|%s|%d" % [e["plant_key"], e["post_tier"], e["labour_key"], int(e["pay"])]   # one per pay group
 					var bar := quit_bar_pm(world, cid, e)
 					if not clears_bar(int(e["pay"]), int(v["pay"]), bar):
 						if not stay.has(cid):
@@ -1010,9 +1016,9 @@ static func _negotiate(world: WorldState) -> void:
 			var ask := int(e["pay"]) + (avg - int(e["pay"])) / 2
 			var cost_year := (ask - int(e["pay"])) * int(e["n"]) / S * 12
 			var ok := world.ledger.balance(CoreUtil.acct(cid)) >= cost_year and Company.negotiate(world, cid, String(e["plant_key"]),
-				String(e["post_tier"]), String(e["labour_key"]), ask, {"asked": ask, "average": avg})
+				String(e["post_tier"]), String(e["labour_key"]), ask, {"asked": ask, "average": avg}, int(e["pay"]))
 			if not ok:
-				Logbook.note(world, "NEGOTIATE", cid, "refused", {"entry": e["labour_key"], "asked": ask, "average": avg, "year_cost": cost_year}, {})
+				Logbook.note(world, "NEGOTIATE", cid, "refused", {"entry": e["labour_key"], "pay": int(e["pay"]), "asked": ask, "average": avg, "year_cost": cost_year}, {})
 
 
 ## SOCIAL, January: every company's yearly raise, its own choice and at least the government's minimum (9.2; lever

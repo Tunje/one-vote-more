@@ -55,7 +55,7 @@ static func create(world: WorldState, type: String, size: String, owner: Diction
 		"owner": {"kind": String(owner["kind"]), "holders": (owner["holders"] as Dictionary).duplicate()},
 		"plants": [],              # plant ids; the plants are in table "plant"
 		"line": 0,                 # which output line it runs (first = 0, second = 1)
-		"staff": {},               # {plant id or "crew": {post tier: {"area|band|skill": {"n": persons × S, "pay": milli-credits a month each, "since": month}}}}
+		"staff": {},               # {plant id or "crew": {post tier: {"area|band|skill": {"n": persons × S, "groups": [{"n", "pay", "since", "new"}]}}}}
 		"salary": {},              # the HIRING salary: {tier: {area: milli-credits a month}}, moved only by the price rules
 		"stock": {},               # {item: {"qty": milli-units, "value": milli-credits in all, "waiting": milli-units}}
 		"books": {"month": {}, "year": []},   # the open month's lines, and the last 12 closed months (oldest first)
@@ -209,11 +209,14 @@ static func stock_of(world: WorldState, cid: String, item: String) -> Dictionary
 ## A worker's salary (plan 9.2, the user: "they have a sallery set on hire then it climbs based on yearly upps set by
 ## goverment"): it is set when they are hired and is theirs from then on. The company never moves it; it rises once a
 ## year by the yearly raise (yearly_raise). The three price rules move only the HIRING salary, record["salary"], what
-## the company offers a new hire this month. People are counts in pools, so the pay is kept per staff entry (plant,
-## post tier, labour key): {"n": persons × S, "pay": milli-credits a month per person, "since": the month they came to
-## this workplace}. When people join an entry their pay at hire and their month are blended in by head count; people
-## leaving change neither. A raise or a negotiated rise changes pay only. "since" is how long a group has been at the
-## workplace, for quitting (plan 9.2: "plus 1% per year in the same workplace up to 15%"; Maja's side reads it).
+## the company offers a new hire this month. People are counts in pools, so a staff entry (plant, post tier, labour
+## key) keeps its people in PAY GROUPS, one per pay: {"n": persons × S in all, "groups": [{"n": persons × S, "pay":
+## milli-credits a month per person, "since": the month they came to this workplace, "new": hire groups in training},
+## ...] highest pay first}. People who join at a pay the entry already has join that group; at any other pay they are a
+## group of their own, so nobody's pay moves when someone joins (Wilma's bug against 9.2: one blended pay cut the people
+## already there when joiners came in lower). People leaving change no pay. A raise or a negotiated rise changes pay
+## only. "since" is blended by head count inside a group; it is how long a group has been at the workplace, for
+## quitting (plan 9.2: "plus 1% per year in the same workplace up to 15%"; Maja's side reads it).
 ## A consequence of the ruling, not a fault to fix: after a few raises the people already employed earn more than the
 ## hiring salary, so a new hire can cost less than the person beside them. The rules move only the hiring line.
 
@@ -224,11 +227,13 @@ static func stock_of(world: WorldState, cid: String, item: String) -> Dictionary
 ## "area|band|skill" (the area the workers LIVE in, which need not be where the plant hires: reach, 12.5 rule 40).
 ## pay: for a hire (delta > 0), the salary the joiners are hired at, milli-credits a month each, and required: the
 ## hirer reads it from hiring_salary(world, cid, tier, the AREA THE PLANT STANDS IN) (plan 9.2: "The district the plant
-## hiring is in"), or passes a person's own pay when moving them between entries. Ignored when people leave.
+## hiring is in"), or passes a person's own pay when moving them between entries. When people leave (delta < 0): the
+## pay group they leave from; -1 takes them from the groups in order, highest pay first.
 ## since: for a hire, the month the joiners came to this workplace; -1 (the default) is this month, a new hire. A move
 ## between entries of the same workplace passes the entry's own since. Ignored when people leave.
 ## Writes no Logbook row: the household side's hire or layoff row is the one for the deed.
-## Refuses (false, nothing changed) if the company or plant is unknown, the tier is not a tier, or it would go below 0.
+## Refuses (false, nothing changed) if the company or plant is unknown, the tier is not a tier, or it would go below 0
+## (in the entry, or in the named pay group).
 static func staff_change(world: WorldState, cid: String, plant_key: String, post_tier: String, labour_key: String, delta: int, pay: int = -1, since: int = -1) -> bool:
 	var c: Dictionary = world.table(TABLE).get(cid, {})
 	if c.is_empty() or not TypeTable.TIER_PM.has(post_tier):
@@ -245,6 +250,11 @@ static func staff_change(world: WorldState, cid: String, plant_key: String, post
 		return false
 	if delta == 0:
 		return true
+	var groups: Array = (e.get("groups", []) as Array).duplicate(true)
+	if delta > 0:
+		_join(world, groups, delta, pay, since)
+	elif not _leave(world, groups, -delta, pay):
+		return false
 	if not st.has(plant_key):
 		st[plant_key] = {}
 	if not st[plant_key].has(post_tier):
@@ -256,23 +266,63 @@ static func staff_change(world: WorldState, cid: String, plant_key: String, post
 		if (st[plant_key] as Dictionary).is_empty():
 			st.erase(plant_key)
 		return true
-	var old_pay := int(e.get("pay", 0))
-	var new_pay := old_pay
-	var new_since := int(e.get("since", world.month))
-	var cohorts := _cohorts_now(world, e.get("new", {}))
-	if delta > 0:
-		new_pay = (now * old_pay + delta * pay) / (now + delta)
-		var joined := world.month if since < 0 else since
-		new_since = (now * new_since + delta * joined) / (now + delta)
-		if since < 0:   # hired from outside the workplace: in training (9.2)
-			cohorts[str(world.month)] = int(cohorts.get(str(world.month), 0)) + delta
-	elif now > 0:
-		for m in cohorts.keys():   # leavers take the trainees in proportion
-			cohorts[m] = int(cohorts[m]) - int(cohorts[m]) * (-delta) / now
+	st[plant_key][post_tier][labour_key] = {"n": now + delta, "groups": groups}
+	return true
+
+
+## k persons × S join a staff entry's pay groups at `pay`: into the group of that pay, else as a group of their own
+## (highest pay first). Their month is blended into the group's by head count; hired from outside the workplace
+## (since < 0) they open a hire group in training (9.2).
+static func _join(world: WorldState, groups: Array, k: int, pay: int, since: int) -> void:
+	var joined := world.month if since < 0 else since
+	var g: Dictionary = {}
+	for x in groups:
+		if int(x["pay"]) == pay:
+			g = x
+	if g.is_empty():
+		g = {"n": 0, "pay": pay, "since": joined, "new": {}}
+		groups.append(g)
+		_sort_groups(groups)
+	var now := int(g["n"])
+	var cohorts := _cohorts_now(world, g["new"])
+	g["since"] = (now * int(g["since"]) + k * joined) / (now + k)
+	if since < 0:
+		cohorts[str(world.month)] = int(cohorts.get(str(world.month), 0)) + k
+	g["n"] = now + k
+	g["new"] = cohorts
+
+
+## k persons × S leave a staff entry's pay groups: from the group of `pay`, or (pay < 0) from the groups in order,
+## highest pay first. Leavers take the group's trainees in proportion. Emptied groups go. False if the group named
+## does not hold k (the caller works on a copy, so nothing is changed).
+static func _leave(world: WorldState, groups: Array, k: int, pay: int) -> bool:
+	var left := k
+	for g in groups:
+		if left <= 0:
+			break
+		if pay >= 0 and int(g["pay"]) != pay:
+			continue
+		var now := int(g["n"])
+		var take := mini(left, now)
+		var cohorts := _cohorts_now(world, g["new"])
+		for m in cohorts.keys():
+			cohorts[m] = int(cohorts[m]) - int(cohorts[m]) * take / now
 			if int(cohorts[m]) <= 0:
 				cohorts.erase(m)
-	st[plant_key][post_tier][labour_key] = {"n": now + delta, "pay": new_pay, "since": new_since, "new": cohorts}
+		g["n"] = now - take
+		g["new"] = cohorts
+		left -= take
+	if left > 0:
+		return false
+	for i in range(groups.size() - 1, -1, -1):
+		if int(groups[i]["n"]) <= 0:
+			groups.remove_at(i)
 	return true
+
+
+## Pay groups in a fixed order: highest pay first.
+static func _sort_groups(groups: Array) -> void:
+	groups.sort_custom(func(a, b): return int(a["pay"]) > int(b["pay"]))
 
 
 ## A staff entry's hire groups still in training, {month hired: persons × S}, without those trained by now.
@@ -302,14 +352,14 @@ static func trained_count(world: WorldState, cid: String, post_tier: String = ""
 			if post_tier != "" and String(t) != post_tier:
 				continue
 			for lk in st[pk][t]:
-				var e: Dictionary = st[pk][t][lk]
-				var learning := 0
-				var cohorts := _cohorts_now(world, e.get("new", {}))
-				for m in cohorts:
-					var k := mini(int(cohorts[m]), int(e["n"]) - learning)
-					learning += k
-					n += k * trained_pm(world.month - int(m)) / 1000
-				n += int(e["n"]) - learning
+				for g in st[pk][t][lk]["groups"]:
+					var learning := 0
+					var cohorts := _cohorts_now(world, g.get("new", {}))
+					for m in cohorts:
+						var k := mini(int(cohorts[m]), int(g["n"]) - learning)
+						learning += k
+						n += k * trained_pm(world.month - int(m)) / 1000
+					n += int(g["n"]) - learning
 	return n
 
 
@@ -337,7 +387,7 @@ static func set_hiring_salary(world: WorldState, cid: String, post_tier: String,
 	return true
 
 
-## The yearly raise (plan 9.2): every staff entry's pay × (1 + raise), the raise being at least the government's minimum
+## The yearly raise (plan 9.2): every pay group's pay × (1 + raise), the raise being at least the government's minimum
 ## (a lever, 2% to start). Both in per mille. Writes a RAISE row with what the wage bill was and became, also when it
 ## has nobody on staff (0 to 0): the decision was made.
 static func yearly_raise(world: WorldState, cid: String, raise_pm: int, minimum_pm: int) -> bool:
@@ -349,24 +399,26 @@ static func yearly_raise(world: WorldState, cid: String, raise_pm: int, minimum_
 	for pk in c["staff"]:
 		for t in c["staff"][pk]:
 			for lk in c["staff"][pk][t]:
-				var e: Dictionary = c["staff"][pk][t][lk]
-				e["pay"] = int(e["pay"]) * (1000 + r) / 1000
+				for g in c["staff"][pk][t][lk]["groups"]:   # distinct pays stay distinct, so the order holds
+					g["pay"] = int(g["pay"]) * (1000 + r) / 1000
 	Logbook.note(world, "RAISE", cid, "yearly raise", {"raise_pm": raise_pm, "minimum_pm": minimum_pm, "given_pm": r},
 		{"wage_bill": [before, wage_bill(world, cid)]})
 	return true
 
 
-## Every staff entry with its pay, in a fixed order (plant key, tier, labour key): [{plant_key, post_tier, labour_key,
-## n (persons × S), pay (milli-credits a month per person)}]. What the household side's pay_wages pays from.
+## Every pay group of every staff entry, in a fixed order (plant key, tier, labour key, highest pay first):
+## [{plant_key, post_tier, labour_key, n (persons × S), pay (milli-credits a month per person), since}]. One entry may
+## give several rows, one per pay. What the household side's pay_wages pays from; a caller moving people out of a row
+## passes the row's pay to staff_change, so they leave their own group.
 static func payroll(world: WorldState, cid: String) -> Array:
 	var out: Array = []
 	var st: Dictionary = world.peek(TABLE).get(cid, {}).get("staff", {})
 	for pk in CoreUtil.sorted_keys(st):
 		for t in CoreUtil.sorted_keys(st[pk]):
 			for lk in CoreUtil.sorted_keys(st[pk][t]):
-				var e: Dictionary = st[pk][t][lk]
-				out.append({"plant_key": pk, "post_tier": t, "labour_key": lk, "n": int(e["n"]), "pay": int(e["pay"]),
-					"since": int(e["since"])})
+				for g in st[pk][t][lk]["groups"]:
+					out.append({"plant_key": pk, "post_tier": t, "labour_key": lk, "n": int(g["n"]), "pay": int(g["pay"]),
+						"since": int(g["since"])})
 	return out
 
 
@@ -395,7 +447,7 @@ static func staff_count(world: WorldState, cid: String, post_tier: String = "", 
 	return n
 
 
-## A copy of a company's whole staff dictionary (for the household side's check): each entry {"n", "pay"}.
+## A copy of a company's whole staff dictionary (for the household side's check): each entry {"n", "groups"}.
 static func staff_entries(world: WorldState, cid: String) -> Dictionary:
 	return (world.peek(TABLE).get(cid, {}).get("staff", {}) as Dictionary).duplicate(true)
 
@@ -601,18 +653,43 @@ static func avg_pay(world: WorldState, cid: String, post_tier: String) -> int:
 	return 0 if n == 0 else sum / n
 
 
-## A negotiated rise for one staff entry (plan 9.2: "the manager, negotiation can bring it closer to avrage"): the
-## entry's pay becomes new_pay. Refused if it would lower the pay or go above the company's average for that tier.
-## How far it goes is the rules' and the households' to decide. Writes a NEGOTIATE row.
-static func negotiate(world: WorldState, cid: String, plant_key: String, post_tier: String, labour_key: String, new_pay: int, why: Dictionary = {}) -> bool:
+## A negotiated rise for one pay group of a staff entry (plan 9.2: "the manager, negotiation can bring it closer to
+## avrage"): the group paid `from_pay` (-1: the entry's lowest-paid group) is paid new_pay from now on. Refused if it
+## would lower the pay or go above the company's average for that tier. If the entry already has a group at new_pay
+## the two become one (same pay; their months blend by head count). How far it goes is the rules' and the households'
+## to decide. Writes a NEGOTIATE row.
+static func negotiate(world: WorldState, cid: String, plant_key: String, post_tier: String, labour_key: String, new_pay: int, why: Dictionary = {}, from_pay: int = -1) -> bool:
 	var c: Dictionary = world.table(TABLE).get(cid, {})
 	if c.is_empty():
 		return false
 	var e: Dictionary = c["staff"].get(plant_key, {}).get(post_tier, {}).get(labour_key, {})
-	if e.is_empty() or new_pay < int(e["pay"]) or new_pay > avg_pay(world, cid, post_tier):
+	if e.is_empty():
 		return false
-	var old := int(e["pay"])
-	e["pay"] = new_pay
+	var groups: Array = e["groups"]
+	var g: Dictionary = groups[-1] if from_pay < 0 else {}
+	for x in groups:
+		if int(x["pay"]) == from_pay:
+			g = x
+	if g.is_empty() or new_pay < int(g["pay"]) or new_pay > avg_pay(world, cid, post_tier):
+		return false
+	var old := int(g["pay"])
+	if new_pay != old:
+		for x in groups:
+			if int(x["pay"]) == new_pay:   # one pay, one group
+				var n := int(x["n"]) + int(g["n"])
+				x["since"] = (int(x["n"]) * int(x["since"]) + int(g["n"]) * int(g["since"])) / n
+				var cohorts := _cohorts_now(world, x["new"])
+				var more := _cohorts_now(world, g["new"])
+				for m in more:
+					cohorts[m] = int(cohorts.get(m, 0)) + int(more[m])
+				x["new"] = cohorts
+				x["n"] = n
+				groups.erase(g)
+				g = {}
+				break
+		if not g.is_empty():
+			g["pay"] = new_pay
+			_sort_groups(groups)
 	Logbook.note(world, "NEGOTIATE", cid, "pay negotiated", why.merged({"tier": post_tier, "entry": labour_key, "at": plant_key}),
 		{"pay": [old, new_pay]})
 	return true

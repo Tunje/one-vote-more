@@ -76,7 +76,7 @@ func test_hire_takes_the_posts_skill_first_then_higher_never_lower() -> void:
 	var st := Company.staff_entries(w, c1)
 	check_eq(int(st["crew"]["S"][Households.labour_key(land, "I3", "S")]["n"]), 5 * S, "the five skilled first")
 	check_eq(int(st["crew"]["S"][Households.labour_key(land, "I4", "Sp")]["n"]), 1 * S, "then one specialist")
-	check_eq(int(st["crew"]["S"][Households.labour_key(land, "I3", "S")]["pay"]), Company.hiring_salary(w, c1, "S", land),
+	check_eq(int(st["crew"]["S"][Households.labour_key(land, "I3", "S")]["groups"][0]["pay"]), Company.hiring_salary(w, c1, "S", land),
 		"hired at the company's hiring salary")
 	check_eq(Households.hire(w, c1, "crew", "Sp", land, 5), 1, "a specialist post takes no one less skilled")
 	check_eq(PopStore.count(w, {"hb": land, "status": "UNEMPLOYED"}), 3, "only the general workers are left")
@@ -236,3 +236,47 @@ func test_within_a_skill_hires_are_shared_over_the_bands_in_proportion() -> void
 		var share := 100.0 * float(g0[band]) / float(total_g)
 		check(absf(float(got) - share) < 1.0, "%s: %d hired against its share %.1f" % [band, got, share])
 	check(Households.check(w).is_empty(), "jobs = people")
+
+
+## Four general workers of band I2 hired at 400, then ten at 300 shared over I2 (six left) and I3 (ten): four and six.
+func _two_pays(w: WorldState) -> Array:
+	var land := AreaStore.found_landing(w)
+	Households.seed_test(w, land, "I2", "G", 10)
+	var c1 := _co(w, "BUILDER", "STATE")
+	check_eq(Households.hire(w, c1, "crew", "G", land, 4, {}, 400 * S), 4, "four at 400")
+	Households.seed_test(w, land, "I3", "G", 10)
+	check_eq(Households.hire(w, c1, "crew", "G", land, 10, {}, 300 * S), 10, "ten at 300")
+	return [land, c1]
+
+
+func _rows(w: WorldState, cid: String, lk: String) -> Array:
+	return Company.payroll(w, cid).filter(func(e): return String(e["labour_key"]) == lk).map(func(e): return [int(e["n"]) / S, int(e["pay"]) / S])
+
+
+func test_joiners_at_a_lower_pay_cut_nobody() -> void:
+	var w := _world()
+	var r := _two_pays(w)
+	check_eq(_rows(w, r[1], Households.labour_key(r[0], "I2", "G")), [[4, 400], [4, 300]], "the four hired at 400 still earn 400")
+	check_eq(Company.wage_bill(w, r[1]), (4 * 400 + 10 * 300) * S, "each paid their own")
+
+
+func test_a_band_move_keeps_each_groups_own_pay() -> void:
+	var w := _world()
+	var r := _two_pays(w)
+	var bill := Company.wage_bill(w, r[1])
+	Households.move_jobs_band(w, r[0], "I2", "I3", "G")
+	check_eq(_rows(w, r[1], Households.labour_key(r[0], "I3", "G")), [[4, 400], [10, 300]],
+		"the four at 400 keep 400 in their new band; the 300s join the 300s already there")
+	check_eq(Company.wage_bill(w, r[1]), bill, "nobody's pay moved")
+
+
+func test_a_layoff_owes_each_group_its_own_pay() -> void:
+	var w := _world()
+	var r := _two_pays(w)
+	var months := int(load("res://sim/law/work_law.gd").layoff_pay_months(w))
+	# largest groups first: I3 at 300 (six), then of the two fours in I2 the higher pay first
+	check_eq(Households.layoff(w, r[1], "crew", "G", 10), 10, "ten laid off")
+	var row: Dictionary = Logbook.rows(w, {"kind": "LAYOFF", "who": r[1]})[-1]
+	check_eq(int(row["change"]["layoff_pay_owed"][1]), months * (6 * 300 + 4 * 400) * S, "each owed months of their own pay")
+	check_eq(_rows(w, r[1], Households.labour_key(r[0], "I2", "G")), [[4, 300]], "the four at 300 stay, at 300")
+	check(Households.check(w).is_empty(), "jobs = people: %s" % str(Households.check(w)))
