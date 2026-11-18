@@ -73,7 +73,7 @@ static func make_plant(world: WorldState, cid: String, pid: String) -> int:
 	# it was about)
 	var hired_part := 0
 	var family_part := 0
-	if type == Company.FARM_TYPE:
+	if TypeTable.family_works_full(type):
 		var posts := TypeTable.posts(type, size, line)
 		var total := (int(posts["G"]) + int(posts["S"]) + int(posts["Sp"])) * S
 		var rest_full := 0 if total <= 0 else full * maxi(0, total - fam) / total

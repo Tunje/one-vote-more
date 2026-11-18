@@ -634,7 +634,7 @@ static func hire_wanted(world: WorldState, cid: String, plant_key: String) -> Di
 	# the family works its posts whatever the level; the hired posts follow it, rounded up to whole persons
 	var fam := family_count(world, cid, "", plant_key) / CoreUtil.S
 	var n := 0
-	if is_family_farm_type(world, cid):
+	if family_works_full(world, cid):
 		n = (maxi(0, int(pl["total"]) - fam) * int(pl["level"]) + 999) / 1000
 	else:   # another family company: the family counts against the level's work, as before (the ruling was the farm's)
 		n = maxi(0, (int(pl["total"]) * int(pl["level"]) + 999) / 1000 - fam)
@@ -645,10 +645,10 @@ static func hire_wanted(world: WorldState, cid: String, plant_key: String) -> Di
 	return {"G": int(parts[0]), "S": int(parts[1]), "Sp": int(parts[2])}
 
 
-## Whether a company is a farm (FARM_TYPE), the type the user's family-farm rulings are about (15e: "10 purple each";
-## "The rest goes down the two adults owning dose not"): only a farm's family works at ten a worker whatever the level.
-static func is_family_farm_type(world: WorldState, cid: String) -> bool:
-	return String(world.peek(TABLE).get(cid, {}).get("type", "")) == FARM_TYPE
+## Whether a company's owning family works its posts at the row's output a worker whatever the level: the type table's
+## "family_works_full" column (only the farm row has it; 15e), so no type is named here.
+static func family_works_full(world: WorldState, cid: String) -> bool:
+	return TypeTable.family_works_full(String(world.peek(TABLE).get(cid, {}).get("type", "")))
 
 
 ## The hired hands' work a plant key's level asks for, persons × S, not rounded: the posts the family leaves × the
@@ -657,7 +657,7 @@ static func hired_work_wanted(world: WorldState, cid: String, plant_key: String)
 	var pl := _posts_at_level(world, cid, plant_key)
 	if pl.is_empty():
 		return 0
-	if not is_family_farm_type(world, cid):
+	if not family_works_full(world, cid):
 		return work_wanted(world, cid, plant_key)
 	return maxi(0, int(pl["total"]) * CoreUtil.S - family_count(world, cid, "", plant_key)) * int(pl["level"]) / 1000
 
