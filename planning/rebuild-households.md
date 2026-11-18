@@ -100,7 +100,8 @@ The area code (`game/sim/population/area_store.gd`) was a separate design. Areas
 
 - The founder is one adult of the pool: a skilled or specialist one first, otherwise the oldest working-age one.
 - The unemployed and those outside the labour force are picked before the employed.
-- If the founder holds a post, they leave it through Households.layoff first, so jobs = people holds. (Otto's review.)
+- ~~If the founder holds a post, they leave it through Households.layoff first~~ (Otto's review; built as a QUIT at making). Replaced 2026-11-18: an employed founder, and an employed adult of a family founder's household, keeps their post until the plan signs (Wilma: "a person whose plan is given up the same month, or never signed, has not lost their job"; nothing in 60a or 60c gives the job up at making; Terra's trace showed the builders' crews emptied by plans given up the same month). The founder record is made at making as 60a says. The ones still in post stay in PopStore in their pool, listed on the record as in_post, and the pool marks them so no second founder draws them. When the plan signs, the SOCIAL step gives up their posts (QUIT) and they become owners. A plan given up leaves them in their job untouched.
+  - **(Maja's reading of 60c, with Wilma's yes)** Until the plan signs, a founder still in post eats and is paid with their pool, not from their own account. The founder's account holds the plan's money (the household's share of the savings) from making; a plan given up returns what is left.
 - What goes with them is one household's share of the pool's savings: the pool's balance × 2.5 ÷ the pool's persons.
 
 **Tenancy (shape agreed with Otto, built at step 7):**

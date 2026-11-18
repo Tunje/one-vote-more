@@ -539,8 +539,10 @@ static func homes(world: WorldState, area: String) -> Dictionary:
 			hh += int(counts(world, pid)["households"]) / S
 	var landing = load("res://sim/economy/landing.gd")
 	for id in world.peek(PERSON_TABLE):
-		if String(world.peek(PERSON_TABLE)[id]["area"]) == area and not bool(landing.lives_on_own_farm(world, String(id))):
-			hh += 1   # "the farm would be their home" (15e): a family on its own farm is no household in town
+		if String(world.peek(PERSON_TABLE)[id]["area"]) == area and not bool(landing.lives_on_own_farm(world, String(id))) \
+				and lives_apart(world, String(id)):
+			hh += 1   # "the farm would be their home" (15e): a family on its own farm is no household in town; one
+			# whose people are all still in their posts lives in its pool until the plan signs (Terra's review)
 	var h := AreaStore.capacity(world, area)
 	var fit := h * 1300 / 1000   # beyond 130% nobody else squeezes in (I1)
 	return {"homes": h, "households": hh, "occupancy_pm": hh * 1000 / maxi(1, h) if h > 0 else (0 if hh == 0 else 9999),
@@ -559,7 +561,7 @@ static func buyers(world: WorldState) -> Array:
 			out.append({"id": pid, "acct": account(pid), "area": String(world.peek("pool")[pid]["area"]), "persons": n})
 	for id in CoreUtil.sorted_keys(world.peek(PERSON_TABLE)):
 		var r: Dictionary = world.peek(PERSON_TABLE)[id]
-		out.append({"id": id, "acct": String(r["account"]), "area": String(r["area"]), "persons": family_size(world, String(id))})
+		out.append({"id": id, "acct": String(r["account"]), "area": String(r["area"]), "persons": family_size(world, String(id)) - in_post(world, String(id))})
 	return out
 
 
@@ -668,7 +670,7 @@ static func rent_set_aside(world: WorldState, id: String, rent_of: Callable) -> 
 	var total := 0
 	for la in (r.get("rent_owed", {}) as Dictionary):
 		total += int(r["rent_owed"][la])
-	if rent_of.is_valid():
+	if rent_of.is_valid() and (not id.begins_with("founder:") or lives_apart(world, id)):
 		var due: Dictionary = rent_of.call(id)
 		for la in due:
 			total += int(due[la])
@@ -814,6 +816,8 @@ static func pay_rent(world: WorldState, rent_of: Callable) -> int:
 		var rec := _rec_of(world, id)
 		var r: Dictionary = world.table(PERSON_TABLE if id.begins_with("founder:") else "pool")[id]
 		var owed: Dictionary = r.get("rent_owed", {})
+		if id.begins_with("founder:") and not lives_apart(world, id):
+			continue   # all of them still live in their pool, which pays the rent for them (Terra's review)
 		var due: Dictionary = (rent_of.call(id) as Dictionary).duplicate()
 		for la in owed:
 			due[la] = int(due.get(la, 0)) + int(owed[la])
@@ -1170,8 +1174,10 @@ static func _free_adult(world: WorldState, pid: String) -> Dictionary:
 			var n := PopStore.count(world, f, "skill:" + sk)
 			if not f.has("occ"):   # outside the labour force the filter is occ NONE already (Terra's re-check)
 				n -= PopStore.count(world, f.merged({"occ": "BUSINESS_OWNER"}), "skill:" + sk)
-			if st == "EMPLOYED" and _posts_of(world, String(p["area"]), String(p["band"]), sk) <= 0:
-				n = 0
+			if st == "EMPLOYED":
+				n -= int(p.get("in_post", {}).get(sk, 0))   # already a founder's, still in their post until the plan signs
+				if _posts_of(world, String(p["area"]), String(p["band"]), sk) <= 0:
+					n = 0
 			if n > 0:
 				return {"status": st, "skill": sk}
 	return {}
@@ -1179,8 +1185,12 @@ static func _free_adult(world: WorldState, pid: String) -> Dictionary:
 
 ## The founder leaves the pool the day the plan is made (60a): one adult becomes a person of their own, an owner
 ## (NOT_IN_LF, BUSINESS_OWNER in PopStore, so they age, vote and are counted), with their own account holding one
-## household's share of the pool's savings. An employed founder gives up their post first. `ref`: the plan (or company)
-## they found. Returns "founder:N" ("" if the pool has nobody free). Fact COMP_COMPANY_PLANNED.
+## household's share of the pool's savings. An employed founder keeps their post until the plan signs (Wilma,
+## 2026-11-18: "a person whose plan is given up the same month, or never signed, has not lost their job"; nothing in
+## 60a or 60c gives the job up at making): they stay in PopStore as they are, in their pool, listed on the record as
+## in_post, and eat and are paid with their pool until then (Maja's reading of 60c, with Wilma's yes). take_up_posts
+## moves them out when the plan signs; a plan given up leaves them where they are. `ref`: the plan (or company) they
+## found. Returns "founder:N" ("" if the pool has nobody free). Fact COMP_COMPANY_PLANNED.
 ## family = true (a FAMILY-size company, 15e: "the family that owns a family farm works it themselves"): the founder's
 ## whole household leaves with them (the founder's household is the family, Wilma's detail): one more adult for each
 ## adult a household of the pool has beyond one, and its children, both as whole persons with a carried remainder. They
@@ -1199,15 +1209,17 @@ static func make_founder(world: WorldState, pid: String, ref: String, family: bo
 	world.table("pool")[pid].erase("pick")
 	if had:   # a household that had a grant leaves the pool: one fewer granted household there
 		world.table("pool")[pid]["granted"] = maxi(0, int(p.get("granted", 0)) - 1)
+	var adults: Array = []
 	if String(who["status"]) == "EMPLOYED":
-		end_jobs(world, area, band, 1, "QUIT", String(who["skill"]))
-		who["status"] = "UNEMPLOYED"
-	var f := {"hb": area, "inc": band, "status": String(who["status"])}
-	if String(who["status"]) == "NOT_IN_LF":
-		f["occ"] = "NONE"
-	if PopStore.move_group(world, f, 1, {"status": "NOT_IN_LF", "occ": "BUSINESS_OWNER"}, "FOUNDER", "skill:" + String(who["skill"])) <= 0:
-		return ""   # nobody was taken: no record without a person behind it
-	var adults: Array = [{"skill": String(who["skill"]), "was": "NOT_IN_LF" if String(who["status"]) == "NOT_IN_LF" else "UNEMPLOYED"}]
+		_promise_post(world, pid, String(who["skill"]))   # in their post until the plan signs
+		adults.append({"skill": String(who["skill"]), "was": "EMPLOYED", "in_post": true})
+	else:
+		var f := {"hb": area, "inc": band, "status": String(who["status"])}
+		if String(who["status"]) == "NOT_IN_LF":
+			f["occ"] = "NONE"
+		if PopStore.move_group(world, f, 1, {"status": "NOT_IN_LF", "occ": "BUSINESS_OWNER"}, "FOUNDER", "skill:" + String(who["skill"])) <= 0:
+			return ""   # nobody was taken: no record without a person behind it
+		adults.append({"skill": String(who["skill"]), "was": "NOT_IN_LF" if String(who["status"]) == "NOT_IN_LF" else "UNEMPLOYED"})
 	var children := 0
 	if family:
 		var fam := _family_take(world, pid)
@@ -1224,7 +1236,9 @@ static func make_founder(world: WorldState, pid: String, ref: String, family: bo
 		world.ledger.transfer(account(pid), id, amt, "FOUNDER_SAVINGS", world.month)
 	# and its share of the pool's food store (15f), per mouth: the store is months of each person's food, so the
 	# founder's household takes its persons' part of it (its money is a household's share; Terra's question)
-	move_store(world, pid, id, adults.size() + children, adults.size() + children + persons(world, pid) - int(counts(world, pid)["owners"]) / S)
+	# only the mouths that left: those still in their posts eat with the pool until the plan signs
+	var gone := adults.filter(func(ad): return not bool(ad.get("in_post", false))).size() + children
+	move_store(world, pid, id, gone, gone + persons(world, pid) - int(counts(world, pid)["owners"]) / S)
 	Logbook.note(world, "FOUNDER", id, "a founder counted one by one", {"pool": pid, "skill": who["skill"], "was": who["status"],
 		"family": family}, {"money": [0, amt], "household": [0, adults.size() + children]}, pid, ref)
 	world.add_fact({"type": "COMP_COMPANY_PLANNED", "owner": "econ", "subjects": [{"kind": "FOUNDER", "id": id}], "responsible": [],
@@ -1251,6 +1265,9 @@ static func release_founder(world: WorldState, id: String) -> bool:
 	# The whole household goes back together (60c), the founder first.
 	var fam: Dictionary = r.get("family", {"adults": [{"skill": r["skill"], "was": r.get("was", "UNEMPLOYED")}], "children": 0})
 	for ad in fam["adults"]:
+		if bool(ad.get("in_post", false)):   # never left their post: they stay where they are, in their job
+			_promise_post(world, String(r["pool"]), String(ad["skill"]), -1)
+			continue
 		PopStore.move_group(world, f, 1, {"status": String(ad["was"]), "occ": "NONE"}, "FOUNDER_BACK", "skill:" + String(ad["skill"]))
 	if int(fam["children"]) > 0:
 		PopStore.move_group(world, {"hb": String(r["area"]), "inc": String(r["band"]), "status": "CHILD", "occ": "BUSINESS_OWNER"},
@@ -1270,6 +1287,7 @@ static func release_founder(world: WorldState, id: String) -> bool:
 ## SOCIAL, every month: every founder who owns nothing goes back into the pool (60c; Ella: the grant's reclaim does
 ## not retry, this does). Returns how many went back.
 static func release_idle_founders(world: WorldState) -> int:
+	take_up_posts(world)
 	var n := 0
 	for id in CoreUtil.sorted_keys(world.peek(PERSON_TABLE)):
 		if (world.peek(PERSON_TABLE)[id]["owns"] as Array).is_empty() and release_founder(world, String(id)):
@@ -1334,8 +1352,13 @@ static func on_area_moves(world: WorldState, moves: Array) -> void:
 	for id in CoreUtil.sorted_keys(world.peek(PERSON_TABLE)):
 		var r: Dictionary = world.table(PERSON_TABLE)[id]
 		if into.has(String(r["area"])):
+			var old_pool := String(r["pool"])
 			r["area"] = String(into[String(r["area"])])
 			r["pool"] = ensure_pool(world, String(r["area"]), String(r["band"]))
+			for ad in r.get("family", {}).get("adults", []):   # its marks of people still in post go with it (Terra's review)
+				if bool(ad.get("in_post", false)):
+					_promise_post(world, old_pool, String(ad["skill"]), -1)
+					_promise_post(world, String(r["pool"]), String(ad["skill"]))
 			Logbook.note(world, "FOUNDER", id, "moved with a merge", {}, {"area": ["", r["area"]]})
 	for id in CoreUtil.sorted_keys(world.peek("founder_carried")):
 		var c: Dictionary = world.table("founder_carried")[id]
@@ -1398,9 +1421,10 @@ static func _family_take(world: WorldState, pid: String) -> Dictionary:
 		var who := _free_adult(world, pid)
 		if who.is_empty():
 			break
-		if String(who["status"]) == "EMPLOYED":
-			end_jobs(world, area, band, 1, "QUIT", String(who["skill"]))
-			who["status"] = "UNEMPLOYED"
+		if String(who["status"]) == "EMPLOYED":   # in their post until the plan signs, as the founder (take_up_posts)
+			_promise_post(world, pid, String(who["skill"]))
+			out["adults"].append({"skill": String(who["skill"]), "was": "EMPLOYED", "in_post": true})
+			continue
 		var f := {"hb": area, "inc": band, "status": String(who["status"])}
 		if String(who["status"]) == "NOT_IN_LF":
 			f["occ"] = "NONE"
@@ -1424,8 +1448,97 @@ static func family_size(world: WorldState, id: String) -> int:
 static func family_adults(world: WorldState, id: String) -> Dictionary:
 	var out := {"G": 0, "S": 0, "Sp": 0}
 	for ad in world.peek(PERSON_TABLE).get(id, {}).get("family", {}).get("adults", []):
-		out[String(ad["skill"])] = int(out[String(ad["skill"])]) + 1
+		if not bool(ad.get("in_post", false)):   # still in their own job until the plan signs
+			out[String(ad["skill"])] = int(out[String(ad["skill"])]) + 1
 	return out
+
+
+## How many of a founder's household are still in their posts (the plan not signed yet): they eat and are paid with
+## their pool until take_up_posts moves them.
+static func in_post(world: WorldState, id: String) -> int:
+	var n := 0
+	for ad in world.peek(PERSON_TABLE).get(id, {}).get("family", {}).get("adults", []):
+		if bool(ad.get("in_post", false)):
+			n += 1
+	return n
+
+
+## Marks (d = 1) or frees (d = -1) one employed adult of a pool as a founder's, still in their post, so no second
+## founder draws the same person (pool["in_post"] {skill: persons}).
+static func _promise_post(world: WorldState, pid: String, skill: String, d: int = 1) -> void:
+	var p: Dictionary = world.table("pool").get(pid, {})
+	if p.is_empty():
+		return
+	if not p.has("in_post"):
+		p["in_post"] = {}
+	p["in_post"][skill] = maxi(0, int(p["in_post"].get(skill, 0)) + d)
+	if int(p["in_post"][skill]) == 0:
+		p["in_post"].erase(skill)
+
+
+## SOCIAL, every month (before founders go back): a founder whose plan has signed (any plan it owns past MADE, or a
+## company) takes up the venture: each of its household still in a post gives it up now (QUIT, from their own pool and
+## skill) and becomes an owner, with their part of the pool's food store, per mouth. One whose post is gone meanwhile
+## (a death, a layoff) is taken as unemployed, or from outside the labour force, with no job ended. Returns persons.
+static func take_up_posts(world: WorldState) -> int:
+	var moved := 0
+	for id in CoreUtil.sorted_keys(world.peek(PERSON_TABLE)):
+		var r: Dictionary = world.table(PERSON_TABLE)[id]
+		if in_post(world, String(id)) <= 0 or not _signed(world, r):
+			continue
+		var area := String(r["area"])
+		var band := String(r["band"])
+		var pid := String(r["pool"])
+		var n := 0
+		var gone: Array = []
+		for ad in r["family"]["adults"]:
+			if not bool(ad.get("in_post", false)):
+				continue
+			var sk := String(ad["skill"])
+			_promise_post(world, pid, sk, -1)
+			ad.erase("in_post")
+			var emp := PopStore.count(world, {"hb": area, "inc": band, "status": "EMPLOYED"}, "skill:" + sk) \
+				- PopStore.count(world, {"hb": area, "inc": band, "status": "EMPLOYED", "occ": "BUSINESS_OWNER"}, "skill:" + sk)
+			var st := ""
+			if emp > 0 and end_jobs(world, area, band, 1, "QUIT", sk) > 0:
+				st = "UNEMPLOYED"   # end_jobs moved them EMPLOYED -> UNEMPLOYED
+			elif PopStore.count(world, {"hb": area, "inc": band, "status": "UNEMPLOYED"}, "skill:" + sk) > 0:
+				st = "UNEMPLOYED"
+			elif PopStore.count(world, {"hb": area, "inc": band, "status": "NOT_IN_LF", "occ": "NONE"}, "skill:" + sk) > 0:
+				st = "NOT_IN_LF"
+			if st == "":
+				gone.append(ad)   # nobody of that skill left to be them (died meanwhile): off the record
+				continue
+			var f := {"hb": area, "inc": band, "status": st}
+			if st == "NOT_IN_LF":
+				f["occ"] = "NONE"
+			PopStore.move_group(world, f, 1, {"status": "NOT_IN_LF", "occ": "BUSINESS_OWNER"}, "FOUNDER", "skill:" + sk)
+			ad["was"] = st
+			n += 1
+		var self_gone: bool = not gone.is_empty() and (r["family"]["adults"] as Array).find(gone[0]) == 0
+		for ad in gone:
+			r["family"]["adults"].erase(ad)
+		if n > 0 and world.peek("pool").has(pid):
+			move_store(world, pid, String(id), n, n + persons(world, pid) - int(counts(world, pid)["owners"]) / S)
+		moved += n
+		Logbook.note(world, "FOUNDER", String(id), "the plan signed: gave up their posts", {"pool": pid, "gone": gone.size(),
+			"founder_themself_gone": self_gone}, {"took_up": [0, n]}, pid)
+	return moved
+
+
+## Has any plan this founder owns signed (SIGNED or OPEN; a plan GIVEN_UP never counts), or does it own a company?
+static func _signed(world: WorldState, r: Dictionary) -> bool:
+	for ref in r.get("owns", []):
+		var pl: Dictionary = world.peek("plan").get(String(ref), {})
+		if pl.is_empty() or String(pl.get("status", "")) in ["SIGNED", "OPEN"]:
+			return true
+	return false
+
+
+## Does any of this founder's household live outside its pool (has anyone left: not all of them still in their posts)?
+## Until then the founder is no household of its own: it lives, eats and pays rent with its pool (Terra's review).
+static func lives_apart(world: WorldState, id: String) -> bool:
+	return family_size(world, id) - in_post(world, id) > 0
 
 
 ## The family adults now working its own company's posts, by skill.

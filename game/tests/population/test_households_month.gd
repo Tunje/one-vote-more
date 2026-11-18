@@ -1030,3 +1030,112 @@ func test_a_farm_family_buys_what_its_farm_could_not_give() -> void:
 	check_eq(int(m["store_bought"]), 3 * S, "and the store's double bought: one month's more")
 	check_eq(int(m["hunger"]), 0, "fed")
 	check_eq(int(Company.stock_of(w, String(r[1]), "FOOD")["qty"]), 0, "the farm offered nothing: its family ate it")
+
+
+## A pool of ten general workers, all employed by a state builder's crew at 300 a month, and a plan still MADE.
+func _employed_pool(w: WorldState, land: String) -> Array:
+	var pid := _pool(w, land, "I2", 10, 10000)
+	var cid := Company.create(w, "BUILDER", "SMALL", {"kind": "STATE", "holders": {"gov": 1000}}, "test builder", {"area": land})
+	check_eq(Households.hire(w, cid, "crew", "G", land, 10, {}, 300 * S), 10, "all ten in posts")
+	w.table("plan")["plan:t1"] = {"id": "plan:t1", "status": "MADE"}
+	return [pid, cid]
+
+
+func _rows(w: WorldState, cid: String) -> Array:
+	return Company.payroll(w, cid).map(func(e): return [int(e["n"]), int(e["pay"]), int(e["since"]), int(e["train"])])
+
+
+func _all_money(w: WorldState) -> int:
+	var n := 0
+	for pid in Households.pools(w):
+		n += Households.savings(w, pid)
+	for fid in w.peek("founder"):
+		n += w.ledger.balance(String(w.peek("founder")[fid]["account"]))
+	return n
+
+
+func test_a_founder_whose_plan_is_given_up_has_not_lost_their_job() -> void:
+	# Wilma, 2026-11-18: "a person whose plan is given up the same month, or never signed, has not lost their job"
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var r := _employed_pool(w, land)
+	var pid := String(r[0])
+	var cid := String(r[1])
+	w.month += 3
+	var rows0 := _rows(w, cid)
+	var money0 := _all_money(w)
+	var hh0 := int(Households.homes(w, land)["households"])
+	var fid := Households.make_founder(w, pid, "plan:t1")
+	check(fid != "", "an employed adult founds")
+	check_eq(int(Households.homes(w, land)["households"]), hh0, "still one of the pool's households, not a second one (Terra)")
+	check_eq(Households.rent_set_aside(w, fid, func(_id): return {"x": 100 * S}), 0, "no rent of its own: the pool pays for them")
+	check_eq(_rows(w, cid), rows0, "at making nobody's post moved: same people, pay, month and training")
+	check_eq(Households.in_post(w, fid), 1, "the founder is still in their post")
+	check(Households.check(w).is_empty(), "jobs = people")
+	check(w.ledger.balance(fid) > 0, "the plan's money is the founder's: a household's share of the savings")
+	check_eq(_all_money(w), money0, "the money moved, none made or lost")
+	var b: Dictionary = Households.buyers(w).filter(func(x): return String(x["id"]) == fid)[0]
+	check_eq(int(b["persons"]), 0, "they eat with their pool while in post: nobody eats twice")
+	check_eq(Households.make_founder(w, pid, "plan:t2").length() > 0 and int(w.peek("pool")[pid]["in_post"]["G"]) == 2, true,
+		"a second founder draws another person, not the same one")
+	Households.disown(w, fid, "plan:t1")   # the plan given up
+	check(Households.release_founder(w, fid), "the founder goes back")
+	check_eq(_rows(w, cid), rows0, "given up: still in the job, same pay, month served and training")
+	check(Households.check(w).is_empty(), "jobs = people")
+	check_eq(int(w.peek("pool")[pid]["in_post"].get("G", 0)), 1, "only the second founder still promised")
+	check_eq(_all_money(w), money0, "what was left came back: nothing counted twice or lost")
+	check_eq(PopStore.count(w, {"hb": land, "inc": "I2", "status": "EMPLOYED"}), 10, "all ten still employed")
+
+
+func test_a_founder_whose_plan_signs_gives_up_the_post() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var r := _employed_pool(w, land)
+	var pid := String(r[0])
+	var cid := String(r[1])
+	var fid := Households.make_founder(w, pid, "plan:t1")
+	Households.release_idle_founders(w)
+	check_eq(Households.in_post(w, fid), 1, "still MADE: still in post")
+	w.table("plan")["plan:t1"]["status"] = "SIGNED"
+	Households.release_idle_founders(w)
+	check_eq(Households.in_post(w, fid), 0, "signed: the post is given up")
+	check_eq(Company.staff_count(w, cid) / S, 9, "one post fewer")
+	check_eq(PopStore.count(w, {"hb": land, "inc": "I2", "status": "NOT_IN_LF", "occ": "BUSINESS_OWNER"}), 1, "the founder is an owner now")
+	check(Households.check(w).is_empty(), "jobs = people")
+	check(not w.peek("pool")[pid].has("in_post") or (w.peek("pool")[pid]["in_post"] as Dictionary).is_empty(), "nobody promised any more")
+	var b: Dictionary = Households.buyers(w).filter(func(x): return String(x["id"]) == fid)[0]
+	check_eq(int(b["persons"]), 1, "and eats from their own account")
+	check_eq(Logbook.rows(w, {"kind": "FOUNDER", "what": "the plan signed: gave up their posts"}).size(), 1, "one row")
+
+
+func test_a_family_founders_employed_adults_keep_their_posts_until_the_plan_signs() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var r := _employed_pool(w, land)
+	var pid := String(r[0])
+	var cid := String(r[1])
+	var rows0 := _rows(w, cid)
+	var fid := Households.make_founder(w, pid, "plan:t1", true)
+	var k := Households.in_post(w, fid)
+	check(k >= 1, "the founder and any other adult of the household stay in post (%d)" % k)
+	check_eq(_rows(w, cid), rows0, "no post moved at making")
+	check_eq(int(Households.family_adults(w, fid)["G"]), 0, "none of them free to work the farm yet")
+	check(Households.check(w).is_empty(), "jobs = people")
+	w.table("plan")["plan:t1"]["status"] = "SIGNED"
+	Households.release_idle_founders(w)
+	check_eq(Households.in_post(w, fid), 0, "signed: all of them give up their posts")
+	check_eq(Company.staff_count(w, cid) / S, 10 - k, "%d posts fewer" % k)
+	check_eq(int(Households.family_adults(w, fid)["G"]), k, "and are the farm's family now")
+	check(Households.check(w).is_empty(), "jobs = people")
+
+
+func test_a_given_up_plan_still_owned_never_takes_up_the_post() -> void:
+	# Terra's review: only SIGNED or OPEN counts as signed
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var r := _employed_pool(w, land)
+	var fid := Households.make_founder(w, String(r[0]), "plan:t1")
+	w.table("plan")["plan:t1"]["status"] = "GIVEN_UP"
+	Households.take_up_posts(w)
+	check_eq(Households.in_post(w, fid), 1, "a dead plan ends nobody's job")
+	check_eq(Company.staff_count(w, String(r[1])) / S, 10, "all ten posts held")
