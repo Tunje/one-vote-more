@@ -1001,6 +1001,22 @@ static func close_plant(world: WorldState, pid: String, reason: String, why: Dic
 	return true
 
 
+## A company ends (the user, 2026-11-18, of builders left with no employees: "Nothing they are shut gone dead"): its
+## status becomes ENDED (one of the law's DEAD names, LawCompany: no longer trading; Anni's yes) and every part of the
+## economy that reads only OPEN companies leaves it. Nothing else is done to it: its account stays as it is, its debts
+## stay owed (Justice collects what the account holds), no liquidation (step 5). One END row. False if not OPEN.
+static func end_company(world: WorldState, cid: String, reason: String, why: Dictionary = {}) -> bool:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty() or String(c["status"]) != "OPEN":
+		return false
+	c["status"] = "ENDED"
+	c["ended_m"] = world.month
+	c["ended_why"] = reason
+	Logbook.note(world, "END", cid, "company ended", why.merged({"reason": reason, "balance": world.ledger.balance(CoreUtil.acct(cid)) / CoreUtil.S}),
+		{"status": ["OPEN", "ENDED"]})
+	return true
+
+
 static func reopen_plant(world: WorldState, pid: String, reason: String, why: Dictionary = {}) -> bool:
 	var p: Dictionary = world.table(PLANT_TABLE).get(pid, {})
 	if p.is_empty() or not bool(p["closed"]):

@@ -191,7 +191,9 @@ static func builders(world: WorldState, for_hire: bool = true) -> Array:
 	var out: Array = []
 	for cid in Company.ids(world):
 		var r := Company.record(world, cid)
-		if Company.type_of(world, cid) != "BUILDER" or String(r.get("status", "")) != "OPEN":
+		# a builder is any company whose type-table row sells building work, read from the row, not the name (the user:
+		# "No it's for all goods don't overcomplicatev with individual rules built seperatly"; Company.works_as_crew)
+		if not Company.works_as_crew(Company.type_of(world, cid)) or String(r.get("status", "")) != "OPEN":
 			continue
 		if for_hire and String(r.get("origin", "")) == HomeBuilders.ORIGIN_PUBLIC:
 			continue
@@ -207,11 +209,17 @@ static func quotes(world: WorldState, plan_id: String) -> Array:
 	if p.is_empty():
 		return []
 	var e := estimate(world, String(p["type"]), String(p["size"]), String(p["area"]), p["site"])
+	# the supplies a released plan already holds on its site are not bought again (Terra's review)
+	var supplies := int(e["supplies"])
+	var held: Dictionary = p.get("site_goods", {})
+	for it in ITEMS:
+		supplies -= mini(int(held.get(it, 0)), int(e[it.to_lower()])) * item_price(world, it, String(p["area"])) / S
+	supplies = maxi(0, supplies)
 	var out: Array = []
 	for b in builders(world):
 		var px := Company.price(world, b, "BW")
 		var work := int(e["bw"]) * px / S
-		out.append({"builder": b, "bw_price": px, "work": work, "supplies": int(e["supplies"]), "total": work + int(e["supplies"]),
+		out.append({"builder": b, "bw_price": px, "work": work, "supplies": supplies, "total": work + supplies,
 			"start": start_month(world, b)})
 	return out
 
@@ -241,7 +249,7 @@ static func book(world: WorldState, b: String) -> Array:
 	var rows: Array = []
 	for cid in world.peek(CONTRACT):
 		var c: Dictionary = world.peek(CONTRACT)[cid]
-		if String(c["builder"]) == b and not String(c["status"]) in ["DONE", "ABANDONED"]:
+		if String(c["builder"]) == b and not String(c["status"]) in ["DONE", "ABANDONED", "RELEASED"]:
 			rows.append([int(c["n"]), cid])
 	rows.sort()
 	return rows.map(func(r): return r[1])
@@ -288,7 +296,9 @@ static func sign_round(world: WorldState) -> void:
 		for qq in qs:
 			if int(qq["total"]) < int(cheapest["total"]):
 				cheapest = qq
-		var land := int(Site.land_terms(world, pid).get("due", 0))   # what the land costs at signing: its price, or a lease's first rent (Terra)
+		# what the land costs at signing: its price, or a lease's first rent (Terra); nothing for a plan that bought it
+		# when it first signed and was released by a builder that shut (release_claims)
+		var land := 0 if bool(p.get("land_bought", false)) else int(Site.land_terms(world, pid).get("due", 0))
 		var have := world.ledger.balance(account(pid))
 		for qq in qs:
 			Logbook.note(world, "QUOTE", String(qq["builder"]), "quoted", {"total": int(qq["total"]) / S, "start": qq["start"],
@@ -312,11 +322,13 @@ static func sign_round(world: WorldState) -> void:
 			Logbook.note(world, "PLAN", pid, "waits: its money does not cover the land and any quote",
 				{"has": have / S, "land": land / S, "lowest": int(cheapest["total"]) / S}, {}, String(cheapest["builder"]))
 			continue
-		var bought: Dictionary = Site.buy_land(world, pid, account(pid))
-		if not bool(bought.get("ok", false)):
-			Logbook.note(world, "PLAN", pid, "waits: the land", {"why": bought.get("why", "")})
-			continue
-		p["cost"]["land"] = int(bought.get("due", land))
+		if not bool(p.get("land_bought", false)):
+			var bought: Dictionary = Site.buy_land(world, pid, account(pid))
+			if not bool(bought.get("ok", false)):
+				Logbook.note(world, "PLAN", pid, "waits: the land", {"why": bought.get("why", "")})
+				continue
+			p["cost"]["land"] = int(bought.get("due", land))
+			p["land_bought"] = true
 		_sign(world, pid, q, cheapest)
 		# claimed, to start later than the earliest any builder could (month + 2): work due that its crews are short of
 		# (rule 3). Counted once, in the month it signs. A claimed job never raises the price (15c).
@@ -361,11 +373,12 @@ static func _sign(world: WorldState, pid: String, q: Dictionary, cheapest: Dicti
 		"bill": {"bw": int(bill["bw"]), "MATERIAL": int(bill["material"]), "COMPONENT": int(bill["component"])},
 		"months": int(bill["months"]), "price_bw": int(q["bw_price"]), "wage_bw": wage_bw(world, b), "worth": worth,
 		"signed": world.month, "start_quoted": int(q["start"]), "status": "SIGNED", "done": 0, "done_month": -1,
-		"on_site": {"MATERIAL": 0, "COMPONENT": 0}, "used": {"MATERIAL": 0, "COMPONENT": 0},
-		"delivered": {"MATERIAL": 0, "COMPONENT": 0}, "orders": {}, "bw_month": 0, "started_m": -1,
+		"on_site": (p.get("site_goods", {"MATERIAL": 0, "COMPONENT": 0}) as Dictionary).duplicate(), "used": {"MATERIAL": 0, "COMPONENT": 0},
+		"delivered": (p.get("site_goods", {"MATERIAL": 0, "COMPONENT": 0}) as Dictionary).duplicate(), "orders": {}, "bw_month": 0, "started_m": -1,
 		"paid": 0, "owed": 0, "unpaid_m": 0}
 	p["status"] = "SIGNED"
 	p["contract"] = cid
+	p.erase("site_goods")
 	var low := cheapest if not cheapest.is_empty() else q
 	Logbook.note(world, "CONTRACT", cid, "signed", {"price_bw": int(q["bw_price"]) / S, "quote": int(q["total"]) / S,
 		"start": q["start"], "bw": int(bill["bw"]) / S, "material": int(bill["material"]) / S,
@@ -373,6 +386,31 @@ static func _sign(world: WorldState, pid: String, q: Dictionary, cheapest: Dicti
 		{"status": ["", "SIGNED"]}, b, pid)
 	_fact(world, "ECON_CONTRACT_AWARDED", b, 20, {"contract": cid, "plan": pid, "type": p["type"], "price": int(q["total"]) / S})
 	return cid
+
+
+## A builder that ended for want of anyone on its crew (rebuild-building 4.6) gives back the jobs it claimed and has not
+## started (Otto's reading
+## (d), with Wilma's yes): each such contract is RELEASED, nothing being owed on it, and its plan is MADE again and
+## listed for every builder, its year counted from the month it was made. What the plan already has stays its own: the
+## land it bought (it is not bought twice) and the supplies on its site, which go with it to the next builder's
+## contract. A job it has started keeps its place in its book and waits. One PLAN row each.
+static func release_claims(world: WorldState, b: String) -> void:
+	for cid in book(world, b):
+		var c: Dictionary = world.table(CONTRACT)[cid]
+		if String(c["status"]) != "SIGNED" or int(c["done"]) > 0 or int(c["owed"]) > 0:
+			continue
+		var pid := String(c["plan"])
+		var p: Dictionary = world.table(PLAN).get(pid, {})
+		if p.is_empty() or String(p["status"]) != "SIGNED":
+			continue
+		c["status"] = "RELEASED"
+		c["orders"] = {}
+		p["status"] = "MADE"
+		p["contract"] = ""
+		p["site_goods"] = (c["on_site"] as Dictionary).duplicate()
+		c["on_site"] = {"MATERIAL": 0, "COMPONENT": 0}   # the goods go with the plan, so they are counted once
+		Logbook.note(world, "PLAN", pid, "released: its builder ended, listed again", {"builder": b, "made": int(p["made"]),
+			"site_goods": p["site_goods"]}, {"status": ["SIGNED", "MADE"]}, b, cid)
 
 
 ## A plan given up by its owner (rebuild-building 4.4 and 4.9; plan 12.9, 60b). Before signing nothing has been
@@ -391,8 +429,8 @@ static func give_up(world: WorldState, pid: String, why: String) -> void:
 		if String(c["status"]) != "DONE":
 			c["status"] = "ABANDONED"
 			_fact(world, "ECON_PROJECT_CANCELLED", String(c["builder"]), 25, {"contract": c["id"], "plan": pid, "why": why})
-	else:
-		Site.release(world, pid, "plan given up: " + why)
+	elif not bool(p.get("land_bought", false)):
+		Site.release(world, pid, "plan given up: " + why)   # a plan released by a shut builder had bought its land: it stays the founder's (4.9)
 	var reclaimed: int = Grants.reclaim(world, pid)
 	var back := maxi(0, world.ledger.balance(account(pid)))
 	if back > 0:
@@ -562,6 +600,12 @@ static func goods_on_sites(world: WorldState) -> Dictionary:
 	for cid in world.peek(CONTRACT):
 		for it in ITEMS:
 			out[it] += int(world.peek(CONTRACT)[cid]["on_site"][it])
+	# a plan released by a builder that ended holds its site's goods until its next contract; a released plan given up
+	# keeps them on its land, the founder's (60b) (Terra's review: counted, whatever the plan's status)
+	for pid in world.peek(PLAN):
+		var g: Dictionary = world.peek(PLAN)[pid].get("site_goods", {})
+		for it in ITEMS:
+			out[it] += int(g.get(it, 0))
 	return out
 
 

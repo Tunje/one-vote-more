@@ -141,20 +141,77 @@ func test_builders_run_the_same_rules_on_their_crew_and_their_making_price() -> 
 	check(Rules.building_signal(w, b).is_empty(), "no signal until the building side is in the tree")
 
 
-func test_the_public_works_department_keeps_its_crew_and_price_while_idle() -> void:
+func test_the_public_works_department_comes_down_while_idle_but_never_below_two() -> void:
+	# the user, 2026-11-18: "the communal builder owned by the government that goes down to one or two but never empty of
+	# employees" (Wilma's reading: its level follows the rules as any builder's; never below two; never ended)
+	check_eq(Rules.PW_MIN_CREW, 2, "never below two")
 	var w := _w()
 	var pw := Company.create(w, "BUILDER", "SMALL", {"kind": "STATE", "holders": {"state": 1000}}, "Public works",
 		{"area": "landing", "origin": HomeBuilders.ORIGIN_PUBLIC, "crew_posts": true})
 	Company.set_price(w, pw, "BW", 400 * S)
-	var lv := Company.level_of(w, pw, "crew")
+	Households.seed_test(w, "landing", "I2", "G", 10)
+	check_eq(Households.hire(w, pw, "crew", "G", "landing", 4, {"test": true}, 300 * S, true, true), 4, "four placed on its crew")
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(pw), 100000 * S, "TEST", 0)
 	w.table(Building.OPENED)["first_quote_m"] = 0   # past the start: the builders' market is open, so a signal exists
+	var lv := Company.level_of(w, pw, "crew")
 	for m in 4:
 		w.month = m
-		w.table(Building.MONTH)[pw] = {"m": m, "cap": 20 * S, "done": 0, "waiting_material": 0, "short_crew": 0,
+		w.table(Building.MONTH)[pw] = {"m": m, "cap": 4 * S, "done": 0, "waiting_material": 0, "short_crew": 0,
 			"refused_price_bw": 0}   # idle: crews ready, no work (what Building records for it)
 		Rules.company_month(w, pw)
-	check_eq(Company.level_of(w, pw, "crew"), lv, "no rule 4 on a crew that waits for the government")
+	check(Company.level_of(w, pw, "crew") < lv, "its level comes down by rule 4 as any idle builder's")
 	check_eq(Company.price(w, pw, "BW"), 400 * S, "no price rule: it does not sell on a market")
+	Company.set_level(w, pw, "crew", 1)   # nearly nothing asked of it: the layoff weighing would let all four go
+	for m in 40:
+		w.month = 4 + m
+		Rules.staff_to_posts(w, pw)
+	check_eq(Company.staff_count(w, pw, "", "crew") / S, 2, "it comes down to two and no lower")
+	check_eq(String(Company.record(w, pw)["status"]), "OPEN", "never ended")
+	# the purse empty: 19a would lay off in proportion, but never its last two; their wages are owed
+	w.ledger.transfer(CoreUtil.acct(pw), Ledger.EXTERNAL, w.ledger.balance(CoreUtil.acct(pw)), "TEST", w.month)
+	w.month += 1
+	Company.pay_wages(w, pw)
+	Rules.staff_to_posts(w, pw)
+	check_eq(Company.staff_count(w, pw, "", "crew") / S, 2, "unpaid, it still keeps its two")
+	check_eq(String(Company.record(w, pw)["status"]), "OPEN", "and is not ended")
+
+
+func _crewless_months(w: WorldState, cid: String, n: int) -> void:
+	for i in n:
+		Rules.staff_to_posts(w, cid)
+		w.month += 1
+
+
+func test_six_months_crewless_kills_a_crew_company_even_one_that_never_had_a_crew() -> void:
+	# the user, 2026-11-18: "Six months crewless even when never had one kills the company"
+	check_eq(Rules.CREWLESS_M, 6, "six months")
+	var w := _w()
+	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})   # never had a crew; no money for adverts
+	check(Company.works_as_crew(Company.type_of(w, b)), "a company whose row sells building work")
+	_crewless_months(w, b, 5)
+	check_eq(String(Company.record(w, b)["status"]), "OPEN", "five months crewless: it lives")
+	_crewless_months(w, b, 1)
+	check_eq(String(Company.record(w, b)["status"]), "ENDED", "the sixth: killed, though it never had a crew")
+	check_eq(Logbook.rows(w, {"kind": "END", "who": b}).size(), 1, "one END row")
+	check(Company.vacancies(w, "landing").filter(func(v): return String(v["cid"]) == b).is_empty(), "it asks for nobody")
+	w.month += 1
+	Rules.month(w)
+	check_eq(String(Company.record(w, b)["status"]), "ENDED", "nothing brings it back")
+
+
+func test_a_hire_in_the_fourth_crewless_month_starts_the_count_again() -> void:
+	var w := _w()
+	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	Households.seed_test(w, "landing", "I2", "G", 10)
+	_crewless_months(w, b, 3)
+	check_eq(Households.hire(w, b, "crew", "G", "landing", 2, {"test": true}, 300 * S, true, true), 2, "two hired in the fourth month")
+	_crewless_months(w, b, 1)
+	Households.layoff(w, b, "crew", "G", 2, {"reason": "TEST"})
+	Company.set_level(w, b, "crew", 0)   # it asks for nobody now, so nobody is hired back (no paper: adverts are free)
+	_crewless_months(w, b, 5)
+	check_eq(String(Company.record(w, b)["status"]), "OPEN", "five crewless months since the hire: it lives")
+	_crewless_months(w, b, 1)
+	check_eq(String(Company.record(w, b)["status"]), "ENDED", "the sixth since: killed")
 
 
 func test_each_opening_climbs_five_percent_a_month_on_its_own_count_and_a_new_one_starts_at_the_start() -> void:

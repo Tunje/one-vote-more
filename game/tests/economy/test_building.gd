@@ -10,6 +10,7 @@ const HomeBuilders := preload("res://sim/economy/home_builders.gd")
 const Market := preload("res://sim/economy/market.gd")
 const Site := preload("res://sim/transport/site.gd")
 const Rules := preload("res://sim/economy/rules.gd")
+const Households := preload("res://sim/population/households.gd")
 const S := CoreUtil.S
 
 var _people := 0
@@ -644,4 +645,77 @@ func test_an_open_job_raises_the_builders_price_every_month_it_stays_open_by_fiv
 	var price1 := Company.price(w, b0, "BW")
 	check(price1 > price0, "the open job raises its price")
 	check(price1 <= price0 * 1050 / 1000, "by 5% at most")
+
+
+func test_the_builders_are_found_by_their_rows_way_not_by_name() -> void:
+	# the user, 2026-11-18: "No it's for all goods don't overcomplicatev with individual rules built seperatly"
+	var w := _world()
+	var found: Array = Building.builders(w, false)
+	for cid in Company.ids(w):
+		var by_row := Company.works_as_crew(Company.type_of(w, cid)) and String(Company.record(w, cid)["status"]) == "OPEN"
+		check_eq(found.has(cid), by_row, "%s (%s): a builder exactly when its row sells building work" % [cid, Company.type_of(w, cid)])
+	check(found.size() >= 6, "the five home-world builders and the public works")
+
+
+func test_a_builder_that_ends_gives_back_the_jobs_it_has_not_started_and_claims_nothing() -> void:
+	# the user, 2026-11-18: "Nothing they are shut gone dead"; Otto's reading (d), with Wilma's yes: unstarted claims go
+	# back to the market; started jobs stay in its book
+	var w := _world()
+	var b := String(Building.builders(w)[0])
+	var q := {"builder": b, "bw_price": Company.price(w, b, "BW"), "total": 0, "start": w.month + 2}
+	var p_new := _plan(w, 40000)
+	var p_old := _plan(w, 40000)
+	var c_new := Building._sign(w, p_new, q)
+	var c_old := Building._sign(w, p_old, q)
+	w.table("plan")[p_new]["land_bought"] = true
+	w.table("contract")[c_new]["on_site"]["MATERIAL"] = 5 * S
+	w.table("contract")[c_old]["done"] = 3 * S   # started
+	w.table("contract")[c_old]["status"] = "WORKING"
+	var made := int(w.peek("plan")[p_new]["made"])
+	for pk in ["crew"]:
+		for t in ["G", "S", "Sp"]:
+			var n := Company.staff_count(w, b, t, pk) / S
+			if n > 0:
+				Households.layoff(w, b, pk, t, n, {"reason": "TEST"})
+	Company.set_level(w, b, "crew", 0)   # it asks for nobody, so it hires nobody back (no paper: adverts are free)
+	for i in Rules.CREWLESS_M - 1:
+		Rules.staff_to_posts(w, b)
+		check(String(w.peek("plan")[p_new]["status"]) == "SIGNED", "crewless, it keeps its claim while it lives")
+		check(not Building.builders(w).has(b), "but is no builder for a new claim: no crew to quote with")
+		w.month += 1
+	Rules.staff_to_posts(w, b)
+	check_eq(String(Company.record(w, b)["status"]), "ENDED", "six months crewless: ended")
+	check_eq(String(w.peek("plan")[p_new]["status"]), "MADE", "its unstarted claim is back on the market")
+	check_eq(int(w.peek("plan")[p_new]["made"]), made, "its year still counted from when it was made")
+	check_eq(String(w.peek("contract")[c_new]["status"]), "RELEASED", "that contract is released, nothing owed")
+	check_eq(Building.goods_on_sites(w)["MATERIAL"], 5 * S, "between release and a new claim the site's goods are still counted (Terra)")
+	var quoted: Array = Building.quotes(w, p_new)
+	var full := int(Building.estimate(w, "FARM", "FAMILY", String(w.peek("plan")[p_new]["area"]))["supplies"])
+	check(not quoted.is_empty() and int(quoted[0]["supplies"]) == full - 5 * S * Building.item_price(w, "MATERIAL", String(w.peek("plan")[p_new]["area"])) / S,
+		"and its quotes do not charge again for the goods on its site")
+	check_eq(int(w.peek("plan")[p_new]["site_goods"]["MATERIAL"]), 5 * S, "the supplies on its site go with the plan")
+	check_eq(String(w.peek("plan")[p_old]["status"]), "SIGNED", "a started job stays")
+	check(Building.book(w, b).has(c_old) and not Building.book(w, b).has(c_new), "in the ended builder's book")
+	check(not Building.builders(w, false).has(b), "an ended builder is no builder: it quotes and claims nothing")
+	Building.sign_round(w)
+	var p: Dictionary = w.peek("plan")[p_new]
+	check_eq(String(p["status"]), "SIGNED", "another builder claims it")
+	check(String(w.peek("contract")[String(p["contract"])]["builder"]) != b, "not the ended one")
+	check_eq(int(w.peek("contract")[String(p["contract"])]["on_site"]["MATERIAL"]), 5 * S, "with its supplies on site")
+	check_eq(Logbook.rows(w, {"kind": "SITE", "who": p_new, "what": "land bought"}).size(), 0, "and its land is not bought again")
+	check_eq(Building.goods_on_sites(w)["MATERIAL"], 5 * S, "the goods counted once")
+
+
+func test_a_released_plan_given_up_keeps_its_site_goods_counted_on_its_land() -> void:
+	# Terra's review: 60b, the land and what lies on the site are the founder's; the goods check sees them still
+	var w := _world()
+	var pid := _plan(w, 40000)
+	var p: Dictionary = w.table("plan")[pid]
+	p["land_bought"] = true
+	p["site_goods"] = {"MATERIAL": 3 * S, "COMPONENT": 0}
+	check_eq(Building.goods_on_sites(w)["MATERIAL"], 3 * S, "held by the released plan")
+	Building.give_up(w, pid, "listed a year and no builder claimed it")
+	check_eq(String(p["status"]), "GIVEN_UP", "given up")
+	check(not Site.of(w, pid).is_empty(), "its land stays the founder's")
+	check_eq(Building.goods_on_sites(w)["MATERIAL"], 3 * S, "and the goods on it stay counted")
 

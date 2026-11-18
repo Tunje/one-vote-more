@@ -81,9 +81,13 @@ static func company_month(world: WorldState, cid: String) -> void:
 		if String(item) == TypeTable.out_of(String(c["type"]), int(c["line"])):
 			output_rule(world, cid, sig, holding)
 	# The public works department (known by its origin mark, not its name) does not sell on a market: it builds only
-	# when the government commissions it (plan 99), so the price and output rules have nothing to read for it. Its
-	# crew stays and is paid until the government decides otherwise, which is the purse's business at step 8 (Wilma).
-	var public_works := String(c.get("origin", "")) == HomeBuilders.ORIGIN_PUBLIC
+	# when the government commissions it (plan 99), so it has no price rule. Its output level follows its own building
+	# signal as any builder's does, so with no commission its crew comes down, but never below PW_MIN_CREW (the user,
+	# 2026-11-18: "the communal builder owned by the government that goes down to one or two but never empty of
+	# employees"; Wilma's reading: as any builder, never below two, never ended).
+	var public_works := _public_works(world, cid)
+	if public_works and Company.works_as_crew(String(c["type"])):
+		output_rule(world, cid, building_signal(world, cid), false)
 	if String(TypeTable.way(String(c["type"]))["sells"]) == "BW" and not public_works:
 		# a builder runs the same price and output rules on its building work, from its own signal (Otto's
 		# Building.seller_signal, in Market.seller_signal's shape); it does not hold back (12.3, 22)
@@ -267,6 +271,12 @@ const STARTING_RENT_PM := 2000   # the user, 2026-11-18, after the 2x and 3.5x t
 ## the area's rent from the start (9.2, the user, 2026-11-18: "Place the goverment staff from startb with the builders
 ## and lets set their sallery at 2.5 from start same for builders that would mean they don't jump either from start").
 const PLACED_RENT_PM := 2500
+## The fewest the public works department keeps on its crew: it is never empty (the user, 2026-11-18: "the communal
+## builder owned by the government that goes down to one or two but never empty of employees"; two is Wilma's reading).
+const PW_MIN_CREW := 2
+## How many months in a row a crew company may stand with nobody on its crew before it is killed (the user, 2026-11-18:
+## "Six months crewless even when never had one kills the company").
+const CREWLESS_M := 6
 
 
 ## The hiring offer (rebuild-company.md 9.2, "How the hiring offer moves"; the user 2026-11-18, verbatim: "increases
@@ -423,7 +433,7 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 		for pk in keys:
 			for tier in ["G", "S", "Sp"]:
 				var n := Company.staff_count(world, cid, tier, String(pk)) / S
-				var go := (n * (due - paid) + due - 1) / due
+				var go := _may_lay_off(world, cid, String(pk), (n * (due - paid) + due - 1) / due)   # never the public works' last two
 				if go > 0:
 					Households.layoff(world, cid, String(pk), tier, go, {"reason": "UNPAID", "due": due, "paid": paid})
 			# nobody on its posts, hired or family; never a farm ("FARMS DON'T SHUT": its hands go, the farm and its family
@@ -433,6 +443,7 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 				Company.close_plant(world, String(pk), "NO_STAFF", {"due": due, "paid": paid})
 		Logbook.note(world, "RULE", cid, "19a could not pay its staff", {"due": due, "paid": paid})
 		world.table(Company.TABLE)[cid]["no_hiring_m"] = world.month   # no hiring this month: next month's offer holds
+		_end_empty_crew(world, cid)
 		_publish_layoffs(world, cid, staff0)
 		return
 	var ad := _advertised(world, cid)
@@ -455,8 +466,9 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 					slack[key] = world.month
 				var idle := world.month - int(slack[key]) + 1
 				var wg := layoff_weighing(world, cid, String(pk), tier, idle)
-				if bool(wg["lay_off"]):
-					Households.layoff(world, cid, String(pk), tier, have - w, wg.merged({"reason": "LEVEL"}))
+				var cut := _may_lay_off(world, cid, String(pk), have - w)   # never the public works' last two
+				if bool(wg["lay_off"]) and cut > 0:
+					Households.layoff(world, cid, String(pk), tier, cut, wg.merged({"reason": "LEVEL"}))
 					slack.erase(key)
 				else:
 					Logbook.note(world, "RULE", cid, "keeps its slack staff: a layoff costs more than their wages while idle",
@@ -478,7 +490,47 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 		if not seen.has(key):
 			ad.erase(key)   # a plant gone from the company: its open posts with it
 	_reopen_staffed(world, cid)
+	_end_empty_crew(world, cid)
 	_publish_layoffs(world, cid, staff0)
+
+
+## A company that works as a crew (Company.works_as_crew: its row sells building work; no type named) that stands with
+## nobody on its crew CREWLESS_M months in a row is killed: Company.end_company, and the jobs it claimed and has not
+## started go back to the market (Building.release_claims; Otto's reading (d)). The user, 2026-11-18 (rebuild-building
+## 4.6): "they have no 3mploees and should have shut"; "Nothing they are shut gone dead"; "Six months crewless even when
+## never had one kills the company". Wilma's reading: the count runs whether it lost its crew or never had one, and
+## starts again the month anyone is on the crew; during the six months it is a living company and may hire by the
+## rules as they stand. Nothing brings it back. Never the public works ("the communal builder owned by the government
+## that goes down to one or two but never empty of employees"). Counted once a month, from staff_to_posts.
+static func _end_empty_crew(world: WorldState, cid: String) -> void:
+	var c: Dictionary = world.table(Company.TABLE)[cid]
+	if not Company.works_as_crew(String(c["type"])) or not bool(c["crew_posts"]) or _public_works(world, cid):
+		return
+	var on := Company.staff_count(world, cid, "", "crew") + Company.family_count(world, cid, "", "crew")
+	if on > 0:
+		c.erase("crewless_since")
+		return
+	if not c.has("crewless_since"):
+		c["crewless_since"] = world.month
+	var months := world.month - int(c["crewless_since"]) + 1
+	if months < CREWLESS_M:
+		Logbook.note(world, "RULE", cid, "no one on its crew", {"months": months, "dies_at": CREWLESS_M})
+		return
+	if Company.end_company(world, cid, "NO_STAFF", {"crewless_months": months}):
+		(load(BUILDING_PATH) as GDScript).call("release_claims", world, cid)
+
+
+## The government's public works department (its origin mark, HomeBuilders.ORIGIN_PUBLIC; not a name).
+static func _public_works(world: WorldState, cid: String) -> bool:
+	return String(world.peek(Company.TABLE).get(cid, {}).get("origin", "")) == HomeBuilders.ORIGIN_PUBLIC
+
+
+## How many of a plant key's people a layoff may take at most: everyone, but for the public works' crew all but
+## PW_MIN_CREW ("goes down to one or two but never empty of employees").
+static func _may_lay_off(world: WorldState, cid: String, pk: String, n: int) -> int:
+	if pk != "crew" or not _public_works(world, cid):
+		return n
+	return clampi(Company.staff_count(world, cid, "", "crew") / S - PW_MIN_CREW, 0, n)
 
 
 ## A plant shut for want of staff (19a, NO_STAFF) opens again as soon as anyone is on its posts, hired or family (Wilma's

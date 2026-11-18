@@ -228,6 +228,27 @@ first that can take it wins; the plan waits, patient, and is not given up for fi
 
 ### 4.6 Working the book
 
+- **A builder with no employees shuts** (the user, 2026-11-18, verbatim, told that from month 15 to 59 the builders
+  stood with no crew, no money and their full posts open): "All of this is pointless they have no 3mploees and should have shut"
+  (that is, no employees). With "Plants should shut" and "FAMILY FARMS FAMILY FARMS don't shut" the same day. So a
+  builder left with nobody shuts, as a plant with nobody on it does (19a).
+  - **Nothing brings it back; the public works never empties** (the user, 2026-11-18, verbatim, asked what brings a
+    shut builder back): "Nothing they are shut gone dead, this is where opening of new companies comes in,  also the communal builder owned by the government that goes down to one or two but never empty of employees"
+    So a builder left with nobody is dead: it does not reopen. New builders come from founding new companies. The
+    government's public works department comes down to one or two employees but is never left with nobody.
+  - **Six months crewless kills it** (the user, 2026-11-18, verbatim, told that a crew company that never had anyone
+    would not end): "Six months crewless even when never had one kills the company"
+    So a crew company that stands with nobody on its crew six months in a row is killed (ENDED), whether it lost its
+    crew or never had one. **(Wilma's reading, marked as hers)** The count starts again the month anyone is on its crew;
+    during the six months it is a living company and may hire by the rules as they stand; it is no builder for a new
+    claim while it has no crew, and what it claimed and has not started goes back to the market when it ends. The
+    public works is never killed and never below two.
+  - **(Otto's readings, with Wilma's yes)** (a) as amended by the user's six months above: the count runs in any month
+    its crew stands at nobody, not only a month it could not pay (the words are "no employees"). (b) Shut,
+    it wants nobody: no posts, no advert, no opening. (d) The jobs it claimed and has not started go back to the
+    market, listed for every builder, their year counted from when the plan was made; the plan keeps the land it bought
+    and the supplies on its site. Jobs it had started stay in its book: the plan's words move a half-built building to
+    another plan (56, 60b), never to another builder.
 - **Each month a builder's crews go to its jobs in signing order** (12.9, 57). A job takes up to its planned BW a
   month. The rest go to the next job.
 - **A job that cannot work this month** (it waits for material, or is stopped unpaid) keeps its place in the book,
