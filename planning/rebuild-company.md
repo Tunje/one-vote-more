@@ -389,6 +389,12 @@ Terra's town grid (section 9.8).
         a debt (Maja pays it, Anni holds the debt).
       - *Hiring*: a company that cannot pay the adverts for the people it wants this month (Ella's
         Media.job_advert_cost) hires none that month; it pays the adverts for those actually hired.
+      - **The advert is paid once, when the post is opened** (the user, 2026-11-18, verbatim): "On posts when you many an open post you pay the first time not every consecutive month after"
+        About: family farms with open posts; Wilma had reported that 94 times a farm "could not pay the job adverts",
+        month after month for the same open post. So: when a company opens a post it pays for it the first time; it
+        does not pay again in the consecutive months the post stays open.
+        (Wilma's reading: the advert is paid in the month the post opens, whether or not anyone is hired that month,
+        and that open post costs nothing more until it is filled; a post that opens anew later is paid for anew.)
       - Every layoff decision's row carries idle, pay, layoff months, advert, training loss and price; a decision
         to keep slack staff is logged too.
   - **Negotiation with the manager** (the user, 2026-11-17, verbatim): "Lets as one more thing to the sallery, the manager, negotiation can bring it closer to avrage". An underpaid

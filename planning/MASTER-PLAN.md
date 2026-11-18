@@ -1000,6 +1000,15 @@ About: in the five-year run about 25 farm families with no money went hungry eve
 So: the farmers eat from what their own farm makes, first, before anything is sold. The user's numbers: they are three; they can make 30; they take six out of the thirty; they sell 24; that should be enough to hire one person. This was not in the rebuild papers and so was never built (Wilma's fault). Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e the same turn. Maja and Bob build it.
 
 
+### The rebuild: the job advert is paid once, when the post is opened (the user, 2026-11-18, verbatim)
+
+About: family farms with open posts; Wilma had reported that 94 times a farm "could not pay the job adverts" for a post that stayed open month after month.
+
+> On posts when you many an open post you pay the first time not every consecutive month after
+
+So: when a company opens a post it pays for it the first time; it does not pay again in the consecutive months the post stays open. Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Bob builds it.
+
+
 ### The rebuild: the rent is doubled (the user, 2026-11-18, verbatim)
 
 About: a household's food (152 a month) cost more than its rent (48 shelter, 97 house), so a starting salary of 3.5 x the rent was under what a household needs.
