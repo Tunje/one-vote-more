@@ -368,6 +368,12 @@ Terra's town grid (section 9.8).
   - **What "underpaid" is measured against** (the user, replacing Wilma's proposal of "what a new hire is offered"):
     "I think you should avrage ask salleries in the company and underpayed is based on that line,  that way both old and new can become underpayed". The line is the average of the salaries paid in the company. Anyone paid less than that line is
     underpaid, whether they were hired long ago at an old low salary or last month at a hiring salary that has fallen.
+    - **Specialists apart** (the user, 2026-11-18, verbatim, told that with one company-wide average a general worker
+      in a company with specialists would usually be under it): "Specialists spoilt have been counted seperatly"
+      (should have been counted separately). So a company has two lines: one over its specialists, one over everyone
+      else. (Wilma's reading, marked as hers: general and skilled are averaged together; a worker is underpaid
+      against the line of their own group.) This replaces the per-tier average that had been built from the proposal
+      below.
   - **Keeping workers: what a layoff and a hire cost** (the user, 2026-11-17). The job-length test had shown jobs
     lasting two to four months, most of them ended by a layoff the month output dipped. The user's ideas, verbatim:
     "I think we need something to motivate them to keep,  costs of hiring, articles in the newspaper interview and maybe 6 months training where they can't fire, also contracts should have clauses for payment after fire that way they would have to weigh say three months of vages without a worker against the profits they wroth would win? What do you think?"
@@ -447,6 +453,12 @@ Terra's town grid (section 9.8).
   3. When the post is filled that rise is gone: the next opening starts from the original rule again. Increases do
      not stack for separate offers.
   4. There is no rule for lowering the offer. (It was Wilma's suggestion, not the user's; it is removed.)
+  - **Built per opening** (the audit of 2026-11-18 found one climbed offer per company, tier and area, which every new
+    opening took too): each open post is its own opening with its own count of whole months unfilled; its offer is
+    the starting salary climbed 5% that many times; a new opening starts at the starting salary; a filled opening's
+    climb is gone with it. (Maja's readings, with Wilma's yes: (a) the dearest, longest-open openings are filled
+    first, as an applicant takes the better offer; (b) when a company wants fewer posts, the newest openings close
+    first; (c) a month in which the company could not pay its wages (19a) holds every opening's count.)
 - **The staff record: one row per hire** (the user, 2026-11-18). About: the game averaged the pay of everyone in a
   group of staff, so a newcomer at a lower pay cut those already there and nobody could be above or below the
   company's average. The user asked, verbatim: "Can we not make a 2d array to keep all things about the hires? Sallery start date so forth?"
@@ -810,19 +822,24 @@ is wrong; nothing here is asked again.
       TO THE FUCKING 5% CAP"). It was written here as 0.2 from a proposal; that was wrong. A small signal moves the price a little, a large one more,
       and never by more than k in a month. So there is a bound, the same both ways, as the user's rule nine asks.
     (This is the shape of the stock cut the user ordered into the price table on 2026-11-16.)
-15b. **(proposal, Bob, for step 3) How far OUTPUT moves in a month** under rules 3 and 4: by g x s / (1 + s) of the
-    present output, the same shape as the price rule. s for rule 3 is the orders it could not fill because it had sold
-    out, divided by what it sold; for rule 4, what it offered and did not sell, divided by what it sold. g is
-    0.05, the user's 5% (section 3, 2026-11-18: "25?! 5!!! CHANGE IT!!! STOP HEDGING"; it was written here as 0.25,
-    which was wrong). Output never goes above the plants' full output; more than that is rule 5. Why a number is needed: price and
-    output moving together settle only while k x e + g < 2, e being how sharply buyers react to price (an outside
-    mathematical review the user passed on, 2026-11-17). With k = 0.05 and g = 0.05 that holds for e below 39.
-    A market that swings beyond that is a result to report, not to prevent.
-    - **(Bob's reading, with Wilma's yes, 2026-11-18: a rounding matter)** Levels are whole per mille, so the change
-      is computed, not the new level. A cut is lv × g × s/(1+s) rounded down, so never more than 5% of the level. A
-      rise is g × s/(1+s) of the level, but of one post's share of full while the level is below that (5% of 0 is 0
-      forever, and a level walked down to nothing must be able to climb back), and at least 1 per mille, so a large
-      builder's crew (60 posts, one post's share 16 per mille) does not round to no rise at all (Terra's review).
+15b. **How far OUTPUT moves in a month** under rules 3 and 4: g = 0.05, the user's 5% (section 3, 2026-11-18: "25?!
+    5!!! CHANGE IT!!! STOP HEDGING"; it was written here as 0.25 from Bob's proposal, which was wrong).
+    - **Rule 3 (up):** the user, "if you sell out all your producing produce MORE". When a company sold out (everything
+      it offered sold, or nothing to offer while orders came), its output rises the whole 5% of the level; not while it
+      holds stock back (18). (Bob's reading, with Wilma's yes, 2026-11-18, from Terra's audit: as built before, output
+      rose only by g x s/(1+s) on orders left unfilled, so a company that sold out with no order left over did not
+      produce more.)
+    - **Rule 4 (down):** as the user ruled in section 3: only after over 50% of what was offered went unsold 3 months in
+      a row, by the whole 5%, and again each further month of the run.
+    - Output never goes above the plants' full output; more than that is rule 5.
+    - **(Bob's reading, with Wilma's yes, 2026-11-18: a rounding matter)** Levels are whole per mille, so the change is
+      computed, not the new level. A cut is 5% of the level rounded down, so never more than 5%. A rise is 5% of the
+      level, but at least 1 per mille, the smallest step a level has, so a level walked down to nothing climbs back
+      (from 0 to 1, then up). Only that one-per-mille step can pass 5%. (Before, a rise below one post's share of full
+      was taken on that share; Otto measured it at up to 12.5% of the level, past the user's 5%.)
+    - Why a number is needed (an outside mathematical review the user passed on, 2026-11-17): price and output moving
+      together settle only while k x e + g < 2, e being how sharply buyers react to price. With k = 0.05 and g = 0.05
+      that holds for e below 39. A market that swings beyond that is a result to report, not to prevent.
 15a. **Rule 7's signal, exactly.** Everything is in money per month.
     - The work: what buyers and clients in the area spent, or tried to spend, on what this type sells, averaged per
       month over the last twelve months, at today's prices.
@@ -838,9 +855,11 @@ is wrong; nothing here is asked again.
       covered: the share test below picks the size. In quantity, not money, so a dear month does not make the same
       food look like more work. It was not built before 2026-11-18; the share test alone stood in for it.
       - **(Bob's reading, with Wilma's yes, 2026-11-18) What a plant seen delivers:** a standing plant counts what it
-        made less what its family took (the family's food is not in the orders, 15e), averaged over its closed
-        months in the last twelve. A plant with no closed month yet, and plans booked or granted, count at their
-        size's full output, as they make nothing yet. Why: Wilma's five-year trace counted 41 farms at full output,
+        made less what its family took (the family's food is not in the orders, 15e), over the last twelve months,
+        each month it has not yet lived counted at its size's full output (Wilma, from Terra's trace: a farm founded
+        in autumn read at its winter yield, 3 to 4 a month, a tenth of a farm, and kept founding open to 63 farms).
+        So a new plant starts at full output and moves to what it really makes as its first year fills in. Plans
+        booked or granted count at their size's full output, as they make nothing yet. Why: Wilma's five-year trace counted 41 farms at full output,
         1,541 a month, while they really made about 750 (half-staffed, winter yields), so rule 8 said covered for 45
         months while every farm sold out and the colony went hungry. Made, not sold (Ella's review): food on offer
         that buyers could not or would not pay for still covers the work, and made counts carried stock once.
@@ -876,6 +895,31 @@ is wrong; nothing here is asked again.
       farm with no money still grows food.
     - **Food that came by ship is less wanted than food grown in the colony,** so households swap from the landed
       stock to the colony's farms sooner.
+    - **A family alone on its farm makes 20 at a minimum** (the user, 2026-11-18, verbatim, shown that a farm family is
+      mostly two working adults and a child, making about 19 a month alone where the user had said three make 30):
+      "Item 7, fine they can make 20 at a minimum you had said 3 family memers on a farm i assumed 3 adults"
+      So: with the family's two adults alone on it, the farm makes 20 at a minimum. The user had taken "three family
+      members" to be three adults; two working adults is accepted.
+      - **How (Wilma's choice (b), 2026-11-18; Bob's said/built):** a family farm is 1/6 of the 240-row: 4 posts and
+        37.6 at full staff (the 6% family-size penalty), 9.4 a post, so the family's two adults alone made 18.8 at a
+        yield of 1.0. "One farm worker feeds ten" gives 20; only the size penalty took it to 18.8. Both rulings are
+        kept whole: the family's own work on its farm counts at ten a worker, the row's output a worker with no size
+        penalty, and hired hands at a family farm make what the size gives (9.4), so the accepted penalty ("You
+        penalty is fine") stays on the size. The level's work is done by the family first, then by hired hands. Two
+        adults alone make 20, three make 30, two family and two hired make 38.8. "At a minimum" is the least staffing
+        (the family alone) at a yield of 1.0, not a floor under winter. (Not chosen: (a) no penalty for family farms,
+        which would strike an accepted ruling; (c) a larger farm row, which moves every farm and the FOOD price.)
+    - **The farm keeps a buffer before winnings** (the user, 2026-11-18, verbatim): "Wait you made it pay out all the money as winnings? I'm sorry i think i did not say the farm needs a buffer say 50% until it had 6 months worth built up then 10%"
+      About: winnings as built pay the family everything the month earned above one month of the farm's costs, so a
+      farm that then sells nothing for a few months has an empty account.
+      So: the farm keeps 50% until it has 6 months' worth built up, then it keeps 10%; the rest is the family's winnings.
+      (Wilma's reading, marked as mine: the 50% and the 10% are of what the month earned; "6 months worth" is six
+      months of the farm's own running costs.)
+      (Maja's readings, with Wilma's yes: "built up" is the farm's account before the month's winnings, the
+      founder's opening money included; it is a plain switch at the line, 50% below it and 10% at or above it. The
+      running cost is Rules.running_cost, which prices every post at the starting salary, the family's unpaid ones
+      too: for a family farm at the landing 902 a month, so the line is 5,415. The buffer replaces the one month of
+      costs the farm kept back before.)
     - **Farms don't shut** (the user, 2026-11-18, verbatim): "FARMS DON'T SHUT"
       About: a five-year run in which 40 family farms were shut for "no staff" within months of a glut (their hired
       hands laid off unpaid, the family still on the farm), and never opened again. The user had never ruled a farm
@@ -944,6 +988,19 @@ is wrong; nothing here is asked again.
     and cut its price by a fifth, and 158 contracts then locked that price below cost; and the builders' price then
     rose about 17% a month because the same waiting contracts were counted as unserved customers every month):
     "No they should not cut for the start, and they should not increase prices for claimed jobs".
+    The other half (the user, 2026-11-18, verbatim; Wilma had recorded only the first): "Should not raise from climed jobs is right open jobs in the market hoping to be claimed I'd what counts and i don't know why you only recorded half of that"
+    So: a claimed job does not raise a builder's price; the open jobs in the market hoping to be claimed are what
+    counts, and they raise it.
+    - **Builders do not claim without end** (the user, 2026-11-18, verbatim): "Builders did not claim infinitely in the build we talked about"
+      And the user's words of 2026-11-15, verbatim, found in the transcript and not written into the papers before: "What you just said about builders and no jobs show another fault, job cues, but firms cue work up we do this in three months, that's why businesses need to be plans,  also they compeete for jobs,  both have the job listed whoever gets their first wins,  competitiv buisness here but also patience they want fall for not fining jobs when 350 jobs just got canncled form not fining builders"
+      So: a builder claims only as much work as it queues up; the jobs it has not claimed stay open in the market,
+      listed for every builder, and whoever gets there first wins them; a plan that finds no builder is patient and
+      stays listed, it is not cancelled for it. How far a builder queues ("we do this in three months") is read in
+      rebuild-building.md 4.4.
+    - **How long a plan is listed, and how far a builder claims** (the user, 2026-11-18, verbatim): "A plan can be listed for a year before cancled and they only claim a year or too forwards"
+      Then (verbatim): "The or two should be up to the manager"
+      So: a plan stays listed for up to twelve months and is then cancelled; a builder claims a job only if it can
+      start it within one to two years, as its manager chooses.
     - A builder does not lower its price at the start, when no customer could exist yet.
     - A builder does not raise its price for jobs already claimed: work signed and waiting in its book is not a
       customer turned away.
@@ -1113,6 +1170,17 @@ is wrong; nothing here is asked again.
      zero and a new programme needs a new decision by the government. The window's length (24 months) is a starting
      number of ours.
 
+61c. **The government can stop founding by the grant or by the land** (the user, 2026-11-18, verbatim). First, shown
+     89 farms founded where about 27 feed the colony: "WHY IS THE GIVERMENT LETTING 89 BE FOUNDED THEN THEY CAN STOP THE FUCKING GRANT REMEBER????"
+     (Wilma failed to record this at the time.) Then, asked whether a farm should need a grant to be founded, since a
+     household with savings founds one without: "17. No when i said that i added or stopping land being allowed to be built on if a plot wants to be built in it needs to be bought that's from the government, the others yes they are outside so they wait"
+     So: no, a farm does not need a grant. The government can stop founding by stopping the grant, or by stopping land
+     being allowed to be built on. A plot that is to be built on has to be bought, and it is bought from the
+     government. The other audit items outside the farms wait.
+     How the government stops land (the user, 2026-11-18, verbatim, asked whether by zoning or by a plain stop on
+     selling land for a type): "Yes on zoning laws". So: by zoning, with the zoning laws.
+     (Wilma's reading: the AI government zones when it wants no more farms, by the count its grant uses.)
+
 61b. **A grant programme has a maximum sum** (the user, 2026-11-17, verbatim, after the first loop's run showed 158
      farm plans signed in two months for a colony that about 41 farms feed): "The government should  put a max sum into the grant based on how many darms they wantmaybe a little extra to be sure".
      So: when the government opens the farm grant it decides how many farms it wants and puts in the money for that
@@ -1168,6 +1236,9 @@ do and pays for; nothing is rescued automatically.
 77. **Management.** A company has a chief with a management skill and an appetite for risk. Management decides how much
     of a plant's normal output it really reaches and how well a founder reads rule 7's signal. Owners replace a chief
     whose company is doing badly.
+    - **A manager can press the plant** (the user, 2026-11-18, verbatim): "They can press the plant  and cause stress  and extra output his skill defines how much of each,  go back to the build instead"
+      So: pressing the plant causes stress and extra output, and the manager's skill defines how much of each.
+      Recorded only; it is built with the rest of 77 and with stress.
 78. **Upgrades.** A plant can be rebuilt to a better grade of the same size, taking less in or giving more out. It is a
     building job the company chooses when it pays.
 79. **Mothballing.** An owner may close a plant and keep it: no staff, a small upkeep cost, and it wears. Reopening

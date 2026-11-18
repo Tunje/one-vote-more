@@ -48,6 +48,9 @@ const K_PM := 50
 ## 2026-11-18, told it was built at 25%: "25?! 5!!! CHANGE IT!!! STOP HEDGING"). It was 0.25 from Bob's 15b proposal.
 ## Every output rule steps by it: rules 3 and 4 on plants and on crews.
 const G_PM := 50
+## Rule 4: output is lowered only after this many months in a row with over half of what was offered unsold (the user,
+## section 3, 2026-11-18: "only lowered if over 50% of offered goods is not sold 3 months in a row").
+const UNSOLD_MONTHS := 3
 ## The months of work rule 7 averages (15a: "averaged per month over the last twelve months").
 const WORK_MONTHS := 12
 ## Persons in a household for the needs line (the type table's 2.5), per mille.
@@ -161,18 +164,29 @@ static func hold_back(world: WorldState, cid: String, item: String, making: int)
 
 # ---------------------------------------------------------------- output: rules 3, 4
 
-## Rules 3 and 4 on every plant of a company (or on its crew, for a company with crew posts and no plant): up while it
-## sold out with orders left (not while it holds stock back), down while it offered and did not sell. Never above full.
-## A level rises by g·s/(1+s) of itself, but at least of one post's share of full: output comes in whole people, and a
-## level walked down to 0 must be able to climb back when it is asked for more (Otto's review).
+## Rules 3 and 4 on every plant of a company (or on its crew, for a company with crew posts and no plant): up the whole
+## 5% when it sold out (the user: "if you sell out all your producing produce MORE": everything it offered sold, or
+## nothing to offer while orders came), not while it holds stock back. Down only as the user ruled (section 3, rule 4,
+## 2026-11-18): "The production output is only lowered if over 50% of offered goods is not sold 3 months in a row";
+## in every other month unsold goods lower the price (rule 2) and the level stays. A month counts when more than half
+## of what it offered went unsold (exactly half does not; a month that offered nothing does not); any other month
+## starts the count again. The cut is the whole 5% (G_PM), and each further month of the run cuts 5% again (the user:
+## "A CUT IS 5% WHY IS THIS STILL A PROBLEM???? AND YES IF THERE'S IS A FOURTH MONTH LOWER AGAIN"). Never above full.
+## A rise is 5% of the level, at least 1 per mille (the smallest step a level has), so a level walked down to 0 climbs
+## back when it is asked for more and no rise passes the user's 5% except that one-per-mille step.
 static func output_rule(world: WorldState, cid: String, sig: Dictionary, holding: bool) -> void:
 	if sig.is_empty():
 		return
 	var sold := int(sig["sold"])
 	var unmet := int(sig["unmet_above"])
-	var unsold := int(sig["offered"]) - sold
-	var up := 0 if holding else step_pm(G_PM, unmet, sold)
-	var down := step_pm(G_PM, unsold, sold)
+	var offered := int(sig["offered"])
+	var unsold := offered - sold
+	# rule 3, the user: "if you sell out all your producing produce MORE": sold out is everything it offered sold, or
+	# nothing to offer while orders came; then up by the whole 5% (G_PM), not while it holds stock back (12.3, 18)
+	var sold_out := (offered > 0 and sold >= offered) or (offered == 0 and unmet > 0)
+	var up := G_PM if sold_out and not holding else 0
+	var run := _unsold_run(world, cid, offered > 0 and unsold * 2 > offered)
+	var down := G_PM if run >= UNSOLD_MONTHS else 0   # the whole 5%, each month of the run from the third
 	if up <= 0 and down <= 0:
 		return
 	var c: Dictionary = world.peek(Company.TABLE)[cid]
@@ -181,16 +195,29 @@ static func output_rule(world: WorldState, cid: String, sig: Dictionary, holding
 		keys = ["crew"]
 	for pk in keys:
 		var lv := Company.level_of(world, cid, String(pk))
-		var size := String(c["size"]) if String(pk) == "crew" else String(Company.plant(world, String(pk))["size"])
-		var posts := TypeTable.posts(String(c["type"]), size, int(c["line"]))
-		var n := maxi(1, int(posts["G"]) + int(posts["S"]) + int(posts["Sp"]))
 		# the change is computed, not the new level (Terra's review; the user: "NO ROUNDING ERRORS"): a cut is floored, so
-		# never more than 5% of the level; a rise is at least 1 per mille, so a level whose step rounds to nothing (a large
-		# builder's crew of 60 posts below 20 per mille) can still climb
-		var new_lv := mini(1000, lv + maxi(1, maxi(lv, 1000 / n) * up / 1000)) if up > 0 else lv - lv * down / 1000
+		# never more than 5% of the level; a rise is 5% of the level (Otto measured the old "one post's share" base at up
+		# to 12.5% of a low level), but at least 1 per mille, the smallest step a level has, so a level at 0 still climbs
+		var new_lv := mini(1000, lv + maxi(1, lv * up / 1000)) if up > 0 else lv - lv * down / 1000
 		if new_lv != lv:
 			Company.set_level(world, cid, String(pk), new_lv, {"rule": "R3" if up > 0 else "R4", "sold": sold, "unmet_above": unmet,
-				"unsold": unsold, "step_pm": up if up > 0 else down, "holding": holding})
+				"unsold": unsold, "step_pm": up if up > 0 else down, "holding": holding, "months_over_half": run})
+
+
+## The months in a row, this one included, that a company offered goods and more than half went unsold (rule 4, the
+## user: "over 50% of offered goods is not sold 3 months in a row"). Counted once a month: a second call in the same
+## month recounts from the months before it. 0 when this month does not count.
+static func _unsold_run(world: WorldState, cid: String, over_half: bool) -> int:
+	var c: Dictionary = world.table(Company.TABLE)[cid]
+	var run: Dictionary = c.get("unsold_run", {"m": -99, "n": 0, "before": 0})
+	var before := 0
+	if int(run["m"]) == world.month - 1:
+		before = int(run["n"])
+	elif int(run["m"]) == world.month:
+		before = int(run["before"])
+	var n := before + 1 if over_half else 0
+	c["unsold_run"] = {"m": world.month, "n": n, "before": before}
+	return n
 
 
 # ---------------------------------------------------------------- the hiring offer (9.2, replacing rules 1, 2, 9)
@@ -609,10 +636,52 @@ static func pay_winnings(world: WorldState) -> void:
 
 # ---------------------------------------------------------------- rules 7 and 8: the founding signal
 
+## What a company brings to the market of the item a month (milli-units), over the last WORK_MONTHS: in each closed
+## month there, what it made less what its family took (the family's food is not in the orders, 15e); each month it
+## has not yet lived counts at `full`, its plants' full output (Wilma, from Terra's trace: a farm founded in autumn
+## was read at its winter yield, 3 to 4 a month, a tenth of a farm, and kept founding open). So a new plant starts at
+## full output and moves to what it really makes as its first year fills in; with no closed month it is its full
+## output. Rule 8's capacity for a standing plant: what it really delivers, not what it could make at full output
+## (Wilma's trace: 41 farms "at full output" 1,541 a month, really making about 750). Made, not sold: food on offer
+## that buyers could not or would not pay for still covers the work (Ella's review, Wilma's yes), and made counts
+## carried stock once, in the month it was made.
+static func _delivered_a_month(world: WorldState, cid: String, item: String, full: int) -> int:
+	var sum := 0
+	var n := 0
+	for m in world.peek(Company.TABLE).get(cid, {}).get("books", {}).get("year", []):
+		if int(m.get("m", -1)) > world.month - WORK_MONTHS:
+			sum += int(m.get("made:" + item, 0)) - int(m.get("took:" + item, 0))
+			n += 1
+	return (sum + maxi(0, WORK_MONTHS - n) * full) / WORK_MONTHS
+
+
+## A plan's full output a month by its sixths (plans carry their size as sixths): the size with those sixths.
+static func _full_of_sixths(type: String, sixths: int) -> int:
+	for size in TypeTable.SIZES:
+		if TypeTable.sixths(size) == sixths:
+			return TypeTable.output_milli(type, size)
+	return 0
+
 ## Rule 7's work for a type in an area (15a), milli-credits a month: what buyers ordered of the item the type makes
 ## (what they spent or tried to spend), averaged over up to the last WORK_MONTHS settled months, at today's price
 ## (the cheapest offer there, else the starting price). 0 for a type that sells no item (services come with step 4).
 static func work(world: WorldState, type: String, area: String) -> int:
+	var item := TypeTable.out_of(type, 0)
+	if not TypeTable.is_item(item):
+		return 0
+	var qty := work_qty(world, type, area)
+	var offs := Market.offers(world, item, area)
+	var price := TypeTable.start_price(item) if offs.is_empty() else int(offs[0]["price"])
+	return qty * price / S
+
+
+## Rule 7's work in quantity (15a): the item ordered in the area a month, milli-units, "averaged per month over the
+## last twelve months": the last WORK_MONTHS settled months summed over WORK_MONTHS. In the colony's first year the
+## months before it count at the need the government counts for its grant (12.9, 61b; Grants.wanted: the persons who
+## buy the item x a person's need), the plan's month-one answer (Bob's reading, Wilma's yes): so the first months'
+## store filling (households buy double until six months are held, 15f) is not read as a year of it, and founding does
+## not wait for the year to fill. 0 for a type that sells no item. Rule 8 reads it against what the plants seen make.
+static func work_qty(world: WorldState, type: String, area: String) -> int:
 	var item := TypeTable.out_of(type, 0)
 	if not TypeTable.is_item(item):
 		return 0
@@ -622,19 +691,23 @@ static func work(world: WorldState, type: String, area: String) -> int:
 	var qty := 0
 	for m in h:
 		qty += int(m["ordered"])
-	qty /= h.size()
-	var offs := Market.offers(world, item, area)
-	var price := TypeTable.start_price(item) if offs.is_empty() else int(offs[0]["price"])
-	return qty * price / S
+	var need := 0   # a month before the colony: the persons in the area x a person's need (0 for an item no household needs)
+	if Households.NEED_PER_PERSON.has(item):
+		for b in Households.buyers(world):
+			if String(b["area"]) == area:
+				need += int(b["persons"]) * int(Households.NEED_PER_PERSON[item])
+	qty += maxi(0, WORK_MONTHS - h.size()) * need
+	return qty / WORK_MONTHS
 
 
-## What a company of this type and size costs to run a month at full, milli-credits: its posts at the starting
-## salaries, its inputs at today's offers (the starting price where none), and its upkeep.
+## What a company of this type and size costs to run a month at full, milli-credits: its posts at the area's starting
+## salaries (Rules.starting_salary, the user's 2 x the rent, 9.2; it read the type table's 300 before, which is no
+## salary anyone is offered), its inputs at today's offers (the starting price where none), and its upkeep.
 static func running_cost(world: WorldState, type: String, size: String, area: String) -> int:
 	var cost := 0
 	var posts := TypeTable.posts(type, size)
 	for t in posts:
-		cost += int(posts[t]) * TypeTable.salary(String(t))
+		cost += int(posts[t]) * starting_salary(world, area, String(t))
 	var inp := TypeTable.inputs_milli(type, size)
 	for k in inp:
 		var offs := Market.offers(world, String(k), area)
@@ -647,12 +720,21 @@ static func running_cost(world: WorldState, type: String, size: String, area: St
 
 ## Rules 7 and 8 (15a): for each size, the newcomer's share of the work (its plant's sixths over every plant of the type
 ## serving the area, its own included; plans do not count) and whether that share covers what a company of that size
-## costs to run. {size: {"work_share", "cost", "covers"}}. A founder plans the largest size that covers and that their
+## costs to run. {size: {"work_share", "cost", "covers"}}. Rule 8 first (the user: do not start one when "the same
+## signal says the work is covered"): when what the plants a founder sees deliver a month reaches the work in quantity
+## a month (work_qty), the work is covered and no size covers. A standing plant counts what its company really delivered a
+## month over the last twelve, made less its family's take, each month it has not yet lived at its full output
+## (_delivered_a_month);
+## booked and granted plans count at full output (they make nothing yet). In quantity, not money: a dear month does not make the same food look like more work (Wilma's
+## fault: the colony founded two to three times the farms it needs). A founder plans the largest size that covers and that their
 ## money reaches; the founder's own reading (12.11, 77) bends it on their side. log_row false: a plain read (a plan's
 ## re-read before signing), with no row.
 static func founding(world: WorldState, type: String, area: String, log_row: bool = true, except_plan: String = "") -> Dictionary:
 	var w := work(world, type, area)
 	var standing := 0
+	var capacity := 0   # what every plant seen delivers a month, milli-units (rule 8)
+	var item := TypeTable.out_of(type, 0)
+	var full_of := {}   # a company's plants that make the item, at full output: its delivery is read once (below)
 	for pid in Company.plant_ids(world):
 		var p := Company.plant(world, String(pid))
 		if String(p["type"]) != type or bool(p["closed"]):
@@ -660,6 +742,12 @@ static func founding(world: WorldState, type: String, area: String, log_row: boo
 		if String(world.peek(Company.TABLE)[p["company"]]["area"]) != area:
 			continue
 		standing += int(p["sixths"])
+		var line := int(world.peek(Company.TABLE)[p["company"]]["line"])
+		if TypeTable.out_of(type, line) != item:
+			continue   # only a line that makes the item the work is in counts toward it (Ella)
+		full_of[p["company"]] = int(full_of.get(p["company"], 0)) + TypeTable.output_milli(type, String(p["size"]), line)
+	for cid in CoreUtil.sorted_keys(full_of):
+		capacity += _delivered_a_month(world, String(cid), item, int(full_of[cid]))
 	# "It does not see plans made, but they do see plans booked on builders notes and plans that have accepted
 	# grants" (the user, plan 12.3 15a): a plan in a builder's book, or a plan still MADE that has its grant, counts
 	# by its size as a plant would, each plan once; a plan only made does not. except_plan: the plan re-reading rule 7
@@ -668,21 +756,27 @@ static func founding(world: WorldState, type: String, area: String, log_row: boo
 	var granted := 0
 	if ResourceLoader.exists(BUILDING_PATH):
 		var b: GDScript = load(BUILDING_PATH)   # building.gd preloads this file, so it is loaded, not preloaded
-		booked = int(b.call("booked", world, type, area, except_plan))
+		var bp: Dictionary = b.call("booked_plans", world, type, area, except_plan)
+		for plan_id in bp:
+			booked += int(bp[plan_id])
+			capacity += _full_of_sixths(type, int(bp[plan_id]))
 		var made: Dictionary = b.call("made_plans", world, type, area, except_plan)
 		var with_grant: Dictionary = Grants.granted_plans(world)
 		for plan_id in made:
 			if with_grant.has(plan_id):
 				granted += int(made[plan_id])
+				capacity += _full_of_sixths(type, int(made[plan_id]))
 	var have := standing + booked + granted
+	var wq := work_qty(world, type, area)
+	var covered := capacity >= wq
 	var out := {}
 	for size in TypeTable.SIZES:
 		var six := TypeTable.sixths(size)
 		var share := w * six / (have + six)
 		var cost := running_cost(world, type, size, area)
-		out[size] = {"work_share": share, "cost": cost, "covers": share >= cost}
+		out[size] = {"work_share": share, "cost": cost, "covers": share >= cost and not covered}
 	if log_row:
 		Logbook.note(world, "RULE", type, "R7/8 founding signal", {"area": area, "work": w, "plants_sixths": have,
-			"standing": standing, "booked": booked, "granted": granted},
+			"standing": standing, "booked": booked, "granted": granted, "work_qty": wq, "capacity": capacity, "covered": covered},
 			{"covers": [{}, out.keys().filter(func(s): return out[s]["covers"])]})
 	return out

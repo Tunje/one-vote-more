@@ -341,6 +341,15 @@ crime, defamation, the government's unlawful acts, appeals.
      forbidden **(Anni's decision)**.
 5. **Zoning** (`UNZONED`, `RESIDENTIAL`, `INDUSTRIAL`, `FARM`, `RESERVE`) is the government's. Unzoned land allows every
    use. A zone that does not allow a type is not a ban on the type: the type may build in another zone.
+   - **61c, ruled 2026-11-18.** The user, verbatim: "17. No when i said that i added or stopping land being allowed to
+     be built on if a plot wants to be built in it needs to be bought that's from the government, the others yes they
+     are outside so they wait"; then: "Yes on zoning laws". The government can stop founding by zoning: land it zones
+     against a type is not built on by that type. This answers the sentence above where the two differ.
+   - How (Anni's decisions, not the user's words):
+     - one colony-wide act zones the colony's own unsold land (title "gov", OWNED, no zone of its own), in one record;
+     - the zone is `INDUSTRIAL`, which refuses farms;
+     - lifting it clears the record;
+     - a caretaker government cannot zone or lift (`CARETAKER_LIMITS`, kept code).
 6. **Lease arrears:** a lessee behind on rent for `LAW_EVICTION_NOTICE_MONTHS` loses the lease. The old fixed 3 months
    goes **(Anni's decision)**. Land with people on it then goes to an eviction (section 9).
 7. **Expropriation** for public works, at the land's value, with rehousing or a court order for anyone living on it

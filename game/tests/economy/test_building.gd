@@ -208,7 +208,14 @@ func test_a_plan_given_up_before_signing_spends_nothing() -> void:
 	var w := _world()
 	var pid := _plan(w, 40000)
 	var founder := String(w.peek("plan")[pid]["founder"])
-	_work(w, 0)   # the work is no longer there
+	# the work is no longer there: a whole year of no orders (a single empty month would leave the eleven before the
+	# colony counted at its eating need, Rules.work_qty, 15a)
+	var area := AreaStore.found_landing(w)
+	var sums := {}
+	for m in range(w.month - 11, w.month + 1):
+		sums[str(m)] = {"FOOD|" + area: {"ordered": 0, "filled": 0, "paid": 0,
+			"unfilled": {"NO_MONEY": 0, "PRICE": 0, "SOLD_OUT": 0, "NO_SELLER": 0}, "store_wished": 0, "store_short": 0}}
+	w.table("market")["sum"] = sums
 	Building.sign_round(w)
 	check_eq(String(w.peek("plan")[pid]["status"]), "GIVEN_UP", "given up")
 	check(Site.of(w, pid).is_empty(), "the site is free again")

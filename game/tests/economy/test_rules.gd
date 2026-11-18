@@ -110,13 +110,13 @@ func test_output_moves_by_g_s_over_one_plus_s_and_never_above_full() -> void:
 	# g is the user's 5% (section 3, 2026-11-18: "25?! 5!!! CHANGE IT!!! STOP HEDGING")
 	Company.set_level(w, f[0], f[1], 800)
 	Rules.output_rule(w, f[0], {"offered": 10 * S, "sold": 10 * S, "unmet_above": 10 * S, "refused": 0}, false)
-	check_eq(Company.level_of(w, f[0], f[1]), 800 * (1000 + 25) / 1000, "up by 5% × 1/2")
+	check_eq(Company.level_of(w, f[0], f[1]), 840, "sold out: up by the whole 5% (rule 3, the user: \"if you sell out all your producing produce MORE\")")
 	Company.set_level(w, f[0], f[1], 990)
 	Rules.output_rule(w, f[0], {"offered": 10 * S, "sold": 10 * S, "unmet_above": 100 * S, "refused": 0}, false)
 	check_eq(Company.level_of(w, f[0], f[1]), 1000, "never above full")
 	Rules.output_rule(w, f[0], {"offered": 10 * S, "sold": 10 * S, "unmet_above": 100 * S, "refused": 0}, false)
-	Rules.output_rule(w, f[0], {"offered": 40 * S, "sold": 10 * S, "unmet_above": 0, "refused": 0}, false)
-	check_eq(Company.level_of(w, f[0], f[1]), 1000 * (1000 - 50 * 30 / 40) / 1000, "down by 5% × 3/4")
+	_three_months(w, f[0], {"offered": 40 * S, "sold": 10 * S, "unmet_above": 0, "refused": 0})
+	check_eq(Company.level_of(w, f[0], f[1]), 950, "three months 3/4 unsold: down by the whole 5%")
 	var lv := Company.level_of(w, f[0], f[1])
 	Rules.output_rule(w, f[0], {"offered": 10 * S, "sold": 10 * S, "unmet_above": 10 * S, "refused": 0}, true)
 	check_eq(Company.level_of(w, f[0], f[1]), lv, "rule 3 does not act while it holds stock back (12.3, 18)")
@@ -127,7 +127,7 @@ func test_a_level_walked_down_to_nothing_climbs_back_when_asked() -> void:
 	var f := _farm(w, 6, 2)
 	Company.set_level(w, f[0], f[1], 0)
 	Rules.output_rule(w, f[0], {"offered": 0, "sold": 0, "unmet_above": 30 * S, "refused": 0}, false)
-	check(Company.level_of(w, f[0], f[1]) > 0, "from 0 it rises by at least one post's share (now %d)" % Company.level_of(w, f[0], f[1]))
+	check_eq(Company.level_of(w, f[0], f[1]), 1, "from 0 it rises by one per mille, the smallest step there is: it never sticks at 0")
 
 
 func test_builders_run_the_same_rules_on_their_crew_and_their_making_price() -> void:
@@ -136,7 +136,7 @@ func test_builders_run_the_same_rules_on_their_crew_and_their_making_price() -> 
 	Company.staff_change(w, b, "crew", "G", "landing|I2|G", 12 * S, 300 * S, 0)
 	Company.book(w, b, "wages_due", 3600 * S)
 	check_eq(Making.making_price(w, b), 3600 * S * S / TypeTable.output_milli("BUILDER", "SMALL"), "a builder's making price over its crew's full output")
-	Rules.output_rule(w, b, {"offered": 20 * S, "sold": 10 * S, "unmet_above": 0, "refused": 0}, false)
+	_three_months(w, b, {"offered": 30 * S, "sold": 10 * S, "unmet_above": 0, "refused": 0})
 	check(Company.level_of(w, b, "crew") < 1000, "empty crews: its crew level falls (rule 4)")
 	check(Rules.building_signal(w, b).is_empty(), "no signal until the building side is in the tree")
 
@@ -281,7 +281,7 @@ func test_rule_7_reads_the_work_and_rule_8_says_when_it_is_covered() -> void:
 	var acct := "hh:test"
 	w.ledger.open_account(acct)
 	w.ledger.transfer(Ledger.EXTERNAL, acct, 100000000 * S, "TEST", 0)
-	for m in 3:
+	for m in Rules.WORK_MONTHS:   # a full year of orders
 		w.month = m
 		Market.order(w, {"kind": "POOL", "id": "pool", "acct": acct, "area": "landing"}, "FOOD", 1000 * S, 100 * S)
 		Market.clear(w)
@@ -306,7 +306,7 @@ func test_founding_sees_plans_booked_with_a_builder_and_plans_with_a_grant_not_p
 	var acct := "hh:test"
 	w.ledger.open_account(acct)
 	w.ledger.transfer(Ledger.EXTERNAL, acct, 100000000 * S, "TEST", 0)
-	for m in 3:
+	for m in Rules.WORK_MONTHS:   # a full year of orders
 		w.month = m
 		Market.order(w, {"kind": "POOL", "id": "pool", "acct": acct, "area": "landing"}, "FOOD", 1000 * S, 100 * S)
 		Market.clear(w)
@@ -642,12 +642,77 @@ func test_an_output_level_never_moves_more_than_five_percent_in_a_month_up_or_do
 	Rules.output_rule(w, f[0], {"offered": 0, "sold": 0, "unmet_above": 1000 * S, "refused": 0}, false)
 	check_eq(Company.level_of(w, f[0], f[1]), 630, "everything wanted, nothing to sell: 5% up")
 	Company.set_level(w, f[0], f[1], 600)
-	Rules.output_rule(w, f[0], {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0}, false)
+	_three_months(w, f[0], {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0})
 	check_eq(Company.level_of(w, f[0], f[1]), 570, "nothing sold of a mountain: 5% down")
 	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
 	Company.set_level(w, b, "crew", 600)
-	Rules.output_rule(w, b, {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0}, false)
+	_three_months(w, b, {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0})
 	check_eq(Company.level_of(w, b, "crew"), 570, "a builder's crew the same: 5%")
+
+
+func _large_farm(w: WorldState) -> String:
+	var id := Company.create(w, "FARM", "LARGE", HW, "L", {"area": "landing"})
+	Company.add_plant(w, id, "LARGE")
+	return id
+
+
+func test_rule_8_no_plan_while_the_plants_seen_can_make_the_work_in_food() -> void:
+	# rule 8, the user: do not start one when "the same signal says the work is covered": the FOOD ordered a month
+	# against the full output a month of every plant a founder sees (standing, booked, granted); quantity, not money
+	var w := _w()
+	var stores := Company.create(w, "SHOP", "LARGE", HW, "Stores", {"area": "landing"})
+	Company.stock_add(w, stores, "FOOD", 100000 * S, 10 * S, "LANDING", "x")
+	Company.offer(w, stores, "FOOD", TypeTable.start_price("FOOD"))
+	var acct := "hh:test"
+	w.ledger.open_account(acct)
+	w.ledger.transfer(Ledger.EXTERNAL, acct, 100000000 * S, "TEST", 0)
+	for m in Rules.WORK_MONTHS:   # a full year of orders
+		w.month = m
+		Market.order(w, {"kind": "POOL", "id": "pool", "acct": acct, "area": "landing"}, "FOOD", 1000 * S, 100 * S)
+		Market.clear(w)
+	check_eq(Rules.work_qty(w, "FARM", "landing"), 1000 * S, "the work: 1,000 FOOD a month")
+	for i in 4:
+		_large_farm(w)   # 4 x 240 = 960 a month: not covered
+	var f := Rules.founding(w, "FARM", "landing")
+	check(bool(f["FAMILY"]["covers"]), "960 of 1,000 made: not covered, rule 7 sizes as before")
+	var row: Dictionary = Logbook.rows(w, {"kind": "RULE"})[-1]
+	check_eq([int(row["why"]["work_qty"]), int(row["why"]["capacity"]), bool(row["why"]["covered"])], [1000 * S, 960 * S, false], "the row says what it compared")
+	w.table("plan")["plan:1"] = {"id": "plan:1", "type": "FARM", "size": "SMALL", "area": "landing", "status": "SIGNED"}
+	var g := Rules.founding(w, "FARM", "landing")
+	for size in TypeTable.SIZES:
+		check(not bool(g[size]["covers"]), "960 standing + a booked small farm's 76.8: covered, no plan of any size (%s)" % size)
+	w.month = Rules.WORK_MONTHS
+	for i in 3:
+		Market.order(w, {"kind": "POOL", "id": "pool", "acct": acct, "area": "landing"}, "FOOD", 1000 * S, 1000 * S)
+	Market.clear(w)
+	w.table("plan")["plan:1"]["status"] = "GIVEN_UP"
+	Company.set_price(w, stores, "FOOD", 200 * TypeTable.start_price("FOOD") / 100)
+	var before := int(Rules.work(w, "FARM", "landing"))
+	check(bool(Rules.founding(w, "FARM", "landing")["FAMILY"]["covers"]), "the price doubled and the work is 1,167 a month over the last twelve: still in food, not covered")
+	check(before > 0, "money work is still there for rule 7's sizing: %d" % before)
+
+
+func test_rule_8_in_a_new_game_no_farm_is_planned_while_the_farms_standing_cover_the_work() -> void:
+	var sim := GameSim.make(1)
+	var w := sim.world
+	var land := AreaStore.found_landing(w)
+	for i in 5:
+		var id := Company.create(w, "FARM", "LARGE", HW, "Farm %d" % i, {"area": land})
+		var pid := Company.add_plant(w, id, "LARGE")
+		# each fully staffed (trained, in place), so it makes its 240 this month: what it brings to the market is what
+		# rule 8 counts, 5 x 240 = 1,200 against month 0's work of (2,000 + 11 x 1,000) / 12
+		for tier in ["G", "S", "Sp"]:
+			var n := int(TypeTable.posts("FARM", "LARGE")[tier])
+			if n > 0:
+				Company.staff_change(w, id, pid, tier, "%s|I2|%s" % [land, tier], n * S, 300 * S, 0)
+	var plans := w.table("plan").size()
+	sim.step()
+	check_eq(w.table("plan").size(), plans, "no farm plan made: the work is covered")
+	var rows: Array = Logbook.rows(w, {"kind": "RULE", "who": "FARM", "from": w.month - 1, "to": w.month - 1})
+	check(not rows.is_empty() and bool(rows[-1]["why"]["covered"]), "rule 8 said covered: %s" % (str(rows[-1]["why"]) if not rows.is_empty() else "no row"))
+	var sim2 := GameSim.make(1)
+	sim2.step()
+	check(sim2.world.table("plan").size() > 0, "the same game without those farms plans farms (%d)" % sim2.world.table("plan").size())
 
 
 func test_a_family_on_the_skilled_post_is_not_doubled_by_a_stranger_on_a_general_one() -> void:
@@ -675,6 +740,33 @@ func test_a_family_on_the_skilled_post_is_not_doubled_by_a_stranger_on_a_general
 	check_eq(Company.hire_wanted(w, f[0], f[1]), {"G": 3, "S": 0, "Sp": 0}, "full: the three general posts the family leaves")
 
 
+func test_the_work_in_the_first_year_counts_the_months_before_the_colony_at_its_eating_need() -> void:
+	# 15a: "averaged per month over the last twelve months"; the months before the colony count at the need the
+	# government counts for its grant (61b, Bob's reading with Wilma's yes): the first months' store filling (2,000 a
+	# month against an eating need of 1,000) is not read as a year of it, and founding does not wait for a year
+	var w := _w()
+	var stores := Company.create(w, "SHOP", "LARGE", HW, "Stores", {"area": "landing"})
+	Company.stock_add(w, stores, "FOOD", 100000 * S, 10 * S, "LANDING", "x")
+	Company.offer(w, stores, "FOOD", TypeTable.start_price("FOOD"))
+	var acct := "hh:test"
+	w.ledger.open_account(acct)
+	w.ledger.transfer(Ledger.EXTERNAL, acct, 100000000 * S, "TEST", 0)
+	Households.seed_test(w, "landing", "I2", "G", 1000)
+	var need := 0
+	for b in Households.buyers(w):
+		if String(b["area"]) == "landing":
+			need += int(b["persons"]) * int(Households.NEED_PER_PERSON["FOOD"])
+	check(need > 0, "the landing's eating need: %d" % need)
+	Market.order(w, {"kind": "POOL", "id": "pool", "acct": acct, "area": "landing"}, "FOOD", 2000 * S, 100 * S)
+	Market.clear(w)
+	check_eq(Rules.work_qty(w, "FARM", "landing"), (2000 * S + 11 * need) / 12, "month 0: the 2,000 ordered and eleven months at the eating need")
+	for m in range(1, 12):
+		w.month = m
+		Market.order(w, {"kind": "POOL", "id": "pool", "acct": acct, "area": "landing"}, "FOOD", (2000 if m < 6 else 1000) * S, 100 * S)
+		Market.clear(w)
+	check_eq(Rules.work_qty(w, "FARM", "landing"), (6 * 2000 + 6 * 1000) * S / 12, "a full year: only the months lived, 1,500 a month")
+	check_eq(Rules.work_qty(w, "CLINIC", "landing"), 0, "a type that sells no item: none")
+
 func test_an_output_step_never_rounds_to_nothing_up_or_past_five_percent_down() -> void:
 	# Terra's review: per mille levels truncated, so a large builder's crew (60 posts: one post's share 16 per mille,
 	# 16 x 5% = 0) at 19 or less never climbed, and a small level kept by flooring lost more than 5%
@@ -684,10 +776,10 @@ func test_an_output_step_never_rounds_to_nothing_up_or_past_five_percent_down() 
 	Rules.output_rule(w, b, {"offered": 0, "sold": 0, "unmet_above": 1000 * S, "refused": 0}, false)
 	check(Company.level_of(w, b, "crew") > 10, "a large crew at 10 per mille climbs (now %d)" % Company.level_of(w, b, "crew"))
 	Company.set_level(w, b, "crew", 19)
-	Rules.output_rule(w, b, {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0}, false)
+	_three_months(w, b, {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0})
 	check_eq(Company.level_of(w, b, "crew"), 19, "19 per mille: 5% of it is under one per mille, so it keeps 19 (never more than 5% off)")
 	Company.set_level(w, b, "crew", 100)
-	Rules.output_rule(w, b, {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0}, false)
+	Rules.output_rule(w, b, {"offered": 1000 * S, "sold": 0, "unmet_above": 0, "refused": 0}, false)   # its run goes on: a fourth month
 	check_eq(Company.level_of(w, b, "crew"), 95, "100: 5% off, 95")
 
 
@@ -737,3 +829,140 @@ func test_a_job_advert_is_paid_once_when_the_post_opens_not_every_month_it_stays
 	Company.close_month(w, b)
 	Rules.staff_to_posts(w, b)
 	check_eq(int(Company.books_month(w, b).get("adverts", 0)), 0, "and not the month after")
+
+
+func test_rule_8_reads_what_the_plants_seen_actually_deliver_not_their_full_output() -> void:
+	# rule 8, the user: "the same signal says the work is covered": the work is covered when what the plants seen deliver
+	# meets what is ordered (Wilma's trace: 41 farms "at full output" 1,541 a month while they sold about 750)
+	var w := _w()
+	var stores := Company.create(w, "SHOP", "LARGE", HW, "Stores", {"area": "landing"})
+	Company.stock_add(w, stores, "FOOD", 100000 * S, 10 * S, "LANDING", "x")
+	Company.offer(w, stores, "FOOD", TypeTable.start_price("FOOD"))
+	var acct := "hh:test"
+	w.ledger.open_account(acct)
+	w.ledger.transfer(Ledger.EXTERNAL, acct, 100000000 * S, "TEST", 0)
+	var farms: Array = []
+	for i in 5:
+		farms.append(_large_farm(w))   # 5 x 240 = 1,200 a month at full output
+	for m in Rules.WORK_MONTHS:
+		w.month = m
+		Market.order(w, {"kind": "POOL", "id": "pool", "acct": acct, "area": "landing"}, "FOOD", 1000 * S, 100 * S)
+		Market.clear(w)
+		for f in farms:
+			Company.book(w, f, "made:FOOD", 120 * S)   # each really makes 120 a month, its family takes 20, it sells 30
+			Company.book(w, f, "took:FOOD", 20 * S)
+			Company.book(w, f, "sold:FOOD", 30 * S)
+			Company.close_month(w, f)
+	var f := Rules.founding(w, "FARM", "landing")
+	var row: Dictionary = Logbook.rows(w, {"kind": "RULE"})[-1]
+	check_eq(int(row["why"]["capacity"]), 500 * S, "what the five brought to the market a month, 5 x (120 - 20), not their 1,200 at full output nor the 150 they sold")
+	check(not bool(row["why"]["covered"]), "500 of 1,000 delivered: not covered")
+	check_eq(int(f["FAMILY"]["work_share"]), Rules.work(w, "FARM", "landing") / 31, "rule 7's share test still divides the work by every plant's sixths (15a)")
+	var fresh := _large_farm(w)
+	Rules.founding(w, "FARM", "landing")
+	check_eq(int(Logbook.rows(w, {"kind": "RULE"})[-1]["why"]["capacity"]), 500 * S + TypeTable.output_milli("FARM", "LARGE"),
+		"a farm with no closed month yet counts at its full output: %s" % fresh)
+
+
+func test_rule_7_costs_a_company_at_the_areas_starting_salaries() -> void:
+	# 15a: the share "covers what a company of that size costs to run per month"; its posts cost what they are offered,
+	# the area's starting salary (9.2, the user: 2 x the rent), not the type table's 300 (Bob's trace: a family farm read
+	# 1,379 a month against about 900, and founding stayed shut while the colony went hungry)
+	var w := _w()
+	var posts := TypeTable.posts("FARM", "FAMILY")
+	var want := 0
+	for t in posts:
+		want += int(posts[t]) * Rules.starting_salary(w, "landing", String(t))
+	var u := TypeTable.upkeep_milli("FARM", "FAMILY")
+	want += int(u["material"]) * TypeTable.start_price("MATERIAL") / S + int(u["bw"]) * TypeTable.start_price("BW") / S
+	check_eq(Rules.running_cost(w, "FARM", "FAMILY", "landing"), want, "a family farm: its posts at the starting salaries and its upkeep")
+	check(Rules.running_cost(w, "FARM", "FAMILY", "landing") < 1000 * S, "about 900 a month at the landing (%d)" % (Rules.running_cost(w, "FARM", "FAMILY", "landing") / S))
+
+
+## Rule 4's signal three months running (the user: output is lowered only after "3 months in a row" of over half unsold):
+## the first two leave the level, the third may cut. Leaves the world at the month after.
+func _three_months(w: WorldState, cid: String, sig: Dictionary) -> void:
+	for i in 3:
+		Rules.output_rule(w, cid, sig, false)
+		w.month += 1
+
+
+func test_output_is_lowered_only_after_over_half_unsold_three_months_in_a_row() -> void:
+	# section 3, rule 4, the user, 2026-11-18: "The production output is only lowered if over 50% of offered goods is not
+	# sold 3 months in a row"
+	var w := _w()
+	var f := _farm(w, 6, 2)
+	var glut := {"offered": 100 * S, "sold": 40 * S, "unmet_above": 0, "refused": 0}   # 60% unsold
+	var half := {"offered": 100 * S, "sold": 50 * S, "unmet_above": 0, "refused": 0}   # exactly 50%: does not count
+	var lv := func() -> int: return Company.level_of(w, f[0], f[1])
+	Company.set_level(w, f[0], f[1], 800)
+	for sig in [glut, glut, half]:
+		Rules.output_rule(w, f[0], sig, false)
+		w.month += 1
+	check_eq(lv.call(), 800, "two months over half, then one at half: never cut, and the count starts again")
+	for sig in [half, half, half]:
+		Rules.output_rule(w, f[0], sig, false)
+		w.month += 1
+	check_eq(lv.call(), 800, "exactly 50% unsold three months: not over half, no cut")
+	Rules.output_rule(w, f[0], glut, false)
+	w.month += 1
+	Rules.output_rule(w, f[0], glut, false)
+	w.month += 1
+	check_eq(lv.call(), 800, "two months over half: the price falls (rule 2), the level does not")
+	Rules.output_rule(w, f[0], glut, false)
+	w.month += 1
+	check_eq(lv.call(), 760, "the third month in a row: lowered by 5% (the user: \"A CUT IS 5%\")")
+	Rules.output_rule(w, f[0], glut, false)
+	w.month += 1
+	check_eq(lv.call(), 722, "a fourth month in a row: lowered 5% again (the user: \"IF THERE'S IS A FOURTH MONTH LOWER AGAIN\")")
+	Rules.output_rule(w, f[0], {"offered": 0, "sold": 0, "unmet_above": 0, "refused": 0}, false)
+	w.month += 1
+	var after := int(lv.call())
+	Rules.output_rule(w, f[0], glut, false)
+	w.month += 1
+	check_eq(lv.call(), after, "a month with nothing offered breaks the run: one glut month after it cuts nothing")
+	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	Company.set_level(w, b, "crew", 800)
+	Rules.output_rule(w, b, glut, false)
+	w.month += 1
+	check_eq(Company.level_of(w, b, "crew"), 800, "a builder's crew the same: one month is no cut")
+
+
+func test_rule_8_counts_a_plants_months_not_yet_lived_at_full_output() -> void:
+	# Terra's trace: a farm founded in autumn was read at its winter yield, 3 to 4 FOOD a month, a tenth of a farm, and
+	# kept founding open (36 farms at month 12, 63 at month 18, then a glut); Wilma: over twelve months, each month the
+	# plant has not yet lived counts at its full output
+	var w := _w()
+	var f := _large_farm(w)
+	var full := TypeTable.output_milli("FARM", "LARGE")
+	for m in 3:
+		w.month = m
+		Company.book(w, f, "made:FOOD", 4 * S)   # three winter months at 4 a month
+		Company.close_month(w, f)
+	Rules.founding(w, "FARM", "landing")
+	var cap := int(Logbook.rows(w, {"kind": "RULE"})[-1]["why"]["capacity"])
+	check_eq(cap, (3 * 4 * S + 9 * full) / 12, "three winter months as they were, nine months not yet lived at full output: %d, not 4" % (cap / S))
+	check(cap > full / 2, "not a tenth of a farm")
+
+
+func test_rule_3_raises_output_when_it_sells_out_by_five_percent_never_more() -> void:
+	# rule 3, the user: "if you sell out all your producing produce MORE"; at most 5% of the level a month (section 3,
+	# "25?! 5!!!"; Otto measured a rise below one post's share of up to 12.5% of the level)
+	var w := _w()
+	var f := _farm(w, 6, 2)
+	var lv := func() -> int: return Company.level_of(w, f[0], f[1])
+	Company.set_level(w, f[0], f[1], 600)
+	Rules.output_rule(w, f[0], {"offered": 50 * S, "sold": 50 * S, "unmet_above": 0, "refused": 0}, false)
+	check_eq(lv.call(), 630, "sold out with no order left over: still sold out, up 5%")
+	Rules.output_rule(w, f[0], {"offered": 50 * S, "sold": 49 * S, "unmet_above": 0, "refused": 0}, false)
+	check_eq(lv.call(), 630, "one unit left unsold: not sold out, no rise")
+	Rules.output_rule(w, f[0], {"offered": 50 * S, "sold": 50 * S, "unmet_above": 0, "refused": 0}, true)
+	check_eq(lv.call(), 630, "sold out while holding stock back: no rise (12.3, 18)")
+	for start in [1, 10, 19, 60, 125, 400, 999]:
+		Company.set_level(w, f[0], f[1], start)
+		Rules.output_rule(w, f[0], {"offered": 10 * S, "sold": 10 * S, "unmet_above": 100 * S, "refused": 0}, false)
+		var rise: int = int(lv.call()) - int(start)
+		check(rise >= 1 and (rise <= start * 50 / 1000 or rise == 1), "from %d: rose %d, 5%% of the level at most (or the one per mille step)" % [start, rise])
+	Company.set_level(w, f[0], f[1], 0)
+	Rules.output_rule(w, f[0], {"offered": 0, "sold": 0, "unmet_above": 10 * S, "refused": 0}, false)
+	check_eq(lv.call(), 1, "nothing to offer and orders came: sold out, climbs from 0")

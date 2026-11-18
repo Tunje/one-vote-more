@@ -167,6 +167,31 @@ trucks, and nothing grows or closes idle plants (plan section 13). What follows 
 
 ### 4.4 Signing
 
+**The user's rulings on claiming (verbatim):**
+- 2026-11-15: "What you just said about builders and no jobs show another fault, job cues, but firms cue work up we do this in three months, that's why businesses need to be plans,  also they compeete for jobs,  both have the job listed whoever gets their first wins,  competitiv buisness here but also patience they want fall for not fining jobs when 350 jobs just got canncled form not fining builders"
+- 2026-11-18: "Builders did not claim infinitely in the build we talked about"
+- 2026-11-18 (12.3, 15c): "Should not raise from climed jobs is right open jobs in the market hoping to be claimed I'd what counts and i don't know why you only recorded half of that"
+- 2026-11-18: "A plan can be listed for a year before cancled and they only claim a year or too forwards"
+- 2026-11-18: "The or two should be up to the manager"
+
+So: a plan is listed in the market for up to twelve months; unclaimed after that it is cancelled, as any plan given
+up. A builder claims a job only if it can start it within its reach, between one year and two; where in that range is
+its manager's choice. (Wilma's earlier reading of three months, and her "up to two years", are struck by these words.)
+**(Otto's reading, with Wilma's yes, 2026-11-18)** The manager is the company's chief (plan 12.11, 77: "a chief with a
+management skill and an appetite for risk"). A builder's reach is its chief's appetite for risk: 12 months at risk 0
+to 24 at risk 100 (12 + 12 × risk / 100, rounded down), since claiming work far ahead is a risk taken on. The five
+landing builders' chiefs are drawn once from the world's seeded random when they land and kept; any other company's
+chief stays at the record's 50 until section 77 is built. A plan no builder can claim within its reach stays listed
+for every builder, and the first that can start it wins (15d: the soonest start, then the lowest price); while it is
+listed its bill's BW counts every month as open work, which raises the builders' price (one 5% step at most a month)
+and their crews, shared in equal parts among the open builders for hire. Listed twelve months from the month it was
+made and still unclaimed, it is given up like any plan (4.9): the site released, the money back to the founder, the
+grant owed back, the founder back in their pool.
+
+These replace "the job goes to the end of the builder's book" below and the endless wait behind a book (4.9): a builder
+claims a job only within how far it queues work; an unclaimed job stays open in the market for every builder, and the
+first that can take it wins; the plan waits, patient, and is not given up for finding no builder.
+
 - **Before signing** the plan reads rule 7 again. If the signal no longer passes, its owner gives it up: nothing has
   been spent, so there is nothing to settle. The money in the plan's account goes back to the founder, and the
   founder goes back into the pool of their block (12.9, 60c). **(Otto)** After signing it is never given up for its
