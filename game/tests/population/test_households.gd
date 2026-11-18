@@ -328,3 +328,19 @@ func test_unpaid_wages_are_owed_and_paid_when_the_company_has_money() -> void:
 	check_eq(w.ledger.balance(Households.account(i2)) - before, 300 * S, "paid afterwards: the I2 pool gets its half")
 	check_eq(late, 300 * S, "booked as wages in the months it came")
 	check_eq(w.ledger.balance(acct), 400 * S, "from the company's account")
+
+
+func test_a_placed_crew_starts_working_whatever_the_pay() -> void:
+	# the user, 9.2: "The build crews at start should not be hiring at all. They should start with a job already active."
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	Households.seed_test(w, land, "I2", "G", 4)
+	var c1 := _co(w, "BUILDER", "HOME_WORLD")
+	var low := Households.needs_per_worker(w, land) - 1
+	check_eq(Households.hire(w, c1, "crew", "G", land, 2, {}, low), 0, "a hire below their needs finds no applicants")
+	check_eq(Households.hire(w, c1, "crew", "G", land, 4, {}, low, false, true), 4, "placed: all four start, the pay below their needs")
+	var e: Dictionary = Company.payroll(w, c1)[0]
+	check_eq([int(e["n"]), int(e["pay"]), int(e["train"])], [4 * S, low, -1], "at the pay given, trained: they arrived operating")
+	var row: Dictionary = Logbook.rows(w, {"kind": "HIRE"})[-1]
+	check(bool(row["why"].get("placed", false)) and bool(row["why"]["trained"]), "the HIRE row says placed and trained")
+	check(Households.check(w).is_empty(), "jobs = people")

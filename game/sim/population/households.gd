@@ -173,9 +173,14 @@ static func unemployed(world: WorldState, area: String, skill: String) -> Dictio
 ## trained = true: the landing's own hires, "arrived from the home world, operating" (Wilma's decision): they start
 ## trained, so no training group is opened for them (Bob's staff_change: since >= 0 is not a new hire). Every other
 ## hire trains (9.2: half output the first month, full after six).
-static func hire(world: WorldState, cid: String, plant_key: String, post_tier: String, area: String, n: int, why: Dictionary = {}, pay: int = -1, trained: bool = false) -> int:
+## placed = true: the landing's build crews (rebuild-company.md 9.2, the user: "The build crews at start should not be
+## hiring at all. They should start with a job already active."): they are placed, not hired: no application test
+## against their needs, and trained (they arrived operating). The HIRE row says "placed". Everything else as a hire.
+static func hire(world: WorldState, cid: String, plant_key: String, post_tier: String, area: String, n: int, why: Dictionary = {}, pay: int = -1, trained: bool = false, placed: bool = false) -> int:
 	if n <= 0:
 		return 0
+	if placed:
+		trained = true
 	var occ := String(Company.occupation(world, cid, post_tier))
 	var at := plant_area(world, cid, plant_key)
 	if pay < 0:
@@ -184,7 +189,7 @@ static func hire(world: WorldState, cid: String, plant_key: String, post_tier: S
 			return 0
 		pay = Company.hiring_salary(world, cid, post_tier, at)
 	var needs := needs_per_worker(world, area)
-	if pay < needs:   # "emplyees only apply to jobs that meet their needs" (9.2)
+	if pay < needs and not placed:   # "emplyees only apply to jobs that meet their needs" (9.2)
 		Logbook.note(world, "HIRE", cid, "no applicants: the pay is below their needs", {"pay": pay, "needs": needs, "area": area, "wanted": n})
 		return 0
 	var hired := 0
@@ -220,6 +225,8 @@ static func hire(world: WorldState, cid: String, plant_key: String, post_tier: S
 		w["occupation"] = occ
 		w["pay"] = pay
 		w["trained"] = trained
+		if placed:
+			w["placed"] = true
 		w["plant_area"] = at
 		Logbook.note(world, "HIRE", cid, "hired %s %s" % [post_tier, plant_key], w, {"staff": [0, hired], "from": [{}, taken]}, area)
 	return hired

@@ -5,7 +5,8 @@ extends RefCounted
 ## world already operating: owned by the home world, with their crews and equipment, and with no plant (a builder
 ## from the home world needs no building in order to exist, plan section 3). Their sizes: one large, two average, two
 ## small (rebuild-building 4.1), so three full builder units. Their crews are settlers of the Landing, hired on day one
-## like any hire (Maja's Households.hire), so a job is recorded once (plan 9.2).
+## through Maja's Households.hire, so a job is recorded once (plan 9.2), but PLACED in a job already active, not
+## applying for it (9.2, the user: "The build crews at start should not be hiring at all"): whatever the offer.
 ##
 ## The public works department (plan 12.11, 99) is the government's own builder, not one of the five: average size,
 ## owned by the state, hired the same way. It builds at cost when the government commissions it, which comes with the
@@ -102,9 +103,10 @@ static func _make(world: WorldState, area: String, name: String, size: String, o
 		var want := int(posts.get(t, 0))
 		if want <= 0:
 			continue
-		# trained from the start: they "arrived from the home world, operating" (Wilma's decision: the landing's crews
-		# start trained; every hire after the landing trains)
-		var got := Households.hire(world, cid, CREW_KEY, t, area, want, {"why": "month one crew", "builder": name}, -1, true)
+		# placed, not hired (9.2, the user: "The build crews at start should not be hiring at all. They should start
+		# with a job already active."): no application against their needs, no advert, and trained from the start, as
+		# they "arrived from the home world, operating"; paid the hiring salary as any post. Every later hire applies.
+		var got := Households.hire(world, cid, CREW_KEY, t, area, want, {"why": "month one crew", "builder": name}, -1, true, true)
 		if got < want:
 			short[t] = [want, got]
 	if not short.is_empty():

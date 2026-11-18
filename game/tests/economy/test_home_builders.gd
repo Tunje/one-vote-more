@@ -6,6 +6,7 @@ const HomeBuilders := preload("res://sim/economy/home_builders.gd")
 const Company := preload("res://sim/economy/company.gd")
 const TypeTable := preload("res://sim/economy/type_table.gd")
 const Households := preload("res://sim/population/households.gd")
+const Rules := preload("res://sim/economy/rules.gd")
 const NoiseProvider := preload("res://tests/support/noise_provider.gd")
 const S := CoreUtil.S
 
@@ -140,3 +141,29 @@ func test_the_landing_crews_start_trained_and_a_later_hire_trains() -> void:
 	check_eq(HomeBuilders.bw_milli(w, b), (40 * 1000 + 10 * Company.trained_pm(0)) * 980 / 1000, "the new ten build half in their first month")
 	w.month += Company.TRAIN_MONTHS
 	check_eq(HomeBuilders.bw_milli(w, b), 50 * 980, "and in full once trained")
+
+
+func test_the_build_crews_are_placed_whole_even_when_the_offer_is_below_their_needs() -> void:
+	# 9.2, the user: "The build crews at start should not be hiring at all. They should start with a job already
+	# active." Food sold cheap at the landing with no landlord yet puts the needs line (the full shelter + food) above
+	# the starting offer (1.5 x (half the shelter + food)), so nobody would apply.
+	var w := _world(400, 200, 70)
+	var farm := Company.create(w, "FARM", "SMALL", {"kind": "HOME_WORLD", "holders": {"home_world": 1000}}, "Cheap Food", {"area": "area:L"})
+	Company.set_price(w, farm, "FOOD", 5 * S)
+	Company.stock_add(w, farm, "FOOD", 1000 * S, 5 * S, "OUTPUT", "harvest")
+	var needs := Households.needs_per_worker(w, "area:L")
+	var offer := Rules.starting_salary(w, "area:L", "G")
+	check(offer < needs, "the general offer %d is below a worker's needs %d" % [offer, needs])
+	var r := HomeBuilders.land(w, "area:L")
+	var total := 0
+	for cid in _all(r):
+		total += Company.staff_count(w, cid, "", "crew") / S
+	check_eq(total, 220, "every builder and the public works land with their whole crew")
+	check_eq(Logbook.rows(w, {"kind": "CREW"}).size(), 0, "nobody short")
+	check_eq(Company.payroll(w, r["home_world"][0]).filter(func(e): return String(e["post_tier"]) == "G")[0]["pay"], offer,
+		"paid the hiring salary, as any post")
+	check_eq(HomeBuilders.bw_milli(w, r["home_world"][0]), 60 * 1000, "trained: the large builder makes 60 BW in month one")
+	for row in Logbook.rows(w, {"who": r["home_world"][0], "kind": "HIRE"}):
+		check(bool(row["why"].get("placed", false)), "the log says they were placed, not hired")
+	check_eq(Households.check(w), [], "jobs = people")
+	check_eq(Households.hire(w, r["home_world"][0], "crew", "G", "area:L", 1), 0, "a later hire still applies: below their needs nobody comes")
