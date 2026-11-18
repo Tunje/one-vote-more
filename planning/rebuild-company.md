@@ -445,12 +445,26 @@ Terra's town grid (section 9.8).
   "1.5 x (average housing cost in the area + food)" until a better formula is found, which is the user's to give.
   - Told that 2 x the landing rent (48) is 97, below the about 200 a household needs, and that rent in the starting
     numbers is lower than food, the user, verbatim: "3 5x housing try it"
-    Wilma's reading: 3.5 x the rent, as a trial to be run and shown. So the multiple is 3.5 for now, not 2.
+    Wilma's reading: 3.5 x the rent, as a trial to be run and shown.
+  - After five-year trials of both on the doubled rent, ten fed per farm worker and the corrected food store (2 x:
+    jobs last about a year, few jobless hired after year 2; 3.5 x: the jobless get in, a typical job lasts a
+    month), asked at which number it goes into the game, the user, verbatim: "2", then "Merge with 2".
+    So the starting salary is 2 x the rent. At the landing that is 194 for a general worker against the 196 a
+    household needs, so a new opening climbs 5% once before anyone applies; the user was told this before choosing.
 - **The build crews at the start are not hired** (the user, 2026-11-18). About: in the trial of the starting salary
   at 3.5 x the rent, a general worker's offer at the landing (170) was under what a household needs (200), so the
   five builders and public works got 72 crew of 180 and built at about 40% for four months. Asked whether the crews
   that land with the colony should be hired regardless, the user, verbatim: "The build crews at start should not be hiring at all. They should start with a job already active."
   So at the landing the build crews are already in their jobs; they do not go through hiring.
+- **The government's staff are placed too, and the placed start at 2.5** (the user, 2026-11-18). About: with the
+  starting salary merged at 2 x the rent, the government's own staff at the landing (administration, housing office,
+  Colony Stores) were still hired, and at 194 against a household's 196 they did not get their general staff in
+  month one. The user, verbatim: "Place the goverment staff from startb with the builders and lets set their sallery at 2.5 from start same for builders that would mean they don't jump either from start"
+  So: the government's staff at the landing are placed from the start, as the builders are. Their salary from the
+  start is 2.5 (Wilma's reading: 2.5 x the rent, the same measure as the starting salary's 2; times the tier's
+  share as any salary); the same for the builders. The user's reason: then they do not jump from the start either.
+  (Wilma's reading, not the user's words: a later opening at any of them is offered the starting salary, 2 x, as
+  every opening; the 2.5 is for those placed at the start.)
 - **The rent is doubled** (the user, 2026-11-18). About: in the starting numbers a household's food (2.5 people x
   60 = 152 a month) cost more than its rent (48 in a landing shelter, 97 in a new house), so a starting salary of
   3.5 x the rent (170) was under what a household needs (200). The user first said "Food is too expensive"; told that

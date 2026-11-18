@@ -964,6 +964,12 @@ Then, told that 2 x the landing rent is 97, below what a household needs (about 
 
 (Wilma's reading: 3.5 x the rent, as a trial.)
 
+After five-year trials of both, asked at which number it goes into the game:
+
+> 2
+
+> Merge with 2
+
 Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Bob builds it.
 
 
@@ -974,6 +980,15 @@ About: with a starting salary under what a household needs, the builders that la
 > The build crews at start should not be hiring at all. They should start with a job already active.
 
 Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Otto builds it.
+
+
+### The rebuild: the government's staff are placed too, and the placed start at 2.5 (the user, 2026-11-18, verbatim)
+
+About: with the starting salary merged at 2 x the rent, the government's own staff at the landing (administration, housing office, Colony Stores) were still hired, not placed like the build crews, and at 194 against a household's 196 they did not get their general staff in month one.
+
+> Place the goverment staff from startb with the builders and lets set their sallery at 2.5 from start same for builders that would mean they don't jump either from start
+
+So: the government's staff at the landing are placed from the start, as the builders are. Their salary from the start is 2.5 (Wilma's reading: 2.5 x the rent, the same measure as the starting salary's 2); the same for the builders. The user's reason: then they do not jump from the start either. Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn.
 
 
 ### The rebuild: the rent is doubled (the user, 2026-11-18, verbatim)
