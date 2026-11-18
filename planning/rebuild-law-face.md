@@ -469,6 +469,19 @@ Income, profit and sales taxes are the purse's (12.10, 62), not the law's. They 
   operator pays a route licence and the fare cap binds it, as under `FRANCHISE` **(Anni's decision)**. Tour operator
   licences (`LAW_TOUR_LICENSING`) are licences with odds, as now.
 - **Private roads and tolls** are left out (12.12). `road_law` stays and is dormant: no private link exists.
+  - **Except the road to a grant's spot (step 4, 4.7).** The user, 2026-11-17, answer 3, verbatim: "Most comonly the
+    government but if a company out a collective wants to they should be able to, that could come in planing of
+    grants the government asks and if any company wsnts it but that would cost but they would be free to charge for
+    using it". Then, 2026-11-18, through Wilma, verbatim: "No they can't refuse others but they can demand a toll, in
+    wich case the ball is on the other side in wich case they can choose not to".
+  - So the owner may not refuse anyone its road; it may demand a toll; a carrier chooses whether to use the road and
+    pay. The user set no cap and named no law: `LAW_PRIVATE_TOLL_CAP` and the access lever that lets an owner refuse
+    carriers are not used for this road.
+  - Readings, not the user's words:
+    - the toll is set by the price rules like any price (Wilma's, given when she relayed the answer);
+    - the government's offer at the grant is the permission (Wilma's decision, 2026-11-18): road_law's licence
+      procedure (objections, the minister's or the Cabinet's decision) is not used for that road. A company road
+      nobody was asked for is not built in step 4.
 - **Donations** (12.10, 72):
   - A company gives from its profit, under `LAW_DONATION_CAP` and `LAW_DONATION_DISCLOSURE`.
   - A gift tied to a favour granted is corruption, as now (`competition_law` favour scan).

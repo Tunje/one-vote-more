@@ -158,6 +158,8 @@ New ones the plan publishes:
 | Indicator **(E: the names)** | What | Step |
 |---|---|---|
 | `ECON_SICKNESS` | the share of the labour force too ill to work where clinic places are short (86). health_signal.gd computes the same share for its pandemic fact; it reads it from here instead | 4 |
+| `ECON_BUILDERS` | the builders a plan can hire: open, with a crew, not the public works department (stage 4.1d) | 4 |
+| `ECON_BUILDER_WAIT` | the months a plan signed now waits for work to start at the soonest builder; with none for hire, the top of its range, 120 (ours) (stage 4.1d) | 4 |
 | `ECON_W_REF` (a world value, not an indicator) | the reference wage, per area and for the colony (108). Read by the law's fines, the press's costs, the legislature, the staff bench. Until step 3 every reader takes its own fallback (1,200 credits) | 3 |
 
 ---
@@ -177,7 +179,7 @@ panel.
 | Fact | Step | Blame | Note |
 |---|---|---|---|
 | `COMP_COMPANY_PLANNED` | 3 | the founder | a plan made (8.1) |
-| `COMP_COMPANY_FOUNDED` | 3 | the founder | the plant opens |
+| `COMP_COMPANY_FOUNDED` | 3, built at 4 (stage 4.1d) | the founder | the plant opens; every type |
 | `COMP_PLAN_ABANDONED` | 3 | the founder | a plan given up (60b); not a failure |
 | `COMP_WORKPLACE_ACCIDENT` | 3 | the company (69) | justice and law read it |
 | `ECON_LAYOFFS_MASS` | 3 | the owner; the government's share when its lever or bracket was the cause | a company that cannot pay its staff (19a) |
@@ -186,7 +188,7 @@ panel.
 | `COMP_CREDIT_LINE_TERMED`, `COMP_BANK_RESCUE` | 5 | the bank, the owner | credit lines (83), more time (82) |
 | `COMP_CEO_REPLACED` | 5 | | management (77) |
 | `COMP_INSOLVENCY` | 5 | owner | an ending that leaves debt: the owner goes to court (8.3) |
-| `COMP_LIQUIDATED` | 5 | owner; the government for a state company (54) | **(E)** one fact for all three endings, with `data.way` = `SALES`, `PLANTS` or `BUYOUT` |
+| `COMP_LIQUIDATED` | 5; from 4 for a crew ended with nobody on it (stage 4.1d) | owner; the government for a state company (54) | **(E)** one fact for every ending, with `data.way` = `SALES`, `PLANTS` or `BUYOUT`, and from step 4 `NO_STAFF` (the user: "Nothing they are shut gone dead"; the company's own ended_why). The fact names the company as responsible and carries its owner register in data |
 | `COMP_COURT_LIQUIDATION` | 5 | owner | wound up after repeated convictions (68) |
 | `COMP_WORKER_BUYOUT` | 6 | | the workers buy a plant as a co-op (81) |
 | `COMP_FACILITY_MOTHBALLED` | gone | | **(E)** a double of `ECON_FACILITY_MOTHBALLED`; only that one is published |
