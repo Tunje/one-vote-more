@@ -1039,6 +1039,15 @@ Asked how large the cut is and whether a fourth month cuts again:
 So: the cut is 5%, and each further such month in a row lowers output 5% again.
 
 
+### The rebuild: the farm keeps a buffer before winnings (the user, 2026-11-18, verbatim)
+
+About: winnings as built pay the family everything the month earned above one month of the farm's costs.
+
+> Wait you made it pay out all the money as winnings? I'm sorry i think i did not say the farm needs a buffer say 50% until it had 6 months worth built up then 10%
+
+So: the farm keeps 50% until it has 6 months' worth built up, then 10%; the rest is winnings. Written into [rebuild-company.md](rebuild-company.md) 12.3, 15e the same turn.
+
+
 ### The rebuild: farms don't shut (the user, 2026-11-18, verbatim)
 
 About: a five-year run in which 40 family farms were shut for "no staff" within months of a glut, with the family still on the farm, and never opened again.
