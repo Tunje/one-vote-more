@@ -209,7 +209,7 @@ func test_the_starting_salary_is_the_users_formula_in_the_area() -> void:
 	var line := TypeTable.salary_line(shelter, TypeTable.start_price("FOOD"), 2500)
 	check_eq(Rules.starting_salary(w, "landing", "G"), line, "no landlord yet: the landing's shelter and the food's start")
 	check_eq(Rules.starting_salary(w, "landing", "S"), line * 1500 / 1000, "a skilled post 1.5 times")
-	check(absi(line - TypeTable.salary("G")) <= 2 * S, "at the landing prices it gives back the type table's salary")
+	check(absi(line - 293 * S) <= 2 * S, "at the landing prices 293: the rent doubled, a farm worker feeds ten (2026-11-18); the table solves at 300")
 	var l1 := Company.create(w, "LANDLORD", "SMALL", HW, "L1", {"area": "landing"})
 	var l2 := Company.create(w, "LANDLORD", "SMALL", HW, "L2", {"area": "landing"})
 	Company.set_price(w, l1, "@home", 100 * S)

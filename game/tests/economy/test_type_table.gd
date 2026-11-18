@@ -22,8 +22,10 @@ func test_thirty_rows_none_of_the_gone_ones() -> void:
 
 
 func test_the_four_sizes() -> void:
-	check_eq(TypeTable.output_milli("FARM", "LARGE"), 156 * S, "a large farm makes the full row")
-	check_eq(TypeTable.output_milli("FARM", "FAMILY"), 156 * S * 94 / 600, "a family farm: a sixth, less 6%")
+	# the user, 2026-11-18 (9.2): one farm worker feeds ten people, "10 purple each": 24 posts, 240 FOOD
+	check_eq(TypeTable.output_milli("FARM", "LARGE"), 240 * S, "a large farm makes the full row")
+	check_eq(TypeTable.posts("FARM", "LARGE"), {"G": 18, "S": 5, "Sp": 1}, "with the same 24 posts")
+	check_eq(TypeTable.output_milli("FARM", "FAMILY"), 240 * S * 94 / 600, "a family farm: a sixth, less 6%")
 	check_eq(TypeTable.output_milli("BUILDER", "AVERAGE"), 39200, "an average builder: 2/3 of 60 BW, less 2%")
 	check_eq(TypeTable.output_milli("BUILDER", "SMALL"), 19200, "a small builder: 1/3 of 60 BW, less 4%")
 	check_eq(TypeTable.posts("BUILDER", "LARGE"), {"G": 36, "S": 18, "Sp": 6}, "a large builder's posts")
@@ -44,12 +46,14 @@ func test_bills_and_the_fewest_months() -> void:
 
 func test_starting_prices_are_the_papers() -> void:
 	# rebuild-type-table.md sections 2, 4 and 5 (to the credit; the code solves the same rule as the calculator)
-	var want := {"FOOD": 60.7, "BREAD": 58.3, "MATERIAL": 37.1, "COMPONENT": 138.1, "MINERAL": 7.7, "TRUCK": 6425.6,
-		"BW": 392.0, "CLOTHING": 19.3, "ENERGY": 0.189}
+	# FOOD, BREAD and CLOTHING since a farm worker feeds ten (the user, 2026-11-18, 9.2): were 60.7, 58.3, 19.3
+	var want := {"FOOD": 39.4, "BREAD": 39.9, "MATERIAL": 37.1, "COMPONENT": 138.1, "MINERAL": 7.7, "TRUCK": 6425.6,
+		"BW": 392.0, "CLOTHING": 17.1, "ENERGY": 0.189}
 	for k in want:
 		var got := float(TypeTable.start_price(k)) / S
 		check(absf(got - float(want[k])) <= maxf(0.06, float(want[k]) * 0.002), "%s starts at %.3f, the paper says %.3f" % [k, got, want[k]])
-	check(absf(float(TypeTable.start_price_of("LANDLORD")) / S - 97.0) < 0.5, "a new home rents at 97")
+	# the user, 2026-11-18 (9.2, "The rent is doubled"): "Screw lowering food, double the rent"
+	check(absf(float(TypeTable.start_price_of("LANDLORD")) / S - 194.0) < 1.0, "a new home rents at 194, double the solve's 97")
 	check(absf(float(TypeTable.start_price_of("CLINIC")) / S - 7.57) < 0.02, "a clinic place-month 7.57")
 	check_eq(TypeTable.start_price_of("BUILDER"), TypeTable.start_price("BW"), "a builder posts the BW price")
 	check_eq(TypeTable.start_price_of("BANK"), 5, "the bank's price is its rate, 5 per mille a month")
@@ -66,11 +70,12 @@ func test_a_price_is_its_making_price_plus_the_building_over_ten_years() -> void
 	check(making < int(p["MINERAL"]), "the making price is below the starting price")
 
 
-func test_the_salary_formula_gives_back_the_salary() -> void:
-	# plan 12.5, 37 (revised): 1.5 × (rent of a home + food of a household of 2.5); the shelter at half a new house
+func test_the_salary_formula_at_the_landing_prices() -> void:
+	# plan 12.5, 37 (revised): 1.5 × (rent of a home + food of a household of 2.5); the shelter at half a new house.
+	# It gave back the table's 300 until the user doubled the rent (2026-11-18, 9.2); the table still solves at 300.
 	var shelter := TypeTable.start_price_of("LANDLORD") / 2
 	var line := TypeTable.salary_line(shelter, TypeTable.start_price("FOOD"), 2500)
-	check(absi(line - TypeTable.salary("G")) <= 2 * S, "the formula gives %d against the salary %d" % [line, TypeTable.salary("G")])
+	check(absi(line - 293 * S) <= 2 * S, "the formula gives %d with the rent doubled and a farm worker feeding ten; the table's salary is %d" % [line, TypeTable.salary("G")])
 
 
 func test_town_and_country() -> void:

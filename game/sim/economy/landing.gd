@@ -51,7 +51,7 @@ const HOUSING := "Colony Housing Office"
 const STORES := ["SHOP", "Colony Stores", "LARGE"]
 
 const SHELTER_HOMES := 50                 # a LARGE landlord plant is a block of 50 homes (type table)
-const SHELTER_RENT := 48 * S              # START: the shelter rent the salary formula was worked with (type-table paper 9)
+const SHELTER_RENT := 97 * S              # START: half a new home's rent, which the user doubled (2026-11-18, 9.2)
 ## The landing stock, in units. START. Material and components are Bob's reading of "5 years worth of equipment"
 ## (five years of the five builders' full work); food is twelve months for the founding thousand; trucks "enough for
 ## the first truck drivers" (the step-2 brief).

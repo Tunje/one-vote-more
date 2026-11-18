@@ -24,6 +24,10 @@ const TIER_PM := {"G": 1000, "S": 1500, "Sp": 2250}
 ## The pricing rule's numbers (section 1): the build bill and its land are spread over this many years of full output.
 const PAYBACK_Y := 10.0
 const PAYBACK_HOMES_Y := 13.5     # homes and office places: the middle of the user's "12 to 15 years" (9.8)
+## A home's starting rent is this many per mille of what the solve works out (rebuild-company.md 9.2, "The rent is
+## doubled", the user, 2026-11-18: "Screw lowering food, double the rent. Make the rent more reasonable in comparison
+## to food."). Homes only (LANDLORD's "@home"); no other price reads it, so nothing else in the table moves.
+const HOME_RENT_PM := 2000
 const LAND_PM := 100              # land = 10% of the bill (stand-in until Terra's land price)
 ## Otto's upkeep column (rebuild-building.md 3): 1/400 of the MATERIAL bill a month, and 2% of the BW a year as a job.
 const UPKEEP_MAT_DIV := 400
@@ -60,7 +64,8 @@ const _GRID_WAY := {"sells": "ITEM", "reads": "UNSOLD", "price": "ITEM", "reach"
 const _SVC_WAY := {"sells": "CLIENTS", "reads": "EMPTY_SLOTS", "price": "PER_CLIENT", "reach": "CLIENTS_COME"}
 
 const ROWS := {
-	"FARM": {"lines": [{"out": "FOOD", "qty": 156, "in": {}, "lab": {"G": 18, "S": 5, "Sp": 1}}],
+	# one farm worker feeds ten people (rebuild-company.md 9.2, the user, 2026-11-18: "10 purple each"): 24 posts, 240 FOOD
+	"FARM": {"lines": [{"out": "FOOD", "qty": 240, "in": {}, "lab": {"G": 18, "S": 5, "Sp": 1}}],
 		"way": _ITEM_WAY, "setting": "COUNTRY", "occ": "AGRICULTURE", "outdoor": true,
 		"pollution": 10, "noise": 1, "accidents": 8, "hazard": false, "bill": [240, 240, 12, 4]},
 	"BAKERY": {"lines": [
@@ -357,7 +362,8 @@ static func start_prices() -> Dictionary:
 	for k in p:
 		out[k if k != "@FREIGHT" else "FREIGHT"] = int(round(float(p[k]) * S))
 	for type in svc:
-		out["@" + type] = int(round(float(svc[type]) * S))
+		var times := HOME_RENT_PM / 1000.0 if type == "LANDLORD" else 1.0
+		out["@" + type] = int(round(float(svc[type]) * times * S))
 	_start = out
 	return out
 

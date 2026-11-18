@@ -24,6 +24,7 @@ func test_every_founding_household_has_a_shelter() -> void:
 	check_eq(Company.plant_ids_of(w, housing).size(), 8, "eight shelter blocks of 50")
 	check(Company.is_state(w, housing), "the housing office is the state's")
 	check_eq(Company.price(w, housing, "@home"), Landing.SHELTER_RENT, "at the shelter rent")
+	check_eq(Landing.SHELTER_RENT, 97 * S, "97, half of a new home's doubled rent (the user, 2026-11-18: \"double the rent\")")
 	check_eq(Logbook.rows(w, {"what": "landing homes short"}).size(), 0, "nobody reports homes short")
 	check_eq(Logbook.rows(w, {"what": "shelter block NOT laid"}).size(), 0, "every block found a site")
 
