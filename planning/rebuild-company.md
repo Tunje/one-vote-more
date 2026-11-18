@@ -193,6 +193,9 @@ What goes with them:
 - **Rule 9 only decides a tie.** When both signals come in the same month, the one with priority acts. One signal alone
   acts, whichever side of the making price the company is on. If there is a cap on a month's change it is the same up
   and down; 5% was the old code's figure, not the user's. **(open: whether there is a cap, and its size)**
+  - **The cap is 5%** (the user, 2026-11-18, verbatim, on being told a farm's price fell 20% a month): "TWENTY PERCENT WHAT HAPPENS TO THE FUCKING 5% CAP GOT FUCKING DAMNED IT GO BACK AND LOOK AT THE DAMNED RULES"
+    So: a price moves at most 5% in a month, the same up and down (rule 9: "if your going to cap it at 5% THEN DO THE
+    SAME FOR BOTH"). The line above calling it open, and the k of 0.2 in 15a, were wrong: the user's number was 5%.
 - **No hard floors or ceilings** of our own, except where the user allowed one (rule 6).
 - **No limit built on last month or last year.** Credit follows orders, contracts and forecasts, so a company can grow.
 - **For types with nothing to stock,** rules 2 and 4 read empty work slots (section 4).

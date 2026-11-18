@@ -1009,6 +1009,15 @@ About: family farms with open posts; Wilma had reported that 94 times a farm "co
 So: when a company opens a post it pays for it the first time; it does not pay again in the consecutive months the post stays open. Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Bob builds it.
 
 
+### The rebuild: the price cap is 5% (the user, 2026-11-18, verbatim)
+
+About: Wilma had reported a farm's price falling 20% a month (the k of 0.2 built from a proposal), where the user's rule nine said "if your going to cap it at 5% THEN DO THE SAME FOR BOTH" and the paper had wrongly left the cap open.
+
+> TWENTY PERCENT WHAT HAPPENS TO THE FUCKING 5% CAP GOT FUCKING DAMNED IT GO BACK AND LOOK AT THE DAMNED RULES
+
+So: a price moves at most 5% in a month, the same up and down. Written into [rebuild-company.md](rebuild-company.md) section 3 the same turn. Bob builds it.
+
+
 ### The rebuild: the rent is doubled (the user, 2026-11-18, verbatim)
 
 About: a household's food (152 a month) cost more than its rent (48 shelter, 97 house), so a starting salary of 3.5 x the rent was under what a household needs.
