@@ -1073,6 +1073,15 @@ Asked how large the cut is and whether a fourth month cuts again:
 So: the cut is 5%, and each further such month in a row lowers output 5% again.
 
 
+### The rebuild: a family farm's making price stays as it is (the user, 2026-11-18, verbatim)
+
+About: the hold-back below the making price. Told that a family farm's making price is about 10 with one or two hired hands and near nothing for a family alone, because the family is paid no wages, so the hold-back never starts while the food price is above that; and asked whether the family's own work should count in it:
+
+> The family farm is almost immune to it then,  that's fine, i think once farms fall below it there will be occelation but it's basically the farmers equivalent of dormant until needed
+
+So: no change. The family's own work is not counted into the making price. A family farm is almost immune to the hold-back, and that is fine: it is the farmer's equivalent of dormant until needed.
+
+
 ### The rebuild: the ship comes about every two years (the user, 2026-11-18, verbatim)
 
 About: population growth. Told the colony grows by two ship arrivals in five years (months 30 and 58) and a few births a month:
