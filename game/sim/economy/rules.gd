@@ -190,6 +190,13 @@ static func output_rule(world: WorldState, cid: String, sig: Dictionary, holding
 ## How far the offer climbs for each month a post stays unfilled, per mille (the user, 2026-11-18: "it should only
 ## climb max 5% if it cost not hire for one month", "5% each month"). Bob's reading of "max 5%": always 5%.
 const OFFER_CLIMB_PM := 50
+## The starting salary is this many per mille of the area's rent (9.2, the user, 2026-11-18: "just rent at 2×", then
+## "3 5x housing try it"). One constant, so the multiple is set by the user's word.
+const STARTING_RENT_PM := 2000   # the user, 2026-11-18, after the 2x and 3.5x trials: "2", "Merge with 2"
+## Those placed in a job at the landing (the government's staff and the build crews) are paid this many per mille of
+## the area's rent from the start (9.2, the user, 2026-11-18: "Place the goverment staff from startb with the builders
+## and lets set their sallery at 2.5 from start same for builders that would mean they don't jump either from start").
+const PLACED_RENT_PM := 2500
 
 
 ## The hiring offer (rebuild-company.md 9.2, "How the hiring offer moves"; the user 2026-11-18, verbatim: "increases
@@ -245,14 +252,26 @@ static func salary_rules(world: WorldState, cid: String) -> void:
 			Company.clear_hiring_salary(world, cid, tier, area, {"rule": "OFFER_BACK", "open": int(a[0])})
 
 
-## The starting salary of a tier in an area (9.2, the user: "Sallery should be calculated as avrage living in the area
-## and food plus half of both again"; "On sallery it's an avrage of the area"; 12.5, 37): 1.5 x (the rent of a home +
-## a household's food), TypeTable.salary_line, times the tier's share (S 1.5, Sp 2.25 times general). What a new opening
-## is offered (the user, 2026-11-18: "fall back to the original rule for settin on hire"). milli-credits a month.
+## The starting salary of a tier in an area (9.2, the user, 2026-11-18: "Change the sallery from fod and rent to just
+## rent at 2× we will have to find a better formula for it later", then "3 5x housing try it", then after both trials "2"; "On sallery
+## it's an avrage of the area"): STARTING_RENT_PM (2) x the rent of a home, times the tier's share (S 1.5, Sp 2.25
+## times general); food is out of it. What a new opening is offered (the user, 2026-11-18: "fall back to the original
+## rule for settin on hire"). milli-credits a month.
 ## Bob's readings: the rent is the plain average of what the open landlords of the area ask for a home; with no landlord
-## there, the landing's shelter at half a new house (the type table's own basis, so that gives back its salary); the
-## food is the same price the needs line reads (needs_food). As the needs line is rent + food, this is always above it.
+## there, the landing's shelter at half a new house (the type table's own basis).
 static func starting_salary(world: WorldState, area: String, tier: String) -> int:
+	return area_rent(world, area) * STARTING_RENT_PM / 1000 * int(TypeTable.TIER_PM[tier]) / 1000
+
+
+## The salary of a person placed in a job at the landing (9.2, the user, 2026-11-18: "their sallery at 2.5 from start
+## same for builders"): PLACED_RENT_PM (2.5) x the rent of a home, times the tier's share. milli-credits a month.
+static func placed_salary(world: WorldState, area: String, tier: String) -> int:
+	return area_rent(world, area) * PLACED_RENT_PM / 1000 * int(TypeTable.TIER_PM[tier]) / 1000
+
+
+## The rent the salaries above are counted from: the plain average of what the open landlords of the area ask for a
+## home; with no landlord there, the landing's shelter at half a new house.
+static func area_rent(world: WorldState, area: String) -> int:
 	var sum := 0
 	var n := 0
 	for cid in Company.ids(world):
@@ -262,13 +281,11 @@ static func starting_salary(world: WorldState, area: String, tier: String) -> in
 			if r >= 0:
 				sum += r
 				n += 1
-	var rent := sum / n if n > 0 else TypeTable.start_price_of("LANDLORD") / 2
-	var line := TypeTable.salary_line(rent, int(needs_food(world, area)["price"]), HOUSEHOLD_PERSONS_PM)
-	return line * int(TypeTable.TIER_PM[tier]) / 1000
+	return sum / n if n > 0 else TypeTable.start_price_of("LANDLORD") / 2
 
 
-## A worker's needs in an area (plan 12.5, 38, as revised): the rent of a home there and a household's food, the same
-## two things the starting salary is built from (12.5, 37). milli-credits a month. Rent: the cheapest home a landlord
+## A worker's needs in an area (plan 12.5, 38, as revised): the rent of a home there and a household's food (the
+## starting salary is rent only since 2026-11-18, 9.2). milli-credits a month. Rent: the cheapest home a landlord
 ## there asks for (the landing shelters at first); food: the cheapest FOOD offered there, else its starting price.
 ## One figure for the rules and the households (Maja's applying reads it too).
 static func needs_line(world: WorldState, area: String) -> int:

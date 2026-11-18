@@ -105,7 +105,8 @@ static func _make(world: WorldState, area: String, name: String, size: String, o
 			continue
 		# placed, not hired (9.2, the user: "The build crews at start should not be hiring at all. They should start
 		# with a job already active."): no application against their needs, no advert, and trained from the start, as
-		# they "arrived from the home world, operating"; paid the hiring salary as any post. Every later hire applies.
+		# they "arrived from the home world, operating"; paid 2.5 x the rent from the start (the user, 2026-11-18: "their
+		# sallery at 2.5 from start same for builders"; Households.hire). Every later hire applies.
 		var got := Households.hire(world, cid, CREW_KEY, t, area, want, {"why": "month one crew", "builder": name}, -1, true, true)
 		if got < want:
 			short[t] = [want, got]

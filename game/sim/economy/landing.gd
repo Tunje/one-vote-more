@@ -160,7 +160,9 @@ static func _stores(world: WorldState, area: String) -> String:
 	return cid
 
 
-## Hires a full set of posts for one plant (or the crew) from the area's settlers; a CREW row when it comes up short.
+## Places a full set of posts for one plant (or the crew) from the area's settlers; a CREW row when it comes up short.
+## Placed, not hired, and paid 2.5 x the rent (9.2, the user, 2026-11-18: "Place the goverment staff from startb with
+## the builders and lets set their sallery at 2.5 from start same for builders").
 static func _crew(world: WorldState, cid: String, plant_key: String, type: String, size: String, area: String) -> void:
 	var posts := TypeTable.posts(type, size)
 	var short := {}
@@ -168,7 +170,7 @@ static func _crew(world: WorldState, cid: String, plant_key: String, type: Strin
 		var want := int(posts.get(tier, 0))
 		if want <= 0:
 			continue
-		var got := Households.hire(world, cid, plant_key, tier, area, want, {"why": "month one, the government's staff"}, -1, true)   # trained: they landed knowing their work
+		var got := Households.hire(world, cid, plant_key, tier, area, want, {"why": "month one, the government's staff"}, -1, true, true)   # placed, so trained: they landed knowing their work
 		if got < want:
 			short[tier] = [want, got]
 	if not short.is_empty():

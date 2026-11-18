@@ -137,7 +137,7 @@ func test_the_landing_crews_start_trained_and_a_later_hire_trains() -> void:
 	check_eq(HomeBuilders.bw_milli(w, b), 40 * 980, "the landing crew builds at full rate in month one")
 	check_eq(Company.trained_count(w, b, "", "crew"), Company.staff_count(w, b, "", "crew"), "every one of them trained")
 	w.month += 1
-	check_eq(Households.hire(w, b, "crew", "G", "area:L", 10, {"test": true}), 10, "ten more hired later")
+	check_eq(Households.hire(w, b, "crew", "G", "area:L", 10, {"test": true}, Households.needs_per_worker(w, "area:L")), 10, "ten more hired later")
 	check_eq(HomeBuilders.bw_milli(w, b), (40 * 1000 + 10 * Company.trained_pm(0)) * 980 / 1000, "the new ten build half in their first month")
 	w.month += Company.TRAIN_MONTHS
 	check_eq(HomeBuilders.bw_milli(w, b), 50 * 980, "and in full once trained")
@@ -145,12 +145,12 @@ func test_the_landing_crews_start_trained_and_a_later_hire_trains() -> void:
 
 func test_the_build_crews_are_placed_whole_even_when_the_offer_is_below_their_needs() -> void:
 	# 9.2, the user: "The build crews at start should not be hiring at all. They should start with a job already
-	# active." Food sold cheap at the landing with no landlord yet puts the needs line (the full shelter + food) above
-	# the starting offer (1.5 x (half the shelter + food)), so nobody would apply.
+	# active." Food sold dear at the landing with no landlord yet puts the needs line (a new home's rent + food) above
+	# the starting offer (2 x half a new home's rent, no food in it: 9.2, 2026-11-18), so nobody would apply.
 	var w := _world(400, 200, 70)
-	var farm := Company.create(w, "FARM", "SMALL", {"kind": "HOME_WORLD", "holders": {"home_world": 1000}}, "Cheap Food", {"area": "area:L"})
-	Company.set_price(w, farm, "FOOD", 5 * S)
-	Company.stock_add(w, farm, "FOOD", 1000 * S, 5 * S, "OUTPUT", "harvest")
+	var farm := Company.create(w, "FARM", "SMALL", {"kind": "HOME_WORLD", "holders": {"home_world": 1000}}, "Dear Food", {"area": "area:L"})
+	Company.set_price(w, farm, "FOOD", 100 * S)
+	Company.stock_add(w, farm, "FOOD", 1000 * S, 100 * S, "OUTPUT", "harvest")
 	var needs := Households.needs_per_worker(w, "area:L")
 	var offer := Rules.starting_salary(w, "area:L", "G")
 	check(offer < needs, "the general offer %d is below a worker's needs %d" % [offer, needs])
@@ -160,8 +160,8 @@ func test_the_build_crews_are_placed_whole_even_when_the_offer_is_below_their_ne
 		total += Company.staff_count(w, cid, "", "crew") / S
 	check_eq(total, 220, "every builder and the public works land with their whole crew")
 	check_eq(Logbook.rows(w, {"kind": "CREW"}).size(), 0, "nobody short")
-	check_eq(Company.payroll(w, r["home_world"][0]).filter(func(e): return String(e["post_tier"]) == "G")[0]["pay"], offer,
-		"paid the hiring salary, as any post")
+	check_eq(Company.payroll(w, r["home_world"][0]).filter(func(e): return String(e["post_tier"]) == "G")[0]["pay"], Rules.placed_salary(w, "area:L", "G"),
+		"paid 2.5 times the rent from the start (the user, 2026-11-18), not the hiring offer")
 	check_eq(HomeBuilders.bw_milli(w, r["home_world"][0]), 60 * 1000, "trained: the large builder makes 60 BW in month one")
 	for row in Logbook.rows(w, {"who": r["home_world"][0], "kind": "HIRE"}):
 		check(bool(row["why"].get("placed", false)), "the log says they were placed, not hired")

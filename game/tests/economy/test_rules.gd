@@ -20,6 +20,12 @@ func _w() -> WorldState:
 	return WorldState.new(1)
 
 
+func _homes(w: WorldState) -> void:
+	# a landlord asking 100 for a home: the starting salary (2 x the rent, 200) is then above a worker's needs (the
+	# rent and a household's food, 198.6), so people apply at once; these tests are about what follows a hire
+	Company.set_price(w, Company.create(w, "LANDLORD", "SMALL", HW, "Homes", {"area": "landing"}), "@home", 100 * S)
+
+
 func _farm(w: WorldState, staff_g: int, staff_s: int) -> Array:
 	var id := Company.create(w, "FARM", "SMALL", HW, "F", {"area": "landing"})
 	var pid := Company.add_plant(w, id, "SMALL")
@@ -203,20 +209,26 @@ func test_the_familys_own_posts_are_never_open() -> void:
 	check_eq(Company.hiring_salary(w, f[0], "G", "landing"), Rules.starting_salary(w, "landing", "G"), "no post open: the offer stays at the start")
 
 
-func test_the_starting_salary_is_the_users_formula_in_the_area() -> void:
+func test_the_starting_salary_is_twice_the_rent_in_the_area_and_the_placed_get_two_and_a_half() -> void:
+	# the user, 2026-11-18 (9.2): "Change the sallery from fod and rent to just rent at 2× we will have to find a better
+	# formula for it later", then "3 5x housing try it", then after both trials "2", "Merge with 2"; and for those
+	# placed at the landing: "lets set their sallery at 2.5 from start same for builders"
 	var w := _w()
 	var shelter := TypeTable.start_price_of("LANDLORD") / 2
-	var line := TypeTable.salary_line(shelter, TypeTable.start_price("FOOD"), 2500)
-	check_eq(Rules.starting_salary(w, "landing", "G"), line, "no landlord yet: the landing's shelter and the food's start")
-	check_eq(Rules.starting_salary(w, "landing", "S"), line * 1500 / 1000, "a skilled post 1.5 times")
-	check(absi(line - 293 * S) <= 2 * S, "at the landing prices 293: the rent doubled, a farm worker feeds ten (2026-11-18); the table solves at 300")
+	var g := shelter * 2000 / 1000
+	check_eq(Rules.starting_salary(w, "landing", "G"), g, "no landlord yet: 2 times the landing's shelter")
+	check_eq(Rules.starting_salary(w, "landing", "S"), g * 1500 / 1000, "a skilled post 1.5 times")
+	check(absi(g - 194 * S) <= S, "194 at the landing (the rent doubled, 2026-11-18)")
+	check_eq(Rules.placed_salary(w, "landing", "G"), shelter * 2500 / 1000, "the placed: 2.5 times the landing's shelter")
+	check_eq(Rules.placed_salary(w, "landing", "S"), shelter * 2500 / 1000 * 1500 / 1000, "a skilled placed post 1.5 times")
+	check(absi(Rules.placed_salary(w, "landing", "G") - 242 * S) <= S, "242 at the landing")
 	var l1 := Company.create(w, "LANDLORD", "SMALL", HW, "L1", {"area": "landing"})
 	var l2 := Company.create(w, "LANDLORD", "SMALL", HW, "L2", {"area": "landing"})
 	Company.set_price(w, l1, "@home", 100 * S)
 	Company.set_price(w, l2, "@home", 200 * S)
-	var food := int(Rules.needs_food(w, "landing")["price"])
-	check_eq(Rules.starting_salary(w, "landing", "G"), TypeTable.salary_line(150 * S, food, 2500), "the average rent the landlords ask")
-	check(Rules.starting_salary(w, "landing", "G") > Rules.needs_line(w, "landing"), "always above a worker's needs: people apply")
+	check_eq(Rules.starting_salary(w, "landing", "G"), 300 * S, "2 times the average rent the landlords ask; no food in it")
+	check_eq(Rules.placed_salary(w, "landing", "G"), 375 * S, "the placed: 2.5 times that average")
+	check(Rules.starting_salary(w, "landing", "G") > Rules.needs_line(w, "landing"), "here above a worker's needs: people apply")
 	check_eq(Company.hiring_salary(w, Company.create(w, "FARM", "SMALL", HW, "F", {"area": "landing"}), "G", "landing"),
 		Rules.starting_salary(w, "landing", "G"), "what a new opening is offered")
 
@@ -239,6 +251,7 @@ func test_a_month_without_hiring_holds_the_offer() -> void:
 
 func test_staff_follow_the_posts_and_unpaid_staff_are_laid_off() -> void:
 	var w := _w()
+	_homes(w)
 	Households.seed_test(w, "landing", "I2", "G", 20)
 	Households.seed_test(w, "landing", "I3", "S", 5)
 	var id := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
@@ -331,6 +344,7 @@ func test_a_family_works_its_own_posts_unpaid_and_hiring_fills_the_rest() -> voi
 	var w := _w()
 	check_eq(Company.family_fill({"G": 6, "S": 2, "Sp": 0}, {"G": 1, "S": 0, "Sp": 1}), {"G": 1, "S": 1, "Sp": 0},
 		"each tier from the adults of that skill or above: the specialist takes a skilled post")
+	_homes(w)
 	var f := _farm(w, 0, 0)   # a small farm, nobody hired
 	var alone := Making.make_plant(w, f[0], f[1])
 	check(Company.family_set(w, f[0], f[1], "founder:x", {"G": 1, "S": 1}), "the family in its posts")
@@ -427,6 +441,7 @@ func test_a_new_hire_makes_half_rising_evenly_to_full_after_six_months() -> void
 
 func test_a_company_keeps_slack_staff_until_idle_wages_outweigh_what_a_layoff_costs() -> void:
 	var w := _w()
+	_homes(w)
 	Households.seed_test(w, "landing", "I2", "G", 40)
 	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
 	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(b), 1000000 * S, "TEST", 0)
@@ -448,6 +463,7 @@ func test_a_company_keeps_slack_staff_until_idle_wages_outweigh_what_a_layoff_co
 
 func test_hiring_pays_its_job_adverts_and_waits_if_it_cannot() -> void:
 	var w := _w()
+	_homes(w)
 	var Media: GDScript = load("res://sim/media/media_ops.gd")
 	var a: String = Media.call("found_outlet", w, {"kind": "COMPANY", "id": "org:1"}, {"quality": 100})["out_id"]
 	Media.call("state", w)["circ"] = {a: {"landing": 300}}

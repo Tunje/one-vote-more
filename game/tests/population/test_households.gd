@@ -72,6 +72,8 @@ func test_hire_takes_the_posts_skill_first_then_higher_never_lower() -> void:
 	Households.seed_test(w, land, "I3", "S", 5)
 	Households.seed_test(w, land, "I4", "Sp", 2)
 	var c1 := _co(w, "BUILDER", "HOME_WORLD")
+	Company.set_hiring_salary(w, c1, "S", land, 450 * S)   # above their needs: this test is about skill, not applying
+	Company.set_hiring_salary(w, c1, "Sp", land, 675 * S)
 	check_eq(Households.hire(w, c1, "crew", "S", land, 6), 6, "six skilled posts filled")
 	var st := Company.staff_entries(w, c1)
 	check_eq(int(st["crew"]["S"][Households.labour_key(land, "I3", "S")]["n"]), 5 * S, "the five skilled first")
@@ -94,7 +96,7 @@ func test_layoff_returns_people_to_the_unemployed_and_the_check_holds() -> void:
 	var p1 := Company.add_plant(w, c1, "SMALL")
 	var c2 := _co(w, "BUILDER", "STATE")
 	Households.hire(w, c1, p1, "G", land, 6, {}, 300 * S)
-	Households.hire(w, c2, "crew", "G", land, 4)
+	Households.hire(w, c2, "crew", "G", land, 4, {}, 300 * S)
 	check_eq(PopStore.count(w, {"hb": land, "status": "EMPLOYED", "occ": "PUBLIC_SECTOR"}), 4, "a state company's staff are public sector")
 	check(Households.check(w).is_empty(), "jobs = people after two hires")
 	check_eq(Households.layoff(w, c1, p1, "G", 4, {"reason": "LAYOFF"}), 4, "four laid off")

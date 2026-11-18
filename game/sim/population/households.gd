@@ -174,8 +174,10 @@ static func unemployed(world: WorldState, area: String, skill: String) -> Dictio
 ## trained, so no training group is opened for them (Bob's staff_change: since >= 0 is not a new hire). Every other
 ## hire trains (9.2: half output the first month, full after six).
 ## placed = true: the landing's build crews (rebuild-company.md 9.2, the user: "The build crews at start should not be
-## hiring at all. They should start with a job already active."): they are placed, not hired: no application test
-## against their needs, and trained (they arrived operating). The HIRE row says "placed". Everything else as a hire.
+## hiring at all. They should start with a job already active.") and the government's staff ("Place the goverment
+## staff from startb with the builders"): they are placed, not hired: no application test against their needs,
+## trained (they arrived operating), and paid 2.5 x the rent (Rules.placed_salary) unless a pay is given. The HIRE
+## row says "placed". Everything else as a hire.
 static func hire(world: WorldState, cid: String, plant_key: String, post_tier: String, area: String, n: int, why: Dictionary = {}, pay: int = -1, trained: bool = false, placed: bool = false) -> int:
 	if n <= 0:
 		return 0
@@ -187,7 +189,9 @@ static func hire(world: WorldState, cid: String, plant_key: String, post_tier: S
 		if at == "":
 			Logbook.note(world, "HIRE", cid, "no hire: the post's plant stands nowhere", {"plant": plant_key, "wanted": n})
 			return 0
-		pay = Company.hiring_salary(world, cid, post_tier, at)
+		# the placed are paid 2.5 x the rent from the start (9.2, the user, 2026-11-18: "lets set their sallery at 2.5
+		# from start same for builders"); every hire is offered the company's hiring salary
+		pay = int(load("res://sim/economy/rules.gd").placed_salary(world, at, post_tier)) if placed else Company.hiring_salary(world, cid, post_tier, at)
 	var needs := needs_per_worker(world, area)
 	if pay < needs and not placed:   # "emplyees only apply to jobs that meet their needs" (9.2)
 		Logbook.note(world, "HIRE", cid, "no applicants: the pay is below their needs", {"pay": pay, "needs": needs, "area": area, "wanted": n})
