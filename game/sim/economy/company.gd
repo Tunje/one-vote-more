@@ -51,7 +51,7 @@ static func create(world: WorldState, type: String, size: String, owner: Diction
 	var rec := {
 		"id": id, "name": name, "type": type, "size": size, "status": "OPEN", "opened": world.month,
 		"origin": String(opts.get("origin", "")), "origin_n": int(opts.get("origin_n", 0)), "area": String(opts.get("area", "")),
-		"price_fixed": bool(opts.get("price_fixed", false)), "crew_posts": bool(opts.get("crew_posts", false)) or type == "BUILDER",
+		"price_fixed": bool(opts.get("price_fixed", false)), "crew_posts": bool(opts.get("crew_posts", false)) or works_as_crew(type),
 		"chief": {"mgmt": int(opts.get("chief", {}).get("mgmt", 50)), "risk": int(opts.get("chief", {}).get("risk", 50))},
 		"raise_pm": 0,             # the yearly raise this company chooses to give, per mille (at least the government's minimum)
 		"crew_level_pm": 1000,     # output level of its crew (rule 3/4), per mille of full; plants keep their own
@@ -268,12 +268,24 @@ static func staff_move(world: WorldState, cid: String, plant_key: String, post_t
 	return _staff_write(world, cid, plant_key, post_tier, to_key, n, hire, -1, "")
 
 
+## Does a type work as a crew with no plant (its posts under "crew")? Read from its type-table row, not its name (the
+## user, 2026-11-18: "No it's for all goods don't overcomplicatev with individual rules built seperatly"; then, of the
+## places that named one type, "Good, those"): every type whose row sells building work (way "sells": "BW").
+static func works_as_crew(type: String) -> bool:
+	return TypeTable.ROWS.has(type) and crew_way(TypeTable.way(type))
+
+
+## The same read on a row's way alone (pure): a row that sells building work works as a crew.
+static func crew_way(way: Dictionary) -> bool:
+	return String(way.get("sells", "")) == "BW"
+
+
 static func _staff_write(world: WorldState, cid: String, plant_key: String, post_tier: String, labour_key: String, delta: int, hire: Dictionary, pay: int, row: String) -> bool:
 	var c: Dictionary = world.table(TABLE).get(cid, {})
 	if c.is_empty() or not TypeTable.TIER_PM.has(post_tier):
 		return false
 	if plant_key == "crew":
-		if String(c["type"]) != "BUILDER" and not (c["plants"] as Array).is_empty():
+		if not works_as_crew(String(c["type"])) and not (c["plants"] as Array).is_empty():
 			return false
 	elif not (c["plants"] as Array).has(plant_key):
 		return false

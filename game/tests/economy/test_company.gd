@@ -415,3 +415,23 @@ func test_specialists_are_averaged_apart_and_general_and_skilled_share_one_line(
 	check_eq(Company.avg_pay(w, id, "G"), 375 * S, "a specialist's pay does not move the others' line")
 	check(Company.negotiate(w, id, "crew", "G", "landing|I2|G", 375 * S), "a general worker may negotiate up to the shared line")
 	check(not Company.negotiate(w, id, "crew", "S", "landing|I3|S", 400 * S), "a skilled worker above it is not underpaid")
+
+
+func test_a_type_that_sells_building_work_works_as_a_crew_read_from_the_table_not_its_name() -> void:
+	# the user, 2026-11-18: "No it's for all goods don't overcomplicatev with individual rules built seperatly"; of the
+	# places the company record named one type: "Good, those"
+	check(Company.crew_way({"sells": "BW", "reads": "EMPTY_SLOTS", "price": "PER_BW"}), "a made-up row that sells building work: a crew")
+	check(not Company.crew_way({"sells": "ITEM"}), "a made-up row that sells goods: no crew")
+	check(not Company.crew_way({}), "a row with no way: no crew")
+	for type in TypeTable.ROWS:
+		check_eq(Company.works_as_crew(String(type)), String(TypeTable.way(String(type))["sells"]) == "BW", "%s: as its row says" % type)
+	check(Company.works_as_crew("BUILDER"), "the builder row sells BW: a crew")
+	var w := _w()
+	var b := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	check(bool(Company.record(w, b)["crew_posts"]), "a builder gets crew posts without being told")
+	check(Company.staff_change(w, b, "crew", "G", "landing|I2|G", S, 300 * S), "and staff on its crew")
+	var f := Company.create(w, "FARM", "SMALL", HW, "F", {"area": "landing"})
+	Company.add_plant(w, f, "SMALL")
+	check(not bool(Company.record(w, f)["crew_posts"]), "a farm does not")
+	check(not Company.staff_change(w, f, "crew", "G", "landing|I2|G", S, 300 * S), "and puts no staff on a crew beside its plant")
+
