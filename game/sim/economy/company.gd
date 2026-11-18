@@ -769,6 +769,24 @@ static func books_month(world: WorldState, cid: String) -> Dictionary:
 	return (world.peek(TABLE).get(cid, {}).get("books", {}).get("month", {}) as Dictionary).duplicate()
 
 
+## The closed books of `month`, from the ring (a copy), or {} when that month is not closed (or is older than the ring).
+static func books_closed(world: WorldState, cid: String, month: int) -> Dictionary:
+	for m in world.peek(TABLE).get(cid, {}).get("books", {}).get("year", []):
+		if int(m.get("m", -1)) == month:
+			return (m as Dictionary).duplicate()
+	return {}
+
+
+## Books into the closed books of `month` (what is settled after the close but belongs to that month: the family's
+## winnings, paid in JUSTICE). Returns false (nothing booked) when that month is not in the ring.
+static func book_closed(world: WorldState, cid: String, month: int, key: String, amount: int) -> bool:
+	for m in world.table(TABLE).get(cid, {}).get("books", {}).get("year", []):
+		if int(m.get("m", -1)) == month:
+			m[key] = int(m.get(key, 0)) + amount
+			return true
+	return false
+
+
 ## Closes the month's books into the ring of the last 12 closed months and opens an empty one. Called once a month for
 ## every company, after the rules have read the month. Writes no row (the deeds were logged as they happened).
 static func close_month(world: WorldState, cid: String) -> void:

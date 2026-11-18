@@ -501,8 +501,11 @@ static func family_to_posts(world: WorldState, cid: String) -> void:
 ## earned less than nothing adds to the company's carried loss; a month that earned something first pays it down, and
 ## the family takes only what is beyond it. Pure: pay_winnings applies it once a month.
 ## {"amount", "earned", "carried" (before this month), "pays_down", "carried_after", "balance", "keep", ...}.
+## It reads the month just lived (_month_lived): in the real month the rules have closed its books (Rules.month, in
+## COMPANY_AI) before JUSTICE pays the winnings, so the open books are already the next month's and empty (Wilma's
+## fault: no family was ever paid).
 static func winnings(world: WorldState, cid: String) -> Dictionary:
-	var b := Company.books_month(world, cid)
+	var b := _month_lived(world, cid)
 	var wages := Company.wage_bill(world, cid)
 	var inputs := int(b.get("inputs", 0))
 	var upkeep := int(b.get("upkeep", 0))
@@ -517,6 +520,12 @@ static func winnings(world: WorldState, cid: String) -> Dictionary:
 	return {"amount": maxi(0, mini(earned - pays_down, bal - keep)), "earned": earned, "carried": carried,
 		"pays_down": pays_down, "carried_after": after, "balance": bal, "keep": keep, "wages": wages, "inputs": inputs,
 		"upkeep": upkeep, "debts": debts}
+
+
+## The books of the month just lived: this month's closed books once the rules have closed them, else the open month.
+static func _month_lived(world: WorldState, cid: String) -> Dictionary:
+	var closed := Company.books_closed(world, cid, world.month)
+	return closed if not closed.is_empty() else Company.books_month(world, cid)
 
 
 ## Pays every family company's winnings to its family (the conductor, JUSTICE, after Justice.collect_debts): Maja's
@@ -536,7 +545,8 @@ static func pay_winnings(world: WorldState) -> void:
 		var amount := int(wn["amount"])
 		if amount > 0:
 			amount = int(Households.pay_winnings(world, fam, CoreUtil.acct(String(cid)), amount))
-			Company.book(world, String(cid), "winnings", amount)
+			if not Company.book_closed(world, String(cid), world.month, "winnings", amount):
+				Company.book(world, String(cid), "winnings", amount)   # the books not closed yet: the month's own
 		Logbook.note(world, "WINNINGS", String(cid), "the family took its winnings" if amount > 0 else "no winnings this month",
 			{"earned": int(wn["earned"]) / S, "debts": int(wn["debts"]) / S, "loss_carried": int(wn["carried"]) / S,
 			"pays_down": int(wn["pays_down"]) / S, "loss_carried_after": int(wn["carried_after"]) / S,

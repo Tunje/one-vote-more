@@ -536,3 +536,33 @@ func test_a_farm_family_takes_its_food_from_its_own_farm_before_any_is_offered()
 	var g := _farm(w, 2, 0)
 	Company.stock_add(w, g[0], "FOOD", 30 * S, 20 * S, "OUTPUT", "harvest")
 	check_eq(Making.family_take(w, g[0], "FOOD", 6 * S), 0, "a farm with no family: nobody takes")
+
+
+func test_a_family_farm_that_sells_pays_its_family_winnings_in_the_real_month_order() -> void:
+	# 15e, the user: "The owners of a family farm should take winnings no sallery, wich comes after and saves the issue".
+	# A whole game month (Wilma's fault: the rules close the month's books before JUSTICE pays the winnings, so they
+	# read an empty month and no family was ever paid).
+	var sim := GameSim.make(1)
+	var w := sim.world
+	var land := AreaStore.found_landing(w)
+	var pid := Households.pool_id(land, "I2")
+	var fam := Households.make_founder(w, pid, "", true)
+	var cid := Company.create(w, "FARM", "FAMILY", HW, "Family Farm", {"area": land})
+	Company.family_set(w, cid, "crew", fam, {})
+	Company.set_price(w, cid, "FOOD", 1 * S)   # the cheapest food at the landing: it sells
+	Company.stock_add(w, cid, "FOOD", 500 * S, 1 * S, "OUTPUT", "harvest")
+	sim.step()
+	var m := w.month - 1
+	var rev := 0
+	for r in Logbook.rows(w, {"kind": "SALE", "who": cid, "from": m, "to": m}):
+		rev += int(r["change"]["paid"][1])
+	check(rev > 0, "the farm sold food this month: %d" % rev)
+	var rows: Array = Logbook.rows(w, {"kind": "WINNINGS", "who": cid, "from": m, "to": m})
+	check_eq(rows.size(), 1, "one WINNINGS row")
+	check_eq(int(rows[-1]["why"]["earned"]), rev / S, "what it earned is the month just lived: its sales, no wages, no inputs")
+	check_eq(int(rows[-1]["change"]["winnings"][1]), rev / S, "all of it to the family")
+	var paid: Array = Logbook.rows(w, {"kind": "PAY", "who": CoreUtil.acct(cid), "from": m, "to": m}).filter(func(r): return String(r["what"]) == "winnings")
+	check_eq(int(paid[-1]["change"]["paid"][1]) if not paid.is_empty() else 0, rev, "paid into the family's account")
+	check_eq(w.ledger.balance(CoreUtil.acct(cid)), 0, "nothing left in the farm")
+	check_eq(int(Company.books_closed(w, cid, m).get("winnings", 0)), rev, "booked in the month it was earned")
+	check_eq(int(Company.books_month(w, cid).get("winnings", 0)), 0, "not in the month to come")
