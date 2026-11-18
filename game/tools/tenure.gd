@@ -36,6 +36,8 @@ func _initialize() -> void:
 		rows.sort_custom(func(a, b): return _order(a) < _order(b))
 		for r in rows:
 			var who := String(r["who"])
+			if not (r["change"] as Dictionary).has("staff"):
+				continue   # a row of the same kind that moves nobody (a layoff weighed and not made, a move not taken)
 			match String(r["kind"]):
 				"HIRE":
 					if String(r["what"]).begins_with("hired"):

@@ -172,7 +172,7 @@ type has its own copy, and no rule is skipped for a type because it cannot take 
 
 | # | Rule | What it acts on |
 |---|---|---|
-| 1 | raise the price | it sold what it offered and orders went unfilled |
+| 1 | raise the price | buyers came to it, found it sold out and went somewhere else: "no orders go unfilled by my farm, every seller that comes looking and goes somewhere else for food, not orders unfilled by anyone" (every buyer that comes looking); "Important oders that are filled before they come to my farm does not count" (the user, 2026-11-18). Built (Bob): a buyer reaches a farm when its order, going down its own order (cheapest first, by the market's rank; farms at one price in the rank's fixed order), passes the farm at a price it would pay while the farm has nothing left; each farm so passed counts the whole quantity the buyer still wanted (what it then bought elsewhere and what stayed short). An order filled before it reached a farm counts nothing for it. Only the month's food orders, not the store's (9.3). |
 | 2 | lower the price | what it offered and did not sell: "the more inventory you have, the more you reduce your price" |
 | 3 | raise output | "if you sell out all your producing produce MORE". Also picks first or second output |
 | 4 | lower output | "The production output is only lowered if over 50% of offered goods is not sold 3 months in a row" |
@@ -1191,6 +1191,18 @@ is wrong; nothing here is asked again.
      How the government stops land (the user, 2026-11-18, verbatim, asked whether by zoning or by a plain stop on
      selling land for a type): "Yes on zoning laws". So: by zoning, with the zoning laws.
      (Wilma's reading: the AI government zones when it wants no more farms, by the count its grant uses.)
+     - **(Wilma's readings, 2026-11-18, after a five-year simulation)** The first build flipped the zoning every
+       month from month 30. With the population grown the government wanted 3 to 6 more farms and lifted the
+       zoning; that month 46 to 64 unsubsidised plans were made; the next month it counted them, zoned again, and
+       gave every one up. In all, 787 plans were given up and no farm was added after month 11. It had two causes,
+       and both readings were Wilma's:
+       - *Zoning stops new plans only.* A plan made while the land was open keeps its right to buy the site it
+         holds. Her earlier reading, that an unsigned plan is given up when the land is zoned, is withdrawn.
+       - *One count of what the farms deliver.* The government's count of farms wanted (the grant sum, 61b, and
+         the zoning) uses what the farms really deliver, as rule 8 does (15a): made less the family's take over
+         the last twelve months, months not yet lived at full output, booked and granted plans at full output. It
+         no longer counts every farm at full output, so the government and rule 8 read the same supply. It is
+         Bob's function, not a second copy.
 
 61b. **A grant programme has a maximum sum** (the user, 2026-11-17, verbatim, after the first loop's run showed 158
      farm plans signed in two months for a colony that about 41 farms feed): "The government should  put a max sum into the grant based on how many darms they wantmaybe a little extra to be sure".

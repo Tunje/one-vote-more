@@ -350,6 +350,9 @@ crime, defamation, the government's unlawful acts, appeals.
      - the zone is `INDUSTRIAL`, which refuses farms;
      - lifting it clears the record;
      - a caretaker government cannot zone or lift (`CARETAKER_LIMITS`, kept code).
+   - Wilma, 2026-11-18, after the five-year run: "Zoning stops new plans only: a plan made while the land was open
+     keeps its right to buy the site it holds." So the colony zone does not bind a plan made before it was set, at the
+     sale or at `may_sign`. A tile's own zone still binds it.
 6. **Lease arrears:** a lessee behind on rent for `LAW_EVICTION_NOTICE_MONTHS` loses the lease. The old fixed 3 months
    goes **(Anni's decision)**. Land with people on it then goes to an eviction (section 9).
 7. **Expropriation** for public works, at the land's value, with rehousing or a court order for anyone living on it
