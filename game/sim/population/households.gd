@@ -506,7 +506,7 @@ static func _month_rec(world: WorldState, pid: String) -> Dictionary:
 	if int(p.get("month", {}).get("m", -1)) != world.month:
 		p["month"] = {"m": world.month, "food_need": 0, "food_bought": 0, "food_eaten": 0, "hunger": 0, "hunger_money": 0,
 			"hunger_price": 0, "hunger_scarce": 0, "spoiled": 0, "rent_due": 0, "rent_paid": 0, "orders": {},
-			"store_bought": 0, "store_eaten": 0, "store_pm": 0}
+			"store_bought": 0, "store_eaten": 0, "store_pm": 0, "farm_eat": 0, "farm_store": 0}
 	return p["month"]
 
 
@@ -588,6 +588,11 @@ static func _stock(world: WorldState, id: String) -> Dictionary:
 ## The store order asks only for what its money buys at today's cheapest offer (Bob's review: rule 7 founds farms on the
 ## orders posted, and an order nobody can pay for is no work for a farm); with nothing on offer it posts none.
 ## rent_of: the conductor's Landing.rent_due (as for pay_rent); rent owed from earlier months is set aside too.
+## A farm family eats from its own farm first (rebuild-company.md 12.3 15e, the user, 2026-11-18: "THE FARMERS
+## THEMSELVES I RULED EATS THEMSELVES FIRST, THEY ARE THREE THEY CAN PRODUVE 30 ... THEY WOULD TAKE SIX OUT OF THIRTY
+## SELL 24"): before any order, a founder whose family farm is open takes from its stock the month's need and the
+## store's double (Bob's Making.family_take: no money, never offered); the market orders are for what is still missing,
+## and the double holds over farm and market together.
 static func post_orders(world: WorldState, rent_of: Callable = Callable()) -> int:
 	var posted := 0
 	for b in buyers(world):
@@ -601,18 +606,29 @@ static func post_orders(world: WorldState, rent_of: Callable = Callable()) -> in
 		if need <= 0:
 			continue
 		var buyer := {"kind": "POOL", "id": id, "acct": String(b["acct"]), "area": area}
+		var farm := own_farm(world, id) if id.begins_with("founder:") else ""
+		var took := 0
+		if farm != "":   # the family eats from its own farm first (15e): the month's need, then the store's double
+			took = int(load("res://sim/economy/making.gd").family_take(world, farm, "FOOD", need + mini(need, maxi(0, STORE_MONTHS * need - held))))
+			_stock(world, id)["FOOD"] = held + took
+			rec["farm_eat"] = mini(took, need)
+			rec["farm_store"] = took - int(rec["farm_eat"])
+		var buy := need - int(rec["farm_eat"])
 		var food_budget := money   # food first: everything; rent and the rest are paid from what it leaves
 		var worth := food_budget
-		var by := food_by(world, area, need, food_budget)
-		var oid := Market.order(world, buyer, "FOOD", need, worth, "NEED", food_budget, by)
+		var by := food_by(world, area, buy, food_budget)
+		var oid := ""
+		if buy > 0:
+			oid = Market.order(world, buyer, "FOOD", buy, worth, "NEED", food_budget, by)
 		if oid != "":
 			rec["orders"]["FOOD"] = oid
 			posted += 1
 		# the store, from what is left after this month's food (costed on this month's offers) and the rent
-		var food_cost := mini(money, food_cost_of(world, area, need))
+		var food_cost := mini(money, food_cost_of(world, area, buy))
 		var rent := rent_set_aside(world, id, rent_of)
 		var store_budget := maxi(0, money - food_cost - rent)
-		var want := mini(need, maxi(0, STORE_MONTHS * need - held))   # double, never more, until six months are held
+		# double, never more, until six months are held: what the farm gave the store counts toward both
+		var want := mini(need - int(rec["farm_store"]), maxi(0, STORE_MONTHS * need - held - int(rec["farm_store"])))
 		var cheapest := -1
 		for off in Market.offers(world, "FOOD", area):
 			if cheapest < 0 or int(off["price"]) < cheapest:
@@ -631,8 +647,18 @@ static func post_orders(world: WorldState, rent_of: Callable = Callable()) -> in
 				posted += 1
 		Logbook.note(world, "BUDGET", id, "food set aside first, then the rent, then the store", {"need": need, "held": held,
 			"money": money, "worth": worth, "lines": {"FOOD": food_budget, "FOOD_COST": food_cost, "RENT": rent, "STORE": store_budget},
-			"by": by, "store_by": sby, "store_want": want}, {"ordered": [0, need], "store_ordered": [0, want if sid != "" else 0]}, "", oid)
+			"by": by, "store_by": sby, "store_want": want, "farm": farm}, {"ordered": [0, buy], "store_ordered": [0, want if sid != "" else 0],
+			"from_farm": [0, took]}, "", oid)
 	return posted
+
+
+## The open family farm whose family is founder `fid`'s household (15e), or "".
+static func own_farm(world: WorldState, fid: String) -> String:
+	for cid in Company.ids(world):
+		var c := Company.record(world, cid)
+		if String(c["type"]) == "FARM" and String(c["status"]) == "OPEN" and Company.family_of(world, cid) == fid:
+			return String(cid)
+	return ""
 
 
 ## What a buyer sets aside for rent before its store (15f): this month's rent (rent_of, the landlord side's) and what it
@@ -682,7 +708,7 @@ static func _rec_of(world: WorldState, id: String) -> Dictionary:
 	if int(r.get("month", {}).get("m", -1)) != world.month:
 		r["month"] = {"m": world.month, "food_need": 0, "food_bought": 0, "food_eaten": 0, "hunger": 0, "hunger_money": 0,
 			"hunger_price": 0, "hunger_scarce": 0, "spoiled": 0, "rent_due": 0, "rent_paid": 0, "orders": {},
-			"store_bought": 0, "store_eaten": 0, "store_pm": 0}
+			"store_bought": 0, "store_eaten": 0, "store_pm": 0, "farm_eat": 0, "farm_store": 0}
 	return r["month"]
 
 
@@ -714,7 +740,7 @@ static func after_market(world: WorldState) -> Dictionary:
 		var eat := mini(need, int(st.get("FOOD", 0)))
 		st["FOOD"] = int(st.get("FOOD", 0)) - eat
 		rec["food_eaten"] = eat
-		rec["store_eaten"] = maxi(0, eat - int(rec["food_bought"]))   # the month's own food first, then the store
+		rec["store_eaten"] = maxi(0, eat - int(rec["food_bought"]) - int(rec.get("farm_eat", 0)))   # the month's own food (farm, then bought) first, then the store
 		var hunger := need - eat
 		rec["hunger"] = hunger
 		if hunger > 0:
@@ -735,7 +761,8 @@ static func after_market(world: WorldState) -> Dictionary:
 				{"hunger": [0, hunger], "spoiled": [0, sp], "stock": [0, int(st.get("FOOD", 0))]})
 		if need > 0:
 			Logbook.note(world, "STORE", id, "the food store", {"need": need, "months_pm": int(rec["store_pm"])},
-				{"bought": [0, int(rec["store_bought"])], "eaten": [0, int(rec["store_eaten"])], "stock": [0, int(st.get("FOOD", 0))]})
+				{"bought": [0, int(rec["store_bought"])], "eaten": [0, int(rec["store_eaten"])], "stock": [0, int(st.get("FOOD", 0))],
+				"from_farm": [0, int(rec.get("farm_eat", 0)) + int(rec.get("farm_store", 0))]})
 	_food_facts(world, tot)
 	return tot
 

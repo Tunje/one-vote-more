@@ -957,3 +957,76 @@ func test_savings_and_the_store_follow_people_through_a_split_and_a_merge() -> v
 	check_eq(int(w.peek("pool")[pb]["stock"]["FOOD"]), 4000 * S, "all of it is where the people are")
 	check_eq(_area_money(w), money, "still no money appears or vanishes")
 	check(Logbook.rows(w, {"kind": "AREA"}).size() >= 2, "AREA rows")
+
+
+## A founder's household of three (two adults, one child) whose own FAMILY farm holds `food` units; the founder has
+## `money` credits.
+func _farm_family(w: WorldState, land: String, food: int, money: int) -> Array:
+	var pid := _pool(w, land, "I2", 10, 0)
+	var fid := Households.make_founder(w, pid, "", true)
+	w.table("founder")[fid]["family"]["adults"] = [{"skill": "G", "was": "UNEMPLOYED"}, {"skill": "G", "was": "UNEMPLOYED"}]
+	w.table("founder")[fid]["family"]["children"] = 1
+	var acct := String(w.peek("founder")[fid]["account"])
+	var bal := w.ledger.balance(acct)
+	if bal > 0:
+		w.ledger.transfer(acct, Ledger.EXTERNAL, bal, "TEST", w.month)
+	if money > 0:
+		w.ledger.transfer(Ledger.EXTERNAL, acct, money * S, "TEST", w.month)
+	var cid := Company.create(w, "FARM", "FAMILY", {"kind": "PRIVATE", "holders": {fid: 1000}}, "family farm", {"area": land})
+	var plant := Company.add_plant(w, cid, "FAMILY")
+	Company.family_set(w, cid, plant, fid, {})
+	if food > 0:
+		Company.stock_add(w, cid, "FOOD", food * S, 0, "OUTPUT", "made")
+	return [fid, cid]
+
+
+func test_a_farm_family_of_three_takes_six_of_thirty_and_the_farm_offers_twenty_four() -> void:
+	# 15e, the user: "THEY ARE THREE THEY CAN PRODUVE 30 ... THEY WOULD TAKE SIX OUT OF THIRTY SELL 24"
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var r := _farm_family(w, land, 30, 0)
+	var fid := String(r[0])
+	var cid := String(r[1])
+	check_eq(Households.family_size(w, fid), 3, "they are three")
+	Households.post_orders(w)
+	check_eq(int(Company.stock_of(w, cid, "FOOD")["qty"]), 24 * S, "they took six: their month and the store's double")
+	var offered := 0
+	for off in Market.offers(w, "FOOD", land):
+		offered += int(off["qty"])
+	check_eq(offered, 24 * S, "the farm offers 24")
+	var m: Dictionary = w.peek("founder")[fid]["month"]
+	check_eq([int(m["farm_eat"]), int(m["farm_store"])], [3 * S, 3 * S], "three to eat, three to store")
+	check(not (m["orders"] as Dictionary).has("FOOD"), "nothing left to buy for the month")
+	Market.clear(w)
+	Households.after_market(w)
+	m = w.peek("founder")[fid]["month"]
+	check_eq(int(m["hunger"]), 0, "with no money at all, nobody hungry: the farm made food")
+	check_eq(int(m["store_eaten"]), 0, "they ate their own month's food, not the store")
+	check_eq(int(w.peek("founder")[fid]["stock"]["FOOD"]), 3 * S - 3 * S * 10 / 1000, "three stored, less 1% spoiled")
+	check_eq(w.ledger.balance(String(w.peek("founder")[fid]["account"])), 0, "no money changed hands")
+	check_eq(Logbook.rows(w, {"kind": "TAKE", "who": cid}).size(), 1, "one TAKE row (Bob's)")
+
+
+func test_a_farm_family_with_six_months_stored_takes_only_its_month() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var r := _farm_family(w, land, 30, 0)
+	var fid := String(r[0])
+	w.table("founder")[fid]["stock"] = {"FOOD": 18 * S}
+	Households.post_orders(w)
+	check_eq(int(Company.stock_of(w, String(r[1]), "FOOD")["qty"]), 27 * S, "six months held: only the month's three")
+
+
+func test_a_farm_family_buys_what_its_farm_could_not_give() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	var r := _farm_family(w, land, 1, 10000)
+	var fid := String(r[0])
+	_seller(w, land, 100)
+	_buy_month(w)
+	var m: Dictionary = w.peek("founder")[fid]["month"]
+	check_eq(int(m.get("farm_eat", 0)), 1 * S, "the one unit the farm had")
+	check_eq(int(m["food_bought"]), 2 * S, "the rest of the month bought")
+	check_eq(int(m["store_bought"]), 3 * S, "and the store's double bought: one month's more")
+	check_eq(int(m["hunger"]), 0, "fed")
+	check_eq(int(Company.stock_of(w, String(r[1]), "FOOD")["qty"]), 0, "the farm offered nothing: its family ate it")

@@ -113,6 +113,29 @@ static func _share_of_wages(world: WorldState, cid: String) -> int:
 	return Company.wage_bill(world, cid) / n
 
 
+# ---------------------------------------------------------------- the family eats first (15e)
+
+## A farm family eats from its own farm first, before anything is sold (rebuild-company.md 12.3 15e, the user,
+## 2026-11-18: "the farmers themselves I RULED EATS THEMSELVES FIRST, THEY ARE THREE THEY CAN PRODUVE 30 ... THEY WOULD
+## TAKE SIX OUT OF THIRTY SELL 24"). Takes up to `want` milli-units of `item` out of the company's stock for the family
+## that works it, at book value and with no money (it is their own farm), and returns what it took. The household side
+## (Maja's post_orders, before Market.clear) says how much the family wants and where it goes; so the take is never
+## offered, and rules 3 and 4, which read what was offered and sold, never see it. Bob's reading: from the farm's whole
+## stock, not only this month's making: food it made and has not sold is still its own. Books "took:<item>"; one TAKE
+## row. A company with no family, or nothing held, gives nothing.
+static func family_take(world: WorldState, cid: String, item: String, want: int) -> int:
+	var fam := Company.family_of(world, cid)
+	var held := int(Company.stock_of(world, cid, item)["qty"])
+	var took := mini(want, held)
+	if fam == "" or took <= 0:
+		return 0
+	Company.stock_take(world, cid, item, took, "FAMILY", "the family eats first")
+	Company.book(world, cid, "took:" + item, took)
+	Logbook.note(world, "TAKE", cid, "the family took %s from its own farm" % item, {"family": fam, "want": want},
+		{item: [held, held - took]}, fam)
+	return took
+
+
 # ---------------------------------------------------------------- making price
 
 ## The making price of what a company makes (plan 12.3, 14), milli-credits per unit: this month's cost of making

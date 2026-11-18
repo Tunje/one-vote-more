@@ -509,3 +509,30 @@ func test_the_month_closes_the_books() -> void:
 	Rules.month(w)
 	check_eq(Company.months_on_books(w, f[0]), 1, "closed into the ring")
 	check(Company.books_month(w, f[0]).is_empty(), "a new month opened")
+
+
+func test_a_farm_family_takes_its_food_from_its_own_farm_before_any_is_offered() -> void:
+	# the user, 2026-11-18 (12.3 15e): "the farmers themselves I RULED EATS THEMSELVES FIRST, THEY ARE THREE THEY CAN
+	# PRODUVE 30 ... THEY WOULD TAKE SIX OUT OF THIRTY SELL 24 AND THAT SHOULD BE ENOUGH TO HIRE ONE PERSON"
+	var w := _w()
+	var f := _farm(w, 0, 0)
+	var fam := Households.make_founder(w, Households.seed_test(w, "landing", "I2", "G", 10), "", true)
+	Company.family_set(w, f[0], f[1], fam, {"G": 3})
+	Company.set_price(w, f[0], "FOOD", 40 * S)
+	Company.stock_add(w, f[0], "FOOD", 30 * S, 20 * S, "OUTPUT", "harvest")
+	check_eq(Making.family_take(w, f[0], "FOOD", 6 * S), 6 * S, "they take six out of thirty")
+	check_eq(Company.stock_of(w, f[0], "FOOD"), {"qty": 24 * S, "value": 24 * 20 * S, "waiting": 0, "ship": 0}, "24 left, at its book value")
+	var offered := 0
+	for off in Market.offers(w, "FOOD", "landing"):
+		if String(off["seller"]) == f[0]:
+			offered += int(off["qty"])
+	check_eq(offered, 24 * S, "and 24 offered for sale: the take is never offered, so rules 3 and 4 never see it")
+	check_eq(int(Company.books_month(w, f[0]).get("took:FOOD", 0)), 6 * S, "booked as taken, not sold")
+	check_eq(w.ledger.balance(CoreUtil.acct(f[0])), 0, "no money: it is their own farm")
+	var row: Dictionary = Logbook.rows(w, {"kind": "TAKE", "who": f[0]})[-1]
+	check_eq([String(row["why"]["family"]), int(row["why"]["want"]), int(row["change"]["FOOD"][1])], [fam, 6 * S, 24 * S], "one TAKE row")
+	check_eq(Making.family_take(w, f[0], "FOOD", 30 * S), 24 * S, "never more than the farm holds")
+	check_eq(Making.family_take(w, f[0], "FOOD", 6 * S), 0, "nothing held: nothing taken")
+	var g := _farm(w, 2, 0)
+	Company.stock_add(w, g[0], "FOOD", 30 * S, 20 * S, "OUTPUT", "harvest")
+	check_eq(Making.family_take(w, g[0], "FOOD", 6 * S), 0, "a farm with no family: nobody takes")

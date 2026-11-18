@@ -121,7 +121,7 @@ static func offer(world: WorldState, cid: String, item: String, value: int, why:
 ## plant's own output, or a ship from the home world. Goods passing from one company to another go by stock_move,
 ## which takes them out of the one in the same step.
 const SOURCES: Array[String] = ["LANDING", "OUTPUT", "IMPORT"]
-const OUT_REASONS: Array[String] = ["USED", "SPOILED", "SOLD", "EXPORTED", "LOST"]
+const OUT_REASONS: Array[String] = ["USED", "SPOILED", "SOLD", "EXPORTED", "LOST", "FAMILY"]
 ## Ship goods: what came in by ship (the landed stock, imports). A stock entry counts how much of it is ship goods
 ## ("ship", milli-units); goods leaving take ship goods in proportion, so a mixed stock stays mixed in the same share.
 const SHIP_SOURCES: Array[String] = ["LANDING", "IMPORT"]
@@ -141,7 +141,7 @@ static func stock_add(world: WorldState, cid: String, item: String, qty_milli: i
 
 
 ## Takes goods out of a company's stock for a reason that is not a passing to another company (OUT_REASONS: an input
-## USED, SPOILED, SOLD to households, EXPORTED, LOST). Returns the book value taken out (at the average cost), or -1
+## USED, SPOILED, SOLD to households, EXPORTED, LOST, or eaten by the FAMILY that works a family farm, 15e). Returns the book value taken out (at the average cost), or -1
 ## (nothing changed) if it holds less than asked or the reason is unknown. Writes a STOCK row.
 static func stock_take(world: WorldState, cid: String, item: String, qty_milli: int, reason: String, why: String) -> int:
 	if not OUT_REASONS.has(reason):
