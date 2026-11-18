@@ -488,7 +488,9 @@ const NEGOTIATE_MONTH := 7
 ## colony looks (1 − attractiveness).
 const LEAVE_PM := 100
 ## The household's food store (the user, plan 12.3 15f: "They stockplie to have have six months of food in storage, i
-## think as often as they can"): it aims to hold this many months of its food need.
+## think as often as they can"): it aims to hold this many months of its food need, buying double to get there ("they
+## buy 2 units if food instead of one, store it and use it in emergencies"; "THEY BUY DOUBLE UNTIL THEY FILL SIX MONTHS
+## THAT WAS TOO EVEN IF OUT", 2026-11-18, to even it out): the store order in a month is at most one month's need.
 const STORE_MONTHS := 6
 
 const Market := preload("res://sim/economy/market.gd")
@@ -575,8 +577,9 @@ static func _stock(world: WorldState, id: String) -> Dictionary:
 ## Step 3 has food alone, so the food line's budget is all the buyer's money. One BUDGET row per buyer.
 ## The store (15f, the user): the month's food is bought whole every month (the store is for emergencies, not for
 ## eating instead of buying); then, from what is left after this month's food and the rent (Wilma's detail: food, rent,
-## then the store), a second order, AHEAD, toward STORE_MONTHS months of need held, at any price the money left can
-## pay ("if your running low and don't know how long the ossue will last i don't think you wait"). Its own budget, so
+## then the store), a second order, AHEAD, toward STORE_MONTHS months of need held, at most one month's need a month
+## (double, never more: 15f as corrected 2026-11-18), at any price the money left can pay ("if your running low and
+## don't know how long the ossue will last i don't think you wait"). Its own budget, so
 ## the month's eating is never crowded out by the store (Bob's Market clears every NEED order before any AHEAD one).
 ## The store order asks only for what its money buys at today's cheapest offer (Bob's review: rule 7 founds farms on the
 ## orders posted, and an order nobody can pay for is no work for a farm); with nothing on offer it posts none.
@@ -605,7 +608,7 @@ static func post_orders(world: WorldState, rent_of: Callable = Callable()) -> in
 		var food_cost := mini(money, food_cost_of(world, area, need))
 		var rent := rent_set_aside(world, id, rent_of)
 		var store_budget := maxi(0, money - food_cost - rent)
-		var want := maxi(0, STORE_MONTHS * need - held)
+		var want := mini(need, maxi(0, STORE_MONTHS * need - held))   # double, never more, until six months are held
 		var cheapest := -1
 		for off in Market.offers(world, "FOOD", area):
 			if cheapest < 0 or int(off["price"]) < cheapest:

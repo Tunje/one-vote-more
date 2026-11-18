@@ -51,11 +51,11 @@ func test_food_is_bought_eaten_and_nothing_appears_or_vanishes() -> void:
 	var m := Households.month_of(w, pid)
 	check_eq(int(m["food_need"]), 10 * S, "ten people need ten units")
 	check_eq(int(m["food_bought"]), 10 * S, "they bought ten")
-	check_eq(int(m["store_bought"]), 60 * S, "and six months' more for the store")
+	check_eq(int(m["store_bought"]), 10 * S, "and ten more for the store: double")
 	check_eq(int(m["hunger"]), 0, "nobody hungry")
 	check_eq(int(tot["hunger"]), 0, "the colony fed")
-	check_eq(int(Company.stock_of(w, cid, "FOOD")["qty"]), 30 * S, "the seller holds 100 units less 70: goods come from somewhere")
-	check_eq(w.ledger.balance(CoreUtil.acct(cid)), 70 * price, "the seller was paid seventy units at its price")
+	check_eq(int(Company.stock_of(w, cid, "FOOD")["qty"]), 80 * S, "the seller holds 100 units less 20: goods come from somewhere")
+	check_eq(w.ledger.balance(CoreUtil.acct(cid)), 20 * price, "the seller was paid twenty units at its price")
 	check_eq(Households.savings(w, pid) + w.ledger.balance(CoreUtil.acct(cid)), money0, "money only changed hands")
 	check_eq(Households.fed_pm(w, pid), 1000, "fed in full")
 	check_eq(Logbook.rows(w, {"kind": "BUDGET", "who": pid}).size(), 1, "the budget is a log row")
@@ -810,22 +810,29 @@ func _store_world(w: WorldState, land: String, money: int, qty: int, price: int)
 	return pid
 
 
-func test_a_pool_with_money_fills_its_store_to_six_months_and_stops_there() -> void:
+func test_a_pool_with_money_buys_double_until_its_store_holds_six_months() -> void:
+	# 15f, the user (2026-11-18): "THEY BUY DOUBLE UNTIL THEY FILL SIX MONTHS THAT WAS TOO EVEN IF OUT" (to even it out)
 	var w := _world()
 	var land := AreaStore.found_landing(w)
 	var pid := _store_world(w, land, 100000, 500, 50)
-	_buy_month(w)
-	var m := Households.month_of(w, pid)
-	check_eq(int(m["food_bought"]), 10 * S, "the month's food")
-	check_eq(int(m["store_bought"]), 60 * S, "six months for the store")
-	check_eq(int(w.table("pool")[pid]["stock"]["FOOD"]), 60 * S - 60 * S * 10 / 1000, "held, less 1% spoiled")
-	check_eq(int(m["store_pm"]), 5940, "5.94 months held")
-	w.month += 1
+	var m := {}
+	for i in 6:
+		_buy_month(w)
+		m = Households.month_of(w, pid)
+		check_eq([int(m["food_bought"]), int(m["store_bought"])], [10 * S, 10 * S], "month %d: double, never more" % (i + 1))
+		var sid := String(m["orders"]["FOOD_STORE"])
+		check_eq(int(Logbook.rows(w, {"kind": "ORDER", "ref": sid})[0]["why"]["qty"]), 10 * S, "the store order asks one month's food")
+		check_eq(int(m["store_eaten"]), 0, "and eats its month's food, not the store")
+		w.month += 1
+	check(int(m["store_pm"]) >= 5700 and int(m["store_pm"]) < 6000, "six months stored, less what spoiled: %d" % int(m["store_pm"]))
 	_buy_month(w)
 	m = Households.month_of(w, pid)
-	check_eq(int(m["store_bought"]), 600, "next month only what spoiled: it stops at six months")
-	check_eq(int(m["store_eaten"]), 0, "and eats its month's food, not the store")
-	check_eq(Logbook.rows(w, {"kind": "STORE", "who": pid}).size(), 2, "one STORE row a month")
+	check(int(m["store_bought"]) > 0 and int(m["store_bought"]) < 10 * S, "the seventh month tops up what spoiled: %d" % int(m["store_bought"]))
+	check_eq(int(m["store_pm"]), 5940, "six months held, less this month's 1% spoiled")
+	w.month += 1
+	_buy_month(w)
+	check_eq(int(Households.month_of(w, pid)["store_bought"]), 600, "then only what spoiled: it stops at six months")
+	check_eq(Logbook.rows(w, {"kind": "STORE", "who": pid}).size(), 8, "one STORE row a month")
 
 
 func test_a_pool_with_money_for_its_food_only_holds_no_store() -> void:
@@ -865,7 +872,7 @@ func test_a_drawn_down_store_is_refilled_at_once_even_when_food_is_dear() -> voi
 	var pid := _store_world(w, land, 100000, 500, 500)   # ten times the price above
 	w.table("pool")[pid]["stock"] = {"FOOD": 30 * S}
 	_buy_month(w)
-	check_eq(int(Households.month_of(w, pid)["store_bought"]), 30 * S, "back to six months at 500 a unit: it does not wait")
+	check_eq(int(Households.month_of(w, pid)["store_bought"]), 10 * S, "double again at once at 500 a unit: it does not wait")
 
 
 func test_the_store_comes_from_what_the_months_food_and_the_rent_leave() -> void:
