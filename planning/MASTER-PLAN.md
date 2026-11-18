@@ -976,6 +976,17 @@ About: with a starting salary under what a household needs, the builders that la
 Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Otto builds it.
 
 
+### The rebuild: the rent is doubled (the user, 2026-11-18, verbatim)
+
+About: a household's food (152 a month) cost more than its rent (48 shelter, 97 house), so a starting salary of 3.5 x the rent was under what a household needs.
+
+> Food is too expensive
+
+> Screw lowering food, double the rent. Make the rent more reasonable in comparison to food. If food has to be there for them to earn money from a farm, we make rent worth more to those who have those buildings.
+
+Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Bob builds it.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

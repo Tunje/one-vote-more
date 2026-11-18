@@ -451,6 +451,11 @@ Terra's town grid (section 9.8).
   five builders and public works got 72 crew of 180 and built at about 40% for four months. Asked whether the crews
   that land with the colony should be hired regardless, the user, verbatim: "The build crews at start should not be hiring at all. They should start with a job already active."
   So at the landing the build crews are already in their jobs; they do not go through hiring.
+- **The rent is doubled** (the user, 2026-11-18). About: in the starting numbers a household's food (2.5 people x
+  60 = 152 a month) cost more than its rent (48 in a landing shelter, 97 in a new house), so a starting salary of
+  3.5 x the rent (170) was under what a household needs (200). The user first said "Food is too expensive"; told that
+  the food price is set from what a farm costs to run, the user, verbatim: "Screw lowering food, double the rent. Make the rent more reasonable in comparison to food. If food has to be there for them to earn money from a farm, we make rent worth more to those who have those buildings."
+  So the food price stays; the rent of a home is doubled (a new house 97 -> 194, a landing shelter 48 -> 97).
 - **Hiring** is at that line; rule 9 for a salary turns on it ("that's fine for hiring").
 - **A company with plants in two places:** "The district the plant hiring is in." In the rebuild that is the AREA the
   plant stands in (12.1, 1). Districts are drawn for elections and can be redrawn; a salary's reference place does not
