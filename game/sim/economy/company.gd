@@ -514,33 +514,66 @@ static func occupation(world: WorldState, cid: String, post_tier: String) -> Str
 
 # ---------------------------------------------------------------- posts, wages, books (step 3)
 
-## Posts a company wants filled at one plant key (a plant id, or "crew"), whole persons by tier: the type row's labour
-## for the plant's size × its output level (rules 3 and 4). A closed plant wants none; "crew" has posts only for a
-## company with crew posts (a builder, or one created with "crew_posts").
+## Posts a company wants filled at one plant key (a plant id, or "crew"), whole persons by tier: the persons the
+## level's work needs, the type row's labour for the plant's size × its output level (rules 3 and 4), rounded UP to
+## whole persons (the user: "NO ROUNDING ERRORS ARE NOT THINGS YOU BRING TO ME YOU FIX THEM": rounded down, a plant
+## under one post's work wanted nobody and made nothing with people on it). A closed plant wants none; "crew" has posts
+## only for a company with crew posts (a builder, or one created with "crew_posts"). Hiring, the layoff weighing, the
+## open posts and the vacancies read this; what is made reads work_wanted, unrounded.
 static func posts_wanted(world: WorldState, cid: String, plant_key: String) -> Dictionary:
+	var pl := _posts_at_level(world, cid, plant_key)
+	if pl.is_empty():
+		return {"G": 0, "S": 0, "Sp": 0}
+	var full: Dictionary = pl["full"]
+	var weights: Array = []
+	for t in ["G", "S", "Sp"]:
+		weights.append(float(int(full[t])))
+	var parts := CoreUtil.split_lr((int(pl["total"]) * int(pl["level"]) + 999) / 1000, weights)
+	return {"G": int(parts[0]), "S": int(parts[1]), "Sp": int(parts[2])}
+
+
+## The strangers a plant key wants hired, whole persons by tier: the persons its level's work needs (posts_wanted's
+## count) less the family working there, whatever post the family stands on (15e: "the family's posts are not hired
+## for": hire for what it leaves; Otto's review), split over the posts the family leaves. Never below 0.
+static func hire_wanted(world: WorldState, cid: String, plant_key: String) -> Dictionary:
+	var pl := _posts_at_level(world, cid, plant_key)
+	if pl.is_empty():
+		return {"G": 0, "S": 0, "Sp": 0}
+	var full: Dictionary = pl["full"]
+	var n := maxi(0, (int(pl["total"]) * int(pl["level"]) + 999) / 1000 - family_count(world, cid, "", plant_key) / CoreUtil.S)
+	var weights: Array = []
+	for t in ["G", "S", "Sp"]:
+		weights.append(float(maxi(0, int(full[t]) - family_count(world, cid, t, plant_key) / CoreUtil.S)))
+	var parts := CoreUtil.split_lr(n, weights)
+	return {"G": int(parts[0]), "S": int(parts[1]), "Sp": int(parts[2])}
+
+
+## The work a plant key's level asks for, in persons × S, not rounded: all its posts × its output level. What a plant
+## makes is read against this (Making.make_plant), so a level under one post's work is done by one person in proportion.
+static func work_wanted(world: WorldState, cid: String, plant_key: String) -> int:
+	var pl := _posts_at_level(world, cid, plant_key)
+	return 0 if pl.is_empty() else int(pl["total"]) * CoreUtil.S * int(pl["level"]) / 1000
+
+
+## A plant key's full posts and its level: {"full": {tier: posts}, "total", "level"}, or {} for none (closed, unknown,
+## a crew without crew posts).
+static func _posts_at_level(world: WorldState, cid: String, plant_key: String) -> Dictionary:
 	var c: Dictionary = world.peek(TABLE).get(cid, {})
-	var none := {"G": 0, "S": 0, "Sp": 0}
 	if c.is_empty():
-		return none
+		return {}
 	var size := String(c["size"])
 	var level := int(c["crew_level_pm"])
 	if plant_key == "crew":
 		if not bool(c["crew_posts"]):
-			return none
+			return {}
 	else:
 		var p: Dictionary = world.peek(PLANT_TABLE).get(plant_key, {})
 		if p.is_empty() or String(p["company"]) != cid or bool(p["closed"]):
-			return none
+			return {}
 		size = String(p["size"])
 		level = int(p["level_pm"])
 	var full := TypeTable.posts(String(c["type"]), size, int(c["line"]))
-	var total := 0
-	var weights: Array = []
-	for t in ["G", "S", "Sp"]:
-		total += int(full[t])
-		weights.append(float(int(full[t])))
-	var parts := CoreUtil.split_lr(total * level / 1000, weights)
-	return {"G": int(parts[0]), "S": int(parts[1]), "Sp": int(parts[2])}
+	return {"full": full, "total": int(full["G"]) + int(full["S"]) + int(full["Sp"]), "level": level}
 
 
 # ---------------------------------------------------------------- the family that works its own company (15e)
@@ -616,9 +649,9 @@ static func vacancies(world: WorldState, area: String) -> Array:
 		var keys: Array = ["crew"]
 		keys.append_array(c["plants"])
 		for pk in keys:
-			var want := posts_wanted(world, cid, String(pk))
+			var want := hire_wanted(world, cid, String(pk))   # the family netted whatever post it stands on (15e)
 			for t in ["Sp", "S", "G"]:
-				var have := (staff_count(world, cid, t, String(pk)) + family_count(world, cid, t, String(pk))) / CoreUtil.S
+				var have := staff_count(world, cid, t, String(pk)) / CoreUtil.S
 				if int(want[t]) > have:
 					out.append({"cid": cid, "plant_key": String(pk), "tier": t, "open": int(want[t]) - have,
 						"pay": hiring_salary(world, cid, t, area)})

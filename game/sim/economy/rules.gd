@@ -226,9 +226,9 @@ static func salary_rules(world: WorldState, cid: String) -> void:
 		var at := Households.plant_area(world, cid, String(pk))
 		if at == "":
 			continue
-		var want := Company.posts_wanted(world, cid, String(pk))
+		var want := Company.hire_wanted(world, cid, String(pk))   # the family netted whatever post it stands on (15e)
 		for tier in ["G", "S", "Sp"]:
-			var w := maxi(0, int(want[tier]) - Company.family_count(world, cid, tier, String(pk)) / S)
+			var w := int(want[tier])
 			var open := maxi(0, w - Company.staff_count(world, cid, tier, String(pk)) / S)
 			var l: Array = left.get("%s|%s" % [pk, tier], [-1, 0])
 			var before := int(l[1]) if int(l[0]) == world.month - 1 else 0
@@ -342,11 +342,12 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 		_publish_layoffs(world, cid, staff0)
 		return
 	for pk in keys:
-		var want := Company.posts_wanted(world, cid, String(pk))
+		var want := Company.hire_wanted(world, cid, String(pk))
 		for tier in ["Sp", "S", "G"]:
 			var have := Company.staff_count(world, cid, tier, String(pk)) / S
-			# the family's posts are not hired for and the family is never laid off (15e): hire for what it leaves
-			var w := maxi(0, int(want[tier]) - Company.family_count(world, cid, tier, String(pk)) / S)
+			# the family's posts are not hired for and the family is never laid off (15e): hire for what it leaves,
+			# the family netted from the persons the work needs whatever post it stands on (Company.hire_wanted)
+			var w := int(want[tier])
 			var key := "%s|%s" % [pk, tier]
 			var slack: Dictionary = _slack(world, cid)
 			if w > have:

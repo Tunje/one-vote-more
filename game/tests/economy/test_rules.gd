@@ -566,3 +566,73 @@ func test_a_family_farm_that_sells_pays_its_family_winnings_in_the_real_month_or
 	check_eq(w.ledger.balance(CoreUtil.acct(cid)), 0, "nothing left in the farm")
 	check_eq(int(Company.books_closed(w, cid, m).get("winnings", 0)), rev, "booked in the month it was earned")
 	check_eq(int(Company.books_month(w, cid).get("winnings", 0)), 0, "not in the month to come")
+
+
+func _family_farm(w: WorldState, work: Dictionary) -> Array:
+	var id := Company.create(w, "FARM", "FAMILY", HW, "FF", {"area": "landing"})
+	var pid := Company.add_plant(w, id, "FAMILY")
+	var fam := Households.make_founder(w, Households.seed_test(w, "landing", "I2", "G", 10), "", true)
+	Company.family_set(w, id, pid, fam, work)
+	return [id, pid]
+
+
+func test_a_family_farm_makes_in_proportion_to_its_level_however_low() -> void:
+	# Wilma's fault, the user: "NO ROUNDING ERRORS ARE NOT THINGS YOU BRING TO ME YOU FIX THEM": the posts wanted at a
+	# level were rounded down, so under level 250 a family farm wanted no posts and made nothing with its family on it
+	var w := _w()
+	var f := _family_farm(w, {"G": 1, "S": 1})   # two of the family on its four posts
+	var full := TypeTable.output_milli("FARM", "FAMILY")
+	for lv in [100, 234, 250, 313]:
+		Company.set_level(w, f[0], f[1], lv)
+		check_eq(Making.make_plant(w, f[0], f[1]), full * lv / 1000, "level %d: the family makes the level's share" % lv)
+
+
+func test_one_of_the_family_does_a_quarter_of_a_family_farms_work_company_16() -> void:
+	# the traced case, seed 1, company:16: its family works the S post alone. Month 33 at level 313 it made 11.5 (one
+	# person counted as the whole 1.25 posts' work); month 35 at level 234 it made nothing (0.94 posts rounded to none)
+	var w := _w()
+	var f := _family_farm(w, {"S": 1})
+	var full := TypeTable.output_milli("FARM", "FAMILY")   # 37.6
+	Company.set_level(w, f[0], f[1], 234)
+	check_eq(Making.make_plant(w, f[0], f[1]), full * 234 / 1000, "level 234: one person covers the 0.94 posts' work: 8.8")
+	Company.set_level(w, f[0], f[1], 313)
+	check_eq(Making.make_plant(w, f[0], f[1]), full * 313 / 1000 * (1000 * S / (4 * S * 313 / 1000)) / 1000,
+		"level 313: one person of the 1.25 posts' work makes a quarter of the farm's full: 9.4")
+	check_eq(Company.posts_wanted(w, f[0], f[1]), {"G": 2, "S": 0, "Sp": 0}, "1.25 posts' work needs two persons")
+	Company.set_level(w, f[0], f[1], 234)
+	check_eq(Company.posts_wanted(w, f[0], f[1]), {"G": 1, "S": 0, "Sp": 0}, "0.94 posts' work needs one: rounded up, never to none")
+
+
+func test_the_posts_wanted_are_the_persons_the_levels_work_needs() -> void:
+	var w := _w()
+	var f := _farm(w, 0, 0)   # a small farm: 6 general, 2 skilled
+	for c in [[0, {"G": 0, "S": 0, "Sp": 0}], [100, {"G": 1, "S": 0, "Sp": 0}], [500, {"G": 3, "S": 1, "Sp": 0}], [560, {"G": 4, "S": 1, "Sp": 0}], [1000, {"G": 6, "S": 2, "Sp": 0}]]:
+		Company.set_level(w, f[0], f[1], int(c[0]))
+		check_eq(Company.posts_wanted(w, f[0], f[1]), c[1], "level %d" % int(c[0]))
+	Company.set_level(w, f[0], f[1], 100)
+	check_eq(Company.vacancies(w, "landing").filter(func(v): return String(v["cid"]) == f[0]).size(), 1, "at level 100 one post is open to apply for, not none")
+
+
+func test_a_family_on_the_skilled_post_is_not_doubled_by_a_stranger_on_a_general_one() -> void:
+	# Otto's review of the rounding fix (15e: hire for what the family leaves): the family counts against the persons
+	# the level's work needs whatever post it stands on
+	var w := _w()
+	_homes(w)
+	Households.seed_test(w, "landing", "I2", "G", 10)
+	var f := _family_farm(w, {"S": 1})
+	w.table(Households.PERSON_TABLE)[Company.family_of(w, f[0])]["family"]["adults"] = [{"skill": "S"}]   # company:16: one skilled adult
+	w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(f[0]), 100000 * S, "TEST", 0)
+	var mine := func() -> Array: return Company.vacancies(w, "landing").filter(func(v): return String(v["cid"]) == f[0]).map(func(v): return [String(v["tier"]), int(v["open"])])
+	Company.set_level(w, f[0], f[1], 234)
+	check_eq(Company.hire_wanted(w, f[0], f[1]), {"G": 0, "S": 0, "Sp": 0}, "0.94 posts' work: the family member does it all")
+	check_eq(mine.call(), [], "no post open")
+	var asked := func() -> Array: return Logbook.rows(w, {"kind": "HIRE", "who": f[0]}).map(func(r): return int(r["why"].get("wanted", 0)))
+	Rules.staff_to_posts(w, f[0])
+	check_eq(asked.call(), [], "no stranger asked for")
+	Company.set_level(w, f[0], f[1], 313)
+	check_eq(Company.hire_wanted(w, f[0], f[1]), {"G": 1, "S": 0, "Sp": 0}, "1.25 posts' work: two persons, one of them the family")
+	check_eq(mine.call(), [["G", 1]], "one general post open")
+	Rules.staff_to_posts(w, f[0])
+	check_eq(asked.call(), [1], "staff_to_posts asks for one stranger (a test plant stands on no site, so the hire itself is refused there)")
+	Company.set_level(w, f[0], f[1], 1000)
+	check_eq(Company.hire_wanted(w, f[0], f[1]), {"G": 3, "S": 0, "Sp": 0}, "full: the three general posts the family leaves")

@@ -57,8 +57,9 @@ static func make_plant(world: WorldState, cid: String, pid: String) -> int:
 	var size := String(p["size"])
 	var full := TypeTable.output_milli(type, size, line)
 	var level := Company.level_of(world, cid, pid)
-	var want := Company.posts_wanted(world, cid, pid)
-	var want_n := (int(want["G"]) + int(want["S"]) + int(want["Sp"])) * S
+	# staffed is read against the work the level asks for, not rounded (posts × level): one person on a quarter of a
+	# family farm's work does it, and makes it (Wilma's fault, the user: "NO ROUNDING ERRORS ...")
+	var want_n := Company.work_wanted(world, cid, pid)
 	# trained workers (new hires count less while they learn, 9.2) and the family (15e)
 	var working := Company.trained_count(world, cid, "", pid) + Company.family_count(world, cid, "", pid)
 	var staffed := 0 if want_n <= 0 else mini(1000, working * 1000 / want_n)
