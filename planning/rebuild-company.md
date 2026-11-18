@@ -443,6 +443,9 @@ Terra's town grid (section 9.8).
   of self infation", the user). The user, verbatim: "Change the sallery from fod and rent to just rent at 2× we will have to find a better formula for it later"
   So the starting salary is 2 x the rent (the average housing cost in the area); food is out of it. It replaces
   "1.5 x (average housing cost in the area + food)" until a better formula is found, which is the user's to give.
+  - Told that 2 x the landing rent (48) is 97, below the about 200 a household needs, and that rent in the starting
+    numbers is lower than food, the user, verbatim: "3 5x housing try it"
+    Wilma's reading: 3.5 x the rent, as a trial to be run and shown. So the multiple is 3.5 for now, not 2.
 - **Hiring** is at that line; rule 9 for a salary turns on it ("that's fine for hiring").
 - **A company with plants in two places:** "The district the plant hiring is in." In the rebuild that is the AREA the
   plant stands in (12.1, 1). Districts are drawn for elections and can be redrawn; a salary's reference place does not

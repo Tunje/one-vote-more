@@ -958,6 +958,12 @@ About: the starting salary, 1.5 x (housing + food), followed the food price up (
 
 > Change the sallery from fod and rent to just rent at 2× we will have to find a better formula for it later
 
+Then, told that 2 x the landing rent is 97, below what a household needs (about 200):
+
+> 3 5x housing try it
+
+(Wilma's reading: 3.5 x the rent, as a trial.)
+
 Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Bob builds it.
 
 
