@@ -1096,6 +1096,12 @@ And, straight after:
 
 So: only buyers that actually reached the farm and found it sold out count. An order filled before it came to the farm does not count for it.
 
+Told that in a shortage every sold-out farm a buyer passes then counts that buyer and raises its price:
+
+> Yes that's the point everyone they pass raises that means only the one they ended on   or never reached lowers this contributes to price shift and swapping farms that get to sell,  and stabalises the wares roughly on that level
+
+So: every farm a buyer passes raises its price; only the farm the buyer ended on, and the farms never reached, lower theirs. That shifts the prices, swaps which farms get to sell, and steadies the goods roughly at that level. This is the purpose of rules 1 and 2 together.
+
 
 ### The rebuild: for who is underpaid, specialists are counted separately (the user, 2026-11-18, verbatim)
 
