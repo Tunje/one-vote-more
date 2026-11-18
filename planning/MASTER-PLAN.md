@@ -1104,6 +1104,12 @@ About: the stage plan for step 4 (planning/rebuild-step4-brief.md). Wilma put fo
 
 So: 1. they build it (Wilma's reading: the government's builder builds a new builder's yard). 2. A grid: it has to be built. 3. Yes, farms paid from savings also prefer land away from towns, and away from factories too, because factories pollute. 4. If freight is built in this step, yes, the company's road with its charge is built now; if not, no. Freight is stage 4.6 of this step, so: now.
 
+On the point that then follows (may the owner of a company road set its charge freely, and may it refuse others its road):
+
+> No they can't refuse others but they can demand a toll, in wich case the ball is on the other side in wich case they can choose not to
+
+So: the owner of the road cannot refuse others. It can demand a toll. Then it is up to the other side, who can choose not to use the road.
+
 
 ### The rebuild: a builder with no employees should have shut (the user, 2026-11-18, verbatim)
 
