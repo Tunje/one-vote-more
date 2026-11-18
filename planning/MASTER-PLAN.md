@@ -967,6 +967,15 @@ Then, told that 2 x the landing rent is 97, below what a household needs (about 
 Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Bob builds it.
 
 
+### The rebuild: the build crews at the start are not hired (the user, 2026-11-18, verbatim)
+
+About: with a starting salary under what a household needs, the builders that land with the colony could hire only 72 of their 180 crew. Asked whether the landing's crews should be hired regardless:
+
+> The build crews at start should not be hiring at all. They should start with a job already active.
+
+Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. Otto builds it.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.

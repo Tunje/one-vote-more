@@ -446,6 +446,11 @@ Terra's town grid (section 9.8).
   - Told that 2 x the landing rent (48) is 97, below the about 200 a household needs, and that rent in the starting
     numbers is lower than food, the user, verbatim: "3 5x housing try it"
     Wilma's reading: 3.5 x the rent, as a trial to be run and shown. So the multiple is 3.5 for now, not 2.
+- **The build crews at the start are not hired** (the user, 2026-11-18). About: in the trial of the starting salary
+  at 3.5 x the rent, a general worker's offer at the landing (170) was under what a household needs (200), so the
+  five builders and public works got 72 crew of 180 and built at about 40% for four months. Asked whether the crews
+  that land with the colony should be hired regardless, the user, verbatim: "The build crews at start should not be hiring at all. They should start with a job already active."
+  So at the landing the build crews are already in their jobs; they do not go through hiring.
 - **Hiring** is at that line; rule 9 for a salary turns on it ("that's fine for hiring").
 - **A company with plants in two places:** "The district the plant hiring is in." In the rebuild that is the AREA the
   plant stands in (12.1, 1). Districts are drawn for elections and can be redrawn; a salary's reference place does not
