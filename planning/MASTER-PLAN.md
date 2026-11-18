@@ -1131,6 +1131,12 @@ Told that as built a builder that never had anyone on its crew is not "left with
 
 So: six months crewless kills the company, also one that never had a crew. (Wilma's reading: six months in a row with nobody, for one that lost its crew and one that never had one alike; the count starts again when anyone is on the crew.)
 
+That reading was wrong and was built so. The user:
+
+> But that's not right!!! I said the six month rule only applies to the ones that never got a crew
+
+So: the six months apply only to a company that never got a crew. One that had a crew and is left with nobody is dead at once ("they have no 3mploees and should have shut"). Otto corrects it.
+
 
 ### The rebuild: a price far above its original climbs slower (the user, 2026-11-18, verbatim)
 
