@@ -411,6 +411,21 @@ Terra's town grid (section 9.8).
 - **The starting salary:** "Sallery should be calculated as avrage living in the area and food plus half of both again,
   that's the start then it should regulate itself". So 1.5 x (average housing cost in the area + food). "On sallery it's
   an avrage of the area."
+- **How the hiring offer moves: this replaces rules 1, 2 and 9 for a salary** (the user, 2026-11-18). What it was
+  about: the trace of every job move in a five-year game (seed 1) showed hiring offers climbing from about 400 to
+  about 1,000 with half the colony out of work. As built, an offer rose up to 20% in any month with a post open, the
+  rise stayed and the next opening built on it, and it fell only in a month with every post filled. The user,
+  verbatim: "It's not regulating correctly, increases should not stack for seperate offers, infact they should fall back to the original rule for settin on hire, then it should only climb max 5% if it cost not hire for one month that's where the issue comes from"
+  Asked whether a post unfilled for further months climbs again, and whether the rule for lowering stays, verbatim:
+  "5% each month, it goes i never said i wanted the rule for lowering that was your suggestion"
+  And on building it, verbatim: "Yes hand it built, this should stabilise workers and allow unemployed in"
+  So the whole rule for a hiring offer:
+  1. Every new opening is offered at the original rule: the starting salary, 1.5 x (average housing cost in the area + food).
+  2. If a post could not be filled for a whole month, its offer climbs, at most 5%, and again each further month it
+     stays unfilled.
+  3. When the post is filled that rise is gone: the next opening starts from the original rule again. Increases do
+     not stack for separate offers.
+  4. There is no rule for lowering the offer. (It was Wilma's suggestion, not the user's; it is removed.)
 - **Hiring** is at that line; rule 9 for a salary turns on it ("that's fine for hiring").
 - **A company with plants in two places:** "The district the plant hiring is in." In the rebuild that is the AREA the
   plant stands in (12.1, 1). Districts are drawn for elections and can be redrawn; a salary's reference place does not

@@ -922,6 +922,21 @@ Said right after the ruling that households stockpile six months of food.
 Marked in [rebuild-company.md](rebuild-company.md) section 13 under step 8 (the government's purse in full). Not built now.
 
 
+### The rebuild: how the hiring offer moves (the user, 2026-11-18, verbatim)
+
+About: the trace of every job move in a five-year game showed hiring offers climbing from about 400 to about 1,000 with half the colony out of work (an offer rose in any month with a post open, the rise stayed, and it fell only with every post filled).
+
+> It's not regulating correctly, increases should not stack for seperate offers, infact they should fall back to the original rule for settin on hire, then it should only climb max 5% if it cost not hire for one month that's where the issue comes from
+
+Asked whether a post unfilled for further months climbs again, and whether the rule for lowering stays:
+
+> 5% each month, it goes i never said i wanted the rule for lowering that was your suggestion
+
+> Yes hand it built, this should stabilise workers and allow unemployed in
+
+Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. It replaces rules 1, 2 and 9 for a salary. Bob builds it.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
