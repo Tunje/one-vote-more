@@ -1073,6 +1073,17 @@ Asked how large the cut is and whether a fourth month cuts again:
 So: the cut is 5%, and each further such month in a row lowers output 5% again.
 
 
+### The rebuild: builders with nothing to build is a lack of this step, not a fault (the user, 2026-11-18, verbatim)
+
+About: five-year simulations of step 3 in which no farm is added after month 18: about 70 farm plans made at months 30 and 35 are claimed by no builder and given up after a year on the list.
+
+> Because there are no builders left i expect, everyone died out with nothing to do beforehand
+
+> This is not a fault in the simulation it's a lack in the simulation this point in the simulation other things would need building
+
+So: the builders dying out between the first wave of farms and the next is not a fault to fix in step 3. At that point other things would need building, and those come with the later steps. Nothing is built for it now.
+
+
 ### The rebuild: a family farm's making price stays as it is (the user, 2026-11-18, verbatim)
 
 About: the hold-back below the making price. Told that a family farm's making price is about 10 with one or two hired hands and near nothing for a family alone, because the family is paid no wages, so the hold-back never starts while the food price is above that; and asked whether the family's own work should count in it:
