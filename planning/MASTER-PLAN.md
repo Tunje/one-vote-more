@@ -787,6 +787,12 @@ About the builders, answering two results of the first loop's run: the price cut
 
 > No they should not cut for the start, and they should not increase prices for claimed jobs
 
+The other half, which Wilma had not recorded (the user, 2026-11-18, verbatim, told that a builder's price could then only fall):
+
+> Should not raise from climed jobs is right open jobs in the market hoping to be claimed I'd what counts and i don't know why you only recorded half of that
+
+So: a claimed job does not raise a builder's price. What counts is the open jobs in the market hoping to be claimed: those raise it. Written into rebuild-company.md 15c. Otto builds it.
+
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15c.
 
 
