@@ -426,6 +426,17 @@ Terra's town grid (section 9.8).
   3. When the post is filled that rise is gone: the next opening starts from the original rule again. Increases do
      not stack for separate offers.
   4. There is no rule for lowering the offer. (It was Wilma's suggestion, not the user's; it is removed.)
+- **The staff record: one row per hire** (the user, 2026-11-18). About: the game averaged the pay of everyone in a
+  group of staff, so a newcomer at a lower pay cut those already there and nobody could be above or below the
+  company's average. The user asked, verbatim: "Can we not make a 2d array to keep all things about the hires? Sallery start date so forth?"
+  And on merging rows, verbatim: "You can merge if all rows match"
+  So a row holds everything about a hire (how many, pay, the month hired, training left, and whatever else a hire
+  carries); two rows become one only when every field matches.
+- **Unpaid wages** (the user, 2026-11-18). About: Bob found that when a company is short of money everyone gets the
+  same share of what it holds and the unpaid rest is owed nowhere. Asked whether unpaid wages should be a debt the
+  company owes, the user, verbatim: "Record it make them pay after our if they refused take it to court"
+  So the unpaid part of a wage is recorded as owed; the company pays it afterwards; if it refuses, it goes to court
+  (the court is step 5).
 - **Hiring** is at that line; rule 9 for a salary turns on it ("that's fine for hiring").
 - **A company with plants in two places:** "The district the plant hiring is in." In the rebuild that is the AREA the
   plant stands in (12.1, 1). Districts are drawn for elections and can be redrawn; a salary's reference place does not

@@ -937,6 +937,21 @@ Asked whether a post unfilled for further months climbs again, and whether the r
 Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn. It replaces rules 1, 2 and 9 for a salary. Bob builds it.
 
 
+### The rebuild: one row per hire; unpaid wages (the user, 2026-11-18, verbatim)
+
+About the staff record (the game averaged the pay of everyone in a group, so nobody could be above or below the company's average):
+
+> Can we not make a 2d array to keep all things about the hires? Sallery start date so forth?
+
+> You can merge if all rows match
+
+About unpaid wages (when a company is short of money the unpaid rest of a wage was owed nowhere; asked whether it should be a debt):
+
+> Record it make them pay after our if they refused take it to court
+
+Written into [rebuild-company.md](rebuild-company.md) section 9.2 the same turn.
+
+
 ## 5. Immediate next steps
 1. **88** and **a9**: M0 tasks (orders sent 2026-11-10). Log decisions in [DECISIONS.md](DECISIONS.md) and write specs to `planning/spec-*.md`.
 2. **Wilma**: PIC v1 first (the agents depend on it), then the D1 political engine spec and the D2 master tick.
