@@ -1056,6 +1056,12 @@ About: two items of the audit list put to the user. Item 7: a farm family is mos
 
 So: with the family's two adults alone the farm makes 20 at a minimum. A farm does not need a grant; the government can stop founding by stopping the grant or by stopping land being allowed to be built on; a plot to be built on is bought from the government. The other items outside the farms wait. Written into [rebuild-company.md](rebuild-company.md) 15e and 12.9 61c the same turn.
 
+Asked what the government's act for stopping land is (zoning, or a plain per-type stop on selling land) and whether the AI government uses it when it wants no more farms:
+
+> Yes on zoning laws
+
+So: the act is zoning, by the zoning laws. (Wilma's reading: the AI government zones when it wants no more farms, by the count its grant uses.) Ella, Anni and Terra build it.
+
 
 ### The rebuild: the farm keeps a buffer before winnings (the user, 2026-11-18, verbatim)
 
