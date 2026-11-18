@@ -199,6 +199,14 @@ What goes with them:
   - **Output moves at most 5% a month too** (the user, 2026-11-18, verbatim, on being told the output step was built
     at 25% a month from the proposal in 15b): "25?! 5!!! CHANGE IT!!! STOP HEDGING"
     So: output (rules 3 and 4) moves at most 5% in a month, as price does. The g of 0.25 in 15b was wrong.
+  - **Price first; output is cut only when lowering the price fails** (the user, 2026-11-18, verbatim, on the farms):
+    "Then they cut output instead of lowering price output cut has been built wrong let me guess they just cut if they sell less???"
+    Told that as built a farm cuts output in the same month it lowers its price, on the same unsold food, and asked
+    whether the rule is that a farm lowers its price first and cuts output only when that fails: "THAT'S EXACTLY WHAT I SAID"
+    So: food that did not sell lowers the price (rule 2). It does not cut output. Output is cut (rule 4) only when
+    lowering the price has failed. Built wrongly before: rule 4 fired with rule 2, every month with anything unsold.
+    (Wilma's reading of "fails", from rule 9: the price can go no lower, because it is at or below the making price,
+    where climbing has priority and the seller holds stock back.)
 - **No hard floors or ceilings** of our own, except where the user allowed one (rule 6).
 - **No limit built on last month or last year.** Credit follows orders, contracts and forecasts, so a company can grow.
 - **For types with nothing to stock,** rules 2 and 4 read empty work slots (section 4).
@@ -809,9 +817,26 @@ is wrong; nothing here is asked again.
     output moving together settle only while k x e + g < 2, e being how sharply buyers react to price (an outside
     mathematical review the user passed on, 2026-11-17). With k = 0.05 and g = 0.05 that holds for e below 39.
     A market that swings beyond that is a result to report, not to prevent.
+    - **(Bob's reading, with Wilma's yes, 2026-11-18: a rounding matter)** Levels are whole per mille, so the change
+      is computed, not the new level. A cut is lv × g × s/(1+s) rounded down, so never more than 5% of the level. A
+      rise is g × s/(1+s) of the level, but of one post's share of full while the level is below that (5% of 0 is 0
+      forever, and a level walked down to nothing must be able to climb back), and at least 1 per mille, so a large
+      builder's crew (60 posts, one post's share 16 per mille) does not round to no rise at all (Terra's review).
 15a. **Rule 7's signal, exactly.** Everything is in money per month.
     - The work: what buyers and clients in the area spent, or tried to spend, on what this type sells, averaged per
       month over the last twelve months, at today's prices.
+      - **(Bob's reading, with Wilma's yes, 2026-11-18)** The last twelve months are summed and divided by twelve.
+        In the colony's first year the months before it count at the need the government counts for its grant (61b:
+        the persons who buy food x a person's need), the plan's own month-one answer. So the first months' store
+        filling (households buy double until six months are held, 15f) is not read as a year of it, and founding does
+        not wait for a year to pass. Seed 1, 24 months: counting those months as no orders planned 4 farms in month 0
+        and the first winter went hungry (840 and 604 of about 1,000); counting them at the eating need planned 29
+        (all granted) and the hunger fell to 131 and 499, the rest being how fast farms are built.
+    - **Rule 8, as the user said it** ("the same signal says the work is covered"): the work in quantity a month is
+      covered when the full output a month of every plant a founder sees (standing, booked, granted, each at its
+      size's full output) reaches it. Covered: no plan of any size. Not covered: the share test below picks the size.
+      In quantity, not money, so a dear month does not make the same food look like more work. It was not built
+      before 2026-11-18; the share test alone stood in for it.
     - The shares: by PLANT, not by company. Every plant of the type that serves the area counts by its size (family
       1/6, small 1/3, average 2/3, large 1), whoever owns it. A company with three large plants counts 3. The
       newcomer's share is its own plant's size divided by the sizes of all those plants, its own included.

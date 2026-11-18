@@ -1024,6 +1024,19 @@ Then, told the output step was built at 25% a month:
 So: output moves at most 5% in a month too. Written into rebuild-company.md section 3 the same turn. Bob builds it.
 
 
+### The rebuild: price first, output cut only when lowering the price fails (the user, 2026-11-18, verbatim)
+
+About: the farms; as built a farm cut output in the same month it lowered its price, on the same unsold food.
+
+> Then they cut output instead of lowering price output cut has been built wrong let me guess they just cut if they sell less???
+
+Asked whether the rule is that a farm lowers its price first and cuts output only when that fails:
+
+> THAT'S EXACTLY WHAT I SAID
+
+So: unsold food lowers the price; output is cut only when lowering the price has failed. Written into [rebuild-company.md](rebuild-company.md) section 3 the same turn. Bob builds it.
+
+
 ### The rebuild: the rent is doubled (the user, 2026-11-18, verbatim)
 
 About: a household's food (152 a month) cost more than its rent (48 shelter, 97 house), so a starting salary of 3.5 x the rent was under what a household needs.
