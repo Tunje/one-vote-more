@@ -1090,6 +1090,12 @@ About: two items of the audit list put to the user. Item 7: a farm family is mos
 
 So: with the family's two adults alone the farm makes 20 at a minimum. A farm does not need a grant; the government can stop founding by stopping the grant or by stopping land being allowed to be built on; a plot to be built on is bought from the government. The other items outside the farms wait. Written into [rebuild-company.md](rebuild-company.md) 15e and 12.9 61c the same turn.
 
+On the family's 20, asked whether a family farm's output still goes down with its output level or 20 is the least it ever makes:
+
+> The rest goes down the two adults owning dose not
+
+So: the output level lowers the rest, the hired hands' work; the owning adults' work does not go down with it. Bob builds it and records it in 15e.
+
 Asked what the government's act for stopping land is (zoning, or a plain per-type stop on selling land) and whether the AI government uses it when it wants no more farms:
 
 > Yes on zoning laws
