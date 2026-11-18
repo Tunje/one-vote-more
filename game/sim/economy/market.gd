@@ -188,6 +188,8 @@ static func _clear_book(world: WorldState, st: Dictionary, item: String, area: S
 							continue
 						var got := _sell(world, st, seller, String(takers[k]), item, q, price)
 						moved += got
+						if got > 0 and kind == "NEED":
+							_came_looking(sig, offs, left, by_price, st["orders"][takers[k]], i, got)
 						if got > 0:
 							sales += 1
 							if not st.has("last"):
@@ -239,11 +241,39 @@ static func _next_offer(offs: Array, left: Array, by_price: Array, o: Dictionary
 	return -1
 
 
-## Shares one order's shortfall among the sellers who turned it away, so the sum over sellers is the real shortfall
-## (Otto's review): SOLD_OUT or NO_SELLER goes to every seller at or under its price that had nothing left, in
-## proportion to what it offered plus what its plants can make (so a seller with no stock still learns it, rule 1 and
-## 3); PRICE goes to every seller above what the order could pay that still had stock, in proportion to what it had
-## left (rule 2).
+## Rule 1's signal (the user, section 3: "no orders go unfilled by my farm, every seller that comes looking and goes
+## somewhere else for food, not orders unfilled by anyone"; "Important oders that are filled before they come to my
+## farm does not count"): `qty` an order bought from offer `j` after passing, in its own sequence (the rank order, or
+## real price order for a PRICE order), sellers at or under its price that had nothing left. Each of them was reached
+## by the order and turned it away, so each counts the whole quantity (the user's per-farm words: a buyer passing two
+## sold-out farms counts for both). An order filled before it reached a farm adds nothing to that farm. Farms at one
+## price are reached in the market's rank order. Only the month's food (NEED): a store order's shortfall is no customer
+## turned away (9.3, Bob's reading kept). Not the buyer's own offer.
+static func _came_looking(sig: Dictionary, offs: Array, left: Array, by_price: Array, o: Dictionary, j: int, qty: int) -> void:
+	var buyer := String(o["buyer"]["id"])
+	var listed := {}
+	for off in offs:
+		listed[String(off["seller"])] = true
+	# a seller there with a price but nothing to offer at all is passed too, at or under what the buyer then paid
+	for s in CoreUtil.sorted_keys(sig):
+		var p := int(sig[s]["price"])
+		if not listed.has(s) and p <= int(o["max"]) and p <= int(offs[j]["price"]) and String(s) != buyer:
+			sig[s]["unmet_above"] = int(sig[s]["unmet_above"]) + qty
+	var seq: Array = by_price if String(o.get("by", "RANK")) == "PRICE" else range(offs.size())
+	for idx in seq:
+		if int(idx) == j:
+			return
+		var s := String(offs[idx]["seller"])
+		if int(left[idx]) <= 0 and int(offs[idx]["price"]) <= int(o["max"]) and s != buyer:
+			sig[s]["unmet_above"] = int(sig[s]["unmet_above"]) + qty
+
+
+## One order's shortfall to the sellers who turned it away. SOLD_OUT or NO_SELLER: every seller at or under its price
+## that had nothing left was reached by the order and counts the whole shortfall (rule 1, the user: "every seller that
+## comes looking and goes somewhere else for food, not orders unfilled by anyone": each farm counts the buyers that
+## came to it; a seller with no stock learns it too, rules 1 and 3). This replaces the earlier sharing, under which the
+## sum over sellers was the real shortfall (Otto's review then). PRICE goes to every seller above what the order could
+## pay that still had stock, shared in proportion to what it had left (rule 2), as before.
 static func _turned_away(world: WorldState, sig: Dictionary, o: Dictionary, short: int) -> void:
 	var why := String(o["why"])
 	var to: Array = []
@@ -264,10 +294,13 @@ static func _turned_away(world: WorldState, sig: Dictionary, o: Dictionary, shor
 		sum += float(wv)
 	if sum <= 0.0:
 		weights = to.map(func(_x): return 1.0)
+	if why != "PRICE":
+		for s in to:
+			sig[s]["unmet_above"] = int(sig[s]["unmet_above"]) + short   # each farm reached counts it whole
+		return
 	var parts: Array = CoreUtil.split_lr(short, weights)
-	var key := "refused" if why == "PRICE" else "unmet_above"
 	for i in to.size():
-		sig[to[i]][key] = int(sig[to[i]][key]) + int(parts[i])
+		sig[to[i]]["refused"] = int(sig[to[i]]["refused"]) + int(parts[i])
 
 
 ## What a company's open plants make in a month at full, milli-units (its crew's full output if it has crew posts and

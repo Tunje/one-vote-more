@@ -132,16 +132,16 @@ func test_a_seller_with_no_stock_still_learns_what_it_was_asked_for() -> void:
 	check_eq(Market.seller_signal(w, empty, "FOOD")["unmet_above"], 30 * S, "the farm with nothing to sell learns 30 were wanted at its price (rules 1, 3)")
 
 
-func test_a_shortfall_is_shared_among_the_sellers_not_counted_for_each() -> void:
+func test_each_sold_out_farm_counts_what_the_buyer_still_wanted_when_it_reached_it() -> void:
+	# rule 1, the user: "no orders go unfilled by my farm, every seller that comes looking and goes somewhere else for
+	# food, not orders unfilled by anyone"; "oders that are filled before they come to my farm does not count"
 	var w := _w()
 	var a := _farm(w, 10, 50 * S)
 	var b := _farm(w, 30, 60 * S)
 	Market.order(w, _buyer(w, "x", 100000 * S), "FOOD", 80 * S, 70 * S)
 	Market.clear(w)
-	var ua := int(Market.seller_signal(w, a, "FOOD")["unmet_above"])
-	var ub := int(Market.seller_signal(w, b, "FOOD")["unmet_above"])
-	check_eq(ua + ub, 40 * S, "the 40 short are shared, not counted twice")
-	check(ua > 0 and ub > 0, "both sold out at or under its price get a share")
+	check_eq(int(Market.seller_signal(w, a, "FOOD")["unmet_above"]), 70 * S, "A sold its 10; the buyer came on with 70 wanted, went elsewhere for 30 and was short 40")
+	check_eq(int(Market.seller_signal(w, b, "FOOD")["unmet_above"]), 40 * S, "B sold its 30; the buyer still wanted 40 when it found B sold out")
 
 
 func test_a_company_does_not_buy_from_its_own_offer() -> void:
@@ -299,3 +299,47 @@ func test_bad_orders_are_refused() -> void:
 	check_eq(Market.order(w, b, "FOOD", 0, S), "", "not nothing")
 	check_eq(Market.order(w, {"kind": "ALIEN", "acct": "x"}, "FOOD", S, S), "", "not an unknown buyer")
 	check_eq(Market.order(w, b, "FOOD", S, S, "MAYBE"), "", "not an unknown kind")
+
+
+func test_a_cheap_farm_that_sells_out_while_a_dearer_one_fills_the_rest_raises_its_price() -> void:
+	# rule 1, the user: "every seller that comes looking and goes somewhere else for food, not orders unfilled by
+	# anyone": no order needs to go short for a rise
+	var Rules: GDScript = load("res://sim/economy/rules.gd")
+	var w := _w()
+	var cheap := _farm(w, 10, 30 * S)
+	var dear := _farm(w, 100, 40 * S)
+	Market.order(w, _buyer(w, "x", 100000 * S), "FOOD", 50 * S, 50 * S)
+	Market.clear(w)
+	var sc := Market.seller_signal(w, cheap, "FOOD")
+	var sd := Market.seller_signal(w, dear, "FOOD")
+	check_eq([int(sc["sold"]), int(sc["unmet_above"])], [10 * S, 40 * S], "the cheap farm sold out; 40 came looking and went to the dearer one")
+	check_eq([int(sd["sold"]), int(sd["unmet_above"])], [40 * S, 0], "the dearer one filled the rest and turned nobody away")
+	check(int(Rules.call("price_rule", w, cheap, "FOOD", sc, 0)) > 30 * S, "the cheap farm raises its price")
+	check(int(Rules.call("price_rule", w, cheap, "FOOD", sc, 0)) <= 30 * S * 1050 / 1000 * 1050 / 1000, "by at most 5% (twice here: called twice)")
+	check(int(Rules.call("price_rule", w, dear, "FOOD", sd, 0)) < 40 * S, "the dearer one, 60 unsold, lowers")
+
+
+func test_orders_filled_before_they_reach_a_farm_do_not_count_for_it() -> void:
+	# the user: "Important oders that are filled before they come to my farm does not count"
+	var Rules: GDScript = load("res://sim/economy/rules.gd")
+	var w := _w()
+	var cheap := _farm(w, 100, 30 * S)
+	var dear := _farm(w, 5, 40 * S)
+	Market.order(w, _buyer(w, "x", 100000 * S), "FOOD", 50 * S, 50 * S)
+	Market.clear(w)
+	var sd := Market.seller_signal(w, dear, "FOOD")
+	check_eq([int(sd["sold"]), int(sd["unmet_above"])], [0, 0], "the cheap farm filled the order before it came to the dearer one")
+	check_eq(int(Rules.call("price_rule", w, dear, "FOOD", sd, 0)), 40 * S * (1000 - 50) / 1000, "no rise; it sold nothing and lowers 5%")
+
+
+func test_farms_at_one_price_are_reached_in_the_markets_rank_order() -> void:
+	var w := _w()
+	var a := _farm(w, 10, 30 * S)
+	var c := _farm(w, 10, 30 * S)
+	var b := _farm(w, 100, 40 * S)
+	Market.order(w, _buyer(w, "x", 100000 * S), "FOOD", 50 * S, 50 * S)
+	Market.clear(w)
+	var ua := int(Market.seller_signal(w, a, "FOOD")["unmet_above"])
+	var uc := int(Market.seller_signal(w, c, "FOOD")["unmet_above"])
+	check_eq([ua, uc], [40 * S, 30 * S], "at one price the market's rank order decides: the order buys the first's 10 and passes it with 40 wanted, then the second's 10 and passes it with 30")
+	check_eq(int(Market.seller_signal(w, b, "FOOD")["unmet_above"]), 0, "the one that filled it turned nobody away")

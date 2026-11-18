@@ -894,6 +894,7 @@ func test_rule_8_reads_what_the_plants_seen_actually_deliver_not_their_full_outp
 			Company.close_month(w, f)
 	var f := Rules.founding(w, "FARM", "landing")
 	var row: Dictionary = Logbook.rows(w, {"kind": "RULE"})[-1]
+	check_eq(Rules.capacity_seen(w, "FARM", "landing"), int(row["why"]["capacity"]), "capacity_seen is the very count rule 8 reads (one count, 61c)")
 	check_eq(int(row["why"]["capacity"]), 500 * S, "what the five brought to the market a month, 5 x (120 - 20), not their 1,200 at full output nor the 150 they sold")
 	check(not bool(row["why"]["covered"]), "500 of 1,000 delivered: not covered")
 	check_eq(int(f["FAMILY"]["work_share"]), Rules.work(w, "FARM", "landing") / 31, "rule 7's share test still divides the work by every plant's sixths (15a)")

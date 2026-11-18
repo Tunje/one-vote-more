@@ -794,19 +794,17 @@ static func running_cost(world: WorldState, type: String, size: String, area: St
 	return cost
 
 
-## Rules 7 and 8 (15a): for each size, the newcomer's share of the work (its plant's sixths over every plant of the type
-## serving the area, its own included; plans do not count) and whether that share covers what a company of that size
-## costs to run. {size: {"work_share", "cost", "covers"}}. Rule 8 first (the user: do not start one when "the same
-## signal says the work is covered"): when what the plants a founder sees deliver a month reaches the work in quantity
-## a month (work_qty), the work is covered and no size covers. A standing plant counts what its company really delivered a
-## month over the last twelve, made less its family's take, each month it has not yet lived at its full output
-## (_delivered_a_month);
-## booked and granted plans count at full output (they make nothing yet). In quantity, not money: a dear month does not make the same food look like more work (Wilma's
-## fault: the colony founded two to three times the farms it needs). A founder plans the largest size that covers and that their
-## money reaches; the founder's own reading (12.11, 77) bends it on their side. log_row false: a plain read (a plan's
-## re-read before signing), with no row.
-static func founding(world: WorldState, type: String, area: String, log_row: bool = true, except_plan: String = "") -> Dictionary:
-	var w := work(world, type, area)
+## What the plants a founder sees deliver a month of a type's item in an area, milli-units: rule 8's capacity (15a,
+## Bob's reading with Wilma's yes), the one count of it (Wilma's 61c (b): the government's farms wanted reads it too,
+## Ella's Grants.wanted). Standing plants at what they made less their family's take over the last twelve months, each
+## month not yet lived at full output; booked and granted plans at full output. Pure. except_plan: as in founding.
+static func capacity_seen(world: WorldState, type: String, area: String, except_plan: String = "") -> int:
+	return int(_seen(world, type, area, except_plan)["capacity"])
+
+
+## What a founder sees of a type in an area: the sixths standing, booked and granted (rule 7's shares) and what they
+## deliver a month (rule 8's capacity). {"standing", "booked", "granted", "capacity"}. Pure.
+static func _seen(world: WorldState, type: String, area: String, except_plan: String) -> Dictionary:
 	var standing := 0
 	var capacity := 0   # what every plant seen delivers a month, milli-units (rule 8)
 	var item := TypeTable.out_of(type, 0)
@@ -842,6 +840,27 @@ static func founding(world: WorldState, type: String, area: String, log_row: boo
 			if with_grant.has(plan_id):
 				granted += int(made[plan_id])
 				capacity += _full_of_sixths(type, int(made[plan_id]))
+	return {"standing": standing, "booked": booked, "granted": granted, "capacity": capacity}
+
+
+## Rules 7 and 8 (15a): for each size, the newcomer's share of the work (its plant's sixths over every plant of the type
+## serving the area, its own included; plans do not count) and whether that share covers what a company of that size
+## costs to run. {size: {"work_share", "cost", "covers"}}. Rule 8 first (the user: do not start one when "the same
+## signal says the work is covered"): when what the plants a founder sees deliver a month reaches the work in quantity
+## a month (work_qty), the work is covered and no size covers. A standing plant counts what its company really delivered a
+## month over the last twelve, made less its family's take, each month it has not yet lived at its full output
+## (_delivered_a_month);
+## booked and granted plans count at full output (they make nothing yet). In quantity, not money: a dear month does not make the same food look like more work (Wilma's
+## fault: the colony founded two to three times the farms it needs). A founder plans the largest size that covers and that their
+## money reaches; the founder's own reading (12.11, 77) bends it on their side. log_row false: a plain read (a plan's
+## re-read before signing), with no row.
+static func founding(world: WorldState, type: String, area: String, log_row: bool = true, except_plan: String = "") -> Dictionary:
+	var w := work(world, type, area)
+	var seen := _seen(world, type, area, except_plan)
+	var standing := int(seen["standing"])
+	var booked := int(seen["booked"])
+	var granted := int(seen["granted"])
+	var capacity := int(seen["capacity"])
 	var have := standing + booked + granted
 	var wq := work_qty(world, type, area)
 	var covered := capacity >= wq

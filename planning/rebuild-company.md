@@ -184,6 +184,11 @@ type has its own copy, and no rule is skipped for a type because it cannot take 
 
 What goes with them:
 
+- **Rules 1 and 2 together** (the user, 2026-11-18, verbatim, confirming rule 1's reading): "Yes that's the point everyone they pass raises that means only the one they ended on   or never reached lowers this contributes to price shift and swapping farms that get to sell,  and stabalises the wares roughly on that level"
+  As built (Bob): a farm a buyer passed while it had nothing left raises (rule 1) and, sold out, has nothing unsold, so
+  it never lowers that month. The farm the buyer ended on (it filled the rest of the order and still has food unsold)
+  lowers by rule 2 on what it did not sell, and so does a farm the buyer never reached. A farm whose last unit filled
+  the order exactly neither rises nor lowers.
 - **Only price moves price.** "If something else than price stops sales it should not count on adjusting price!!" A
   sale stopped by freight or the road counts neither as unsold stock (rules 2 and 4) nor as an unfilled order (rule 1).
   A buyer who is short of money is different, and is spelled out in 12.3, 23a: being unable to pay THIS price is a
