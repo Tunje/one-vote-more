@@ -189,11 +189,17 @@ static func state_companies(world: WorldState) -> Array:
 
 
 ## What one person on support gets a month in each area that has people, credits x S: `rate` per cent of the area's
-## starting salary (12.5, 41). Until areas carry their own salary line (step 3) that is the type table's general salary.
+## starting salary (12.5, 41: "each a share of the area's starting salary"): Rules.starting_salary for a general post,
+## 2 x the area's rent (the user, 2026-11-18, 9.2: "just rent at 2x"). Not the type table's 300 (the audit of
+## 2026-11-18). Rules is loaded, not preloaded: it preloads Households, which loads this file.
+const RULES_PATH := "res://sim/economy/rules.gd"
 static func support_rates(world: WorldState, rate_pct: int) -> Dictionary:
+	var rules: GDScript = load(RULES_PATH)
 	var out := {}
 	for pid in Households.pools(world):
-		out[String(world.peek("pool")[pid]["area"])] = TypeTable.salary("G") * rate_pct / 100
+		var area := String(world.peek("pool")[pid]["area"])
+		if not out.has(area):
+			out[area] = int(rules.call("starting_salary", world, area, "G")) * rate_pct / 100
 	return out
 
 

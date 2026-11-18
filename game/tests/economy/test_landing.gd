@@ -5,6 +5,7 @@ const Landing := preload("res://sim/economy/landing.gd")
 const Company := preload("res://sim/economy/company.gd")
 const TypeTable := preload("res://sim/economy/type_table.gd")
 const Households := preload("res://sim/population/households.gd")
+const Rules := preload("res://sim/economy/rules.gd")
 const S := CoreUtil.S
 
 
@@ -86,14 +87,23 @@ func test_the_purse_pays_staff_benefit_and_pensions_and_money_is_conserved() -> 
 	check(wage_bill > 0, "the state has staff to pay")
 	var jobless := 0
 	var retired := 0
+	var benefit_due := 0
+	var pension_due := 0
 	for pid in Households.pools(w):
 		jobless += Households.persons(w, pid, "UNEMPLOYED")
 		retired += Households.persons(w, pid, "RETIRED")
+		# the area's starting salary (12.5, 41): 2 x the area's rent for a general post (9.2)
+		var start := Rules.starting_salary(w, String(w.peek("pool")[pid]["area"]), "G")
+		benefit_due += Households.persons(w, pid, "UNEMPLOYED") * (start * int(w.levers["ECON_UNEMPLOYMENT_BENEFIT_RATE"]) / 100)
+		pension_due += Households.persons(w, pid, "RETIRED") * (start * int(w.levers["ECON_PENSION_RATE"]) / 100)
 	var total := -w.ledger.balance(Ledger.EXTERNAL)
 	var paid := Landing.purse_month(w)
 	check_eq(int(paid["wages"]), wage_bill, "every state company is given its whole wage bill: it holds nothing itself")
-	check_eq(int(paid["benefit"]), jobless * (TypeTable.salary("G") * int(w.levers["ECON_UNEMPLOYMENT_BENEFIT_RATE"]) / 100), "the benefit at its lever")
-	check_eq(int(paid["pension"]), retired * (TypeTable.salary("G") * int(w.levers["ECON_PENSION_RATE"]) / 100), "the pension at its lever")
+	check(jobless > 0 and retired > 0, "people on support")
+	check_eq(int(paid["benefit"]), benefit_due, "the benefit at its lever, of the area's starting salary")
+	check_eq(int(paid["pension"]), pension_due, "the pension at its lever, of the area's starting salary")
+	var area := String(w.peek("pool")[Households.pools(w)[0]]["area"])
+	check_eq(int(Landing.support_rates(w, 100)[area]), 2 * Rules.area_rent(w, area), "100% of it is 2 x the area's rent, not the type table's 300")
 	check(int(paid["benefit"]) > 0 and int(paid["pension"]) > 0, "both were paid")
 	check_eq(w.ledger.balance(tre), Landing.TREASURY_START * S - wage_bill - int(paid["benefit"]) - int(paid["pension"]), "all of it from the treasury")
 	check_eq(-w.ledger.balance(Ledger.EXTERNAL), total, "nothing appears or vanishes")
