@@ -51,6 +51,9 @@ one at a time against a game that did not contain the others, and merged switche
 There is ONE kind of thing that produces: **the company**. A farm, a mine, a bakery, a builder, a haulier, a clinic, a
 service hub, a landlord and a power plant are the same object with a different row of one table.
 
+**One rule for every company, no type or good named** (the user, 2026-11-18, verbatim): "No it's for all goods don't overcomplicatev with individual rules built seperatly by godsi hope you have not done so for all other food rules making the single object for plant a mess"; and, to Wilma's recommendation that every rule naming one type or good be made one rule for all: "Good, those". So a rule reads what it needs from the company's row of the type table, never from the type's name or one good's name. As each lands:
+- **The price rise cap** (rule 1, section 3): one rule for every good and for building work (Bob).
+
 Around it are the things that are NOT a company. Each meets a company in a stated way and no other:
 
 | Outside thing | It meets a company as |
@@ -172,7 +175,7 @@ type has its own copy, and no rule is skipped for a type because it cannot take 
 
 | # | Rule | What it acts on |
 |---|---|---|
-| 1 | raise the price | buyers came to it, found it sold out and went somewhere else: "no orders go unfilled by my farm, every seller that comes looking and goes somewhere else for food, not orders unfilled by anyone" (every buyer that comes looking); "Important oders that are filled before they come to my farm does not count" (the user, 2026-11-18). Built (Bob): a buyer reaches a farm when its order, going down its own order (cheapest first, by the market's rank; farms at one price in the rank's fixed order), passes the farm at a price it would pay while the farm has nothing left; each farm so passed counts the whole quantity the buyer still wanted (what it then bought elsewhere and what stayed short). An order filled before it reached a farm counts nothing for it. Only the month's food orders, not the store's (9.3). |
+| 1 | raise the price | buyers came to it, found it sold out and went somewhere else: "no orders go unfilled by my farm, every seller that comes looking and goes somewhere else for food, not orders unfilled by anyone" (every buyer that comes looking); "Important oders that are filled before they come to my farm does not count" (the user, 2026-11-18). Built (Bob): a buyer reaches a farm when its order, going down its own order (cheapest first, by the market's rank; farms at one price in the rank's fixed order), passes the farm at a price it would pay while the farm has nothing left; each farm so passed counts the whole quantity the buyer still wanted (what it then bought elsewhere and what stayed short). An order filled before it reached a farm counts nothing for it. Only the month's food orders, not the store's (9.3). How far the food price rises (the user, 2026-11-18, verbatim, asked about "the original bread price" after food climbed from 39 to 194): "Easy fix at double it only climbs  1% and at four times it only ever climbs 0.5% and it still falls the same". Built (Bob; Wilma's readings, marked as hers: "the original" is the starting price, 39.43 for FOOD, compared with the seller's own price before the step): from double the start a rise is at most 1% a month, from four times at most 0.5%, below double 5% as before; a fall is unchanged. For every good and for building work alike (the user, verbatim: "No it's for all goods don't overcomplicatev with individual rules built seperatly by godsi hope you have not done so for all other food rules making the single object for plant a mess"): one rule in the one price rule, "the original" being the starting price of whatever is priced, with no good named. |
 | 2 | lower the price | what it offered and did not sell: "the more inventory you have, the more you reduce your price" |
 | 3 | raise output | "if you sell out all your producing produce MORE". Also picks first or second output |
 | 4 | lower output | "The production output is only lowered if over 50% of offered goods is not sold 3 months in a row" |
@@ -464,6 +467,13 @@ Terra's town grid (section 9.8).
     climb is gone with it. (Maja's readings, with Wilma's yes: (a) the dearest, longest-open openings are filled
     first, as an applicant takes the better offer; (b) when a company wants fewer posts, the newest openings close
     first; (c) a month in which the company could not pay its wages (19a) holds every opening's count.)
+  - **An opening is an offer only once its advert is paid** (the trace of 2026-11-18 found builders with empty
+    accounts whose unadvertised posts climbed from 194 to 1,769 and took farm hands moving for pay, at no cost to
+    the builder). The words: "costs of hiring, articles in the newspaper"; "you pay the first time"; "it should only
+    climb max 5% if it cost not hire for one month". (Wilma's reading, marked as hers, agreed by Maja: a post's months
+    unfilled count from the month its advert was paid; an unadvertised post does not climb and takes nobody, a
+    worker moving for pay no more than a jobless one; a mover is a hire like any other and uses that post's advert.)
+    Not in the user's words, and no rule added: whether a company that visibly cannot pay may take a worker on.
 - **The staff record: one row per hire** (the user, 2026-11-18). About: the game averaged the pay of everyone in a
   group of staff, so a newcomer at a lower pay cut those already there and nobody could be above or below the
   company's average. The user asked, verbatim: "Can we not make a 2d array to keep all things about the hires? Sallery start date so forth?"
@@ -936,10 +946,18 @@ is wrong; nothing here is asked again.
       running cost is Rules.running_cost, which prices every post at the starting salary, the family's unpaid ones
       too: for a family farm at the landing 902 a month, so the line is 5,415. The buffer replaces the one month of
       costs the farm kept back before.)
-    - **Farms don't shut** (the user, 2026-11-18, verbatim): "FARMS DON'T SHUT"
+    - **Family farms don't shut** (the user, 2026-11-18, verbatim): "FARMS DON'T SHUT"
       About: a five-year run in which 40 family farms were shut for "no staff" within months of a glut (their hired
       hands laid off unpaid, the family still on the farm), and never opened again. The user had never ruled a farm
-      closing. So: a farm is never shut.
+      closing.
+      **Corrected the same day** (the user, verbatim): "Plants should shut", then "FAMILY FARMS FAMILY FARMS don't shut"
+      So: it is the family farm that is never shut, by any path. Every other plant shuts when nobody is on it, a farm
+      with no family too, and opens again when it has people. (Recorded first as "a farm is never shut": wider than the
+      user's words, which were about the family farms of the run.)
+      - **(Terra's reading, marked as hers, with Wilma's)** A family farm is a farm with its owning family on it (the
+        family is put on a company at its opening when it was a founder's family-size plan). A family-size farm owned
+        by the state, the home world or a company, with hired hands and no family, is not one, and shuts like any
+        plant.
     - **The farm family eats from its own farm first** (the user, 2026-11-18, verbatim): "Okay that's utter bullshit, the farmers themselves I RULED EATS THEMSELVES FIRST, THEY ARE THREE THEY CAN PRODUVE 30 THIS SHOULD IF YOU FOLLOWED THE DAMNED SPECIFICATIONS BE IMPOSSIBLE THEY WOULD TAKE SIX OUT OF THIRTY SELL 24 AND THAT SHOULD BE ENOUGH TO HIRE ONE PERSON"
       About: in the five-year run about 25 farm families with no money went hungry every month from month 33, because
       as built a farm family buys its food at the market with the founder's money and takes nothing from its own farm.

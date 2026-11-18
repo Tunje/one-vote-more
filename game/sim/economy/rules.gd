@@ -134,7 +134,7 @@ static func price_rule(world: WorldState, cid: String, item: String, sig: Dictio
 	var sold := int(sig["sold"])
 	var unmet := int(sig["unmet_above"])
 	var unsold := int(sig["offered"]) - sold
-	var up := step_pm(K_PM, unmet, sold)
+	var up := mini(step_pm(K_PM, unmet, sold), _rise_cap_pm(item, price))
 	var down := step_pm(K_PM, unsold, sold)
 	var which := ""
 	if up > 0 and down > 0:
@@ -151,6 +151,23 @@ static func price_rule(world: WorldState, cid: String, item: String, sig: Dictio
 		"step_pm": up if which == "R1" else down, "both": up > 0 and down > 0}
 	Company.set_price(world, cid, item, new_price, why, "%s %s price" % [which, "raise" if which == "R1" else "lower"])
 	return new_price
+
+
+## The most a price may rise in a month, per mille (rule 1), one rule for every good and for building work (the user,
+## 2026-11-18: "Easy fix at double it only climbs  1% and at four times it only ever climbs 0.5% and it still falls
+## the same"; "No it's for all goods don't overcomplicatev with individual rules built seperatly by gods"): from double
+## its original price at most 1%, from four times at most 0.5%, below double the 5% (K_PM). The original is the
+## starting price of what is priced (TypeTable.start_price: an item's, or BW's; Wilma's reading), compared with the
+## seller's own price before the step (hers too). A fall is not touched. Nothing priced with no starting price is capped.
+const RISE_STEPS := [[4000, 5], [2000, 10]]   # [from this many per mille of the start, the most a rise is (per mille)]
+
+
+static func _rise_cap_pm(item: String, price: int) -> int:
+	var start := TypeTable.start_price(item)
+	for step in RISE_STEPS:
+		if start > 0 and price * 1000 >= start * int(step[0]):
+			return int(step[1])
+	return K_PM
 
 
 ## The hold-back (section 6): below its making price a seller offers only what covers its monthly expenses (its wage
