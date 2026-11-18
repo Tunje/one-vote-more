@@ -76,7 +76,7 @@ func test_hire_takes_the_posts_skill_first_then_higher_never_lower() -> void:
 	var st := Company.staff_entries(w, c1)
 	check_eq(int(st["crew"]["S"][Households.labour_key(land, "I3", "S")]["n"]), 5 * S, "the five skilled first")
 	check_eq(int(st["crew"]["S"][Households.labour_key(land, "I4", "Sp")]["n"]), 1 * S, "then one specialist")
-	check_eq(int(st["crew"]["S"][Households.labour_key(land, "I3", "S")]["groups"][0]["pay"]), Company.hiring_salary(w, c1, "S", land),
+	check_eq(int(st["crew"]["S"][Households.labour_key(land, "I3", "S")]["hires"][0]["pay"]), Company.hiring_salary(w, c1, "S", land),
 		"hired at the company's hiring salary")
 	check_eq(Households.hire(w, c1, "crew", "Sp", land, 5), 1, "a specialist post takes no one less skilled")
 	check_eq(PopStore.count(w, {"hb": land, "status": "UNEMPLOYED"}), 3, "only the general workers are left")
@@ -280,3 +280,51 @@ func test_a_layoff_owes_each_group_its_own_pay() -> void:
 	check_eq(int(row["change"]["layoff_pay_owed"][1]), months * (6 * 300 + 4 * 400) * S, "each owed months of their own pay")
 	check_eq(_rows(w, r[1], Households.labour_key(r[0], "I2", "G")), [[4, 300]], "the four at 300 stay, at 300")
 	check(Households.check(w).is_empty(), "jobs = people: %s" % str(Households.check(w)))
+
+
+func test_a_band_move_carries_its_training() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	Households.seed_test(w, land, "I2", "G", 4)
+	var c1 := _co(w, "BUILDER", "STATE")
+	check_eq(Households.hire(w, c1, "crew", "G", land, 4, {}, 400 * S), 4, "four new hires, in training")
+	w.month = 2
+	var before := Company.trained_count(w, c1)
+	Households.move_jobs_band(w, land, "I2", "I3", "G")
+	check_eq(Company.trained_count(w, c1), before, "still two months into training: nothing learned by moving")
+	var e: Dictionary = Company.payroll(w, c1)[0]
+	check_eq([String(e["labour_key"]), int(e["since"]), int(e.get("train", -9))], [Households.labour_key(land, "I3", "G"), 0, 0],
+		"the row moved whole: its month and its training")
+
+
+func test_unpaid_wages_are_owed_and_paid_when_the_company_has_money() -> void:
+	# the user, 9.2 "Unpaid wages": "Record it make them pay after our if they refused take it to court"
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	Households.seed_test(w, land, "I2", "G", 2)
+	Households.seed_test(w, land, "I3", "G", 2)
+	var c1 := _co(w, "BUILDER", "HOME_WORLD")
+	Households.hire(w, c1, "crew", "G", land, 4, {}, 300 * S)
+	var acct := CoreUtil.acct(c1)
+	w.ledger.transfer(Ledger.EXTERNAL, acct, 600 * S, "TEST", w.month)
+	Households.pay_wages(w, c1, acct)
+	var owed := 0
+	for li in w.peek("liability").values():
+		if String(li["debtor"]) == c1 and String(li["kind"]) == "UNPAID_WAGES":
+			owed += int(li["amount"])
+	check_eq(owed, 600 * S, "what it could not pay is owed to the workers' pools")
+	var rows: Array = w.peek("liability").values().filter(func(li): return String(li["debtor"]) == c1)
+	check_eq(rows.map(func(li): return [int(li["due_month"]), bool(li["plan"])]), [[w.month + 1, false], [w.month + 1, false]],
+		"one row per pool, whole, due next month: no instalments for pay already earned (Anni)")
+	check_eq(int(Logbook.rows(w, {"kind": "PAY"})[-1]["change"]["owed"][1]), 600 * S, "and in the PAY row")
+	var i2 := Households.pool_id(land, "I2")
+	var before := w.ledger.balance(Households.account(i2))
+	w.ledger.transfer(Ledger.EXTERNAL, acct, 1000 * S, "TEST", w.month)
+	var late := 0
+	for m in 2:
+		w.month += 1
+		load("res://sim/law/justice_ops.gd").collect_debts(w)
+		late += int(Households.income(w, i2).get("wages", 0))
+	check_eq(w.ledger.balance(Households.account(i2)) - before, 300 * S, "paid afterwards: the I2 pool gets its half")
+	check_eq(late, 300 * S, "booked as wages in the months it came")
+	check_eq(w.ledger.balance(acct), 400 * S, "from the company's account")

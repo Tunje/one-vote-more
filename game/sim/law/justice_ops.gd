@@ -931,8 +931,10 @@ static func _repeat_ladder(world: WorldState, org_id: String) -> void:
 ## v8 unpaid fines and awards: a FINE or COMPENSATION liability more than PETITION_MONTHS past due makes the creditor
 ## (the state, the victims' fund or the firm owed) petition the court, which winds the firm up (UNPAID_FINES). Unpaid
 ## layoff pay too (the user, rebuild-company.md 9.2: a debt like unpaid wages, which can end the company); the pool the
-## workers went back to is the creditor.
-const PETITION_KINDS := ["FINE", "COMPENSATION", "LAYOFF_PAY"]
+## workers went back to is the creditor. Unpaid wages too (the user, 9.2 "Unpaid wages": "if they refused take it to
+## court"; Bob's reading until step 5's court: unpaid 12 months after it was due counts as refused, as for layoff pay);
+## the pool the workers live in is the creditor.
+const PETITION_KINDS := ["FINE", "COMPENSATION", "LAYOFF_PAY", "UNPAID_WAGES"]
 const PETITION_MONTHS := 12
 
 
@@ -1111,11 +1113,16 @@ static func _fine(world: WorldState, org_id: String, cls: String, violation: Str
 ## collects each row when due (collect_debts); the creditor petitions only 12 months past a missed row (_petitions).
 ## `ref` (optional) names what the debt is for, e.g. the plan whose grant is owed back, so its owner can read what
 ## was collected of it (the row's "paid").
+## Kinds in NO_PLAN_KINDS are owed whole, due next month, also by a small firm: unpaid wages are pay already earned,
+## not a state claim, so the instalment mercy does not apply (Anni); collect_debts still never overdraws.
+const NO_PLAN_KINDS := ["UNPAID_WAGES"]   # owed whole at once: pay earned, not a state claim (Anni)
+
+
 static func _owe(world: WorldState, debtor: String, creditor: String, creditor_acct: String, amount: int, kind: String,
 		ref: String = "") -> void:
 	var annual := annual_rev(world, debtor)
 	var small := annual < SMALL_FIRM_REV_WREF * float(w_ref(world))
-	var parts := PLAN_PARTS if small else 1
+	var parts := PLAN_PARTS if small and not (kind in NO_PLAN_KINDS) else 1
 	var left := amount
 	for i in parts:
 		var part := left if i == parts - 1 else amount / parts
@@ -1124,14 +1131,14 @@ static func _owe(world: WorldState, debtor: String, creditor: String, creditor_a
 			continue
 		var lid := world.new_id("liability")
 		var row := {"id": lid, "debtor": debtor, "creditor": creditor, "amount": part,
-			"due_month": world.month + 1 + (i * PLAN_MONTHS / parts if small else 0), "kind": kind, "status": "OPEN",
-			"plan": small}
+			"due_month": world.month + 1 + (i * PLAN_MONTHS / parts if parts > 1 else 0), "kind": kind, "status": "OPEN",
+			"plan": parts > 1}
 		if creditor_acct != "":
 			row["creditor_acct"] = creditor_acct
 		if ref != "":
 			row["ref"] = ref
 		world.table("liability")[lid] = row
-		Logbook.note(world, "LAW", debtor, "owed", {"kind": kind, "due_month": int(row["due_month"]), "plan": small},
+		Logbook.note(world, "LAW", debtor, "owed", {"kind": kind, "due_month": int(row["due_month"]), "plan": parts > 1},
 			{"amount": [0, part]}, creditor, lid)
 
 

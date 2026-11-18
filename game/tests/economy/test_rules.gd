@@ -419,8 +419,8 @@ func test_a_new_hire_makes_half_rising_evenly_to_full_after_six_months() -> void
 	check_eq(Company.trained_count(w, id), 4 * S + 2 * S / 2, "the two new count as one")
 	w.month = 3
 	check_eq(Company.trained_count(w, id), 4 * S + 2 * S * 750 / 1000, "three months on")
-	Company.staff_change(w, id, pid, "G", "landing|I2|G", -3 * S)   # half leave, trainees in proportion
-	check_eq(Company.trained_count(w, id), 2 * S + S * 750 / 1000, "leavers take trainees in proportion")
+	Company.staff_change(w, id, pid, "G", "landing|I2|G", -3 * S)   # no row named: the rows in order, the longest here first
+	check_eq(Company.trained_count(w, id), S + 2 * S * 750 / 1000, "three of the trained row leave; the trainees keep their months")
 	w.month = 6
 	check_eq(Company.trained_count(w, id), 3 * S, "all trained after six months")
 

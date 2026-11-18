@@ -234,11 +234,11 @@ static func plant_area(world: WorldState, cid: String, plant_key: String) -> Str
 	return String(ColonyLayout.plants(world).get(plant_key, {}).get("area", ""))
 
 
-## Company `cid` lays off up to n people from posts of `post_tier` at `plant_key`: the largest pay groups first (a
-## staff entry keeps one group per pay, Company.payroll), then by key and the higher pay, so the outcome repeats. They
-## keep their occupation and skill (P7). Returns persons laid off.
+## Company `cid` lays off up to n people from posts of `post_tier` at `plant_key`: the largest hire rows first (a
+## staff entry keeps one row per hire, Company.payroll), then by key and the rows' own order, so the outcome repeats.
+## They keep their occupation and skill (P7). Returns persons laid off.
 ## Pay owed after a layoff (rebuild-company.md 9.2, the user's ruling on keeping workers): each person laid off is owed
-## WorkLaw.layoff_pay_months (Anni's law lever LAW_LAYOFF_PAY_MONTHS, 3) months of their own pay (their group's pay). It is paid into the pool they
+## WorkLaw.layoff_pay_months (Anni's law lever LAW_LAYOFF_PAY_MONTHS, 3) months of their own pay (their hire row's pay). It is paid into the pool they
 ## go back to, booked as income "layoff_pay", from the company's account as far as it reaches; the rest is owed to that
 ## pool through the law (Justice.owe, kind LAYOFF_PAY). Every layoff owes it, the 19a layoffs too; quitting, a move for
 ## better pay, death, retiring and leaving the colony owe nothing (they do not come here). The people are unemployed
@@ -248,8 +248,9 @@ static func layoff(world: WorldState, cid: String, plant_key: String, post_tier:
 		return 0
 	var occ := String(Company.occupation(world, cid, post_tier))
 	var groups: Array = Company.payroll(world, cid).filter(func(e): return String(e["plant_key"]) == plant_key and String(e["post_tier"]) == post_tier)
-	groups.sort_custom(func(a, b): return int(a["n"]) > int(b["n"]) or (int(a["n"]) == int(b["n"]) and (String(a["labour_key"]) < String(b["labour_key"])
-		or (String(a["labour_key"]) == String(b["labour_key"]) and int(a["pay"]) > int(b["pay"])))))
+	for i in groups.size():
+		groups[i]["at"] = i   # payroll's own order: by key, then the rows' order
+	groups.sort_custom(func(a, b): return int(a["n"]) > int(b["n"]) or (int(a["n"]) == int(b["n"]) and int(a["at"]) < int(b["at"])))
 	var done := 0
 	var given := {}
 	var owed_by_pool := {}
@@ -264,8 +265,8 @@ static func layoff(world: WorldState, cid: String, plant_key: String, post_tier:
 			{"status": "UNEMPLOYED"}, String(why.get("reason", "LAYOFF")), "skill:" + p[2])
 		if k <= 0:
 			continue
-		var pay_k := int(e["pay"])   # their own group's pay
-		var ok: bool = Company.staff_change(world, cid, plant_key, post_tier, lk, -k * S, pay_k)
+		var pay_k := int(e["pay"])   # their own hire row's pay
+		var ok: bool = Company.staff_change(world, cid, plant_key, post_tier, lk, -k * S, -1, -1, String(e["row"]))
 		assert(ok, "staff_change refused a layoff")
 		given[lk] = int(given.get(lk, 0)) + k
 		var pid := pool_id(p[0], p[1])
@@ -285,10 +286,15 @@ static func layoff(world: WorldState, cid: String, plant_key: String, post_tier:
 
 ## The law's debt collector paid `amount` of a debt of `kind` to `creditor` (Anni's collect_debts calls it after each
 ## payment, loaded at call time): layoff pay collected later is booked in the pool's month as "layoff_pay", as if paid
-## on the day (Wilma). Any other creditor or kind: nothing to book.
+## on the day (Wilma); unpaid wages collected later as "wages" in the month they come (Bob's reading: they are the
+## wages, paid late). Any other creditor or kind: nothing to book.
 static func debt_received(world: WorldState, creditor: String, kind: String, amount: int) -> void:
-	if kind == "LAYOFF_PAY" and amount > 0 and world.peek("pool").has(creditor):
+	if amount <= 0 or not world.peek("pool").has(creditor):
+		return
+	if kind == "LAYOFF_PAY":
 		_book(world, creditor, "layoff_pay", amount)
+	elif kind == "UNPAID_WAGES":
+		_book(world, creditor, "wages", amount)
 
 
 ## The layoff pay of one layoff: {pool id: credits x S owed}. Paid from the company's account as far as it reaches
@@ -398,8 +404,11 @@ static func _pay(world: WorldState, from_acct: String, bill: Dictionary, kind: S
 ## A company's wages for the month (H3): every staff entry's people at that entry's own pay (plan 9.2: a salary is set
 ## at hire and is the worker's from then on; Company.payroll), into the pools the entries' labour keys name. Paid once a
 ## month per company, from `from_acct` (its account). When the account cannot cover the bill everyone gets the same
-## share of what it holds; laying people off is the company's decision (12.3, 19a), not this function's. Returns the
-## amount paid. One Logbook PAY row.
+## share of what it holds; laying people off is the company's decision (12.3, 19a), not this function's. What it could
+## not pay is owed to each pool (rebuild-company.md 9.2, "Unpaid wages", the user: "Record it make them pay after our
+## if they refused take it to court"): a debt of kind UNPAID_WAGES through the law (Justice.owe), collected like layoff
+## pay when the company has money (collect_debts; debt_received books it as wages). Returns the amount paid. One Logbook
+## PAY row, with what was owed.
 static func pay_wages(world: WorldState, cid: String, from_acct: String, why: Dictionary = {}) -> int:
 	var bill := {}
 	for e in Company.payroll(world, cid):
@@ -416,9 +425,16 @@ static func pay_wages(world: WorldState, cid: String, from_acct: String, why: Di
 	for pid in bill:
 		due += int(bill[pid])
 		got += int(paid.get(pid, 0))
+	var owed := 0
+	if from_acct != Ledger.EXTERNAL:
+		for pid in CoreUtil.sorted_keys(bill):
+			var rest := int(bill[pid]) - int(paid.get(pid, 0))
+			if rest > 0:
+				load("res://sim/law/justice_ops.gd").owe(world, cid, String(pid), account(String(pid)), rest, "UNPAID_WAGES")
+				owed += rest
 	var w := why.duplicate()
 	w["due"] = due
-	Logbook.note(world, "PAY", cid, "wages", w, {"paid": [0, got], "short": [0, due - got]})
+	Logbook.note(world, "PAY", cid, "wages", w, {"paid": [0, got], "short": [0, due - got], "owed": [0, owed]})
 	return got
 
 
@@ -830,20 +846,21 @@ static func applicants(world: WorldState, area: String, post_tier: String, pay: 
 
 
 ## n employed people of pool (area, band) leave their posts for `reason`: DEATH (they die), RETIRE (they retire), DEPART
-## (they leave the colony), QUIT (they become unemployed). Posts are given up largest pay groups first across
-## companies (Company.payroll), each from its own group, so jobs = people holds. Returns persons. One LEAVE row per
+## (they leave the colony), QUIT (they become unemployed). Posts are given up largest hire rows first across
+## companies (Company.payroll), each from its own row, so jobs = people holds. Returns persons. One LEAVE row per
 ## company.
 static func end_jobs(world: WorldState, area: String, band: String, n: int, reason: String, skill_only: String = "") -> int:
 	if n <= 0:
 		return 0
-	var cand: Array = []   # [cid, plant_key, tier, labour_key, persons, pay]
+	var cand: Array = []   # [cid, plant_key, tier, labour_key, persons, pay, row, order]
 	for cid in Company.ids(world):
 		for e in Company.payroll(world, cid):
 			var lp := labour_parts(String(e["labour_key"]))
 			if lp[0] == area and lp[1] == band and int(e["n"]) >= S and (skill_only == "" or lp[2] == skill_only):
-				cand.append([cid, String(e["plant_key"]), String(e["post_tier"]), String(e["labour_key"]), int(e["n"]) / S, int(e["pay"])])
+				cand.append([cid, String(e["plant_key"]), String(e["post_tier"]), String(e["labour_key"]), int(e["n"]) / S, int(e["pay"]),
+					String(e["row"]), cand.size()])
 	cand.sort_custom(func(a, b): return int(a[4]) > int(b[4]) or (int(a[4]) == int(b[4]) and ((String(a[0]) + String(a[1]) + String(a[3])) < (String(b[0]) + String(b[1]) + String(b[3]))
-		or ((String(a[0]) + String(a[1]) + String(a[3])) == (String(b[0]) + String(b[1]) + String(b[3])) and int(a[5]) > int(b[5])))))
+		or ((String(a[0]) + String(a[1]) + String(a[3])) == (String(b[0]) + String(b[1]) + String(b[3])) and int(a[7]) < int(b[7])))))
 	var done := 0
 	var by_co := {}
 	for c in cand:
@@ -855,7 +872,7 @@ static func end_jobs(world: WorldState, area: String, band: String, n: int, reas
 		var f := {"hb": area, "inc": band, "status": "EMPLOYED", "occ": occ}
 		var have := PopStore.count(world, f, "skill:" + skill)
 		k = mini(k, have)
-		if k <= 0 or not Company.staff_change(world, c[0], c[1], c[2], c[3], -k * S, int(c[5])):
+		if k <= 0 or not Company.staff_change(world, c[0], c[1], c[2], c[3], -k * S, -1, -1, String(c[6])):
 			continue
 		match reason:
 			"DEATH":
@@ -883,9 +900,9 @@ static func _people_out(world: WorldState, f: Dictionary, k: int, skill: String,
 			PopStore.depart(world, key, int(parts[key]), "EMIGRATION", {"skill": skill})
 
 
-## A group's jobs follow it to another income band (Demography.band_moves): every pay group of a staff entry
-## area|from|skill moves to area|to|skill at its own pay and month; where that entry already has a group at the same
-## pay they become one, else it is a group of its own, so nobody's pay moves.
+## A group's jobs follow it to another income band (Demography.band_moves): every hire row of a staff entry
+## area|from|skill moves whole to area|to|skill (Company.staff_move): its pay, its month at the workplace and its
+## training go with it; it becomes one with a row there only if they match in every field.
 static func move_jobs_band(world: WorldState, area: String, from_band: String, to_band: String, skill: String) -> void:
 	var lk_from := labour_key(area, from_band, skill)
 	var lk_to := labour_key(area, to_band, skill)
@@ -894,13 +911,13 @@ static func move_jobs_band(world: WorldState, area: String, from_band: String, t
 			if String(e["labour_key"]) != lk_from:
 				continue
 			var n := int(e["n"])
-			Company.staff_change(world, cid, String(e["plant_key"]), String(e["post_tier"]), lk_from, -n, int(e["pay"]))
-			Company.staff_change(world, cid, String(e["plant_key"]), String(e["post_tier"]), lk_to, n, int(e["pay"]), int(e["since"]))
+			var ok := Company.staff_move(world, cid, String(e["plant_key"]), String(e["post_tier"]), lk_from, lk_to, String(e["row"]), n)
+			assert(ok, "move_jobs_band: the row refused the move")
 
 
-## One group of staff moves to another post at its pay (quitting for better pay, 12.5, 39): k persons of pay group e
-## ({cid, plant_key, post_tier, labour_key, pay}: they leave that group; without "pay", the entry's groups highest pay
-## first) to vacancy v ({cid, plant_key, tier, pay}). Occupation follows the new
+## One group of staff moves to another post at its pay (quitting for better pay, 12.5, 39): k persons of hire row e
+## ({cid, plant_key, post_tier, labour_key, pay, row}: they leave that row; without "row", the entry's rows in order)
+## to vacancy v ({cid, plant_key, tier, pay}). Occupation follows the new
 ## company; the years at the workplace start again there. `bar_pm` is the bar the new pay had to reach (for the row).
 ## Returns persons moved.
 static func move_job(world: WorldState, e: Dictionary, v: Dictionary, k: int, reason: String, bar_pm: int = 0) -> int:
@@ -913,7 +930,7 @@ static func move_job(world: WorldState, e: Dictionary, v: Dictionary, k: int, re
 		return 0
 	if not Company.staff_change(world, v["cid"], v["plant_key"], v["tier"], String(e["labour_key"]), k * S, int(v["pay"])):
 		return 0
-	var left: bool = Company.staff_change(world, e["cid"], e["plant_key"], e["post_tier"], String(e["labour_key"]), -k * S, int(e.get("pay", -1)))
+	var left: bool = Company.staff_change(world, e["cid"], e["plant_key"], e["post_tier"], String(e["labour_key"]), -k * S, -1, -1, String(e.get("row", "")))
 	assert(left, "move_job: the old post refused the leavers")
 	if occ_new != occ_old:
 		PopStore.move_group(world, f, k, {"occ": occ_new}, reason, "skill:" + lp[2])
@@ -940,7 +957,7 @@ static func quit_bar_base_pm(_world: WorldState, _cid: String, _post_tier: Strin
 	return QUIT_BAR_GOOD_PM
 
 
-## Full years a staff entry has been at its workplace (its head-count average "since" month).
+## Full years a hire row has been at its workplace (its own "since" month).
 static func years_at(world: WorldState, e: Dictionary) -> int:
 	return maxi(0, world.month - int(e["since"])) / 12
 
@@ -982,7 +999,7 @@ static func labour_month(world: WorldState) -> int:
 					var lp := labour_parts(String(e["labour_key"]))
 					if lp[0] != area or int(e["pay"]) >= int(v["pay"]) or TIERS.find(lp[2]) < TIERS.find(String(v["tier"])):
 						continue
-					var ek := "%s|%s|%s|%d" % [e["plant_key"], e["post_tier"], e["labour_key"], int(e["pay"])]   # one per pay group
+					var ek := "%s|%s|%s|%s" % [e["plant_key"], e["post_tier"], e["labour_key"], e["row"]]   # one per hire row
 					var bar := quit_bar_pm(world, cid, e)
 					if not clears_bar(int(e["pay"]), int(v["pay"]), bar):
 						if not stay.has(cid):
@@ -991,7 +1008,7 @@ static func labour_month(world: WorldState) -> int:
 						stay[cid][ek] = [bar, int(e["pay"]), best, int(e["n"]) / S, years_at(world, e)]
 						continue
 					var ent := {"cid": cid, "plant_key": e["plant_key"], "post_tier": e["post_tier"], "labour_key": e["labour_key"],
-						"pay": e["pay"], "years": years_at(world, e)}
+						"pay": e["pay"], "row": e["row"], "years": years_at(world, e)}
 					var k := move_job(world, ent, v, mini(open, int(e["n"]) / S), "QUIT_FOR_PAY", bar)
 					open -= k
 					moved += k
@@ -1016,8 +1033,14 @@ static func _negotiate(world: WorldState) -> void:
 			var ask := int(e["pay"]) + (avg - int(e["pay"])) / 2
 			var cost_year := (ask - int(e["pay"])) * int(e["n"]) / S * 12
 			var ok := world.ledger.balance(CoreUtil.acct(cid)) >= cost_year and Company.negotiate(world, cid, String(e["plant_key"]),
-				String(e["post_tier"]), String(e["labour_key"]), ask, {"asked": ask, "average": avg}, int(e["pay"]))
-			if not ok:
+				String(e["post_tier"]), String(e["labour_key"]), ask, {"asked": ask, "average": avg}, String(e["row"]))
+			# a row that an earlier rise this month made one with another is gone from the record: it was raised there
+			var still := false
+			for x in Company.payroll(world, cid):
+				var same := String(x["plant_key"]) == String(e["plant_key"]) and String(x["post_tier"]) == String(e["post_tier"])
+				if same and String(x["labour_key"]) == String(e["labour_key"]) and String(x["row"]) == String(e["row"]):
+					still = true
+			if not ok and still:
 				Logbook.note(world, "NEGOTIATE", cid, "refused", {"entry": e["labour_key"], "pay": int(e["pay"]), "asked": ask, "average": avg, "year_cost": cost_year}, {})
 
 

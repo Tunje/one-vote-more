@@ -111,7 +111,8 @@ func test_a_salary_is_set_at_hire_and_rises_only_by_the_yearly_raise() -> void:
 	check_eq(Company.hiring_salary(w, id, "G", "landing"), 400 * S, "the yearly raise does not move the hiring salary")
 
 
-func test_each_staff_entry_knows_since_when_its_people_have_been_at_the_workplace() -> void:
+func test_each_hire_row_knows_since_when_its_people_have_been_at_the_workplace() -> void:
+	# the user: a staff row keeps everything about a hire; "You can merge if all rows match"
 	var w := _w()
 	var id := Company.create(w, "BUILDER", "SMALL", HW, "B")
 	w.month = 12
@@ -119,13 +120,14 @@ func test_each_staff_entry_knows_since_when_its_people_have_been_at_the_workplac
 	check_eq(Company.payroll(w, id)[0]["since"], 12, "a new hire is here since this month")
 	w.month = 36
 	Company.staff_change(w, id, "crew", "G", "landing|I2|G", 30 * S, 300 * S)
-	check_eq(Company.payroll(w, id)[0]["since"], (10 * 12 + 30 * 36) / 40, "joiners blend in by head count, as pay does")
-	Company.staff_change(w, id, "crew", "G", "landing|I2|G", -20 * S)
-	check_eq(Company.payroll(w, id)[0]["since"], 30, "leavers change nothing")
+	check_eq(Company.payroll(w, id).map(func(e): return [int(e["n"]) / S, int(e["since"])]), [[10, 12], [30, 36]],
+		"the same pay in another month is another row: nobody's years are blended")
+	Company.staff_change(w, id, "crew", "G", "landing|I2|G", -20 * S)   # no row named: the rows in order
+	check_eq(Company.payroll(w, id).map(func(e): return [int(e["n"]) / S, int(e["since"])]), [[20, 36]], "leavers change no one's month")
 	Company.staff_change(w, id, "crew", "G", "landing|I3|G", 5 * S, 320 * S, 6)
 	check_eq(Company.payroll(w, id)[1]["since"], 6, "a move within the workplace keeps its own month")
 	Company.yearly_raise(w, id, 0, 20)
-	check_eq([Company.payroll(w, id)[0]["since"], Company.payroll(w, id)[1]["since"]], [30, 6], "a raise changes pay only")
+	check_eq([Company.payroll(w, id)[0]["since"], Company.payroll(w, id)[1]["since"]], [36, 6], "a raise changes pay only")
 	Company.staff_change(w, id, "crew", "G", "landing|I3|G", -5 * S)
 	Company.staff_change(w, id, "crew", "G", "landing|I3|G", 2 * S, 300 * S)
 	check_eq(Company.payroll(w, id)[1]["since"], 36, "an emptied entry starts again at the newcomers' month")
@@ -357,14 +359,36 @@ func test_an_entrys_existing_pay_does_not_move_when_someone_joins_at_a_different
 	check(not Company.staff_change(w, id, "crew", "G", lk, -11 * S, 200 * S), "the group at 200 holds only ten")
 	check_eq(rows.call(), [[10, 300], [10, 200]], "and nothing changed")
 	check(Company.staff_change(w, id, "crew", "G", lk, -4 * S, 200 * S), "four leave the group at 200")
-	check(Company.staff_change(w, id, "crew", "G", lk, 5 * S, 300 * S), "five more join at 300")
-	check_eq(rows.call(), [[15, 300], [6, 200]], "joining at a pay the entry has joins that group; no pay moved")
+	check(Company.staff_change(w, id, "crew", "G", lk, 5 * S, 300 * S, w.month), "five more at 300, trained, this month")
+	check_eq(rows.call(), [[15, 300], [6, 200]], "every field matches: one row; no pay moved")
 	check(Company.staff_change(w, id, "crew", "G", lk, 4 * S, 250 * S), "four at 250")
-	check_eq(Company.avg_pay(w, id, "G"), (15 * 300 + 6 * 200 + 4 * 250) * S / 25, "the average over the groups")
-	check(not Company.negotiate(w, id, "crew", "G", lk, 280 * S, {}, 200 * S), "never above the average")
-	check(Company.negotiate(w, id, "crew", "G", lk, 250 * S, {}, 200 * S), "the group at 200 negotiates up to 250")
-	check_eq(rows.call(), [[15, 300], [10, 250]], "one pay, one group; the others did not move")
+	check_eq(Company.avg_pay(w, id, "G"), (15 * 300 + 6 * 200 + 4 * 250) * S / 25, "the average over the rows")
+	var at200 := String(Company.payroll(w, id)[-1]["row"])
+	check(not Company.negotiate(w, id, "crew", "G", lk, 280 * S, {}, at200), "never above the average")
+	check(Company.negotiate(w, id, "crew", "G", lk, 250 * S, {}, at200), "the row at 200 negotiates up to 250")
+	check_eq(rows.call(), [[15, 300], [10, 250]], "it now matches the 250s in every field: one row; the others did not move")
 	check(Company.yearly_raise(w, id, 0, 20), "the yearly raise")
-	check_eq(rows.call(), [[15, 306], [10, 255]], "every group rose 2%")
+	check_eq(rows.call(), [[15, 306], [10, 255]], "every row rose 2%")
 	check(Company.staff_change(w, id, "crew", "G", lk, -25 * S), "all leave")
 	check(not Company.staff_entries(w, id).has("crew"), "the emptied entry goes")
+
+
+func test_rows_that_come_to_match_when_training_ends_are_one_row_to_every_reader() -> void:
+	# Otto's review: two rows that match only once training is over, with nothing written in between
+	var w := _w()
+	var id := Company.create(w, "BUILDER", "SMALL", HW, "B")
+	w.month = 10
+	Company.staff_change(w, id, "crew", "G", "landing|I2|G", 5 * S, 300 * S, 10)   # came trained
+	Company.staff_change(w, id, "crew", "G", "landing|I2|G", 3 * S, 300 * S)       # new, in training
+	check_eq(Company.payroll(w, id).size(), 2, "two rows while three are in training")
+	w.month = 20
+	var p: Array = Company.payroll(w, id)
+	check_eq(p.map(func(e): return [int(e["n"]) / S, String(e["row"])]), [[8, "300000|10|-1"]], "training over: every field matches, one row")
+	check(Company.staff_move(w, id, "crew", "G", "landing|I2|G", "landing|I3|G", String(p[0]["row"]), 8 * S), "the whole row moves")
+	check_eq(Company.payroll(w, id).map(func(e): return [String(e["labour_key"]), int(e["n"]) / S]), [["landing|I3|G", 8]], "all eight")
+	Company.staff_change(w, id, "crew", "G", "landing|I3|G", 2 * S, 400 * S, 20)   # the average is now (2 × 400 + 9 × 300) / 11, about 318
+	w.month = 30
+	Company.staff_change(w, id, "crew", "G", "landing|I3|G", 1 * S, 300 * S, 10)   # a row matching the eight
+	var low := String(Company.payroll(w, id)[-1]["row"])
+	check(Company.negotiate(w, id, "crew", "G", "landing|I3|G", 310 * S, {}, low), "the row at 300 negotiates")
+	check_eq(Company.payroll(w, id).map(func(e): return [int(e["n"]) / S, int(e["pay"]) / S]), [[2, 400], [9, 310]], "all nine of the row rose")

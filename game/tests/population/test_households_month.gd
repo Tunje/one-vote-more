@@ -488,7 +488,7 @@ func test_years_go_with_a_band_move_and_start_again_after_a_job_move() -> void:
 		check_eq(int(x["since"]), w.month, "at the new company the years start again")
 
 
-func test_joining_an_entry_averages_its_years_by_head_count() -> void:
+func test_joining_an_entry_keeps_each_hires_own_years() -> void:
 	var w := _world()
 	var land := AreaStore.found_landing(w)
 	_pool(w, land, "I2", 8, 1000)
@@ -497,9 +497,9 @@ func test_joining_an_entry_averages_its_years_by_head_count() -> void:
 	Households.hire(w, a, "crew", "G", land, 4, {}, needs + 10 * S)
 	w.month += 24
 	Households.hire(w, a, "crew", "G", land, 4, {}, needs + 10 * S)
-	var e: Dictionary = Company.payroll(w, a)[0]
-	check_eq(int(e["n"]), 8 * S, "one entry of eight")
-	check_eq(Households.years_at(w, e), 1, "four with two years and four new: one year on average")
+	var rows: Array = Company.payroll(w, a)
+	check_eq(rows.map(func(e): return int(e["n"]) / S), [4, 4], "two hires, two rows (the user: merge only if all fields match)")
+	check_eq(rows.map(func(e): return Households.years_at(w, e)), [2, 0], "each keeps its own years: no averaging")
 
 
 
