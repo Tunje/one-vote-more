@@ -147,22 +147,94 @@ func test_the_public_works_department_keeps_its_crew_and_price_while_idle() -> v
 	check_eq(Company.price(w, pw, "BW"), 400 * S, "no price rule: it does not sell on a market")
 
 
-func test_the_hiring_salary_rises_while_posts_stay_open_and_falls_while_more_apply() -> void:
+func test_the_hiring_offer_climbs_five_percent_a_month_a_post_stays_open_and_falls_back_when_filled() -> void:
+	# the user, 2026-11-18 (9.2, "How the hiring offer moves"): a new opening is offered the starting salary; it climbs
+	# 5% for each month a post could not be filled; the rise is gone once filled; there is no rule for lowering
 	var w := _w()
-	var f := _farm(w, 3, 2)   # 3 of 6 general posts filled; nobody out of work
+	var f := _crew(w, 9)   # 9 of 12 general posts filled; nobody out of work, no money for adverts: nobody is hired
+	var offer := func() -> int: return Company.hiring_salary(w, f[0], "G", "landing")
+	var start := Rules.starting_salary(w, "landing", "G")
 	Rules.salary_rules(w, f[0])
-	check_eq(Company.hiring_salary(w, f[0], "G", "landing"), 300 * S * (1000 + 200 * 3 / 6) / 1000, "3 open of 6: up")
+	check_eq(offer.call(), start, "a new opening is offered the starting salary")
+	Rules.staff_to_posts(w, f[0])   # its hiring leaves the three open
+	w.month = 1
+	Rules.salary_rules(w, f[0])
+	check_eq(offer.call(), start * 1050 / 1000, "unfilled a whole month: 5%")
 	check_eq(Company.payroll(w, f[0])[0]["pay"], 300 * S, "nobody's pay moved")
-	var g := _farm(w, 6, 2)
+	Rules.staff_to_posts(w, f[0])
+	w.month = 2
+	Rules.salary_rules(w, f[0])
+	check_eq(offer.call(), start * 1050 / 1000 * 1050 / 1000, "and 5% again the next month")
+	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", 3 * S, offer.call())   # filled
+	Rules.staff_to_posts(w, f[0])
+	w.month = 3
+	Rules.salary_rules(w, f[0])
+	check_eq(offer.call(), start, "filled: the rise is gone")
+	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", -S, 300 * S)   # a new opening
+	w.month = 4
+	Rules.salary_rules(w, f[0])
+	check_eq(offer.call(), start, "a new opening starts from the starting salary: rises do not stack")
 	Households.seed_test(w, "landing", "I2", "G", 30)
-	check(Rules.needs_line(w, "landing") <= 300 * S, "the starting salary meets a household's needs (%d)" % Rules.needs_line(w, "landing"))
-	Rules.salary_rules(w, g[0])
-	var low := 300 * S * (1000 - 200 * 30 / 36) / 1000
-	check_eq(Company.hiring_salary(w, g[0], "G", "landing"), low, "30 out of work for 6 posts, none open: down")
-	for i in 20:
-		Rules.salary_rules(w, g[0])
-	check(Company.hiring_salary(w, g[0], "G", "landing") >= Rules.needs_line(w, "landing") * 800 / 1000,
-		"below the needs line nobody applies, so it stops falling there (%d against %d)" % [Company.hiring_salary(w, g[0], "G", "landing"), Rules.needs_line(w, "landing")])
+	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", S, 300 * S)
+	w.month = 5
+	Rules.salary_rules(w, f[0])
+	check_eq(offer.call(), start, "30 out of work, no post open: there is no rule for lowering")
+	check_eq(Logbook.rows(w, {"kind": "SALARY", "who": f[0]}).size(), 3, "two climbs and one fall back, each in the log")
+
+
+## A small builder with its crew in the landing: every skilled and specialist post filled, `g` of its 12 general.
+func _crew(w: WorldState, g: int) -> Array:
+	var id := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	Company.staff_change(w, id, "crew", "G", "landing|I2|G", g * S, 300 * S, 0)
+	Company.staff_change(w, id, "crew", "S", "landing|I3|S", 6 * S, 450 * S, 0)
+	Company.staff_change(w, id, "crew", "Sp", "landing|I4|Sp", 2 * S, 675 * S, 0)
+	return [id, "crew"]
+
+
+func test_the_familys_own_posts_are_never_open() -> void:
+	var w := _w()
+	var f := _crew(w, 11)
+	var fam := Households.make_founder(w, Households.seed_test(w, "landing", "I2", "G", 10), "", true)
+	Company.family_set(w, f[0], f[1], fam, {"G": 1})   # the family works the twelfth general post
+	for m in 3:
+		w.month = m
+		Rules.salary_rules(w, f[0])
+		Rules.staff_to_posts(w, f[0])
+	check_eq(Company.hiring_salary(w, f[0], "G", "landing"), Rules.starting_salary(w, "landing", "G"), "no post open: the offer stays at the start")
+
+
+func test_the_starting_salary_is_the_users_formula_in_the_area() -> void:
+	var w := _w()
+	var shelter := TypeTable.start_price_of("LANDLORD") / 2
+	var line := TypeTable.salary_line(shelter, TypeTable.start_price("FOOD"), 2500)
+	check_eq(Rules.starting_salary(w, "landing", "G"), line, "no landlord yet: the landing's shelter and the food's start")
+	check_eq(Rules.starting_salary(w, "landing", "S"), line * 1500 / 1000, "a skilled post 1.5 times")
+	check(absi(line - TypeTable.salary("G")) <= 2 * S, "at the landing prices it gives back the type table's salary")
+	var l1 := Company.create(w, "LANDLORD", "SMALL", HW, "L1", {"area": "landing"})
+	var l2 := Company.create(w, "LANDLORD", "SMALL", HW, "L2", {"area": "landing"})
+	Company.set_price(w, l1, "@home", 100 * S)
+	Company.set_price(w, l2, "@home", 200 * S)
+	var food := int(Rules.needs_food(w, "landing")["price"])
+	check_eq(Rules.starting_salary(w, "landing", "G"), TypeTable.salary_line(150 * S, food, 2500), "the average rent the landlords ask")
+	check(Rules.starting_salary(w, "landing", "G") > Rules.needs_line(w, "landing"), "always above a worker's needs: people apply")
+	check_eq(Company.hiring_salary(w, Company.create(w, "FARM", "SMALL", HW, "F", {"area": "landing"}), "G", "landing"),
+		Rules.starting_salary(w, "landing", "G"), "what a new opening is offered")
+
+
+func test_a_month_without_hiring_holds_the_offer() -> void:
+	var w := _w()
+	var f := _crew(w, 9)
+	var start := Rules.starting_salary(w, "landing", "G")
+	Rules.staff_to_posts(w, f[0])
+	w.month = 1
+	Rules.salary_rules(w, f[0])
+	check_eq(Company.hiring_salary(w, f[0], "G", "landing"), start * 1050 / 1000, "climbed once")
+	Company.book(w, f[0], "wages_due", 1000 * S)
+	Company.book(w, f[0], "wages", 0)   # it could not pay: 19a, no hiring this month
+	Rules.staff_to_posts(w, f[0])
+	w.month = 2
+	Rules.salary_rules(w, f[0])
+	check_eq(Company.hiring_salary(w, f[0], "G", "landing"), start * 1050 / 1000, "after a month it did not hire: held, neither up nor back")
 
 
 func test_staff_follow_the_posts_and_unpaid_staff_are_laid_off() -> void:
@@ -279,7 +351,8 @@ func test_a_family_works_its_own_posts_unpaid_and_hiring_fills_the_rest() -> voi
 	var fw: Dictionary = Households.family_working(w, fam)
 	check_eq(int(fw["G"]) + int(fw["S"]) + int(fw["Sp"]), n_ad, "and the households' side has them employed")
 	check_eq((Company.staff_count(w, b) + Company.family_count(w, b)) / S, 17, "hired only for the posts the family leaves (12 + 5 of 6 skilled there are)")
-	check_eq(Company.wage_bill(w, b), Company.staff_count(w, b, "G") / S * 300 * S + Company.staff_count(w, b, "S") / S * TypeTable.salary("S"), "the family is on no payroll")
+	check_eq(Company.wage_bill(w, b), Company.staff_count(w, b, "G") / S * Rules.starting_salary(w, "landing", "G")
+		+ Company.staff_count(w, b, "S") / S * Rules.starting_salary(w, "landing", "S"), "the family is on no payroll")
 	check(Households.check(w).is_empty(), "jobs = people still holds: %s" % str(Households.check(w)))
 	Company.book(w, b, "wages_due", 1000 * S)
 	Company.book(w, b, "wages", 0)

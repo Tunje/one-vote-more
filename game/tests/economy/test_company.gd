@@ -4,6 +4,7 @@ extends TestCase
 
 const Company := preload("res://sim/economy/company.gd")
 const TypeTable := preload("res://sim/economy/type_table.gd")
+const Rules := preload("res://sim/economy/rules.gd")
 const S := 1000
 const Households := preload("res://sim/population/households.gd")
 const HW := {"kind": "HOME_WORLD", "holders": {"home_world": 1000}}
@@ -89,7 +90,7 @@ func test_staff_are_written_once_and_read_every_way() -> void:
 func test_a_salary_is_set_at_hire_and_rises_only_by_the_yearly_raise() -> void:
 	var w := _w()
 	var id := Company.create(w, "BUILDER", "SMALL", HW, "B")
-	var g0 := TypeTable.salary("G")
+	var g0 := Rules.starting_salary(w, "landing", "G")   # the user's formula in the area (9.2)
 	check_eq(Company.hiring_salary(w, id, "G", "landing"), g0, "it offers the starting salary until it sets its own")
 	check(Company.staff_change(w, id, "crew", "G", "landing|I2|G", 10 * S, Company.hiring_salary(w, id, "G", "landing")), "ten hired at the hiring salary")
 	check(Company.set_hiring_salary(w, id, "G", "landing", 400 * S, {"rule": "R1"}), "the price rules raise the hiring salary")
@@ -260,7 +261,7 @@ func test_posts_follow_size_and_output_level_and_open_posts_are_vacancies() -> v
 	var v := Company.vacancies(w, "landing")
 	check_eq(v.size(), 2, "open posts: one general, one skilled")
 	check_eq([v[0]["tier"], v[0]["open"], v[1]["tier"], v[1]["open"]], ["S", 1, "G", 1], "highest tier first")
-	check_eq(int(v[0]["pay"]), TypeTable.salary("S"), "at the hiring salary")
+	check_eq(int(v[0]["pay"]), Rules.starting_salary(w, "landing", "S"), "at the hiring salary")
 	check(Company.vacancies(w, "elsewhere").is_empty(), "none in another area")
 	var admin := Company.create(w, "ADMIN", "LARGE", {"kind": "STATE", "holders": {"gov": 1000}}, "A", {"area": "landing", "crew_posts": true})
 	check_eq(Company.posts_wanted(w, admin, "crew"), {"G": 4, "S": 8, "Sp": 3}, "a company created with crew posts")

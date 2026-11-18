@@ -11,8 +11,8 @@ extends RefCounted
 ##      ("It sells too cover all monthly expences");
 ##   4. output, rules 3 and 4: the output level by g × s / (1 + s), never above full (12.3, 15b); rule 3 does not act
 ##      while it holds stock back (12.3, 18);
-##   5. the hiring salary, rules 1, 2 and 9 for a salary (9.2): up while posts stay open, down while more apply than it
-##      has posts; the starting-salary line decides only a tie;
+##   5. the hiring offer (9.2, the user 2026-11-18, replacing rules 1, 2 and 9 for a salary): a new opening is offered
+##      the starting salary; it climbs 5% for each month a post stays unfilled, and the rise is gone once filled;
 ##   6. a company that could not pay its wages lays off what it could not pay, and a plant left with nobody is shut
 ##      (12.3, 19a); then it hires or lays off toward the posts its output level wants, through the household side,
 ##      at the hiring salary of the plant's area;
@@ -185,62 +185,86 @@ static func output_rule(world: WorldState, cid: String, sig: Dictionary, holding
 				"unsold": unsold, "step_pm": up if up > 0 else down, "holding": holding})
 
 
-# ---------------------------------------------------------------- the hiring salary: rules 1, 2, 9 for a salary
+# ---------------------------------------------------------------- the hiring offer (9.2, replacing rules 1, 2, 9)
 
-## For each tier the company has posts in: up while posts stay open (rule 1), down while more people out of work in
-## its area have that skill than it has open posts (rule 2: more apply than it has posts). The starting-salary line
-## decides a tie (rule 9). Only the HIRING salary moves; nobody's pay (9.2).
+## How far the offer climbs for each month a post stays unfilled, per mille (the user, 2026-11-18: "it should only
+## climb max 5% if it cost not hire for one month", "5% each month"). Bob's reading of "max 5%": always 5%.
+const OFFER_CLIMB_PM := 50
+
+
+## The hiring offer (rebuild-company.md 9.2, "How the hiring offer moves"; the user 2026-11-18, verbatim: "increases
+## should not stack for seperate offers, infact they should fall back to the original rule for settin on hire, then it
+## should only climb max 5% if it cost not hire for one month"; "5% each month, it goes i never said i wanted the rule
+## for lowering"). For each tier and each area the company's plants (or its crew) stand in:
+##   1. a new opening is offered the starting salary (Company.hiring_salary when no climb is set);
+##   2. if a post could not be filled for a whole month, the offer climbs 5%, and again each further month;
+##      Bob's reading of "a whole month": posts of the tier left open after LAST month's hiring that are still open now
+##      (per plant key, the smaller of the two; staff_to_posts records what its hiring left open). A post opened since
+##      then has not waited a whole month;
+##   3. once no post has stayed unfilled a whole month, the rise is gone and the offer is the starting salary again,
+##      so a later opening starts from it: increases do not stack for separate offers;
+##   4. there is no rule for lowering.
+## The family's posts are not hired for (15e), so they are never open. Only the HIRING offer moves; nobody's pay (9.2).
+## After a month in which the company did not hire because it could not pay its wages (19a), the offer is held, neither
+## climbing nor falling back: no post was filled, and it did not try (Otto's review; Bob's reading).
 static func salary_rules(world: WorldState, cid: String) -> void:
 	var c: Dictionary = world.peek(Company.TABLE)[cid]
-	var area := String(c["area"])
+	if int(c.get("no_hiring_m", -1)) == world.month - 1:
+		return
+	var left: Dictionary = c.get("open_left", {})
 	var keys: Array = ["crew"]
 	keys.append_array(c["plants"])
-	for tier in ["G", "S", "Sp"]:
-		var want := 0
-		for pk in keys:
-			want += int(Company.posts_wanted(world, cid, String(pk))[tier])
-		if want <= 0:
+	var by := {}   # "tier|area": [posts open now, posts open a whole month]
+	for pk in keys:
+		var at := Households.plant_area(world, cid, String(pk))
+		if at == "":
 			continue
-		var have := Company.staff_count(world, cid, tier) / S
-		var open := maxi(0, want - have)
-		var sal := Company.hiring_salary(world, cid, tier, area)
-		# who applies (9.2): the household side's own count, the same one its hiring uses: the jobless of this skill
-		# or higher, and only if this salary meets their needs (needs_line). Below the line nobody applies, so the
-		# lowering rule has nothing to act on and the salary cannot fall through it.
-		var jobless := _applicants(world, area, tier, sal)
-		var surplus := maxi(0, jobless - open)
-		var up := step_pm(K_PM, open, have)
-		var down := step_pm(K_PM, surplus, want) if open == 0 else 0
-		var line := TypeTable.salary(tier)
-		var which := ""
-		if up > 0 and down > 0:
-			which = "R1" if sal < line else "R2"
-		elif up > 0:
-			which = "R1"
-		elif down > 0:
-			which = "R2"
-		if which == "":
-			continue
-		var new_sal := sal * (1000 + up) / 1000 if which == "R1" else sal * (1000 - down) / 1000
-		Company.set_hiring_salary(world, cid, tier, area, new_sal, {"rule": which, "posts": want, "staff": have, "open": open,
-			"applicants": jobless, "needs": needs_line(world, area), "food_from": needs_food(world, area)["from"],
-			"step_pm": up if which == "R1" else down, "line": line})
+		var want := Company.posts_wanted(world, cid, String(pk))
+		for tier in ["G", "S", "Sp"]:
+			var w := maxi(0, int(want[tier]) - Company.family_count(world, cid, tier, String(pk)) / S)
+			var open := maxi(0, w - Company.staff_count(world, cid, tier, String(pk)) / S)
+			var l: Array = left.get("%s|%s" % [pk, tier], [-1, 0])
+			var before := int(l[1]) if int(l[0]) == world.month - 1 else 0
+			var acc: Array = by.get("%s|%s" % [tier, at], [0, 0])
+			by["%s|%s" % [tier, at]] = [int(acc[0]) + open, int(acc[1]) + mini(open, before)]
+	var sal: Dictionary = c["salary"]
+	for tier in sal:
+		for area in sal[tier]:
+			if not by.has("%s|%s" % [tier, area]):
+				by["%s|%s" % [tier, area]] = [0, 0]   # a climbed offer where it has no posts left: back to the start
+	for k in CoreUtil.sorted_keys(by):
+		var parts := String(k).split("|", true, 1)
+		var tier := parts[0]
+		var area := parts[1]
+		var a: Array = by[k]
+		if int(a[1]) > 0:
+			var old := Company.hiring_salary(world, cid, tier, area)
+			Company.set_hiring_salary(world, cid, tier, area, old * (1000 + OFFER_CLIMB_PM) / 1000, {"rule": "OFFER_CLIMB",
+				"open": int(a[0]), "open_a_month": int(a[1]), "step_pm": OFFER_CLIMB_PM, "start": starting_salary(world, area, tier)})
+		elif Company.offer_has_climbed(world, cid, tier, area):
+			Company.clear_hiring_salary(world, cid, tier, area, {"rule": "OFFER_BACK", "open": int(a[0])})
 
 
-## Applicants for a post of this tier at this pay: the household side's Households.applicants when it has one (Maja,
-## step 3), else the jobless of exactly this skill while the pay meets the needs line.
-static func _applicants(world: WorldState, area: String, tier: String, pay: int) -> int:
-	var h: GDScript = Households
-	for m in h.get_script_method_list():
-		if String(m["name"]) == "applicants":
-			return int(h.call("applicants", world, area, tier, pay))
-	if pay < needs_line(world, area):
-		return 0
+## The starting salary of a tier in an area (9.2, the user: "Sallery should be calculated as avrage living in the area
+## and food plus half of both again"; "On sallery it's an avrage of the area"; 12.5, 37): 1.5 x (the rent of a home +
+## a household's food), TypeTable.salary_line, times the tier's share (S 1.5, Sp 2.25 times general). What a new opening
+## is offered (the user, 2026-11-18: "fall back to the original rule for settin on hire"). milli-credits a month.
+## Bob's readings: the rent is the plain average of what the open landlords of the area ask for a home; with no landlord
+## there, the landing's shelter at half a new house (the type table's own basis, so that gives back its salary); the
+## food is the same price the needs line reads (needs_food). As the needs line is rent + food, this is always above it.
+static func starting_salary(world: WorldState, area: String, tier: String) -> int:
+	var sum := 0
 	var n := 0
-	var free: Dictionary = Households.unemployed(world, area, tier)
-	for pid in free:
-		n += int(free[pid])
-	return n
+	for cid in Company.ids(world):
+		var c: Dictionary = world.peek(Company.TABLE)[cid]
+		if String(c["type"]) == "LANDLORD" and String(c["status"]) == "OPEN" and String(c["area"]) == area:
+			var r := Company.price(world, cid, "@home")
+			if r >= 0:
+				sum += r
+				n += 1
+	var rent := sum / n if n > 0 else TypeTable.start_price_of("LANDLORD") / 2
+	var line := TypeTable.salary_line(rent, int(needs_food(world, area)["price"]), HOUSEHOLD_PERSONS_PM)
+	return line * int(TypeTable.TIER_PM[tier]) / 1000
 
 
 ## A worker's needs in an area (plan 12.5, 38, as revised): the rent of a home there and a household's food, the same
@@ -276,7 +300,8 @@ static func needs_food(world: WorldState, area: String) -> Dictionary:
 # ---------------------------------------------------------------- staff to the posts
 
 ## First 19a: wages it could not pay are laid off in proportion; a plant left with nobody is shut. Then each plant key
-## hires or lays off toward the posts its output level wants, at the hiring salary of the plant's area.
+## hires or lays off toward the posts its output level wants, at the hiring salary of the plant's area, and notes what
+## its hiring left open (_note_open_left).
 static func staff_to_posts(world: WorldState, cid: String) -> void:
 	family_to_posts(world, cid)   # the family first: its posts are never hired for, and it is never laid off (15e)
 	var staff0 := Company.staff_count(world, cid)
@@ -296,6 +321,7 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 			if String(pk) != "crew" and Company.staff_count(world, cid, "", String(pk)) == 0:
 				Company.close_plant(world, String(pk), "NO_STAFF", {"due": due, "paid": paid})
 		Logbook.note(world, "RULE", cid, "19a could not pay its staff", {"due": due, "paid": paid})
+		world.table(Company.TABLE)[cid]["no_hiring_m"] = world.month   # no hiring this month: next month's offer holds
 		_publish_layoffs(world, cid, staff0)
 		return
 	for pk in keys:
@@ -322,7 +348,20 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 						wg.merged({"plant": pk, "tier": tier, "slack": have - w}))
 			else:
 				slack.erase(key)
+			_note_open_left(world, cid, key, maxi(0, w - Company.staff_count(world, cid, tier, String(pk)) / S))
 	_publish_layoffs(world, cid, staff0)
+
+
+## What this month's hiring left open at one plant key and tier ("plant|tier"), for next month's offer (salary_rules:
+## a post still open then could not be filled for a whole month).
+static func _note_open_left(world: WorldState, cid: String, key: String, n: int) -> void:
+	var c: Dictionary = world.table(Company.TABLE)[cid]
+	if not c.has("open_left"):
+		c["open_left"] = {}
+	if n > 0:
+		c["open_left"][key] = [world.month, n]
+	else:
+		c["open_left"].erase(key)
 
 
 ## Months in a row each post tier at each plant has wanted fewer people than it has: {plant|tier: the month it began}.

@@ -16,6 +16,8 @@ extends RefCounted
 const TypeTable := preload("res://sim/economy/type_table.gd")
 
 const TABLE := "company"
+## The rules (the starting salary of an area); loaded when needed, as the rules preload this file.
+const RULES_PATH := "res://sim/economy/rules.gd"
 const PLANT_TABLE := "plant"
 const OWNER_KINDS: Array[String] = ["STATE", "HOME_WORLD", "FAMILY", "PRIVATE", "COOP", "PARTY", "UNION"]
 const CONDITION_FULL := 100 * 1000   # a plant's condition, 0..100 in milli-points
@@ -56,7 +58,7 @@ static func create(world: WorldState, type: String, size: String, owner: Diction
 		"plants": [],              # plant ids; the plants are in table "plant"
 		"line": 0,                 # which output line it runs (first = 0, second = 1)
 		"staff": {},               # {plant id or "crew": {post tier: {"area|band|skill": {"n": persons × S, "groups": [{"n", "pay", "since", "new"}]}}}}
-		"salary": {},              # the HIRING salary: {tier: {area: milli-credits a month}}, moved only by the price rules
+		"salary": {},              # the HIRING offer while it has climbed: {tier: {area: milli-credits a month}} (Rules.salary_rules)
 		"stock": {},               # {item: {"qty": milli-units, "value": milli-credits in all, "waiting": milli-units}}
 		"books": {"month": {}, "year": []},   # the open month's lines, and the last 12 closed months (oldest first)
 		"price": price,            # ONE price per company for each thing it sells: {item or "BW"/"FREIGHT"/"@client": milli-credits}
@@ -364,17 +366,18 @@ static func trained_count(world: WorldState, cid: String, post_tier: String = ""
 
 
 ## The salary the company offers a new hire of this tier this month at a plant standing in `area` (the plant's area,
-## Terra's Site.of; for "crew", the company's own "area"), milli-credits a month: its own hiring salary there if it has
-## set one, else the type table's starting salary. Only the price rules move it.
+## Terra's Site.of; for "crew", the company's own "area"), milli-credits a month: the offer there while it has climbed
+## (a post unfilled a whole month, Rules.salary_rules), else the starting salary of that area (9.2, the user
+## 2026-11-18: "fall back to the original rule for settin on hire"; Rules.starting_salary, the user's formula).
 static func hiring_salary(world: WorldState, cid: String, post_tier: String, area: String) -> int:
 	var sal: Dictionary = world.peek(TABLE).get(cid, {}).get("salary", {})
 	if sal.has(post_tier) and (sal[post_tier] as Dictionary).has(area):
 		return int(sal[post_tier][area])
-	return TypeTable.salary(post_tier)
+	return int((load(RULES_PATH) as GDScript).call("starting_salary", world, area, post_tier))
 
 
-## Sets the hiring salary for a tier in an area (the price rules 1, 2 and 9 for a salary, plan 9.2). It changes what
-## new hires are offered, never what anyone already employed is paid. Writes a SALARY row.
+## Sets the hiring offer for a tier in an area (Rules.salary_rules: the 5% climb, plan 9.2). It changes what new hires
+## are offered, never what anyone already employed is paid. Writes a SALARY row.
 static func set_hiring_salary(world: WorldState, cid: String, post_tier: String, area: String, value: int, why: Dictionary = {}) -> bool:
 	var c: Dictionary = world.table(TABLE).get(cid, {})
 	if c.is_empty() or not TypeTable.TIER_PM.has(post_tier) or value < 0:
@@ -384,6 +387,26 @@ static func set_hiring_salary(world: WorldState, cid: String, post_tier: String,
 		c["salary"][post_tier] = {}
 	c["salary"][post_tier][area] = value
 	Logbook.note(world, "SALARY", cid, "hiring salary set", why.merged({"tier": post_tier, "area": area}), {"hiring_salary": [old, value]})
+	return true
+
+
+## Has the offer for a tier in an area climbed (is one set above the starting salary)?
+static func offer_has_climbed(world: WorldState, cid: String, post_tier: String, area: String) -> bool:
+	return (world.peek(TABLE).get(cid, {}).get("salary", {}).get(post_tier, {}) as Dictionary).has(area)
+
+
+## The rise is gone (9.2, the user: "When the post is filled ... the next opening starts from the original rule
+## again"): the offer for a tier in an area is the starting salary again. Writes a SALARY row. False if none was set.
+static func clear_hiring_salary(world: WorldState, cid: String, post_tier: String, area: String, why: Dictionary = {}) -> bool:
+	if not offer_has_climbed(world, cid, post_tier, area):
+		return false
+	var old := hiring_salary(world, cid, post_tier, area)
+	var sal: Dictionary = world.table(TABLE)[cid]["salary"]
+	sal[post_tier].erase(area)
+	if (sal[post_tier] as Dictionary).is_empty():
+		sal.erase(post_tier)
+	Logbook.note(world, "SALARY", cid, "hiring offer back to the starting salary", why.merged({"tier": post_tier, "area": area}),
+		{"hiring_salary": [old, hiring_salary(world, cid, post_tier, area)]})
 	return true
 
 
