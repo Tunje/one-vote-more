@@ -803,6 +803,12 @@ The user's earlier words on this, 2026-11-15, found in the transcript and never 
 
 So: a builder does not claim jobs without end. Jobs not claimed stay listed in the market for every builder; whoever gets there first wins; a plan is patient and is not cancelled for finding no builder. (Wilma's reading of how far a builder claims, from "we do this in three months": a job it can start within three months.) Otto builds it with the open-jobs ruling.
 
+The user then gave the numbers, striking Wilma's three months:
+
+> A plan can be listed for a year before cancled and they only claim a year or too forwards
+
+So: a plan can be listed for a year before it is cancelled, and builders only claim a year or two forward. (Wilma's reading of "a year or two": up to two years.) Otto records it in rebuild-building.md 4.4 and builds it.
+
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15c.
 
 
