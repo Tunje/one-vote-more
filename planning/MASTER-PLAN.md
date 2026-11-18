@@ -1073,6 +1073,15 @@ Asked how large the cut is and whether a fourth month cuts again:
 So: the cut is 5%, and each further such month in a row lowers output 5% again.
 
 
+### The rebuild: a builder with no employees should have shut (the user, 2026-11-18, verbatim)
+
+About: the five builders, who from month 15 to month 59 of a five-year simulation stand with no crew and no money, their full posts open and their unadvertised offers climbing; as built a company that works as a crew is never shut.
+
+> All of this is pointless they have no 3mploees and should have shut
+
+So: a builder with no employees shuts, as any plant with nobody on it does ("Plants should shut"). Otto builds it with Terra.
+
+
 ### The rebuild: a price far above its original climbs slower (the user, 2026-11-18, verbatim)
 
 About: the food price. A five-year simulation with the price-rise rule in showed food climbing from its original 39 to 194, nearly five times, at close to 5% a month while every farm was sold out; what a household needs ran ahead of the hiring offer, and the farms ended with no hired workers. The user had asked "What is the original bread price and how much extra did it climb to?" and, told this:
