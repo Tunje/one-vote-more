@@ -848,7 +848,12 @@ is wrong; nothing here is asked again.
       dear, or waits for the price to come down: "The first, if your running low and don't know how long the ossue will last i don't think you wait"
     So:
     - A household aims to hold six months of food in store.
-    - It buys extra toward that as often as it can afford to (the user's picture: two units instead of one).
+    - It buys two units of food instead of one, as often as it can afford to, until the store holds six months:
+      one to eat and one to store. Never more than double in a month.
+      - **Corrected 2026-11-18.** Wilma had recorded "two units instead of one" as only "the user's picture" and
+        had it built without a limit, so households bought seven months of food in month 1 and three months' worth
+        in a summer month. The user, verbatim: "You did not make what i said even I SAID THEY BUY DOUBLE UNTIL THEY FILL SIX MONTHS THAT WAS TOO EVEN IF OUT!!!!"
+        Buying double is what evens the buying out. Maja builds the correction.
     - It eats from the store in emergencies: when food cannot be had or paid for.
     - Once the store has been drawn down it refills as soon as it can afford to, without waiting for a better
       price.
