@@ -1081,6 +1081,16 @@ About: the food price. A five-year simulation with the price-rise rule in showed
 
 So: at double the original price it only climbs 1% a month; at four times it only ever climbs 0.5%; it still falls the same (5%). (Wilma's readings: "it" is the food price, against its original starting price of 39; under double it climbs 5% as before; from double up to four times 1%; from four times 0.5%.) Bob builds it and records it in rebuild-company.md section 3.
 
+Wilma had it built for food only; the user:
+
+> No it's for all goods don't overcomplicatev with individual rules built seperatly by godsi hope you have not done so for all other food rules making the single object for plant a mess
+
+So: one rule for all goods, builders' work included; no rule built separately for one good or one type in the single plant object. Shown the six places where the plant object named one type or one good, and Wilma's recommendation to make each one rule for every company (the owning family's work at the full output a worker whatever the level, in any family company; no plant shut for lack of staff, it stands idle until it can staff again; the builder's crew, the rent and a household's needs read from the type table and the needs list, not from a type's or a good's name; a "grows from the land" column for the season), the user:
+
+> Good, those
+
+So: all six are made general as recommended.
+
 
 ### The rebuild: builders with nothing to build is a lack of this step, not a fault (the user, 2026-11-18, verbatim)
 
