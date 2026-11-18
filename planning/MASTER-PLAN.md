@@ -1099,6 +1099,10 @@ Wilma took that as a plain yes to all and sent the work out too soon; it was not
 
 (Wilma's "no plant is shut for lack of staff" is wrong and does not go in: plants shut; farms don't, as ruled)
 
+> FAMILY FARMS FAMILY FARMS don't shut
+
+(it is family farms that don't shut; a farm that is not a family farm shuts like any plant. As merged every farm was refused: wider than the user's words. Terra corrects it.)
+
 So: the slower climb is one rule for all goods; the season, the builder's crew, the rent and a household's needs are read from the type table and the needs list, not from a name; the family's work stays for the farm family; plants shut and farms don't.
 
 
