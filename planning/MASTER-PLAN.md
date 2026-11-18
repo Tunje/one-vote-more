@@ -1032,6 +1032,12 @@ About: the farms; as built a farm cut output in any month with anything unsold, 
 
 So: output is lowered only if over 50% of the goods offered is not sold, 3 months in a row. Written into [rebuild-company.md](rebuild-company.md) section 3 the same turn. Bob builds it.
 
+Asked how large the cut is and whether a fourth month cuts again:
+
+> A CUT IS 5% WHY IS THIS STILL A PROBLEM???? AND YES IF THERE'S IS A FOURTH MONTH LOWER AGAIN
+
+So: the cut is 5%, and each further such month in a row lowers output 5% again.
+
 
 ### The rebuild: the rent is doubled (the user, 2026-11-18, verbatim)
 

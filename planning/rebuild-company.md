@@ -206,6 +206,8 @@ What goes with them:
     lower the price (rule 2) and output does not move down. The table's line for rule 4, "output that did not sell",
     was not the user's and is replaced by this. (Wilma first recorded a wrong reading here, "only when lowering the
     price fails, at the making price"; the user struck it: "That's not going to do anything but delay it one month".)
+    The size of the cut and a fourth month (the user, 2026-11-18, verbatim): "A CUT IS 5% WHY IS THIS STILL A PROBLEM???? AND YES IF THERE'S IS A FOURTH MONTH LOWER AGAIN"
+    So: the cut is 5%. A fourth such month in a row lowers output 5% again, and so on each further month.
 - **No hard floors or ceilings** of our own, except where the user allowed one (rule 6).
 - **No limit built on last month or last year.** Credit follows orders, contracts and forecasts, so a company can grow.
 - **For types with nothing to stock,** rules 2 and 4 read empty work slots (section 4).
