@@ -237,54 +237,50 @@ const PLACED_RENT_PM := 2500
 ## The hiring offer (rebuild-company.md 9.2, "How the hiring offer moves"; the user 2026-11-18, verbatim: "increases
 ## should not stack for seperate offers, infact they should fall back to the original rule for settin on hire, then it
 ## should only climb max 5% if it cost not hire for one month"; "5% each month, it goes i never said i wanted the rule
-## for lowering"). For each tier and each area the company's plants (or its crew) stand in:
-##   1. a new opening is offered the starting salary (Company.hiring_salary when no climb is set);
-##   2. if a post could not be filled for a whole month, the offer climbs 5%, and again each further month;
-##      Bob's reading of "a whole month": posts of the tier left open after LAST month's hiring that are still open now
-##      (per plant key, the smaller of the two; staff_to_posts records what its hiring left open). A post opened since
-##      then has not waited a whole month;
-##   3. once no post has stayed unfilled a whole month, the rise is gone and the offer is the starting salary again,
-##      so a later opening starts from it: increases do not stack for separate offers;
+## for lowering"). Built per opening (the audit of 2026-11-18): every open post is its own opening with its own count of
+## whole months unfilled (Company.openings), and its offer is the starting salary climbed 5% that many times
+## (Company.opening_offer). So:
+##   1. a new opening is offered the starting salary, whatever the openings beside it have climbed to;
+##   2. an opening left open after LAST month's hiring and still open now has stood a whole month: its count rises by
+##      one (Bob's reading of "a whole month"), and so its offer climbs 5%, and again each further month;
+##   3. a filled opening is gone, and its climb with it (Company.fill_openings, at every hire and every worker moving in);
 ##   4. there is no rule for lowering.
-## The family's posts are not hired for (15e), so they are never open. Only the HIRING offer moves; nobody's pay (9.2).
-## After a month in which the company did not hire because it could not pay its wages (19a), the offer is held, neither
-## climbing nor falling back: no post was filled, and it did not try (Otto's review; Bob's reading).
+## When fewer posts are open the newest openings close first (Maja's reading (b), with Wilma's yes). The family's posts
+## are not hired for (15e), so they are never open. Only the offers move; nobody's pay (9.2). After a month in which
+## the company did not hire because it could not pay its wages (19a), the counts are held (Maja's reading (c); Otto's
+## review and Bob's reading before). One SALARY row per plant and tier whose openings climbed.
 static func salary_rules(world: WorldState, cid: String) -> void:
 	var c: Dictionary = world.peek(Company.TABLE)[cid]
-	if int(c.get("no_hiring_m", -1)) == world.month - 1:
-		return
-	var left: Dictionary = c.get("open_left", {})
+	var held := int(c.get("no_hiring_m", -1)) == world.month - 1
 	var keys: Array = ["crew"]
 	keys.append_array(c["plants"])
-	var by := {}   # "tier|area": [posts open now, posts open a whole month]
+	var seen := {}
 	for pk in keys:
 		var at := Households.plant_area(world, cid, String(pk))
 		if at == "":
 			continue
 		var want := Company.hire_wanted(world, cid, String(pk))   # the family netted whatever post it stands on (15e)
 		for tier in ["G", "S", "Sp"]:
-			var w := int(want[tier])
-			var open := maxi(0, w - Company.staff_count(world, cid, tier, String(pk)) / S)
-			var l: Array = left.get("%s|%s" % [pk, tier], [-1, 0])
-			var before := int(l[1]) if int(l[0]) == world.month - 1 else 0
-			var acc: Array = by.get("%s|%s" % [tier, at], [0, 0])
-			by["%s|%s" % [tier, at]] = [int(acc[0]) + open, int(acc[1]) + mini(open, before)]
-	var sal: Dictionary = c["salary"]
-	for tier in sal:
-		for area in sal[tier]:
-			if not by.has("%s|%s" % [tier, area]):
-				by["%s|%s" % [tier, area]] = [0, 0]   # a climbed offer where it has no posts left: back to the start
-	for k in CoreUtil.sorted_keys(by):
-		var parts := String(k).split("|", true, 1)
-		var tier := parts[0]
-		var area := parts[1]
-		var a: Array = by[k]
-		if int(a[1]) > 0:
-			var old := Company.hiring_salary(world, cid, tier, area)
-			Company.set_hiring_salary(world, cid, tier, area, old * (1000 + OFFER_CLIMB_PM) / 1000, {"rule": "OFFER_CLIMB",
-				"open": int(a[0]), "open_a_month": int(a[1]), "step_pm": OFFER_CLIMB_PM, "start": starting_salary(world, area, tier)})
-		elif Company.offer_has_climbed(world, cid, tier, area):
-			Company.clear_hiring_salary(world, cid, tier, area, {"rule": "OFFER_BACK", "open": int(a[0])})
+			var key := "%s|%s" % [pk, tier]
+			var open := maxi(0, int(want[tier]) - Company.staff_count(world, cid, tier, String(pk)) / S)
+			var ms := Company.openings(world, cid, key)
+			var climbed := false
+			if not held and Company.openings_month(world, cid, key) == world.month - 1 and not ms.is_empty():
+				ms = ms.map(func(m): return int(m) + 1)   # each stood unfilled a whole month
+				climbed = true
+			while ms.size() > open:
+				ms.pop_back()   # the newest close first
+			while ms.size() < open:
+				ms.append(0)    # a new opening: the starting salary
+			Company.set_openings(world, cid, key, ms)
+			if not ms.is_empty():
+				seen[key] = true
+			if climbed and not ms.is_empty() and int(ms[0]) > 0:
+				Logbook.note(world, "SALARY", cid, "openings climbed", {"plant": pk, "tier": tier, "months": ms, "step_pm": OFFER_CLIMB_PM,
+					"start": Company.hiring_salary(world, cid, tier, at)}, {"offers": [[], ms.map(func(m): return Company.opening_offer(world, cid, tier, at, int(m)) / S)]})
+	for key in (world.peek(Company.TABLE)[cid].get("openings", {}) as Dictionary).keys():
+		if not seen.has(key):
+			Company.set_openings(world, cid, String(key), [])   # a plant gone, or nothing open there
 
 
 ## The starting salary of a tier in an area (9.2, the user, 2026-11-18: "Change the sallery from fod and rent to just
@@ -406,6 +402,7 @@ static func staff_to_posts(world: WorldState, cid: String) -> void:
 				slack.erase(key)
 			var open_now := maxi(0, w - Company.staff_count(world, cid, tier, String(pk)) / S)
 			_note_open_left(world, cid, key, open_now)
+			Company.set_openings(world, cid, key, Company.fitted_openings(world, cid, key, open_now))
 			# the posts paid for stay paid while they stay open; a post filled or no longer wanted is gone, so if it opens
 			# again it is paid again (9.2, the user, 2026-11-18)
 			var still := mini(int(ad.get(key, 0)), open_now)
@@ -478,17 +475,34 @@ static func _advertise(world: WorldState, cid: String, key: String, tier: String
 
 
 ## Hires up to n for a post tier, into the open posts whose advert is paid (_advertise); nothing is paid at the hire, so
-## a post that stays open month after month costs no more and is filled with no advert money in the account.
+## a post that stays open month after month costs no more and is filled with no advert money in the account. Each
+## opening is hired at its own offer (9.2, per opening), the longest-open, dearest first (Maja's reading (a), with
+## Wilma's yes: an applicant takes the better offer); a filled opening is gone with its climb.
 static func _hire(world: WorldState, cid: String, pk: String, tier: String, area: String, n: int) -> int:
 	var key := "%s|%s" % [pk, tier]
 	var ad := _advertised(world, cid)
 	var can := mini(n, int(ad.get(key, 0)))
 	if can <= 0:
 		return 0
-	var k := Households.hire(world, cid, pk, tier, area, can, {"rule": "posts", "advertised": int(ad[key])})
-	if k > 0:
-		ad[key] = int(ad[key]) - k   # filled: that post's advert is used
-	return k
+	var at := Households.plant_area(world, cid, pk)
+	var ms := Company.fitted_openings(world, cid, key, n)
+	var hired := 0
+	var i := 0
+	while i < ms.size() and hired < can:
+		var m := int(ms[i])
+		var j := i
+		while j < ms.size() and int(ms[j]) == m:
+			j += 1
+		var k := Households.hire(world, cid, pk, tier, area, mini(j - i, can - hired), {"rule": "posts", "advertised": int(ad[key]),
+			"months_open": m}, Company.opening_offer(world, cid, tier, at, m))
+		for x in k:
+			ms.remove_at(i)
+		hired += k
+		i = j - k
+	if hired > 0:
+		ad[key] = int(ad[key]) - hired   # filled: those posts' adverts are used
+		Company.set_openings(world, cid, key, ms)
+	return hired
 
 
 ## How a company weighs laying off slack staff at one post tier and plant (9.2, the user: "they would have to weigh say
@@ -575,15 +589,24 @@ static func family_to_posts(world: WorldState, cid: String) -> void:
 ## winnings no sallery, wich comes after and saves the issue"): what the month earned after everything else it owed
 ## that month was paid (Bob's reading, on Wilma's brief; Otto's review: the founder's opening money and a grant are the
 ## company's capital, not winnings). Taken in JUSTICE after the debts are collected, so the month's takings less its
-## inputs, the wages it paid, upkeep, adverts, layoff pay and the debts it paid. Never more than the account holds above
-## what it keeps back: one month of what the family does not do (the hired staff's wages, inputs and upkeep, the same
-## expenses the hold-back covers). A loss is carried forward (the user, 15e: "I think two is better"): a month that
+## inputs, the wages it paid, upkeep, adverts, layoff pay and the debts it paid. The farm keeps a buffer (the user,
+## 2026-11-18, 15e, verbatim: "the farm needs a buffer say 50% until it had 6 months worth built up then 10%"): of
+## what the month earned (after the carried loss), it keeps BUFFER_LOW_PM while its account holds less than
+## BUFFER_MONTHS of its running cost (Rules.running_cost, Wilma's reading of "6 months worth"), and BUFFER_HIGH_PM once
+## it holds that much; the rest is the family's, never more than the account holds. Maja's readings, with Wilma's yes:
+## "built up" is the company's account before this month's winnings, opening money included; a plain switch at the
+## line. This replaces the one month of costs kept back before (Bob's reading). A loss is carried forward (the user, 15e: "I think two is better"): a month that
 ## earned less than nothing adds to the company's carried loss; a month that earned something first pays it down, and
 ## the family takes only what is beyond it. Pure: pay_winnings applies it once a month.
 ## {"amount", "earned", "carried" (before this month), "pays_down", "carried_after", "balance", "keep", ...}.
 ## It reads the month just lived (_month_lived): in the real month the rules have closed its books (Rules.month, in
 ## COMPANY_AI) before JUSTICE pays the winnings, so the open books are already the next month's and empty (Wilma's
 ## fault: no family was ever paid).
+const BUFFER_LOW_PM := 500    # the user: "50% until it had 6 months worth built up"
+const BUFFER_HIGH_PM := 100   # "then 10%"
+const BUFFER_MONTHS := 6
+
+
 static func winnings(world: WorldState, cid: String) -> Dictionary:
 	var b := _month_lived(world, cid)
 	var wages := Company.wage_bill(world, cid)
@@ -592,14 +615,18 @@ static func winnings(world: WorldState, cid: String) -> Dictionary:
 	var debts := int((load(JUSTICE_PATH) as GDScript).call("paid_this_month", world, cid))
 	var earned := int(b.get("rev", 0)) - inputs - int(b.get("wages", 0)) - upkeep - int(b.get("adverts", 0)) \
 		- int(b.get("layoff_paid", 0)) - debts - int(b.get("winnings", 0))   # less what it already took this month
-	var keep := wages + inputs + upkeep
 	var bal := world.ledger.balance(CoreUtil.acct(cid))
 	var carried := int(world.peek(Company.TABLE)[cid].get("loss_carried", 0))
 	var pays_down := clampi(earned, 0, carried)
 	var after := carried - pays_down + maxi(0, -earned)
-	return {"amount": maxi(0, mini(earned - pays_down, bal - keep)), "earned": earned, "carried": carried,
-		"pays_down": pays_down, "carried_after": after, "balance": bal, "keep": keep, "wages": wages, "inputs": inputs,
-		"upkeep": upkeep, "debts": debts}
+	var c: Dictionary = world.peek(Company.TABLE)[cid]
+	var line := BUFFER_MONTHS * running_cost(world, String(c["type"]), String(c["size"]), String(c["area"]))
+	var keep_pm := BUFFER_LOW_PM if bal < line else BUFFER_HIGH_PM
+	var share := maxi(0, earned - pays_down)
+	var keep := share * keep_pm / 1000
+	return {"amount": maxi(0, mini(share - keep, bal)), "earned": earned, "carried": carried,
+		"pays_down": pays_down, "carried_after": after, "balance": bal, "keep": keep, "keep_pm": keep_pm, "buffer_line": line,
+		"wages": wages, "inputs": inputs, "upkeep": upkeep, "debts": debts}
 
 
 ## The books of the month just lived: this month's closed books once the rules have closed them, else the open month.
@@ -630,7 +657,8 @@ static func pay_winnings(world: WorldState) -> void:
 		Logbook.note(world, "WINNINGS", String(cid), "the family took its winnings" if amount > 0 else "no winnings this month",
 			{"earned": int(wn["earned"]) / S, "debts": int(wn["debts"]) / S, "loss_carried": int(wn["carried"]) / S,
 			"pays_down": int(wn["pays_down"]) / S, "loss_carried_after": int(wn["carried_after"]) / S,
-			"balance": int(wn["balance"]) / S, "keep": int(wn["keep"]) / S, "wages": int(wn["wages"]) / S,
+			"balance": int(wn["balance"]) / S, "keep": int(wn["keep"]) / S, "keep_pm": int(wn["keep_pm"]),
+			"buffer_line": int(wn["buffer_line"]) / S, "wages": int(wn["wages"]) / S,
 			"inputs": int(wn["inputs"]) / S, "upkeep": int(wn["upkeep"]) / S}, {"winnings": [0, amount / S]}, fam)
 
 

@@ -1031,8 +1031,11 @@ static func labour_month(world: WorldState) -> int:
 		if vac.is_empty():
 			continue
 		vac.sort_custom(func(x, y): return int(x["pay"]) > int(y["pay"]) or (int(x["pay"]) == int(y["pay"]) and String(x["cid"]) < String(y["cid"])))
+		var needs := needs_per_worker(world, area)
 		for v in vac:
 			var open := int(v["open"])
+			if int(v["pay"]) < needs:
+				continue   # "emplyees only apply to jobs that meet their needs" (9.2): the employed as much as the jobless
 			for cid in Company.ids(world):
 				if open <= 0:
 					break
@@ -1055,6 +1058,8 @@ static func labour_month(world: WorldState) -> int:
 					var ent := {"cid": cid, "plant_key": e["plant_key"], "post_tier": e["post_tier"], "labour_key": e["labour_key"],
 						"pay": e["pay"], "row": e["row"], "years": years_at(world, e)}
 					var k := move_job(world, ent, v, mini(open, int(e["n"]) / S), "QUIT_FOR_PAY", bar)
+					if k > 0:   # those openings are filled: gone with their climb (9.2, per opening)
+						Company.fill_openings(world, String(v["cid"]), "%s|%s" % [v["plant_key"], v["tier"]], int(v.get("months", 0)), k)
 					open -= k
 					moved += k
 	for cid in CoreUtil.sorted_keys(stay):
@@ -1072,7 +1077,7 @@ static func labour_month(world: WorldState) -> int:
 static func _negotiate(world: WorldState) -> void:
 	for cid in Company.ids(world):
 		for e in Company.payroll(world, cid):
-			var avg := Company.avg_pay(world, cid, String(e["post_tier"]))
+			var avg := Company.avg_pay(world, cid, String(e["post_tier"]))   # their group's average: specialists apart (the user, 9.2)
 			if int(e["pay"]) >= avg:
 				continue
 			var ask := int(e["pay"]) + (avg - int(e["pay"])) / 2

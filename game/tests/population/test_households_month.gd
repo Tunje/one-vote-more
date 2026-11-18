@@ -1139,3 +1139,40 @@ func test_a_given_up_plan_still_owned_never_takes_up_the_post() -> void:
 	Households.take_up_posts(w)
 	check_eq(Households.in_post(w, fid), 1, "a dead plan ends nobody's job")
 	check_eq(Company.staff_count(w, String(r[1])) / S, 10, "all ten posts held")
+
+
+
+func test_a_worker_does_not_move_to_an_opening_below_their_needs() -> void:
+	# the user (9.2): "But emplyees only apply to jobs that meet their needs": the employed as much as the jobless
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	_pool(w, land, "I2", 6, 1000)
+	var needs := Households.needs_per_worker(w, land)
+	var low := needs / 2
+	var a := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "low", {"area": land})
+	check_eq(Households.hire(w, a, "crew", "G", land, 6, {}, low, false, true), 6, "six placed at half their needs")
+	var b := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "high", {"area": land})
+	Company.set_hiring_salary(w, b, "G", land, needs - S)   # far over their bar, but under their needs
+	check_eq(Households.labour_month(w), 0, "nobody moves to an opening below their needs")
+	check_eq(Company.staff_count(w, a, "G") / S, 6, "all six stay")
+	Company.set_hiring_salary(w, b, "G", land, needs)
+	check(Households.labour_month(w) > 0, "an opening that meets their needs: they move")
+	check(Households.check(w).is_empty(), "jobs = people")
+
+
+func test_a_worker_who_moves_fills_that_opening_and_its_climb_is_gone() -> void:
+	var w := _world()
+	var land := AreaStore.found_landing(w)
+	_pool(w, land, "I2", 2, 1000)
+	var needs := Households.needs_per_worker(w, land)
+	var p0 := needs - needs % 1000 + 1000
+	var a := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "low", {"area": land})
+	Households.hire(w, a, "crew", "G", land, 2, {}, p0)
+	var b := Company.create(w, "BUILDER", "SMALL", {"kind": "HOME_WORLD", "holders": {"hw": 1000}}, "high", {"area": land})
+	Company.set_hiring_salary(w, b, "G", land, p0 * 11 / 10)
+	var key := "crew|G"
+	var open := Company.opening_offers(w, b, "crew", "G").size()
+	Company.set_openings(w, b, key, Company.fitted_openings(w, b, key, open).map(func(m): return 2))
+	w.month += 1
+	check_eq(Households.labour_month(w), 2, "two move to the climbed openings")
+	check_eq(Company.openings(w, b, key).size(), open - 2, "those openings are filled and gone")

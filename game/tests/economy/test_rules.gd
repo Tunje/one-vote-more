@@ -157,39 +157,68 @@ func test_the_public_works_department_keeps_its_crew_and_price_while_idle() -> v
 	check_eq(Company.price(w, pw, "BW"), 400 * S, "no price rule: it does not sell on a market")
 
 
-func test_the_hiring_offer_climbs_five_percent_a_month_a_post_stays_open_and_falls_back_when_filled() -> void:
-	# the user, 2026-11-18 (9.2, "How the hiring offer moves"): a new opening is offered the starting salary; it climbs
-	# 5% for each month a post could not be filled; the rise is gone once filled; there is no rule for lowering
+func test_each_opening_climbs_five_percent_a_month_on_its_own_count_and_a_new_one_starts_at_the_start() -> void:
+	# the user, 2026-11-18 (9.2): "increases should not stack for seperate offers, infact they should fall back to the
+	# original rule for settin on hire, then it should only climb max 5% if it cost not hire for one month"; "5% each
+	# month, it goes i never said i wanted the rule for lowering". Built per opening (the audit of 2026-11-18).
 	var w := _w()
 	var f := _crew(w, 9)   # 9 of 12 general posts filled; nobody out of work, no money for adverts: nobody is hired
-	var offer := func() -> int: return Company.hiring_salary(w, f[0], "G", "landing")
+	var offers := func() -> Array: return Company.opening_offers(w, f[0], "crew", "G")
 	var start := Rules.starting_salary(w, "landing", "G")
+	var up1 := start * 1050 / 1000
+	var up2 := up1 * 1050 / 1000
 	Rules.salary_rules(w, f[0])
-	check_eq(offer.call(), start, "a new opening is offered the starting salary")
+	check_eq(offers.call(), [start, start, start], "three new openings, each at the starting salary")
 	Rules.staff_to_posts(w, f[0])   # its hiring leaves the three open
 	w.month = 1
 	Rules.salary_rules(w, f[0])
-	check_eq(offer.call(), start * 1050 / 1000, "unfilled a whole month: 5%")
+	check_eq(offers.call(), [up1, up1, up1], "each unfilled a whole month: 5% on its own count")
 	check_eq(Company.payroll(w, f[0])[0]["pay"], 300 * S, "nobody's pay moved")
 	Rules.staff_to_posts(w, f[0])
 	w.month = 2
 	Rules.salary_rules(w, f[0])
-	check_eq(offer.call(), start * 1050 / 1000 * 1050 / 1000, "and 5% again the next month")
-	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", 3 * S, offer.call())   # filled
+	check_eq(offers.call(), [up2, up2, up2], "and 5% again the next month")
+	# one of them is filled at its offer: it is gone, with its climb
+	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", S, up2)
+	Company.fill_openings(w, f[0], "crew|G", 2, 1)
+	# and one more post opens beside the two climbed ones
+	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", -S, 300 * S)
+	check_eq(offers.call(), [up2, up2, start], "the new opening beside them is offered the starting salary: rises do not stack")
 	Rules.staff_to_posts(w, f[0])
 	w.month = 3
 	Rules.salary_rules(w, f[0])
-	check_eq(offer.call(), start, "filled: the rise is gone")
-	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", -S, 300 * S)   # a new opening
+	check_eq(offers.call(), [up2 * 1050 / 1000, up2 * 1050 / 1000, up1], "each climbs on its own count")
+	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", 3 * S, start)   # all filled
+	Rules.staff_to_posts(w, f[0])
 	w.month = 4
 	Rules.salary_rules(w, f[0])
-	check_eq(offer.call(), start, "a new opening starts from the starting salary: rises do not stack")
-	Households.seed_test(w, "landing", "I2", "G", 30)
-	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", S, 300 * S)
+	check_eq(offers.call(), [], "none open: no offer left standing")
+	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", -S, 300 * S)
 	w.month = 5
 	Rules.salary_rules(w, f[0])
-	check_eq(offer.call(), start, "30 out of work, no post open: there is no rule for lowering")
-	check_eq(Logbook.rows(w, {"kind": "SALARY", "who": f[0]}).size(), 3, "two climbs and one fall back, each in the log")
+	check_eq(offers.call(), [start], "a later opening starts from the starting salary again")
+	Households.seed_test(w, "landing", "I2", "G", 30)
+	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", S, 300 * S)
+	w.month = 6
+	Rules.salary_rules(w, f[0])
+	check_eq(offers.call(), [], "30 out of work, no post open: there is no rule for lowering")
+	check_eq(Logbook.rows(w, {"kind": "SALARY", "who": f[0], "what": "openings climbed"}).size(), 3, "each month's climb in the log")
+
+
+func test_the_dearest_opening_is_filled_first_and_the_newest_closes_first() -> void:
+	# Maja's readings (a) and (b), with Wilma's yes (9.2)
+	var w := _w()
+	var f := _crew(w, 10)   # two open
+	Rules.salary_rules(w, f[0])
+	Rules.staff_to_posts(w, f[0])
+	w.month = 1
+	Rules.salary_rules(w, f[0])   # both climbed once
+	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", -S, 300 * S)   # a third opens
+	Rules.staff_to_posts(w, f[0])
+	check_eq(Company.openings(w, f[0], "crew|G"), [1, 1, 0], "two climbed, one new")
+	Company.staff_change(w, f[0], f[1], "G", "landing|I2|G", S, 300 * S)   # one fewer open
+	Rules.staff_to_posts(w, f[0])
+	check_eq(Company.openings(w, f[0], "crew|G"), [1, 1], "the newest closed first")
 
 
 ## A small builder with its crew in the landing: every skilled and specialist post filled, `g` of its 12 general.
@@ -210,7 +239,7 @@ func test_the_familys_own_posts_are_never_open() -> void:
 		w.month = m
 		Rules.salary_rules(w, f[0])
 		Rules.staff_to_posts(w, f[0])
-	check_eq(Company.hiring_salary(w, f[0], "G", "landing"), Rules.starting_salary(w, "landing", "G"), "no post open: the offer stays at the start")
+	check_eq(Company.opening_offers(w, f[0], "crew", "G"), [], "no post open: no opening")
 
 
 func test_the_starting_salary_is_twice_the_rent_in_the_area_and_the_placed_get_two_and_a_half() -> void:
@@ -241,16 +270,17 @@ func test_a_month_without_hiring_holds_the_offer() -> void:
 	var w := _w()
 	var f := _crew(w, 9)
 	var start := Rules.starting_salary(w, "landing", "G")
+	Rules.salary_rules(w, f[0])
 	Rules.staff_to_posts(w, f[0])
 	w.month = 1
 	Rules.salary_rules(w, f[0])
-	check_eq(Company.hiring_salary(w, f[0], "G", "landing"), start * 1050 / 1000, "climbed once")
+	check_eq(Company.opening_offers(w, f[0], "crew", "G")[0], start * 1050 / 1000, "climbed once")
 	Company.book(w, f[0], "wages_due", 1000 * S)
 	Company.book(w, f[0], "wages", 0)   # it could not pay: 19a, no hiring this month
 	Rules.staff_to_posts(w, f[0])
 	w.month = 2
 	Rules.salary_rules(w, f[0])
-	check_eq(Company.hiring_salary(w, f[0], "G", "landing"), start * 1050 / 1000, "after a month it did not hire: held, neither up nor back")
+	check_eq(Company.opening_offers(w, f[0], "crew", "G")[0], start * 1050 / 1000, "after a month it did not hire: held (Maja's reading (c))")
 
 
 func test_staff_follow_the_posts_and_unpaid_staff_are_laid_off() -> void:
@@ -379,7 +409,7 @@ func test_a_family_works_its_own_posts_unpaid_and_hiring_fills_the_rest() -> voi
 	check_eq(Company.family_count(w, b) / S, n_ad, "but never the family")
 
 
-func test_the_family_takes_the_winnings_above_a_month_of_what_it_does_not_do() -> void:
+func test_the_family_takes_half_of_what_the_month_earned_while_the_buffer_is_building() -> void:
 	var w := _w()
 	var f := _farm(w, 2, 0)
 	var fam := Households.make_founder(w, Households.seed_test(w, "landing", "I2", "G", 10), "", true)
@@ -392,8 +422,9 @@ func test_the_family_takes_the_winnings_above_a_month_of_what_it_does_not_do() -
 	Company.book(w, f[0], "upkeep", 100 * S)
 	var wn := Rules.winnings(w, f[0])
 	check_eq(int(wn["earned"]), 2000 * S - 400 * S - 600 * S - 100 * S, "the month's takings less what it paid")
-	check_eq(int(wn["keep"]), 2 * 300 * S + 400 * S + 100 * S, "it keeps back the hired wages, inputs and upkeep")
-	check_eq(int(wn["amount"]), int(wn["earned"]), "the family takes what the month earned")
+	check(5000 * S < 6 * Rules.running_cost(w, "FARM", "SMALL", "landing"), "the account is below six months of running cost")
+	check_eq(int(wn["keep_pm"]), 500, "so the farm keeps 50% (the user: \"50% until it had 6 months worth built up\")")
+	check_eq(int(wn["amount"]), int(wn["earned"]) - int(wn["earned"]) * 500 / 1000, "the family takes the other half")
 	Rules.pay_winnings(w)
 	check_eq(w.ledger.balance(CoreUtil.acct(f[0])), 5000 * S - int(wn["amount"]), "paid out; the capital stays")
 	check_eq(int(Company.books_month(w, f[0])["winnings"]), int(wn["amount"]), "booked")
@@ -421,10 +452,10 @@ func test_a_loss_is_made_good_before_the_family_takes_winnings() -> void:
 	check_eq([int(r["change"]["winnings"][1]), int(r["why"]["pays_down"]), int(r["why"]["loss_carried_after"])], [0, 200, 100], "first the loss")
 	Company.close_month(w, f[0])
 	w.month = 2
-	Company.book(w, f[0], "rev", 500 * S)   # earns 500: 100 makes the loss good, 400 is the family's
+	Company.book(w, f[0], "rev", 500 * S)   # earns 500: 100 makes the loss good; of the 400 left the farm keeps half (buffer)
 	Rules.pay_winnings(w)
 	r = Logbook.rows(w, {"kind": "WINNINGS"})[-1]
-	check_eq([int(r["change"]["winnings"][1]), int(r["why"]["loss_carried"]), int(r["why"]["loss_carried_after"])], [400, 100, 0], "then the family")
+	check_eq([int(r["change"]["winnings"][1]), int(r["why"]["loss_carried"]), int(r["why"]["loss_carried_after"])], [200, 100, 0], "then the family, after the buffer's half")
 
 
 func test_a_new_hire_makes_half_rising_evenly_to_full_after_six_months() -> void:
@@ -568,11 +599,12 @@ func test_a_family_farm_that_sells_pays_its_family_winnings_in_the_real_month_or
 	var rows: Array = Logbook.rows(w, {"kind": "WINNINGS", "who": cid, "from": m, "to": m})
 	check_eq(rows.size(), 1, "one WINNINGS row")
 	check_eq(int(rows[-1]["why"]["earned"]), rev / S, "what it earned is the month just lived: its sales, no wages, no inputs")
-	check_eq(int(rows[-1]["change"]["winnings"][1]), rev / S, "all of it to the family")
+	check_eq(int(rows[-1]["change"]["winnings"][1]), rev / S - rev / S * 500 / 1000, "half to the family: the farm keeps 50% while it builds its buffer (15e)")
 	var paid: Array = Logbook.rows(w, {"kind": "PAY", "who": CoreUtil.acct(cid), "from": m, "to": m}).filter(func(r): return String(r["what"]) == "winnings")
-	check_eq(int(paid[-1]["change"]["paid"][1]) if not paid.is_empty() else 0, rev, "paid into the family's account")
-	check_eq(w.ledger.balance(CoreUtil.acct(cid)), 0, "nothing left in the farm")
-	check_eq(int(Company.books_closed(w, cid, m).get("winnings", 0)), rev, "booked in the month it was earned")
+	var half := rev - rev * 500 / 1000
+	check_eq(int(paid[-1]["change"]["paid"][1]) if not paid.is_empty() else 0, half, "paid into the family's account")
+	check_eq(w.ledger.balance(CoreUtil.acct(cid)), rev - half, "the other half stays in the farm: its buffer")
+	check_eq(int(Company.books_closed(w, cid, m).get("winnings", 0)), half, "booked in the month it was earned")
 	check_eq(int(Company.books_month(w, cid).get("winnings", 0)), 0, "not in the month to come")
 
 
@@ -966,3 +998,36 @@ func test_rule_3_raises_output_when_it_sells_out_by_five_percent_never_more() ->
 	Company.set_level(w, f[0], f[1], 0)
 	Rules.output_rule(w, f[0], {"offered": 0, "sold": 0, "unmet_above": 10 * S, "refused": 0}, false)
 	check_eq(lv.call(), 1, "nothing to offer and orders came: sold out, climbs from 0")
+
+
+
+## A family farm with `bal` credits in its account and a month that earned `earned` (all sales, nothing paid out).
+func _buffer_farm(w: WorldState, bal: int, earned: int) -> String:
+	var f := _farm(w, 0, 0)
+	var fam := Households.make_founder(w, Households.seed_test(w, "landing", "I2", "G", 10), "", true)
+	Company.family_set(w, f[0], f[1], fam, {"G": 1})
+	if bal > 0:
+		w.ledger.transfer(Ledger.EXTERNAL, CoreUtil.acct(f[0]), bal, "TEST", 0)
+	Company.book(w, f[0], "rev", earned)
+	return String(f[0])
+
+
+func test_the_farm_keeps_half_until_six_months_of_running_cost_are_built_up_then_ten_percent() -> void:
+	# 15e, the user, 2026-11-18, verbatim: "the farm needs a buffer say 50% until it had 6 months worth built up then 10%"
+	var w := _w()
+	var line := 6 * Rules.running_cost(w, "FARM", "SMALL", "landing")
+	var low := _buffer_farm(w, line - 1, 1000 * S)
+	var wn := Rules.winnings(w, low)
+	check_eq(int(wn["buffer_line"]), line, "the line is six months of the farm's running cost")
+	check_eq([int(wn["keep_pm"]), int(wn["amount"])], [500, 500 * S], "one credit short of six months: it keeps 50%")
+	var at := _buffer_farm(w, line, 1000 * S)
+	wn = Rules.winnings(w, at)
+	check_eq([int(wn["keep_pm"]), int(wn["amount"])], [100, 900 * S], "six months built up: it keeps 10%")
+	var above := _buffer_farm(w, 2 * line, 1000 * S)
+	check_eq(int(Rules.winnings(w, above)["amount"]), 900 * S, "and stays at 10% above it")
+
+
+func test_the_buffer_never_pays_out_more_than_the_account_holds() -> void:
+	var w := _w()
+	var poor := _buffer_farm(w, 100 * S, 1000 * S)   # earned 1000 on the books, but only 100 in the account
+	check_eq(int(Rules.winnings(w, poor)["amount"]), 100 * S, "half would be 500; the account holds 100")

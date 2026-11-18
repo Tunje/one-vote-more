@@ -279,7 +279,7 @@ func test_average_pay_negotiation_and_the_reference_wage() -> void:
 	var id := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
 	Company.staff_change(w, id, "crew", "G", "landing|I1|G", 10 * S, 300 * S)
 	Company.staff_change(w, id, "crew", "G", "landing|I2|G", 10 * S, 200 * S)
-	check_eq(Company.avg_pay(w, id, "G"), 250 * S, "the company's average for the tier")
+	check_eq(Company.avg_pay(w, id, "G"), 250 * S, "the line of the general and skilled workers")
 	check(not Company.negotiate(w, id, "crew", "G", "landing|I2|G", 260 * S), "never above the average")
 	check(not Company.negotiate(w, id, "crew", "G", "landing|I2|G", 190 * S), "never lower")
 	check(Company.negotiate(w, id, "crew", "G", "landing|I2|G", 240 * S, {"chief_mgmt": 50}), "closer to the average")
@@ -392,3 +392,21 @@ func test_rows_that_come_to_match_when_training_ends_are_one_row_to_every_reader
 	var low := String(Company.payroll(w, id)[-1]["row"])
 	check(Company.negotiate(w, id, "crew", "G", "landing|I3|G", 310 * S, {}, low), "the row at 300 negotiates")
 	check_eq(Company.payroll(w, id).map(func(e): return [int(e["n"]) / S, int(e["pay"]) / S]), [[2, 400], [9, 310]], "all nine of the row rose")
+
+
+
+func test_specialists_are_averaged_apart_and_general_and_skilled_share_one_line() -> void:
+	# the user (9.2): "avrage ask salleries in the company and underpayed is based on that line"; and "Specialists spoilt
+	# have been counted seperatly"; Wilma's reading: general and skilled together, specialists apart
+	var w := _w()
+	var id := Company.create(w, "BUILDER", "SMALL", HW, "B", {"area": "landing"})
+	Company.staff_change(w, id, "crew", "G", "landing|I2|G", 10 * S, 300 * S)
+	Company.staff_change(w, id, "crew", "S", "landing|I3|S", 10 * S, 450 * S)
+	Company.staff_change(w, id, "crew", "Sp", "landing|I4|Sp", 2 * S, 1000 * S)
+	check_eq(Company.avg_pay(w, id, "G"), 375 * S, "a general worker's line: general and skilled together")
+	check_eq(Company.avg_pay(w, id, "S"), 375 * S, "the same line for a skilled worker")
+	check_eq(Company.avg_pay(w, id, "Sp"), 1000 * S, "the specialists' own line")
+	Company.staff_change(w, id, "crew", "Sp", "landing|I4|Sp", 2 * S, 3000 * S)
+	check_eq(Company.avg_pay(w, id, "G"), 375 * S, "a specialist's pay does not move the others' line")
+	check(Company.negotiate(w, id, "crew", "G", "landing|I2|G", 375 * S), "a general worker may negotiate up to the shared line")
+	check(not Company.negotiate(w, id, "crew", "S", "landing|I3|S", 400 * S), "a skilled worker above it is not underpaid")

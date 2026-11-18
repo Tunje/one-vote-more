@@ -17,6 +17,7 @@ const TypeTable := preload("res://sim/economy/type_table.gd")
 
 const TABLE := "company"
 ## The rules (the starting salary of an area); loaded when needed, as the rules preload this file.
+const HOUSEHOLDS_PATH := "res://sim/population/households.gd"
 const RULES_PATH := "res://sim/economy/rules.gd"
 const PLANT_TABLE := "plant"
 const OWNER_KINDS: Array[String] = ["STATE", "HOME_WORLD", "FAMILY", "PRIVATE", "COOP", "PARTY", "UNION"]
@@ -58,7 +59,8 @@ static func create(world: WorldState, type: String, size: String, owner: Diction
 		"plants": [],              # plant ids; the plants are in table "plant"
 		"line": 0,                 # which output line it runs (first = 0, second = 1)
 		"staff": {},               # {plant id or "crew": {post tier: {"area|band|skill": {"n": persons × S, "hires": [{"n", "pay", "since", "train"}]}}}}
-		"salary": {},              # the HIRING offer while it has climbed: {tier: {area: milli-credits a month}} (Rules.salary_rules)
+		"salary": {},              # a base offer of its own for a new opening, {tier: {area: milli-credits}}; nothing in the game sets it (tests do)
+		"openings": {},            # its open posts, each with its whole months unfilled: {"plant|tier": {"m", "open": [months...]}} (9.2)
 		"stock": {},               # {item: {"qty": milli-units, "value": milli-credits in all, "waiting": milli-units}}
 		"books": {"month": {}, "year": []},   # the open month's lines, and the last 12 closed months (oldest first)
 		"price": price,            # ONE price per company for each thing it sells: {item or "BW"/"FREIGHT"/"@client": milli-credits}
@@ -371,10 +373,11 @@ static func trained_count(world: WorldState, cid: String, post_tier: String = ""
 	return n
 
 
-## The salary the company offers a new hire of this tier this month at a plant standing in `area` (the plant's area,
-## Terra's Site.of; for "crew", the company's own "area"), milli-credits a month: the offer there while it has climbed
-## (a post unfilled a whole month, Rules.salary_rules), else the starting salary of that area (9.2, the user
-## 2026-11-18: "fall back to the original rule for settin on hire"; Rules.starting_salary, the user's formula).
+## What a NEW opening of this tier is offered at a plant standing in `area` (the plant's area, Terra's Site.of; for
+## "crew", the company's own "area"), milli-credits a month: the starting salary of that area (9.2, the user
+## 2026-11-18: "fall back to the original rule for settin on hire"; Rules.starting_salary, the user's formula). An
+## opening that has stood unfilled climbs from it on its own count (opening_offer). A base set with set_hiring_salary stands in
+## for the starting salary; nothing in the game sets one (tests do).
 static func hiring_salary(world: WorldState, cid: String, post_tier: String, area: String) -> int:
 	var sal: Dictionary = world.peek(TABLE).get(cid, {}).get("salary", {})
 	if sal.has(post_tier) and (sal[post_tier] as Dictionary).has(area):
@@ -396,24 +399,77 @@ static func set_hiring_salary(world: WorldState, cid: String, post_tier: String,
 	return true
 
 
-## Has the offer for a tier in an area climbed (is one set above the starting salary)?
-static func offer_has_climbed(world: WorldState, cid: String, post_tier: String, area: String) -> bool:
-	return (world.peek(TABLE).get(cid, {}).get("salary", {}).get(post_tier, {}) as Dictionary).has(area)
+## What an opening that has stood unfilled `months` whole months is offered (9.2, the user, 2026-11-18: "it should
+## only climb max 5% if it cost not hire for one month"; "5% each month"): the new opening's offer (hiring_salary)
+## climbed Rules.OFFER_CLIMB_PM that many times, each on the last.
+static func opening_offer(world: WorldState, cid: String, post_tier: String, area: String, months: int) -> int:
+	var climb := int((load(RULES_PATH) as GDScript).get("OFFER_CLIMB_PM"))
+	var x := hiring_salary(world, cid, post_tier, area)
+	for i in maxi(0, months):
+		x = x * (1000 + climb) / 1000
+	return x
 
 
-## The rise is gone (9.2, the user: "When the post is filled ... the next opening starts from the original rule
-## again"): the offer for a tier in an area is the starting salary again. Writes a SALARY row. False if none was set.
-static func clear_hiring_salary(world: WorldState, cid: String, post_tier: String, area: String, why: Dictionary = {}) -> bool:
-	if not offer_has_climbed(world, cid, post_tier, area):
-		return false
-	var old := hiring_salary(world, cid, post_tier, area)
-	var sal: Dictionary = world.table(TABLE)[cid]["salary"]
-	sal[post_tier].erase(area)
-	if (sal[post_tier] as Dictionary).is_empty():
-		sal.erase(post_tier)
-	Logbook.note(world, "SALARY", cid, "hiring offer back to the starting salary", why.merged({"tier": post_tier, "area": area}),
-		{"hiring_salary": [old, hiring_salary(world, cid, post_tier, area)]})
-	return true
+## The open posts at one plant key and tier ("plant|tier") as written last, each the whole months it has stood
+## unfilled, the longest-open first (9.2, built per opening: "increases should not stack for seperate offers").
+static func openings(world: WorldState, cid: String, key: String) -> Array:
+	var e: Dictionary = world.peek(TABLE).get(cid, {}).get("openings", {}).get(key, {})
+	return (e.get("open", []) as Array).duplicate()
+
+
+## The month the openings at `key` were last written (-1 if none).
+static func openings_month(world: WorldState, cid: String, key: String) -> int:
+	return int(world.peek(TABLE).get(cid, {}).get("openings", {}).get(key, {}).get("m", -1))
+
+
+## The openings at `key` fitted to `open` posts open now: when fewer are open the newest close first (Maja's reading
+## (b), with Wilma's yes); when more, the new ones start at 0 months. Pure.
+static func fitted_openings(world: WorldState, cid: String, key: String, open: int) -> Array:
+	var ms := openings(world, cid, key)
+	while ms.size() > maxi(0, open):
+		ms.pop_back()
+	while ms.size() < open:
+		ms.append(0)
+	return ms
+
+
+## Writes the openings at `key` (longest-open first), stamped this month; none erases them.
+static func set_openings(world: WorldState, cid: String, key: String, months: Array) -> void:
+	var c: Dictionary = world.table(TABLE).get(cid, {})
+	if c.is_empty():
+		return
+	if not c.has("openings"):
+		c["openings"] = {}
+	var ms := months.duplicate()
+	ms.sort()
+	ms.reverse()
+	if ms.is_empty():
+		(c["openings"] as Dictionary).erase(key)
+	else:
+		c["openings"][key] = {"m": world.month, "open": ms}
+
+
+## k openings at `key` that had stood `months` whole months are filled (a hire, a worker moving in): they go, and their
+## climb with them (the user: "When the post is filled that rise is gone").
+static func fill_openings(world: WorldState, cid: String, key: String, months: int, k: int) -> void:
+	var ms := openings(world, cid, key)
+	for i in k:
+		var at := ms.find(months)
+		if at < 0:
+			break
+		ms.remove_at(at)
+	var m := openings_month(world, cid, key)
+	set_openings(world, cid, key, ms)
+	if m >= 0 and not ms.is_empty():
+		world.table(TABLE)[cid]["openings"][key]["m"] = m   # filling does not restamp the month the counts were taken
+
+
+## The offers of the posts open now at one plant key and tier, the dearest first (for the screens and tests).
+static func opening_offers(world: WorldState, cid: String, plant_key: String, post_tier: String) -> Array:
+	var have := staff_count(world, cid, post_tier, plant_key) / CoreUtil.S
+	var open := maxi(0, int(hire_wanted(world, cid, plant_key)[post_tier]) - have)
+	var area := String((load(HOUSEHOLDS_PATH) as GDScript).call("plant_area", world, cid, plant_key))
+	return fitted_openings(world, cid, "%s|%s" % [plant_key, post_tier], open).map(func(m): return opening_offer(world, cid, post_tier, area, int(m)))
 
 
 ## The yearly raise (plan 9.2): every hire row's pay × (1 + raise), the raise being at least the government's minimum
@@ -638,7 +694,8 @@ static func family_fill(posts: Dictionary, adults: Dictionary) -> Dictionary:
 
 
 ## Every open post in an area, for the households' applying (plan 9.2: a worker applies only to a job whose salary
-## meets their needs): [{"cid", "plant_key", "tier", "open" (whole persons), "pay" (the hiring salary)}], in a fixed
+## meets their needs): [{"cid", "plant_key", "tier", "open" (whole persons), "months" (whole months these openings have
+## stood unfilled), "pay" (their offer)}], one entry per group of openings with the same months, in a fixed
 ## order. Until plants carry Terra's area here, a company's posts are in its own area.
 static func vacancies(world: WorldState, area: String) -> Array:
 	var out: Array = []
@@ -653,8 +710,17 @@ static func vacancies(world: WorldState, area: String) -> Array:
 			for t in ["Sp", "S", "G"]:
 				var have := staff_count(world, cid, t, String(pk)) / CoreUtil.S
 				if int(want[t]) > have:
-					out.append({"cid": cid, "plant_key": String(pk), "tier": t, "open": int(want[t]) - have,
-						"pay": hiring_salary(world, cid, t, area)})
+					# each opening at its own offer (9.2, per opening): one entry per group with the same months open,
+					# the dearest first
+					var ms := fitted_openings(world, cid, "%s|%s" % [pk, t], int(want[t]) - have)
+					var i := 0
+					while i < ms.size():
+						var j := i
+						while j < ms.size() and int(ms[j]) == int(ms[i]):
+							j += 1
+						out.append({"cid": cid, "plant_key": String(pk), "tier": t, "open": j - i, "months": int(ms[i]),
+							"pay": opening_offer(world, cid, t, area, int(ms[i]))})
+						i = j
 	return out
 
 
@@ -703,16 +769,24 @@ static func hold_of(world: WorldState, cid: String, item: String) -> int:
 	return int(world.peek(TABLE).get(cid, {}).get("hold", {}).get(item, 0))
 
 
-## The average pay a company gives in one post tier, milli-credits a month, head-weighted over its staff entries
-## (the user: "avrage ask salleries in the company and underpayed is based on that line"); 0 with nobody in the tier.
+## The average pay a worker of `post_tier` is measured against, milli-credits a month, head-weighted over the hire rows
+## of their group in the company (the user: "I think you should avrage ask salleries in the company and underpayed is
+## based on that line, that way both old and new can become underpayed"; and, told that a company-wide average puts
+## its general workers under it beside its specialists: "Specialists spoilt have been counted seperatly"). Wilma's
+## reading: two groups, the specialists, and everyone else (general and skilled together). 0 with nobody in the group.
 static func avg_pay(world: WorldState, cid: String, post_tier: String) -> int:
 	var n := 0
 	var sum := 0
 	for e in payroll(world, cid):
-		if String(e["post_tier"]) == post_tier:
+		if pay_group(String(e["post_tier"])) == pay_group(post_tier):
 			n += int(e["n"])
 			sum += int(e["n"]) * int(e["pay"])
 	return 0 if n == 0 else sum / n
+
+
+## The group a post tier's pay is averaged in (avg_pay): "Sp" for the specialists, "GS" for general and skilled.
+static func pay_group(post_tier: String) -> String:
+	return "Sp" if post_tier == "Sp" else "GS"
 
 
 ## A negotiated rise for one hire row of a staff entry (plan 9.2: "the manager, negotiation can bring it closer to
