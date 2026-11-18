@@ -23,7 +23,6 @@ const Grants := preload("res://sim/economy/grants.gd")
 
 
 static func monthly(world: WorldState, st: Dictionary) -> void:
-	_grant_cover(world, st)   # the grants are open from month one (9.12); it acts once the economy publishes need
 	if world.table("econ").has("s"):
 		_road_budget_need(world, st)
 		_toll_feelings(world)
@@ -535,6 +534,17 @@ static func _order(world: WorldState, st: Dictionary, busy: Dictionary, who: Dic
 const GRANT_KINDS := {"FARM": "ECON_FAMILY_FARM_GRANT", "BAKERY": "ECON_FAMILY_BAKERY_GRANT",
 	"TRUCKER": "ECON_TRUCK_DRIVER_GRANT", "TRUCKSHOP": "ECON_TRUCK_WORKSHOP_GRANT"}
 const GRANT_FAVOUR := 0.5   # weight of the governing parties' vote share in a district against its (normalised) need
+
+
+## The economy's month calls this in COMPANY_AI, after the programmes open and close and before anyone founds, so a
+## founder applies to a programme whose sum and districts are already decided (Wilma, 2026-11-18). Nothing without a
+## politics state (an economy-only game).
+static func grant_programmes(world: WorldState) -> void:
+	if not world.peek("pol").has("state"):
+		return
+	_grant_cover(world, world.table("pol")["state"])
+
+
 static func _grant_cover(world: WorldState, st: Dictionary) -> void:
 	var need_all: Dictionary = EconFace.grant_need(world)
 	if need_all.is_empty():

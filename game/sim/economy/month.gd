@@ -101,13 +101,18 @@ static func settlement(world: WorldState) -> void:
 	Landing.sweep(world)
 
 
-## 1. Rules.month (Bob), which also closes each company's books for the month;  2. founding;  3. plans sign with
-## builders (Otto);  4. the grant programmes' month (Ella).
+## 1. Rules.month (Bob), which also closes each company's books for the month;  2. the grant programmes' month (Ella):
+## programmes open and close and the need is published;  3. the government decides each programme it has not decided
+## (GovBuilder.grant_programmes: its sum and the districts it covers);  4. founding;  5. plans sign with builders (Otto).
+## 2 and 3 come before founding so a founder applies to a programme the government has already decided (Wilma,
+## 2026-11-18: in month one every farm applied before the government had chosen, so none was covered and the sum, set
+## after them, counted them as farms already planned).
 static func company_ai(world: WorldState) -> void:
 	Rules.month(world)
+	Grants.monthly(world)
+	GovBuilder.grant_programmes(world)
 	founding(world)
 	Building.sign_round(world)
-	Grants.monthly(world)
 
 
 ## The founding sequence (joins paper, COMPANY_AI 2), for every type that may be founded and every area. Each call is

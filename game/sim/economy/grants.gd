@@ -111,8 +111,8 @@ static func _refusal(world: WorldState, kind: String, area: String, founder: Str
 
 ## Has this founder's household had a grant? (61: one per household.) Households are counts in pools, so the memory is
 ## kept there (Maja): a founder drawn from a pool's granted households carries "had_grant" on its record, and a paid
-## grant is marked on the founder (Households.mark_granted, called from apply once her piece is in the tree) and goes
-## back to the pool with it. This file's own grants by founder id are checked too.
+## grant is marked on the founder (Households.mark_granted, called from apply) and goes back to the pool with it.
+## This file's own grants by founder id are checked too.
 static func had(world: WorldState, founder: String) -> bool:
 	if bool(world.peek("founder").get(founder, {}).get("had_grant", false)):
 		return true
@@ -196,6 +196,8 @@ static func apply(world: WorldState, plan_id: String) -> Dictionary:
 		"status": "PAID", "repaid": 0}
 	_count(world, kind, "paid")
 	Logbook.note(world, "GRANT", String(plan.get("founder", "")), "grant paid", why, {"plan money": [0, amount / S]}, "gov", pid)
+	if String(plan.get("founder", "")) != "":
+		Households.mark_granted(world, String(plan["founder"]))   # one grant per household (61), kept when it goes back (Maja)
 	return {"ok": true, "amount": amount, "why": ""}
 
 
