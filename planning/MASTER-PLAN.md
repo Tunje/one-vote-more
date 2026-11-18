@@ -793,6 +793,16 @@ The other half, which Wilma had not recorded (the user, 2026-11-18, verbatim, to
 
 So: a claimed job does not raise a builder's price. What counts is the open jobs in the market hoping to be claimed: those raise it. Written into rebuild-company.md 15c. Otto builds it.
 
+And, the same hour, on a builder's book running to month 118:
+
+> Builders did not claim infinitely in the build we talked about
+
+The user's earlier words on this, 2026-11-15, found in the transcript and never carried into the rebuild papers:
+
+> What you just said about builders and no jobs show another fault, job cues, but firms cue work up we do this in three months, that's why businesses need to be plans,  also they compeete for jobs,  both have the job listed whoever gets their first wins,  competitiv buisness here but also patience they want fall for not fining jobs when 350 jobs just got canncled form not fining builders
+
+So: a builder does not claim jobs without end. Jobs not claimed stay listed in the market for every builder; whoever gets there first wins; a plan is patient and is not cancelled for finding no builder. (Wilma's reading of how far a builder claims, from "we do this in three months": a job it can start within three months.) Otto builds it with the open-jobs ruling.
+
 Written into [rebuild-company.md](rebuild-company.md) 12.3, 15c.
 
 
